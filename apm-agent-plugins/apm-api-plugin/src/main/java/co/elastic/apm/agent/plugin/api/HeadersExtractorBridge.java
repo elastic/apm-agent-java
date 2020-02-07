@@ -76,7 +76,7 @@ public class HeadersExtractorBridge implements TextHeaderGetter<HeadersExtractor
                 logger.error("Failed to extract trace context headers", throwable);
             }
         } else {
-            Iterable<String> headers = getHeaders(headerName, carrier);
+            Iterable<String> headers = getValues(headerName, carrier);
             if (headers != null) {
                 Iterator<String> iterator = headers.iterator();
                 if (iterator.hasNext()) {
@@ -88,7 +88,17 @@ public class HeadersExtractorBridge implements TextHeaderGetter<HeadersExtractor
     }
 
     @Override
-    public Iterable<String> getHeaders(String headerName, Extractor carrier) {
+    public <S> void forEach(String headerName, Extractor carrier, S state, HeaderConsumer<String, S> consumer) {
+        Iterable<String> values = getValues(headerName, carrier);
+        if (values != null) {
+            for (String value : values) {
+                consumer.accept(value, state);
+            }
+        }
+    }
+
+    @Nullable
+    public Iterable<String> getValues(String headerName, Extractor carrier) {
         Iterable<String> values = null;
         try {
             //noinspection unchecked

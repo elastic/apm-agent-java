@@ -24,14 +24,14 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 
-public class TextHeaderMapAccessor implements TextHeaderGetter<Map<String, String>>, TextHeaderSetter<Map<String, String>> {
+public class TextHeaderMapAccessor extends AbstractHeaderGetter<String, Map<String, String>> implements TextHeaderGetter<Map<String, String>>, TextHeaderSetter<Map<String, String>> {
 
     public static final TextHeaderMapAccessor INSTANCE = new TextHeaderMapAccessor();
 
@@ -42,16 +42,6 @@ public class TextHeaderMapAccessor implements TextHeaderGetter<Map<String, Strin
     @Override
     public String getFirstHeader(String headerName, Map<String, String> headerMap) {
         return headerMap.get(headerName);
-    }
-
-    @Nullable
-    @Override
-    public Iterable<String> getHeaders(String headerName, Map<String, String> headerMap) {
-        String value = headerMap.get(headerName);
-        if (value != null) {
-            return List.of(value);
-        }
-        return null;
     }
 
     @Override

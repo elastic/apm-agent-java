@@ -35,19 +35,15 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 @SuppressWarnings("rawtypes")
 class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRecord>, BinaryHeaderSetter<ProducerRecord>,
-    HeaderRemover<ProducerRecord>, Iterable<byte[]> {
+    HeaderRemover<ProducerRecord> {
 
     public static final Logger logger = LoggerFactory.getLogger(KafkaRecordHeaderAccessor.class);
 
     private static final KafkaRecordHeaderAccessor INSTANCE = new KafkaRecordHeaderAccessor();
-
-    private static final HeaderValuesIterator headerIteratorWrapper = new HeaderValuesIterator();
 
     private static final ThreadLocal<Map<String, ElasticHeaderImpl>> threadLocalHeaderMap = new ThreadLocal<>();
 
@@ -65,16 +61,11 @@ class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRecord>, B
         return null;
     }
 
-    @Nullable
     @Override
-    public Iterable<byte[]> getHeaders(String headerName, ConsumerRecord record) {
-        headerIteratorWrapper.headerIterator = record.headers().headers(headerName).iterator();
-        return this;
-    }
-
-    @Override
-    public Iterator<byte[]> iterator() {
-        return headerIteratorWrapper;
+    public <S> void forEach(String headerName, ConsumerRecord carrier, S state, HeaderConsumer<byte[], S> consumer) {
+        for (Header header : carrier.headers().headers(headerName)) {
+            consumer.accept(header.value(), state);
+        }
     }
 
     @Override
@@ -114,24 +105,4 @@ class KafkaRecordHeaderAccessor implements BinaryHeaderGetter<ConsumerRecord>, B
         carrier.headers().remove(headerName);
     }
 
-    private static final class HeaderValuesIterator implements Iterator<byte[]> {
-        @Nullable
-        private Iterator<Header> headerIterator;
-
-        @Override
-        public boolean hasNext() {
-            if (headerIterator != null) {
-                return headerIterator.hasNext();
-            }
-            return false;
-        }
-
-        @Override
-        public byte[] next() {
-            if (headerIterator != null) {
-                return headerIterator.next().value();
-            }
-            throw new NoSuchElementException("Kafka record header iterator is not initialized");
-        }
-    }
 }

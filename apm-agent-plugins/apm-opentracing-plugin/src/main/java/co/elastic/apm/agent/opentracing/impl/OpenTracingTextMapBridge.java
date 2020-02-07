@@ -55,11 +55,13 @@ public class OpenTracingTextMapBridge implements TextHeaderGetter<Iterable<Map.E
         return null;
     }
 
-    @Nullable
     @Override
-    public Iterable<String> getHeaders(String headerName, Iterable<Map.Entry<String, String>> textMap) {
-        // Not supported for OpenTracing TextMap
-        return null;
+    public <S> void forEach(String headerName, Iterable<Map.Entry<String, String>> carrier, S state, HeaderConsumer<String, S> consumer) {
+        for (Map.Entry<String, String> entry : carrier) {
+            if (entry.getKey().equalsIgnoreCase(headerName)) {
+                consumer.accept(entry.getValue(), state);
+            }
+        }
     }
 
     @Override

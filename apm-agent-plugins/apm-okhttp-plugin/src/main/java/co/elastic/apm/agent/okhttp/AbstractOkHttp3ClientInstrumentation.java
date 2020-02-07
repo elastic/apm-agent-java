@@ -28,7 +28,6 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import okhttp3.Request;
 
@@ -41,17 +40,11 @@ public abstract class AbstractOkHttp3ClientInstrumentation extends ElasticApmIns
     // We can refer OkHttp types thanks to type erasure
     @VisibleForAdvice
     @Nullable
-    public static HelperClassManager<TextHeaderGetter<Request>> headerGetterHelperManager;
-    @VisibleForAdvice
-    @Nullable
     public static HelperClassManager<TextHeaderSetter<Request.Builder>> headerSetterHelperManager;
 
     public AbstractOkHttp3ClientInstrumentation(ElasticApmTracer tracer) {
-        headerGetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.okhttp.OkHttp3RequestHeaderAccessor"
-        );
         headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.okhttp.OkHttp3RequestHeaderAccessor"
+            "co.elastic.apm.agent.okhttp.OkHttp3RequestHeaderSetter"
         );
     }
 

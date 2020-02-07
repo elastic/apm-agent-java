@@ -22,30 +22,18 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.okhttp;
+package co.elastic.apm.agent.asynchttpclient.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import com.squareup.okhttp.Request;
+import org.asynchttpclient.Request;
 
-import javax.annotation.Nullable;
-
-public class OkHttpRequestHeaderAccessor implements TextHeaderSetter<Request.Builder>, TextHeaderGetter<Request> {
-
-    @Nullable
-    @Override
-    public String getFirstHeader(String headerName, Request request) {
-        return request.header(headerName);
-    }
-
-    @Nullable
-    @Override
-    public Iterable<String> getHeaders(String headerName, Request request) {
-        return request.headers(headerName);
-    }
+@VisibleForAdvice
+public class RequestHeaderSetter implements TextHeaderSetter<Request> {
 
     @Override
-    public void setHeader(String headerName, String headerValue, Request.Builder requestBuilder) {
-        requestBuilder.addHeader(headerName, headerValue);
+    public void setHeader(String headerName, String headerValue, Request request) {
+        request.getHeaders().set(headerName, headerValue);
     }
+
 }

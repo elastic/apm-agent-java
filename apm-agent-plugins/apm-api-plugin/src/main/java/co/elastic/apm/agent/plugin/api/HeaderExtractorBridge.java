@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
 @VisibleForAdvice
-public class HeaderExtractorBridge implements TextHeaderGetter<Object> {
+public class HeaderExtractorBridge extends AbstractHeaderGetter<String, Object> implements TextHeaderGetter<Object> {
 
     private static final Logger logger = LoggerFactory.getLogger(HeaderExtractorBridge.class);
 
@@ -65,12 +66,4 @@ public class HeaderExtractorBridge implements TextHeaderGetter<Object> {
         return value;
     }
 
-    /**
-     * Returns null. {@link HeadersExtractorBridge} should be used instead for this functionality
-     */
-    @Nullable
-    @Override
-    public Iterable<String> getHeaders(String headerName, Object carrier) {
-        return null;
-    }
 }
