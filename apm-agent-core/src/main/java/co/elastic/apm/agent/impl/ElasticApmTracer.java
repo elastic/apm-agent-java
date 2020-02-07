@@ -222,7 +222,7 @@ public class ElasticApmTracer {
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = createTransaction().start(TraceContext.getFromTraceContextTextHeaders(), headerCarrier,
+            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
                 textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
         }
         afterTransactionStart(initiatingClassLoader, transaction);
@@ -260,7 +260,7 @@ public class ElasticApmTracer {
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = createTransaction().start(TraceContext.getFromTraceContextBinaryHeaders(), headerCarrier,
+            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
                 binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
         }
         afterTransactionStart(initiatingClassLoader, transaction);

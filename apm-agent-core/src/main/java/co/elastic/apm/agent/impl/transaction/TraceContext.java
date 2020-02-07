@@ -104,10 +104,10 @@ public class TraceContext extends TraceContextHolder {
             return true;
         }
     };
-    private static final ChildContextCreatorTwoArg<Object, TextHeaderGetter<?>> FROM_TRACE_CONTEXT_TEXT_HEADERS =
-        new ChildContextCreatorTwoArg<Object, TextHeaderGetter<?>>() {
+    private static final ChildContextCreatorTwoArg FROM_TRACE_CONTEXT_TEXT_HEADERS =
+        new ChildContextCreatorTwoArg<Object, TextHeaderGetter<Object>>() {
             @Override
-            public boolean asChildOf(TraceContext child, @Nullable Object carrier, TextHeaderGetter<?> traceContextHeaderGetter) {
+            public boolean asChildOf(TraceContext child, @Nullable Object carrier, TextHeaderGetter<Object> traceContextHeaderGetter) {
                 if (carrier == null) {
                     return false;
                 }
@@ -115,18 +115,17 @@ public class TraceContext extends TraceContextHolder {
                 // TextHeaderGetter (which have a runtime inferred type of ?). The caller must ensure anyway that the
                 // carrier type is the one expected in the provided TextHeaderGetter, we cannot enforce it through generics
                 // if we want to use this single ChildContextCreatorTwoArg instance for all types.
-                //noinspection unchecked
-                String traceparent = ((TextHeaderGetter<Object>) traceContextHeaderGetter).getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                String traceparent = traceContextHeaderGetter.getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                 if (traceparent != null) {
                     return child.asChildOf(traceparent);
                 }
                 return false;
             }
         };
-    private static final ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<?>> FROM_TRACE_CONTEXT_BINARY_HEADERS =
-        new ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<?>>() {
+    private static final ChildContextCreatorTwoArg FROM_TRACE_CONTEXT_BINARY_HEADERS =
+        new ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<Object>>() {
             @Override
-            public boolean asChildOf(TraceContext child, @Nullable Object carrier, BinaryHeaderGetter<?> traceContextHeaderGetter) {
+            public boolean asChildOf(TraceContext child, @Nullable Object carrier, BinaryHeaderGetter<Object> traceContextHeaderGetter) {
                 if (carrier == null) {
                     return false;
                 }
@@ -134,8 +133,7 @@ public class TraceContext extends TraceContextHolder {
                 // BinaryHeaderGetter (which have a runtime inferred type of ?). The caller must ensure anyway that the
                 // carrier type is the one expected in the provided BinaryHeaderGetter, we cannot enforce it through generics
                 // if we want to use this single ChildContextCreatorTwoArg instance for all types.
-                //noinspection unchecked
-                byte[] traceparent = ((BinaryHeaderGetter<Object>) traceContextHeaderGetter).getFirstHeader(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
+                byte[] traceparent = traceContextHeaderGetter.getFirstHeader(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
                 if (traceparent != null) {
                     return child.asChildOf(traceparent);
                 }
@@ -225,12 +223,12 @@ public class TraceContext extends TraceContextHolder {
         return new TraceContext(tracer, Id.new128BitId());
     }
 
-    public static ChildContextCreatorTwoArg<Object, TextHeaderGetter<?>> getFromTraceContextTextHeaders() {
-        return FROM_TRACE_CONTEXT_TEXT_HEADERS;
+    public static <C> ChildContextCreatorTwoArg<C, TextHeaderGetter<C>> getFromTraceContextTextHeaders() {
+        return (ChildContextCreatorTwoArg<C, TextHeaderGetter<C>>) FROM_TRACE_CONTEXT_TEXT_HEADERS;
     }
 
-    public static ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<?>> getFromTraceContextBinaryHeaders() {
-        return FROM_TRACE_CONTEXT_BINARY_HEADERS;
+    public static <C> ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>> getFromTraceContextBinaryHeaders() {
+        return (ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
     }
 
     public static ChildContextCreator<ElasticApmTracer> fromActive() {
