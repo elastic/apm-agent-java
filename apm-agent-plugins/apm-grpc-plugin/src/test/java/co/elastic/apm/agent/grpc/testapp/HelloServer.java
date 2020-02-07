@@ -30,12 +30,16 @@ import co.elastic.apm.agent.grpc.testapp.generated.HelloRequest;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class HelloServer {
 
@@ -43,14 +47,20 @@ public class HelloServer {
 
     private final int port;
     private final Server server;
+    private final AtomicReference<Sync> syncBarriers;
+
+    private static class Sync {
+        CyclicBarrier processingStart;
+        CyclicBarrier processingEnd;
+    }
 
     public HelloServer(int port) {
         this.port = port;
+        this.syncBarriers = new AtomicReference<>();
         HelloClient nestedClient = new HelloClient("localhost", port);
         HelloGrpcImpl serverImpl = new HelloGrpcImpl(nestedClient);
         this.server = ServerBuilder.forPort(port)
             .addService(serverImpl)
-//            .intercept(new GrpcUnaryServerInterceptor())
             .build();
 
     }
@@ -63,12 +73,35 @@ public class HelloServer {
 
     public void stop() throws InterruptedException {
         logger.info("stopping grpc server");
-        server.shutdown().awaitTermination();
+        Sync sync = syncBarriers.get();
+        if(sync!=null){
+            checkNoWaiting(sync.processingStart, true);
+            checkNoWaiting(sync.processingEnd, true);
+        }
+        boolean shutdownOk = server.shutdown().awaitTermination(1, TimeUnit.SECONDS);
+        if (!shutdownOk) {
+            throw new IllegalStateException("something is wrong, unable to properly shut down server");
+        }
         logger.info("grpc server shutdown complete");
     }
 
+    private static void checkNoWaiting(CyclicBarrier barrier, boolean isStart) {
+        if (barrier.getNumberWaiting() > 0) {
+            String msg = String.format("server still waiting for sync, someone likely forgot to release the %s barrier", isStart ? "start" : "end");
+            throw new IllegalArgumentException(msg);
+        }
+
+    }
+
+    public void useBarriersForProcessing(CyclicBarrier start, CyclicBarrier end) {
+        Sync sync = new Sync();
+        sync.processingStart = start;
+        sync.processingEnd = end;
+        this.syncBarriers.set(sync);
+    }
+
     // service implementation
-    private static class HelloGrpcImpl extends HelloGrpc.HelloImplBase {
+    private class HelloGrpcImpl extends HelloGrpc.HelloImplBase {
 
         private final HelloClient client;
 
@@ -83,29 +116,74 @@ public class HelloServer {
             int depth = request.getDepth();
             String message;
 
+            // in case client cancels the call
+            // - if server side processing isn't started, we will not capture any transaction
+            // - while it's being processed
+            // we need to be sure that the created transaction (if any) will have the 'cancelled' status
+            // even if the server has already started processing it.
+            syncWait(true);
+
+            logger.info("start processing");
+
             if (depth > 0) {
                 int nextDepth = depth - 1;
-                String nestedResult = client.sayHello(userName, nextDepth).orElse(String.format("error(%d)", nextDepth));
+                String nestedResult = client.sayHello(userName, nextDepth);
+                if (nestedResult == null) {
+                    nestedResult = String.format("error(%d)", nextDepth);
+                }
                 message = String.format("nested(%d)->%s", depth, nestedResult);
             } else {
 
                 if (userName.isEmpty()) {
+                    logger.info("trigger a graceful error");
                     // this seems to be the preferred way to deal with errors on server implementation
-                    responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+                    responseObserver.onError(Status.INVALID_ARGUMENT.asRuntimeException());
                     return;
                 } else if ("boom".equals(userName)) {
+                    logger.info("trigger a server exception aka 'not so graceful error'");
                     // this will be translated into a Status#UNKNOWN
                     throw new RuntimeException("boom");
                 }
 
                 message = String.format("hello(%s)", userName);
             }
+
+            logger.info("end of processing, response not sent yet");
+
+            // end of processing, but before sending response
+            syncWait(false);
+
+            logger.info("start sending response");
+
             HelloReply reply = HelloReply.newBuilder()
                 .setMessage(message)
                 .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
 
+            logger.info("end of sending response");
+
         }
+
+        private void syncWait(boolean isStart) {
+            Sync sync = syncBarriers.get();
+            if (sync != null) {
+                String step = isStart ? "start" : "end";
+                logger.info("server waiting sync on " + step);
+                CyclicBarrier barrier = isStart ? sync.processingStart : sync.processingEnd;
+                long waitStart = System.currentTimeMillis();
+                try {
+                    barrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    barrier.reset();
+                }
+                long waitedMillis = System.currentTimeMillis() - waitStart;
+                logger.info("waited for {} ms at processing {}", waitedMillis, step);
+            }
+        }
+
+
     }
 }

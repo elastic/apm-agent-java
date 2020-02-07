@@ -28,11 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Optional;
+import java.util.concurrent.Future;
 
 public class GrpcApp {
-
-    private static final Logger logger = LoggerFactory.getLogger(GrpcApp.class);
 
     private static final int PORT = 50051;
     private HelloServer server;
@@ -45,7 +43,7 @@ public class GrpcApp {
     public static void main(String[] args) throws IOException, InterruptedException {
         GrpcApp app = new GrpcApp();
         app.start();
-        app.sampleRequests(null);
+        app.sampleRequests();
         app.stop();
     }
 
@@ -55,7 +53,7 @@ public class GrpcApp {
         server.start();
     }
 
-    private void sampleRequests(HelloClient client) {
+    private void sampleRequests() {
         sendMessage("bob", 0);
         sendMessage(null, 0);
         sendMessage("bob", 2);
@@ -68,16 +66,18 @@ public class GrpcApp {
     }
 
     public String sendMessage(String name, int depth) {
-        Optional<String> response = client.sayHello(name, depth);
-        if (!response.isPresent()) {
-            logger.error("oops! something went wrong");
-            return null;
-        } else {
-            String msg = response.get();
-            logger.info("received message = {}", msg);
-            return msg;
-        }
+        return client.sayHello(name, depth);
     }
 
+    public Future<String> sendMessageAsync(String name, int depth) {
+        return client.saysHelloAsync(name, depth);
+    }
 
+    public HelloServer getServer() {
+        return server;
+    }
+
+    public HelloClient getClient() {
+        return client;
+    }
 }

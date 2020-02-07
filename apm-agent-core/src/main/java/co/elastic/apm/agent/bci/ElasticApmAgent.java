@@ -62,6 +62,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Constructor;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -494,15 +495,21 @@ public class ElasticApmAgent {
 
     private static ElasticApmInstrumentation instantiate(Class<? extends ElasticApmInstrumentation> instrumentation) {
         try {
-            if (instrumentation.getConstructor() != null) {
-                return instrumentation.getConstructor().newInstance();
-            } else if (instrumentation.getConstructor(ElasticApmTracer.class) != null) {
-                return instrumentation.getConstructor(ElasticApmTracer.class).newInstance(ElasticApmInstrumentation.tracer);
+            Constructor<? extends ElasticApmInstrumentation> constructor = instrumentation.getConstructor();
+            if (constructor != null) {
+                return constructor.newInstance();
             } else {
+                Constructor<? extends ElasticApmInstrumentation> tracerConstructor = instrumentation.getConstructor(ElasticApmTracer.class);
+                if (tracerConstructor != null) {
+                    return tracerConstructor.newInstance(ElasticApmInstrumentation.tracer);
+                }
                 throw new IllegalArgumentException("No matching constructor found for " + instrumentation);
             }
+        } catch (NoSuchMethodException e){
+            throw new IllegalArgumentException("unable to find public constructor for instrumentation "+ instrumentation);
         } catch (ReflectiveOperationException e) {
             throw new IllegalArgumentException(e.getMessage());
         }
     }
+
 }

@@ -34,6 +34,8 @@ import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.grpc.ClientCall;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Helper class for gRPC client and server calls.
@@ -46,11 +48,18 @@ public class GrpcHelper {
 
     /**
      * Map of all in-flight spans, is only used by client part.
-     * Key is {@link ClientCall}, but refered as {@link Object} to avoid loading any gRPC reference in the bootstrap classloader
+     * Key is {@link ClientCall}, but referred as {@link Object} to avoid loading any gRPC reference in the bootstrap classloader
      */
     private static final WeakConcurrentMap<Object, Span> inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<Object, Span>();
+    /**
+     * Map of all in-flight {@link ClientCall instances} with the {@link ClientCall.Listener} instance that have been used to
+     * start them.
+     */
+    private static final WeakConcurrentMap<Object, Object> inFlightListeners = new WeakConcurrentMap.WithInlinedExpunction<Object, Object>();
 
     private static final String GRPC = "grpc";
+
+    public static final Collection<String> GRPC_GROUP = Collections.singleton(GRPC);
 
     // transaction management (server part)
 
@@ -109,24 +118,53 @@ public class GrpcHelper {
     }
 
     @VisibleForAdvice
-    public static void startSpan(Object clientCall) {
+    public static void startSpan(Object clientCall, Object responseListener) {
+        // span should already have been registered
         Span span = inFlightSpans.get(clientCall);
         if (span == null) {
             return;
         }
+        inFlightListeners.put(responseListener, clientCall);
         span.setStartTimestampNow();
-        span.activate();
     }
 
     @VisibleForAdvice
-    public static void endSpan(Object clientCall) {
-        Span span = inFlightSpans.get(clientCall);
+    public static void endSpan(Object responseListener, @Nullable Throwable thrown) {
+        Object clientCall = inFlightListeners.get(responseListener);
+        Span span = null;
+        if (clientCall != null) {
+            span = inFlightSpans.get(clientCall);
+        }
         if (span == null) {
             return;
         }
 
-        span.deactivate()
+        span.captureException(thrown)
             .end();
+
+        inFlightListeners.remove(responseListener);
+        inFlightSpans.remove(clientCall);
+    }
+
+    @VisibleForAdvice
+    public static void captureListenerException(Object responseListener, @Nullable Throwable thrown){
+        if (thrown != null) {
+            Span span = getSpanFromListener(responseListener);
+            if (span != null) {
+                span.captureException(thrown);
+            }
+        }
+    }
+
+
+    @Nullable
+    private static Span getSpanFromListener(Object responseListener){
+        Object clientCall = inFlightListeners.get(responseListener);
+        Span span = null;
+        if (clientCall != null) {
+            span = inFlightSpans.get(clientCall);
+        }
+        return span;
     }
 
     @VisibleForAdvice

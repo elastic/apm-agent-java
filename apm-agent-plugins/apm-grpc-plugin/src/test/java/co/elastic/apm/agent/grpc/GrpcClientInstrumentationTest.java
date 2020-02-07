@@ -26,17 +26,24 @@ package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
+import co.elastic.apm.agent.impl.transaction.EpochTickClock;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GrpcClientInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(GrpcClientInstrumentationTest.class);
 
     private GrpcApp app;
 
@@ -60,6 +67,9 @@ class GrpcClientInstrumentationTest extends AbstractInstrumentationTest {
                 .end();
         }
 
+        // make sure we do not leave anything behind
+        reporter.assertRecycledAfterDecrementingReferences();
+
         reporter.reset();
 
         app.stop();
@@ -74,9 +84,14 @@ class GrpcClientInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(transaction).isNotNull();
 
         Span span = reporter.getFirstSpan();
+        checkSpan(span);
+
+    }
+
+    private void checkSpan(Span span) {
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("grpc");
-
+        assertThat(span.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
     }
 
     @Test
@@ -105,6 +120,61 @@ class GrpcClientInstrumentationTest extends AbstractInstrumentationTest {
         // 1) properly set on gRPC client call, and thus sent to server
         // 2) properly captured by gRPC server instrumentation and propagated to the server-side transaction
 
+        // TODO : see TraceContext.isChildOf( ) usages for how to check for this
+    }
+
+    @Test
+    void cancelClientCall() throws Exception {
+
+        EpochTickClock clock = new EpochTickClock();
+        clock.init();
+
+        CyclicBarrier start = new CyclicBarrier(2);
+        CyclicBarrier end = new CyclicBarrier(2);
+        app.getServer().useBarriersForProcessing(start, end);
+
+        long sendMessageStart = clock.getEpochMicros();
+        Future<String> msg = app.sendMessageAsync("bob", 0);
+
+        // sending the 1st message takes about 100ms on client side
+        start.await();
+
+        try {
+            long serverProcessingStart = clock.getEpochMicros();
+
+            // span is created somewhere between those two timing events, but we can't exactly when
+            // and it varies a lot from one execution to another
+
+            long waitBeforeCancel = 50;
+
+            Thread.sleep(waitBeforeCancel);
+            logger.info("cancel call after waiting {} ms", waitBeforeCancel);
+
+            // cancel the future --> should create a span
+            assertThat(msg.cancel(true)).isTrue();
+
+            Span span = reporter.getFirstSpan(1000);
+            checkSpan(span);
+
+            assertThat(span.getTimestamp())
+                .describedAs("span timestamp should be between start sending message and start processing on server")
+                .isBetween(sendMessageStart, serverProcessingStart);
+
+            // we don't know exactly when span starts, but we can at least make sure it's consistent with what we expect
+            // extra 5ms allowed to make test more reliable as cancellation is not blocking
+            long durationError = serverProcessingStart - sendMessageStart + 5000;
+
+            long waitMicro = waitBeforeCancel * 1000;
+
+            assertThat(span.getDuration())
+                .describedAs("span duration should be larger than waited time before cancel")
+                .isBetween(waitMicro, waitMicro + durationError);
+
+        } finally {
+            // server is still waiting and did not sent response yet
+            // we need to unblock it to prevent side effects on other tests
+            end.await();
+        }
     }
 
 }

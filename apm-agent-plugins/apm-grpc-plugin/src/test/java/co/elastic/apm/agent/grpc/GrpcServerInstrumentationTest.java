@@ -48,6 +48,9 @@ class GrpcServerInstrumentationTest extends AbstractInstrumentationTest {
     @AfterEach
     void afterEach() throws Exception {
         app.stop();
+
+        // make sure we do not leave anything behind
+        reporter.assertRecycledAfterDecrementingReferences();
     }
 
     @Test
@@ -73,13 +76,23 @@ class GrpcServerInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void simplelCallWithInvalidArgumentError() {
+    void simpleCallWithInvalidArgumentError() {
         simpleCallWithError(null, "INVALID_ARGUMENT");
     }
 
     @Test
-    void simplelCallWithRuntimeError() {
+    void simpleCallWithRuntimeError() {
         simpleCallWithError("boom", "UNKNOWN");
+    }
+
+    @Test
+    void asyncClientCallShouldWorkLikeRegularCall() throws Exception {
+
+        String msg = app.sendMessageAsync("bob", 0).get();
+        assertThat(msg).isEqualTo("hello(bob)");
+
+        Transaction transaction = getReporter().getFirstTransaction();
+        checkTransaction(transaction, "OK");
     }
 
     private void simpleCallWithError(String name, String expectedResult) {

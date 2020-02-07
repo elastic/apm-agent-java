@@ -31,7 +31,6 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
@@ -40,7 +39,7 @@ public abstract class BaseInstrumentation extends ElasticApmInstrumentation {
     /**
      * Header used to carry transaction parent/child to/from other services
      */
-    protected static final Metadata.Key<String> HEADER_KEY = Metadata.Key.of(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, Metadata.ASCII_STRING_MARSHALLER);
+    public static final Metadata.Key<String> HEADER_KEY = Metadata.Key.of(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, Metadata.ASCII_STRING_MARSHALLER);
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -49,7 +48,7 @@ public abstract class BaseInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("grpc");
+        return GrpcHelper.GRPC_GROUP;
     }
 
 }
