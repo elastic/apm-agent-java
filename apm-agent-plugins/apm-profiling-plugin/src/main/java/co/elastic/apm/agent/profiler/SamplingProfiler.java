@@ -56,7 +56,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,7 +79,8 @@ import java.util.concurrent.locks.LockSupport;
  * The {@link #onActivation} and {@link #onDeactivation} methods are called by {@link ProfilingActivationListener}
  * which register an {@link ActivationEvent} in to a {@linkplain #eventBuffer ring buffer} whenever a {@link Span}
  * gets {@link Span#activate()}d or {@link Span#deactivate()}d while a {@linkplain #profilingSessionOngoing profiling session is ongoing}.
- * A background thread consumes the {@link ActivationEvent}s and writes them to a {@linkplain #activationEventsMemoryMappedFile memory-mapped file}.
+ * A background thread consumes the {@link ActivationEvent}s and writes them to a {@linkplain #activationEventsBuffer direct buffer}
+ * which is flushed to a {@linkplain #activationEventsFileChannel file}.
  * That is necessary because within a profiling session (which lasts 10s by default) there may be many more {@link ActivationEvent}s
  * than the ring buffer can hold {@link #RING_BUFFER_SIZE}.
  * The file can hold {@link #ACTIVATION_EVENTS_IN_FILE} events and each is {@link ActivationEvent#SERIALIZED_SIZE} in size.
@@ -98,7 +99,7 @@ import java.util.concurrent.locks.LockSupport;
  * Correlating {@link ActivationEvent}s with the traces recorded by {@link AsyncProfiler}:
  * </p>
  * <p>
- * After both the JFR file and the memory-mapped file containing the {@link ActivationEvent}s have been written,
+ * After both the JFR file and the file containing the {@link ActivationEvent}s have been written,
  * it's now time to process them in tandem by correlating based on thread ids and timestamps.
  * The result of this correlation, performed by {@link #processTraces(File)},
  * are {@link CallTree}s which are created for each thread which has seen an {@linkplain Span#activate() activation}
@@ -122,6 +123,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private static final int ACTIVATION_EVENTS_IN_FILE = 1_000_000;
     private static final int MAX_STACK_DEPTH = 256;
     private static final int PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB = 10;
+    private static final int MAX_ACTIVATION_EVENTS_SIZE = ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE;
     private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
         new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
@@ -172,10 +174,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      * Used to efficiently write {@link #activationEventsBuffer} via {@link FileChannel#write(ByteBuffer)}
      */
     private final FileChannel activationEventsFileChannel;
-    /**
-     * Used to efficiently read the file
-     */
-    private final MappedByteBuffer activationEventsMemoryMappedFile;
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
@@ -206,7 +204,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         activationEventsBuffer = ByteBuffer.allocateDirect(ActivationEvent.SERIALIZED_SIZE * 128);
         activationEventsRAF = new RandomAccessFile(activationEventsFile, "rw");
         activationEventsFileChannel = activationEventsRAF.getChannel();
-        activationEventsMemoryMappedFile = activationEventsFileChannel.map(FileChannel.MapMode.READ_WRITE, 0, ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE);
         preAllocate(activationEventsRAF, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
     }
 
@@ -335,8 +332,11 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             logger.debug(stopMessage);
 
             processTraces(jfrFile);
-        } catch (InterruptedException e) {
-            asyncProfiler.stop();
+        } catch (InterruptedException | ClosedByInterruptException e) {
+            try {
+                asyncProfiler.stop();
+            } catch (IllegalStateException ignore) {
+            }
             Thread.currentThread().interrupt();
         }
     }
@@ -360,8 +360,8 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         long initialSleep = 100_000;
         long maxSleep = 10_000_000;
         long sleep = initialSleep;
-        while (System.currentTimeMillis() < threshold) {
-            if (activationEventsMemoryMappedFile.hasRemaining()) {
+        while (System.currentTimeMillis() < threshold && !Thread.currentThread().isInterrupted()) {
+            if (activationEventsFileChannel.position() < MAX_ACTIVATION_EVENTS_SIZE) {
                 EventPoller.PollState poll = consumeActivationEventsFromRingBufferAndWriteToFile();
                 if (poll == EventPoller.PollState.PROCESSING) {
                     sleep = initialSleep;
@@ -385,8 +385,11 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     private void processTraces(File file) throws IOException {
-        startProcessingActivationEventsFile();
-        if (activationEventsMemoryMappedFile.limit() == 0) {
+        if (Thread.currentThread().isInterrupted()) {
+            return;
+        }
+        long eof = startProcessingActivationEventsFile();
+        if (eof == 0) {
             logger.debug("No activation events during this period. Skip processing stack traces.");
             return;
         }
@@ -403,7 +406,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             ElasticApmTracer tracer = this.tracer;
             ActivationEvent event = new ActivationEvent();
             for (StackTraceEvent stackTrace : stackTraceEvents) {
-                processActivationEventsUpTo(stackTrace.nanoTime, event);
+                processActivationEventsUpTo(stackTrace.nanoTime, event, eof);
                 CallTree.Root root = profiledThreads.get(stackTrace.threadId);
                 if (root != null) {
                     jfrParser.resolveStackTrace(stackTrace.stackTraceId, true, stackFrames, MAX_STACK_DEPTH);
@@ -449,13 +452,17 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         return stackTraceEvents;
     }
 
-    void processActivationEventsUpTo(long timestamp) {
-        processActivationEventsUpTo(timestamp, new ActivationEvent());
+    void processActivationEventsUpTo(long timestamp, long eof) throws IOException {
+        processActivationEventsUpTo(timestamp, new ActivationEvent(), eof);
     }
 
-    public void processActivationEventsUpTo(long timestamp, ActivationEvent event) {
-        MappedByteBuffer buf = this.activationEventsMemoryMappedFile;
-        while (buf.hasRemaining()) {
+    public void processActivationEventsUpTo(long timestamp, ActivationEvent event, long eof) throws IOException {
+        FileChannel activationEventsFileChannel = this.activationEventsFileChannel;
+        ByteBuffer buf = activationEventsBuffer;
+        while (buf.hasRemaining() || activationEventsFileChannel.position() < eof) {
+            if (!buf.hasRemaining()) {
+                readActivationEventsToBuffer(activationEventsFileChannel, eof, buf);
+            }
             long eventTimestamp = peekLong(buf);
             if (eventTimestamp <= timestamp) {
                 event.deserialize(buf);
@@ -463,6 +470,16 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             } else {
                 return;
             }
+        }
+    }
+
+    private void readActivationEventsToBuffer(FileChannel activationEventsFileChannel, long eof, ByteBuffer buf) throws IOException {
+        buf.clear();
+        long remaining = eof - activationEventsFileChannel.position();
+        activationEventsFileChannel.read(buf);
+        buf.flip();
+        if (remaining < buf.capacity()) {
+            buf.limit((int) remaining);
         }
     }
 
@@ -476,7 +493,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     private void resetActivationEventBuffer() throws IOException {
-        ((Buffer) activationEventsMemoryMappedFile).clear();
         ((Buffer) activationEventsBuffer).clear();
         activationEventsFileChannel.position(0L);
     }
@@ -485,14 +501,15 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         if (activationEventsBuffer.position() > 0) {
             ((Buffer) activationEventsBuffer).flip();
             activationEventsFileChannel.write(activationEventsBuffer);
-            activationEventsMemoryMappedFile.position((int) activationEventsFileChannel.position());
             ((Buffer) activationEventsBuffer).clear();
         }
     }
 
-    void startProcessingActivationEventsFile() throws IOException {
+    long startProcessingActivationEventsFile() throws IOException {
         flushActivationEvents();
-        ((Buffer) activationEventsMemoryMappedFile).flip();
+        long eof = activationEventsFileChannel.position();
+        activationEventsFileChannel.position(0);
+        return eof;
     }
 
     @Override
@@ -504,6 +521,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     public void stop() throws Exception {
         // cancels/interrupts the profiling thread
         scheduler.shutdownNow();
+        scheduler.awaitTermination(1, TimeUnit.SECONDS);
         if (!jfrFile.delete()) {
             jfrFile.deleteOnExit();
         }
@@ -714,7 +732,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             if (endOfBatch) {
                 SamplingProfiler.this.sequence.set(sequence);
             }
-            if (activationEventsMemoryMappedFile.hasRemaining()) {
+            if (activationEventsFileChannel.size() < MAX_ACTIVATION_EVENTS_SIZE) {
                 event.serialize(activationEventsBuffer);
                 if (!activationEventsBuffer.hasRemaining()) {
                     flushActivationEvents();

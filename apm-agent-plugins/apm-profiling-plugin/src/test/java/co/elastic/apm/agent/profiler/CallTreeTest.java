@@ -392,10 +392,10 @@ class CallTreeTest {
             }
         }
         profiler.consumeActivationEventsFromRingBufferAndWriteToFile();
-        profiler.startProcessingActivationEventsFile();
+        long eof = profiler.startProcessingActivationEventsFile();
         CallTree.Root root = null;
         for (StackTraceEvent stackTraceEvent : stackTraceEvents) {
-            profiler.processActivationEventsUpTo(stackTraceEvent.nanoTime);
+            profiler.processActivationEventsUpTo(stackTraceEvent.nanoTime, eof);
             if (root == null) {
                 root = profiler.getRoot();
                 assertThat(root).isNotNull();
