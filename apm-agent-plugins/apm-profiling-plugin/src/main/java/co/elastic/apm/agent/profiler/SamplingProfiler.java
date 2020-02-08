@@ -123,7 +123,8 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private static final int ACTIVATION_EVENTS_IN_FILE = 1_000_000;
     private static final int MAX_STACK_DEPTH = 256;
     private static final int PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB = 10;
-    private static final int MAX_ACTIVATION_EVENTS_SIZE = ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE;
+    private static final int MAX_ACTIVATION_EVENTS_FILE_SIZE = ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE;
+    private static final int ACTIVATION_EVENTS_BUFFER_SIZE = ActivationEvent.SERIALIZED_SIZE * 1024;
     private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
         new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
@@ -201,7 +202,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         });
         jfrFile = File.createTempFile("apm-traces-", ".jfr");
         activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
-        activationEventsBuffer = ByteBuffer.allocateDirect(ActivationEvent.SERIALIZED_SIZE * 128);
+        activationEventsBuffer = ByteBuffer.allocateDirect(ACTIVATION_EVENTS_BUFFER_SIZE);
         activationEventsRAF = new RandomAccessFile(activationEventsFile, "rw");
         activationEventsFileChannel = activationEventsRAF.getChannel();
         preAllocate(activationEventsRAF, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
@@ -361,7 +362,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         long maxSleep = 10_000_000;
         long sleep = initialSleep;
         while (System.currentTimeMillis() < threshold && !Thread.currentThread().isInterrupted()) {
-            if (activationEventsFileChannel.position() < MAX_ACTIVATION_EVENTS_SIZE) {
+            if (activationEventsFileChannel.position() < MAX_ACTIVATION_EVENTS_FILE_SIZE) {
                 EventPoller.PollState poll = consumeActivationEventsFromRingBufferAndWriteToFile();
                 if (poll == EventPoller.PollState.PROCESSING) {
                     sleep = initialSleep;
@@ -732,7 +733,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             if (endOfBatch) {
                 SamplingProfiler.this.sequence.set(sequence);
             }
-            if (activationEventsFileChannel.size() < MAX_ACTIVATION_EVENTS_SIZE) {
+            if (activationEventsFileChannel.size() < MAX_ACTIVATION_EVENTS_FILE_SIZE) {
                 event.serialize(activationEventsBuffer);
                 if (!activationEventsBuffer.hasRemaining()) {
                     flushActivationEvents();
