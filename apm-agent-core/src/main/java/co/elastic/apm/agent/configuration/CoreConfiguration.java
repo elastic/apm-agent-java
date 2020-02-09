@@ -499,6 +499,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Integer> tracestateHeaderSizeLimit = ConfigurationOption.integerOption()
+        .key("tracestate_header_size_limit")
+        .tags("added[1.13.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("The agent delegates the `tracestate` header, if received, as defined in the\n" +
+            "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
+            "\n" +
+            "This setting limits the size of the `tracestate` header.")
+        .dynamic(true)
+        .tags("internal")
+        .buildWithDefault(4096);
+
     public boolean isActive() {
         return active.get();
     }
@@ -621,6 +633,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isElasticTraceparentHeaderEnabled() {
         return useElasticTraceparentHeader.get();
+    }
+
+    public int getTracestateSizeLimit() {
+        return tracestateHeaderSizeLimit.get();
     }
 
     /*

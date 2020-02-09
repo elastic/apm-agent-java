@@ -30,11 +30,11 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
 
-class RequestHeaderGetter implements TextHeaderGetter<HttpServletRequest> {
+class ServletRequestHeaderGetter implements TextHeaderGetter<HttpServletRequest> {
 
-    private static final RequestHeaderGetter INSTANCE = new RequestHeaderGetter();
+    private static final ServletRequestHeaderGetter INSTANCE = new ServletRequestHeaderGetter();
 
-    static RequestHeaderGetter getInstance() {
+    static ServletRequestHeaderGetter getInstance() {
         return INSTANCE;
     }
 

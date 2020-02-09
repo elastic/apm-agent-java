@@ -58,7 +58,7 @@ public class ServletTransactionCreationHelperImpl implements ServletInstrumentat
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
-            return tracer.startChildTransaction(request, RequestHeaderGetter.getInstance(), request.getServletContext().getClassLoader()).activate();
+            return tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), request.getServletContext().getClassLoader()).activate();
         } else {
             return null;
         }

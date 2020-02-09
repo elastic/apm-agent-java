@@ -48,6 +48,6 @@ public interface HeaderGetter<T, C> {
     <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<T, S> consumer);
 
     interface HeaderConsumer<T, S> {
-        void accept(T headerValue, S state);
+        void accept(@Nullable T headerValue, S state);
     }
 }

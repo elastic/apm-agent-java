@@ -27,8 +27,13 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.Resetter;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.util.HexUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +81,7 @@ public class TraceContext extends TraceContextHolder {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
+    public static final String TRACESTATE_HEADER_NAME = "tracestate";
     private static final int TEXT_HEADER_EXPECTED_LENGTH = 55;
     private static final int TEXT_HEADER_TRACE_ID_OFFSET = 3;
     private static final int TEXT_HEADER_PARENT_ID_OFFSET = 36;
@@ -93,6 +99,20 @@ public class TraceContext extends TraceContextHolder {
     // one byte for the flags field id (0x02), followed by two bytes of flags contents
     private static final int BINARY_FORMAT_FLAGS_OFFSET = 27;
     private static final byte BINARY_FORMAT_FLAGS_FIELD_ID = (byte) 0b0000_0010;
+
+    private static final ObjectPool<StringBuilder> tracestateBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<StringBuilder>(128), false,
+        new Allocator<StringBuilder>() {
+            @Override
+            public StringBuilder createInstance() {
+                return new StringBuilder();
+            }
+        },
+        new Resetter<StringBuilder>() {
+            @Override
+            public void recycle(StringBuilder object) {
+                object.setLength(0);
+            }
+        });
 
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
     /**
@@ -127,6 +147,11 @@ public class TraceContext extends TraceContextHolder {
                         isValid = child.asChildOf(traceparent);
                     }
                 }
+
+                if (isValid) {
+                    traceContextHeaderGetter.forEach(TRACESTATE_HEADER_NAME, carrier, child, TextTracestateAppender.instance());
+                }
+
                 return isValid;
             }
         };
@@ -169,6 +194,7 @@ public class TraceContext extends TraceContextHolder {
     public static <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
         headerRemover.remove(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
         headerRemover.remove(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+        headerRemover.remove(TRACESTATE_HEADER_NAME, carrier);
     }
 
     public static <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
@@ -179,6 +205,11 @@ public class TraceContext extends TraceContextHolder {
         String elasticApmTraceParent = headerGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, source);
         if (elasticApmTraceParent != null) {
             headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, elasticApmTraceParent, destination);
+        }
+        // copying only the first tracestate header
+        String tracestate = headerGetter.getFirstHeader(TRACESTATE_HEADER_NAME, source);
+        if (tracestate != null) {
+            headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestate, destination);
         }
     }
 
@@ -196,7 +227,10 @@ public class TraceContext extends TraceContextHolder {
     @Nullable
     private WeakReference<ClassLoader> applicationClassLoader;
 
-    private final CoreConfiguration coreConfiguration;
+    @Nullable
+    StringBuilder tracestateBuffer;
+
+    final CoreConfiguration coreConfiguration;
 
     /**
      * Avoids clock drifts within a transaction.
@@ -400,6 +434,10 @@ public class TraceContext extends TraceContextHolder {
         clock.resetState();
         serviceName = null;
         applicationClassLoader = null;
+        if (tracestateBuffer != null) {
+            tracestateBufferPool.recycle(tracestateBuffer);
+            tracestateBuffer = null;
+        }
     }
 
     /**
@@ -487,6 +525,12 @@ public class TraceContext extends TraceContextHolder {
         headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
         if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
             headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
+        }
+        if (tracestateBuffer != null) {
+            String tracestateValue = tracestateBuffer.toString();
+            if (!tracestateValue.isEmpty()) {
+                headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestateValue, carrier);
+            }
         }
     }
 
@@ -578,6 +622,9 @@ public class TraceContext extends TraceContextHolder {
         clock.init(other.clock);
         serviceName = other.serviceName;
         applicationClassLoader = other.applicationClassLoader;
+        if (other.tracestateBuffer != null) {
+            getTracestateBuffer().append(other.tracestateBuffer);
+        }
         onMutation();
     }
 
@@ -632,6 +679,13 @@ public class TraceContext extends TraceContextHolder {
             }
             applicationClassLoader = local;
         }
+    }
+
+    StringBuilder getTracestateBuffer() {
+        if (tracestateBuffer == null) {
+            tracestateBuffer = tracestateBufferPool.createInstance();
+        }
+        return tracestateBuffer;
     }
 
     @Nullable
