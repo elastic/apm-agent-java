@@ -70,7 +70,7 @@ import java.util.concurrent.Callable;
  *                      2, 1]
  * </pre>
  */
-@SuppressWarnings({"rawtypes", "Convert2Diamond", "Convert2Lambda"})
+@SuppressWarnings({"rawtypes"})
 public class TraceContext extends TraceContextHolder {
 
     public static final String TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
@@ -471,11 +471,7 @@ public class TraceContext extends TraceContextHolder {
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
      * @param <C>          the header carrier type, for example - an HTTP request
      */
-    public <C> void setOutgoingTraceContextHeaders(@Nullable C carrier, TextHeaderSetter<C> headerSetter) {
-        if (carrier == null) {
-            logger.warn("Attempted to set a text header to a null carrier through {}. Distributed tracing cannot be supported.", headerSetter.getClass().getName());
-            return;
-        }
+    public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
         headerSetter.setHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
     }
 
@@ -487,11 +483,7 @@ public class TraceContext extends TraceContextHolder {
      * @param <C>          the header carrier type, for example - a Kafka record
      * @return true if Trace Context headers were set; false otherwise
      */
-    public <C> boolean setOutgoingTraceContextHeaders(@Nullable C carrier, BinaryHeaderSetter<C> headerSetter) {
-        if (carrier == null) {
-            logger.warn("Attempted to set a binary header to a null carrier through {}. Distributed tracing cannot be supported.", headerSetter.getClass().getName());
-            return false;
-        }
+    public <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
         byte[] buffer = headerSetter.getFixedLengthByteArray(TRACE_PARENT_BINARY_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
         if (buffer == null || buffer.length != BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Header setter {} failed to provide a byte buffer with the proper length. Allocating a buffer for each header.",

@@ -99,7 +99,6 @@ public class ElasticApmTracer {
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    @SuppressWarnings({"Convert2Diamond", "AnonymousHasLambdaAlternative"})
     private final ThreadLocal<Deque<TraceContextHolder<?>>> activeStack = new ThreadLocal<Deque<TraceContextHolder<?>>>() {
         @Override
         protected Deque<TraceContextHolder<?>> initialValue() {
@@ -107,7 +106,6 @@ public class ElasticApmTracer {
         }
     };
 
-    @SuppressWarnings({"AnonymousHasLambdaAlternative", "Convert2Diamond"})
     private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
@@ -144,7 +142,6 @@ public class ElasticApmTracer {
 
 
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
-        //noinspection Convert2Lambda,Convert2Diamond
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, Double oldValue, Double newValue) {
