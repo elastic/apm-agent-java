@@ -66,7 +66,7 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
 
     @Nonnull
     private String jmsifyHeaderName(String headerName) {
-        if (headerName.equals(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
+        if (headerName.equals(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
             // replacing with the JMS equivalent
             headerName = JMS_TRACE_PARENT_PROPERTY;
         }

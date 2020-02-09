@@ -401,7 +401,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testTransactionWithParentReference() {
-        final Map<String, String> headerMap = Map.of(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+        final Map<String, String> headerMap = Map.of(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         final Transaction transaction = tracerImpl.startChildTransaction(headerMap, TextHeaderMapAccessor.INSTANCE, ConstantSampler.of(false), 0, null);
         // the traced flag in the header overrides the sampler
         assertThat(transaction.isSampled()).isTrue();

@@ -424,7 +424,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         // --------------------------------------------------------
 
         TextMap textMapExtractAdapter = new TextMapAdapter(Map.of(
-            TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME,
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME,
             "00-" + traceIdString + "-" + parentIdString + "-01",
             "User-Agent", "curl"));
         //ExternalProcessSpanContext
@@ -443,7 +443,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         Span otSpan = apmTracer.buildSpan("span")
             .asChildOf(apmTracer.extract(Format.Builtin.TEXT_MAP,
                 new TextMapAdapter(Map.of(
-                    TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-" + traceId + "-" + parentId + "-01",
+                    TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-" + traceId + "-" + parentId + "-01",
                     "User-Agent", "curl"))))
             .start();
         final Scope scope = apmTracer.activateSpan(otSpan);

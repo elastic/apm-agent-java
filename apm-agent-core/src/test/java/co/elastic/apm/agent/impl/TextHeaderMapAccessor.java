@@ -25,13 +25,15 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.HeaderRemover;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class TextHeaderMapAccessor extends AbstractHeaderGetter<String, Map<String, String>> implements TextHeaderGetter<Map<String, String>>, TextHeaderSetter<Map<String, String>> {
+public class TextHeaderMapAccessor extends AbstractHeaderGetter<String, Map<String, String>> implements
+    TextHeaderGetter<Map<String, String>>, TextHeaderSetter<Map<String, String>>, HeaderRemover<Map<String, String>> {
 
     public static final TextHeaderMapAccessor INSTANCE = new TextHeaderMapAccessor();
 
@@ -47,5 +49,10 @@ public class TextHeaderMapAccessor extends AbstractHeaderGetter<String, Map<Stri
     @Override
     public void setHeader(String headerName, String headerValue, Map<String, String> headerMap) {
         headerMap.put(headerName, headerValue);
+    }
+
+    @Override
+    public void remove(String headerName, Map<String, String> carrier) {
+        carrier.remove(headerName);
     }
 }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.util.HexUtils;
@@ -73,7 +74,8 @@ import java.util.concurrent.Callable;
 @SuppressWarnings({"rawtypes"})
 public class TraceContext extends TraceContextHolder {
 
-    public static final String TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
+    public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
+    public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
     private static final int TEXT_HEADER_EXPECTED_LENGTH = 55;
     private static final int TEXT_HEADER_TRACE_ID_OFFSET = 3;
     private static final int TEXT_HEADER_PARENT_ID_OFFSET = 36;
@@ -111,15 +113,21 @@ public class TraceContext extends TraceContextHolder {
                 if (carrier == null) {
                     return false;
                 }
-                // This cast is required, otherwise the compiler can't guarantee that the carrier type is allowed by the
-                // TextHeaderGetter (which have a runtime inferred type of ?). The caller must ensure anyway that the
-                // carrier type is the one expected in the provided TextHeaderGetter, we cannot enforce it through generics
-                // if we want to use this single ChildContextCreatorTwoArg instance for all types.
-                String traceparent = traceContextHeaderGetter.getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+
+                boolean isValid = false;
+                String traceparent = traceContextHeaderGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
                 if (traceparent != null) {
-                    return child.asChildOf(traceparent);
+                    isValid = child.asChildOf(traceparent);
                 }
-                return false;
+
+                if (!isValid) {
+                    // Look for the legacy Elastic traceparent header (in case this comes from an older agent)
+                    traceparent = traceContextHeaderGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                    if (traceparent != null) {
+                        isValid = child.asChildOf(traceparent);
+                    }
+                }
+                return isValid;
             }
         };
     private static final ChildContextCreatorTwoArg FROM_TRACE_CONTEXT_BINARY_HEADERS =
@@ -129,10 +137,6 @@ public class TraceContext extends TraceContextHolder {
                 if (carrier == null) {
                     return false;
                 }
-                // This cast is required, otherwise the compiler can't guarantee that the carrier type is allowed by the
-                // BinaryHeaderGetter (which have a runtime inferred type of ?). The caller must ensure anyway that the
-                // carrier type is the one expected in the provided BinaryHeaderGetter, we cannot enforce it through generics
-                // if we want to use this single ChildContextCreatorTwoArg instance for all types.
                 byte[] traceparent = traceContextHeaderGetter.getFirstHeader(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
                 if (traceparent != null) {
                     return child.asChildOf(traceparent);
@@ -159,17 +163,22 @@ public class TraceContext extends TraceContextHolder {
     };
 
     public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
-        return headerGetter.getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
+        return headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
     }
 
     public static <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
-        headerRemover.remove(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+        headerRemover.remove(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+        headerRemover.remove(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
     }
 
-    public static <S, D> void copyTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
-        String elasticApmTraceParent = headerGetter.getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, source);
+    public static <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        String w3cApmTraceParent = headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, source);
+        if (w3cApmTraceParent != null) {
+            headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, w3cApmTraceParent, destination);
+        }
+        String elasticApmTraceParent = headerGetter.getFirstHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, source);
         if (elasticApmTraceParent != null) {
-            headerSetter.setHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, elasticApmTraceParent, destination);
+            headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, elasticApmTraceParent, destination);
         }
     }
 
@@ -187,6 +196,8 @@ public class TraceContext extends TraceContextHolder {
     @Nullable
     private WeakReference<ClassLoader> applicationClassLoader;
 
+    private final CoreConfiguration coreConfiguration;
+
     /**
      * Avoids clock drifts within a transaction.
      *
@@ -198,6 +209,7 @@ public class TraceContext extends TraceContextHolder {
 
     private TraceContext(ElasticApmTracer tracer, Id id) {
         super(tracer);
+        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.id = id;
     }
 
@@ -223,10 +235,12 @@ public class TraceContext extends TraceContextHolder {
         return new TraceContext(tracer, Id.new128BitId());
     }
 
+    @SuppressWarnings("unchecked")
     public static <C> ChildContextCreatorTwoArg<C, TextHeaderGetter<C>> getFromTraceContextTextHeaders() {
         return (ChildContextCreatorTwoArg<C, TextHeaderGetter<C>>) FROM_TRACE_CONTEXT_TEXT_HEADERS;
     }
 
+    @SuppressWarnings("unchecked")
     public static <C> ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>> getFromTraceContextBinaryHeaders() {
         return (ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
     }
@@ -470,7 +484,10 @@ public class TraceContext extends TraceContextHolder {
      * @param <C>          the header carrier type, for example - an HTTP request
      */
     public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
-        headerSetter.setHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
+        headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
+        if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
+            headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
+        }
     }
 
     /**

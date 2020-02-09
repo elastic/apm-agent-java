@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -485,6 +485,20 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 
+    private final ConfigurationOption<Boolean> useElasticTraceparentHeader = ConfigurationOption.booleanOption()
+        .key("use_elastic_traceparent_header")
+        .tags("added[1.13.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent\n" +
+            "adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).\n" +
+            "These headers (`traceparent` and `tracestate`) are defined in the\n" +
+            "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
+            "\n" +
+            "When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`\n" +
+            "for backwards compatibility with older versions of Elastic APM agents.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
     public boolean isActive() {
         return active.get();
     }
@@ -603,6 +617,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isBreakdownMetricsEnabled() {
         return breakdownMetrics.get();
+    }
+
+    public boolean isElasticTraceparentHeaderEnabled() {
+        return useElasticTraceparentHeader.get();
     }
 
     /*

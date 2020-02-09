@@ -65,7 +65,7 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttp
             TextHeaderGetter<HttpRequest> headerGetter = headerGetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
             if (headerGetter != null && headerSetter != null) {
                 if (TraceContext.containsTraceContextTextHeaders(original, headerGetter) && !TraceContext.containsTraceContextTextHeaders(redirect, headerGetter)) {
-                    TraceContext.copyTextHeaders(original, headerGetter, redirect, headerSetter);
+                    TraceContext.copyTraceContextTextHeaders(original, headerGetter, redirect, headerSetter);
                 }
             }
         }
