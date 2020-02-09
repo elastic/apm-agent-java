@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
+import java.util.List;
 
 public class UrlConnectionPropertyAccessor implements TextHeaderSetter<HttpURLConnection>, TextHeaderGetter<HttpURLConnection> {
 
@@ -49,9 +50,13 @@ public class UrlConnectionPropertyAccessor implements TextHeaderSetter<HttpURLCo
         return urlConnection.getRequestProperty(headerName);
     }
 
-    @Nullable
     @Override
-    public Iterable<String> getHeaders(String headerName, HttpURLConnection urlConnection) {
-        return urlConnection.getRequestProperties().get(headerName);
+    public <S> void forEach(String headerName, HttpURLConnection carrier, S state, HeaderConsumer<String, S> consumer) {
+        List<String> values = carrier.getRequestProperties().get(headerName);
+        if (values != null) {
+            for (int i = 0, size = values.size(); i < size; i++) {
+                consumer.accept(values.get(i), state);
+            }
+        }
     }
 }

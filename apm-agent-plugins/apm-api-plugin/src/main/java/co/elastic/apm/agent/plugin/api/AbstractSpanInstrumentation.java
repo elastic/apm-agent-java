@@ -27,7 +27,6 @@ package co.elastic.apm.agent.plugin.api;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -291,8 +290,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                               @Advice.Argument(0) MethodHandle addHeaderMethodHandle,
                                               @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
             if (headerInjector != null) {
-                HeaderInjectorBridge.instance().setAddHeaderMethodHandle(addHeaderMethodHandle);
-                context.getTraceContext().setOutgoingTraceContextHeaders(headerInjector, HeaderInjectorBridge.instance());
+                context.getTraceContext().setOutgoingTraceContextHeaders(headerInjector, HeaderInjectorBridge.get(addHeaderMethodHandle));
             }
         }
     }

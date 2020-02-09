@@ -52,8 +52,7 @@ public abstract class BaseKafkaHeadersInstrumentation extends BaseKafkaInstrumen
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIterableWrapper",
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsListWrapper",
                 "co.elastic.apm.agent.kafka.helper.ElasticHeaderImpl",
-                "co.elastic.apm.agent.kafka.helper.KafkaRecordHeaderAccessor",
-                "co.elastic.apm.agent.kafka.helper.KafkaRecordHeaderAccessor$HeaderValuesIterator");
+                "co.elastic.apm.agent.kafka.helper.KafkaRecordHeaderAccessor");
         }
     }
 

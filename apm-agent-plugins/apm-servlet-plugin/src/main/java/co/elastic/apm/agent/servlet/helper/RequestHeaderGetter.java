@@ -29,26 +29,13 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
-class RequestHeaderGetter implements TextHeaderGetter<HttpServletRequest>, Iterable<String> {
+class RequestHeaderGetter implements TextHeaderGetter<HttpServletRequest> {
 
-    // Caching in ThreadLocal in order to reuse the Enumeration-based iterator
-    private static final ThreadLocal<RequestHeaderGetter> threadLocalRequestHeaderGetter = new ThreadLocal<>();
+    private static final RequestHeaderGetter INSTANCE = new RequestHeaderGetter();
 
     static RequestHeaderGetter getInstance() {
-        RequestHeaderGetter requestHeaderGetter = threadLocalRequestHeaderGetter.get();
-        if (requestHeaderGetter == null) {
-            requestHeaderGetter = new RequestHeaderGetter();
-            threadLocalRequestHeaderGetter.set(requestHeaderGetter);
-        }
-        return requestHeaderGetter;
-    }
-
-    private final HeaderValuesIterator headerValuesIterator = new HeaderValuesIterator();
-
-    private RequestHeaderGetter() {
+        return INSTANCE;
     }
 
     @Nullable
@@ -57,37 +44,12 @@ class RequestHeaderGetter implements TextHeaderGetter<HttpServletRequest>, Itera
         return request.getHeader(headerName);
     }
 
-    @Nullable
     @Override
-    public Iterable<String> getHeaders(String headerName, HttpServletRequest request) {
-        headerValuesIterator.headerValues = request.getHeaders(headerName);
-        return this;
-    }
-
-    @Override
-    public Iterator<String> iterator() {
-        return headerValuesIterator;
-    }
-
-    private static final class HeaderValuesIterator implements Iterator<String> {
-
-        @Nullable
-        private Enumeration<String> headerValues;
-
-        @Override
-        public boolean hasNext() {
-            if (headerValues != null) {
-                return headerValues.hasMoreElements();
-            }
-            return false;
-        }
-
-        @Override
-        public String next() {
-            if (headerValues != null) {
-                return headerValues.nextElement();
-            }
-            throw new NoSuchElementException("Header values Enumeration is not initialized");
+    public <S> void forEach(String headerName, HttpServletRequest carrier, S state, HeaderConsumer<String, S> consumer) {
+        Enumeration<String> headers = carrier.getHeaders(headerName);
+        while (headers.hasMoreElements()) {
+            consumer.accept(headers.nextElement(), state);
         }
     }
+
 }

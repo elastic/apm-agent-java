@@ -24,32 +24,13 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import com.squareup.okhttp.Request;
+import okhttp3.Request;
 
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
-
-public abstract class AbstractOkHttpClientInstrumentation extends ElasticApmInstrumentation {
-
-    // We can refer OkHttp types thanks to type erasure
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderSetter<Request.Builder>> headerSetterHelperManager;
-
-    public AbstractOkHttpClientInstrumentation(ElasticApmTracer tracer) {
-        headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.okhttp.OkHttpRequestHeaderSetter"
-        );
-    }
+public class OkHttp3RequestHeaderSetter implements TextHeaderSetter<Request.Builder> {
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "okhttp");
+    public void setHeader(String headerName, String headerValue, Request.Builder requestBuilder) {
+        requestBuilder.addHeader(headerName, headerValue);
     }
 }

@@ -69,8 +69,7 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
         ServletApiAdvice.init(tracer);
         servletTransactionCreationHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
             "co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelperImpl",
-            "co.elastic.apm.agent.servlet.helper.RequestHeaderGetter",
-            "co.elastic.apm.agent.servlet.helper.RequestHeaderGetter$HeaderValuesIterator"
+            "co.elastic.apm.agent.servlet.helper.RequestHeaderGetter"
         );
     }
 

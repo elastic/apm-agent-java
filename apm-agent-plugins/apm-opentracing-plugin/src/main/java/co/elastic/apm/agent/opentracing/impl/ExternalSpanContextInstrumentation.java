@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -105,7 +104,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
     public static TraceContext parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
         if (tracer != null) {
             TraceContext childTraceContext = TraceContext.with64BitId(tracer);
-            if (TraceContext.getFromTraceContextTextHeaders().asChildOf(childTraceContext, textMap, OpenTracingTextMapBridge.instance())) {
+            if (TraceContext.<Iterable<Map.Entry<String, String>>>getFromTraceContextTextHeaders().asChildOf(childTraceContext, textMap, OpenTracingTextMapBridge.instance())) {
                 return childTraceContext;
             }
         }

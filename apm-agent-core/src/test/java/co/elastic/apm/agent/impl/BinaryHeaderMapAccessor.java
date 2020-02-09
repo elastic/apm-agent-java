@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class BinaryHeaderMapAccessor implements BinaryHeaderGetter<Map<String, byte[]>>, BinaryHeaderSetter<Map<String, byte[]>> {
@@ -48,10 +47,12 @@ public class BinaryHeaderMapAccessor implements BinaryHeaderGetter<Map<String, b
         return headerMap.get(headerName);
     }
 
-    @Nullable
     @Override
-    public Iterable<byte[]> getHeaders(String headerName, Map<String, byte[]> headerMap) {
-        return List.of(headerMap.get(headerName));
+    public <S> void forEach(String headerName, Map<String, byte[]> carrier, S state, HeaderConsumer<byte[], S> consumer) {
+        byte[] headerValue = carrier.get(headerName);
+        if (headerValue != null) {
+            consumer.accept(headerValue, state);
+        }
     }
 
     @Nullable

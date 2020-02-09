@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.jms;
 
+import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -37,7 +38,7 @@ import javax.jms.Message;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 
-public class JmsMessagePropertyAccessor implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
+public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Message> implements TextHeaderGetter<Message>, TextHeaderSetter<Message> {
 
     private static final Logger logger = LoggerFactory.getLogger(JmsMessagePropertyAccessor.class);
 
@@ -70,13 +71,6 @@ public class JmsMessagePropertyAccessor implements TextHeaderGetter<Message>, Te
             headerName = JMS_TRACE_PARENT_PROPERTY;
         }
         return headerName;
-    }
-
-    @Nullable
-    @Override
-    public Iterable<String> getHeaders(String headerName, Message message) {
-        // not supported for JMS
-        return null;
     }
 
     @Override

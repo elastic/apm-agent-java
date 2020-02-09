@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,34 +37,27 @@ public class HeaderInjectorBridge implements TextHeaderSetter<Object> {
 
     private static final Logger logger = LoggerFactory.getLogger(HeaderInjectorBridge.class);
 
-    private static final HeaderInjectorBridge INSTANCE = new HeaderInjectorBridge();
+    @Nullable
+    private static HeaderInjectorBridge INSTANCE;
 
     @VisibleForAdvice
-    public static HeaderInjectorBridge instance() {
+    public static HeaderInjectorBridge get(MethodHandle addHeaderMethod) {
+        if (INSTANCE == null) {
+            INSTANCE = new HeaderInjectorBridge(addHeaderMethod);
+        }
         return INSTANCE;
     }
 
-    @Nullable
-    private MethodHandle addHeaderMethod;
+    private final MethodHandle addHeaderMethod;
 
-    private HeaderInjectorBridge() {
-    }
-
-    @VisibleForAdvice
-    public void setAddHeaderMethodHandle(MethodHandle addMethodHandle) {
-        // No need to make thread-safe - only one methodHandle can be set in practice, so we don't care replacing its
-        // reference a couple of times on startup. Cheaper than volatile access.
-        if (this.addHeaderMethod == null) {
-            this.addHeaderMethod = addMethodHandle;
-        }
+    private HeaderInjectorBridge(MethodHandle addHeaderMethod) {
+        this.addHeaderMethod = addHeaderMethod;
     }
 
     @Override
     public void setHeader(String headerName, String headerValue, Object carrier) {
         try {
-            if (addHeaderMethod != null) {
-                addHeaderMethod.invoke(carrier, headerName, headerValue);
-            }
+            addHeaderMethod.invoke(carrier, headerName, headerValue);
         } catch (Throwable throwable) {
             logger.error("Failed to add trace context headers", throwable);
         }

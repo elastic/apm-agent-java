@@ -127,7 +127,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
 
     @Override
     public void makeChildOf(Transaction childTransaction, Message parentMessage) {
-        TraceContext.getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
+        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
     }
 
     @VisibleForAdvice
