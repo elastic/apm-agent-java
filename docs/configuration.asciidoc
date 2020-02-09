@@ -768,6 +768,7 @@ NOTE: this option can only be set via system properties, environment variables o
 | `_AGENT_HOME_/elasticapm.properties` | String | false
 |============
 
+
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
@@ -779,18 +780,21 @@ NOTE: this option can only be set via system properties, environment variables o
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.13.0])
 
-To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
+To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 These headers (`traceparent` and `tracestate`) are defined in the
 https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
 
 When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`
 for backwards compatibility with older versions of Elastic APM agents.
 
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
 | `true` | Boolean | true
 |============
+
 
 [options="header"]
 |============
