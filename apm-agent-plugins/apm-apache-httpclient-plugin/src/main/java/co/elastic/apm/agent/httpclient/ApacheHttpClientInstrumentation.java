@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
@@ -76,7 +75,7 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
             if (span != null) {
                 span.activate();
                 if (headerSetter != null) {
-                    span.getTraceContext().setOutgoingTraceContextHeaders(request, new RequestHeaderAccessor());
+                    span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
                 }
             } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter)
                 && headerSetter != null && parent != null) {

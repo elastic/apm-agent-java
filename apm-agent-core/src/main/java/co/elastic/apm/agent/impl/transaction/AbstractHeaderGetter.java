@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,30 +22,14 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.okhttp;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import okhttp3.Request;
-
-import javax.annotation.Nullable;
-
-public class OkHttp3RequestHeaderAccessor implements TextHeaderSetter<Request.Builder>, TextHeaderGetter<Request> {
-
-    @Nullable
+public abstract class AbstractHeaderGetter<T, C> implements HeaderGetter<T, C> {
     @Override
-    public String getFirstHeader(String headerName, Request request) {
-        return request.header(headerName);
-    }
-
-    @Nullable
-    @Override
-    public Iterable<String> getHeaders(String headerName, Request request) {
-        return request.headers(headerName);
-    }
-
-    @Override
-    public void setHeader(String headerName, String headerValue, Request.Builder requestBuilder) {
-        requestBuilder.addHeader(headerName, headerValue);
+    public <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<T, S> consumer) {
+        T firstHeader = getFirstHeader(headerName, carrier);
+        if (firstHeader != null) {
+            consumer.accept(firstHeader, state);
+        }
     }
 }

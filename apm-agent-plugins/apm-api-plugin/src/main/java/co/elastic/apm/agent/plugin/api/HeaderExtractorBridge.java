@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,30 +34,24 @@ import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
 @VisibleForAdvice
-public class HeaderExtractorBridge implements TextHeaderGetter<Object> {
+public class HeaderExtractorBridge extends AbstractHeaderGetter<String, Object> implements TextHeaderGetter<Object> {
 
     private static final Logger logger = LoggerFactory.getLogger(HeaderExtractorBridge.class);
 
-    private static final HeaderExtractorBridge INSTANCE = new HeaderExtractorBridge();
-
-    @VisibleForAdvice
-    public static HeaderExtractorBridge instance() {
-        return INSTANCE;
-    }
-
     @Nullable
-    private MethodHandle getFirstHeaderMethod;
+    private static HeaderExtractorBridge INSTANCE;
 
-    private HeaderExtractorBridge() {
+    private final MethodHandle getFirstHeaderMethod;
+
+    private HeaderExtractorBridge(MethodHandle getFirstHeaderMethod) {
+        this.getFirstHeaderMethod = getFirstHeaderMethod;
     }
 
-    @VisibleForAdvice
-    public void setGetHeaderMethodHandle(MethodHandle getHeaderMethodHandle) {
-        // No need to make thread-safe - only one methodHandle can be set in practice, so we don't care replacing its
-        // reference a couple of times on startup. Cheaper than volatile access.
-        if (this.getFirstHeaderMethod == null) {
-            this.getFirstHeaderMethod = getHeaderMethodHandle;
+    public static HeaderExtractorBridge get(MethodHandle getFirstHeaderMethod) {
+        if (INSTANCE == null) {
+            INSTANCE = new HeaderExtractorBridge(getFirstHeaderMethod);
         }
+        return INSTANCE;
     }
 
     @Nullable
@@ -64,21 +59,11 @@ public class HeaderExtractorBridge implements TextHeaderGetter<Object> {
     public String getFirstHeader(String headerName, Object carrier) {
         String value = null;
         try {
-            if (getFirstHeaderMethod != null) {
-                value = (String) getFirstHeaderMethod.invoke(carrier, headerName);
-            }
+            value = (String) getFirstHeaderMethod.invoke(carrier, headerName);
         } catch (Throwable throwable) {
             logger.error("Failed to extract trace context headers", throwable);
         }
         return value;
     }
 
-    /**
-     * Returns null. {@link HeadersExtractorBridge} should be used instead for this functionality
-     */
-    @Nullable
-    @Override
-    public Iterable<String> getHeaders(String headerName, Object carrier) {
-        return null;
-    }
 }

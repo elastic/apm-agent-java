@@ -30,8 +30,6 @@ import org.apache.http.Header;
 import org.apache.http.HttpRequest;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 public class RequestHeaderAccessor implements TextHeaderGetter<HttpRequest>, TextHeaderSetter<HttpRequest> {
     @Override
@@ -49,17 +47,13 @@ public class RequestHeaderAccessor implements TextHeaderGetter<HttpRequest>, Tex
         return null;
     }
 
-    @Nullable
     @Override
-    public Iterable<String> getHeaders(String headerName, HttpRequest request) {
-        Header[] headers = request.getHeaders(headerName);
-        if (headers == null) {
-            return null;
+    public <S> void forEach(String headerName, HttpRequest carrier, S state, HeaderConsumer<String, S> consumer) {
+        Header[] headers = carrier.getHeaders(headerName);
+        if (headers != null) {
+            for (Header header : headers) {
+                consumer.accept(header.getValue(), state);
+            }
         }
-        List<String> ret = new ArrayList<>();
-        for (Header header : headers) {
-            ret.add(header.getValue());
-        }
-        return ret;
     }
 }

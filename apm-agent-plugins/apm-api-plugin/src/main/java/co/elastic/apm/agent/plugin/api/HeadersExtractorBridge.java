@@ -34,64 +34,82 @@ import java.lang.invoke.MethodHandle;
 import java.util.Iterator;
 
 @VisibleForAdvice
-public class HeadersExtractorBridge implements TextHeaderGetter<Object> {
+public class HeadersExtractorBridge implements TextHeaderGetter<HeadersExtractorBridge.Extractor> {
 
     private static final Logger logger = LoggerFactory.getLogger(HeadersExtractorBridge.class);
+    @Nullable
+    private static HeadersExtractorBridge INSTANCE;
 
-    private static final HeadersExtractorBridge INSTANCE = new HeadersExtractorBridge();
+    public static class Extractor {
 
-    @VisibleForAdvice
-    public static HeadersExtractorBridge instance() {
+        private static final Extractor INSTANCE = new Extractor();
+        @Nullable
+        private Object headerExtractor;
+        private Object headersExtractor;
+
+        private Extractor() {}
+
+        public static Extractor of(@Nullable Object headerExtractor, Object headersExtractor) {
+            INSTANCE.headerExtractor = headerExtractor;
+            INSTANCE.headersExtractor = headersExtractor;
+            return INSTANCE;
+        }
+    }
+
+    private final MethodHandle getFirstHeaderMethod;
+    private final MethodHandle getAllHeadersMethod;
+
+    public static HeadersExtractorBridge get(MethodHandle getFirstHeaderMethod, MethodHandle getAllHeadersMethod) {
+        if (INSTANCE == null) {
+            INSTANCE = new HeadersExtractorBridge(getFirstHeaderMethod, getAllHeadersMethod);
+        }
         return INSTANCE;
     }
 
-    @Nullable
-    private MethodHandle getAllHeadersMethod;
-
-    private HeadersExtractorBridge() {
-    }
-
-    @VisibleForAdvice
-    public void setGetHeaderMethodHandle(MethodHandle getAllHeadersMethodHandle) {
-        // No need to make thread-safe - only one methodHandle can be set in practice, so we don't care replacing its
-        // reference a couple of times on startup. Cheaper than volatile access.
-        if (this.getAllHeadersMethod == null) {
-            this.getAllHeadersMethod = getAllHeadersMethodHandle;
-        }
+    private HeadersExtractorBridge(MethodHandle getFirstHeaderMethod, MethodHandle getAllHeadersMethod) {
+        this.getFirstHeaderMethod = getFirstHeaderMethod;
+        this.getAllHeadersMethod = getAllHeadersMethod;
     }
 
     @Nullable
     @Override
-    public String getFirstHeader(String headerName, Object carrier) {
-        String value = null;
-        try {
-            if (getAllHeadersMethod != null) {
-                //noinspection unchecked
-                final Iterable<String> headersIterable = (Iterable<String>) getAllHeadersMethod.invoke(carrier, headerName);
-                if (headersIterable != null) {
-                    final Iterator<String> headersIterator = headersIterable.iterator();
-                    if (headersIterator.hasNext()) {
-                        value = headersIterator.next();
-                    }
-                }
-            }
-        } catch (Throwable throwable) {
-            logger.error("Failed to extract trace context headers", throwable);
-        }
-        return value;
-    }
-
-    @Nullable
-    @Override
-    public Iterable<String> getHeaders(String headerName, Object carrier) {
-        Iterable<String> values = null;
-        if (getAllHeadersMethod != null) {
+    public String getFirstHeader(String headerName, Extractor carrier) {
+        if (carrier.headerExtractor != null) {
             try {
-                //noinspection unchecked
-                values = (Iterable<String>) getAllHeadersMethod.invoke(carrier, headerName);
+                return (String) getFirstHeaderMethod.invoke(carrier.headerExtractor, headerName);
             } catch (Throwable throwable) {
                 logger.error("Failed to extract trace context headers", throwable);
             }
+        } else {
+            Iterable<String> headers = getValues(headerName, carrier);
+            if (headers != null) {
+                Iterator<String> iterator = headers.iterator();
+                if (iterator.hasNext()) {
+                    return iterator.next();
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public <S> void forEach(String headerName, Extractor carrier, S state, HeaderConsumer<String, S> consumer) {
+        Iterable<String> values = getValues(headerName, carrier);
+        if (values != null) {
+            for (String value : values) {
+                consumer.accept(value, state);
+            }
+        }
+    }
+
+    @Nullable
+    public Iterable<String> getValues(String headerName, Extractor carrier) {
+        Iterable<String> values = null;
+        try {
+            //noinspection unchecked
+            values = (Iterable<String>) getAllHeadersMethod.invoke(carrier.headersExtractor, headerName);
+        } catch (Throwable throwable) {
+            logger.error("Failed to extract trace context headers", throwable);
         }
         return values;
     }

@@ -42,7 +42,6 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,13 +49,10 @@ import java.util.Map;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.seeOther;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
@@ -229,17 +225,18 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             return loggedRequest.getHeader(headerName);
         }
 
-        @Nullable
         @Override
-        public Iterable<String> getHeaders(String headerName, LoggedRequest loggedRequest) {
+        public <S> void forEach(String headerName, LoggedRequest loggedRequest, S state, HeaderConsumer<String, S> consumer) {
             HttpHeaders headers = loggedRequest.getHeaders();
             if (headers != null) {
                 HttpHeader header = headers.getHeader(headerName);
                 if (header != null) {
-                    return header.values();
+                    List<String> values = header.values();
+                    for (int i = 0, size = values.size(); i < size; i++) {
+                        consumer.accept(values.get(i), state);
+                    }
                 }
             }
-            return null;
         }
     }
 }

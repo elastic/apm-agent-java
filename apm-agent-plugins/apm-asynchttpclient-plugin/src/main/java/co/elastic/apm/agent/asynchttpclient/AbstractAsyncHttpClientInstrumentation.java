@@ -76,7 +76,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             synchronized (AbstractAsyncHandlerInstrumentation.class) {
                 if (headerSetterManager == null) {
                     headerSetterManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                        "co.elastic.apm.agent.asynchttpclient.helper.RequestHeaderAccessor"
+                        "co.elastic.apm.agent.asynchttpclient.helper.RequestHeaderSetter"
                     );
                 }
             }
