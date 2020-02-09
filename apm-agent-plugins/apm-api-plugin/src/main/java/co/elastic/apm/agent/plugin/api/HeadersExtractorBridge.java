@@ -41,13 +41,18 @@ public class HeadersExtractorBridge implements TextHeaderGetter<HeadersExtractor
     private static HeadersExtractorBridge INSTANCE;
 
     public static class Extractor {
-        @Nullable
-        private final Object headerExtractor;
-        private final Object headersExtractor;
 
-        public Extractor(@Nullable Object headerExtractor, Object headersExtractor) {
-            this.headerExtractor = headerExtractor;
-            this.headersExtractor = headersExtractor;
+        private static final Extractor INSTANCE = new Extractor();
+        @Nullable
+        private Object headerExtractor;
+        private Object headersExtractor;
+
+        private Extractor() {}
+
+        public static Extractor of(@Nullable Object headerExtractor, Object headersExtractor) {
+            INSTANCE.headerExtractor = headerExtractor;
+            INSTANCE.headersExtractor = headersExtractor;
+            return INSTANCE;
         }
     }
 

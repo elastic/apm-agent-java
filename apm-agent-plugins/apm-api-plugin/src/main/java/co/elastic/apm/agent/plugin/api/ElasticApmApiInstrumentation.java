@@ -88,7 +88,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             if (tracer != null) {
                 if (headersExtractor != null) {
                     HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
-                    transaction = tracer.startChildTransaction(new HeadersExtractorBridge.Extractor(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
+                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
                 } else if (headerExtractor != null) {
                     HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
                     transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
