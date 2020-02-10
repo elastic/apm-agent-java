@@ -110,18 +110,8 @@ public class ServletApiAdvice {
                 ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> helper =
                     ServletInstrumentation.servletTransactionCreationHelperManager.getForClassLoaderOfClass(HttpServletRequest.class);
                 if (helper != null) {
-                    System.out.println("Helper is not null");
                     transaction = helper.createAndActivateTransaction(request);
-                    if (transaction != null) {
-                        System.out.println("transaction.getTraceContext().isSampled() = " + transaction.getTraceContext().isSampled());
-                        System.out.println("transaction.isNoop() = " + transaction.isNoop());
-                    } else {
-                        System.out.println("Transaction is null");
-                    }
-                } else {
-                    System.out.println("Helper is null");
                 }
-                new Exception().printStackTrace();
             }
 
             if (transaction == null) {
