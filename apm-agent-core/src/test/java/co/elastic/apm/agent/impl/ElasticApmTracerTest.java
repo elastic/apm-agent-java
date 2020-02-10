@@ -49,7 +49,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 class ElasticApmTracerTest {
@@ -500,7 +499,7 @@ class ElasticApmTracerTest {
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(errorId).isNotNull();
         ErrorCapture error = reporter.getFirstError();
-        assertEquals(error.getTraceContext().getId().toString(), errorId);
+        assertThat(error.getTraceContext().getId().toString()).isEqualTo(errorId);
     }
 
 }
