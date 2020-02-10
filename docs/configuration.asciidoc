@@ -8,8 +8,7 @@ Please only make changes in configuration.asciidoc.ftl
 To adapt the Elastic APM agent to your needs,
 you can configure it using different configuration sources,
 which have different naming conventions for the property key.
-In the following ordered list, values set in former configuration
-sources override values set in latter configuration sources:
+The first configuration sources override the configuration values of over the latter sources.
 
 [arabic]
 . {apm-app-ref}/agent-configuration.html[Central configuration]
