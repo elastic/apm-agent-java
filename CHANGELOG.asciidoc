@@ -20,6 +20,9 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.13.0]]
 ==== 1.13.0 (Next)
 
@@ -45,9 +48,6 @@ for more details) - {pull}1009[#1009]
 * Workaround for `java.util.logging` deadlock {pull}965[#965]
 * JMS should propagate traceparent header when transactions are not sampled {pull}999[#999]
 * Spans are not closed if JDBC implementation does not support `getUpdateCount` {pull}1008[#1008]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.12.0]]
 ==== 1.12.0 - 2019/11/21
