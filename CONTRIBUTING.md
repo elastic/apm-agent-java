@@ -267,7 +267,9 @@ If you have access to make releases, the process is as follows:
 1. If this was a minor release,
    reset the current major branch (`1.x`, `2.x` etc) to point to the current tag, e.g. `git branch -f 1.x v1.1.0`
    1. Update the branch on upstream with `git push upstream 1.x`
-1. Update [`CHANGELOG.asciidoc`](CHANGELOG.asciidoc) to reflect version release. Go over PRs or git log and add bug fixes and features.
+1. Update [`CHANGELOG.asciidoc`](CHANGELOG.asciidoc) to reflect the new version release:
+   1. Go over PRs or git log and add bug fixes and features.
+   1. Move release notes from the `Unreleased` sub-heading to the correct `[[release-notes-{major}.x]]` sub-heading ([Example PR](https://github.com/elastic/apm-agent-java/pull/1027/files) for 1.13.0 release).
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Provide a link to release notes in documentation as release description.
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml)
