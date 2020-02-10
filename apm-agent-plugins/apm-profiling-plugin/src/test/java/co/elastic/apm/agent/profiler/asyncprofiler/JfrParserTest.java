@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +42,9 @@ class JfrParserTest {
 
     @Test
     void name() throws Exception {
-        JfrParser jfrParser = new JfrParser();
+        // using the smallest prime number possible for the buffer
+        // should trigger most edge cases in the buffer being exhausted
+        JfrParser jfrParser = new JfrParser(ByteBuffer.allocate(59));
         jfrParser.parse(new File(getClass().getClassLoader().getResource("recording.jfr").getFile()), List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();

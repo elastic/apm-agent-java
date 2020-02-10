@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -38,6 +38,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -87,7 +88,7 @@ public class ProfilerBenchmark extends AbstractBenchmark {
 
     private class BasicStackTraceConsumer implements JfrParser.StackTraceConsumer {
         @Override
-        public void onCallTree(int threadId, long stackTraceId, long nanoTime) {
+        public void onCallTree(int threadId, long stackTraceId, long nanoTime) throws IOException {
             jfrParser.resolveStackTrace(stackTraceId, false, stackFrames, 512);
             stackFrames.clear();
             stackTraces++;
@@ -96,7 +97,7 @@ public class ProfilerBenchmark extends AbstractBenchmark {
 
     private class CallTreeStackTraceConsumer implements JfrParser.StackTraceConsumer {
         @Override
-        public void onCallTree(int threadId, long stackTraceId, long nanoTime) {
+        public void onCallTree(int threadId, long stackTraceId, long nanoTime) throws IOException {
             jfrParser.resolveStackTrace(stackTraceId, false, stackFrames, 512);
             CallTree.Root root = callTrees.get(threadId);
             if (root == null) {

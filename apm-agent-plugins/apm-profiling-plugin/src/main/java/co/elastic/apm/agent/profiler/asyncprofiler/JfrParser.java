@@ -36,10 +36,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.Buffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -54,11 +51,6 @@ import java.util.Set;
  * Most data structures can be reused by first {@linkplain #resetState() resetting the state} and then {@linkplain #parse(File, List, List) parsing}
  * another file.
  * </p>
- * <p>
- * The JFR file itself is mapped into memory via a {@link MappedByteBuffer}.
- * This does not consume heap memory, the operating system loads pages the file into memory as they are requested.
- * Unfortunately, unmapping a {@link MappedByteBuffer} can only be done by letting it be garbage collected.
- * </p>
  */
 public class JfrParser implements Recyclable {
 
@@ -66,23 +58,31 @@ public class JfrParser implements Recyclable {
 
     private static final byte[] MAGIC_BYTES = new byte[]{'F', 'L', 'R', '\0'};
     private static final Set<String> JAVA_FRAME_TYPES = new HashSet<>(Arrays.asList("Interpreted", "JIT compiled", "Inlined"));
+    private static final int FILE_BUFFER_SIZE = 4 * 1024 * 1024;
 
-    @Nullable
-    private MappedByteBuffer buffer;
-    private int eventsOffset;
-    private int metadataOffset;
-    @Nullable
-    private boolean[] isJavaFrameType;
+    private final BufferedFile bufferedFile;
     private final Int2IntHashMap classIdToClassNameSymbolId = new Int2IntHashMap(-1);
     private final Int2ObjectHashMap<Symbol> symbols = new Int2ObjectHashMap<>();
     private final Int2IntHashMap stackTraceIdToFilePositions = new Int2IntHashMap(-1);
     private final Long2ObjectHashMap<LazyStackFrame> framesByFrameId = new Long2ObjectHashMap<>();
     // used to resolve a symbol with minimal allocations
     private final StringBuilder symbolBuilder = new StringBuilder();
+    private long eventsOffset;
+    private long metadataOffset;
+    @Nullable
+    private boolean[] isJavaFrameType;
     @Nullable
     private List<WildcardMatcher> excludedClasses;
     @Nullable
     private List<WildcardMatcher> includedClasses;
+
+    public JfrParser() {
+        this(ByteBuffer.allocateDirect(FILE_BUFFER_SIZE));
+    }
+
+    JfrParser(ByteBuffer buffer) {
+        bufferedFile = new BufferedFile(buffer);
+    }
 
     /**
      * Initializes the parser to make it ready for {@link #resolveStackTrace(long, boolean, List, int)} to be called.
@@ -95,113 +95,106 @@ public class JfrParser implements Recyclable {
     public void parse(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
         this.excludedClasses = excludedClasses;
         this.includedClasses = includedClasses;
-        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-            FileChannel channel = raf.getChannel();
-            logger.debug("Parsing {} ({} bytes)", file, channel.size());
-            if (channel.size() > Integer.MAX_VALUE) {
-                // mapping a file into memory is only possible for chunks of the file which fall into the Integer range (2GB)
-                // that is because MappedByteBuffers are ByteBuffers which only accept ints in position(int pos)
-                throw new IllegalArgumentException("Input file too large");
-            }
-            this.buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
-        }
+        bufferedFile.setFile(file);
+        logger.debug("Parsing {} ({} bytes)", file, bufferedFile.size());
         for (byte magicByte : MAGIC_BYTES) {
-            if (buffer.get() != magicByte) {
+            if (bufferedFile.get() != magicByte) {
                 throw new IllegalArgumentException("Not a JFR file");
             }
         }
-        short major = buffer.getShort();
-        short minor = buffer.getShort();
+        short major = bufferedFile.getShort();
+        short minor = bufferedFile.getShort();
         if (major != 0 || minor != 9) {
             throw new IllegalArgumentException(String.format("Can only parse version 0.9. Was %d.%d", major, minor));
         }
-        // safe as we only process files where size <= Integer.MAX_VALUE
-        metadataOffset = (int) buffer.getLong();
-        eventsOffset = buffer.position();
+        metadataOffset = bufferedFile.getLong();
+        eventsOffset = bufferedFile.position();
 
-        setPosition(buffer, metadataOffset);
-        int checkpointOffset = parseMetadata(buffer);
-        setPosition(buffer, checkpointOffset);
-        parseCheckpoint(buffer);
+        long checkpointOffset = parseMetadata(metadataOffset);
+        bufferedFile.position(checkpointOffset);
+        parseCheckpoint();
     }
 
-    private int parseMetadata(MappedByteBuffer buffer) throws IOException {
-        int size = buffer.getInt();
-        expectEventType(buffer, EventTypeId.EVENT_METADATA);
-        int checkpointOffsetPosition = size - 16;
-        setPosition(buffer, buffer.position() + checkpointOffsetPosition);
-        // safe as we only process files where size <= Integer.MAX_VALUE
-        return (int) buffer.getLong();
+    private long parseMetadata(long metadataOffset) throws IOException {
+        bufferedFile.position(metadataOffset, 4);
+        int size = bufferedFile.getInt();
+        expectEventType(EventTypeId.EVENT_METADATA);
+        bufferedFile.skip(size - 16);
+        return bufferedFile.getLong();
     }
 
-    private void expectEventType(MappedByteBuffer buffer, int expectedEventType) throws IOException {
-        int eventType = buffer.getInt();
+    private void expectEventType(int expectedEventType) throws IOException {
+        int eventType = bufferedFile.getInt();
         if (eventType != expectedEventType) {
             throw new IOException("Expected " + expectedEventType + " but got " + eventType);
         }
     }
 
-    private void parseCheckpoint(MappedByteBuffer buffer) throws IOException {
-        buffer.getInt(); // size
-        expectEventType(buffer, EventTypeId.EVENT_CHECKPOINT);
-        buffer.getLong(); // stop timestamp
-        buffer.getLong(); // previous checkpoint - always 0 in async-profiler
-        while (buffer.position() < metadataOffset) {
-            parseContentType(buffer);
+    private void parseCheckpoint() throws IOException {
+        int size = bufferedFile.getInt();// size
+        expectEventType(EventTypeId.EVENT_CHECKPOINT);
+        bufferedFile.getLong(); // stop timestamp
+        bufferedFile.getLong(); // previous checkpoint - always 0 in async-profiler
+        while (bufferedFile.position() < metadataOffset) {
+            parseContent();
         }
     }
 
-    private void parseContentType(MappedByteBuffer buffer) throws IOException {
-        int contentTypeId = buffer.getInt();
+    private void parseContent() throws IOException {
+        BufferedFile bufferedFile = this.bufferedFile;
+        int contentTypeId = bufferedFile.getInt();
         logger.debug("Parsing content type {}", contentTypeId);
-        int count = buffer.getInt();
+        int count = bufferedFile.getInt();
         switch (contentTypeId) {
             case ContentTypeId.CONTENT_THREAD:
                 // currently no thread info
                 break;
             case ContentTypeId.CONTENT_STACKTRACE:
                 for (int i = 0; i < count; i++) {
-                    int pos = buffer.position();
+                    bufferedFile.ensureRemaining(13);
+                    int pos = (int) bufferedFile.position();
                     // always an integer
                     // see profiler.h
                     // MAX_CALLTRACES = 65536
-                    int stackTraceKey = (int) buffer.getLong();
+                    int stackTraceKey = (int) bufferedFile.getUnsafeLong();
                     this.stackTraceIdToFilePositions.put(stackTraceKey, pos);
-                    buffer.get(); // truncated
-                    int numFrames = buffer.getInt();
+                    bufferedFile.getUnsafe(); // truncated
+                    int numFrames = bufferedFile.getUnsafeInt();
                     int sizeOfFrame = 13;
-                    setPosition(buffer, buffer.position() + numFrames * sizeOfFrame);
+                    bufferedFile.skip(numFrames * sizeOfFrame);
                 }
                 break;
             case ContentTypeId.CONTENT_CLASS:
                 for (int i = 0; i < count; i++) {
+                    bufferedFile.ensureRemaining(26);
                     // classId is an incrementing integer, no way there are more than 2 billion distinct ones
-                    int classId = (int) buffer.getLong();
-                    buffer.getLong(); // loader class
+                    int classId = (int) bufferedFile.getUnsafeLong();
+                    bufferedFile.getUnsafeLong(); // loader class
                     // symbol ids are incrementing integers, no way there are more than 2 billion distinct ones
-                    int classNameSymbolId = (int) buffer.getLong();
+                    int classNameSymbolId = (int) bufferedFile.getUnsafeLong();
                     classIdToClassNameSymbolId.put(classId, classNameSymbolId); // class name
-                    buffer.getShort(); // access flags
+                    bufferedFile.getUnsafeShort(); // access flags
                 }
                 break;
             case ContentTypeId.CONTENT_METHOD:
                 for (int i = 1; i <= count; i++) {
-                    long id = buffer.getLong();
+                    bufferedFile.ensureRemaining(35);
+                    long id = bufferedFile.getUnsafeLong();
                     // classId is an incrementing integer, no way there are more than 2 billion distinct ones
-                    int classId = (int) buffer.getLong();
+                    int classId = (int) bufferedFile.getUnsafeLong();
                     // symbol ids are incrementing integers, no way there are more than 2 billion distinct ones
-                    int methodNameSymbolId = (int) buffer.getLong();
+                    int methodNameSymbolId = (int) bufferedFile.getUnsafeLong();
                     framesByFrameId.put(id, new LazyStackFrame(classId, methodNameSymbolId));
-                    buffer.getLong(); // signature
-                    buffer.getShort(); // modifiers
-                    buffer.get(); // hidden
+                    bufferedFile.getUnsafeLong(); // signature
+                    bufferedFile.getUnsafeShort(); // modifiers
+                    bufferedFile.getUnsafe(); // hidden
                 }
                 break;
             case ContentTypeId.CONTENT_SYMBOL:
                 for (int i = 0; i < count; i++) {
                     // symbol ids are incrementing integers, no way there are more than 2 billion distinct ones
-                    int symbolId = (int) buffer.getLong();
-                    int pos = buffer.position();
+                    int symbolId = (int) bufferedFile.getLong();
+                    int pos = (int) bufferedFile.position();
                     symbols.put(symbolId, new Symbol(pos));
                     skipString();
                 }
@@ -210,14 +203,14 @@ public class JfrParser implements Recyclable {
                 // we're not really interested in the thread states (async-profiler hard-codes state RUNNABLE) anyways
                 // but we sill have to consume the bytes
                 for (int i = 1; i <= count; i++) {
-                    buffer.getShort();
+                    bufferedFile.getShort();
                     skipString();
                 }
                 break;
             case ContentTypeId.CONTENT_FRAME_TYPE:
                 isJavaFrameType = new boolean[count + 1];
-                for (int i = 1 ; i <= count; i++) {
-                    int id = buffer.get();
+                for (int i = 1; i <= count; i++) {
+                    int id = bufferedFile.get();
                     if (i != id) {
                         throw new IllegalStateException("Expecting ids to be incrementing");
                     }
@@ -229,9 +222,9 @@ public class JfrParser implements Recyclable {
         }
     }
 
-    private void skipString() {
-        short stringLength = buffer.getShort();
-        setPosition(buffer, buffer.position() + stringLength);
+    private void skipString() throws IOException {
+        short stringLength = bufferedFile.getShort();
+        bufferedFile.skip(stringLength);
     }
 
     /**
@@ -241,37 +234,26 @@ public class JfrParser implements Recyclable {
      * @throws IOException if some I/O error occurs
      */
     public void consumeStackTraces(StackTraceConsumer callback) throws IOException {
-        if (buffer == null) {
+        if (!bufferedFile.isSet()) {
             throw new IllegalStateException("consumeStackTraces was called before parse");
         }
-        setPosition(buffer, eventsOffset);
-        while (buffer.position() < metadataOffset) {
-            int size = buffer.getInt();
-            int eventType = buffer.getInt();
+        bufferedFile.position(eventsOffset);
+        while (bufferedFile.position() < metadataOffset) {
+            bufferedFile.ensureRemaining(30);
+            int size = bufferedFile.getUnsafeInt();
+            int eventType = bufferedFile.getUnsafeInt();
             if (eventType == EventTypeId.EVENT_RECORDING) {
                 return;
             }
-            if (eventType != EventTypeId.EVENT_EXECUTION_SAMPLE){
+            if (eventType != EventTypeId.EVENT_EXECUTION_SAMPLE) {
                 throw new IOException("Expected " + EventTypeId.EVENT_EXECUTION_SAMPLE + " but got " + eventType);
             }
-            long nanoTime = buffer.getLong();
-            int tid = buffer.getInt();
-            long stackTraceId = buffer.getLong();
-            short threadState = buffer.getShort();
+            long nanoTime = bufferedFile.getUnsafeLong();
+            int tid = bufferedFile.getUnsafeInt();
+            long stackTraceId = bufferedFile.getUnsafeLong();
+            short threadState = bufferedFile.getUnsafeShort();
             callback.onCallTree(tid, stackTraceId, nanoTime);
         }
-    }
-
-    public interface StackTraceConsumer {
-
-        /**
-         * @param threadId     The native thread id for with the event was recorded.
-         *                     Note that this is not the same as {@link Thread#getId()}.
-         * @param stackTraceId The id of the stack trace event.
-         *                     Can be used to resolve the stack trace via {@link #resolveStackTrace(long, boolean, List, int)}
-         * @param nanoTime     The timestamp of the event which can be correlated with {@link System#nanoTime()}
-         */
-        void onCallTree(int threadId, long stackTraceId, long nanoTime);
     }
 
     /**
@@ -294,30 +276,31 @@ public class JfrParser implements Recyclable {
      *                       In contrast to async-profiler's {@code jstackdepth} argument this does not truncate the bottom of the stack, only the top.
      *                       This is important to properly create a call tree without making it overly complex.
      */
-    public void resolveStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames, int maxStackDepth) {
-        if (buffer == null) {
+    public void resolveStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames, int maxStackDepth) throws IOException {
+        if (!bufferedFile.isSet()) {
             throw new IllegalStateException("getStackTrace was called before parse");
         }
-        MappedByteBuffer buffer = this.buffer;
-        int position = buffer.position();
-        setPosition(buffer, stackTraceIdToFilePositions.get((int) stackTraceId));
-        long stackTraceIdFromFile = buffer.getLong();
+        long position = bufferedFile.position();
+        bufferedFile.position(stackTraceIdToFilePositions.get((int) stackTraceId));
+        bufferedFile.ensureRemaining(13);
+        long stackTraceIdFromFile = bufferedFile.getUnsafeLong();
         assert stackTraceId == stackTraceIdFromFile;
-        buffer.get(); // truncated
-        int numFrames = buffer.getInt();
+        bufferedFile.getUnsafe(); // truncated
+        int numFrames = bufferedFile.getUnsafeInt();
         for (int i = 0; i < numFrames; i++) {
-            long frameId = buffer.getLong();
-            buffer.getInt(); // bci (always set to 0 by async-profiler)
-            byte frameType = buffer.get();
+            bufferedFile.ensureRemaining(13);
+            long frameId = bufferedFile.getUnsafeLong();
+            bufferedFile.getUnsafeInt(); // bci (always set to 0 by async-profiler)
+            byte frameType = bufferedFile.getUnsafe();
             addFrameIfIncluded(stackFrames, onlyJavaFrames, frameId, frameType);
             if (stackFrames.size() == maxStackDepth) {
                 break;
             }
         }
-        setPosition(buffer, position);
+        bufferedFile.position(position);
     }
 
-    private void addFrameIfIncluded(List<StackFrame> stackFrames, boolean onlyJavaFrames, long frameId, byte frameType) {
+    private void addFrameIfIncluded(List<StackFrame> stackFrames, boolean onlyJavaFrames, long frameId, byte frameType) throws IOException {
         if (!onlyJavaFrames || isJavaFrameType(frameType)) {
             LazyStackFrame lazyStackFrame = framesByFrameId.get(frameId);
             if (lazyStackFrame.isIncluded(this)) {
@@ -331,13 +314,13 @@ public class JfrParser implements Recyclable {
         return isJavaFrameType[frameType];
     }
 
-    private StringBuilder resolveSymbol(int pos, boolean replaceSlashWithDot) {
-        int currentPos = buffer.position();
-        setPosition(buffer, pos);
+    private StringBuilder resolveSymbol(int pos, boolean replaceSlashWithDot) throws IOException {
+        long currentPos = bufferedFile.position();
+        bufferedFile.position(pos);
         try {
             return readUtf8String(replaceSlashWithDot);
         } finally {
-            setPosition(buffer, currentPos);
+            bufferedFile.position(currentPos);
         }
     }
 
@@ -345,14 +328,7 @@ public class JfrParser implements Recyclable {
         return WildcardMatcher.isAnyMatch(includedClasses, className) && WildcardMatcher.isNoneMatch(excludedClasses, className);
     }
 
-    private static void setPosition(MappedByteBuffer buffer, int pos) {
-        // weird hack because of binary incompatibility introduced in Java 9
-        // the return type was changed from Buffer to MappedByteBuffer
-        // linking a method also incorporates the exact return type
-        ((Buffer) buffer).position(pos);
-    }
-
-    private StackFrame resolveStackFrame(int classId, int methodName) {
+    private StackFrame resolveStackFrame(int classId, int methodName) throws IOException {
         Symbol classNameSymbol = symbols.get(classIdToClassNameSymbolId.get(classId));
         if (classNameSymbol.isClassNameIncluded(this)) {
             String className = classNameSymbol.resolveClassName(this);
@@ -363,16 +339,17 @@ public class JfrParser implements Recyclable {
         }
     }
 
-    private StringBuilder readUtf8String() {
+    private StringBuilder readUtf8String() throws IOException {
         return readUtf8String(false);
     }
 
-    private StringBuilder readUtf8String(boolean replaceSlashWithDot) {
-        int size = buffer.getShort();
+    private StringBuilder readUtf8String(boolean replaceSlashWithDot) throws IOException {
+        int size = bufferedFile.getShort();
+        bufferedFile.ensureRemaining(size);
         StringBuilder symbolBuilder = this.symbolBuilder;
         symbolBuilder.setLength(0);
         for (int i = 0; i < size; i++) {
-            char c = (char) buffer.get();
+            char c = (char) bufferedFile.getUnsafe();
             if (replaceSlashWithDot && c == '/') {
                 symbolBuilder.append('.');
             } else {
@@ -384,7 +361,7 @@ public class JfrParser implements Recyclable {
 
     @Override
     public void resetState() {
-        buffer = null;
+        bufferedFile.resetState();
         eventsOffset = 0;
         metadataOffset = 0;
         isJavaFrameType = null;
@@ -395,6 +372,18 @@ public class JfrParser implements Recyclable {
         symbolBuilder.setLength(0);
         excludedClasses = null;
         includedClasses = null;
+    }
+
+    public interface StackTraceConsumer {
+
+        /**
+         * @param threadId     The native thread id for with the event was recorded.
+         *                     Note that this is not the same as {@link Thread#getId()}.
+         * @param stackTraceId The id of the stack trace event.
+         *                     Can be used to resolve the stack trace via {@link #resolveStackTrace(long, boolean, List, int)}
+         * @param nanoTime     The timestamp of the event which can be correlated with {@link System#nanoTime()}
+         */
+        void onCallTree(int threadId, long stackTraceId, long nanoTime) throws IOException;
     }
 
     private interface EventTypeId {
@@ -439,7 +428,7 @@ public class JfrParser implements Recyclable {
             this.methodName = methodName;
         }
 
-        public StackFrame resolve(JfrParser parser) {
+        public StackFrame resolve(JfrParser parser) throws IOException {
             if (stackFrame == null) {
                 stackFrame = parser.resolveStackFrame(classId, methodName);
             }
@@ -452,7 +441,7 @@ public class JfrParser implements Recyclable {
          * @param parser
          * @return
          */
-        public boolean isIncluded(JfrParser parser) {
+        public boolean isIncluded(JfrParser parser) throws IOException {
             return resolve(parser) != EXCLUDED;
         }
     }
@@ -483,7 +472,7 @@ public class JfrParser implements Recyclable {
          * Resolves a symbol representing a class name from the JFR file ({@link #buffer}).
          */
         @Nullable
-        public String resolve(JfrParser parser) {
+        public String resolve(JfrParser parser) throws IOException {
             return resolve(parser, false);
         }
 
@@ -498,7 +487,7 @@ public class JfrParser implements Recyclable {
          * </p>
          */
         @Nullable
-        private String resolveClassName(JfrParser parser) {
+        private String resolveClassName(JfrParser parser) throws IOException {
             return resolve(parser, true);
         }
 
@@ -508,12 +497,12 @@ public class JfrParser implements Recyclable {
          * @param parser
          * @return
          */
-        private boolean isClassNameIncluded(JfrParser parser) {
+        private boolean isClassNameIncluded(JfrParser parser) throws IOException {
             return resolve(parser, true) != EXCLUDED;
         }
 
         @Nullable
-        private String resolve(JfrParser parser, boolean className) {
+        private String resolve(JfrParser parser, boolean className) throws IOException {
             if (resolved == null) {
                 StringBuilder stringBuilder = parser.resolveSymbol(pos, className);
                 if (className && !parser.isClassIncluded(stringBuilder)) {
