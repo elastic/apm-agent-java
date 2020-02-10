@@ -1,1 +1,1 @@
-co.elastic.apm.agent.slf4j.Slf4JMdcActivationListener
+co.elastic.apm.agent.mdc.MdcActivationListener

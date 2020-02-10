@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.slf4j;
+package co.elastic.apm.agent.mdc;
 
 import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -39,7 +39,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
-public class Slf4JMdcActivationListener implements ActivationListener {
+public class MdcActivationListener implements ActivationListener {
 
     // prevents the shade plugin from relocating org.slf4j.MDC to co.elastic.apm.agent.shaded.slf4j.MDC
     private static final String SLF4J_MDC = "org!slf4j!MDC".replace('!', '.');
@@ -48,10 +48,10 @@ public class Slf4JMdcActivationListener implements ActivationListener {
 
     private static final String TRACE_ID = "trace.id";
     private static final String TRANSACTION_ID = "transaction.id";
-    private static final Logger logger = LoggerFactory.getLogger(Slf4JMdcActivationListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(MdcActivationListener.class);
 
-    // Never invoked- only used for caching ClassLoaders that can't load the slf4j MDC class
-    private static final MethodHandle NOOP = MethodHandles.constant(String.class, "ClassLoader cannot load slf4j API");
+    // Never invoked- only used for caching ClassLoaders that can't load the MDC/ThreadContext class
+    private static final MethodHandle NOOP = MethodHandles.constant(String.class, "ClassLoader cannot load MDC/ThreadContext");
 
     private final WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle>[] mdcPutMethodHandleCaches = new WeakKeySoftValueLoadingCache[]{
         new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
@@ -140,7 +140,7 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     private final CoreConfiguration coreConfiguration;
     private final ElasticApmTracer tracer;
 
-    public Slf4JMdcActivationListener(ElasticApmTracer tracer) {
+    public MdcActivationListener(ElasticApmTracer tracer) {
         this.tracer = tracer;
         this.loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);

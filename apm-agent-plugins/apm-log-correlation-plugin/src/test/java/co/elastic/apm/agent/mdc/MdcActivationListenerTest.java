@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.slf4j;
+package co.elastic.apm.agent.mdc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -49,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.when;
 
-class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
+class MdcActivationListenerTest extends AbstractInstrumentationTest {
 
     private LoggingConfiguration loggingConfiguration;
     private CoreConfiguration coreConfiguration;
