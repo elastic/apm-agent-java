@@ -252,7 +252,7 @@ If you have access to make releases, the process is as follows:
 
 1. Check if sonatype is up: https://status.maven.org
 1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`.
-   1. In case you want to update the version, execute `mvn release:update-versions`
+   1. In case you want to update the version, execute `mvn versions:set -DnewVersion=${VERSION}` where `${VERSION}` is the target version.
 1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:
    1. Removes `-SNAPSHOT` from all `${project.version}` occurrences and makes a commit before build
    1. Tags this new commit with the version name, e.g. `v1.1.0`
@@ -266,7 +266,7 @@ If you have access to make releases, the process is as follows:
    1. Add the new branch to the `conf.yaml` in the docs repo
 1. If this was a minor release,
    reset the current major branch (`1.x`, `2.x` etc) to point to the current tag, e.g. `git branch -f 1.x v1.1.0`
-   1. Update the branch on upstream with `git push origin 1.x`
+   1. Update the branch on upstream with `git push upstream 1.x`
 1. Update [`CHANGELOG.asciidoc`](CHANGELOG.asciidoc) to reflect version release. Go over PRs or git log and add bug fixes and features.
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Provide a link to release notes in documentation as release description.
