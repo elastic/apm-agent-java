@@ -280,16 +280,9 @@ public interface Span {
      * Captures an exception and reports it to the APM server.
      *
      * @param throwable the exception to report
-     */
-    void captureException(Throwable throwable);
-
-    /**
-     * Captures an exception and reports it to the APM server.
-     *
-     * @param throwable the exception to report
      * @return the id of reported error
      */
-    String captureExceptionAndReturnErrorId(Throwable throwable);
+    String captureException(Throwable throwable);
 
     /**
      * Returns the id of this span (never {@code null})

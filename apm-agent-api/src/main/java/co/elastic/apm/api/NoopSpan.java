@@ -80,13 +80,8 @@ enum NoopSpan implements Span {
     }
 
     @Override
-    public void captureException(Throwable throwable) {
+    public String captureException(Throwable throwable) {
         // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
-    }
-
-    @Override
-    public String captureExceptionAndReturnErrorId(Throwable throwable) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.CaptureExceptionAndReturnErrorIdInstrumentation
         return "";
     }
 

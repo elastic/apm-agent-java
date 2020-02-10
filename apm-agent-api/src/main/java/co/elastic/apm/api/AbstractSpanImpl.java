@@ -112,13 +112,8 @@ public abstract class AbstractSpanImpl implements Span {
     }
 
     @Override
-    public void captureException(Throwable throwable) {
+    public String captureException(Throwable throwable) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.CaptureExceptionInstrumentation
-    }
-
-    @Override
-    public String captureExceptionAndReturnErrorId(Throwable throwable) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.CaptureExceptionAndReturnErrorIdInstrumentation
         return "";
     }
 
