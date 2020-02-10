@@ -40,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -172,7 +173,7 @@ class TraceContextTest {
     }
 
     @Test
-    void testTraceContextHeadersRemoval() {
+    void testTraceContextTextHeadersRemoval() {
         Map<String, String> headerMap = new HashMap<>();
         headerMap.put(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
         headerMap.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
@@ -181,6 +182,14 @@ class TraceContextTest {
         assertThat(headerMap.get(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNull();
         assertThat(headerMap.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNull();
         assertThat(headerMap.get(TraceContext.TRACESTATE_HEADER_NAME)).isNull();
+    }
+
+    @Test
+    void testTraceContextBinaryHeadersRemoval() {
+        Map<String, byte[]> headerMap = new HashMap<>();
+        headerMap.put(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01".getBytes(StandardCharsets.UTF_8));
+        TraceContext.removeTraceContextHeaders(headerMap, BinaryHeaderMapAccessor.INSTANCE);
+        assertThat(headerMap.get(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME)).isNull();
     }
 
     @Test

@@ -26,13 +26,15 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderSetter;
+import co.elastic.apm.agent.impl.transaction.HeaderRemover;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BinaryHeaderMapAccessor implements BinaryHeaderGetter<Map<String, byte[]>>, BinaryHeaderSetter<Map<String, byte[]>> {
+public class BinaryHeaderMapAccessor implements BinaryHeaderGetter<Map<String, byte[]>>,
+    BinaryHeaderSetter<Map<String, byte[]>>, HeaderRemover<Map<String, byte[]>> {
 
     public static final BinaryHeaderMapAccessor INSTANCE = new BinaryHeaderMapAccessor();
 
@@ -65,5 +67,10 @@ public class BinaryHeaderMapAccessor implements BinaryHeaderGetter<Map<String, b
     @Override
     public void setHeader(String headerName, byte[] headerValue, Map<String, byte[]> headerMap) {
         headerMap.put(headerName, headerValue);
+    }
+
+    @Override
+    public void remove(String headerName, Map<String, byte[]> headerMap) {
+        headerMap.remove(headerName);
     }
 }

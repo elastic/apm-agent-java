@@ -195,6 +195,7 @@ public class TraceContext extends TraceContextHolder {
         headerRemover.remove(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
         headerRemover.remove(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
         headerRemover.remove(TRACESTATE_HEADER_NAME, carrier);
+        headerRemover.remove(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
     }
 
     public static <S, D> void copyTraceContextTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
