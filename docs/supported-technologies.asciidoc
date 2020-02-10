@@ -285,7 +285,7 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|1.7.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+|1.7.0 - (incubating - off by default). On by default since 1.13.0.
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support
@@ -357,12 +357,12 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 |`java.lang.Process`
 |
 | Instruments `java.lang.Process` execution. Java 9 API using `ProcessHandler` is not supported yet.
-| 1.13.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+| 1.13.0
 
 |Apache commons-exec
 |1.3
 | Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation.
-| 1.13.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+| 1.13.0
 
 |===
 
