@@ -285,7 +285,7 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|1.7.0 - (incubating - off by default). On by default since 1.13.0.
+|Enabled by default since 1.13.0, added as an incubating plugin in 1.7.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support
