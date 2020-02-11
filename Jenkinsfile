@@ -273,7 +273,7 @@ pipeline {
         GITHUB_CHECK_ITS_NAME = 'Integration Tests'
         GITHUB_CHECK_OPBEANS_NAME = 'Opbeans'
         ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
-        OPBEANS_PIPELINE = 'apm-agent-java/opbeans-java-selector'
+        OPBEANS_PIPELINE = 'apm-agent-java/opbeans-java-selector-mbp/master'
       }
       steps {
         build(job: env.ITS_PIPELINE, propagate: false, wait: false,
