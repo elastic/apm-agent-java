@@ -12,8 +12,6 @@ pipeline {
     DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
-    GITHUB_CHECK_ITS_NAME = 'Integration Tests'
-    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
   }
@@ -263,7 +261,7 @@ pipeline {
         }
       }
     }
-    stage('Integration Tests') {
+    stage('Downstream Jobs') {
       agent none
       when {
         anyOf {
@@ -271,8 +269,13 @@ pipeline {
           expression { return !params.Run_As_Master_Branch }
         }
       }
+      environment {
+        GITHUB_CHECK_ITS_NAME = 'Integration Tests'
+        GITHUB_CHECK_OPBEANS_NAME = 'Opbeans'
+        ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
+        OPBEANS_PIPELINE = 'apm-agent-java/opbeans-java-selector'
+      }
       steps {
-        log(level: 'INFO', text: 'Launching Async ITs')
         build(job: env.ITS_PIPELINE, propagate: false, wait: false,
               parameters: [string(name: 'AGENT_INTEGRATION_TEST', value: 'Java'),
                            string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT}"),
@@ -280,6 +283,12 @@ pipeline {
                            string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
+        build(job: env.OPBEANS_PIPELINE, propagate: false, wait: false,
+              parameters: [string(name: 'AGENT_VERSION', value: "${env.GIT_BASE_COMMIT}"),
+                           string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_OPBEANS_NAME),
+                           string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
+                           string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
+        githubNotify(context: "${env.GITHUB_CHECK_OPBEANS_NAME}", description: "${env.GITHUB_CHECK_OPBEANS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.OPBEANS_PIPELINE.replaceAll('/','+')}")
       }
     }
     stage('AfterRelease') {
