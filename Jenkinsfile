@@ -284,7 +284,7 @@ pipeline {
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
         build(job: env.OPBEANS_PIPELINE, propagate: false, wait: false,
-              parameters: [string(name: 'AGENT_VERSION', value: "${env.GIT_BASE_COMMIT}"),
+              parameters: [string(name: 'BUILD_OPTS', value: "JAVA_AGENT_REPO=${env.ORG_NAME}/${env.REPO_NAME} JAVA_AGENT_BRANCH=${env.GIT_BASE_COMMIT}"),
                            string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_OPBEANS_NAME),
                            string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
