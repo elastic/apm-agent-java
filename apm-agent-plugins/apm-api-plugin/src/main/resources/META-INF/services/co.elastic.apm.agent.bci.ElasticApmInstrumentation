@@ -15,7 +15,6 @@ co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampIns
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndWithTimestampInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$CaptureExceptionInstrumentation
-co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$CaptureExceptionInstrumentationOld
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$GetIdInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$GetTraceIdInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddStringLabelInstrumentation
@@ -30,6 +29,7 @@ co.elastic.apm.agent.plugin.api.CaptureTransactionInstrumentation
 co.elastic.apm.agent.plugin.api.CaptureSpanInstrumentation
 co.elastic.apm.agent.plugin.api.TracedInstrumentation
 # legacy
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$LegacyCaptureExceptionInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$DoCreateSpanInstrumentation

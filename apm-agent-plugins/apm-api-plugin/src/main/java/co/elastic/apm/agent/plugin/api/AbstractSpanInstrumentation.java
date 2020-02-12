@@ -171,6 +171,9 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    /**
+     * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
+     */
     public static class CaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
         public CaptureExceptionInstrumentation() {
             super(named("captureException")
@@ -188,10 +191,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
     }
 
     /**
-     * Ensures compatibility with previous version of API where {@code captureException} returns void.
+     * Instruments previous version of API where {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
+     * returns void.
      */
-    public static class CaptureExceptionInstrumentationOld extends AbstractSpanInstrumentation {
-        public CaptureExceptionInstrumentationOld() {
+    public static class LegacyCaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
+        public LegacyCaptureExceptionInstrumentation() {
             super(named("captureException")
                 .and(takesArguments(Throwable.class))
                 .and(returns(Void.class)));
