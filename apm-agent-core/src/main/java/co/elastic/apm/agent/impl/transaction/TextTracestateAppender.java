@@ -24,11 +24,13 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import javax.annotation.Nullable;
+import java.util.List;
 
-class TextTracestateAppender implements HeaderGetter.HeaderConsumer<String, TraceContext> {
+class TextTracestateAppender {
 
-    private static TextTracestateAppender INSTANCE = new TextTracestateAppender();
+    private static final TextTracestateAppender INSTANCE = new TextTracestateAppender();
+    private final ThreadLocal<StringBuilder> tracestateBuffer = new ThreadLocal<StringBuilder>();
+
 
     static TextTracestateAppender instance() {
         return INSTANCE;
@@ -37,15 +39,12 @@ class TextTracestateAppender implements HeaderGetter.HeaderConsumer<String, Trac
     TextTracestateAppender() {
     }
 
-    @Override
-    public void accept(@Nullable String headerValue, TraceContext traceContext) {
-        if (headerValue == null) {
-            return;
+    public String join(List<String> tracestate, int tracestateSizeLimit) {
+        StringBuilder buffer = getTracestateBuffer();
+        for (int i = 0, size = tracestate.size(); i < size; i++) {
+            appendTracestateHeaderValue(tracestate.get(i), buffer, tracestateSizeLimit);
         }
-        // This means that the tracestate buffer will be allocated from pool only if tracestate headers exist
-        StringBuilder tracestateBuffer = traceContext.getTracestateBuffer();
-        int tracestateSizeLimit = traceContext.coreConfiguration.getTracestateSizeLimit();
-        appendTracestateHeaderValue(headerValue, tracestateBuffer, tracestateSizeLimit);
+        return buffer.toString();
     }
 
     void appendTracestateHeaderValue(String headerValue, StringBuilder tracestateBuffer, int tracestateSizeLimit) {
@@ -67,5 +66,16 @@ class TextTracestateAppender implements HeaderGetter.HeaderConsumer<String, Trac
             }
             tracestateBuffer.append(headerValue, 0, endIndex);
         }
+    }
+
+    private StringBuilder getTracestateBuffer() {
+        StringBuilder buffer = tracestateBuffer.get();
+        if (buffer == null) {
+            buffer = new StringBuilder();
+            tracestateBuffer.set(buffer);
+        } else {
+            buffer.setLength(0);
+        }
+        return buffer;
     }
 }

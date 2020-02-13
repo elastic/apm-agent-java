@@ -27,19 +27,16 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Resetter;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.util.HexUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
-import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 /**
@@ -100,20 +97,6 @@ public class TraceContext extends TraceContextHolder {
     private static final int BINARY_FORMAT_FLAGS_OFFSET = 27;
     private static final byte BINARY_FORMAT_FLAGS_FIELD_ID = (byte) 0b0000_0010;
 
-    private static final ObjectPool<StringBuilder> tracestateBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<StringBuilder>(128), false,
-        new Allocator<StringBuilder>() {
-            @Override
-            public StringBuilder createInstance() {
-                return new StringBuilder();
-            }
-        },
-        new Resetter<StringBuilder>() {
-            @Override
-            public void recycle(StringBuilder object) {
-                object.setLength(0);
-            }
-        });
-
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
     /**
      * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
@@ -124,6 +107,14 @@ public class TraceContext extends TraceContextHolder {
         public boolean asChildOf(TraceContext child, TraceContextHolder<?> parent) {
             child.asChildOf(parent.getTraceContext());
             return true;
+        }
+    };
+    private static final HeaderGetter.HeaderConsumer<String, TraceContext> TRACESTATE_HEADER_CONSUMER = new HeaderGetter.HeaderConsumer<String, TraceContext>() {
+        @Override
+        public void accept(@Nullable String tracestateHeaderValue, TraceContext state) {
+            if (tracestateHeaderValue != null) {
+                state.addTracestate(tracestateHeaderValue);
+            }
         }
     };
     private static final ChildContextCreatorTwoArg FROM_TRACE_CONTEXT_TEXT_HEADERS =
@@ -149,7 +140,8 @@ public class TraceContext extends TraceContextHolder {
                 }
 
                 if (isValid) {
-                    traceContextHeaderGetter.forEach(TRACESTATE_HEADER_NAME, carrier, child, TextTracestateAppender.instance());
+                    // as per spec, the tracestate header can be multi-valued
+                    traceContextHeaderGetter.forEach(TRACESTATE_HEADER_NAME, carrier, child, TRACESTATE_HEADER_CONSUMER);
                 }
 
                 return isValid;
@@ -227,9 +219,7 @@ public class TraceContext extends TraceContextHolder {
     // weakly referencing to avoid CL leaks in case of leaked spans
     @Nullable
     private WeakReference<ClassLoader> applicationClassLoader;
-
-    @Nullable
-    StringBuilder tracestateBuffer;
+    private final List<String> tracestate = new ArrayList<>(1);
 
     final CoreConfiguration coreConfiguration;
 
@@ -419,6 +409,7 @@ public class TraceContext extends TraceContextHolder {
         clock.init(parent.clock);
         serviceName = parent.serviceName;
         applicationClassLoader = parent.applicationClassLoader;
+        tracestate.addAll(parent.tracestate);
         onMutation();
     }
 
@@ -435,10 +426,7 @@ public class TraceContext extends TraceContextHolder {
         clock.resetState();
         serviceName = null;
         applicationClassLoader = null;
-        if (tracestateBuffer != null) {
-            tracestateBufferPool.recycle(tracestateBuffer);
-            tracestateBuffer = null;
-        }
+        tracestate.clear();
     }
 
     /**
@@ -527,11 +515,11 @@ public class TraceContext extends TraceContextHolder {
         if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
             headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
         }
-        if (tracestateBuffer != null) {
-            String tracestateValue = tracestateBuffer.toString();
-            if (!tracestateValue.isEmpty()) {
-                headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestateValue, carrier);
-            }
+        if (tracestate.size() == 1) {
+            headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestate.get(0), carrier);
+        } else if (!tracestate.isEmpty()) {
+            String tracestateHeaderValue = TextTracestateAppender.instance().join(tracestate, coreConfiguration.getTracestateSizeLimit());
+            headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestateHeaderValue, carrier);
         }
     }
 
@@ -623,9 +611,7 @@ public class TraceContext extends TraceContextHolder {
         clock.init(other.clock);
         serviceName = other.serviceName;
         applicationClassLoader = other.applicationClassLoader;
-        if (other.tracestateBuffer != null) {
-            getTracestateBuffer().append(other.tracestateBuffer);
-        }
+        tracestate.addAll(other.tracestate);
         onMutation();
     }
 
@@ -682,13 +668,6 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
-    StringBuilder getTracestateBuffer() {
-        if (tracestateBuffer == null) {
-            tracestateBuffer = tracestateBufferPool.createInstance();
-        }
-        return tracestateBuffer;
-    }
-
     @Nullable
     public ClassLoader getApplicationClassLoader() {
         if (applicationClassLoader != null) {
@@ -696,6 +675,10 @@ public class TraceContext extends TraceContextHolder {
         } else {
             return null;
         }
+    }
+
+    public void addTracestate(String headerValue) {
+        tracestate.add(headerValue);
     }
 
     public interface ChildContextCreator<T> {
