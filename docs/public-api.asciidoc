@@ -667,7 +667,7 @@ span.addLabel("foo", "bar");
 [float]
 [[api-span-capture-exception]]
 ==== `String captureException(Exception e)`
-Captures an exception and reports it to the APM server. Returns the id of reported error.
+Captures an exception and reports it to the APM server. Since version 1.14.0 - returns the id of reported error.
 
 [float]
 [[api-span-get-id]]
