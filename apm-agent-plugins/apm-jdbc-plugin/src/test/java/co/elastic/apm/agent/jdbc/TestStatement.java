@@ -37,6 +37,8 @@ class TestStatement implements Statement {
     private boolean isGetUpdateCountSupported;
     private int unsupportedThrownCount;
 
+    private Connection connection;
+
     public TestStatement(Statement delegate) {
         this.delegate = delegate;
         this.unsupportedThrownCount = 0;
@@ -62,6 +64,11 @@ class TestStatement implements Statement {
     int getUnsupportedThrownCount(){
         return unsupportedThrownCount;
     }
+
+    void setConnection(Connection connection) {
+        this.connection = connection;
+    }
+
 
     public ResultSet executeQuery(String sql) throws SQLException {
         return delegate.executeQuery(sql);
@@ -174,6 +181,10 @@ class TestStatement implements Statement {
 
     public Connection getConnection() throws SQLException {
         unsupportedCheck(isGetConnectionSupported);
+
+        if (null != connection) {
+            return connection;
+        }
         return delegate.getConnection();
     }
 

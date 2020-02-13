@@ -118,6 +118,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         executeTest(this::testUpdateStatement);
         executeTest(this::testStatementNotSupportingUpdateCount);
         executeTest(this::testStatementNotSupportingConnection);
+        executeTest(this::testStatementWithoutConnectionMetadata);
 
         executeTest(() -> testUpdate(false));
         executeTest(() -> testUpdate(true));
@@ -131,14 +132,15 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         executeTest(this::testPreparedStatement);
         executeTest(this::testUpdatePreparedStatement);
 
-        executeTest(()->testBatchPreparedStatement(false));
-        executeTest(()->testBatchPreparedStatement(true));
+        executeTest(() -> testBatchPreparedStatement(false));
+        executeTest(() -> testBatchPreparedStatement(true));
 
         executeTest(this::testMultipleRowsModifiedStatement);
     }
 
     /**
      * Wraps JDBC code that may throw {@link SQLException} and properly resets reporter after test execution
+     *
      * @param task test task
      */
     private static void executeTest(JdbcTask task) {
@@ -198,23 +200,43 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     }
 
     private void testStatementNotSupportingConnection() throws SQLException {
-        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
         TestStatement statement = new TestStatement(connection.createStatement());
         statement.setGetConnectionSupported(false);
-        assertThat(statement.getUnsupportedThrownCount()).isZero();
 
+        checkWithoutConnectionMetadata(statement, statement::getUnsupportedThrownCount);
+    }
+
+    private void testStatementWithoutConnectionMetadata() throws SQLException {
+        TestConnection testConnection = new TestConnection(connection);
+        testConnection.setGetMetadataSupported(false);
+        TestStatement statement = new TestStatement(testConnection.createStatement());
+
+        assertThat(statement.getConnection()).isSameAs(testConnection);
+
+        checkWithoutConnectionMetadata(statement, testConnection::getUnsupportedThrownCount);
+    }
+
+    private interface ThrownCountCheck{
+        int getThrownCount();
+    }
+
+    private void checkWithoutConnectionMetadata(TestStatement statement, ThrownCountCheck check) throws SQLException {
+        assertThat(check.getThrownCount()).isZero();
+
+        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
         boolean isResultSet = statement.execute(sql);
-        assertThat(statement.getUnsupportedThrownCount()).isEqualTo(1);
+        assertThat(check.getThrownCount()).isEqualTo(1);
         assertThat(isResultSet).isFalse();
 
         assertSpanRecordedWithoutConnection(sql, false, 1);
 
         // try to execute statement again, should not throw again
         statement.execute(sql);
-        assertThat(statement.getUnsupportedThrownCount())
+        assertThat(check.getThrownCount())
             .describedAs("unsupported exception should only be thrown once")
             .isEqualTo(1);
     }
+
 
     private void testBatch(boolean isLargeBatch) throws SQLException {
         final String insert = "INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (2, 'TEST')";
@@ -452,17 +474,16 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     }
 
     /**
-     *
      * @param task jdbc task to execute
      * @return false if feature is not supported, true otherwise
      */
     private static boolean executePotentiallyUnsupportedFeature(JdbcTask task) throws SQLException {
         try {
             task.execute();
-        } catch (SQLFeatureNotSupportedException|UnsupportedOperationException unsupported) {
+        } catch (SQLFeatureNotSupportedException | UnsupportedOperationException unsupported) {
             // silently ignored as this feature is not supported by most JDBC drivers
             return false;
-        } catch (SQLException e){
+        } catch (SQLException e) {
             if (e.getCause() instanceof UnsupportedOperationException) {
                 // same as above, because c3p0 have it's own way to say feature not supported
                 return false;
