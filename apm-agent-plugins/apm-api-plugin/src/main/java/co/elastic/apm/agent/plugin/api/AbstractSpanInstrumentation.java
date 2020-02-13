@@ -41,6 +41,7 @@ import java.lang.invoke.MethodHandle;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
@@ -170,9 +171,34 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    /**
+     * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
+     */
     public static class CaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
         public CaptureExceptionInstrumentation() {
-            super(named("captureException").and(takesArguments(Throwable.class)));
+            super(named("captureException")
+                .and(takesArguments(Throwable.class))
+                .and(returns(String.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                            @Advice.Argument(0) Throwable t,
+                                            @Advice.Return(readOnly = false) String errorId) {
+            errorId = context.captureExceptionAndGetErrorId(t);
+        }
+    }
+
+    /**
+     * Instruments previous version of API where {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
+     * returns void.
+     */
+    public static class LegacyCaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
+        public LegacyCaptureExceptionInstrumentation() {
+            super(named("captureException")
+                .and(takesArguments(Throwable.class))
+                .and(returns(Void.class)));
         }
 
         @VisibleForAdvice

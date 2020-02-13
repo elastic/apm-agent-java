@@ -63,6 +63,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
+
 /**
  * This is the tracer implementation which provides access to lower level agent functionality.
  * <p>
@@ -316,11 +317,13 @@ public class ElasticApmTracer {
         captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
-        captureException(epochMicros, e, parent, null);
+    @Nullable
+    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+        return captureException(epochMicros, e, parent, null);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    @Nullable
+    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
@@ -338,7 +341,9 @@ public class ElasticApmTracer {
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
             }
             reporter.report(error);
+            return error;
         }
+        return null;
     }
 
     public ConfigurationRegistry getConfigurationRegistry() {
