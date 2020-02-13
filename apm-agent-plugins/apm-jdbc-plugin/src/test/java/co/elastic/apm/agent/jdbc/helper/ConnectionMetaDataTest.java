@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConnectionMetaDataTest {
+
     @Test
     void testOracle() {
         // https://docs.oracle.com/cd/B28359_01/java.111/b31224/urls.htm#BEIJFHHB

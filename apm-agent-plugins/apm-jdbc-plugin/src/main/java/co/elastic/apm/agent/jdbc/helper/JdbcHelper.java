@@ -24,19 +24,19 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
-import java.sql.Connection;
 
 public abstract class JdbcHelper {
-    @SuppressWarnings("WeakerAccess")
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+
+    private static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+
+    public static final String DB_SPAN_TYPE = "db";
+    public static final String DB_SPAN_ACTION = "query";
 
     /**
      * Maps the provided sql to the provided Statement object
@@ -44,7 +44,7 @@ public abstract class JdbcHelper {
      * @param statement javax.sql.Statement object
      * @param sql       query string
      */
-    public static void mapStatementToSql(Object statement, String sql) {
+    public void mapStatementToSql(Object statement, String sql) {
         statementSqlMap.putIfAbsent(statement, sql);
     }
 
@@ -57,11 +57,25 @@ public abstract class JdbcHelper {
      * @return the SQL statement belonging to provided Statement, or {@code null}
      */
     @Nullable
-    public static String retrieveSqlForStatement(Object statement) {
+    public String retrieveSqlForStatement(Object statement) {
         return statementSqlMap.get(statement);
     }
 
+    /**
+     * Clears internal data storage, should only be used for testing
+     */
+    public abstract void clearInternalStorage();
 
     @Nullable
-    public abstract Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
+    public abstract Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
+
+    /**
+     * Safely wraps calls to {@link java.sql.Statement#getUpdateCount()}
+     *
+     * @param statement {@code java.sql.Statement} instance
+     * @return {@link Long#MIN_VALUE} if statement does not support this feature, returned value otherwise
+     */
+    public abstract long safeGetUpdateCount(Object statement);
+
+
 }

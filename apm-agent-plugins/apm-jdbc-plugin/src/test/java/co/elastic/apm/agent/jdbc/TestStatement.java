@@ -30,11 +30,37 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
-public class StatementNotSupportingUpdateCount implements Statement {
+class TestStatement implements Statement {
     private final Statement delegate;
 
-    public StatementNotSupportingUpdateCount(Statement delegate) {
+    private boolean isGetConnectionSupported;
+    private boolean isGetUpdateCountSupported;
+    private int unsupportedThrownCount;
+
+    public TestStatement(Statement delegate) {
         this.delegate = delegate;
+        this.unsupportedThrownCount = 0;
+        this.isGetConnectionSupported = true;
+        this.isGetUpdateCountSupported = true;
+    }
+
+    private void unsupportedCheck(boolean isFeatureSupported) throws SQLException {
+        if (!isFeatureSupported) {
+            unsupportedThrownCount++;
+            throw new SQLException("Not supported");
+        }
+    }
+
+    public void setGetConnectionSupported(boolean supported) {
+        this.isGetConnectionSupported = supported;
+    }
+
+    public void setGetUpdateCountSupported(boolean supported) {
+        this.isGetUpdateCountSupported = supported;
+    }
+
+    int getUnsupportedThrownCount(){
+        return unsupportedThrownCount;
     }
 
     public ResultSet executeQuery(String sql) throws SQLException {
@@ -102,7 +128,8 @@ public class StatementNotSupportingUpdateCount implements Statement {
     }
 
     public int getUpdateCount() throws SQLException {
-        throw new SQLException("Not supported");
+        unsupportedCheck(isGetUpdateCountSupported);
+        return delegate.getUpdateCount();
     }
 
     public boolean getMoreResults() throws SQLException {
@@ -146,6 +173,7 @@ public class StatementNotSupportingUpdateCount implements Statement {
     }
 
     public Connection getConnection() throws SQLException {
+        unsupportedCheck(isGetConnectionSupported);
         return delegate.getConnection();
     }
 
