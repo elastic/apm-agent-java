@@ -52,11 +52,11 @@ public class DataSourceIT extends AbstractJdbcInstrumentationTest {
     public static Iterable<Supplier<DataSource>> dataSourceSuppliers() {
         return asList(
             labelledSupplier(DataSourceIT::getTomcatDataSource, "tomcat"),
-            labelledSupplier(DataSourceIT::getHikariDataSource,"hikari"),
-            labelledSupplier(DataSourceIT::getViburDataSource,"vibur"),
-            labelledSupplier(DataSourceIT::getDruidDataSource,"druid"),
+            labelledSupplier(DataSourceIT::getHikariDataSource, "hikari"),
+            labelledSupplier(DataSourceIT::getViburDataSource, "vibur"),
+            labelledSupplier(DataSourceIT::getDruidDataSource, "druid"),
             labelledSupplier(DataSourceIT::getDbcpDataSource, "dbcp"),
-            labelledSupplier(DataSourceIT::getDbcp2DataSource,"dbcp2"),
+            labelledSupplier(DataSourceIT::getDbcp2DataSource, "dbcp2"),
             labelledSupplier(DataSourceIT::getC3p0DataSource, "c3p0")
         );
     }
