@@ -96,7 +96,9 @@ public class JfrParser implements Recyclable {
         this.excludedClasses = excludedClasses;
         this.includedClasses = includedClasses;
         bufferedFile.setFile(file);
-        logger.debug("Parsing {} ({} bytes)", file, bufferedFile.size());
+        long fileSize = bufferedFile.size();
+        logger.debug("Parsing {} ({} bytes)", file, fileSize);
+        bufferedFile.ensureRemaining(16, 16);
         for (byte magicByte : MAGIC_BYTES) {
             if (bufferedFile.get() != magicByte) {
                 throw new IllegalArgumentException("Not a JFR file");
@@ -111,15 +113,16 @@ public class JfrParser implements Recyclable {
         eventsOffset = bufferedFile.position();
 
         long checkpointOffset = parseMetadata(metadataOffset);
-        bufferedFile.position(checkpointOffset);
-        parseCheckpoint();
+        parseCheckpoint(checkpointOffset);
     }
 
     private long parseMetadata(long metadataOffset) throws IOException {
-        bufferedFile.position(metadataOffset, 4);
+        bufferedFile.position(metadataOffset);
+        bufferedFile.ensureRemaining(8, 8);
         int size = bufferedFile.getInt();
         expectEventType(EventTypeId.EVENT_METADATA);
         bufferedFile.skip(size - 16);
+        bufferedFile.ensureRemaining(8, 8);
         return bufferedFile.getLong();
     }
 
@@ -130,7 +133,8 @@ public class JfrParser implements Recyclable {
         }
     }
 
-    private void parseCheckpoint() throws IOException {
+    private void parseCheckpoint(long checkpointOffset) throws IOException {
+        bufferedFile.position(checkpointOffset);
         int size = bufferedFile.getInt();// size
         expectEventType(EventTypeId.EVENT_CHECKPOINT);
         bufferedFile.getLong(); // stop timestamp
@@ -223,7 +227,7 @@ public class JfrParser implements Recyclable {
     }
 
     private void skipString() throws IOException {
-        short stringLength = bufferedFile.getShort();
+        int stringLength = bufferedFile.getUnsignedShort();
         bufferedFile.skip(stringLength);
     }
 
@@ -344,7 +348,7 @@ public class JfrParser implements Recyclable {
     }
 
     private StringBuilder readUtf8String(boolean replaceSlashWithDot) throws IOException {
-        int size = bufferedFile.getShort();
+        int size = bufferedFile.getUnsignedShort();
         bufferedFile.ensureRemaining(size);
         StringBuilder symbolBuilder = this.symbolBuilder;
         symbolBuilder.setLength(0);

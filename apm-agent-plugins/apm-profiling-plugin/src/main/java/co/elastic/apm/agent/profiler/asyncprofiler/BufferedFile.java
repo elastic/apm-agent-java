@@ -5,11 +5,10 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 
 /**
  * An abstraction similar to {@link MappedByteBuffer} that allows to read the content of a file with an API that is similar to
@@ -40,11 +39,11 @@ class BufferedFile implements Recyclable {
     private static final int SIZE_OF_LONG = 8;
     private final ByteBuffer buffer;
     private final int capacity;
+    /**
+     * The offset of the file from where the {@link #buffer} starts
+     */
     private long offset;
-    private long limit;
     private boolean wholeFileInBuffer;
-    @Nullable
-    private RandomAccessFile randomAccessFile;
     @Nullable
     private FileChannel fileChannel;
 
@@ -60,9 +59,13 @@ class BufferedFile implements Recyclable {
      * @throws IOException If some I/O error occurs
      */
     public void setFile(File file) throws IOException {
-        randomAccessFile = new RandomAccessFile(file, "r");
-        fileChannel = randomAccessFile.getChannel();
-        read(0);
+        fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
+        if (fileChannel.size() <= capacity) {
+            read(0, capacity);
+            wholeFileInBuffer = true;
+        } else {
+            buffer.flip();
+        }
     }
 
     /**
@@ -75,39 +78,53 @@ class BufferedFile implements Recyclable {
     }
 
     /**
-     * Skips the provided number of bytes in the file and ensures that the new position is available in the {@linkplain #buffer buffer}.
+     * Skips the provided number of bytes in the file without reading new data.
      *
      * @param bytesToSkip the number of bytes to skip
-     * @throws IOException If some I/O error occurs
      */
-    public void skip(int bytesToSkip) throws IOException {
+    public void skip(int bytesToSkip) {
         position(position() + bytesToSkip);
     }
 
     /**
-     * Sets the position of the file and ensures that the new position is available in the {@linkplain #buffer buffer}.
+     * Sets the position of the file without reading new data.
      *
      * @param pos the new position
-     * @throws IOException If some I/O error occurs
      */
-    public void position(long pos) throws IOException {
-        position(pos, 0);
-    }
-
-    public void position(long pos, int length) throws IOException {
-        ensureRange(pos, length);
-        ((Buffer) buffer).position((int) (pos - offset));
+    public void position(long pos) {
+        long bufferDelta = pos - (offset + buffer.position());
+        long newBufferPos = buffer.position() + bufferDelta;
+        if (0 <= newBufferPos && newBufferPos <= buffer.capacity()) {
+            buffer.position((int) newBufferPos);
+        } else {
+            // makes sure that the next ensureRemaining will load from file
+            buffer.position(0);
+            buffer.limit(0);
+            offset = pos;
+        }
     }
 
     /**
      * Ensures that the provided number of bytes are available in the {@linkplain #buffer buffer}
      *
-     * @param numberOfBytes the number of bytes which are guaranteed to be available in the {@linkplain #buffer buffer}
+     * @param minRemaining the number of bytes which are guaranteed to be available in the {@linkplain #buffer buffer}
      * @throws IOException           If some I/O error occurs
      * @throws IllegalStateException If the provided number of bytes is greater thatn the buffer's capacity
      */
-    public void ensureRemaining(int numberOfBytes) throws IOException {
-        ensureRange(position(), numberOfBytes);
+    public void ensureRemaining(int minRemaining) throws IOException {
+        ensureRemaining(minRemaining, capacity);
+    }
+
+    public void ensureRemaining(int minRemaining, int maxRead) throws IOException {
+        if (wholeFileInBuffer) {
+            return;
+        }
+        if (minRemaining > capacity) {
+            throw new IllegalStateException(String.format("Length (%d) greater than buffer capacity (%d)", minRemaining, capacity));
+        }
+        if (buffer.remaining() < minRemaining) {
+            read(position(), maxRead);
+        }
     }
 
     /**
@@ -135,7 +152,18 @@ class BufferedFile implements Recyclable {
     }
 
     /**
-     * Gets a int from the current {@linkplain #position() position} of this file.
+     * Gets a short from the current {@linkplain #position() position} of this file.
+     * If the {@linkplain #buffer buffer} does not fully contain this short, loads another slice of the file into the buffer.
+     *
+     * @return The short at the file's current position
+     * @throws IOException If some I/O error occurs
+     */
+    public int getUnsignedShort() throws IOException {
+        return getShort() & 0xff;
+    }
+
+    /**
+     * Gets a int from the current {@linkplain #position() position} of this file and converts it to an unsigned short.
      * If the {@linkplain #buffer buffer} does not fully contain this int, loads another slice of the file into the buffer.
      *
      * @return The int at the file's current position
@@ -160,6 +188,9 @@ class BufferedFile implements Recyclable {
 
     /**
      * Gets a byte from the underlying buffer without checking if this part of the file is actually in the buffer.
+     * <p>
+     * Always mare sure to call {@link #ensureRemaining} before.
+     * </p>
      *
      * @return The byte at the file's current position
      * @throws java.nio.BufferUnderflowException If the buffer's current position is not smaller than its limit
@@ -170,6 +201,9 @@ class BufferedFile implements Recyclable {
 
     /**
      * Gets a short from the underlying buffer without checking if this part of the file is actually in the buffer.
+     * <p>
+     * Always mare sure to call {@link #ensureRemaining} before.
+     * </p>
      *
      * @return The byte at the file's current position
      * @throws java.nio.BufferUnderflowException If there are fewer than two bytes remaining in this buffer
@@ -180,6 +214,9 @@ class BufferedFile implements Recyclable {
 
     /**
      * Gets an int from the underlying buffer without checking if this part of the file is actually in the buffer.
+     * <p>
+     * Always mare sure to call {@link #ensureRemaining} before.
+     * </p>
      *
      * @return The byte at the file's current position
      * @throws java.nio.BufferUnderflowException If there are fewer than four bytes remaining in this buffer
@@ -190,6 +227,9 @@ class BufferedFile implements Recyclable {
 
     /**
      * Gets a long from the underlying buffer without checking if this part of the file is actually in the buffer.
+     * <p>
+     * Always mare sure to call {@link #ensureRemaining} before.
+     * </p>
      *
      * @return The byte at the file's current position
      * @throws java.nio.BufferUnderflowException If there are fewer than eight bytes remaining in this buffer
@@ -199,6 +239,9 @@ class BufferedFile implements Recyclable {
     }
 
     public long size() throws IOException {
+        if (fileChannel == null) {
+            throw new IllegalStateException("setFile has not been called yet");
+        }
         return fileChannel.size();
     }
 
@@ -208,37 +251,28 @@ class BufferedFile implements Recyclable {
 
     @Override
     public void resetState() {
+        if (fileChannel == null) {
+            throw new IllegalStateException("setFile has not been called yet");
+        }
         buffer.clear();
         offset = 0;
-        limit = 0;
+        wholeFileInBuffer = false;
         try {
-            randomAccessFile.close();
+            fileChannel.close();
         } catch (IOException ignore) {
         }
-        randomAccessFile = null;
         fileChannel = null;
     }
 
-    private void ensureRange(long newOffset, int length) throws IOException {
-        if (wholeFileInBuffer) {
-            return;
+    private void read(long offset, int limit) throws IOException {
+        if (limit > capacity) {
+            limit = capacity;
         }
-        if (length > capacity) {
-            throw new IllegalStateException(String.format("Length (%d) greater than buffer capacity (%d)", length, capacity));
-        }
-        long minPosInBuffer = newOffset + length;
-        if (newOffset < this.offset || limit < minPosInBuffer) {
-            read(newOffset);
-        }
-    }
-
-    private void read(long offset) throws IOException {
         buffer.clear();
         fileChannel.position(offset);
+        buffer.limit(limit);
         fileChannel.read(buffer);
         buffer.flip();
         this.offset = offset;
-        this.limit = offset + capacity;
-        wholeFileInBuffer = fileChannel.size() <= buffer.capacity();
     }
 }
