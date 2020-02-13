@@ -104,7 +104,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         public static Span onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
 
-            System.out.println("entering 'execute'");
             if (tracer == null || jdbcHelperManager == null) {
                 return null;
             }
