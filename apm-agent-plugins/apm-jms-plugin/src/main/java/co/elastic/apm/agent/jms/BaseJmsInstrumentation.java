@@ -35,8 +35,8 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.Message;
 import javax.jms.MessageListener;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -71,7 +71,7 @@ public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("jms", "incubating");
+        return Collections.singletonList("jms");
     }
 
     @Override

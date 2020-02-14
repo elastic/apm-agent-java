@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -131,7 +131,35 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans().get(1).getTraceContext().getParentId()).isEqualTo(reporter.getSpans().get(2).getTraceContext().getId());
         assertThat(reporter.getFirstSpan().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
     }
-    
+
+    @Test
+    public void testGetErrorIdWithTransactionCaptureException() {
+        String errorId = null;
+        try {
+            throw new RuntimeException("test exception");
+        } catch (Exception e) {
+            errorId = transaction.captureException(e);
+        }
+        endTransaction();
+        assertThat(errorId).isNotNull();
+    }
+
+    @Test
+    public void testGetErrorIdWithSpanCaptureException() {
+        String errorId = null;
+        Span span = transaction.startSpan("foo", null, null);
+        span.setName("bar");
+        try {
+            throw new RuntimeException("test exception");
+        } catch (Exception e) {
+            errorId = span.captureException(e);
+        } finally {
+            span.end();
+        }
+        endTransaction();
+        assertThat(errorId).isNotNull();
+    }
+
     private void endTransaction() {
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);

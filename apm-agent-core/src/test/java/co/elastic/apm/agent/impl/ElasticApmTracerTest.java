@@ -490,4 +490,17 @@ class ElasticApmTracerTest {
         tracer.startRootTransaction(getClass().getClassLoader()).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
     }
+
+    @Test
+    void testCaptureExceptionAndGetErrorId() {
+        Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
+        String errorId = transaction.captureExceptionAndGetErrorId(new Exception("test"));
+        transaction.end();
+
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(errorId).isNotNull();
+        ErrorCapture error = reporter.getFirstError();
+        assertThat(error.getTraceContext().getId().toString()).isEqualTo(errorId);
+    }
+
 }
