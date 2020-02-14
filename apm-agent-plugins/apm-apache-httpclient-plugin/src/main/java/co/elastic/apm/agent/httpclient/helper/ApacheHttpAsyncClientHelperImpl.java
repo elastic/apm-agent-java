@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,12 +22,14 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.httpclient.helper;
 
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import org.apache.http.HttpRequest;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
@@ -35,7 +37,7 @@ import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
-public class ApacheHttpAsyncClientHelperImpl implements ApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, FutureCallback<?>, HttpContext> {
+public class ApacheHttpAsyncClientHelperImpl implements ApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, FutureCallback<?>, HttpContext, HttpRequest> {
 
     private static final int MAX_POOLED_ELEMENTS = 256;
 
@@ -67,8 +69,8 @@ public class ApacheHttpAsyncClientHelperImpl implements ApacheHttpAsyncClientHel
     }
 
     @Override
-    public HttpAsyncRequestProducer wrapRequestProducer(HttpAsyncRequestProducer requestProducer, Span span) {
-        return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span);
+    public HttpAsyncRequestProducer wrapRequestProducer(HttpAsyncRequestProducer requestProducer, Span span, TextHeaderSetter<HttpRequest> headerSetter) {
+        return requestProducerWrapperObjectPool.createInstance().with(requestProducer, span, headerSetter);
     }
 
     @Override

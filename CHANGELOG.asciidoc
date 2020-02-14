@@ -19,6 +19,21 @@ endif::[]
 ////
 
 === Unreleased
+[[release-notes-1.14.0]]
+==== 1.14.0 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* Support for the official https://www.w3.org/TR/trace-context[W3C] `traceparent` and `tracestate` headers. +
+  The agent now accepts both the `elastic-apm-traceparent` and the official `traceparent` header.
+  By default, it sends both headers on outgoing requests,
+  unless <<config-use-elastic-traceparent-header, `use_elastic_traceparent_header`>> is set to false.
+
+[float]
+===== Bug fixes
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

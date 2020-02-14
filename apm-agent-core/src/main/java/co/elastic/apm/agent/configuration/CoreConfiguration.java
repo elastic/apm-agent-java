@@ -497,6 +497,32 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 
+    private final ConfigurationOption<Boolean> useElasticTraceparentHeader = ConfigurationOption.booleanOption()
+        .key("use_elastic_traceparent_header")
+        .tags("added[1.14.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent\n" +
+            "adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).\n" +
+            "These headers (`traceparent` and `tracestate`) are defined in the\n" +
+            "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
+            "\n" +
+            "When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`\n" +
+            "for backwards compatibility with older versions of Elastic APM agents.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Integer> tracestateHeaderSizeLimit = ConfigurationOption.integerOption()
+        .key("tracestate_header_size_limit")
+        .tags("added[1.14.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("The agent delegates the `tracestate` header, if received, as defined in the\n" +
+            "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
+            "\n" +
+            "This setting limits the size of the `tracestate` header.")
+        .dynamic(true)
+        .tags("internal")
+        .buildWithDefault(4096);
+
     public boolean isActive() {
         return active.get();
     }
@@ -615,6 +641,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isBreakdownMetricsEnabled() {
         return breakdownMetrics.get();
+    }
+
+    public boolean isElasticTraceparentHeaderEnabled() {
+        return useElasticTraceparentHeader.get();
+    }
+
+    public int getTracestateSizeLimit() {
+        return tracestateHeaderSizeLimit.get();
     }
 
     /*

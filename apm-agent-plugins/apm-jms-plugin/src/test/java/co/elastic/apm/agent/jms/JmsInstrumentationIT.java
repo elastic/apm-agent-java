@@ -33,7 +33,6 @@ import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.After;
@@ -131,9 +130,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
         Transaction transaction;
         if (sampler == null) {
-            transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+            transaction = tracer.startRootTransaction(null).activate();
         } else {
-            transaction = tracer.startTransaction(TraceContext.asRoot(), null, sampler, -1, null).activate();
+            transaction = tracer.startRootTransaction(sampler, -1, null).activate();
         }
         transaction.withName("JMS-Test Transaction");
         transaction.withType("request");
@@ -178,7 +177,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             Transaction transaction = null;
             Message message = null;
             try {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, null)
+                transaction = tracer.startRootTransaction(null)
                     .withName("JMS-Test Receiver Transaction")
                     .activate();
                 message = receiveMethod.call();

@@ -84,8 +84,8 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                 final URL url = thiz.getURL();
                 span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
                 if (span != null) {
-                    if (thiz.getRequestProperty(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME) == null) {
-                        thiz.addRequestProperty(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
+                    if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
+                        span.getTraceContext().setOutgoingTraceContextHeaders(thiz, UrlConnectionPropertyAccessor.instance());
                     }
                 }
             }

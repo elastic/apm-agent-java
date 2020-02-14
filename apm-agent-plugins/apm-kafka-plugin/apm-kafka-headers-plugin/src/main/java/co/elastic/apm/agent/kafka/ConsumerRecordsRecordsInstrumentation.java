@@ -33,7 +33,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
 
@@ -73,7 +72,7 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
             }
 
             //noinspection ConstantConditions,rawtypes
-            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header> kafkaInstrumentationHelper =
+            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (iterable != null && kafkaInstrumentationHelper != null) {
                 iterable = kafkaInstrumentationHelper.wrapConsumerRecordIterable(iterable);

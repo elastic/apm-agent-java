@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,7 +30,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
@@ -47,6 +46,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("ConstantConditions")
 class SpanTypeBreakdownTest {
 
     private MockReporter reporter;
@@ -70,7 +70,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_noSpans() {
-        tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request")
             .end(30);
@@ -89,7 +89,7 @@ class SpanTypeBreakdownTest {
     @Test
     void testBreakdown_disabled() {
         when(tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled()).thenReturn(false);
-        tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request")
             .end(30);
@@ -108,7 +108,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_singleDbSpan() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
@@ -132,7 +132,7 @@ class SpanTypeBreakdownTest {
     @Test
     void testBreakdown_singleDbSpan_breakdownMetricsDisabled() {
         tracer = MockTracer.createRealTracer(reporter, SpyConfiguration.createSpyConfig(SimpleSource.forTest("disable_metrics", "span.self_time")));
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
@@ -153,7 +153,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_singleAppSpan() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         transaction.createSpan(10).withType("app").end(20);
@@ -175,7 +175,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_concurrentDbSpans_fullyOverlapping() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         final Span span1 = transaction.createSpan(10).withType("db").withSubtype("mysql");
@@ -202,7 +202,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_concurrentDbSpans_partiallyOverlapping() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         final Span span1 = transaction.createSpan(10).withType("db").withSubtype("mysql");
@@ -229,7 +229,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_serialDbSpans_notOverlapping_withoutGap() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         transaction.createSpan(5).withType("db").withSubtype("mysql").end(15);
@@ -254,7 +254,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_serialDbSpans_notOverlapping_withGap() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(15);
@@ -279,7 +279,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_asyncGrandchildExceedsChild() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         final Span app = transaction.createSpan(10).withType("app");
@@ -309,7 +309,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_asyncGrandchildExceedsChildAndTransaction() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         final Span app = transaction.createSpan(10).withType("app");
@@ -347,7 +347,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_singleDbSpan_exceedingParent() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         final Span span = transaction.createSpan(10).withType("db").withSubtype("mysql");
@@ -377,7 +377,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_spanStartedAfterParentEnded() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
         final Runnable runnable = transaction.withActive(() -> {
