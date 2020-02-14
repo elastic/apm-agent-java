@@ -793,7 +793,7 @@ NOTE: this option can only be set via system properties, environment variables o
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-use-elastic-traceparent-header]]
-==== `use_elastic_traceparent_header` (added[1.13.0])
+==== `use_elastic_traceparent_header` (added[1.14.0])
 
 To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
 adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).

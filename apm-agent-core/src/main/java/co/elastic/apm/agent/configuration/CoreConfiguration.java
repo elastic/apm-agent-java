@@ -499,7 +499,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> useElasticTraceparentHeader = ConfigurationOption.booleanOption()
         .key("use_elastic_traceparent_header")
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent\n" +
             "adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).\n" +
@@ -513,7 +513,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Integer> tracestateHeaderSizeLimit = ConfigurationOption.integerOption()
         .key("tracestate_header_size_limit")
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("The agent delegates the `tracestate` header, if received, as defined in the\n" +
             "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
