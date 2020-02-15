@@ -150,7 +150,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final ElasticApmTracer tracer;
     private final NanoClock nanoClock;
     private final ObjectPool<CallTree.Root> rootPool;
-    private final ThreadByIdLookup threadMapper = new ThreadByIdLookup();
+    private final ThreadMatcher threadMatcher = new ThreadMatcher();
     private final EventPoller<ActivationEvent> poller;
     private final File jfrFile;
     private final WriteActivationEventToFileHandler writeActivationEventToFileHandler = new WriteActivationEventToFileHandler();
@@ -245,7 +245,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      */
     public boolean onActivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
-            threadMapper.registerThread();
             if (previouslyActive == null) {
                 AsyncProfiler.getInstance().enableProfilingCurrentThread();
             }
@@ -318,7 +317,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
         try {
-            threadMapper.expungeStaleEntries();
             String startCommand = "start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile;
             String startMessage = asyncProfiler.execute(startCommand);
             logger.debug(startMessage);
@@ -347,12 +345,17 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      * we have to tell async-profiler which threads it should profile after re-starting it.
      */
     private void restoreFilterState(AsyncProfiler asyncProfiler) {
-        for (Long2ObjectHashMap<CallTree.Root>.KeyIterator iterator = profiledThreads.keySet().iterator(); iterator.hasNext(); ) {
-            Thread thread = threadMapper.get(iterator.nextLong());
-            if (thread != null && thread.getState() != Thread.State.TERMINATED) {
+        threadMatcher.forEachThread(new ThreadMatcher.NonCapturingPredicate<Thread, Long2ObjectHashMap<?>.KeySet>() {
+            @Override
+            public boolean test(Thread thread, Long2ObjectHashMap<?>.KeySet profiledThreads) {
+                return profiledThreads.contains(thread.getId());
+            }
+        }, profiledThreads.keySet(), new ThreadMatcher.NonCapturingConsumer<Thread, AsyncProfiler>() {
+            @Override
+            public void accept(Thread thread, AsyncProfiler asyncProfiler) {
                 asyncProfiler.enableProfilingThread(thread);
             }
-        }
+        }, asyncProfiler);
     }
 
     private void consumeActivationEventsFromRingBufferAndWriteToFile(TimeDuration profilingDuration) throws Exception {

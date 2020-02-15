@@ -26,16 +26,29 @@ package co.elastic.apm.agent.profiler;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ThreadByIdLookupTest {
+class ThreadMatcherTest {
 
-    private final ThreadByIdLookup threadByIdLookup = new ThreadByIdLookup();
+    private final ThreadMatcher threadMatcher = new ThreadMatcher();
 
     @Test
     void testLookup() {
-        assertThat(threadByIdLookup.get(Thread.currentThread().getId()));
-        threadByIdLookup.registerThread();
-        assertThat(threadByIdLookup.get(Thread.currentThread().getId())).isEqualTo(Thread.currentThread());
+        ArrayList<Thread> threads = new ArrayList<>();
+        threadMatcher.forEachThread(new ThreadMatcher.NonCapturingPredicate<Thread, Void>() {
+            @Override
+            public boolean test(Thread thread, Void state) {
+                return thread.getId() == Thread.currentThread().getId();
+            }
+        }, null, new ThreadMatcher.NonCapturingConsumer<Thread, List<Thread>>() {
+            @Override
+            public void accept(Thread thread, List<Thread> state) {
+                state.add(thread);
+            }
+        }, threads);
+        assertThat(threads).isEqualTo(List.of(Thread.currentThread()));
     }
 }
