@@ -27,7 +27,6 @@ package co.elastic.apm.agent.plugin.api;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -41,6 +40,7 @@ import java.lang.invoke.MethodHandle;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
@@ -170,9 +170,34 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    /**
+     * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
+     */
     public static class CaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
         public CaptureExceptionInstrumentation() {
-            super(named("captureException").and(takesArguments(Throwable.class)));
+            super(named("captureException")
+                .and(takesArguments(Throwable.class))
+                .and(returns(String.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                            @Advice.Argument(0) Throwable t,
+                                            @Advice.Return(readOnly = false) String errorId) {
+            errorId = context.captureExceptionAndGetErrorId(t);
+        }
+    }
+
+    /**
+     * Instruments previous version of API where {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
+     * returns void.
+     */
+    public static class LegacyCaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
+        public LegacyCaptureExceptionInstrumentation() {
+            super(named("captureException")
+                .and(takesArguments(Throwable.class))
+                .and(returns(Void.class)));
         }
 
         @VisibleForAdvice
@@ -288,10 +313,10 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void injectTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
-                                              @Advice.Argument(0) MethodHandle addHeader,
+                                              @Advice.Argument(0) MethodHandle addHeaderMethodHandle,
                                               @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
             if (headerInjector != null) {
-                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, context.getTraceContext().getOutgoingTraceParentTextHeader().toString());
+                context.getTraceContext().setOutgoingTraceContextHeaders(headerInjector, HeaderInjectorBridge.get(addHeaderMethodHandle));
             }
         }
     }

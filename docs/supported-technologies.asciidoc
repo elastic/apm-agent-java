@@ -285,7 +285,7 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|1.7.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+|Enabled by default since 1.13.0, added as an incubating plugin in 1.7.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support
@@ -340,10 +340,23 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 
  Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0)
 |1.0.0
-|log4j
+
+|log4j2
 |2.0+
-|Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-|1.11.0
+|When <<config-enable-log-correlation>> is set to `true`,
+the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
+See the <<config-enable-log-correlation>> configuration option for more details.
+
+ Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+|1.11.0 (error capturing), 1.13.0 (log correlation via `ThreadContext`)
+
+
+|log4j
+|1.x
+|When <<config-enable-log-correlation>> is set to `true`,
+the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
+See the <<config-enable-log-correlation>> configuration option for more details.
+|1.13.0
 
 |===
 
@@ -357,12 +370,12 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 |`java.lang.Process`
 |
 | Instruments `java.lang.Process` execution. Java 9 API using `ProcessHandler` is not supported yet.
-| 1.13.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+| 1.13.0
 
 |Apache commons-exec
 |1.3
 | Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation.
-| 1.13.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+| 1.13.0
 
 |===
 

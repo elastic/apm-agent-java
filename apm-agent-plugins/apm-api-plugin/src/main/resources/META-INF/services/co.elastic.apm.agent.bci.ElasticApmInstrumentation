@@ -29,6 +29,7 @@ co.elastic.apm.agent.plugin.api.CaptureTransactionInstrumentation
 co.elastic.apm.agent.plugin.api.CaptureSpanInstrumentation
 co.elastic.apm.agent.plugin.api.TracedInstrumentation
 # legacy
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$LegacyCaptureExceptionInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$DoCreateSpanInstrumentation

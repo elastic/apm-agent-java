@@ -25,14 +25,18 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 
@@ -53,36 +57,15 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation {
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeExecute(@Advice.This ClientHttpRequest request,
-                                      @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.getActive() == null) {
-            return;
-        }
-        final TraceContextHolder<?> parent = tracer.getActive();
-        span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
-            request.getURI().getHost());
-        if (span != null) {
-            span.activate();
-            request.getHeaders().add(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
-        }
-    }
+    // We can refer Spring type thanks to type erasure
+    @VisibleForAdvice
+    @Nullable
+    public static HelperClassManager<TextHeaderSetter<HttpRequest>> headerSetterHelperManager;
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void afterExecute(@Advice.Return @Nullable ClientHttpResponse clientHttpResponse,
-                                     @Advice.Local("span") @Nullable Span span,
-                                     @Advice.Thrown @Nullable Throwable t) throws IOException {
-        if (span != null) {
-            try {
-                if (clientHttpResponse != null) {
-                    int statusCode = clientHttpResponse.getRawStatusCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
-                }
-                span.captureException(t);
-            } finally {
-                span.deactivate().end();
-            }
-        }
+    public SpringRestTemplateInstrumentation(ElasticApmTracer tracer) {
+        headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+            "co.elastic.apm.agent.resttemplate.SpringRestRequestHeaderSetter"
+        );
     }
 
     @Override
@@ -102,7 +85,51 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
     }
 
     @Override
+    public Class<?> getAdviceClass() {
+        return SpringRestTemplateAdvice.class;
+    }
+
+    @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("http-client", "spring-resttemplate");
+    }
+
+    public static class SpringRestTemplateAdvice {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void beforeExecute(@Advice.This ClientHttpRequest request,
+                                          @Advice.Local("span") Span span) {
+            if (tracer == null || tracer.getActive() == null) {
+                return;
+            }
+            final TraceContextHolder<?> parent = tracer.getActive();
+            span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
+                request.getURI().getHost());
+            if (span != null) {
+                span.activate();
+                if (headerSetterHelperManager != null) {
+                    TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(HttpRequest.class);
+                    if (headerSetter != null) {
+                        span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                    }
+                }
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void afterExecute(@Advice.Return @Nullable ClientHttpResponse clientHttpResponse,
+                                         @Advice.Local("span") @Nullable Span span,
+                                         @Advice.Thrown @Nullable Throwable t) throws IOException {
+            if (span != null) {
+                try {
+                    if (clientHttpResponse != null) {
+                        int statusCode = clientHttpResponse.getRawStatusCode();
+                        span.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                    span.captureException(t);
+                } finally {
+                    span.deactivate().end();
+                }
+            }
+        }
     }
 }

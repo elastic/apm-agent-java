@@ -27,6 +27,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,6 +164,12 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
             captureException(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
+    }
+
+    @Nullable
+    public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
+        ErrorCapture errorCapture = tracer.captureException(getTraceContext().getClock().getEpochMicros(), t, this);
+        return errorCapture != null ? errorCapture.getTraceContext().getId().toString() : null;
     }
 
     /**

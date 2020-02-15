@@ -8,7 +8,7 @@ Please only make changes in configuration.asciidoc.ftl
 To adapt the Elastic APM agent to your needs,
 you can configure it using different configuration sources,
 which have different naming conventions for the property key.
-The first configuration sources override the configuration values of over the latter sources.
+In descending order of precedence:
 
 [arabic]
 . {apm-app-ref}/agent-configuration.html[Central configuration]
@@ -20,6 +20,8 @@ The first configuration sources override the configuration values of over the la
   You can place a `elasticapm.properties` in the same directory the agent jar resides in.
   To customize the location, set the <<config-config-file>> option.
   No prefix is required for the configuration keys.
+
+Central configuration overrides all other settings. Java system properties override Environment variables. Environment variables override `elasticapm.properties`
 
 Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
 {kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
@@ -83,6 +85,7 @@ Click on a key to get more information.
 ** <<config-central-config>>
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
+** <<config-use-elastic-traceparent-header>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-ignore-urls>>
@@ -590,15 +593,22 @@ This works by instrumenting each matching method to include code that creates a 
 While creating a span is quite cheap in terms of performance,
 instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
 
-The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-You can use wildcards for the class name, the annotation name, the method name and the parameter types.
-The `*` wildcard matches zero or more characters.
-That means that a wildcard in a package name also matches sub-packages
-Specifying an annotation is optional.
-When matching for annotations, only classes that are annotated with the specified annotation are considered.
-You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
-Specifying the parameter types is optional.
-The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
+Using a pointcut-like syntax, you can match based on
+
+ - Method modifier (optional) +
+   Example: `public`, `protected`, `private` or `*`
+ - Package and class name (wildcards include sub-packages) +
+   Example: `org.example.*`
+ - Method name (optional since 1.4.0) +
+   Example: `myMeth*d`
+ - Method argument types (optional) +
+   Example: `(*lang.String, int[])`
+ - Classes with a specific annotation (optional) +
+   Example: `@*ApplicationScoped`
+ - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +
+   Example: `@@javax.enterpr*se.context.NormalScope`
+
+The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.
 
 A few examples:
 
@@ -663,9 +673,11 @@ Such methods will be traced and reported if one of the following applies:
  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
 Set to 0 to disable.
 
-NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
-In order not to break span references, all spans leading to an async operations are never discarded, regardless 
-of their duration.
+NOTE: Transactions are never discarded, regardless of their duration.
+This configuration affects only spans.
+In order not to break span references,
+all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
+regardless of their duration.
 
 
 Supports the duration suffixes `ms`, `s` and `m`.
@@ -787,6 +799,33 @@ NOTE: this option can only be set via system properties, environment variables o
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.config_file` | `config_file` | `ELASTIC_APM_CONFIG_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-use-elastic-traceparent-header]]
+==== `use_elastic_traceparent_header` (added[1.14.0])
+
+To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
+These headers (`traceparent` and `tracestate`) are defined in the
+https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
+
+When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`
+for backwards compatibility with older versions of Elastic APM agents.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.use_elastic_traceparent_header` | `use_elastic_traceparent_header` | `ELASTIC_APM_USE_ELASTIC_TRACEPARENT_HEADER`
 |============
 
 [[config-http]]
@@ -2035,15 +2074,22 @@ The default unit for this option is `ms`.
 # While creating a span is quite cheap in terms of performance,
 # instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
 # 
-# The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-# You can use wildcards for the class name, the annotation name, the method name and the parameter types.
-# The `*` wildcard matches zero or more characters.
-# That means that a wildcard in a package name also matches sub-packages
-# Specifying an annotation is optional.
-# When matching for annotations, only classes that are annotated with the specified annotation are considered.
-# You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
-# Specifying the parameter types is optional.
-# The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
+# Using a pointcut-like syntax, you can match based on
+# 
+#  - Method modifier (optional) +
+#    Example: `public`, `protected`, `private` or `*`
+#  - Package and class name (wildcards include sub-packages) +
+#    Example: `org.example.*`
+#  - Method name (optional since 1.4.0) +
+#    Example: `myMeth*d`
+#  - Method argument types (optional) +
+#    Example: `(*lang.String, int[])`
+#  - Classes with a specific annotation (optional) +
+#    Example: `@*ApplicationScoped`
+#  - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +
+#    Example: `@@javax.enterpr*se.context.NormalScope`
+# 
+# The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.
 # 
 # A few examples:
 # 
@@ -2095,9 +2141,11 @@ The default unit for this option is `ms`.
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
 # Set to 0 to disable.
 # 
-# NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
-# In order not to break span references, all spans leading to an async operations are never discarded, regardless 
-# of their duration.
+# NOTE: Transactions are never discarded, regardless of their duration.
+# This configuration affects only spans.
+# In order not to break span references,
+# all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
+# regardless of their duration.
 # 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -2159,6 +2207,20 @@ The default unit for this option is `ms`.
 # Default value: _AGENT_HOME_/elasticapm.properties
 #
 # config_file=_AGENT_HOME_/elasticapm.properties
+
+# To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
+# adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
+# These headers (`traceparent` and `tracestate`) are defined in the
+# https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
+# 
+# When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`
+# for backwards compatibility with older versions of Elastic APM agents.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# use_elastic_traceparent_header=true
 
 ############################################
 # HTTP                                     #

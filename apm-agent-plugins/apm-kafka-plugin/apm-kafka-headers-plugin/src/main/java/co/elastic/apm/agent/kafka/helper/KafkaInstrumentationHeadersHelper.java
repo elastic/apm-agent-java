@@ -27,12 +27,11 @@ package co.elastic.apm.agent.kafka.helper;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 
-import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 
 @VisibleForAdvice
-public interface KafkaInstrumentationHeadersHelper<CR, PR, H> {
+public interface KafkaInstrumentationHeadersHelper<CR, PR> {
 
     Iterator<CR> wrapConsumerRecordIterator(Iterator<CR> consumerRecordIterator);
 
@@ -40,5 +39,7 @@ public interface KafkaInstrumentationHeadersHelper<CR, PR, H> {
 
     List<CR> wrapConsumerRecordList(List<CR> consumerRecordList);
 
-    H getOutgoingTraceparentHeader(Span span);
+    void setOutgoingTraceContextHeaders(Span span, PR producerRecord);
+
+    void removeTraceContextHeader(PR producerRecord);
 }

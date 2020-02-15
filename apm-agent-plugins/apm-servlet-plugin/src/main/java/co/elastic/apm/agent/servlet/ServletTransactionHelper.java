@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,7 +32,6 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
@@ -45,7 +44,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -106,44 +104,6 @@ public class ServletTransactionHelper {
         }
         if (serviceName != null) {
             ElasticApmInstrumentation.tracer.overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
-        }
-    }
-
-    /*
-     * As much of the request information as possible should be set before the request processing starts.
-     *
-     * That way, when recording an error,
-     * we can copy the transaction context to the error context.
-     *
-     * This has the advantage that we don't have to create the context for the error again.
-     * As creating the context is framework specific,
-     * this also means less effort when adding support for new frameworks,
-     * because the creating the context is handled in one central place.
-     *
-     * Furthermore, it is not trivial to create an error context at an arbitrary location
-     * (when the user calls ElasticApm.captureException()),
-     * as we don't necessarily have access to the framework's request and response objects.
-     *
-     * Additionally, we only have access to the classes of the instrumented classes inside advice methods.
-     *
-     * Currently, there is no configuration option to disable tracing but to still enable error tracking.
-     * But even when introducing that, the approach of copying the transaction context can still work.
-     * We will then capture the transaction but not report it.
-     * As the capturing of the transaction is garbage free, this should not add a significant overhead.
-     * Also, this setting would be rather niche, as we are a APM solution after all.
-     */
-    @Nullable
-    @VisibleForAdvice
-    public Transaction onBefore(ClassLoader classLoader, String servletPath, @Nullable String pathInfo,
-                                @Nullable String userAgentHeader,
-                                @Nullable String traceContextHeader) {
-        if (coreConfiguration.isActive() &&
-            // only create a transaction if there is not already one
-            tracer.currentTransaction() == null &&
-            !isExcluded(servletPath, pathInfo, userAgentHeader)) {
-            return tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceContextHeader, classLoader).activate();
-        } else {
-            return null;
         }
     }
 
@@ -274,25 +234,6 @@ public class ServletTransactionHelper {
             && hasBody(contentTypeHeader, method)
             && coreConfiguration.getCaptureBody() != OFF
             && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
-    }
-
-    private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
-        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
-        if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
-            logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
-                servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
-        }
-        final WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
-        if (excludeAgentMatcher != null) {
-            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
-                userAgentHeader, excludeAgentMatcher);
-        }
-        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
-        if (!isExcluded && logger.isTraceEnabled()) {
-            logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
-                servletPath, pathInfo, userAgentHeader);
-        }
-        return isExcluded;
     }
 
     private void fillResponse(Response response, boolean committed, int status) {

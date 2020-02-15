@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,11 +36,9 @@ import java.util.Iterator;
 import java.util.List;
 
 @SuppressWarnings("rawtypes")
-public class KafkaInstrumentationHeadersHelperImpl implements KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header> {
+public class KafkaInstrumentationHeadersHelperImpl implements KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> {
 
     public static final Logger logger = LoggerFactory.getLogger(KafkaInstrumentationHeadersHelperImpl.class);
-
-    public static final ThreadLocal<ElasticHeaderImpl> traceParentHeader = new ThreadLocal<>();
 
     private final ElasticApmTracer tracer;
 
@@ -80,13 +77,12 @@ public class KafkaInstrumentationHeadersHelperImpl implements KafkaInstrumentati
     }
 
     @Override
-    public Header getOutgoingTraceparentHeader(Span span) {
-        ElasticHeaderImpl header = traceParentHeader.get();
-        if (header == null) {
-            header = new ElasticHeaderImpl(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME);
-            traceParentHeader.set(header);
-        }
-        span.getTraceContext().fillOutgoingTraceParentBinaryHeader(header.valueForSetting());
-        return header;
+    public void setOutgoingTraceContextHeaders(Span span, ProducerRecord producerRecord) {
+        span.getTraceContext().setOutgoingTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
+    }
+
+    @Override
+    public void removeTraceContextHeader(ProducerRecord producerRecord) {
+        TraceContext.removeTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 }

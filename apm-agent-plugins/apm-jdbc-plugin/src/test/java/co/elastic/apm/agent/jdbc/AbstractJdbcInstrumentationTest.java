@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,7 +28,6 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
 import org.junit.After;
@@ -59,12 +58,15 @@ import static org.assertj.core.api.Assertions.fail;
 public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrumentationTest {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
     private static final String PREPARED_STATEMENT_SQL = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
+    private static final String UPDATE_PREPARED_STATEMENT_SQL = "UPDATE ELASTIC_APM SET BAR=? WHERE FOO=11";
     private static final long PREPARED_STMT_TIMEOUT = 10000;
 
     private final String expectedDbVendor;
     private Connection connection;
     @Nullable
     private PreparedStatement preparedStatement;
+    @Nullable
+    private PreparedStatement updatePreparedStatement;
     private final Transaction transaction;
     private final SignatureParser signatureParser;
 
@@ -73,7 +75,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (11, 'BEFORE')");
+        transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("transaction");
         transaction.withType("request");
         transaction.withResultIfUnset("success");
@@ -85,6 +88,11 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         preparedStatement = EXECUTOR_SERVICE.submit(new Callable<PreparedStatement>() {
             public PreparedStatement call() throws Exception {
                 return connection.prepareStatement(PREPARED_STATEMENT_SQL);
+            }
+        }).get(PREPARED_STMT_TIMEOUT, TimeUnit.MILLISECONDS);
+        updatePreparedStatement = EXECUTOR_SERVICE.submit(new Callable<PreparedStatement>() {
+            public PreparedStatement call() throws Exception {
+                return connection.prepareStatement(UPDATE_PREPARED_STATEMENT_SQL);
             }
         }).get(PREPARED_STMT_TIMEOUT, TimeUnit.MILLISECONDS);
     }
@@ -105,17 +113,20 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     @Test
     public void test() {
         executeTest(this::testStatement);
+        executeTest(this::testUpdateStatement);
+        executeTest(this::testStatementNotSupportingUpdateCount);
 
-        executeTest(()->testUpdate(false));
-        executeTest(()->testUpdate(true));
+        executeTest(() -> testUpdate(false));
+        executeTest(() -> testUpdate(true));
 
         executeTest(() -> testPreparedStatementUpdate(false));
         executeTest(() -> testPreparedStatementUpdate(true));
 
-        executeTest(()->testBatch(false));
-        executeTest(()->testBatch(true));
+        executeTest(() -> testBatch(false));
+        executeTest(() -> testBatch(true));
 
         executeTest(this::testPreparedStatement);
+        executeTest(this::testUpdatePreparedStatement);
 
         executeTest(()->testBatchPreparedStatement(false));
         executeTest(()->testBatchPreparedStatement(true));
@@ -148,6 +159,24 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertQuerySucceededAndSpanRecorded(resultSet, sql, false);
     }
 
+    private void testUpdateStatement() throws SQLException {
+        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
+        boolean isResultSet = connection.createStatement().execute(sql);
+        assertThat(isResultSet).isFalse();
+        assertSpanRecorded(sql, false, 1);
+    }
+
+    private void testStatementNotSupportingUpdateCount() throws SQLException {
+        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
+        Statement statement = new StatementNotSupportingUpdateCount(connection.createStatement());
+        StatementInstrumentation.statementClassesNotSupportingUpdateCount.clear();
+        boolean isResultSet = statement.execute(sql);
+        assertThat(StatementInstrumentation.statementClassesNotSupportingUpdateCount)
+            .containsKey("co.elastic.apm.agent.jdbc.StatementNotSupportingUpdateCount");
+        assertThat(isResultSet).isFalse();
+        assertSpanRecorded(sql, false, -1);
+    }
+
     private void testBatch(boolean isLargeBatch) throws SQLException {
         final String insert = "INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (2, 'TEST')";
         final String delete = "DELETE FROM ELASTIC_APM WHERE FOO=2";
@@ -166,9 +195,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         boolean nullForLargeBatch = isKnownDatabase("MySQL", "5.7");
-        nullForLargeBatch = nullForLargeBatch || isKnownDatabase("MySQL", "10."); // mariadb
-        nullForLargeBatch = nullForLargeBatch || isKnownDatabase("Microsoft SQL Server", "14.");
-        nullForLargeBatch = nullForLargeBatch || isKnownDatabase("Oracle", "");
+        nullForLargeBatch |= isKnownDatabase("MySQL", "10."); // mariadb
+        nullForLargeBatch |= isKnownDatabase("Microsoft SQL Server", "14.");
+        nullForLargeBatch |= isKnownDatabase("Oracle", "");
         if (isLargeBatch && nullForLargeBatch) {
             // we might actually test for a bug or driver implementation detail here
             assertThat(updates).isNull();
@@ -229,6 +258,14 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             reporter.reset();
             resultSet = preparedStatement.executeQuery();
             assertQuerySucceededAndSpanRecorded(resultSet, PREPARED_STATEMENT_SQL, true);
+        }
+    }
+
+    private void testUpdatePreparedStatement() throws SQLException {
+        if (updatePreparedStatement != null) {
+            updatePreparedStatement.setString(1, "UPDATED1");
+            updatePreparedStatement.execute();
+            assertSpanRecorded(UPDATE_PREPARED_STATEMENT_SQL, true, 1);
         }
     }
 

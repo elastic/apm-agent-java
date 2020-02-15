@@ -36,7 +36,10 @@ import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -62,6 +65,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+
 
 /**
  * This is the tracer implementation which provides access to lower level agent functionality.
@@ -149,25 +153,130 @@ public class ElasticApmTracer {
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
 
         // sets the assertionsEnabled flag to true if indeed enabled
+        //noinspection AssertWithSideEffects
         assert assertionsEnabled = true;
     }
 
-    public <T> Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
-        return startTransaction(TraceContext.asRoot(), null, initiatingClassLoader);
+    /**
+     * Starts a trace-root transaction
+     *
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name.
+     * @return a transaction which is a child of the provided parent
+     */
+    public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
+        return startRootTransaction(sampler, -1, initiatingClassLoader);
     }
 
     /**
-     * Starts a transaction as a child of the provided parent
+     * Starts a trace-root transaction with a specified sampler and start timestamp
      *
-     * @param childContextCreator   used to make the transaction a child of the provided parent
-     * @param parent                the parent of the transaction. May be a traceparent header.
+     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
+     * @param epochMicros           the start timestamp
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @param <T>                   the type of the parent. {@code String} in case of a traceparent header.
+     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
+     *                              for log correlation.
      * @return a transaction which is a child of the provided parent
      */
-    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, @Nullable ClassLoader initiatingClassLoader) {
-        return startTransaction(childContextCreator, parent, sampler, -1, initiatingClassLoader);
+    public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        Transaction transaction;
+        if (!coreConfiguration.isActive()) {
+            transaction = noopTransaction();
+        } else {
+            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
+        }
+        afterTransactionStart(initiatingClassLoader, transaction);
+        return transaction;
+    }
+
+    /**
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     *
+     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
+     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name.
+     * @return a transaction which is a child of the provided parent
+     */
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
+    }
+
+    /**
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     *
+     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
+     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
+     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
+     * @param epochMicros           the start timestamp
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
+     *                              for log correlation.
+     * @return a transaction which is a child of the provided parent
+     */
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
+                                                 long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        Transaction transaction;
+        if (!coreConfiguration.isActive()) {
+            transaction = noopTransaction();
+        } else {
+            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
+                textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+        }
+        afterTransactionStart(initiatingClassLoader, transaction);
+        return transaction;
+    }
+
+    /**
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     *
+     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
+     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name.
+     * @return a transaction which is a child of the provided parent
+     */
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+        return startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, -1, initiatingClassLoader);
+    }
+
+    /**
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     *
+     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
+     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
+     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
+     * @param epochMicros           the start timestamp
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
+     *                              for log correlation.
+     * @return a transaction which is a child of the provided parent
+     */
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
+                                                 Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+        Transaction transaction;
+        if (!coreConfiguration.isActive()) {
+            transaction = noopTransaction();
+        } else {
+            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
+                binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+        }
+        afterTransactionStart(initiatingClassLoader, transaction);
+        return transaction;
+    }
+
+    private void afterTransactionStart(@Nullable ClassLoader initiatingClassLoader, Transaction transaction) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("startTransaction {} {", transaction);
+            if (logger.isTraceEnabled()) {
+                logger.trace("starting transaction at",
+                    new RuntimeException("this exception is just used to record where the transaction has been started from"));
+            }
+        }
+        final String serviceName = getServiceName(initiatingClassLoader);
+        if (serviceName != null) {
+            transaction.getTraceContext().setServiceName(serviceName);
+        }
     }
 
     public void avoidWrappingOnThread() {
@@ -180,41 +289,6 @@ public class ElasticApmTracer {
 
     public boolean isWrappingAllowedOnThread() {
         return allowWrappingOnThread.get() == Boolean.TRUE;
-    }
-
-    /**
-     * Starts a transaction as a child of the provided parent
-     *
-     * @param childContextCreator   used to make the transaction a child of the provided parent
-     * @param parent                the parent of the transaction. May be a traceparent header.
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @param <T>                   the type of the parent. {@code String} in case of a traceparent header.
-     * @return a transaction which is a child of the provided parent
-     */
-    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, Sampler sampler,
-                                            long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        Transaction transaction;
-        if (!coreConfiguration.isActive()) {
-            transaction = noopTransaction();
-        } else {
-            transaction = createTransaction().start(childContextCreator, parent, epochMicros, sampler, initiatingClassLoader);
-        }
-        if (logger.isDebugEnabled()) {
-            logger.debug("startTransaction {} {", transaction);
-            if (logger.isTraceEnabled()) {
-                logger.trace("starting transaction at",
-                    new RuntimeException("this exception is just used to record where the transaction has been started from"));
-            }
-        }
-        final String serviceName = getServiceName(initiatingClassLoader);
-        if (serviceName != null) {
-            transaction.getTraceContext().setServiceName(serviceName);
-        }
-        return transaction;
     }
 
     public Transaction noopTransaction() {
@@ -321,11 +395,13 @@ public class ElasticApmTracer {
         captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
-        captureException(epochMicros, e, parent, null);
+    @Nullable
+    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+        return captureException(epochMicros, e, parent, null);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    @Nullable
+    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
@@ -343,7 +419,9 @@ public class ElasticApmTracer {
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
             }
             reporter.report(error);
+            return error;
         }
+        return null;
     }
 
     public ConfigurationRegistry getConfigurationRegistry() {

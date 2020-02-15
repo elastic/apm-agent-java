@@ -37,7 +37,6 @@ import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT
 
 public class Message implements Recyclable {
 
-    @SuppressWarnings({"Convert2Diamond", "Convert2Lambda", "Anonymous2MethodRef"})
     private static final ObjectPool<StringBuilder> stringBuilderPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<StringBuilder>(128), false,
         new Allocator<StringBuilder>() {
             @Override

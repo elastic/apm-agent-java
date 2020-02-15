@@ -369,7 +369,7 @@ class CallTreeTest {
         nanoClock.setNanoTime(0);
         profiler.setProfilingSessionOngoing(true);
         Transaction transaction = tracer
-            .startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, null)
+            .startRootTransaction(ConstantSampler.of(true), 0, null)
             .withName("Call Tree Root")
             .activate();
         transaction.getTraceContext().getClock().init(0, 0);
