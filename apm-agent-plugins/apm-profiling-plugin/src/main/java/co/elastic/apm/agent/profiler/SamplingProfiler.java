@@ -123,7 +123,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private static final int MAX_STACK_DEPTH = 256;
     private static final int PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB = 10;
     private static final int MAX_ACTIVATION_EVENTS_FILE_SIZE = ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE;
-    private static final int ACTIVATION_EVENTS_BUFFER_SIZE = ActivationEvent.SERIALIZED_SIZE * 1024;
+    private static final int ACTIVATION_EVENTS_BUFFER_SIZE = ActivationEvent.SERIALIZED_SIZE * 4 * 1024;
     private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
         new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
@@ -390,7 +390,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             return;
         }
         long eof = startProcessingActivationEventsFile();
-        if (eof == 0) {
+        if (eof == 0 && activationEventsBuffer.limit() == 0) {
             logger.debug("No activation events during this period. Skip processing stack traces.");
             return;
         }
@@ -507,8 +507,13 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     long startProcessingActivationEventsFile() throws IOException {
-        flushActivationEvents();
-        ((Buffer) activationEventsBuffer).limit(0);
+        Buffer activationEventsBuffer = this.activationEventsBuffer;
+        if (activationEventsFileChannel.position() > 0) {
+            flushActivationEvents();
+            activationEventsBuffer.limit(0);
+        } else {
+            activationEventsBuffer.flip();
+        }
         long eof = activationEventsFileChannel.position();
         activationEventsFileChannel.position(0);
         return eof;
