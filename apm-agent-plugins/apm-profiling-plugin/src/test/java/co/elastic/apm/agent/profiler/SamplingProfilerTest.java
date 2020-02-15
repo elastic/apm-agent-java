@@ -84,6 +84,9 @@ class SamplingProfilerTest {
             .until(() -> profiler.getProfilingSessions() > 1);
         Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
         try (Scope scope = transaction.activateInScope()) {
+            // makes sure that the rest will be captured by another profiling session
+            // this tests that restoring which threads to profile works
+            Thread.sleep(600);
             aInferred(transaction);
         } finally {
             transaction.end();
@@ -92,11 +95,15 @@ class SamplingProfilerTest {
         await()
             .pollDelay(10, TimeUnit.MILLISECONDS)
             .timeout(5000, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(4));
+            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(5));
+
+        Optional<Span> testProfileTransaction = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#testProfileTransaction")).findAny();
+        assertThat(testProfileTransaction).isPresent();
+        assertThat(testProfileTransaction.get().isChildOf(transaction)).isTrue();
 
         Optional<Span> inferredSpanA = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#aInferred")).findAny();
         assertThat(inferredSpanA).isPresent();
-        assertThat(inferredSpanA.get().isChildOf(transaction)).isTrue();
+        assertThat(inferredSpanA.get().isChildOf(testProfileTransaction.get())).isTrue();
 
         Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
         assertThat(explicitSpanB).isPresent();
@@ -119,15 +126,15 @@ class SamplingProfilerTest {
         } finally {
             span.end();
         }
-        Thread.sleep(100);
+        Thread.sleep(50);
     }
 
     private void cInferred() throws Exception {
         dInferred();
-        Thread.sleep(100);
+        Thread.sleep(50);
     }
 
     private void dInferred() throws Exception {
-        Thread.sleep(100);
+        Thread.sleep(50);
     }
 }

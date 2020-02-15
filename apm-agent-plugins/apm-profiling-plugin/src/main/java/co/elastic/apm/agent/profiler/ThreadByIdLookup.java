@@ -24,43 +24,40 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
-import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
-import java.util.Map;
 
-public class NativeThreadIdToJavaThreadMapper {
+public class ThreadByIdLookup {
 
-    private final DetachedThreadLocal<Long> threadToNativeThread = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
+    private final DetachedThreadLocal<Long> threadToThreadId = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final Long2ObjectHashMap<WeakReference<Thread>> threadIdToThread = new Long2ObjectHashMap<WeakReference<Thread>>();
     private final Object lock = new Object();
 
     /**
      * Returns the native thread id of the current thread
      */
-    public long getNativeThreadId() {
-        Long nativeThreadId = threadToNativeThread.get();
-        if (nativeThreadId == null) {
-            nativeThreadId = AsyncProfiler.getInstance().getNativeThreadId();
-            threadToNativeThread.set(nativeThreadId);
+    public void registerThread() {
+        Long threadId = threadToThreadId.get();
+        if (threadId == null) {
+            Thread thread = Thread.currentThread();
+            threadId = thread.getId();
+            threadToThreadId.set(threadId);
             synchronized (lock) {
-                threadIdToThread.put(nativeThreadId, new WeakReference<Thread>(Thread.currentThread()));
+                threadIdToThread.put(threadId, new WeakReference<Thread>(thread));
             }
         }
-        return nativeThreadId;
     }
 
     @Nullable
-    public Thread get(long nativeThreadId) {
+    public Thread get(long threadId) {
         // syncronization should not be a bottleneck here
         // only when seeing a thread for the first time in getNativeThreadId, there is a small chance that application threads have to wait
+        // lookup speed is not as important as it's only called by a background thread
         synchronized (lock) {
-            WeakReference<Thread> threadRef = threadIdToThread.get(nativeThreadId);
+            WeakReference<Thread> threadRef = threadIdToThread.get(threadId);
             if (threadRef != null) {
                 return threadRef.get();
             }
@@ -82,17 +79,5 @@ public class NativeThreadIdToJavaThreadMapper {
                 }
             }
         }
-    }
-
-    /**
-     * Returns the native thread ids of all threads for which {@link #getNativeThreadId()} has been called and which are not GC'ed yet.
-     */
-    public LongHashSet getNativeThreadIds() {
-        WeakConcurrentMap<Thread, Long> backingMap = threadToNativeThread.getBackingMap();
-        LongHashSet nativeThreadIds = new LongHashSet(backingMap.approximateSize());
-        for (Map.Entry<Thread, Long> entry : backingMap) {
-            nativeThreadIds.add(entry.getValue());
-        }
-        return nativeThreadIds;
     }
 }

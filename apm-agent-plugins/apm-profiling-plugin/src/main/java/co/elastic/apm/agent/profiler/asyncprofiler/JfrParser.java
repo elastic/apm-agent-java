@@ -29,6 +29,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.profiler.collections.Int2IntHashMap;
 import co.elastic.apm.agent.profiler.collections.Int2ObjectHashMap;
+import co.elastic.apm.agent.profiler.collections.Long2LongHashMap;
 import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,7 @@ public class JfrParser implements Recyclable {
     private final Int2IntHashMap classIdToClassNameSymbolId = new Int2IntHashMap(-1);
     private final Int2ObjectHashMap<Symbol> symbols = new Int2ObjectHashMap<>();
     private final Int2IntHashMap stackTraceIdToFilePositions = new Int2IntHashMap(-1);
+    private final Long2LongHashMap nativeTidToJavaTid = new Long2LongHashMap(-1);
     private final Long2ObjectHashMap<LazyStackFrame> framesByFrameId = new Long2ObjectHashMap<>();
     // used to resolve a symbol with minimal allocations
     private final StringBuilder symbolBuilder = new StringBuilder();
@@ -151,7 +153,22 @@ public class JfrParser implements Recyclable {
         int count = bufferedFile.getInt();
         switch (contentTypeId) {
             case ContentTypeId.CONTENT_THREAD:
-                // currently no thread info
+                for (int i = 0; i < count; i++) {
+                    int threadId = bufferedFile.getInt();
+                    String threadName = readUtf8String().toString();
+                }
+                break;
+            case ContentTypeId.CONTENT_JAVA_THREAD:
+                for (int i = 0; i < count; i++) {
+                    bufferedFile.ensureRemaining(16);
+                    long javaThreadId = bufferedFile.getUnsafeLong();
+                    int nativeThreadId = bufferedFile.getUnsafeInt();
+                    int threadGroup = bufferedFile.getUnsafeInt();
+                    nativeTidToJavaTid.put(nativeThreadId, javaThreadId);
+                }
+                break;
+            case ContentTypeId.CONTENT_THREAD_GROUP:
+                // no info
                 break;
             case ContentTypeId.CONTENT_STACKTRACE:
                 for (int i = 0; i < count; i++) {
@@ -204,7 +221,7 @@ public class JfrParser implements Recyclable {
                 }
                 break;
             case ContentTypeId.CONTENT_STATE:
-                // we're not really interested in the thread states (async-profiler hard-codes state RUNNABLE) anyways
+                // we're not really interested in the thread states
                 // but we sill have to consume the bytes
                 for (int i = 1; i <= count; i++) {
                     bufferedFile.getShort();
@@ -256,7 +273,10 @@ public class JfrParser implements Recyclable {
             int tid = bufferedFile.getUnsafeInt();
             long stackTraceId = bufferedFile.getUnsafeLong();
             short threadState = bufferedFile.getUnsafeShort();
-            callback.onCallTree(tid, stackTraceId, nanoTime);
+            long javaThreadId = nativeTidToJavaTid.get(tid);
+            if (javaThreadId != -1) {
+                callback.onCallTree(javaThreadId, stackTraceId, nanoTime);
+            }
         }
     }
 
@@ -297,8 +317,8 @@ public class JfrParser implements Recyclable {
             bufferedFile.getUnsafeInt(); // bci (always set to 0 by async-profiler)
             byte frameType = bufferedFile.getUnsafe();
             addFrameIfIncluded(stackFrames, onlyJavaFrames, frameId, frameType);
-            if (stackFrames.size() == maxStackDepth) {
-                break;
+            if (stackFrames.size() > maxStackDepth) {
+                stackFrames.remove(0);
             }
         }
         bufferedFile.position(position);
@@ -381,13 +401,12 @@ public class JfrParser implements Recyclable {
     public interface StackTraceConsumer {
 
         /**
-         * @param threadId     The native thread id for with the event was recorded.
-         *                     Note that this is not the same as {@link Thread#getId()}.
+         * @param threadId     The {@linkplain Thread#getId() Java thread id} for with the event was recorded.
          * @param stackTraceId The id of the stack trace event.
          *                     Can be used to resolve the stack trace via {@link #resolveStackTrace(long, boolean, List, int)}
          * @param nanoTime     The timestamp of the event which can be correlated with {@link System#nanoTime()}
          */
-        void onCallTree(int threadId, long stackTraceId, long nanoTime) throws IOException;
+        void onCallTree(long threadId, long stackTraceId, long nanoTime) throws IOException;
     }
 
     private interface EventTypeId {
@@ -398,13 +417,15 @@ public class JfrParser implements Recyclable {
     }
 
     private interface ContentTypeId {
-        int CONTENT_THREAD      = 7;
-        int CONTENT_STACKTRACE  = 9;
-        int CONTENT_CLASS       = 10;
-        int CONTENT_METHOD      = 32;
-        int CONTENT_SYMBOL      = 33;
-        int CONTENT_STATE       = 34;
-        int CONTENT_FRAME_TYPE  = 47;
+        int CONTENT_THREAD       = 7;
+        int CONTENT_JAVA_THREAD  = 8;
+        int CONTENT_STACKTRACE   = 9;
+        int CONTENT_CLASS        = 10;
+        int CONTENT_THREAD_GROUP = 31;
+        int CONTENT_METHOD       = 32;
+        int CONTENT_SYMBOL       = 33;
+        int CONTENT_STATE        = 34;
+        int CONTENT_FRAME_TYPE   = 47;
     }
 
     /**

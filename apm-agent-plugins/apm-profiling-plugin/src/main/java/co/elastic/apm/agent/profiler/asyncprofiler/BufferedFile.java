@@ -1,3 +1,27 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2020 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -5,6 +29,7 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -64,6 +89,7 @@ class BufferedFile implements Recyclable {
             read(0, capacity);
             wholeFileInBuffer = true;
         } else {
+            Buffer buffer = this.buffer;
             buffer.flip();
         }
     }
@@ -92,6 +118,7 @@ class BufferedFile implements Recyclable {
      * @param pos the new position
      */
     public void position(long pos) {
+        Buffer buffer = this.buffer;
         long bufferDelta = pos - (offset + buffer.position());
         long newBufferPos = buffer.position() + bufferDelta;
         if (0 <= newBufferPos && newBufferPos <= buffer.capacity()) {
@@ -109,12 +136,20 @@ class BufferedFile implements Recyclable {
      *
      * @param minRemaining the number of bytes which are guaranteed to be available in the {@linkplain #buffer buffer}
      * @throws IOException           If some I/O error occurs
-     * @throws IllegalStateException If the provided number of bytes is greater thatn the buffer's capacity
+     * @throws IllegalStateException If minRemaining is greater than the buffer's capacity
      */
     public void ensureRemaining(int minRemaining) throws IOException {
         ensureRemaining(minRemaining, capacity);
     }
 
+    /**
+     * Ensures that the provided number of bytes are available in the {@linkplain #buffer buffer}
+     *
+     * @param minRemaining the number of bytes which are guaranteed to be available in the {@linkplain #buffer buffer}
+     * @param maxRead      the max number of bytes to read from the file in case the buffer does currently not hold {@code minRemaining} bytes
+     * @throws IOException           If some I/O error occurs
+     * @throws IllegalStateException If minRemaining is greater than the buffer's capacity
+     */
     public void ensureRemaining(int minRemaining, int maxRead) throws IOException {
         if (wholeFileInBuffer) {
             return;
@@ -159,7 +194,7 @@ class BufferedFile implements Recyclable {
      * @throws IOException If some I/O error occurs
      */
     public int getUnsignedShort() throws IOException {
-        return getShort() & 0xff;
+        return getShort() & 0xffff;
     }
 
     /**
@@ -254,6 +289,7 @@ class BufferedFile implements Recyclable {
         if (fileChannel == null) {
             throw new IllegalStateException("setFile has not been called yet");
         }
+        Buffer buffer = this.buffer;
         buffer.clear();
         offset = 0;
         wholeFileInBuffer = false;
@@ -268,10 +304,11 @@ class BufferedFile implements Recyclable {
         if (limit > capacity) {
             limit = capacity;
         }
+        Buffer buffer = this.buffer;
         buffer.clear();
         fileChannel.position(offset);
         buffer.limit(limit);
-        fileChannel.read(buffer);
+        fileChannel.read(this.buffer);
         buffer.flip();
         this.offset = offset;
     }

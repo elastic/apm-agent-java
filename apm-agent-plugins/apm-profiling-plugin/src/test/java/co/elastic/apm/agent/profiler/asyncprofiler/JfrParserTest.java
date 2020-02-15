@@ -38,13 +38,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class JfrParserTest {
 
-    private static final int MAX_STACK_DEPTH = 2;
+    private static final int MAX_STACK_DEPTH = 4;
 
     @Test
     void name() throws Exception {
         // using the smallest prime number possible for the buffer
         // should trigger most edge cases in the buffer being exhausted
-        JfrParser jfrParser = new JfrParser(ByteBuffer.allocate(59));
+        JfrParser jfrParser = new JfrParser(ByteBuffer.allocate(113));
         jfrParser.parse(new File(getClass().getClassLoader().getResource("recording.jfr").getFile()), List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();
@@ -52,11 +52,12 @@ class JfrParserTest {
             jfrParser.resolveStackTrace(stackTraceId, true, stackFrames, MAX_STACK_DEPTH);
             if (!stackFrames.isEmpty()) {
                 stackTraces.incrementAndGet();
+                assertThat(stackFrames.get(stackFrames.size() - 1).getMethodName()).isEqualTo("testProfileTransaction");
                 assertThat(stackFrames).hasSizeLessThanOrEqualTo(MAX_STACK_DEPTH);
             }
             stackFrames.clear();
         });
-        assertThat(stackTraces.get()).isEqualTo(22);
+        assertThat(stackTraces.get()).isEqualTo(97);
     }
 
 }

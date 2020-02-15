@@ -28,7 +28,7 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.profiler.CallTree;
 import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
-import co.elastic.apm.agent.profiler.collections.Int2ObjectHashMap;
+import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -53,7 +53,7 @@ public class ProfilerBenchmark extends AbstractBenchmark {
     private ArrayList<StackFrame> stackFrames;
     private int stackTraces = 0;
     private BasicStackTraceConsumer basicStackTraceConsumer;
-    private Int2ObjectHashMap<CallTree.Root> callTrees = new Int2ObjectHashMap<>();
+    private Long2ObjectHashMap<CallTree.Root> callTrees = new Long2ObjectHashMap<>();
     private CallTreeStackTraceConsumer callTreeStackTraceConsumer;
 
     public static void main(String[] args) throws Exception {
@@ -88,7 +88,7 @@ public class ProfilerBenchmark extends AbstractBenchmark {
 
     private class BasicStackTraceConsumer implements JfrParser.StackTraceConsumer {
         @Override
-        public void onCallTree(int threadId, long stackTraceId, long nanoTime) throws IOException {
+        public void onCallTree(long threadId, long stackTraceId, long nanoTime) throws IOException {
             jfrParser.resolveStackTrace(stackTraceId, false, stackFrames, 512);
             stackFrames.clear();
             stackTraces++;
@@ -97,7 +97,7 @@ public class ProfilerBenchmark extends AbstractBenchmark {
 
     private class CallTreeStackTraceConsumer implements JfrParser.StackTraceConsumer {
         @Override
-        public void onCallTree(int threadId, long stackTraceId, long nanoTime) throws IOException {
+        public void onCallTree(long threadId, long stackTraceId, long nanoTime) throws IOException {
             jfrParser.resolveStackTrace(stackTraceId, false, stackFrames, 512);
             CallTree.Root root = callTrees.get(threadId);
             if (root == null) {
