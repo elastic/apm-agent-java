@@ -60,13 +60,20 @@ public class JfrParser implements Recyclable {
     private static final byte[] MAGIC_BYTES = new byte[]{'F', 'L', 'R', '\0'};
     private static final Set<String> JAVA_FRAME_TYPES = new HashSet<>(Arrays.asList("Interpreted", "JIT compiled", "Inlined"));
     private static final int FILE_BUFFER_SIZE = 4 * 1024 * 1024;
+    private static final String SYMBOL_EXCLUDED = "3x cluded";
+    private static final String SYMBOL_NULL = "n u11";
+    private final static StackFrame FRAME_EXCLUDED = new StackFrame("excluded", "excluded");
+    private final static StackFrame FRAME_NULL = new StackFrame("null", "null");
 
     private final BufferedFile bufferedFile;
     private final Int2IntHashMap classIdToClassNameSymbolId = new Int2IntHashMap(-1);
-    private final Int2ObjectHashMap<Symbol> symbols = new Int2ObjectHashMap<>();
+    private final Int2IntHashMap symbolIdToPos = new Int2IntHashMap(-1);
+    private final Int2ObjectHashMap<String> symbolIdToString = new Int2ObjectHashMap<String>();
     private final Int2IntHashMap stackTraceIdToFilePositions = new Int2IntHashMap(-1);
     private final Long2LongHashMap nativeTidToJavaTid = new Long2LongHashMap(-1);
-    private final Long2ObjectHashMap<LazyStackFrame> framesByFrameId = new Long2ObjectHashMap<>();
+    private final Long2ObjectHashMap<StackFrame> frameIdToFrame = new Long2ObjectHashMap<StackFrame>();
+    private final Long2LongHashMap frameIdToMethodSymbol = new Long2LongHashMap(-1);
+    private final Long2LongHashMap frameIdToClassId = new Long2LongHashMap(-1);
     // used to resolve a symbol with minimal allocations
     private final StringBuilder symbolBuilder = new StringBuilder();
     private long eventsOffset;
@@ -205,7 +212,9 @@ public class JfrParser implements Recyclable {
                     int classId = (int) bufferedFile.getUnsafeLong();
                     // symbol ids are incrementing integers, no way there are more than 2 billion distinct ones
                     int methodNameSymbolId = (int) bufferedFile.getUnsafeLong();
-                    framesByFrameId.put(id, new LazyStackFrame(classId, methodNameSymbolId));
+                    frameIdToFrame.put(id, FRAME_NULL);
+                    frameIdToClassId.put(id, classId);
+                    frameIdToMethodSymbol.put(id, methodNameSymbolId);
                     bufferedFile.getUnsafeLong(); // signature
                     bufferedFile.getUnsafeShort(); // modifiers
                     bufferedFile.getUnsafe(); // hidden
@@ -216,7 +225,8 @@ public class JfrParser implements Recyclable {
                     // symbol ids are incrementing integers, no way there are more than 2 billion distinct ones
                     int symbolId = (int) bufferedFile.getLong();
                     int pos = (int) bufferedFile.position();
-                    symbols.put(symbolId, new Symbol(pos));
+                    symbolIdToPos.put(symbolId, pos);
+                    symbolIdToString.put(symbolId, SYMBOL_NULL);
                     skipString();
                 }
                 break;
@@ -283,7 +293,7 @@ public class JfrParser implements Recyclable {
     /**
      * Resolves the stack trace with the given {@code stackTraceId}.
      * <p>
-     * Note that his allocates strings for {@link Symbol#resolved} in case a stack frame has not already been resolved for the current JFR file yet.
+     * Note that his allocates strings for symbols in case a stack frame has not already been resolved for the current JFR file yet.
      * These strings are currently not cached so this can create some GC pressure.
      * </p>
      * <p>
@@ -326,9 +336,8 @@ public class JfrParser implements Recyclable {
 
     private void addFrameIfIncluded(List<StackFrame> stackFrames, boolean onlyJavaFrames, long frameId, byte frameType) throws IOException {
         if (!onlyJavaFrames || isJavaFrameType(frameType)) {
-            LazyStackFrame lazyStackFrame = framesByFrameId.get(frameId);
-            if (lazyStackFrame.isIncluded(this)) {
-                StackFrame stackFrame = lazyStackFrame.resolve(this);
+            StackFrame stackFrame = resolveStackFrame(frameId);
+            if (stackFrame != FRAME_EXCLUDED) {
                 stackFrames.add(stackFrame);
             }
         }
@@ -338,7 +347,22 @@ public class JfrParser implements Recyclable {
         return isJavaFrameType[frameType];
     }
 
-    private StringBuilder resolveSymbol(int pos, boolean replaceSlashWithDot) throws IOException {
+    private String resolveSymbol(int id, boolean classSymbol) throws IOException {
+        String symbol = symbolIdToString.get(id);
+        if (symbol != SYMBOL_NULL) {
+            return symbol;
+        }
+        StringBuilder symbolBuilder = resolveSymbolBuilder(symbolIdToPos.get(id), classSymbol);
+        if (classSymbol && !isClassIncluded(symbolBuilder)) {
+            symbol = SYMBOL_EXCLUDED;
+        } else {
+            symbol = symbolBuilder.toString();
+        }
+        symbolIdToString.put(id, symbol);
+        return symbol;
+    }
+
+    private StringBuilder resolveSymbolBuilder(int pos, boolean replaceSlashWithDot) throws IOException {
         long currentPos = bufferedFile.position();
         bufferedFile.position(pos);
         try {
@@ -352,15 +376,20 @@ public class JfrParser implements Recyclable {
         return WildcardMatcher.isAnyMatch(includedClasses, className) && WildcardMatcher.isNoneMatch(excludedClasses, className);
     }
 
-    private StackFrame resolveStackFrame(int classId, int methodName) throws IOException {
-        Symbol classNameSymbol = symbols.get(classIdToClassNameSymbolId.get(classId));
-        if (classNameSymbol.isClassNameIncluded(this)) {
-            String className = classNameSymbol.resolveClassName(this);
-            String method = symbols.get(methodName).resolve(this);
-            return new StackFrame(className, Objects.requireNonNull(method));
-        } else {
-            return LazyStackFrame.EXCLUDED;
+    private StackFrame resolveStackFrame(long frameId) throws IOException {
+        StackFrame stackFrame = frameIdToFrame.get(frameId);
+        if (stackFrame != FRAME_NULL) {
+            return stackFrame;
         }
+        String className = resolveSymbol(classIdToClassNameSymbolId.get((int) frameIdToClassId.get(frameId)), true);
+        if (className == SYMBOL_EXCLUDED) {
+            stackFrame = FRAME_EXCLUDED;
+        } else {
+            String method = resolveSymbol((int) frameIdToMethodSymbol.get(frameId), false);
+            stackFrame = new StackFrame(className, Objects.requireNonNull(method));
+        }
+        frameIdToFrame.put(frameId, stackFrame);
+        return stackFrame;
     }
 
     private StringBuilder readUtf8String() throws IOException {
@@ -390,12 +419,15 @@ public class JfrParser implements Recyclable {
         metadataOffset = 0;
         isJavaFrameType = null;
         classIdToClassNameSymbolId.clear();
-        symbols.clear();
         stackTraceIdToFilePositions.clear();
-        framesByFrameId.clear();
+        frameIdToFrame.clear();
+        frameIdToMethodSymbol.clear();
+        frameIdToClassId.clear();
         symbolBuilder.setLength(0);
         excludedClasses = null;
         includedClasses = null;
+        symbolIdToPos.clear();
+        symbolIdToString.clear();
     }
 
     public interface StackTraceConsumer {
@@ -426,120 +458,5 @@ public class JfrParser implements Recyclable {
         int CONTENT_SYMBOL       = 33;
         int CONTENT_STATE        = 34;
         int CONTENT_FRAME_TYPE   = 47;
-    }
-
-    /**
-     * Represents a single frame of a stack trace.
-     * As stack frames are detached from stack traces, the same frame can occur in multiple stack traces.
-     * That's why within a JFR file, a stack trace is basically represented as an array of pointers to stack frames.
-     * <p>
-     * The actual {@link StackFrame} is resolved lazily to avoid allocations when they are not needed.
-     * That can be the case when not processing stack traces of particular threads, for example.
-     * The resolved {@link #stackFrame} is then cached so that I/O is avoided when subsequently resolving the same frame.
-     * </p>
-     */
-    private static class LazyStackFrame {
-
-        private final static StackFrame EXCLUDED = new StackFrame("excluded", "excluded");
-
-        private final int classId;
-        private final int methodName;
-
-        @Nullable
-        private StackFrame stackFrame;
-
-        public LazyStackFrame(int classId, int methodName) {
-            this.classId = classId;
-            this.methodName = methodName;
-        }
-
-        public StackFrame resolve(JfrParser parser) throws IOException {
-            if (stackFrame == null) {
-                stackFrame = parser.resolveStackFrame(classId, methodName);
-            }
-            return stackFrame;
-        }
-
-        /**
-         * Returns {@code true} when the class name matches the matchers provided via {@link #parse(File, List, List)}
-         *
-         * @param parser
-         * @return
-         */
-        public boolean isIncluded(JfrParser parser) throws IOException {
-            return resolve(parser) != EXCLUDED;
-        }
-    }
-
-    /**
-     * A symbol is a UTF-8 string with an ID, representing a method name or class name, for example.
-     * There's a specific section in the JFR file which contains all symbols.
-     * <p>
-     * Symbols are are {@link #resolve}d lazily to avoid allocations when they are not needed.
-     * That can be the case when not processing stack traces of particular threads, for example.
-     * The {@link #resolved} String is then cached so that I/O is avoided when subsequently resolving the same symbol.
-     * </p>
-     */
-    private static class Symbol {
-        private static final String EXCLUDED = "3x cluded";
-        /**
-         * The position in the JFR file which holds the symbol
-         */
-        private final int pos;
-        @Nullable
-        private String resolved;
-
-        private Symbol(int pos) {
-            this.pos = pos;
-        }
-
-        /**
-         * Resolves a symbol representing a class name from the JFR file ({@link #buffer}).
-         */
-        @Nullable
-        public String resolve(JfrParser parser) throws IOException {
-            return resolve(parser, false);
-        }
-
-        /**
-         * Resolves a symbol representing a class name from the JFR file ({@link #buffer}).
-         * <p>
-         * In the JFR file, class names are in their binary form (for example {@code foo/bar/Baz}.
-         * This methods converts it to the form matching {@link Class#getName()} by replacing the slashes with dots.
-         * </p>
-         * <p>
-         * Returns {@code null} if {@link #isClassNameIncluded(JfrParser)} returns {@code false}
-         * </p>
-         */
-        @Nullable
-        private String resolveClassName(JfrParser parser) throws IOException {
-            return resolve(parser, true);
-        }
-
-        /**
-         * Returns {@code true} when the class name matches the matchers provided via {@link #parse(File, List, List)}
-         *
-         * @param parser
-         * @return
-         */
-        private boolean isClassNameIncluded(JfrParser parser) throws IOException {
-            return resolve(parser, true) != EXCLUDED;
-        }
-
-        @Nullable
-        private String resolve(JfrParser parser, boolean className) throws IOException {
-            if (resolved == null) {
-                StringBuilder stringBuilder = parser.resolveSymbol(pos, className);
-                if (className && !parser.isClassIncluded(stringBuilder)) {
-                    resolved = EXCLUDED;
-                } else {
-                    resolved = stringBuilder.toString();
-                }
-            }
-            if (resolved.isEmpty()) {
-                return null;
-            }
-            return resolved;
-        }
     }
 }
