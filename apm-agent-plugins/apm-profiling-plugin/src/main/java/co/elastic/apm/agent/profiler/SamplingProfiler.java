@@ -477,10 +477,11 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
-    private void readActivationEventsToBuffer(FileChannel activationEventsFileChannel, long eof, ByteBuffer buf) throws IOException {
+    private void readActivationEventsToBuffer(FileChannel activationEventsFileChannel, long eof, ByteBuffer byteBuffer) throws IOException {
+        Buffer buf = byteBuffer;
         buf.clear();
         long remaining = eof - activationEventsFileChannel.position();
-        activationEventsFileChannel.read(buf);
+        activationEventsFileChannel.read(byteBuffer);
         buf.flip();
         if (remaining < buf.capacity()) {
             buf.limit((int) remaining);

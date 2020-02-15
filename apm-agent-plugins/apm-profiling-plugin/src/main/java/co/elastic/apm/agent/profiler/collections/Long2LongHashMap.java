@@ -878,7 +878,7 @@ public class Long2LongHashMap implements Map<Long, Long>, Serializable
 
                 public int hashCode()
                 {
-                    return Long.hashCode(getLongKey()) ^ Long.hashCode(getLongValue());
+                    return Hashing.hashCode(getLongKey()) ^ Hashing.hashCode(getLongValue());
                 }
 
                 public boolean equals(final Object o)
@@ -906,7 +906,7 @@ public class Long2LongHashMap implements Map<Long, Long>, Serializable
          */
         public int hashCode()
         {
-            return Long.hashCode(getLongKey()) ^ Long.hashCode(getLongValue());
+            return Hashing.hashCode(getLongKey()) ^ Hashing.hashCode(getLongValue());
         }
 
         /**
