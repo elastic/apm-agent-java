@@ -24,11 +24,9 @@
  */
 package co.elastic.apm.agent.benchmark;
 
-import co.elastic.apm.agent.impl.transaction.StackFrame;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.profiler.CallTree;
-import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
-import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
+import co.elastic.apm.agent.profiler.SamplingProfiler;
+import co.elastic.apm.agent.profiler.SystemNanoClock;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -39,22 +37,18 @@ import org.openjdk.jmh.annotations.State;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
-public class ProfilerBenchmark extends AbstractBenchmark {
+public class ProfilerBenchmark extends AbstractMockApmServerBenchmark {
 
-    private JfrParser jfrParser;
-    private File file;
-    private ArrayList<StackFrame> stackFrames;
-    private int stackTraces = 0;
-    private BasicStackTraceConsumer basicStackTraceConsumer;
-    private Long2ObjectHashMap<CallTree.Root> callTrees = new Long2ObjectHashMap<>();
-    private CallTreeStackTraceConsumer callTreeStackTraceConsumer;
+    private SamplingProfiler samplingProfiler;
+
+    public ProfilerBenchmark() {
+        super(true);
+    }
 
     public static void main(String[] args) throws Exception {
         run(ProfilerBenchmark.class);
@@ -62,52 +56,17 @@ public class ProfilerBenchmark extends AbstractBenchmark {
 
     @Setup
     public void setUp() throws Exception {
-        jfrParser = new JfrParser();
-        file = new File(getClass().getClassLoader().getResource("recording.jfr").toURI());
-        stackFrames = new ArrayList<>();
-        basicStackTraceConsumer = new BasicStackTraceConsumer();
-        callTreeStackTraceConsumer = new CallTreeStackTraceConsumer();
+        samplingProfiler = new SamplingProfiler(tracer,
+            ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
+            new SystemNanoClock(),
+            new File("/Users/felixbarnsteiner/projects/github/elastic/apm-agent-java/apm-activation-events.bin"),
+            new File("/Users/felixbarnsteiner/projects/github/elastic/apm-agent-java/apm-traces.jfr"));
+        samplingProfiler.skipToEndOfActivationEventsFile();
     }
 
     @Benchmark
-    public int benchmarkJfrParser() throws Exception {
-        jfrParser.parse(file, Collections.emptyList(), WildcardMatcher.matchAllList());
-        jfrParser.consumeStackTraces(basicStackTraceConsumer);
-        jfrParser.resetState();
-        return stackTraces;
+    public void processTraces() throws IOException {
+        samplingProfiler.processTraces();
     }
 
-    @Benchmark
-    public int benchmarkCallTree() throws Exception {
-        jfrParser.parse(file, Collections.emptyList(), WildcardMatcher.matchAllList());
-        jfrParser.consumeStackTraces(callTreeStackTraceConsumer);
-        jfrParser.resetState();
-        callTrees.forEach((id, root) -> root.resetState());
-        return stackTraces + callTrees.size();
-    }
-
-    private class BasicStackTraceConsumer implements JfrParser.StackTraceConsumer {
-        @Override
-        public void onCallTree(long threadId, long stackTraceId, long nanoTime) throws IOException {
-            jfrParser.resolveStackTrace(stackTraceId, false, stackFrames, 512);
-            stackFrames.clear();
-            stackTraces++;
-        }
-    }
-
-    private class CallTreeStackTraceConsumer implements JfrParser.StackTraceConsumer {
-        @Override
-        public void onCallTree(long threadId, long stackTraceId, long nanoTime) throws IOException {
-            jfrParser.resolveStackTrace(stackTraceId, false, stackFrames, 512);
-            CallTree.Root root = callTrees.get(threadId);
-            if (root == null) {
-                root = new CallTree.Root(null);
-                callTrees.put(threadId, root);
-
-            }
-            root.addStackTrace(null, stackFrames, nanoTime);
-            stackFrames.clear();
-            stackTraces++;
-        }
-    }
 }

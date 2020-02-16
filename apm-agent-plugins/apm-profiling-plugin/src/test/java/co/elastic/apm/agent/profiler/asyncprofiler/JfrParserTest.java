@@ -44,7 +44,7 @@ class JfrParserTest {
     void name() throws Exception {
         // using the smallest prime number possible for the buffer
         // should trigger most edge cases in the buffer being exhausted
-        JfrParser jfrParser = new JfrParser(ByteBuffer.allocate(113));
+        JfrParser jfrParser = new JfrParser(ByteBuffer.allocate(113), ByteBuffer.allocate(113));
         jfrParser.parse(new File(getClass().getClassLoader().getResource("recording.jfr").getFile()), List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();

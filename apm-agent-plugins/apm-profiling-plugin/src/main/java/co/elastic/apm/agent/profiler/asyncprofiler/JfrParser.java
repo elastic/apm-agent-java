@@ -59,7 +59,8 @@ public class JfrParser implements Recyclable {
 
     private static final byte[] MAGIC_BYTES = new byte[]{'F', 'L', 'R', '\0'};
     private static final Set<String> JAVA_FRAME_TYPES = new HashSet<>(Arrays.asList("Interpreted", "JIT compiled", "Inlined"));
-    private static final int FILE_BUFFER_SIZE = 4 * 1024 * 1024;
+    private static final int BIG_FILE_BUFFER_SIZE = 5 * 1024 * 1024;
+    private static final int SMALL_FILE_BUFFER_SIZE = 4 * 1024;
     private static final String SYMBOL_EXCLUDED = "3x cluded";
     private static final String SYMBOL_NULL = "n u11";
     private final static StackFrame FRAME_EXCLUDED = new StackFrame("excluded", "excluded");
@@ -86,11 +87,11 @@ public class JfrParser implements Recyclable {
     private List<WildcardMatcher> includedClasses;
 
     public JfrParser() {
-        this(ByteBuffer.allocateDirect(FILE_BUFFER_SIZE));
+        this(ByteBuffer.allocateDirect(BIG_FILE_BUFFER_SIZE), ByteBuffer.allocateDirect(SMALL_FILE_BUFFER_SIZE));
     }
 
-    JfrParser(ByteBuffer buffer) {
-        bufferedFile = new BufferedFile(buffer);
+    JfrParser(ByteBuffer bigBuffer, ByteBuffer smallBuffer) {
+        bufferedFile = new BufferedFile(bigBuffer, smallBuffer);
     }
 
     /**

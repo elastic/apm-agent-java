@@ -52,11 +52,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -163,28 +163,21 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      */
     private final ByteBuffer activationEventsBuffer;
     /**
-     * Used to delete the file on {@link #stop()}
-     */
-    private final File activationEventsFile;
-    /**
-     * Used to close the file descriptor on {@link #stop()}
-     */
-    private final RandomAccessFile activationEventsRAF;
-    /**
      * Used to efficiently write {@link #activationEventsBuffer} via {@link FileChannel#write(ByteBuffer)}
      */
     private final FileChannel activationEventsFileChannel;
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
-            tracer.getConfig(ProfilingConfiguration.class),
             ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
-            nanoClock);
+            nanoClock,
+            File.createTempFile("apm-activation-events-", ".bin"),
+            File.createTempFile("apm-traces-", ".jfr"));
     }
 
-    SamplingProfiler(final ElasticApmTracer tracer, ProfilingConfiguration config, ScheduledExecutorService scheduler, NanoClock nanoClock) throws IOException {
+    public SamplingProfiler(final ElasticApmTracer tracer, ScheduledExecutorService scheduler, NanoClock nanoClock, File activationEventsFile, File jfrFile) throws IOException {
         this.tracer = tracer;
-        this.config = config;
+        this.config = tracer.getConfig(ProfilingConfiguration.class);
         this.scheduler = scheduler;
         this.nanoClock = nanoClock;
         this.eventBuffer = createRingBuffer();
@@ -199,23 +192,28 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 return new CallTree.Root(tracer);
             }
         });
-        jfrFile = File.createTempFile("apm-traces-", ".jfr");
-        activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
+        this.jfrFile = jfrFile;
         activationEventsBuffer = ByteBuffer.allocateDirect(ACTIVATION_EVENTS_BUFFER_SIZE);
-        activationEventsRAF = new RandomAccessFile(activationEventsFile, "rw");
-        activationEventsFileChannel = activationEventsRAF.getChannel();
-        preAllocate(activationEventsRAF, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
+        activationEventsFileChannel = FileChannel.open(activationEventsFile.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE);
+        if (activationEventsFileChannel.size() == 0) {
+            preAllocate(activationEventsFileChannel, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
+        }
+    }
+
+    // visible for benchmarks
+    public void skipToEndOfActivationEventsFile() throws IOException {
+        activationEventsFileChannel.position(activationEventsFileChannel.size());
     }
 
     /**
      * Makes sure that the first blocks of the file are contiguous to provide fast sequential access
      */
-    private static void preAllocate(RandomAccessFile randomAccessFile, int mb) throws IOException {
-        FileChannel channel = randomAccessFile.getChannel();
+    private static void preAllocate(FileChannel channel, int mb) throws IOException {
         long initialPos = channel.position();
-        byte[] oneKb = new byte[1024];
+        ByteBuffer oneKb = ByteBuffer.allocate(1024);
         for (int i = 0; i < mb * 1024; i++) {
-            randomAccessFile.write(oneKb);
+            channel.write(oneKb);
+            oneKb.clear();
         }
         channel.position(initialPos);
     }
@@ -330,7 +328,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             String stopMessage = asyncProfiler.execute("stop");
             logger.debug(stopMessage);
 
-            processTraces(jfrFile);
+            processTraces();
         } catch (InterruptedException | ClosedByInterruptException e) {
             try {
                 asyncProfiler.stop();
@@ -388,7 +386,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         return poller.poll(writeActivationEventToFileHandler);
     }
 
-    private void processTraces(File file) throws IOException {
+    public void processTraces() throws IOException {
         if (Thread.currentThread().isInterrupted()) {
             return;
         }
@@ -401,7 +399,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         try {
-            jfrParser.parse(file, excludedClasses, includedClasses);
+            jfrParser.parse(jfrFile, excludedClasses, includedClasses);
             final List<StackTraceEvent> stackTraceEvents = getSortedStackTraceEvents(jfrParser);
             if (logger.isDebugEnabled()) {
                 logger.debug("Processing {} stack traces", stackTraceEvents.size());
@@ -533,15 +531,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         // cancels/interrupts the profiling thread
         scheduler.shutdownNow();
         scheduler.awaitTermination(1, TimeUnit.SECONDS);
-        if (!jfrFile.delete()) {
-            jfrFile.deleteOnExit();
-        }
-
-        // also closes the channel
-        activationEventsRAF.close();
-        if (!activationEventsFile.delete()) {
-            activationEventsFile.deleteOnExit();
-        }
+        activationEventsFileChannel.close();
     }
 
     void setProfilingSessionOngoing(boolean profilingSessionOngoing) {

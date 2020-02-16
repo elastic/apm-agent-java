@@ -62,8 +62,9 @@ class BufferedFile implements Recyclable {
     private static final int SIZE_OF_SHORT = 2;
     private static final int SIZE_OF_INT = 4;
     private static final int SIZE_OF_LONG = 8;
-    private final ByteBuffer buffer;
-    private final int capacity;
+    private ByteBuffer buffer;
+    private final ByteBuffer bigBuffer;
+    private final ByteBuffer smallBuffer;
     /**
      * The offset of the file from where the {@link #buffer} starts
      */
@@ -72,23 +73,30 @@ class BufferedFile implements Recyclable {
     @Nullable
     private FileChannel fileChannel;
 
-    public BufferedFile(ByteBuffer buffer) {
-        this.buffer = buffer;
-        capacity = buffer.capacity();
+    /**
+     * @param bigBuffer   the buffer to be used to read the whole file if the file fits into it
+     * @param smallBuffer the buffer to be used to read chunks of the file in case the file is larger than bigBuffer.
+     *                    Constantly seeking a file with a large buffer is very bad for performance.
+     */
+    public BufferedFile(ByteBuffer bigBuffer, ByteBuffer smallBuffer) {
+        this.bigBuffer = bigBuffer;
+        this.smallBuffer = smallBuffer;
     }
 
     /**
-     * Starts reading the file into the {@linkplain #buffer buffer}
+     * Sets the file and depending on it's size, may read the file into the {@linkplain #buffer buffer}
      *
      * @param file the file to read from
      * @throws IOException If some I/O error occurs
      */
     public void setFile(File file) throws IOException {
         fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
-        if (fileChannel.size() <= capacity) {
-            read(0, capacity);
+        if (fileChannel.size() <= bigBuffer.capacity()) {
+            buffer = bigBuffer;
+            read(0, bigBuffer.capacity());
             wholeFileInBuffer = true;
         } else {
+            buffer = smallBuffer;
             Buffer buffer = this.buffer;
             buffer.flip();
         }
@@ -119,9 +127,9 @@ class BufferedFile implements Recyclable {
      */
     public void position(long pos) {
         Buffer buffer = this.buffer;
-        long bufferDelta = pos - (offset + buffer.position());
-        long newBufferPos = buffer.position() + bufferDelta;
-        if (0 <= newBufferPos && newBufferPos <= buffer.capacity()) {
+        long positionDelta = pos - position();
+        long newBufferPos = buffer.position() + positionDelta;
+        if (0 <= newBufferPos && newBufferPos <= buffer.limit()) {
             buffer.position((int) newBufferPos);
         } else {
             // makes sure that the next ensureRemaining will load from file
@@ -139,7 +147,7 @@ class BufferedFile implements Recyclable {
      * @throws IllegalStateException If minRemaining is greater than the buffer's capacity
      */
     public void ensureRemaining(int minRemaining) throws IOException {
-        ensureRemaining(minRemaining, capacity);
+        ensureRemaining(minRemaining, buffer.capacity());
     }
 
     /**
@@ -154,8 +162,8 @@ class BufferedFile implements Recyclable {
         if (wholeFileInBuffer) {
             return;
         }
-        if (minRemaining > capacity) {
-            throw new IllegalStateException(String.format("Length (%d) greater than buffer capacity (%d)", minRemaining, capacity));
+        if (minRemaining > buffer.capacity()) {
+            throw new IllegalStateException(String.format("Length (%d) greater than buffer capacity (%d)", minRemaining, buffer.capacity()));
         }
         if (buffer.remaining() < minRemaining) {
             read(position(), maxRead);
@@ -298,11 +306,12 @@ class BufferedFile implements Recyclable {
         } catch (IOException ignore) {
         }
         fileChannel = null;
+        this.buffer = null;
     }
 
     private void read(long offset, int limit) throws IOException {
-        if (limit > capacity) {
-            limit = capacity;
+        if (limit > buffer.capacity()) {
+            limit = buffer.capacity();
         }
         Buffer buffer = this.buffer;
         buffer.clear();

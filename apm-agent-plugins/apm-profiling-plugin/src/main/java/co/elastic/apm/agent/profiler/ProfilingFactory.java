@@ -26,20 +26,30 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.util.ExecutorUtils;
 
+import java.io.File;
 import java.io.IOException;
 
 public class ProfilingFactory implements LifecycleListener {
 
     private final SamplingProfiler profiler;
     private final NanoClock nanoClock;
+    private final File activationEventsFile;
+    private final File jfrFile;
 
     public ProfilingFactory(ElasticApmTracer tracer) throws IOException {
         boolean envTest = false;
         // in unit tests, where assertions are enabled, this envTest is true
         assert envTest = true;
         nanoClock = envTest ? new FixedNanoClock() : new SystemNanoClock();
-        profiler = new SamplingProfiler(tracer, nanoClock);
+        activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
+        jfrFile = File.createTempFile("apm-traces-", ".jfr");
+        profiler = new SamplingProfiler(tracer,
+            ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
+            nanoClock,
+            activationEventsFile,
+            jfrFile);
     }
 
     @Override
@@ -50,7 +60,15 @@ public class ProfilingFactory implements LifecycleListener {
 
     @Override
     public void stop() throws Exception {
+        if (true) throw new IllegalStateException();
         profiler.stop();
+        if (!jfrFile.delete()) {
+            jfrFile.deleteOnExit();
+        }
+
+        if (!activationEventsFile.delete()) {
+            activationEventsFile.deleteOnExit();
+        }
     }
 
     public SamplingProfiler getProfiler() {
