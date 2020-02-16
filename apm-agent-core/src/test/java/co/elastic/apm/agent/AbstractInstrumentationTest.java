@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,7 +26,7 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -63,7 +63,7 @@ public abstract class AbstractInstrumentationTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(LifecycleListener.ClosableAdapter.of(() -> {
+            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
                 objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
                 reporter.assertRecycledAfterDecrementingReferences();
             }))

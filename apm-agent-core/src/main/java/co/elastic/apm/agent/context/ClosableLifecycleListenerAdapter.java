@@ -22,27 +22,24 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.servlet.wildfly;
+package co.elastic.apm.agent.context;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import co.elastic.apm.agent.context.LifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import java.io.Closeable;
 
-/**
- * Makes the {@code co.elastic.apm} package visible from all modules
- */
-public class WildFlyLifecycleListener extends AbstractLifecycleListener {
+public class ClosableLifecycleListenerAdapter extends AbstractLifecycleListener {
 
-    private static final String JBOSS_MODULES_SYSTEM_PKGS = "jboss.modules.system.pkgs";
-    private static final String APM_BASE_PACKAGE = "co.elastic.apm.agent";
+    private final Closeable closeable;
+
+    public static LifecycleListener of(Closeable closeable) {
+        return new co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter(closeable);
+    }
+
+    private ClosableLifecycleListenerAdapter(Closeable closeable) {
+        this.closeable = closeable;
+    }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
-        final String systemPackages = System.getProperty(JBOSS_MODULES_SYSTEM_PKGS);
-        if (systemPackages != null) {
-            System.setProperty(JBOSS_MODULES_SYSTEM_PKGS, systemPackages + "," + APM_BASE_PACKAGE);
-        } else {
-            System.setProperty(JBOSS_MODULES_SYSTEM_PKGS, APM_BASE_PACKAGE);
-        }
+    public void stop() throws Exception {
+        closeable.close();
     }
 }

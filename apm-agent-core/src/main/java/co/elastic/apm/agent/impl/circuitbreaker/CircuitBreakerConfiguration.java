@@ -22,25 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.context;
+package co.elastic.apm.agent.impl.circuitbreaker;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
-public abstract class AbstractLifecycleListener implements LifecycleListener {
-
-    @Override
-    public void start(ElasticApmTracer tracer) {
-    }
-
-    @Override
-    public void pause() throws Exception {
-    }
-
-    @Override
-    public void resume() throws Exception {
-    }
-
-    @Override
-    public void stop() throws Exception {
-    }
+public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
 }

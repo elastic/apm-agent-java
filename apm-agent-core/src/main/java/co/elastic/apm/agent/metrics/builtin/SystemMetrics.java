@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
@@ -58,7 +58,7 @@ import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
  * This implementation is based on io.micrometer.core.instrument.binder.system.ProcessorMetrics,
  * under Apache License 2.0
  */
-public class SystemMetrics implements LifecycleListener {
+public class SystemMetrics extends AbstractLifecycleListener {
 
     /**
      * List of public, exported interface class names from supported JVM implementations.
@@ -209,9 +209,5 @@ public class SystemMetrics implements LifecycleListener {
             }
         }
         return null;
-    }
-
-    @Override
-    public void stop() throws Exception {
     }
 }

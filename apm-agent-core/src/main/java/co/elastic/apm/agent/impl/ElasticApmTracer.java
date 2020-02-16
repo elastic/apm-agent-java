@@ -83,7 +83,8 @@ public class ElasticApmTracer {
      */
     private static final int MAX_POOLED_RUNNABLES = 256;
 
-    private long lastSpanMaxWarningTimestamp;
+    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
+
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
 
     private final ConfigurationRegistry configurationRegistry;
@@ -119,7 +120,11 @@ public class ElasticApmTracer {
     private final MetricRegistry metricRegistry;
     private Sampler sampler;
     boolean assertionsEnabled = false;
-    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private long lastSpanMaxWarningTimestamp;
+
+    // The tracer state. We use a volatile state and a non-volatile copy for common accesses that may be very frequent
+    private TracerState state = TracerState.STOPPED;
+    private volatile TracerState volatileState = TracerState.RUNNING;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
@@ -517,7 +522,8 @@ public class ElasticApmTracer {
      * Called when the container shuts down.
      * Cleans up thread pools and other resources.
      */
-    public void stop() {
+    public synchronized void stop() {
+        setState(TracerState.STOPPED);
         try {
             configurationRegistry.close();
             reporter.close();
@@ -555,11 +561,57 @@ public class ElasticApmTracer {
         return activationListeners;
     }
 
-    void registerLifecycleListeners(List<LifecycleListener> lifecycleListeners) {
+    synchronized void start(List<LifecycleListener> lifecycleListeners) {
         this.lifecycleListeners.addAll(lifecycleListeners);
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.start(this);
         }
+        setState(TracerState.RUNNING);
+    }
+
+    public synchronized void pause() {
+        if (state != TracerState.RUNNING) {
+            logger.warn("Attempting to pause the agent when it is already in a {} state", state);
+            return;
+        }
+        setState(TracerState.PAUSED);
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            try {
+                lifecycleListener.pause();
+            } catch (Exception e) {
+                logger.warn("Suppressed exception while calling pause()", e);
+            }
+        }
+    }
+
+    public synchronized void resume() {
+        if (state != TracerState.PAUSED) {
+            logger.warn("Attempting to resume the agent when it is in a {} state", state);
+            return;
+        }
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            try {
+                lifecycleListener.resume();
+            } catch (Exception e) {
+                logger.warn("Suppressed exception while calling resume()", e);
+            }
+        }
+        setState(TracerState.RUNNING);
+    }
+
+    public boolean isRunning() {
+        return state == TracerState.RUNNING;
+    }
+
+    public TracerState getState() {
+        return state;
+    }
+
+    private synchronized TracerState setState(TracerState newState) {
+        state = newState;
+        // writing and reading the volatile ensures the new value of of the non-volatile state is visible to all threads
+        volatileState = newState;
+        return volatileState;
     }
 
     @Nullable
@@ -640,5 +692,11 @@ public class ElasticApmTracer {
 
     public void resetServiceNameOverrides() {
         serviceNameByClassLoader.clear();
+    }
+
+    public enum TracerState {
+        STOPPED,
+        RUNNING,
+        PAUSED
     }
 }

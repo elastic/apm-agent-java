@@ -388,8 +388,7 @@ class ElasticApmTracerTest {
         public static final AtomicInteger start = new AtomicInteger();
         public static final AtomicInteger stop = new AtomicInteger();
 
-        public TestLifecycleListener(ElasticApmTracer tracer) {
-            super(tracer);
+        public TestLifecycleListener() {
             start.incrementAndGet();
         }
 

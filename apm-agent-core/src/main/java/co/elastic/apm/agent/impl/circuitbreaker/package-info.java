@@ -22,25 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.context;
+@NonnullApi
+package co.elastic.apm.agent.impl.circuitbreaker;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-
-public abstract class AbstractLifecycleListener implements LifecycleListener {
-
-    @Override
-    public void start(ElasticApmTracer tracer) {
-    }
-
-    @Override
-    public void pause() throws Exception {
-    }
-
-    @Override
-    public void resume() throws Exception {
-    }
-
-    @Override
-    public void stop() throws Exception {
-    }
-}
+import co.elastic.apm.agent.annotation.NonnullApi;
