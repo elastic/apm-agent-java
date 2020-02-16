@@ -74,11 +74,12 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                         break;
                     }
                     case PAUSED: {
+                        boolean shouldResume = true;
                         for (StressMonitor stressMonitor : stressMonitors) {
-                            if (stressMonitor.shouldResume()) {
-                                tracer.resume();
-                                break;
-                            }
+                            shouldResume &= stressMonitor.shouldResume();
+                        }
+                        if (shouldResume) {
+                            tracer.resume();
                         }
                         break;
                     }
