@@ -46,11 +46,11 @@ public class ListBasedObjectPool<T> extends AbstractObjectPool<T> {
     private final int limit;
 
     public static <T extends Recyclable> ListBasedObjectPool<T> ofRecyclable(int limit, Allocator<T> allocator) {
-        return ofRecyclable(new ArrayList<>(), limit, allocator);
+        return ListBasedObjectPool.<T>ofRecyclable(new ArrayList<T>(), limit, allocator);
     }
 
     public static <T extends Recyclable> ListBasedObjectPool<T> ofRecyclable(List<T> list, int limit, Allocator<T> allocator) {
-        return new ListBasedObjectPool<>(list, limit, allocator, Resetter.ForRecyclable.<T>get());
+        return new ListBasedObjectPool<T>(list, limit, allocator, Resetter.ForRecyclable.<T>get());
     }
 
     public ListBasedObjectPool(List<T> pool, int limit, Allocator<T> allocator, Resetter<T> resetter) {

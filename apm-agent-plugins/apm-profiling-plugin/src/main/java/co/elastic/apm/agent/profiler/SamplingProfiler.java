@@ -434,8 +434,8 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             // otherwise we may miss root deactivations
             processActivationEventsUpTo(System.nanoTime(), event, eof);
         } finally {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Processing traces took {}µs", (System.nanoTime() - start) / 1000);
+            if (logger.isInfoEnabled()) {
+                logger.info("Processing traces took {}µs", (System.nanoTime() - start) / 1000);
             }
             jfrParser.resetState();
         }
