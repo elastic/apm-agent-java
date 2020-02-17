@@ -40,12 +40,10 @@
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.util.IOUtils;
-import net.bytebuddy.ByteBuddy;
-import net.bytebuddy.dynamic.ClassFileLocator;
-import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Java API for in-process profiling. Serves as a wrapper around
@@ -58,12 +56,12 @@ import java.io.File;
  * It is modified to allow it to be shaded into the {@code co.elastic.apm} namespace
  * </p>
  */
-public abstract class AsyncProfiler {
+public class AsyncProfiler {
 
     @Nullable
     private static volatile AsyncProfiler instance;
 
-    public AsyncProfiler() {
+    private AsyncProfiler() {
     }
 
     public static AsyncProfiler getInstance() {
@@ -73,29 +71,37 @@ public abstract class AsyncProfiler {
         }
         synchronized (AsyncProfiler.class) {
             if (instance == null) {
-                instance = newInstance();
+                loadNativeLibrary();
+
+                instance = new AsyncProfiler();
             }
             return instance;
         }
     }
 
-    /*
-     * Allows AsyncProfiler to be shaded. JNI mapping works for a specific package so shading normally doesn't work.
-     */
-    private static AsyncProfiler newInstance() {
-        try {
-            return new ByteBuddy()
-                // ClassFileLocator.ForClassLoader.ofBootLoader() can't resolve resources added via Instrumentation.appendToBootstrapClassLoaderSearch
-                // see also https://stackoverflow.com/questions/51347432/why-cant-i-load-resources-which-are-appended-to-the-bootstrap-class-loader-sear
-                .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
-                .name("one.profiler.AsyncProfiler")
-                .make()
-                .load(AsyncProfiler.class.getClassLoader(), ClassLoadingStrategy.Default.CHILD_FIRST)
-                .getLoaded()
-                .getConstructor()
-                .newInstance();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
+    private static void loadNativeLibrary() {
+        String libraryName = getLibraryFileName();
+        File file = IOUtils.exportResourceToTemp("asyncprofiler/" + libraryName + ".so", libraryName, ".so");
+        System.load(file.getAbsolutePath());
+    }
+
+    private static String getLibraryFileName() {
+        String os = System.getProperty("os.name").toLowerCase();
+        String arch = System.getProperty("os.arch").toLowerCase();
+        if (os.contains("linux")) {
+            if (arch.contains("arm") || arch.contains("aarch")) {
+                return "libasyncProfiler-linux-arm";
+            } else if (arch.contains("64")) {
+                return "libasyncProfiler-linux-x64";
+            } else if (arch.contains("86")) {
+                return "libasyncProfiler-linux-x86";
+            } else {
+                throw new IllegalStateException("Async-profiler does not work on Linux " + arch);
+            }
+        } else if (os.contains("mac")) {
+            return "libasyncProfiler-macos";
+        } else {
+            throw new IllegalStateException("Async-profiler does not work on " + os);
         }
     }
 
@@ -165,47 +171,10 @@ public abstract class AsyncProfiler {
         }
     }
 
-    public abstract void stop0() throws IllegalStateException;
-    public abstract String execute0(String command) throws IllegalArgumentException, java.io.IOException;
-    public abstract void filterThread0(Thread thread, boolean enable);
+    private native long getSamples();
+    private native void start0(String event, long interval, boolean reset) throws IllegalStateException;
+    private native void stop0() throws IllegalStateException;
+    private native String execute0(String command) throws IllegalArgumentException, IOException;
+    private native void filterThread0(Thread thread, boolean enable);
 
-    /**
-     * Inspired by https://gist.github.com/raphw/be0994259e75652f057c9e1d3ee5f567
-     */
-    public static class DirectNativeBinding extends AsyncProfiler {
-
-        static {
-            loadNativeLibrary();
-        }
-
-        private static void loadNativeLibrary() {
-            String libraryName = getLibraryFileName();
-            File file = IOUtils.exportResourceToTemp("asyncprofiler/" + libraryName + ".so", libraryName, ".so");
-            System.load(file.getAbsolutePath());
-        }
-
-        private static String getLibraryFileName() {
-            String os = System.getProperty("os.name").toLowerCase();
-            String arch = System.getProperty("os.arch").toLowerCase();
-            if (os.contains("linux")) {
-                if (arch.contains("arm") || arch.contains("aarch")) {
-                    return "libasyncProfiler-linux-arm";
-                } else if (arch.contains("64")) {
-                    return "libasyncProfiler-linux-x64";
-                } else if (arch.contains("86")) {
-                    return "libasyncProfiler-linux-x86";
-                } else {
-                    throw new IllegalStateException("Async-profiler does not work on Linux " + arch);
-                }
-            } else if (os.contains("mac")) {
-                return "libasyncProfiler-macos";
-            } else {
-                throw new IllegalStateException("Async-profiler does not work on " + os);
-            }
-        }
-
-        public native void stop0() throws IllegalStateException;
-        public native String execute0(String command) throws IllegalArgumentException, java.io.IOException;
-        public native void filterThread0(Thread thread, boolean enable);
-    }
 }

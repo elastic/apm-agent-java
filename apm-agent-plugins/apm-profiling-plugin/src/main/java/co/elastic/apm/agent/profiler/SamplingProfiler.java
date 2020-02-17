@@ -322,7 +322,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
         try {
-            String startCommand = "start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile;
+            String startCommand = "start,jfr,event=wall,cstack=n,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile;
             String startMessage = asyncProfiler.execute(startCommand);
             logger.debug(startMessage);
             if (!profiledThreads.isEmpty()) {
