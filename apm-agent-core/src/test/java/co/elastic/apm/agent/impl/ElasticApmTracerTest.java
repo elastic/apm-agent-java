@@ -366,16 +366,36 @@ class ElasticApmTracerTest {
 
     @Test
     void testLifecycleListener() {
+        int initBefore = TestLifecycleListener.init.get();
         int startBefore = TestLifecycleListener.start.get();
+        int pauseBefore = TestLifecycleListener.pause.get();
+        int resumeBefore = TestLifecycleListener.resume.get();
         int stopBefore = TestLifecycleListener.stop.get();
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .build();
+        assertThat(tracer.getState()).isEqualTo(ElasticApmTracer.TracerState.RUNNING);
+        assertThat(tracer.isRunning()).isTrue();
+        assertThat(TestLifecycleListener.init.get()).isEqualTo(initBefore + 1);
         assertThat(TestLifecycleListener.start.get()).isEqualTo(startBefore + 1);
+        assertThat(TestLifecycleListener.pause.get()).isEqualTo(pauseBefore);
+        assertThat(TestLifecycleListener.resume.get()).isEqualTo(resumeBefore);
         assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore);
 
+        tracer.pause();
+        assertThat(tracer.getState()).isEqualTo(ElasticApmTracer.TracerState.PAUSED);
+        assertThat(tracer.isRunning()).isFalse();
+        assertThat(TestLifecycleListener.pause.get()).isEqualTo(pauseBefore + 1);
+
+        tracer.resume();
+        assertThat(tracer.getState()).isEqualTo(ElasticApmTracer.TracerState.RUNNING);
+        assertThat(tracer.isRunning()).isTrue();
+        assertThat(TestLifecycleListener.resume.get()).isEqualTo(resumeBefore + 1);
+
         tracer.stop();
+        assertThat(tracer.getState()).isEqualTo(ElasticApmTracer.TracerState.STOPPED);
+        assertThat(tracer.isRunning()).isFalse();
         assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore + 1);
     }
 
@@ -385,11 +405,29 @@ class ElasticApmTracerTest {
      */
     public static class TestLifecycleListener extends AbstractLifecycleListener {
 
+        public static final AtomicInteger init = new AtomicInteger();
         public static final AtomicInteger start = new AtomicInteger();
+        public static final AtomicInteger pause = new AtomicInteger();
+        public static final AtomicInteger resume = new AtomicInteger();
         public static final AtomicInteger stop = new AtomicInteger();
 
         public TestLifecycleListener() {
+            init.incrementAndGet();
+        }
+
+        @Override
+        public void start(ElasticApmTracer tracer) {
             start.incrementAndGet();
+        }
+
+        @Override
+        public void pause() throws Exception {
+            pause.incrementAndGet();
+        }
+
+        @Override
+        public void resume() throws Exception {
+            resume.incrementAndGet();
         }
 
         @Override

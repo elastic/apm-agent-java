@@ -47,6 +47,10 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
         return wrappedPool;
     }
 
+    public List<BookkeeperObjectPool<?>> getCreatedPools() {
+        return createdPools;
+    }
+
     public void checkAllPooledObjectsHaveBeenRecycled() {
         assertThat(createdPools)
             .describedAs("at least one object pool should have been created, test object pool factory likely not used whereas it should")

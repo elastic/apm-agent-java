@@ -122,9 +122,7 @@ public class ElasticApmTracer {
     boolean assertionsEnabled = false;
     private long lastSpanMaxWarningTimestamp;
 
-    // The tracer state. We use a volatile state and a non-volatile copy for common accesses that may be very frequent
-    private TracerState state = TracerState.STOPPED;
-    private volatile TracerState volatileState = TracerState.RUNNING;
+    private volatile TracerState tracerState = TracerState.STOPPED;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
@@ -523,7 +521,7 @@ public class ElasticApmTracer {
      * Cleans up thread pools and other resources.
      */
     public synchronized void stop() {
-        setState(TracerState.STOPPED);
+        tracerState = TracerState.STOPPED;
         try {
             configurationRegistry.close();
             reporter.close();
@@ -566,15 +564,15 @@ public class ElasticApmTracer {
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.start(this);
         }
-        setState(TracerState.RUNNING);
+        tracerState = TracerState.RUNNING;
     }
 
     public synchronized void pause() {
-        if (state != TracerState.RUNNING) {
-            logger.warn("Attempting to pause the agent when it is already in a {} state", state);
+        if (tracerState != TracerState.RUNNING) {
+            logger.warn("Attempting to pause the agent when it is already in a {} state", tracerState);
             return;
         }
-        setState(TracerState.PAUSED);
+        tracerState = TracerState.PAUSED;
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.pause();
@@ -585,8 +583,8 @@ public class ElasticApmTracer {
     }
 
     public synchronized void resume() {
-        if (state != TracerState.PAUSED) {
-            logger.warn("Attempting to resume the agent when it is in a {} state", state);
+        if (tracerState != TracerState.PAUSED) {
+            logger.warn("Attempting to resume the agent when it is in a {} state", tracerState);
             return;
         }
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
@@ -596,22 +594,15 @@ public class ElasticApmTracer {
                 logger.warn("Suppressed exception while calling resume()", e);
             }
         }
-        setState(TracerState.RUNNING);
+        tracerState = TracerState.RUNNING;
     }
 
     public boolean isRunning() {
-        return state == TracerState.RUNNING;
+        return tracerState == TracerState.RUNNING;
     }
 
     public TracerState getState() {
-        return state;
-    }
-
-    private synchronized TracerState setState(TracerState newState) {
-        state = newState;
-        // writing and reading the volatile ensures the new value of of the non-volatile state is visible to all threads
-        volatileState = newState;
-        return volatileState;
+        return tracerState;
     }
 
     @Nullable

@@ -30,7 +30,6 @@ import co.elastic.apm.agent.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -40,18 +39,20 @@ public class CircuitBreaker extends AbstractLifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreaker.class);
 
-    @Nullable
-    private volatile ThreadPoolExecutor threadPool;
-    @Nullable
-    private volatile ElasticApmTracer tracer;
+    private final ThreadPoolExecutor threadPool;
+    private final ElasticApmTracer tracer;
 
     private final List<StressMonitor> stressMonitors = new CopyOnWriteArrayList<>();
+
+    public CircuitBreaker(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+        threadPool = ExecutorUtils.createSingleThreadDeamonPool("circuit-breaker", 1);
+    }
 
     @Override
     public void start(ElasticApmTracer tracer) {
         // todo: fill stress monitors through addAll
 
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("circuit-breaker", 1);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
@@ -62,46 +63,50 @@ public class CircuitBreaker extends AbstractLifecycleListener {
 
     private void pollStressMonitors() {
         while (!Thread.currentThread().isInterrupted()) {
-            if (tracer != null) {
-                switch (tracer.getState()) {
-                    case RUNNING: {
-                        for (StressMonitor stressMonitor : stressMonitors) {
-                            if (stressMonitor.shouldPause()) {
-                                tracer.pause();
-                                break;
-                            }
+            switch (tracer.getState()) {
+                case RUNNING: {
+                    for (StressMonitor stressMonitor : stressMonitors) {
+                        if (stressMonitor.shouldPause()) {
+                            tracer.pause();
+                            break;
                         }
-                        break;
                     }
-                    case PAUSED: {
-                        boolean shouldResume = true;
-                        for (StressMonitor stressMonitor : stressMonitors) {
-                            shouldResume &= stressMonitor.shouldResume();
-                        }
-                        if (shouldResume) {
-                            tracer.resume();
-                        }
-                        break;
-                    }
+                    break;
                 }
-                try {
-                    // todo read poll interval from configuration
-                    int pollInterval = (int) TimeUnit.MINUTES.toSeconds(5);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Scheduling next stress monitor polling in {}s", pollInterval);
+                case PAUSED: {
+                    boolean shouldResume = true;
+                    for (StressMonitor stressMonitor : stressMonitors) {
+                        shouldResume &= stressMonitor.shouldResume();
                     }
-                    TimeUnit.SECONDS.sleep(pollInterval);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    if (shouldResume) {
+                        tracer.resume();
+                    }
+                    break;
                 }
+            }
+            try {
+                // todo read poll interval from configuration
+                int pollInterval = 1;
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Scheduling next stress monitor polling in {}s", pollInterval);
+                }
+                TimeUnit.SECONDS.sleep(pollInterval);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
     }
 
+    void registerStressMonitor(StressMonitor monitor) {
+        stressMonitors.add(monitor);
+    }
+
+    void unregisterStressMonitor(StressMonitor monitor) {
+        stressMonitors.remove(monitor);
+    }
+
     @Override
     public void stop() throws Exception {
-        if (this.threadPool != null) {
-            this.threadPool.shutdownNow();
-        }
+        this.threadPool.shutdownNow();
     }
 }

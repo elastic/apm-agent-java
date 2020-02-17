@@ -48,13 +48,12 @@ public abstract class AbstractInstrumentationTest {
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
 
-    private static TestObjectPoolFactory objectPoolFactory;
+    protected static TestObjectPoolFactory objectPoolFactory;
 
     @BeforeAll
     @BeforeClass
     public static void beforeAll() {
         objectPoolFactory = new TestObjectPoolFactory();
-
 
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
