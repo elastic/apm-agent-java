@@ -116,21 +116,8 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startTransaction(TraceContext.fromTraceparentHeader(), getTraceContextHeader(baggage), sampler, microseconds, classLoader);
+                return tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
             }
-        }
-
-        @Nullable
-        @VisibleForAdvice
-        static String getTraceContextHeader(@Nullable Iterable<Map.Entry<String, String>> baggage) {
-            if (baggage != null) {
-                for (Map.Entry<String, String> entry : baggage) {
-                    if (entry.getKey().equalsIgnoreCase(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
-                        return entry.getValue();
-                    }
-                }
-            }
-            return null;
         }
     }
 

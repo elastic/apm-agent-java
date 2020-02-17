@@ -80,17 +80,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
         try {
             String topic = record.topic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
-                Header traceParentHeader = record.headers().lastHeader(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME);
-                Transaction transaction;
-                if (traceParentHeader != null) {
-                    transaction = tracer.startTransaction(
-                        TraceContext.fromTraceparentBinaryHeader(),
-                        traceParentHeader.value(),
-                        ConsumerRecordsIteratorWrapper.class.getClassLoader()
-                    );
-                } else {
-                    transaction = tracer.startRootTransaction(ConsumerRecordsIteratorWrapper.class.getClassLoader());
-                }
+                Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), ConsumerRecordsIteratorWrapper.class.getClassLoader());
                 transaction.withType("messaging").withName("Kafka record from " + topic).activate();
                 Message message = transaction.getContext().getMessage();
                 message.withQueue(topic);

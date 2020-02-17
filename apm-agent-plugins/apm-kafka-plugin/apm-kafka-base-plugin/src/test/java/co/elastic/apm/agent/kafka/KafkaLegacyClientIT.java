@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -137,7 +136,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
     @Before
     public void startTransaction() {
         reporter.reset();
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("Kafka-Test Transaction");
         transaction.withType("request");
         transaction.withResult("success");

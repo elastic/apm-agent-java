@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,7 +27,6 @@ package co.elastic.apm.agent.quartz.job;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -48,12 +47,12 @@ public class JobTransactionNameAdvice {
             TraceContextHolder<?> active = ElasticApmInstrumentation.tracer.getActive();
             if (context == null) {
                 logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
-                transaction = ElasticApmInstrumentation.tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
+                transaction = ElasticApmInstrumentation.tracer.startRootTransaction(clazz.getClassLoader())
                     .withName(signature)
                     .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
                     .activate();
             } else if (active == null) {
-                transaction = ElasticApmInstrumentation.tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
+                transaction = ElasticApmInstrumentation.tracer.startRootTransaction(clazz.getClassLoader())
                     .withName(context.getJobDetail().getKey().toString())
                     .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
                     .activate();

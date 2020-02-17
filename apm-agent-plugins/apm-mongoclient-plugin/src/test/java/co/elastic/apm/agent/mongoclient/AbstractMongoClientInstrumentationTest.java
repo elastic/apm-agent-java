@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,7 +27,6 @@ package co.elastic.apm.agent.mongoclient;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.bson.Document;
 import org.junit.After;
@@ -64,7 +63,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @Before
     public void startTransaction() throws Exception {
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("Mongo Transaction");
         transaction.withType("request");
         transaction.withResultIfUnset("success");
