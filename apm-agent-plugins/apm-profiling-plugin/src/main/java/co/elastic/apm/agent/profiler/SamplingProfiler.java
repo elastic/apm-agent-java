@@ -166,6 +166,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      * Used to efficiently write {@link #activationEventsBuffer} via {@link FileChannel#write(ByteBuffer)}
      */
     private final FileChannel activationEventsFileChannel;
+    private final ObjectPool<CallTree> callTreePool;
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
@@ -185,8 +186,14 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         // tells the ring buffer to not override slots which have not been read yet
         this.eventBuffer.addGatingSequences(sequence);
         this.poller = eventBuffer.newPoller();
+        this.callTreePool = ListBasedObjectPool.<CallTree>ofRecyclable(2 * 1024, new Allocator<CallTree>() {
+            @Override
+            public CallTree createInstance() {
+                return new CallTree();
+            }
+        });
         // call tree roots are pooled so that fast activations/deactivations with no associated stack traces don't cause allocations
-        this.rootPool = ListBasedObjectPool.<CallTree.Root>ofRecyclable(new ArrayList<CallTree.Root>(), 512, new Allocator<CallTree.Root>() {
+        this.rootPool = ListBasedObjectPool.<CallTree.Root>ofRecyclable(512, new Allocator<CallTree.Root>() {
             @Override
             public CallTree.Root createInstance() {
                 return new CallTree.Root(tracer);
@@ -418,7 +425,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                     // stack frames may not contain any Java frames
                     // see https://github.com/jvm-profiling-tools/async-profiler/issues/271#issuecomment-582430233
                     if (!stackFrames.isEmpty()) {
-                        root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime);
+                        root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime, callTreePool);
                     }
                 }
                 stackFrames.clear();
@@ -537,8 +544,15 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     void setProfilingSessionOngoing(boolean profilingSessionOngoing) {
         this.profilingSessionOngoing = profilingSessionOngoing;
         if (!profilingSessionOngoing) {
-            profiledThreads.clear();
+            clearProfiledThreads();
         }
+    }
+
+    public void clearProfiledThreads() {
+        for (CallTree.Root root : profiledThreads.values()) {
+            root.recycle(callTreePool);
+        }
+        profiledThreads.clear();
     }
 
     // for testing
@@ -653,7 +667,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 logger.debug("Create call tree for thread {}", threadId);
             }
             CallTree.Root root = CallTree.createRoot(samplingProfiler.rootPool, traceContextBuffer, serviceName, timestamp);
-            samplingProfiler.profiledThreads.put(threadId, root);
+
+            CallTree.Root orphaned = samplingProfiler.profiledThreads.put(threadId, root);
+            if (orphaned != null) {
+                orphaned.recycle(samplingProfiler.callTreePool);
+                samplingProfiler.rootPool.recycle(orphaned);
+            }
         }
 
         private void handleDeactivationEvent(SamplingProfiler samplingProfiler) {
@@ -675,8 +694,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 }
                 samplingProfiler.profiledThreads.remove(threadId);
                 callTree.end();
-                callTree.removeNodesFasterThan(samplingProfiler.config.getInferredSpansMinDuration().getMillis(), 2);
+                callTree.removeNodesFasterThan(samplingProfiler.config.getInferredSpansMinDuration().getMillis(), 2, samplingProfiler.callTreePool);
                 callTree.spanify();
+                callTree.recycle(samplingProfiler.callTreePool);
                 samplingProfiler.rootPool.recycle(callTree);
             }
         }

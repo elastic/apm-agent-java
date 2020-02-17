@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
-import co.elastic.apm.agent.objectpool.Resetter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,17 +96,18 @@ class CallTreeSpanifyTest {
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
         TraceContext traceContext = rootContext.getTraceContext();
-        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer), Resetter.ForRecyclable.get()), traceContext.serialize(), traceContext.getServiceName(), 0);
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
+        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
+        NoopObjectPool<CallTree> callTreePool = NoopObjectPool.ofRecyclable(CallTree::new);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);
         TraceContext.fromParent().asChildOf(spanContext, rootContext);
 
         root.onActivation(spanContext.serialize(), TimeUnit.MILLISECONDS.toNanos(5));
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool);
         root.onDeactivation(rootContext.serialize(), TimeUnit.MILLISECONDS.toNanos(15));
 
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20), callTreePool);
         root.end();
 
         System.out.println(root);

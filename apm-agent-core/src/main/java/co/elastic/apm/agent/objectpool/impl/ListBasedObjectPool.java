@@ -29,6 +29,7 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.Resetter;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,6 +44,10 @@ public class ListBasedObjectPool<T> extends AbstractObjectPool<T> {
 
     private final List<T> pool;
     private final int limit;
+
+    public static <T extends Recyclable> ListBasedObjectPool<T> ofRecyclable(int limit, Allocator<T> allocator) {
+        return ofRecyclable(new ArrayList<>(), limit, allocator);
+    }
 
     public static <T extends Recyclable> ListBasedObjectPool<T> ofRecyclable(List<T> list, int limit, Allocator<T> allocator) {
         return new ListBasedObjectPool<>(list, limit, allocator, Resetter.ForRecyclable.<T>get());

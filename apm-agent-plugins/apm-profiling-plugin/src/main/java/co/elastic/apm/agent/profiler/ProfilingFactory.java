@@ -60,7 +60,6 @@ public class ProfilingFactory implements LifecycleListener {
 
     @Override
     public void stop() throws Exception {
-        if (true) throw new IllegalStateException();
         profiler.stop();
         if (!jfrFile.delete()) {
             jfrFile.deleteOnExit();

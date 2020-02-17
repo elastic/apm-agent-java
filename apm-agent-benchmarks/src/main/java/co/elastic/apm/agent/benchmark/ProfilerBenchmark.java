@@ -34,6 +34,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
 import java.io.File;
 import java.io.IOException;
@@ -59,14 +60,20 @@ public class ProfilerBenchmark extends AbstractMockApmServerBenchmark {
         samplingProfiler = new SamplingProfiler(tracer,
             ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
             new SystemNanoClock(),
-            new File("/Users/felixbarnsteiner/projects/github/elastic/apm-agent-java/apm-activation-events.bin"),
-            new File("/Users/felixbarnsteiner/projects/github/elastic/apm-agent-java/apm-traces.jfr"));
+            new File(getClass().getClassLoader().getResource("apm-activation-events.bin").toURI()),
+            new File(getClass().getClassLoader().getResource("apm-traces.jfr").toURI()));
         samplingProfiler.skipToEndOfActivationEventsFile();
+    }
+
+    @TearDown
+    public void tearDownProfilerBenchmark() throws Exception {
+        samplingProfiler.stop();
     }
 
     @Benchmark
     public void processTraces() throws IOException {
         samplingProfiler.processTraces();
+        samplingProfiler.clearProfiledThreads();
     }
 
 }

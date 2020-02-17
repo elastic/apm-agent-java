@@ -27,7 +27,6 @@ package co.elastic.apm.agent.objectpool;
 import co.elastic.apm.agent.objectpool.impl.AbstractObjectPool;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 
 /**
  * No-Op object pool that does not perform any pooling and will always create new instances
@@ -35,6 +34,10 @@ import java.io.IOException;
  * @param <T> pooled object type
  */
 public class NoopObjectPool<T> extends AbstractObjectPool<T> {
+
+    public static <T extends Recyclable> NoopObjectPool<T> ofRecyclable(Allocator<T> allocator) {
+        return new NoopObjectPool<>(allocator, Resetter.ForRecyclable.get());
+    }
 
     public NoopObjectPool(Allocator<T> allocator, Resetter<T> resetter) {
         super(allocator, resetter);

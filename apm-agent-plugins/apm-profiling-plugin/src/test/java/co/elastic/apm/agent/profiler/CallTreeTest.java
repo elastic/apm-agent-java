@@ -34,7 +34,8 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
-import co.elastic.apm.agent.objectpool.Resetter;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,13 +75,14 @@ class CallTreeTest {
     @Test
     void testCallTree() throws Exception {
         TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer), Resetter.ForRecyclable.get()), traceContext.serialize(), traceContext.getServiceName(), 0);
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(30));
+        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
+        ObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20), callTreePool);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(30), callTreePool);
         root.end();
-        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10));
+        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10), callTreePool);
 
         System.out.println(root);
 
@@ -99,7 +101,9 @@ class CallTreeTest {
         assertThat(b.getCount()).isEqualTo(2);
         assertThat(b.getChildren()).isEmpty();
 
-        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10) + 1);
+        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10) + 1, callTreePool);
+        root.recycle(callTreePool);
+        assertThat(callTreePool.getObjectsInPool()).isEqualTo(2);
         assertThat(a.getChildren()).isEmpty();
     }
 
@@ -394,13 +398,14 @@ class CallTreeTest {
         profiler.consumeActivationEventsFromRingBufferAndWriteToFile();
         long eof = profiler.startProcessingActivationEventsFile();
         CallTree.Root root = null;
+        NoopObjectPool<CallTree> callTreePool = NoopObjectPool.ofRecyclable(CallTree::new);
         for (StackTraceEvent stackTraceEvent : stackTraceEvents) {
             profiler.processActivationEventsUpTo(stackTraceEvent.nanoTime, eof);
             if (root == null) {
                 root = profiler.getRoot();
                 assertThat(root).isNotNull();
             }
-            root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime);
+            root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime, callTreePool);
         }
         transaction.deactivate().end(nanoClock.nanoTime() / 1000);
         assertThat(root).isNotNull();
