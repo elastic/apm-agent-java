@@ -494,22 +494,47 @@ public class ElasticApmAgent {
     }
 
     private static ElasticApmInstrumentation instantiate(Class<? extends ElasticApmInstrumentation> instrumentation) {
-        try {
-            Constructor<? extends ElasticApmInstrumentation> constructor = instrumentation.getConstructor();
-            if (constructor != null) {
-                return constructor.newInstance();
-            } else {
-                Constructor<? extends ElasticApmInstrumentation> tracerConstructor = instrumentation.getConstructor(ElasticApmTracer.class);
-                if (tracerConstructor != null) {
-                    return tracerConstructor.newInstance(ElasticApmInstrumentation.tracer);
-                }
-                throw new IllegalArgumentException("No matching constructor found for " + instrumentation);
-            }
-        } catch (NoSuchMethodException e){
-            throw new IllegalArgumentException("unable to find public constructor for instrumentation "+ instrumentation);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalArgumentException(e.getMessage());
+
+        ElasticApmInstrumentation instance = tryInstantiate(instrumentation, false);
+        if (instance == null) {
+            instance = tryInstantiate(instrumentation, true);
         }
+
+        if (instance == null) {
+            throw new IllegalArgumentException("unable to find matching public constructor for instrumentation " + instrumentation);
+        }
+
+        return instance;
+    }
+
+    @Nullable
+    private static ElasticApmInstrumentation tryInstantiate(Class<? extends ElasticApmInstrumentation> instrumentation, boolean withTracer) {
+
+        Constructor<? extends ElasticApmInstrumentation> constructor = null;
+        try {
+            if (withTracer) {
+                constructor = instrumentation.getConstructor(ElasticApmTracer.class);
+            } else {
+                constructor = instrumentation.getConstructor();
+            }
+        } catch (NoSuchMethodException e) {
+            // silently ignored
+        }
+
+        ElasticApmInstrumentation instance = null;
+        if (constructor != null) {
+            try {
+                if (withTracer) {
+                    instance = constructor.newInstance(ElasticApmInstrumentation.tracer);
+                } else {
+                    instance = constructor.newInstance();
+                }
+            } catch (ReflectiveOperationException e) {
+                // silently ignored
+            }
+        }
+
+        return instance;
     }
 
 }
