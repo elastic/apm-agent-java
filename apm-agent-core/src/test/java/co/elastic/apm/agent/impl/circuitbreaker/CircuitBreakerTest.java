@@ -24,26 +24,36 @@
  */
 package co.elastic.apm.agent.impl.circuitbreaker;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
+import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.PAUSED;
 import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.RUNNING;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class CircuitBreakerTest extends AbstractInstrumentationTest {
+@SuppressWarnings("NotNullFieldNotInitialized")
+public class CircuitBreakerTest {
 
+    private static ElasticApmTracer tracer;
     private static CircuitBreaker circuitBreaker;
     private static TestStressMonitor monitor;
 
     @BeforeAll
     public static void setup() {
+        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .reporter(new MockReporter())
+            .build();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         circuitBreaker = tracer.getLifecycleListener(CircuitBreaker.class);
         monitor = new TestStressMonitor(tracer);
         circuitBreaker.registerStressMonitor(monitor);
@@ -96,16 +106,5 @@ public class CircuitBreakerTest extends AbstractInstrumentationTest {
         assertThat(tracer.getState()).isEqualTo(RUNNING);
 
         circuitBreaker.unregisterStressMonitor(secondMonitor);
-    }
-
-    @Test
-    void testObjectPoolsCleanup() {
-//        Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader())
-//            .withName("Test")
-//            .withType("request")
-//            .withResult("success")
-//            .activate();
-
-        List<BookkeeperObjectPool<?>> createdPools = objectPoolFactory.getCreatedPools();
     }
 }
