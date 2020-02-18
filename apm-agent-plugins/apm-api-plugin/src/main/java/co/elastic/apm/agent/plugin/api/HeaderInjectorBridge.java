@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
 @VisibleForAdvice
+@SuppressWarnings("unused")
 public class HeaderInjectorBridge implements TextHeaderSetter<Object> {
 
     private static final Logger logger = LoggerFactory.getLogger(HeaderInjectorBridge.class);
