@@ -396,6 +396,8 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.instana."))
             .or(nameStartsWith("datadog."))
             .or(nameStartsWith("org.glowroot."))
+            .or(nameStartsWith("com.compuware."))
+            .or(nameStartsWith("io.sqreen."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
