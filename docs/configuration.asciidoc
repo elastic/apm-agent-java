@@ -1392,7 +1392,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `(?-i)java.*, (?-i)javax.*, (?-i)sun.*, (?-i)com.sun.*, (?-i)jdk.*` | List | true
+| `(?-i)java.*, (?-i)javax.*, (?-i)sun.*, (?-i)com.sun.*, (?-i)jdk.*, (?-i)org.apache.tomcat.*, (?-i)org.apache.catalina.*, (?-i)org.apache.coyote.*, (?-i)org.jboss.as.*, (?-i)org.glassfish.*, (?-i)org.eclipse.jetty.*, (?-i)com.ibm.websphere.*` | List | true
 |============
 
 
@@ -2581,9 +2581,9 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: (?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*
+# Default value: (?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*
 #
-# profiling_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*
+# profiling_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*
 
 # The interval at which profiling sessions should be started.
 #
