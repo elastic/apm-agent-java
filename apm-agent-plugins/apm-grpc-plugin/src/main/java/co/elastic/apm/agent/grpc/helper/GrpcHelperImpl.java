@@ -27,6 +27,7 @@ package co.elastic.apm.agent.grpc.helper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -60,11 +61,13 @@ public class GrpcHelperImpl implements GrpcHelper {
     private static final WeakConcurrentMap<ClientCall.Listener<?>, ClientCall<?,?>> inFlightListeners;
 
     private static final TextHeaderSetter<Metadata> headerSetter;
+    private static final TextHeaderGetter<Metadata> headerGetter;
 
     static {
         inFlightListeners = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, ClientCall<?, ?>>();
         inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
         headerSetter = new GrpcHeaderSetter();
+        headerGetter = new GrpcHeaderGetter();
     }
 
     // transaction management (server part)
@@ -74,7 +77,7 @@ public class GrpcHelperImpl implements GrpcHelper {
 
         String methodName = serverCall.getMethodDescriptor().getFullMethodName();
 
-        tracer.startChildTransaction(headers, GrpcHeaderGetter.getInstance(), cl)
+        tracer.startChildTransaction(headers, headerGetter, cl)
             .withName(methodName)
             .withType("request")
             .activate();
