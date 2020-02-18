@@ -27,6 +27,7 @@ package co.elastic.apm.agent.grpc.helper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.grpc.ClientCall;
@@ -58,9 +59,12 @@ public class GrpcHelperImpl implements GrpcHelper {
      */
     private static final WeakConcurrentMap<ClientCall.Listener<?>, ClientCall<?,?>> inFlightListeners;
 
+    private static final TextHeaderSetter<Metadata> headerSetter;
+
     static {
         inFlightListeners = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, ClientCall<?, ?>>();
-        inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?,?>, Span>();
+        inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
+        headerSetter = new GrpcHeaderSetter();
     }
 
     // transaction management (server part)
@@ -122,14 +126,16 @@ public class GrpcHelperImpl implements GrpcHelper {
     }
 
     @Override
-    public void startSpan(ClientCall<?, ?> clientCall, ClientCall.Listener<?> responseListener) {
+    public void startSpan(ClientCall<?, ?> clientCall, ClientCall.Listener<?> responseListener, Metadata headers) {
         // span should already have been registered
         Span span = inFlightSpans.get(clientCall);
         if (span == null) {
             return;
         }
+
         inFlightListeners.put(responseListener, clientCall);
         span.setStartTimestampNow();
+        span.getTraceContext().setOutgoingTraceContextHeaders(headers, headerSetter);
     }
 
     @Override

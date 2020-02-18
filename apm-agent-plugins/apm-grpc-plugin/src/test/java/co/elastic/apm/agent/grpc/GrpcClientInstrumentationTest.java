@@ -28,7 +28,6 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.impl.transaction.EpochTickClock;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,17 +109,6 @@ class GrpcClientInstrumentationTest extends AbstractInstrumentationTest {
     private void doSimpleCall(String name) {
         assertThat(app.sendMessage(name, 0))
             .isEqualTo(String.format("hello(%s)", name));
-    }
-
-    @Ignore // not implemented yet
-    @Test
-    void simpleCallWithLinkedTransaction() {
-        // this test actually tests for client and server instrumentation
-        // when this works, it means that tracing header is
-        // 1) properly set on gRPC client call, and thus sent to server
-        // 2) properly captured by gRPC server instrumentation and propagated to the server-side transaction
-
-        // TODO : see TraceContext.isChildOf( ) usages for how to check for this
     }
 
     @Test

@@ -31,6 +31,7 @@ import co.elastic.apm.agent.grpc.helper.GrpcHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.grpc.ClientCall;
+import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -153,7 +154,8 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.This ClientCall<?, ?> clientCall,
-                                    @Advice.Argument(value = 0) ClientCall.Listener<?> listener) {
+                                    @Advice.Argument(0) ClientCall.Listener<?> listener,
+                                    @Advice.Argument(1) Metadata headers) {
 
             if (tracer == null || grpcHelperManager == null) {
                 return;
@@ -168,7 +170,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
             GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
             if (helper != null) {
-                helper.startSpan(clientCall, listener);
+                helper.startSpan(clientCall, listener, headers);
             }
 
         }

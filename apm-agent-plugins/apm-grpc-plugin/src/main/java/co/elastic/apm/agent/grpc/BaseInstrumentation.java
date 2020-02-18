@@ -52,7 +52,8 @@ public abstract class BaseInstrumentation extends ElasticApmInstrumentation {
             if (grpcHelperManager == null) {
                 grpcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
                     "co.elastic.apm.agent.grpc.helper.GrpcHelperImpl",
-                    "co.elastic.apm.agent.grpc.helper.GrpcHeaderGetter");
+                    "co.elastic.apm.agent.grpc.helper.GrpcHeaderGetter",
+                    "co.elastic.apm.agent.grpc.helper.GrpcHeaderSetter");
             }
         }
     }
