@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.grpc.helper.GrpcHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -47,6 +49,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class ChannelInstrumentation extends BaseInstrumentation {
 
+    public ChannelInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameStartsWith("io.grpc")
@@ -64,16 +70,19 @@ public class ChannelInstrumentation extends BaseInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(
-        @Advice.This Channel channel,
-        @Advice.Return @Nullable ClientCall<?, ?> clientCall,
-        @Advice.Thrown @Nullable Throwable thrown) {
+    private static void onExit(@Advice.This Channel channel,
+                               @Advice.Return @Nullable ClientCall<?, ?> clientCall,
+                               @Advice.Thrown @Nullable Throwable thrown) {
 
-        if (clientCall == null) {
+        if (clientCall == null || grpcHelperManager == null) {
             return;
         }
 
-        GrpcHelper.enrichSpanContext(clientCall, channel.authority());
+        GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
+        if (helper != null) {
+            helper.enrichSpanContext(clientCall, channel.authority());
+        }
+
     }
 
 }

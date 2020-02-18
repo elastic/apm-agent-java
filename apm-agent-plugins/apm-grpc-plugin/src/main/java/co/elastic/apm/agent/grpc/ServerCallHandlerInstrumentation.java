@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.grpc.helper.GrpcHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import net.bytebuddy.asm.Advice;
@@ -43,6 +45,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
 
+    public ServerCallHandlerInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameStartsWith("io.grpc")
@@ -61,16 +67,18 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onEnter(
-        @Advice.Origin Class<?> clazz,
-        @Advice.Argument(0) ServerCall<?, ?> serverCall,
-        @Advice.Argument(1) Metadata headers) {
+    private static void onEnter(@Advice.Origin Class<?> clazz,
+                                @Advice.Argument(0) ServerCall<?, ?> serverCall,
+                                @Advice.Argument(1) Metadata headers) {
 
-        if (tracer == null) {
+        if (tracer == null || grpcHelperManager == null) {
             return;
         }
 
-        GrpcHelper.startTransaction(tracer, clazz.getClassLoader(), serverCall.getMethodDescriptor().getFullMethodName(), headers.get(HEADER_KEY));
+        GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
+        if (helper != null) {
+            helper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
+        }
     }
 
 }

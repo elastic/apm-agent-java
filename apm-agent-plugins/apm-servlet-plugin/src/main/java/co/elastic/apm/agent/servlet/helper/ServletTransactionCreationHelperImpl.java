@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
+@SuppressWarnings("unused")
 public class ServletTransactionCreationHelperImpl implements ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelperImpl.class);

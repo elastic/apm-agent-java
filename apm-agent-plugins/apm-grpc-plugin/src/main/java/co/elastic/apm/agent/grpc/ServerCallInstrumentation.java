@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.grpc;
 
+import co.elastic.apm.agent.grpc.helper.GrpcHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.Status;
@@ -46,6 +48,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class ServerCallInstrumentation extends BaseInstrumentation {
 
+    public ServerCallInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameStartsWith("io.grpc")
@@ -66,9 +72,13 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void onExit(@Advice.Thrown @Nullable Throwable thrown, @Advice.Argument(0) Status status) {
 
-        if (null == tracer) {
+        if (tracer == null || grpcHelperManager == null) {
             return;
         }
-        GrpcHelper.endTransaction(status.getCode().name(), thrown, tracer.currentTransaction());
+
+        GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
+        if (helper != null) {
+            helper.endTransaction(status, thrown, tracer.currentTransaction());
+        }
     }
 }

@@ -22,58 +22,62 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc;
+package co.elastic.apm.agent.grpc.helper;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.grpc.ClientCall;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
+import io.grpc.ServerCall;
+import io.grpc.Status;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * Helper class for gRPC client and server calls.
  *
  * <br>
- * Since helper class is loaded in the bootstrap classloader, we have to make sure that this class does not import any gRPC class.
- * {@see co.elastic.apm.agent.bci.HelperClassManager} for more details about this
+ * Since instances of this class are loaded through {@see co.elastic.apm.agent.bci.HelperClassManager}, we can use all
+ * classes that are part of the gRPC API.
  */
-public class GrpcHelper {
+@SuppressWarnings("unused")
+public class GrpcHelperImpl implements GrpcHelper {
 
     /**
      * Map of all in-flight spans, is only used by client part.
      * Key is {@link ClientCall}, but referred as {@link Object} to avoid loading any gRPC reference in the bootstrap classloader
      */
-    private static final WeakConcurrentMap<Object, Span> inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<Object, Span>();
+    private static final WeakConcurrentMap<ClientCall<?,?>, Span> inFlightSpans;
     /**
      * Map of all in-flight {@link ClientCall instances} with the {@link ClientCall.Listener} instance that have been used to
-     * start them.
+     * start them as key.
      */
-    private static final WeakConcurrentMap<Object, Object> inFlightListeners = new WeakConcurrentMap.WithInlinedExpunction<Object, Object>();
+    private static final WeakConcurrentMap<ClientCall.Listener<?>, ClientCall<?,?>> inFlightListeners;
 
-    private static final String GRPC = "grpc";
-
-    public static final Collection<String> GRPC_GROUP = Collections.singleton(GRPC);
+    static {
+        inFlightListeners = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, ClientCall<?, ?>>();
+        inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?,?>, Span>();
+    }
 
     // transaction management (server part)
 
-    @VisibleForAdvice
-    public static void startTransaction(ElasticApmTracer tracer, ClassLoader cl, String methodName, String header) {
-        tracer.startTransaction(TraceContext.fromTraceparentHeader(), header, cl)
+    @Override
+    public void startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
+
+        String methodName = serverCall.getMethodDescriptor().getFullMethodName();
+
+        tracer.startChildTransaction(headers, GrpcHeaderGetter.getInstance(), cl)
             .withName(methodName)
             .withType("request")
             .activate();
     }
 
-
-    @VisibleForAdvice
-    public static void endTransaction(String status, @Nullable Throwable thrown, @Nullable Transaction transaction) {
+    @Override
+    public void endTransaction(Status status, @Nullable Throwable thrown, @Nullable Transaction transaction) {
         if (transaction == null || transaction.getResult() != null) {
             return;
         }
@@ -81,7 +85,7 @@ public class GrpcHelper {
         // transaction might be terminated early in case of thrown exception
         // from method signature it's a runtime exception, thus very likely an issue in server implementation
         transaction
-            .withResult(status)
+            .withResult(status.getCode().name())
             .captureException(thrown)
             .deactivate()
             .end();
@@ -90,8 +94,8 @@ public class GrpcHelper {
     // exit span management (client part)
 
     @Nullable
-    @VisibleForAdvice
-    public static Span createExitSpanAndActivate(@Nullable Transaction transaction, @Nullable String methodName) {
+    @Override
+    public Span createExitSpanAndActivate(@Nullable Transaction transaction, @Nullable MethodDescriptor<?, ?> method) {
         Span span;
         if (null == transaction) {
             return null;
@@ -103,22 +107,22 @@ public class GrpcHelper {
             return null;
         }
 
-        return span.withName(methodName)
+        return span.withName(method == null ? null : method.getFullMethodName())
             .withType("external")
             .withSubtype(GRPC)
             .activate();
     }
 
-    @VisibleForAdvice
-    public static void registerSpanAndDeactivate(@Nullable Span span, Object clientCall) {
+    @Override
+    public void registerSpanAndDeactivate(@Nullable Span span, ClientCall<?, ?> clientCall) {
         if (span != null) {
             inFlightSpans.put(clientCall, span);
             span.deactivate();
         }
     }
 
-    @VisibleForAdvice
-    public static void startSpan(Object clientCall, Object responseListener) {
+    @Override
+    public void startSpan(ClientCall<?, ?> clientCall, ClientCall.Listener<?> responseListener) {
         // span should already have been registered
         Span span = inFlightSpans.get(clientCall);
         if (span == null) {
@@ -128,9 +132,9 @@ public class GrpcHelper {
         span.setStartTimestampNow();
     }
 
-    @VisibleForAdvice
-    public static void endSpan(Object responseListener, @Nullable Throwable thrown) {
-        Object clientCall = inFlightListeners.get(responseListener);
+    @Override
+    public void endSpan(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown) {
+        ClientCall<?, ?> clientCall = inFlightListeners.get(responseListener);
         Span span = null;
         if (clientCall != null) {
             span = inFlightSpans.get(clientCall);
@@ -146,8 +150,8 @@ public class GrpcHelper {
         inFlightSpans.remove(clientCall);
     }
 
-    @VisibleForAdvice
-    public static void captureListenerException(Object responseListener, @Nullable Throwable thrown){
+    @Override
+    public void captureListenerException(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown) {
         if (thrown != null) {
             Span span = getSpanFromListener(responseListener);
             if (span != null) {
@@ -156,19 +160,8 @@ public class GrpcHelper {
         }
     }
 
-
-    @Nullable
-    private static Span getSpanFromListener(Object responseListener){
-        Object clientCall = inFlightListeners.get(responseListener);
-        Span span = null;
-        if (clientCall != null) {
-            span = inFlightSpans.get(clientCall);
-        }
-        return span;
-    }
-
-    @VisibleForAdvice
-    public static void enrichSpanContext(Object clientCall, @Nullable String authority) {
+    @Override
+    public void enrichSpanContext(ClientCall<?, ?> clientCall, @Nullable String authority) {
         if (authority == null) {
             return;
         }
@@ -187,5 +180,14 @@ public class GrpcHelper {
             .withType(GRPC);
     }
 
+    @Nullable
+    private Span getSpanFromListener(ClientCall.Listener<?> responseListener) {
+        ClientCall<?, ?> clientCall = inFlightListeners.get(responseListener);
+        Span span = null;
+        if (clientCall != null) {
+            span = inFlightSpans.get(clientCall);
+        }
+        return span;
+    }
 
 }

@@ -52,7 +52,7 @@ class GrpcClientInstrumentationTest extends AbstractInstrumentationTest {
         app = new GrpcApp();
         app.start();
 
-        tracer.startTransaction(TraceContext.asRoot(), null, null)
+        tracer.startRootTransaction(GrpcClientInstrumentationTest.class.getClassLoader())
             .withName("Test gRPC client")
             .withType("test")
             .activate();

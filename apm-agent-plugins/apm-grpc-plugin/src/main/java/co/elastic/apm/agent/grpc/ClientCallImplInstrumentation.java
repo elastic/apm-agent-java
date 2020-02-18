@@ -27,6 +27,8 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.grpc.helper.GrpcHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.grpc.ClientCall;
 import io.grpc.MethodDescriptor;
@@ -39,7 +41,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -67,12 +68,16 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public abstract class ClientCallImplInstrumentation extends BaseInstrumentation {
 
     @VisibleForAdvice
-    public static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_LISTENER_INSTRUMENTATIONS = Arrays.asList(
+    public static final Collection<Class<? extends ElasticApmInstrumentation>> RESPONSE_LISTENER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
         ListenerClose.class,
         ListenerReady.class,
         ListenerMessage.class,
         ListenerHeaders.class
     );
+
+    public ClientCallImplInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -93,30 +98,42 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class Constructor extends ClientCallImplInstrumentation {
 
+        public Constructor(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isConstructor().and(takesArgument(0, MethodDescriptor.class));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(
-            @Nullable @Advice.Argument(0) MethodDescriptor<?, ?> method,
-            @Advice.Local("span") Span span) {
+        private static void onEnter(@Nullable @Advice.Argument(0) MethodDescriptor<?, ?> method,
+                                    @Advice.Local("span") Span span) {
 
-            if (tracer == null) {
+            if (tracer == null || grpcHelperManager == null) {
                 return;
             }
 
-            String methodName = method == null ? null : method.getFullMethodName();
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(MethodDescriptor.class);
+            if (helper != null) {
+                span = helper.createExitSpanAndActivate(tracer.currentTransaction(), method);
+            }
 
-            span = GrpcHelper.createExitSpanAndActivate(tracer.currentTransaction(), methodName);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void onExit(@Advice.This ClientCall<?, ?> clientCall,
                                    @Advice.Local("span") @Nullable Span span) {
 
-            GrpcHelper.registerSpanAndDeactivate(span, clientCall);
+            if (tracer == null || grpcHelperManager == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(MethodDescriptor.class);
+            if (helper != null) {
+                helper.registerSpanAndDeactivate(span, clientCall);
+            }
         }
     }
 
@@ -125,13 +142,23 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class Start extends ClientCallImplInstrumentation {
 
+        public Start(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("start");
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ClientCall<?, ?> clientCall, @Advice.Argument(value = 0) ClientCall.Listener<?> listener) {
+        private static void onEnter(@Advice.This ClientCall<?, ?> clientCall,
+                                    @Advice.Argument(value = 0) ClientCall.Listener<?> listener) {
+
+            if (tracer == null || grpcHelperManager == null) {
+                return;
+            }
+
             // For asynchronous calls, the call to the server is 'half closed' just after sending the message.
             // For synchronous calls, the call to the server is 'half closed' when we get the response.
             // Thus we should instead register for the response listener to properly terminate the span,
@@ -139,18 +166,23 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
             ElasticApmAgent.ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
 
-            GrpcHelper.startSpan(clientCall, listener);
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
+            if (helper != null) {
+                helper.startSpan(clientCall, listener);
+            }
+
         }
 
     }
 
     // response listener instrumentation
 
-    public static abstract class ListenerInstrumentation extends ElasticApmInstrumentation {
+    public static abstract class ListenerInstrumentation extends BaseInstrumentation {
 
         private final String methodName;
 
-        protected ListenerInstrumentation(String methodName) {
+        protected ListenerInstrumentation(ElasticApmTracer tracer, String methodName) {
+            super(tracer);
             this.methodName = methodName;
         }
 
@@ -168,11 +200,6 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
             return any();
         }
 
-        @Override
-        public final Collection<String> getInstrumentationGroupNames() {
-            return GrpcHelper.GRPC_GROUP;
-        }
-
     }
 
     /**
@@ -180,15 +207,23 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class ListenerClose extends ListenerInstrumentation {
 
-        public ListenerClose() {
-            super("onClose");
+        public ListenerClose(ElasticApmTracer tracer) {
+            super(tracer, "onClose");
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Advice.This ClientCall.Listener<?> listener,
                                    @Advice.Thrown Throwable thrown) {
 
-            GrpcHelper.endSpan(listener, thrown);
+            if (tracer == null || grpcHelperManager == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
+            if (helper != null) {
+                helper.endSpan(listener, thrown);
+            }
+
         }
 
     }
@@ -198,15 +233,23 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class ListenerMessage extends ListenerInstrumentation {
 
-        public ListenerMessage() {
-            super("onMessage");
+        public ListenerMessage(ElasticApmTracer tracer) {
+            super(tracer, "onMessage");
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Advice.This ClientCall.Listener<?> listener,
                                    @Advice.Thrown @Nullable Throwable thrown) {
 
-            GrpcHelper.captureListenerException(listener, thrown);
+            if (tracer == null || grpcHelperManager == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
+            if (helper != null) {
+                helper.captureListenerException(listener, thrown);
+            }
+
         }
     }
 
@@ -215,15 +258,23 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class ListenerHeaders extends ListenerInstrumentation {
 
-        public ListenerHeaders() {
-            super("onHeaders");
+        public ListenerHeaders(ElasticApmTracer tracer) {
+            super(tracer, "onHeaders");
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Advice.This ClientCall.Listener<?> listener,
                                    @Advice.Thrown @Nullable Throwable thrown) {
 
-            GrpcHelper.captureListenerException(listener, thrown);
+            if (tracer == null || grpcHelperManager == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
+            if (helper != null) {
+                helper.captureListenerException(listener, thrown);
+            }
+
         }
     }
 
@@ -232,15 +283,23 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class ListenerReady extends ListenerInstrumentation {
 
-        public ListenerReady() {
-            super("onReady");
+        public ListenerReady(ElasticApmTracer tracer) {
+            super(tracer, "onReady");
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Advice.This ClientCall.Listener<?> listener,
                                    @Advice.Thrown @Nullable Throwable thrown) {
 
-            GrpcHelper.captureListenerException(listener, thrown);
+            if (tracer == null || grpcHelperManager == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
+            if (helper != null) {
+                helper.captureListenerException(listener, thrown);
+            }
+
         }
     }
 
