@@ -27,6 +27,7 @@ endif::[]
 
 [float]
 ===== Features
+* `Span#captureException` and `Transaction#captureException` in public Api return reported error id. - {pull}[#1015]
 * Support for the official https://www.w3.org/TR/trace-context[W3C] `traceparent` and `tracestate` headers. +
   The agent now accepts both the `elastic-apm-traceparent` and the official `traceparent` header.
   By default, it sends both headers on outgoing requests,
@@ -56,7 +57,6 @@ endif::[]
 for more details) - {pull}1009[#1009]
 * Add support for log correlation for log4j and log4j2, even when not used in combination with slf4j.
   See <<supported-logging-frameworks>> for details.
-* `Span#captureException` and `Transaction#captureException` in public Api return reported error id. - {pull}[#1015]
 
 [float]
 ===== Bug Fixes
