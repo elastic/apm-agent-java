@@ -220,7 +220,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         ByteBuffer oneKb = ByteBuffer.allocate(1024);
         for (int i = 0; i < mb * 1024; i++) {
             channel.write(oneKb);
-            oneKb.clear();
+            ((Buffer) oneKb).clear();
         }
         channel.position(initialPos);
     }
