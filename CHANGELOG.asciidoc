@@ -31,6 +31,7 @@ endif::[]
   The agent now accepts both the `elastic-apm-traceparent` and the official `traceparent` header.
   By default, it sends both headers on outgoing requests,
   unless <<config-use-elastic-traceparent-header, `use_elastic_traceparent_header`>> is set to false.
+* Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
 
 [float]
 ===== Bug fixes
