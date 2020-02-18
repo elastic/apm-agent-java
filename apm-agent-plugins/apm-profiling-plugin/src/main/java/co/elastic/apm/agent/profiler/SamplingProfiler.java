@@ -100,7 +100,7 @@ import java.util.concurrent.locks.LockSupport;
  * <p>
  * After both the JFR file and the file containing the {@link ActivationEvent}s have been written,
  * it's now time to process them in tandem by correlating based on thread ids and timestamps.
- * The result of this correlation, performed by {@link #processTraces(File)},
+ * The result of this correlation, performed by {@link #processTraces},
  * are {@link CallTree}s which are created for each thread which has seen an {@linkplain Span#activate() activation}
  * and at least one stack trace.
  * Once {@linkplain ActivationEvent#handleDeactivationEvent(SamplingProfiler) handling the deactivation event} of the root span in a thread
@@ -414,6 +414,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             List<StackFrame> stackFrames = new ArrayList<>();
             ElasticApmTracer tracer = this.tracer;
             ActivationEvent event = new ActivationEvent();
+            long inferredSpansMinDuration = config.getInferredSpansMinDuration().getMillis() * 1_000_000;
             for (StackTraceEvent stackTrace : stackTraceEvents) {
                 processActivationEventsUpTo(stackTrace.nanoTime, event, eof);
                 CallTree.Root root = profiledThreads.get(stackTrace.threadId);
@@ -425,7 +426,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                     // stack frames may not contain any Java frames
                     // see https://github.com/jvm-profiling-tools/async-profiler/issues/271#issuecomment-582430233
                     if (!stackFrames.isEmpty()) {
-                        root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime, callTreePool);
+                        root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime, callTreePool, inferredSpansMinDuration);
                     }
                 }
                 stackFrames.clear();
@@ -434,8 +435,8 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             // otherwise we may miss root deactivations
             processActivationEventsUpTo(System.nanoTime(), event, eof);
         } finally {
-            if (logger.isInfoEnabled()) {
-                logger.info("Processing traces took {}µs", (System.nanoTime() - start) / 1000);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Processing traces took {}µs", (System.nanoTime() - start) / 1000);
             }
             jfrParser.resetState();
         }
@@ -693,8 +694,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                     logger.debug("End call tree for thread {}", threadId);
                 }
                 samplingProfiler.profiledThreads.remove(threadId);
-                callTree.end();
-                callTree.removeNodesFasterThan(samplingProfiler.config.getInferredSpansMinDuration().getMillis(), 2, samplingProfiler.callTreePool);
+                callTree.end(samplingProfiler.callTreePool, samplingProfiler.config.getInferredSpansMinDuration().getMillis() * 1_000_000);
                 callTree.spanify();
                 callTree.recycle(samplingProfiler.callTreePool);
                 samplingProfiler.rootPool.recycle(callTree);

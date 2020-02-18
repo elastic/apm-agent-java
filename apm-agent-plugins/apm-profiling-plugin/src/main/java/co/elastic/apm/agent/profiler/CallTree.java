@@ -130,16 +130,17 @@ public class CallTree implements Recyclable {
 
     /**
      * Adds a single stack trace to the call tree which either updates the {@link #lastSeen} timestamp of an existing call tree node,
-     * {@linkplain #end() ends} a node, or {@linkplain #addChild adds a new child}.
+     * {@linkplain #end(ObjectPool, long) ends} a node, or {@linkplain #addChild adds a new child}.
      *
-     * @param callTreePool
      * @param stackFrames         the stack trace which is iterated over in reverse order
      * @param index               the current index of {@code stackFrames}
      * @param activeSpan          the trace context of the currently {@linkplain ElasticApmTracer#getActive() active transaction/span
      * @param activationTimestamp the timestamp of when {@code traceContext} has been activated
      * @param nanoTime            the timestamp of when this stack trace has been recorded
+     * @param callTreePool
+     * @param minDurationNs
      */
-    protected void addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool) {
+    protected void addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
         count++;
         lastSeen = nanoTime;
         //     c ee   <- traceContext not set - they are not a child of the active span but the frame below them
@@ -164,28 +165,28 @@ public class CallTree implements Recyclable {
             final StackFrame frame = stackFrames.get(--index);
             if (lastChild != null) {
                 if (!lastChild.isEnded() && frame.equals(lastChild.frame)) {
-                    lastChild.addFrame(stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool);
+                    lastChild.addFrame(stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
                     endChild = false;
                 } else {
-                    addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool);
+                    addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
                 }
             } else {
-                addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool);
+                addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
             }
         }
         if (lastChild != null && !lastChild.isEnded() && endChild) {
-            lastChild.end();
+            lastChild.end(callTreePool, minDurationNs);
         }
     }
 
-    void addChild(StackFrame frame, List<StackFrame> stackFrames, int index, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool) {
+    private void addChild(StackFrame frame, List<StackFrame> stackFrames, int index, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
         CallTree callTree = callTreePool.createInstance();
         callTree.set(this, frame, nanoTime);
         if (traceContext != null) {
             callTree.activation(traceContext, activationTimestamp);
         }
         children.add(callTree);
-        callTree.addFrame(stackFrames, index, null, activationTimestamp, nanoTime, callTreePool);
+        callTree.addFrame(stackFrames, index, null, activationTimestamp, nanoTime, callTreePool, minDurationNs);
     }
 
     long getDurationUs() {
@@ -209,7 +210,7 @@ public class CallTree implements Recyclable {
         return children;
     }
 
-    void end() {
+    void end(ObjectPool<CallTree> pool, long minDurationNs) {
         ended = true;
         // if the parent span has already been deactivated before this call tree node has ended
         // it means that this node is actually the parent of the already deactivated span
@@ -227,16 +228,25 @@ public class CallTree implements Recyclable {
                 child.activation(activeContextOfDirectParent, activationTimestamp);
                 child.deactivationTimestamp = deactivationTimestamp;
                 // re-run this logic for all children, even if they have already ended
-                child.end();
+                child.end(pool, minDurationNs);
             }
             activeContextOfDirectParent = null;
             activationTimestamp = -1;
             deactivationTimestamp = -1;
         }
-        CallTree lastChild = getLastChild();
-        if (lastChild != null && !lastChild.isEnded()) {
-            lastChild.end();
+        if (parent != null && (count == 1 || isFasterThan(minDurationNs))) {
+            parent.children.remove(this);
+            recycle(pool);
+        } else {
+            CallTree lastChild = getLastChild();
+            if (lastChild != null && !lastChild.isEnded()) {
+                lastChild.end(pool, minDurationNs);
+            }
         }
+    }
+
+    private boolean isFasterThan(long minDurationNs) {
+        return getDurationNs() < minDurationNs;
     }
 
     private boolean deactivationHappenedBeforeEnd() {
@@ -348,26 +358,6 @@ public class CallTree implements Recyclable {
         }
     }
 
-    public void removeNodesFasterThan(long minDurationMs, int minCount, ObjectPool<CallTree> callTreePool) {
-        removeNodesFasterThan(minCount, minDurationMs * 1_000_000, callTreePool);
-    }
-
-    public void removeNodesFasterThan(int minCount, long minDurationNs, ObjectPool<CallTree> callTreePool) {
-        List<CallTree> callTrees = getChildren();
-        for (int i = 0; i < callTrees.size(); i++) {
-            CallTree child = callTrees.get(i);
-            if (child.count < minCount || child.isFasterThan(minDurationNs)) {
-                callTreePool.recycle(children.remove(i--));
-            } else {
-                child.removeNodesFasterThan(minCount, minDurationNs, callTreePool);
-            }
-        }
-    }
-
-    private boolean isFasterThan(long minDurationNs) {
-        return getDurationNs() < minDurationNs;
-    }
-
     public void recycle(ObjectPool<CallTree> pool) {
         List<CallTree> children = this.children;
         for (int i = 0, size = children.size(); i < size; i++) {
@@ -456,14 +446,14 @@ public class CallTree implements Recyclable {
             setActiveSpan(active, timestamp);
         }
 
-        public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime, ObjectPool<CallTree> callTreePool) {
+        public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
             // only "materialize" trace context if there's actually an associated stack trace to the activation
             // avoids allocating a TraceContext for very short activations which have no effect on the CallTree anyway
             if (activeSpan == null) {
                 activeSpan = TraceContext.with64BitId(tracer);
                 activeSpan.deserialize(activeSpanSerialized, rootContext.getServiceName());
             }
-            addFrame(stackTrace, stackTrace.size(), activeSpan, activationTimestamp, nanoTime, callTreePool);
+            addFrame(stackTrace, stackTrace.size(), activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
         }
 
         /**

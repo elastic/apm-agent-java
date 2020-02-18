@@ -77,12 +77,11 @@ class CallTreeTest {
         TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
         CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
         ObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool);
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool);
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20), callTreePool);
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(30), callTreePool);
-        root.end();
-        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10), callTreePool);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool, 0);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool, 0);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20), callTreePool, 0);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(30), callTreePool, 0);
+        root.end(callTreePool, 0);
 
         System.out.println(root);
 
@@ -100,57 +99,64 @@ class CallTreeTest {
         assertThat(b.getFrame().getMethodName()).isEqualTo("b");
         assertThat(b.getCount()).isEqualTo(2);
         assertThat(b.getChildren()).isEmpty();
-
-        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10) + 1, callTreePool);
-        root.recycle(callTreePool);
-        assertThat(callTreePool.getObjectsInPool()).isEqualTo(2);
-        assertThat(a.getChildren()).isEmpty();
     }
 
     @Test
     void testTwoDistinctInvocationsOfMethodBShouldNotBeFoldedIntoOne() throws Exception {
         assertCallTree(new String[]{
-            " b b",
-            "aaaa"
+            " bb bb",
+            "aaaaaa"
         }, new Object[][] {
-            {"a",   4},
-            {"  b", 1},
-            {"  b", 1}
+            {"a",   6},
+            {"  b", 2},
+            {"  b", 2}
         });
     }
 
     @Test
     void testBasicCallTree() throws Exception {
         assertCallTree(new String[]{
-            " c  ",
-            " bb ",
+            " cc ",
+            " bbb",
             "aaaa"
         }, new Object[][] {
             {"a",     4},
-            {"  b",   2},
-            {"    c", 1}
+            {"  b",   3},
+            {"    c", 2}
         }, new Object[][] {
             {"a",     3},
-            {"  b",   1},
-            {"    c", 0}
+            {"  b",   2},
+            {"    c", 1}
         });
     }
 
     @Test
     void testShouldNotCreateInferredSpansForPillarsAndLeafShouldHaveStacktrace() throws Exception {
         assertCallTree(new String[]{
-            " d ",
-            " c ",
+            " dd ",
+            " cc ",
+            " bb ",
+            "aaaa"
+        }, new Object[][] {
+            {"a",       4},
+            {"  b",     2},
+            {"    c",   2},
+            {"      d", 2}
+        }, new Object[][] {
+            {"a",   3},
+            {"  d", 1, List.of("c", "b")}
+        });
+    }
+
+    @Test
+    void testRemoveNodesWithCountOne() throws Exception {
+        assertCallTree(new String[]{
             " b ",
             "aaa"
         }, new Object[][] {
-            {"a",       3},
-            {"  b",     1},
-            {"    c",   1},
-            {"      d", 1}
+            {"a",  3}
         }, new Object[][] {
-            {"a",   2},
-            {"  d", 0, List.of("c", "b")}
+            {"a",  2}
         });
     }
 
@@ -170,16 +176,16 @@ class CallTreeTest {
     @Test
     void testStackTraceWithRecursion() throws Exception {
         assertCallTree(new String[]{
-            "bcbc",
-            "bbbb",
-            "aaaa"
+            "bbccbbcc",
+            "bbbbbbbb",
+            "aaaaaaaa"
         }, new Object[][] {
-            {"a",     4},
-            {"  b",   4},
-            {"    b", 1},
-            {"    c", 1},
-            {"    b", 1},
-            {"    c", 1},
+            {"a",     8},
+            {"  b",   8},
+            {"    b", 2},
+            {"    c", 2},
+            {"    b", 2},
+            {"    c", 2},
         });
     }
 
@@ -199,14 +205,14 @@ class CallTreeTest {
     @Test
     void testCallTreeWithSpanActivations() throws Exception {
         assertCallTree(new String[]{
-            "     c ee   ",
+            "    cc ee   ",
             "   bbb dd   ",
             " a aaaaaa a ",
             "1 2      2 1"
         }, new Object[][] {
             {"a",     8},
             {"  b",   3},
-            {"    c", 1},
+            {"    c", 2},
             {"  d",   2},
             {"    e", 2},
         }, new Object[][] {
@@ -214,7 +220,7 @@ class CallTreeTest {
             {"  a",       9},
             {"    2",     7},
             {"      b",   2},
-            {"        c", 0},
+            {"        c", 1},
             {"      e",   1, List.of("d")},
         });
     }
@@ -405,11 +411,11 @@ class CallTreeTest {
                 root = profiler.getRoot();
                 assertThat(root).isNotNull();
             }
-            root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime, callTreePool);
+            root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime, callTreePool, 0);
         }
         transaction.deactivate().end(nanoClock.nanoTime() / 1000);
         assertThat(root).isNotNull();
-        root.end();
+        root.end(callTreePool, 0);
         profiler.clear();
         return root;
     }

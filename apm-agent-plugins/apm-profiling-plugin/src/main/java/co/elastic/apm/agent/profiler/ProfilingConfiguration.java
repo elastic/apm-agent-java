@@ -116,7 +116,14 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.caseSensitiveMatcher("javax.*"),
             WildcardMatcher.caseSensitiveMatcher("sun.*"),
             WildcardMatcher.caseSensitiveMatcher("com.sun.*"),
-            WildcardMatcher.caseSensitiveMatcher("jdk.*")
+            WildcardMatcher.caseSensitiveMatcher("jdk.*"),
+            WildcardMatcher.caseSensitiveMatcher("org.apache.tomcat.*"),
+            WildcardMatcher.caseSensitiveMatcher("org.apache.catalina.*"),
+            WildcardMatcher.caseSensitiveMatcher("org.apache.coyote.*"),
+            WildcardMatcher.caseSensitiveMatcher("org.jboss.as.*"),
+            WildcardMatcher.caseSensitiveMatcher("org.glassfish.*"),
+            WildcardMatcher.caseSensitiveMatcher("org.eclipse.jetty.*"),
+            WildcardMatcher.caseSensitiveMatcher("com.ibm.websphere.*")
         ));
 
     private final ConfigurationOption<TimeDuration> profilerInterval = TimeDurationValueConverter.durationOption("s")
