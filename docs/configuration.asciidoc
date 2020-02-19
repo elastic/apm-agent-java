@@ -129,18 +129,21 @@ Click on a key to get more information.
 [[config-circuit-breaker-enabled]]
 ==== `circuit_breaker_enabled` (added[1.14.0])
 
-A boolean specifying whether the circuit breaker should be enabled or not.
-When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state.
-If ANY of the monitors detects a stress indication, the agent will become inactive, as if the
-<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
-When inactive, the agent continues polling the same monitors in order to detect whether the stress state has been relieved.
-If ALL monitors approve that the system/process/JVM is not under stress anymore, the agent will resume and become fully functional.
+A boolean specifying whether the circuit breaker should be enabled or not. 
+When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
+If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
+<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
+has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+agent will resume and become fully functional.
+
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
 | `false` | Boolean | true
 |============
+
 
 [options="header"]
 |============
@@ -153,8 +156,7 @@ If ALL monitors approve that the system/process/JVM is not under stress anymore,
 [[config-stress-monitoring-interval]]
 ==== `stress_monitoring_interval` (added[1.14.0])
 
-The interval at which the agent polls the stress monitors.
-Must be at least `1s`.
+The interval at which the agent polls the stress monitors. Must be at least `1s`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
@@ -165,6 +167,7 @@ The default unit for this option is `s`
 | Default                          | Type                | Dynamic
 | `5s` | TimeDuration | false
 |============
+
 
 [options="header"]
 |============
