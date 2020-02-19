@@ -412,11 +412,11 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public List<JsonNode> getReportedSpans() {
-        final List<JsonNode> spans = getEvents("span");
-        spans.forEach(mockReporter::verifySpanSchema);
-        return spans.stream()
+        List<JsonNode> spans = getEvents("span").stream()
             .filter(s -> !isInferredSpan(s))
             .collect(Collectors.toList());
+        spans.forEach(mockReporter::verifySpanSchema);
+        return spans;
     }
 
     private boolean isInferredSpan(JsonNode s) {
@@ -441,7 +441,11 @@ public abstract class AbstractServletContainerIntegrationTest {
                 for (String ndJsonLine : bodyAsString.split("\n")) {
                     final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
                     if (ndJson.get(eventType) != null) {
-                        validateEventMetadata(bodyAsString);
+                        // as inferred spans are created only after the profiling session ends
+                        // they can leak into another test
+                        if (!isInferredSpan(ndJson.get(eventType))) {
+                            validateEventMetadata(bodyAsString);
+                        }
                         events.add(ndJson.get(eventType));
                     }
                 }
