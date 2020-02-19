@@ -459,7 +459,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 final JsonNode event = objectMapper.readTree(line);
                 final JsonNode metadata = event.get("metadata");
                 if (metadata != null) {
-                    validataMetadataEvent(metadata);
+                    validateMetadataEvent(metadata);
                 } else {
                     validateServiceName(event.get("error"));
                     validateServiceName(event.get("span"));
@@ -484,7 +484,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    private void validataMetadataEvent(JsonNode metadata) {
+    private void validateMetadataEvent(JsonNode metadata) {
         JsonNode service = metadata.get("service");
         assertThat(service.get("name").textValue()).isEqualTo(expectedDefaultServiceName);
         JsonNode agent = service.get("agent");
