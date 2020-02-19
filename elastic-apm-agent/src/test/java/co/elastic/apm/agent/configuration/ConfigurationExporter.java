@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.ServiceLoader;
 
 import static co.elastic.apm.agent.configuration.ConfigurationExporterTest.renderDocumentation;
+import static co.elastic.apm.agent.configuration.ConfigurationExporterTest.renderDocumentationJson;
 
 public class ConfigurationExporter {
 
@@ -46,6 +47,11 @@ public class ConfigurationExporter {
             throw new IllegalStateException(path + " does not exist");
         }
         Files.write(path, renderDocumentation(configurationRegistry).getBytes(StandardCharsets.UTF_8));
+        Path jsonPath = Paths.get("elastic-apm-agent/src/main/resources/configuration.json");
+        if (!jsonPath.toFile().canWrite()) {
+            throw new IllegalStateException(jsonPath + " does not exist");
+        }
+        Files.write(jsonPath, renderDocumentationJson(configurationRegistry).getBytes(StandardCharsets.UTF_8));
     }
 
 }

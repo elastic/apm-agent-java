@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,20 +26,23 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.configuration.validation.RangeValidator;
+import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -144,6 +147,62 @@ class ConfigurationExporterTest {
             .process(Map.of("allInstrumentationGroupNames", getAllInstrumentationGroupNames()), out);
 
         return out.toString();
+    }
+
+    static String renderDocumentationJson(ConfigurationRegistry configurationRegistry) throws IOException, TemplateException {
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_27);
+        cfg.setClassLoaderForTemplateLoading(ConfigurationExporterTest.class.getClassLoader(), "/");
+        cfg.setDefaultEncoding("UTF-8");
+        cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+        cfg.setLogTemplateExceptions(false);
+
+        Template temp = cfg.getTemplate("configuration.json.ftl");
+        StringWriter tempRenderedFile = new StringWriter();
+        final List<ConfigurationOption<?>> nonInternalDynamicOptions = configurationRegistry.getConfigurationOptionsByCategory()
+            .values()
+            .stream()
+            .flatMap(List::stream)
+            .filter(option -> !option.getTags().contains("internal"))
+            .filter(ConfigurationOption::isDynamic)
+            .collect(Collectors.toList());
+        temp.process(Map.of(
+            "options", nonInternalDynamicOptions,
+            "validatorAccessor", new ValidatorAccessor()
+        ), tempRenderedFile);
+
+        // re-process the rendered template to resolve the ${allInstrumentationGroupNames} placeholder
+        StringWriter out = new StringWriter();
+        new Template("", tempRenderedFile.toString(), cfg)
+            .process(Map.of("allInstrumentationGroupNames", getAllInstrumentationGroupNames()), out);
+
+        return out.toString();
+    }
+
+    public static class ValidatorAccessor {
+
+        @Nullable
+        public RangeValidator<?> getRangeValidator(ConfigurationOption<?> configurationOption) throws ReflectiveOperationException {
+            return getValidator(configurationOption, RangeValidator.class);
+        }
+
+        @Nullable
+        public RegexValidator getRegexValidator(ConfigurationOption<?> configurationOption) throws ReflectiveOperationException {
+            return getValidator(configurationOption, RegexValidator.class);
+        }
+
+        @Nullable
+        private <T extends ConfigurationOption.Validator<?>> T getValidator(ConfigurationOption<?> configurationOption, Class<T> validatorClass) throws NoSuchFieldException, IllegalAccessException {
+            Field validatorsField = ConfigurationOption.class.getDeclaredField("validators");
+            validatorsField.setAccessible(true);
+            List<ConfigurationOption.Validator<?>> validators = (List<ConfigurationOption.Validator<?>>) validatorsField.get(configurationOption);
+            for (ConfigurationOption.Validator<?> validator : validators) {
+                if (validatorClass.isInstance(validator)) {
+                    return validatorClass.cast(validator);
+                }
+            }
+            return null;
+        }
+
     }
 
     public static String getAllInstrumentationGroupNames() {
