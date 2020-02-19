@@ -299,7 +299,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 rootPool.clear();
                 callTreePool.clear();
             }
-            setProfilingSessionOngoing(false);
             scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
             return;
         }
@@ -550,6 +549,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     @Override
     public void stop() throws Exception {
         // cancels/interrupts the profiling thread
+        // implicitly clears profiled threads
         scheduler.shutdownNow();
         scheduler.awaitTermination(1, TimeUnit.SECONDS);
         activationEventsFileChannel.close();

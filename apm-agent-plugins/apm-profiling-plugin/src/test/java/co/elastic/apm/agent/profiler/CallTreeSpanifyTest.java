@@ -26,6 +26,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
@@ -34,11 +35,13 @@ import co.elastic.apm.agent.objectpool.NoopObjectPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 class CallTreeSpanifyTest {
 
@@ -48,6 +51,10 @@ class CallTreeSpanifyTest {
     @BeforeEach
     void setUp() {
         reporter = new MockReporter();
+        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        // disable scheduled profiling to not interfere with this test
+        when(config.getConfig(ProfilingConfiguration.class).isProfilingEnabled()).thenReturn(false);
+        tracer = MockTracer.createRealTracer(reporter, config);
         tracer = MockTracer.createRealTracer(reporter);
     }
 

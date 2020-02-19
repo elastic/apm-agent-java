@@ -26,6 +26,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -39,6 +40,7 @@ import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -55,6 +57,7 @@ import java.util.stream.Collectors;
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CallTreeTest {
 
@@ -64,7 +67,10 @@ class CallTreeTest {
     @BeforeEach
     void setUp() {
         reporter = new MockReporter();
-        tracer = MockTracer.createRealTracer(reporter);
+        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        // disable scheduled profiling to not interfere with this test
+        when(config.getConfig(ProfilingConfiguration.class).isProfilingEnabled()).thenReturn(false);
+        tracer = MockTracer.createRealTracer(reporter, config);
     }
 
     @AfterEach
@@ -293,25 +299,25 @@ class CallTreeTest {
 
     private void assertCallTree(String[] stackTraces, Object[][] expectedTree, @Nullable Object[][] expectedSpans) throws Exception {
         CallTree.Root root = getCallTree(tracer, stackTraces);
-        StringBuilder result = new StringBuilder();
+        StringBuilder expectedResult = new StringBuilder();
         for (int i = 0; i < expectedTree.length; i++) {
             Object[] objects = expectedTree[i];
-            result.append(objects[0]).append(" ").append(objects[1]);
+            expectedResult.append(objects[0]).append(" ").append(objects[1]);
             if (i != expectedTree.length -1) {
-                result.append("\n");
+                expectedResult.append("\n");
             }
         }
 
-        String expectedString = root.toString()
+        String actualResult = root.toString()
             .replace(CallTreeTest.class.getName() + ".", "");
-        expectedString = Arrays.stream(expectedString.split("\n"))
+        actualResult = Arrays.stream(actualResult.split("\n"))
             // skip root node
             .skip(1)
             // trim first two spaces
             .map(s -> s.substring(2))
             .collect(Collectors.joining("\n"));
 
-        assertThat(result.toString()).isEqualTo(expectedString);
+        assertThat(actualResult).isEqualTo(expectedResult.toString());
 
         if (expectedSpans != null) {
             root.spanify();
