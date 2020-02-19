@@ -59,4 +59,8 @@ public class NoopObjectPool<T> extends AbstractObjectPool<T> {
     public int getObjectsInPool() {
         return 0;
     }
+
+    @Override
+    public void clear() {
+    }
 }

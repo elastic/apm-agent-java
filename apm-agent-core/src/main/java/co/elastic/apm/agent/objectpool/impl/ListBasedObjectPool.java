@@ -82,4 +82,9 @@ public class ListBasedObjectPool<T> extends AbstractObjectPool<T> {
         return pool.size();
     }
 
+    @Override
+    public void clear() {
+        pool.clear();
+    }
+
 }
