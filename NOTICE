@@ -16,8 +16,7 @@ following sources:
  - https://github.com/real-logic/agrona
 
 ------------------------------------------------------------------------------
-
-stagemonitor notice:
+stagemonitor NOTICE
 
 stagemonitor
 Copyright 2014-2017 iSYS Software GmbH
@@ -95,6 +94,41 @@ stagemonitor-core/src/main/java/org/stagemonitor/core/util/Assert.java
 
 This product includes code from Spring Framework, which is available under the "Apache 2.0" license. For details, see
 stagemonitor-web-servlet/src/main/java/org/stagemonitor/web/servlet/util/AntPathMatcher.java
+
+------------------------------------------------------------------------------
+async-profiler NOTICE
+
+async-profiler
+Copyright 2018 - 2020 Andrei Pangin
+
+This product includes software licensed under CDDL 1.0 from the
+following sources:
+
+This product includes a specialized C++ port of the FlameGraph script, licensed under CDDL, available at
+https://github.com/brendangregg/FlameGraph/blob/master/flamegraph.pl
+
+Copyright 2016 Netflix, Inc.
+Copyright 2011 Joyent, Inc.  All rights reserved.
+Copyright 2011 Brendan Gregg.  All rights reserved.
+
+CDDL HEADER START
+
+The contents of this file are subject to the terms of the
+Common Development and Distribution License (the "License").
+You may not use this file except in compliance with the License.
+
+You can obtain a copy of the license at docs/cddl1.txt or
+http://opensource.org/licenses/CDDL-1.0.
+See the License for the specific language governing permissions
+and limitations under the License.
+
+When distributing Covered Code, include this CDDL HEADER in each
+file and include the License file at docs/cddl1.txt.
+If applicable, add the following below this CDDL HEADER, with the
+fields enclosed by brackets "[]" replaced with your own identifying
+information: Portions Copyright [yyyy] [name of copyright owner]
+
+CDDL HEADER END
 
 ------------------------------------------------------------------------------
 
