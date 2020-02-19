@@ -54,6 +54,7 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
         .description("The interval at which the agent polls the stress monitors. Must be at least `1s`.")
         .addValidator(isNotInRange(TimeDuration.of("0ms"), TimeDuration.of("999ms")))
+        .dynamic(false)
         .buildWithDefault(TimeDuration.of("5s"));
 
     public boolean isCircuitBreakerEnabled() {
