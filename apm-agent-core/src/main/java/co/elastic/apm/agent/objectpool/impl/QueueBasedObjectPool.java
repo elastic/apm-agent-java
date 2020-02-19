@@ -90,4 +90,9 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> {
         return queue.size();
     }
 
+    @Override
+    public void clear() {
+        queue.clear();
+    }
+
 }
