@@ -41,17 +41,21 @@ public class CircuitBreaker extends AbstractLifecycleListener {
 
     private final ThreadPoolExecutor threadPool;
     private final ElasticApmTracer tracer;
+    private final CircuitBreakerConfiguration circuitBreakerConfiguration;
+
+    private boolean isCurrentlyUnderStress = false;
 
     private final List<StressMonitor> stressMonitors = new CopyOnWriteArrayList<>();
 
     public CircuitBreaker(ElasticApmTracer tracer) {
         this.tracer = tracer;
+        circuitBreakerConfiguration = tracer.getConfig(CircuitBreakerConfiguration.class);
         threadPool = ExecutorUtils.createSingleThreadDeamonPool("circuit-breaker", 1);
     }
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        // todo: fill stress monitors through addAll
+        // todo: fill stress monitors
 
         threadPool.execute(new Runnable() {
             @Override
@@ -63,34 +67,35 @@ public class CircuitBreaker extends AbstractLifecycleListener {
 
     private void pollStressMonitors() {
         while (!Thread.currentThread().isInterrupted()) {
-            switch (tracer.getState()) {
-                case RUNNING: {
+            if (circuitBreakerConfiguration.isCircuitBreakerEnabled()) {
+                if (isCurrentlyUnderStress) {
+                    boolean stressRelieved = true;
                     for (StressMonitor stressMonitor : stressMonitors) {
-                        if (stressMonitor.shouldPause()) {
-                            tracer.pause();
+                        stressRelieved &= stressMonitor.isStressRelieved();
+                    }
+                    if (stressRelieved) {
+                        isCurrentlyUnderStress = false;
+                        tracer.stressRelieved();
+                    }
+                } else {
+                    for (StressMonitor stressMonitor : stressMonitors) {
+                        if (stressMonitor.isUnderStress()) {
+                            isCurrentlyUnderStress = true;
+                            tracer.stressDetected();
                             break;
                         }
                     }
-                    break;
                 }
-                case PAUSED: {
-                    boolean shouldResume = true;
-                    for (StressMonitor stressMonitor : stressMonitors) {
-                        shouldResume &= stressMonitor.shouldResume();
-                    }
-                    if (shouldResume) {
-                        tracer.resume();
-                    }
-                    break;
-                }
+            } else if (isCurrentlyUnderStress) {
+                isCurrentlyUnderStress = false;
+                tracer.stressRelieved();
             }
             try {
-                // todo read poll interval from configuration
-                int pollInterval = 1;
+                long pollInterval = circuitBreakerConfiguration.getStressMonitoringPollingInterval();
                 if (logger.isTraceEnabled()) {
                     logger.trace("Scheduling next stress monitor polling in {}s", pollInterval);
                 }
-                TimeUnit.SECONDS.sleep(pollInterval);
+                TimeUnit.MILLISECONDS.sleep(pollInterval);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

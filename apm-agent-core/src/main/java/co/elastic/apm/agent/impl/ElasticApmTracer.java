@@ -123,6 +123,8 @@ public class ElasticApmTracer {
     private long lastSpanMaxWarningTimestamp;
 
     private volatile TracerState tracerState = TracerState.STOPPED;
+    private volatile boolean currentlyUnderStress = false;
+    private volatile boolean activeConfigOptionSet;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
@@ -132,11 +134,20 @@ public class ElasticApmTracer {
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
 
+        TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);
+        activeConfigOptionSet = tracerConfiguration.getActiveConfig().get();
+        tracerConfiguration.getActiveConfig().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, Boolean wasActive, Boolean shouldBeActive) {
+                ElasticApmTracer.this.activeConfigChanged(wasActive, shouldBeActive);
+            }
+        });
+
         transactionPool = poolFactory.createTransactionPool(maxPooledElements, this);
         spanPool = poolFactory.createSpanPool(maxPooledElements, this);
 
         // we are assuming that we don't need as many errors as spans or transactions
-        errorPool = poolFactory.createErrorPool(maxPooledElements/2, this);
+        errorPool = poolFactory.createErrorPool(maxPooledElements / 2, this);
 
         runnableSpanWrapperObjectPool = poolFactory.createRunnableWrapperPool(MAX_POOLED_RUNNABLES, this);
         callableSpanWrapperObjectPool = poolFactory.createCallableWrapperPool(MAX_POOLED_RUNNABLES, this);
@@ -153,7 +164,7 @@ public class ElasticApmTracer {
             }
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
-        reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
+        reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs(), this);
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
@@ -183,10 +194,17 @@ public class ElasticApmTracer {
      */
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction;
-        if (!coreConfiguration.isActive()) {
-            transaction = noopTransaction();
-        } else {
-            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
+        switch (tracerState) {
+            case STOPPED: {
+                throw new IllegalStateException("Requested to create a transaction while the agent is stopped");
+            }
+            case PAUSED: {
+                transaction = noopTransaction();
+                break;
+            }
+            default: {
+                transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
+            }
         }
         afterTransactionStart(initiatingClassLoader, transaction);
         return transaction;
@@ -220,11 +238,18 @@ public class ElasticApmTracer {
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                                  long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction;
-        if (!coreConfiguration.isActive()) {
-            transaction = noopTransaction();
-        } else {
-            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
-                textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+        switch (tracerState) {
+            case STOPPED: {
+                throw new IllegalStateException("Requested to create a transaction while the agent is stopped");
+            }
+            case PAUSED: {
+                transaction = noopTransaction();
+                break;
+            }
+            default: {
+                transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
+                    textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+            }
         }
         afterTransactionStart(initiatingClassLoader, transaction);
         return transaction;
@@ -258,11 +283,18 @@ public class ElasticApmTracer {
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
                                                  Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction;
-        if (!coreConfiguration.isActive()) {
-            transaction = noopTransaction();
-        } else {
-            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
-                binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+        switch (tracerState) {
+            case STOPPED: {
+                throw new IllegalStateException("Requested to create a transaction while the agent is stopped");
+            }
+            case PAUSED: {
+                transaction = noopTransaction();
+                break;
+            }
+            default: {
+                transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
+                    binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+            }
         }
         afterTransactionStart(initiatingClassLoader, transaction);
         return transaction;
@@ -522,6 +554,7 @@ public class ElasticApmTracer {
      */
     public synchronized void stop() {
         tracerState = TracerState.STOPPED;
+        logger.info("Tracer switched to STOPPED state");
         try {
             configurationRegistry.close();
             reporter.close();
@@ -564,7 +597,39 @@ public class ElasticApmTracer {
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.start(this);
         }
-        tracerState = TracerState.RUNNING;
+        if (activeConfigOptionSet) {
+            tracerState = TracerState.RUNNING;
+            logger.info("Tracer switched to RUNNING state");
+        } else {
+            pause();
+        }
+    }
+
+    public synchronized void stressDetected() {
+        currentlyUnderStress = true;
+        pause();
+    }
+
+    public synchronized void stressRelieved() {
+        currentlyUnderStress = false;
+        if (activeConfigOptionSet) {
+            resume();
+        }
+    }
+
+    private synchronized void activeConfigChanged(boolean wasActive, boolean shouldBeActive) {
+        // if changed from true to false then:
+        //      if current state is RUNNING - pause the agent
+        //      otherwise - ignore
+        // if changed from false to true then:
+        //      if current state is RUNNING or STOPPED - no effect
+        //      if current state is PAUSED and currentlyUnderStress==false - then resume
+        if (wasActive && !shouldBeActive && tracerState == TracerState.RUNNING) {
+            pause();
+        } else if (!wasActive && shouldBeActive && tracerState == TracerState.PAUSED && !currentlyUnderStress) {
+            resume();
+        }
+        activeConfigOptionSet = shouldBeActive;
     }
 
     public synchronized void pause() {
@@ -573,6 +638,7 @@ public class ElasticApmTracer {
             return;
         }
         tracerState = TracerState.PAUSED;
+        logger.info("Tracer switched to PAUSED state");
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.pause();
@@ -595,6 +661,7 @@ public class ElasticApmTracer {
             }
         }
         tracerState = TracerState.RUNNING;
+        logger.info("Tracer switched to RUNNING state");
     }
 
     public boolean isRunning() {

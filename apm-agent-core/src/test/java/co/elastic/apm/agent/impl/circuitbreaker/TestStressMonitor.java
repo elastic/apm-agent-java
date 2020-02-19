@@ -29,70 +29,55 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 class TestStressMonitor extends StressMonitor {
 
     private volatile boolean stressIndicator;
-    private volatile int pausePollCounter;
-    private volatile int resumePollCounter;
+    private volatile int pollCounter;
 
     TestStressMonitor(ElasticApmTracer tracer) {
         super(tracer);
     }
 
-    /**
-     * Simulates current stress in the system
-     *
-     * @return the pause-poll counter at the time indicator had changed state
-     */
-    int simulateStress() {
-        stressIndicator = true;
-        return pausePollCounter;
+    int getPollCount() {
+        return pollCounter;
     }
 
-    int getPausePollCount() {
-        return pausePollCounter;
-    }
-
-    void waitUntilPausePollCounterIsGreaterThan(int value) {
-        while (pausePollCounter <= value) {
+    void waitUntilPollCounterIsGreaterThan(int value) {
+        while (pollCounter <= value) {
             try {
                 Thread.sleep(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Simulates current stress in the system
+     *
+     * @return the poll counter at the time indicator had changed state
+     */
+    synchronized int simulateStress() {
+        stressIndicator = true;
+        return pollCounter;
     }
 
     /**
      * Simulates relief in stress
      *
-     * @return the resume-poll counter at the time indicator had changed state
+     * @return the poll counter at the time indicator had changed state
      */
-    int simulateStressRelieved() {
+    synchronized int simulateStressRelieved() {
         stressIndicator = false;
-        return resumePollCounter;
-    }
-
-    int getResumePollCount() {
-        return resumePollCounter;
-    }
-
-    void waitUntilResumePollCounterIsGreaterThan(int value) {
-        while (resumePollCounter <= value) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        return pollCounter;
     }
 
     @Override
-    boolean shouldPause() {
-        pausePollCounter++;
+    synchronized boolean isUnderStress() {
+        pollCounter++;
         return stressIndicator;
     }
 
     @Override
-    boolean shouldResume() {
-        resumePollCounter++;
+    synchronized boolean isStressRelieved() {
+        pollCounter++;
         return !stressIndicator;
     }
 }

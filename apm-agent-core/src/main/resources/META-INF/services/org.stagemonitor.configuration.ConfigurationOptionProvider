@@ -1,3 +1,4 @@
+co.elastic.apm.agent.impl.TracerConfiguration
 co.elastic.apm.agent.configuration.CoreConfiguration
 co.elastic.apm.agent.report.ReporterConfiguration
 co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration

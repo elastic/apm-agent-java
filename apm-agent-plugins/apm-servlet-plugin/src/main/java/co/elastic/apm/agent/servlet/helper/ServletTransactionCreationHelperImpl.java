@@ -54,7 +54,7 @@ public class ServletTransactionCreationHelperImpl implements ServletInstrumentat
     @Override
     @Nullable
     public Transaction createAndActivateTransaction(HttpServletRequest request) {
-        if (coreConfiguration.isActive() &&
+        if (tracer.isRunning() &&
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {

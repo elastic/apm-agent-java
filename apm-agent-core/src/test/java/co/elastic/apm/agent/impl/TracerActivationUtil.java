@@ -22,19 +22,17 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.impl.circuitbreaker;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
-abstract class StressMonitor {
+import java.io.IOException;
 
-    protected final CircuitBreakerConfiguration config;
-
-    public StressMonitor(ElasticApmTracer tracer) {
-        config = tracer.getConfig(CircuitBreakerConfiguration.class);
+/**
+ * An accessor to the package-private active configuration
+ */
+public class TracerActivationUtil {
+    public static void setActiveConfig(ConfigurationRegistry config, boolean activeValue, String configSourceName) throws IOException {
+        config.getConfig(TracerConfiguration.class).getActiveConfig().update(activeValue, configSourceName);
     }
-
-    abstract boolean isUnderStress();
-
-    abstract boolean isStressRelieved();
 }

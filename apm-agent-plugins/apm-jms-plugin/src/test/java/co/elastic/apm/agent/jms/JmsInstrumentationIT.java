@@ -238,10 +238,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void testQueueSendReceiveOnNonTracedThreadInActive() throws Exception {
-        when(coreConfiguration.isActive()).thenReturn(false);
+    public void testQueueSendReceiveOnNonTracedThreadInactive() throws Exception {
+        tracer.pause();
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+        tracer.resume();
     }
 
     @Test
@@ -270,9 +271,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testInactiveReceive() throws Exception {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        tracer.pause();
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+        tracer.resume();
     }
 
     @Test
@@ -486,7 +488,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             return;
         }
 
-        boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
+        boolean isActive = tracer.isRunning();
         if (!isActive || strategy == POLLING || receiveNoWaitFlow.get()) {
             assertThat(spans).hasSize(1);
         } else {
@@ -570,7 +572,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testInactiveOnMessage() throws Exception {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        tracer.pause();
         Queue queue = createTestQueue();
         CompletableFuture<Message> incomingMessageFuture = brokerFacade.registerConcreteListenerImplementation(queue);
         String message = UUID.randomUUID().toString();
@@ -580,6 +582,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         verifyMessage(message, incomingMessage);
         Thread.sleep(500);
         assertThat(reporter.getTransactions()).isEmpty();
+        tracer.resume();
     }
 
     @Test

@@ -25,86 +25,152 @@
 package co.elastic.apm.agent.impl.circuitbreaker;
 
 import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import co.elastic.apm.agent.impl.TracerActivationUtil;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.SimpleSource;
+
+import java.io.IOException;
 
 import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.PAUSED;
 import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.RUNNING;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.doReturn;
 
-@SuppressWarnings("NotNullFieldNotInitialized")
 public class CircuitBreakerTest {
 
-    private static ElasticApmTracer tracer;
-    private static CircuitBreaker circuitBreaker;
-    private static TestStressMonitor monitor;
+    private static final String TEST_CONFIG_SOURCE_NAME = "CircuitBreakerTest config source";
 
-    @BeforeAll
-    public static void setup() {
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+    private ElasticApmTracer tracer;
+    private CircuitBreaker circuitBreaker;
+    private TestStressMonitor monitor;
+    private ConfigurationRegistry config;
+    private CircuitBreakerConfiguration circuitBreakerConfiguration;
+
+    @BeforeEach
+    public void setup() {
+        config = SpyConfiguration.createSpyConfig(new SimpleSource(TEST_CONFIG_SOURCE_NAME));
+        circuitBreakerConfiguration = config.getConfig(CircuitBreakerConfiguration.class);
+        doReturn(1L).when(circuitBreakerConfiguration).getStressMonitoringPollingInterval();
         tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(config)
             .reporter(new MockReporter())
             .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         circuitBreaker = tracer.getLifecycleListener(CircuitBreaker.class);
         monitor = new TestStressMonitor(tracer);
         circuitBreaker.registerStressMonitor(monitor);
     }
 
-    @AfterAll
-    public static void tearDown() {
+    @AfterEach
+    public void tearDown() {
         circuitBreaker.unregisterStressMonitor(monitor);
     }
 
     @Test
-    void testStateChange() {
+    void testStressSimulation() {
+        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
         assertThat(tracer.getState()).isEqualTo(RUNNING);
-        int pausePollCount = monitor.simulateStress();
-        monitor.waitUntilPausePollCounterIsGreaterThan(pausePollCount);
+        int pollCount = monitor.simulateStress();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         assertThat(tracer.getState()).isEqualTo(PAUSED);
-        int resumePollCount = monitor.getResumePollCount();
-        monitor.waitUntilResumePollCounterIsGreaterThan(resumePollCount);
+        // see that the tracer remains inactive for another couple of polls
+        pollCount = monitor.getPollCount();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         assertThat(tracer.getState()).isEqualTo(PAUSED);
-        resumePollCount = monitor.simulateStressRelieved();
-        monitor.waitUntilResumePollCounterIsGreaterThan(resumePollCount);
+        pollCount = monitor.simulateStressRelieved();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         assertThat(tracer.getState()).isEqualTo(RUNNING);
     }
 
     @Test
     void testTwoMonitors() {
+        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
+
         TestStressMonitor secondMonitor = new TestStressMonitor(tracer);
         circuitBreaker.registerStressMonitor(secondMonitor);
 
         assertThat(tracer.getState()).isEqualTo(RUNNING);
-        int pausePollCount = monitor.simulateStress();
-        monitor.waitUntilPausePollCounterIsGreaterThan(pausePollCount);
+        int pollCount = monitor.simulateStress();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         assertThat(tracer.getState()).isEqualTo(PAUSED);
 
-        pausePollCount = secondMonitor.simulateStress();
-        // Since the tracer is in PAUSED state, it shouldn't poll the shouldPause method, only the shouldResume method
-        int resumePollCount = secondMonitor.getResumePollCount();
-        secondMonitor.waitUntilResumePollCounterIsGreaterThan(resumePollCount);
-        assertThat(secondMonitor.getPausePollCount()).isEqualTo(pausePollCount);
+        pollCount = secondMonitor.simulateStress();
+        secondMonitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         // tracer should still be in PAUSED mode
         assertThat(tracer.getState()).isEqualTo(PAUSED);
 
-        resumePollCount = monitor.simulateStressRelieved();
-        monitor.waitUntilResumePollCounterIsGreaterThan(resumePollCount);
+        pollCount = monitor.simulateStressRelieved();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         // tracer should still be in PAUSED mode, until ALL monitors allow resuming
         assertThat(tracer.getState()).isEqualTo(PAUSED);
 
-        resumePollCount = secondMonitor.simulateStressRelieved();
-        secondMonitor.waitUntilResumePollCounterIsGreaterThan(resumePollCount);
+        pollCount = secondMonitor.simulateStressRelieved();
+        secondMonitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         assertThat(tracer.getState()).isEqualTo(RUNNING);
 
         circuitBreaker.unregisterStressMonitor(secondMonitor);
+    }
+
+    @Test
+    void testStressReliefThenReactivate() throws IOException {
+        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        int pollCount = monitor.simulateStress();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        pollCount = monitor.simulateStressRelieved();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+        // should still be PAUSED as the state is inactive
+        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void testReactivateThenStressRelief() throws IOException {
+        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        monitor.simulateStress();
+        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        // check that reactivation now has no effect even after waiting for the next resume poll
+        int pollCount = monitor.getPollCount();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        // check that stress relief now reactivates
+        pollCount = monitor.simulateStressRelieved();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void testCircuitBreakerDisabled() throws IOException, InterruptedException {
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        monitor.simulateStress();
+        Thread.sleep(50);
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+    }
+
+    @Test
+    void testResumeWhenDisabledUnderStress() throws InterruptedException {
+        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        int pollCount = monitor.simulateStress();
+        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        doReturn(false).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
+        Thread.sleep(50);
+        assertThat(tracer.getState()).isEqualTo(RUNNING);
     }
 }

@@ -174,7 +174,7 @@ public class ElasticApmTracerBuilder {
             logger.warn(e.getMessage());
             return ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource("Noop Configuration")
-                    .add(CoreConfiguration.ACTIVE, "false")
+                    .add(TracerConfiguration.ACTIVE, "false")
                     .add(CoreConfiguration.INSTRUMENT, "false")
                     .add(CoreConfiguration.SERVICE_NAME, "none")
                     .add(CoreConfiguration.SAMPLE_RATE, "0"))

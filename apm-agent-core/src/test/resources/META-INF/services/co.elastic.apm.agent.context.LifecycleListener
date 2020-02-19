@@ -1,1 +1,1 @@
-co.elastic.apm.agent.impl.ElasticApmTracerTest$TestLifecycleListener
+co.elastic.apm.agent.impl.LifecycleTest$TestLifecycleListener

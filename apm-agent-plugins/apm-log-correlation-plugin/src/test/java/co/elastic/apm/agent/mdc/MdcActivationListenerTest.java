@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.mdc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -51,7 +50,6 @@ import static org.mockito.Mockito.when;
 class MdcActivationListenerTest extends AbstractInstrumentationTest {
 
     private LoggingConfiguration loggingConfiguration;
-    private CoreConfiguration coreConfiguration;
     private Boolean log4jMdcWorking;
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -63,7 +61,6 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         org.apache.log4j.MDC.clear();
         ThreadContext.clearAll();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
-        coreConfiguration = config.getConfig(CoreConfiguration.class);
         // initializes thread eagerly to avoid InheritableThreadLocal to inherit values to this thread
         executorService.submit(() -> {}).get();
     }
@@ -98,7 +95,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testDisabledWhenInactive() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        when(coreConfiguration.isActive()).thenReturn(false);
+        tracer.pause();
         Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
@@ -109,7 +106,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
             }
         }
         transaction.end();
-        when(coreConfiguration.isActive()).thenReturn(true);
+        tracer.resume();
     }
 
     @Test
@@ -119,7 +116,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
             assertMdcIsSet(transaction);
-            when(coreConfiguration.isActive()).thenReturn(false);
+            tracer.pause();
             Span child = transaction.createSpan();
             try (Scope childScope = child.activateInScope()) {
                 assertMdcIsSet(transaction);
@@ -128,7 +125,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         }
         assertMdcIsEmpty();
         transaction.end();
-        when(coreConfiguration.isActive()).thenReturn(true);
+        tracer.resume();
     }
 
     @Test

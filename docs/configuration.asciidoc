@@ -62,6 +62,9 @@ ELASTIC_APM_SERVER_URLS=http://localhost:8200
 This is a list of all configuration options grouped by their category.
 Click on a key to get more information.
 
+* <<config-circuit-breaker>>
+** <<config-circuit-breaker-enabled>>
+** <<config-stress-monitoring-interval>>
 * <<config-core>>
 ** <<config-active>>
 ** <<config-instrument>>
@@ -118,6 +121,56 @@ Click on a key to get more information.
 ** <<config-application-packages>>
 ** <<config-stack-trace-limit>>
 ** <<config-span-frames-min-duration>>
+
+[[config-circuit-breaker]]
+=== Circuit-Breaker configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-circuit-breaker-enabled]]
+==== `circuit_breaker_enabled` (added[1.14.0])
+
+A boolean specifying whether the circuit breaker should be enabled or not.
+When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state.
+If ANY of the monitors detects a stress indication, the agent will become inactive, as if the
+<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
+When inactive, the agent continues polling the same monitors in order to detect whether the stress state has been relieved.
+If ALL monitors approve that the system/process/JVM is not under stress anymore, the agent will resume and become fully functional.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.circuit_breaker_enabled` | `circuit_breaker_enabled` | `ELASTIC_APM_CIRCUIT_BREAKER_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitoring-interval]]
+==== `stress_monitoring_interval` (added[1.14.0])
+
+The interval at which the agent polls the stress monitors.
+Must be at least `1s`.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5s`.
+The default unit for this option is `s`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `5s` | TimeDuration | false
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitoring_interval` | `stress_monitoring_interval` | `ELASTIC_APM_STRESS_MONITORING_INTERVAL`
+|============
 
 [[config-core]]
 === Core configuration options
@@ -1604,6 +1657,34 @@ The default unit for this option is `ms`
 [source,properties]
 .elasticapm.properties
 ----
+############################################
+# Circuit-Breaker                          #
+############################################
+
+# A boolean specifying whether the circuit breaker should be enabled or not. 
+# When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
+# If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
+# <<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
+# has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+# agent will resume and become fully functional.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# circuit_breaker_enabled=false
+
+# The interval at which the agent polls the stress monitors. Must be at least `1s`.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5s.
+# The default unit for this option is s.
+# Default value: 5s
+#
+# stress_monitoring_interval=5s
+
 ############################################
 # Core                                     #
 ############################################

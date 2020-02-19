@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,8 +26,8 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractServletTest;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
@@ -62,15 +62,17 @@ import static org.mockito.Mockito.when;
 class ServletInstrumentationTest extends AbstractServletTest {
 
     private static ConfigurationRegistry config;
+    private static ElasticApmTracer tracer;
 
     @BeforeAll
     static void initInstrumentation() {
         config = SpyConfiguration.createSpyConfig();
         when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("/init")));
-        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
+        tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
-            .build(), ByteBuddyAgent.install());
+            .build();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
     @AfterAll
@@ -112,8 +114,9 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testNoopInstrumentation() throws Exception {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        tracer.pause();
         callServlet(0, "/test");
+        tracer.resume();
     }
 
     @Test

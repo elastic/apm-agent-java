@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -79,9 +79,10 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testDisabled() throws IOException, ServletException {
-        when(tracer.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        tracer.pause();
         filterChain.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
+        tracer.resume();
     }
 
     @Test
