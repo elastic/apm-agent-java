@@ -438,10 +438,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             final ObjectMapper objectMapper = new ObjectMapper();
             for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))) {
                 final String bodyAsString = httpRequest.getBodyAsString();
-                validateEventMetadata(bodyAsString);
                 for (String ndJsonLine : bodyAsString.split("\n")) {
                     final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
                     if (ndJson.get(eventType) != null) {
+                        validateEventMetadata(bodyAsString);
                         events.add(ndJson.get(eventType));
                     }
                 }
@@ -478,7 +478,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             assertThat(contextService)
                 .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
-                assertThat(contextService.get("name").textValue()).isEqualTo(expectedServiceName);
+            assertThat(contextService.get("name").textValue())
+                .describedAs("Event has non-expected service name %s", event)
+                .isEqualTo(expectedServiceName);
         }
     }
 
