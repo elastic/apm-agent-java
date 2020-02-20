@@ -63,7 +63,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "NOTE: This feature is not available on Windows")
         .tags("experimental")
         .dynamic(true)
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .buildWithDefault(false);
 
     private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
@@ -75,7 +75,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "This comes at the expense of higher overhead and more spans for potentially irrelevant operations.\n" +
             "The minimal duration of a profiling-inferred span is the same as the value of this setting.")
         .addValidator(isInRange(TimeDuration.of("1ms"), TimeDuration.of("1s")))
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .buildWithDefault(TimeDuration.of("20ms"));
 
     private final ConfigurationOption<TimeDuration> inferredSpansMinDuration = TimeDurationValueConverter.durationOption("ms")
@@ -85,7 +85,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .description("The minimum duration of an inferred span.\n" +
             "Note that the min duration is also implicitly set by the sampling interval.\n" +
             "However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.")
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .addValidator(min(TimeDuration.of("0ms")))
         .buildWithDefault(TimeDuration.of("0ms"));
 
@@ -99,7 +99,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .buildWithDefault(WildcardMatcher.matchAllList());
 
     private final ConfigurationOption<List<WildcardMatcher>> excludedClasses = ConfigurationOption
@@ -110,7 +110,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.caseSensitiveMatcher("java.*"),
             WildcardMatcher.caseSensitiveMatcher("javax.*"),
@@ -132,7 +132,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(PROFILING_CATEGORY)
         .addValidator(min(TimeDuration.of("0ms")))
         .dynamic(true)
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .buildWithDefault(TimeDuration.of("61s"));
 
     private final ConfigurationOption<TimeDuration> profilingDuration = TimeDurationValueConverter.durationOption("s")
@@ -148,7 +148,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(true)
         .addValidator(min(TimeDuration.of("1s")))
-        .tags("added[1.13.0]")
+        .tags("added[1.14.0]")
         .buildWithDefault(TimeDuration.of("10s"));
 
     public boolean isProfilingEnabled() {

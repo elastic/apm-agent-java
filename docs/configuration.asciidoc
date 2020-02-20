@@ -1262,7 +1262,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-spans-enabled]]
-==== `profiling_spans_enabled` (added[1.13.0])
+==== `profiling_spans_enabled` (added[1.14.0])
 
 Set to `true` to make the agent create spans for method executions based on
 https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
@@ -1298,7 +1298,7 @@ NOTE: This feature is not available on Windows
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-sampling-interval]]
-==== `profiling_sampling_interval` (added[1.13.0])
+==== `profiling_sampling_interval` (added[1.14.0])
 
 The frequency at which stack traces are gathered within a profiling session.
 The lower you set it, the more accurate the durations will be.
@@ -1325,7 +1325,7 @@ The default unit for this option is `ms`.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-spans-min-duration]]
-==== `profiling_spans_min_duration` (added[1.13.0])
+==== `profiling_spans_min_duration` (added[1.14.0])
 
 The minimum duration of an inferred span.
 Note that the min duration is also implicitly set by the sampling interval.
@@ -1351,7 +1351,7 @@ The default unit for this option is `ms`.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-included-classes]]
-==== `profiling_included_classes` (added[1.13.0])
+==== `profiling_included_classes` (added[1.14.0])
 
 If set, the agent will only create inferred spans for methods which match this list.
 Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
@@ -1379,7 +1379,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-excluded-classes]]
-==== `profiling_excluded_classes` (added[1.13.0])
+==== `profiling_excluded_classes` (added[1.14.0])
 
 Excludes classes for which no profiler-inferred spans should be created.
 
@@ -1405,7 +1405,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-interval]]
-==== `profiling_interval` (added[1.13.0])
+==== `profiling_interval` (added[1.14.0])
 
 The interval at which profiling sessions should be started.
 
@@ -1429,7 +1429,7 @@ The default unit for this option is `s`.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-duration]]
-==== `profiling_duration` (added[1.13.0])
+==== `profiling_duration` (added[1.14.0])
 
 The duration of a profiling session.
 For sampled transactions which fall within a profiling session (they start after and end before the session),
