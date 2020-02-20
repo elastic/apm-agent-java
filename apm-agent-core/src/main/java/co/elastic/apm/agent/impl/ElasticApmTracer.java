@@ -632,7 +632,7 @@ public class ElasticApmTracer {
         activeConfigOptionSet = shouldBeActive;
     }
 
-    public synchronized void pause() {
+    synchronized void pause() {
         if (tracerState != TracerState.RUNNING) {
             logger.warn("Attempting to pause the agent when it is already in a {} state", tracerState);
             return;
@@ -648,7 +648,7 @@ public class ElasticApmTracer {
         }
     }
 
-    public synchronized void resume() {
+    synchronized void resume() {
         if (tracerState != TracerState.PAUSED) {
             logger.warn("Attempting to resume the agent when it is in a {} state", tracerState);
             return;

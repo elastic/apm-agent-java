@@ -29,6 +29,7 @@ import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
+import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNotInRange;
 
 public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
@@ -37,6 +38,7 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> circuitBreakerEnabled = ConfigurationOption.booleanOption()
         .key("circuit_breaker_enabled")
         .tags("added[1.14.0]")
+        .tags("performance")
         .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
         .description("A boolean specifying whether the circuit breaker should be enabled or not. \n" +
             "When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. \n" +
@@ -51,11 +53,39 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> stressMonitoringInterval = TimeDurationValueConverter.durationOption("s")
         .key("stress_monitoring_interval")
         .tags("added[1.14.0]")
+        .tags("performance")
         .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
         .description("The interval at which the agent polls the stress monitors. Must be at least `1s`.")
         .addValidator(isNotInRange(TimeDuration.of("0ms"), TimeDuration.of("999ms")))
         .dynamic(false)
         .buildWithDefault(TimeDuration.of("5s"));
+
+    private final ConfigurationOption<Double> gcStressThreshold = ConfigurationOption.doubleOption()
+        .key("stress_monitor_gc_stress_threshold")
+        .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
+        .tags("added[1.14.0]")
+        .tags("performance")
+        .description("The threshold used by the GC monitor to rely on for identifying heap stress.\n" +
+            "The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, \n" +
+            "the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured \n" +
+            "after a recent GC.")
+        .dynamic(true)
+        .addValidator(isInRange(0d, 1d))
+        .buildWithDefault(0.95);
+
+    private final ConfigurationOption<Double> gcReliefThreshold = ConfigurationOption.doubleOption()
+        .key("stress_monitor_gc_relief_threshold")
+        .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
+        .tags("added[1.14.0]")
+        .tags("performance")
+        .description("The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .\n" +
+            "If <<stress_monitor_gc_stress_threshold>> has been crossed, the agent will consider it a heap-stress state. \n" +
+            "In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should \n" +
+            "be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.")
+        .dynamic(true)
+        .addValidator(isInRange(0d, 1d))
+        .buildWithDefault(0.75);
+
 
     public boolean isCircuitBreakerEnabled() {
         return circuitBreakerEnabled.get();
@@ -63,5 +93,13 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
 
     public long getStressMonitoringPollingInterval() {
         return stressMonitoringInterval.get().getMillis();
+    }
+
+    public double getGcStressThreshold() {
+        return gcStressThreshold.get();
+    }
+
+    public double getGcReliefThreshold() {
+        return gcReliefThreshold.get();
     }
 }

@@ -28,10 +28,10 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 abstract class StressMonitor {
 
-    protected final CircuitBreakerConfiguration config;
+    protected final CircuitBreakerConfiguration circuitBreakerConfiguration;
 
     public StressMonitor(ElasticApmTracer tracer) {
-        config = tracer.getConfig(CircuitBreakerConfiguration.class);
+        circuitBreakerConfiguration = tracer.getConfig(CircuitBreakerConfiguration.class);
     }
 
     abstract boolean isUnderStress();

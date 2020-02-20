@@ -57,7 +57,8 @@ public class CircuitBreaker extends AbstractLifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        // todo: fill stress monitors
+        // failsafe loading of stress monitors in isolation
+        loadGCStressMonitor(tracer);
 
         threadPool.execute(new Runnable() {
             @Override
@@ -67,6 +68,14 @@ public class CircuitBreaker extends AbstractLifecycleListener {
         });
     }
 
+    private void loadGCStressMonitor(ElasticApmTracer tracer) {
+        try {
+            stressMonitors.add(new GCStressMonitor(tracer));
+        } catch (Throwable throwable) {
+            logger.error("Failed to load the GC stress monitor. Circuit breaker will not be triggered based on GC events.", throwable);
+        }
+    }
+
     private void pollStressMonitors() {
         while (!Thread.currentThread().isInterrupted()) {
             try {
@@ -74,7 +83,13 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                     if (isCurrentlyUnderStress) {
                         boolean stressRelieved = true;
                         for (StressMonitor stressMonitor : stressMonitors) {
-                            stressRelieved &= stressMonitor.isStressRelieved();
+                            try {
+                                stressRelieved &= stressMonitor.isStressRelieved();
+                            } catch (Exception e) {
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug("Failed to poll " + stressMonitor.getClass().getName(), e);
+                                }
+                            }
                         }
                         if (stressRelieved) {
                             isCurrentlyUnderStress = false;
@@ -82,10 +97,16 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                         }
                     } else {
                         for (StressMonitor stressMonitor : stressMonitors) {
-                            if (stressMonitor.isUnderStress()) {
-                                isCurrentlyUnderStress = true;
-                                tracer.stressDetected();
-                                break;
+                            try {
+                                if (stressMonitor.isUnderStress()) {
+                                    isCurrentlyUnderStress = true;
+                                    tracer.stressDetected();
+                                    break;
+                                }
+                            } catch (Exception e) {
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug("Failed to poll " + stressMonitor.getClass().getName(), e);
+                                }
                             }
                         }
                     }

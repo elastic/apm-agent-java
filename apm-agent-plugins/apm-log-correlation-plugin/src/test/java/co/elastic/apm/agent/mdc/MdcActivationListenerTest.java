@@ -27,6 +27,7 @@ package co.elastic.apm.agent.mdc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -95,7 +96,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testDisabledWhenInactive() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        tracer.pause();
+        TracerInternalApiUtils.pauseTracer(tracer);
         Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
@@ -106,7 +107,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
             }
         }
         transaction.end();
-        tracer.resume();
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test
@@ -116,7 +117,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
             assertMdcIsSet(transaction);
-            tracer.pause();
+            TracerInternalApiUtils.pauseTracer(tracer);
             Span child = transaction.createSpan();
             try (Scope childScope = child.activateInScope()) {
                 assertMdcIsSet(transaction);
@@ -125,7 +126,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         }
         assertMdcIsEmpty();
         transaction.end();
-        tracer.resume();
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

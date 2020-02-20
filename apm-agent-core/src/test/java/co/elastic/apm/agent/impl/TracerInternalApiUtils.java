@@ -31,8 +31,16 @@ import java.io.IOException;
 /**
  * An accessor to the package-private active configuration
  */
-public class TracerActivationUtil {
+public class TracerInternalApiUtils {
     public static void setActiveConfig(ConfigurationRegistry config, boolean activeValue, String configSourceName) throws IOException {
         config.getConfig(TracerConfiguration.class).getActiveConfig().update(activeValue, configSourceName);
+    }
+
+    public static void pauseTracer(ElasticApmTracer tracer) {
+        tracer.pause();
+    }
+
+    public static void resumeTracer(ElasticApmTracer tracer) {
+        tracer.resume();
     }
 }

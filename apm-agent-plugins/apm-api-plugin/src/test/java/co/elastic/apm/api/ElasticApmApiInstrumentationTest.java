@@ -27,6 +27,7 @@ package co.elastic.apm.api;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.Test;
@@ -311,14 +312,14 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testManualTimestampsDeactivated() {
-        tracer.pause();
+        TracerInternalApiUtils.pauseTracer(tracer);
         final Transaction transaction = ElasticApm.startTransaction().setStartTimestamp(0);
         transaction.startSpan().setStartTimestamp(1000).end(2000);
         transaction.end(3000);
 
         assertThat(reporter.getTransactions()).hasSize(0);
         assertThat(reporter.getSpans()).hasSize(0);
-        tracer.resume();
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

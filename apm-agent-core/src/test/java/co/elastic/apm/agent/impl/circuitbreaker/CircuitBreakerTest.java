@@ -28,7 +28,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.TracerActivationUtil;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,12 +124,12 @@ public class CircuitBreakerTest {
         int pollCount = monitor.simulateStress();
         monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         assertThat(tracer.getState()).isEqualTo(PAUSED);
-        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         pollCount = monitor.simulateStressRelieved();
         monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
         // should still be PAUSED as the state is inactive
         assertThat(tracer.getState()).isEqualTo(PAUSED);
-        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracer.getState()).isEqualTo(RUNNING);
     }
 
@@ -137,10 +137,10 @@ public class CircuitBreakerTest {
     void testReactivateThenStressRelief() throws IOException {
         doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
         assertThat(tracer.getState()).isEqualTo(RUNNING);
-        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracer.getState()).isEqualTo(PAUSED);
         monitor.simulateStress();
-        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
         // check that reactivation now has no effect even after waiting for the next resume poll
         int pollCount = monitor.getPollCount();
         monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
@@ -157,9 +157,9 @@ public class CircuitBreakerTest {
         monitor.simulateStress();
         Thread.sleep(50);
         assertThat(tracer.getState()).isEqualTo(RUNNING);
-        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracer.getState()).isEqualTo(PAUSED);
-        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracer.getState()).isEqualTo(RUNNING);
     }
 

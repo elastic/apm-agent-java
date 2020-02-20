@@ -65,6 +65,8 @@ Click on a key to get more information.
 * <<config-circuit-breaker>>
 ** <<config-circuit-breaker-enabled>>
 ** <<config-stress-monitoring-interval>>
+** <<config-stress-monitor-gc-stress-threshold>>
+** <<config-stress-monitor-gc-relief-threshold>>
 * <<config-core>>
 ** <<config-active>>
 ** <<config-instrument>>
@@ -127,7 +129,7 @@ Click on a key to get more information.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-circuit-breaker-enabled]]
-==== `circuit_breaker_enabled` (added[1.14.0])
+==== `circuit_breaker_enabled` (performance)
 
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
@@ -154,7 +156,7 @@ agent will resume and become fully functional.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-stress-monitoring-interval]]
-==== `stress_monitoring_interval` (added[1.14.0])
+==== `stress_monitoring_interval` (performance)
 
 The interval at which the agent polls the stress monitors. Must be at least `1s`.
 
@@ -173,6 +175,54 @@ The default unit for this option is `s`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitoring_interval` | `stress_monitoring_interval` | `ELASTIC_APM_STRESS_MONITORING_INTERVAL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-gc-stress-threshold]]
+==== `stress_monitor_gc_stress_threshold` (performance)
+
+The threshold used by the GC monitor to rely on for identifying heap stress.
+The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
+the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+after a recent GC.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.95` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_gc_stress_threshold` | `stress_monitor_gc_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_STRESS_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-gc-relief-threshold]]
+==== `stress_monitor_gc_relief_threshold` (performance)
+
+The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
+If <<stress_monitor_gc_stress_threshold>> has been crossed, the agent will consider it a heap-stress state. 
+In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.75` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_gc_relief_threshold` | `stress_monitor_gc_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_RELIEF_THRESHOLD`
 |============
 
 [[config-core]]
@@ -1687,6 +1737,28 @@ The default unit for this option is `ms`
 # Default value: 5s
 #
 # stress_monitoring_interval=5s
+
+# The threshold used by the GC monitor to rely on for identifying heap stress.
+# The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
+# the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+# after a recent GC.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.95
+#
+# stress_monitor_gc_stress_threshold=0.95
+
+# The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
+# If <<stress_monitor_gc_stress_threshold>> has been crossed, the agent will consider it a heap-stress state. 
+# In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+# be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.75
+#
+# stress_monitor_gc_relief_threshold=0.75
 
 ############################################
 # Core                                     #

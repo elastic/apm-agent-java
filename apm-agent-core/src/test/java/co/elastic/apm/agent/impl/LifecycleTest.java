@@ -108,18 +108,18 @@ public class LifecycleTest {
         assertThat(tracerImpl.getState()).isEqualTo(RUNNING);
 
         // checking no effect changing to true when RUNNING
-        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(RUNNING);
         assertThat(TestLifecycleListener.pause.get()).isEqualTo(pauseBefore);
-        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(PAUSED);
         assertThat(TestLifecycleListener.pause.get()).isEqualTo(pauseBefore + 1);
 
         // checking no effect changing to false when PAUSED
-        TracerActivationUtil.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(PAUSED);
         assertThat(TestLifecycleListener.resume.get()).isEqualTo(resumeBefore);
-        TracerActivationUtil.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(RUNNING);
         assertThat(TestLifecycleListener.resume.get()).isEqualTo(resumeBefore + 1);
     }

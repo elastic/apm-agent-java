@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -114,9 +115,9 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testNoopInstrumentation() throws Exception {
-        tracer.pause();
+        TracerInternalApiUtils.pauseTracer(tracer);
         callServlet(0, "/test");
-        tracer.resume();
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

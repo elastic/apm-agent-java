@@ -28,6 +28,7 @@ package co.elastic.apm.agent.jms;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -239,10 +240,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveOnNonTracedThreadInactive() throws Exception {
-        tracer.pause();
+        TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
-        tracer.resume();
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test
@@ -271,10 +272,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testInactiveReceive() throws Exception {
-        tracer.pause();
+        TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
-        tracer.resume();
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test
@@ -572,7 +573,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testInactiveOnMessage() throws Exception {
-        tracer.pause();
+        TracerInternalApiUtils.pauseTracer(tracer);
         Queue queue = createTestQueue();
         CompletableFuture<Message> incomingMessageFuture = brokerFacade.registerConcreteListenerImplementation(queue);
         String message = UUID.randomUUID().toString();
@@ -582,7 +583,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         verifyMessage(message, incomingMessage);
         Thread.sleep(500);
         assertThat(reporter.getTransactions()).isEmpty();
-        tracer.resume();
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test
