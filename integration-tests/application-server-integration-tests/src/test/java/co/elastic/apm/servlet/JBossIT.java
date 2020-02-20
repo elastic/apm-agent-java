@@ -53,9 +53,9 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {"jboss-eap-6/eap64-openshift"},
-//            {"jboss-eap-7/eap70-openshift"},
-//            {"jboss-eap-7/eap71-openshift"},
-//            {"jboss-eap-7/eap72-openshift"}
+            {"jboss-eap-7/eap70-openshift"},
+            {"jboss-eap-7/eap71-openshift"},
+            {"jboss-eap-7/eap72-openshift"}
         });
     }
 
