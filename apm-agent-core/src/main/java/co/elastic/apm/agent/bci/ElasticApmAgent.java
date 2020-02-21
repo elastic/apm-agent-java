@@ -390,6 +390,15 @@ public class ElasticApmAgent {
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("net.bytebuddy."))
             .or(nameStartsWith("org.stagemonitor."))
+            .or(nameStartsWith("com.newrelic."))
+            .or(nameStartsWith("com.dynatrace."))
+            // AppDynamics
+            .or(nameStartsWith("com.singularity."))
+            .or(nameStartsWith("com.instana."))
+            .or(nameStartsWith("datadog."))
+            .or(nameStartsWith("org.glowroot."))
+            .or(nameStartsWith("com.compuware."))
+            .or(nameStartsWith("io.sqreen."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {

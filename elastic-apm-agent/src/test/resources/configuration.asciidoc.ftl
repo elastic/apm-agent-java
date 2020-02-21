@@ -87,7 +87,7 @@ ${option.description}
 <#if option.valueType?matches("TimeDuration")>
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `${option.defaultValueAsString}`.
-The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`
+The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`.
 </#if>
 <#if option.validOptions?has_content>
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>

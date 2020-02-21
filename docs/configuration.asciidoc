@@ -103,6 +103,14 @@ Click on a key to get more information.
 ** <<config-enable-log-correlation>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
+* <<config-profiling>>
+** <<config-profiling-spans-enabled>>
+** <<config-profiling-sampling-interval>>
+** <<config-profiling-spans-min-duration>>
+** <<config-profiling-included-classes>>
+** <<config-profiling-excluded-classes>>
+** <<config-profiling-interval>>
+** <<config-profiling-duration>>
 * <<config-reporter>>
 ** <<config-secret-token>>
 ** <<config-server-urls>>
@@ -578,6 +586,9 @@ NOTE: This feature requires APM Server 7.2+
 
 A list of methods for which to create a transaction or span.
 
+If you want to monitor a large number of methods,
+use  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.
+
 This works by instrumenting each matching method to include code that creates a span for the method.
 While creating a span is quite cheap in terms of performance,
 instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
@@ -671,7 +682,7 @@ regardless of their duration.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`
+The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1246,6 +1257,206 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
 |============
 
+[[config-profiling]]
+=== Profiling configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-spans-enabled]]
+==== `profiling_spans_enabled` (added[1.14.0])
+
+Set to `true` to make the agent create spans for method executions based on
+https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
+
+If this is enabled, the agent will start a profiling session every
+<<config-profiling-interval, `profiling_interval`>> which lasts for <<config-profiling-duration, `profiling_duration`>>.
+If a transaction happens within a profiling session,
+the agent creates spans for slow methods.
+
+Due to the nature of how sampling profilers work,
+the duration of the inferred spans are not exact, but only estimations.
+The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+
+The inferred spans are created after a profiling session has ended.
+This means there is a delay between the regular and the inferred spans being visible in the UI.
+
+NOTE: This feature is not available on Windows
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_spans_enabled` | `profiling_spans_enabled` | `ELASTIC_APM_PROFILING_SPANS_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-sampling-interval]]
+==== `profiling_sampling_interval` (added[1.14.0])
+
+The frequency at which stack traces are gathered within a profiling session.
+The lower you set it, the more accurate the durations will be.
+This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
+The minimal duration of a profiling-inferred span is the same as the value of this setting.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `20ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `20ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_sampling_interval` | `profiling_sampling_interval` | `ELASTIC_APM_PROFILING_SAMPLING_INTERVAL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-spans-min-duration]]
+==== `profiling_spans_min_duration` (added[1.14.0])
+
+The minimum duration of an inferred span.
+Note that the min duration is also implicitly set by the sampling interval.
+However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_spans_min_duration` | `profiling_spans_min_duration` | `ELASTIC_APM_PROFILING_SPANS_MIN_DURATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-included-classes]]
+==== `profiling_included_classes` (added[1.14.0])
+
+If set, the agent will only create inferred spans for methods which match this list.
+Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
+Example: `org.example.myapp.*`
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `*` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_included_classes` | `profiling_included_classes` | `ELASTIC_APM_PROFILING_INCLUDED_CLASSES`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-excluded-classes]]
+==== `profiling_excluded_classes` (added[1.14.0])
+
+Excludes classes for which no profiler-inferred spans should be created.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `(?-i)java.*, (?-i)javax.*, (?-i)sun.*, (?-i)com.sun.*, (?-i)jdk.*, (?-i)org.apache.tomcat.*, (?-i)org.apache.catalina.*, (?-i)org.apache.coyote.*, (?-i)org.jboss.as.*, (?-i)org.glassfish.*, (?-i)org.eclipse.jetty.*, (?-i)com.ibm.websphere.*` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_excluded_classes` | `profiling_excluded_classes` | `ELASTIC_APM_PROFILING_EXCLUDED_CLASSES`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-interval]]
+==== `profiling_interval` (added[1.14.0])
+
+The interval at which profiling sessions should be started.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `61s`.
+The default unit for this option is `s`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `61s` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_interval` | `profiling_interval` | `ELASTIC_APM_PROFILING_INTERVAL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-duration]]
+==== `profiling_duration` (added[1.14.0])
+
+The duration of a profiling session.
+For sampled transactions which fall within a profiling session (they start after and end before the session),
+so-called inferred spans will be created.
+They appear in the trace waterfall view like regular spans.
+
+NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.
+Warnings will be logged if the activation events file is full.
+If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `10s`.
+The default unit for this option is `s`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `10s` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_duration` | `profiling_duration` | `ELASTIC_APM_PROFILING_DURATION`
+|============
+
 [[config-reporter]]
 === Reporter configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1315,7 +1526,7 @@ WARNING: If timeouts are disabled or set to a high value, your app could experie
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1415,7 +1626,7 @@ NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1465,7 +1676,7 @@ Set to `0s` to deactivate.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `30s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1581,7 +1792,7 @@ To disable stack trace collection for spans completely, set the value to `0ms`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5ms`.
-The default unit for this option is `ms`
+The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1855,6 +2066,9 @@ The default unit for this option is `ms`
 # global_labels=
 
 # A list of methods for which to create a transaction or span.
+# 
+# If you want to monitor a large number of methods,
+# use  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.
 # 
 # This works by instrumenting each matching method to include code that creates a span for the method.
 # While creating a span is quite cheap in terms of performance,
@@ -2290,6 +2504,113 @@ The default unit for this option is `ms`
 # Default value: 
 #
 # ignore_message_queues=
+
+############################################
+# Profiling                                #
+############################################
+
+# Set to `true` to make the agent create spans for method executions based on
+# https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
+# 
+# If this is enabled, the agent will start a profiling session every
+# <<config-profiling-interval, `profiling_interval`>> which lasts for <<config-profiling-duration, `profiling_duration`>>.
+# If a transaction happens within a profiling session,
+# the agent creates spans for slow methods.
+# 
+# Due to the nature of how sampling profilers work,
+# the duration of the inferred spans are not exact, but only estimations.
+# The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+# 
+# The inferred spans are created after a profiling session has ended.
+# This means there is a delay between the regular and the inferred spans being visible in the UI.
+# 
+# NOTE: This feature is not available on Windows
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# profiling_spans_enabled=false
+
+# The frequency at which stack traces are gathered within a profiling session.
+# The lower you set it, the more accurate the durations will be.
+# This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
+# The minimal duration of a profiling-inferred span is the same as the value of this setting.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 20ms.
+# The default unit for this option is ms.
+# Default value: 20ms
+#
+# profiling_sampling_interval=20ms
+
+# The minimum duration of an inferred span.
+# Note that the min duration is also implicitly set by the sampling interval.
+# However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# profiling_spans_min_duration=0ms
+
+# If set, the agent will only create inferred spans for methods which match this list.
+# Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
+# Example: `org.example.myapp.*`
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: *
+#
+# profiling_included_classes=*
+
+# Excludes classes for which no profiler-inferred spans should be created.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: (?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*
+#
+# profiling_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*
+
+# The interval at which profiling sessions should be started.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 61s.
+# The default unit for this option is s.
+# Default value: 61s
+#
+# profiling_interval=61s
+
+# The duration of a profiling session.
+# For sampled transactions which fall within a profiling session (they start after and end before the session),
+# so-called inferred spans will be created.
+# They appear in the trace waterfall view like regular spans.
+# 
+# NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.
+# Warnings will be logged if the activation events file is full.
+# If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 10s.
+# The default unit for this option is s.
+# Default value: 10s
+#
+# profiling_duration=10s
 
 ############################################
 # Reporter                                 #
