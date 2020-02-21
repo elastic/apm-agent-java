@@ -225,5 +225,85 @@
         "tags": [],
         "since": "1.11.0",
         "description": "Report metrics from JMX to the APM Server\n\nCan contain multiple comma separated JMX metric definitions:\n\n----\nobject_name[<JMX object name pattern>] attribute[<JMX attribute>:metric_name=<optional metric name>]\n----\n\n* `object_name`:\n+\nFor more information about the JMX object name pattern syntax,\nsee the https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName` Javadocs].\n* `attribute`:\n+\nThe name of the JMX attribute.\nThe JMX value has to be either a `Number` or a composite where the composite items are numbers.\nThis element can be defined multiple times.\nAn attribute can contain optional properties.\nThe syntax for that is the same as for https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName`].\n+\n** `metric_name`:\n+\nA property within `attribute`.\nThis is the name under which the metric will be stored.\nSetting this is optional and will be the same as the `attribute` if not set.\nNote that all JMX metric names will be prefixed with `jvm.jmx.` by the agent.\n\nThe agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.\n\nThe link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards.\nIn this example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)\n\n----\nobject_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]\n----\n\nThe resulting documents in Elasticsearch look similar to these (metadata omitted for brevity):\n\n[source,json]\n----\n{\n  \"@timestamp\": \"2019-08-20T16:51:07.512Z\",\n  \"jvm\": {\n    \"jmx\": {\n      \"collection_count\": 0,\n      \"CollectionTime\":   0\n    }\n  },\n  \"labels\": {\n    \"type\": \"GarbageCollector\",\n    \"name\": \"G1 Old Generation\"\n  }\n}\n----\n\n[source,json]\n----\n{\n  \"@timestamp\": \"2019-08-20T16:51:07.512Z\",\n  \"jvm\": {\n    \"jmx\": {\n      \"collection_count\": 2,\n      \"CollectionTime\":  11\n    }\n  },\n  \"labels\": {\n    \"type\": \"GarbageCollector\",\n    \"name\": \"G1 Young Generation\"\n  }\n}\n----\n\n\nThe agent also supports composite values for the attribute value.\nIn this example, `HeapMemoryUsage` is a composite value, consisting of `committed`, `init`, `used` and `max`.\n----\nobject_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap] \n----\n\nThe resulting documents in Elasticsearch look similar to this:\n\n[source,json]\n----\n{\n  \"@timestamp\": \"2019-08-20T16:51:07.512Z\",\n  \"jvm\": {\n    \"jmx\": {\n      \"heap\": {\n        \"max\":      4294967296,\n        \"init\":      268435456,\n        \"committed\": 268435456,\n        \"used\":       22404496\n      }\n    }\n  },\n  \"labels\": {\n    \"type\": \"Memory\"\n  }\n}\n----\n"
+    },
+    {
+        "key": "profiling_spans_enabled",
+        "type": "Boolean",
+        "category": "Profiling",
+        "default": "false",
+        "tags": [],
+        "since": "1.14.0",
+        "description": "Set to `true` to make the agent create spans for method executions based on\nhttps://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.\n\nIf this is enabled, the agent will start a profiling session every\n<<config-profiling-interval, `profiling_interval`>> which lasts for <<config-profiling-duration, `profiling_duration`>>.\nIf a transaction happens within a profiling session,\nthe agent creates spans for slow methods.\n\nDue to the nature of how sampling profilers work,\nthe duration of the inferred spans are not exact, but only estimations.\nThe <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.\n\nThe inferred spans are created after a profiling session has ended.\nThis means there is a delay between the regular and the inferred spans being visible in the UI.\n\nNOTE: This feature is not available on Windows"
+    },
+    {
+        "key": "profiling_sampling_interval",
+        "type": "TimeDuration",
+        "category": "Profiling",
+        "default": "20ms",
+        "tags": [],
+        "since": "1.14.0",
+        "validation": {
+            "min": "1ms",
+            "max": "1s",
+            "negativeMatch": false
+        },
+        "description": "The frequency at which stack traces are gathered within a profiling session.\nThe lower you set it, the more accurate the durations will be.\nThis comes at the expense of higher overhead and more spans for potentially irrelevant operations.\nThe minimal duration of a profiling-inferred span is the same as the value of this setting."
+    },
+    {
+        "key": "profiling_spans_min_duration",
+        "type": "TimeDuration",
+        "category": "Profiling",
+        "default": "0ms",
+        "tags": [],
+        "since": "1.14.0",
+        "validation": {
+            "min": "0ms",
+            "negativeMatch": false
+        },
+        "description": "The minimum duration of an inferred span.\nNote that the min duration is also implicitly set by the sampling interval.\nHowever, increasing the sampling interval also decreases the accuracy of the duration of inferred spans."
+    },
+    {
+        "key": "profiling_included_classes",
+        "type": "List",
+        "category": "Profiling",
+        "default": "*",
+        "tags": [],
+        "since": "1.14.0",
+        "description": "If set, the agent will only create inferred spans for methods which match this list.\nSetting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.\nExample: `org.example.myapp.*`\n\nThis option supports the wildcard `*`, which matches zero or more characters.\nExamples: `/foo/*/bar/*/baz*`, `*foo*`.\nMatching is case insensitive by default.\nPrepending an element with `(?-i)` makes the matching case sensitive."
+    },
+    {
+        "key": "profiling_excluded_classes",
+        "type": "List",
+        "category": "Profiling",
+        "default": "(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*",
+        "tags": [],
+        "since": "1.14.0",
+        "description": "Excludes classes for which no profiler-inferred spans should be created.\n\nThis option supports the wildcard `*`, which matches zero or more characters.\nExamples: `/foo/*/bar/*/baz*`, `*foo*`.\nMatching is case insensitive by default.\nPrepending an element with `(?-i)` makes the matching case sensitive."
+    },
+    {
+        "key": "profiling_interval",
+        "type": "TimeDuration",
+        "category": "Profiling",
+        "default": "61s",
+        "tags": [],
+        "since": "1.14.0",
+        "validation": {
+            "min": "0ms",
+            "negativeMatch": false
+        },
+        "description": "The interval at which profiling sessions should be started."
+    },
+    {
+        "key": "profiling_duration",
+        "type": "TimeDuration",
+        "category": "Profiling",
+        "default": "10s",
+        "tags": [],
+        "since": "1.14.0",
+        "validation": {
+            "min": "1s",
+            "negativeMatch": false
+        },
+        "description": "The duration of a profiling session.\nFor sampled transactions which fall within a profiling session (they start after and end before the session),\nso-called inferred spans will be created.\nThey appear in the trace waterfall view like regular spans.\n\nNOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.\nWarnings will be logged if the activation events file is full.\nIf you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>."
     }
 ]

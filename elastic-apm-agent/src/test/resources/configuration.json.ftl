@@ -18,14 +18,18 @@
         <#assign rangeValidator= validatorAccessor.getRangeValidator(option)!/>
         <#if regexValidator?has_content || rangeValidator?has_content>
         "validation": {
-            <#if rangeValidator?has_content>
-            "min": ${rangeValidator.getMin()!"null"},
-            "max": ${rangeValidator.getMax()!"null"},
+        <#if rangeValidator?has_content>
+            <#if rangeValidator.getMin()?has_content>
+            "min": ${rangeValidator.getMin()?is_number?then(rangeValidator.getMin(), '"${rangeValidator.getMin()}"')},
+            </#if>
+            <#if rangeValidator.getMax()?has_content>
+            "max": ${rangeValidator.getMax()?is_number?then(rangeValidator.getMax(), '"${rangeValidator.getMax()}"')},
+            </#if>
             "negativeMatch": ${rangeValidator.negativeMatch?c}${regexValidator?has_content?then(",", "")}
-            </#if>
-            <#if regexValidator?has_content>
+        </#if>
+        <#if regexValidator?has_content>
             "regex": "${regexValidator.pattern}"
-            </#if>
+        </#if>
         },
         </#if>
         "description": "${option.description?json_string}"

@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.validation.RangeValidator;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -175,7 +176,10 @@ class ConfigurationExporterTest {
         new Template("", tempRenderedFile.toString(), cfg)
             .process(Map.of("allInstrumentationGroupNames", getAllInstrumentationGroupNames()), out);
 
-        return out.toString();
+        String json = out.toString();
+        // check that this is valid JSON
+        new JsonMapper().readTree(json);
+        return json;
     }
 
     public static class ValidatorAccessor {

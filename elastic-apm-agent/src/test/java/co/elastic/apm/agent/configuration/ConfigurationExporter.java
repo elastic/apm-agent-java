@@ -47,7 +47,7 @@ public class ConfigurationExporter {
             throw new IllegalStateException(path + " does not exist");
         }
         Files.write(path, renderDocumentation(configurationRegistry).getBytes(StandardCharsets.UTF_8));
-        Path jsonPath = Paths.get("elastic-apm-agent/src/main/resources/configuration.json");
+        Path jsonPath = Paths.get("apm-agent-core/src/main/resources/configuration.json");
         if (!jsonPath.toFile().canWrite()) {
             throw new IllegalStateException(jsonPath + " does not exist");
         }
