@@ -31,12 +31,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-grpc-plugin-test-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
     </dependencies>
 
     <!-- package test code so they can be reused/imported -->
