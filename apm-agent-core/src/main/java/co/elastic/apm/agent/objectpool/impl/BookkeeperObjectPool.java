@@ -39,8 +39,8 @@ import java.util.Set;
  */
 public class BookkeeperObjectPool<T> implements ObjectPool<T> {
 
-    private ObjectPool<T> pool;
-    private Set<T> toReturn = Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>());
+    private final ObjectPool<T> pool;
+    private final Set<T> toReturn = Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>());
 
     static {
         boolean isTest = false;
@@ -81,6 +81,11 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     @Override
     public long getGarbageCreated() {
         return pool.getGarbageCreated();
+    }
+
+    @Override
+    public void clear() {
+        pool.clear();
     }
 
     /**

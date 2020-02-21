@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class TraceContextTest {
@@ -605,4 +606,25 @@ class TraceContextTest {
         HexUtils.decode(textHeader, 36, 16, binaryHeader, 19);
         return binaryHeader;
     }
+
+    @Test
+    void testDeserialization() {
+        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        traceContext.asRootSpan(ConstantSampler.of(true));
+
+        byte[] serializedContext = new byte[TraceContext.SERIALIZED_LENGTH];
+        traceContext.serialize(serializedContext);
+
+        TraceContext deserialized = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        deserialized.deserialize(serializedContext, null);
+
+        assertThat(deserialized.traceIdAndIdEquals(serializedContext)).isTrue();
+        assertThat(deserialized.getTraceId()).isEqualTo(traceContext.getTraceId());
+        assertThat(deserialized.getTransactionId()).isEqualTo(traceContext.getTransactionId());
+        assertThat(deserialized.getId()).isEqualTo(traceContext.getId());
+        assertThat(deserialized.isSampled()).isEqualTo(traceContext.isSampled());
+        assertThat(deserialized.isDiscard()).isEqualTo(traceContext.isDiscard());
+        assertThat(deserialized.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
+    }
+
 }
