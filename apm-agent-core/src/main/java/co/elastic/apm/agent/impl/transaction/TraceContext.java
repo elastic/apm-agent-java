@@ -411,7 +411,10 @@ public class TraceContext extends TraceContextHolder {
         clock.init(parent.clock);
         serviceName = parent.serviceName;
         applicationClassLoader = parent.applicationClassLoader;
-        tracestate.addAll(parent.tracestate);
+        List<String> parentTracestate = parent.tracestate;
+        for (int i = 0, size = parentTracestate.size(); i < size; i++) {
+            tracestate.add(parentTracestate.get(i));
+        }
         onMutation();
     }
 
