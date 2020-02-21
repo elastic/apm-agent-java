@@ -38,7 +38,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public abstract class GrpcContextHeadersTest extends AbstractInstrumentationTest {
+public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumentationTest {
     // we use a dedicated test class because those features involves both server and client parts
     // and we can't test them in isolation but as a whole
 
@@ -96,7 +96,7 @@ public abstract class GrpcContextHeadersTest extends AbstractInstrumentationTest
     }
 
     private static Transaction createRootTransaction() {
-        return tracer.startRootTransaction(GrpcClientInstrumentationTest.class.getClassLoader())
+        return tracer.startRootTransaction(AbstractGrpcClientInstrumentationTest.class.getClassLoader())
             .withName("root")
             .withType("test")
             .activate();

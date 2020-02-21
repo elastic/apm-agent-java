@@ -24,10 +24,11 @@
  */
 package co.elastic.apm.agent.grpc.v1_27_1;
 
+import co.elastic.apm.agent.grpc.AbstractGrpcContextHeadersTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import co.elastic.apm.agent.grpc.v1_27_1.testapp.GrpcAppProviderImpl;
 
-class GrpcContextHeadersTest extends co.elastic.apm.agent.grpc.GrpcContextHeadersTest {
+class GrpcContextHeadersTest extends AbstractGrpcContextHeadersTest {
 
     @Override
     public GrpcAppProvider getAppProvider() {

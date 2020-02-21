@@ -36,7 +36,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public abstract class GrpcServerInstrumentationTest extends AbstractInstrumentationTest {
+public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInstrumentationTest {
 
     private GrpcApp app;
 

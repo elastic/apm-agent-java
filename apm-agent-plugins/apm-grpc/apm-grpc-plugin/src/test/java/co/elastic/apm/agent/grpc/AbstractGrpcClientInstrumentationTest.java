@@ -41,9 +41,9 @@ import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public abstract class GrpcClientInstrumentationTest extends AbstractInstrumentationTest {
+public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(GrpcClientInstrumentationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractGrpcClientInstrumentationTest.class);
 
     private GrpcApp app;
 
@@ -54,7 +54,7 @@ public abstract class GrpcClientInstrumentationTest extends AbstractInstrumentat
         app = GrpcTest.getApp(getAppProvider());
         app.start();
 
-        tracer.startRootTransaction(GrpcClientInstrumentationTest.class.getClassLoader())
+        tracer.startRootTransaction(AbstractGrpcClientInstrumentationTest.class.getClassLoader())
             .withName("Test gRPC client")
             .withType("test")
             .activate();

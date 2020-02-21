@@ -24,10 +24,11 @@
  */
 package co.elastic.apm.agent.grpc.v1_23_0;
 
+import co.elastic.apm.agent.grpc.AbstractGrpcServerInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import co.elastic.apm.agent.grpc.v1_23_0.testapp.GrpcAppProviderImpl;
 
-class GrpcServerInstrumentationTest extends co.elastic.apm.agent.grpc.GrpcServerInstrumentationTest {
+class GrpcServerInstrumentationTest extends AbstractGrpcServerInstrumentationTest {
 
     @Override
     public GrpcAppProvider getAppProvider() {
