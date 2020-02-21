@@ -120,6 +120,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object userName_;
   /**
    * <code>string userName = 1;</code>
+   * @return The userName.
    */
   public java.lang.String getUserName() {
     java.lang.Object ref = userName_;
@@ -135,6 +136,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <code>string userName = 1;</code>
+   * @return The bytes for userName.
    */
   public com.google.protobuf.ByteString
       getUserNameBytes() {
@@ -154,6 +156,7 @@ private static final long serialVersionUID = 0L;
   private int depth_;
   /**
    * <code>int32 depth = 2;</code>
+   * @return The depth.
    */
   public int getDepth() {
     return depth_;
@@ -481,6 +484,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object userName_ = "";
     /**
      * <code>string userName = 1;</code>
+     * @return The userName.
      */
     public java.lang.String getUserName() {
       java.lang.Object ref = userName_;
@@ -496,6 +500,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <code>string userName = 1;</code>
+     * @return The bytes for userName.
      */
     public com.google.protobuf.ByteString
         getUserNameBytes() {
@@ -512,6 +517,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <code>string userName = 1;</code>
+     * @param value The userName to set.
+     * @return This builder for chaining.
      */
     public Builder setUserName(
         java.lang.String value) {
@@ -525,6 +532,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <code>string userName = 1;</code>
+     * @return This builder for chaining.
      */
     public Builder clearUserName() {
       
@@ -534,6 +542,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <code>string userName = 1;</code>
+     * @param value The bytes for userName to set.
+     * @return This builder for chaining.
      */
     public Builder setUserNameBytes(
         com.google.protobuf.ByteString value) {
@@ -550,12 +560,15 @@ private static final long serialVersionUID = 0L;
     private int depth_ ;
     /**
      * <code>int32 depth = 2;</code>
+     * @return The depth.
      */
     public int getDepth() {
       return depth_;
     }
     /**
      * <code>int32 depth = 2;</code>
+     * @param value The depth to set.
+     * @return This builder for chaining.
      */
     public Builder setDepth(int value) {
       
@@ -565,6 +578,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <code>int32 depth = 2;</code>
+     * @return This builder for chaining.
      */
     public Builder clearDepth() {
       

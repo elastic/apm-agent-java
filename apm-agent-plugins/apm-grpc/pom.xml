@@ -24,6 +24,7 @@
 
     <modules>
         <module>apm-grpc-plugin</module>
+        <module>apm-grpc-test-1.22.0</module>
         <module>apm-grpc-test-1.23.0</module>
         <module>apm-grpc-test-1.27.1</module>
    </modules>

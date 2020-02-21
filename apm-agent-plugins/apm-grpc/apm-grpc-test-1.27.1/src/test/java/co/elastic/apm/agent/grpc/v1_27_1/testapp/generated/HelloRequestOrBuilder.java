@@ -33,16 +33,19 @@ public interface HelloRequestOrBuilder extends
 
   /**
    * <code>string userName = 1;</code>
+   * @return The userName.
    */
   java.lang.String getUserName();
   /**
    * <code>string userName = 1;</code>
+   * @return The bytes for userName.
    */
   com.google.protobuf.ByteString
       getUserNameBytes();
 
   /**
    * <code>int32 depth = 2;</code>
+   * @return The depth.
    */
   int getDepth();
 }

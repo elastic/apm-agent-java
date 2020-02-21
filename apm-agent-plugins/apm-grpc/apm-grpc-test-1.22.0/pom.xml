@@ -9,7 +9,7 @@
         <version>1.13.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-grpc-test-1.23.0</artifactId>
+    <artifactId>apm-grpc-test-1.22.0</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
@@ -18,8 +18,8 @@
         <!-- test module, thus reusing same java version as other tests -->
         <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
 
-        <grpc.version>1.23.0</grpc.version>
-        <protobuf.version>3.11.0</protobuf.version>
+        <grpc.version>1.22.0</grpc.version>
+        <protobuf.version>3.7.1</protobuf.version>
     </properties>
 
     <dependencies>

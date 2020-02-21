@@ -19,7 +19,7 @@
         <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
 
         <grpc.version>1.27.1</grpc.version>
-        <protobuf.version>3.8.0</protobuf.version>
+        <protobuf.version>3.11.0</protobuf.version>
     </properties>
 
     <dependencies>
@@ -28,7 +28,6 @@
             <artifactId>apm-grpc-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
-            <!--            TODO : exclude grpc dependencies-->
         </dependency>
         <dependency>
             <groupId>co.elastic.apm</groupId>

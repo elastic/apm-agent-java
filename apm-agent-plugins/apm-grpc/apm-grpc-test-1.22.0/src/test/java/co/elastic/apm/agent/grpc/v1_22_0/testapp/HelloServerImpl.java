@@ -22,13 +22,13 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc.v1_27_1.testapp;
+package co.elastic.apm.agent.grpc.v1_22_0.testapp;
 
 import co.elastic.apm.agent.grpc.testapp.HelloClient;
 import co.elastic.apm.agent.grpc.testapp.HelloServer;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloGrpc;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloReply;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloRequest;
+import co.elastic.apm.agent.grpc.v1_22_0.testapp.generated.HelloGrpc;
+import co.elastic.apm.agent.grpc.v1_22_0.testapp.generated.HelloReply;
+import co.elastic.apm.agent.grpc.v1_22_0.testapp.generated.HelloRequest;
 import io.grpc.BindableService;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -55,7 +55,7 @@ class HelloServerImpl extends HelloServer<HelloRequest, HelloReply> {
         }
 
         @Override
-        public void sayHello(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
+        public void sayHello(HelloRequest request, StreamObserver<HelloReply> responseObserver) { // TODO : add grpc-stub as test dependency in plugin tests
             genericServer.doSayHello(request.getUserName(),
                 request.getDepth(),
                 new GenericHelloGrpcImpl.ReplyHandler() {
