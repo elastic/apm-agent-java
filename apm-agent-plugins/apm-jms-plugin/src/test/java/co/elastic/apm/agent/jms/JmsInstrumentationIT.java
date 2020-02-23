@@ -243,7 +243,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test
@@ -275,7 +274,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test
@@ -583,7 +581,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         verifyMessage(message, incomingMessage);
         Thread.sleep(500);
         assertThat(reporter.getTransactions()).isEmpty();
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

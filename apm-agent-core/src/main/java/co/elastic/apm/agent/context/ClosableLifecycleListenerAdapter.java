@@ -31,7 +31,7 @@ public class ClosableLifecycleListenerAdapter extends AbstractLifecycleListener 
     private final Closeable closeable;
 
     public static LifecycleListener of(Closeable closeable) {
-        return new co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter(closeable);
+        return new ClosableLifecycleListenerAdapter(closeable);
     }
 
     private ClosableLifecycleListenerAdapter(Closeable closeable) {

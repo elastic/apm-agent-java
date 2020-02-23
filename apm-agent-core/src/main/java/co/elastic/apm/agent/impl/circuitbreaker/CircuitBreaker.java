@@ -81,36 +81,12 @@ public class CircuitBreaker extends AbstractLifecycleListener {
             try {
                 if (circuitBreakerConfiguration.isCircuitBreakerEnabled()) {
                     if (isCurrentlyUnderStress) {
-                        boolean stressRelieved = true;
-                        for (StressMonitor stressMonitor : stressMonitors) {
-                            try {
-                                stressRelieved &= stressMonitor.isStressRelieved();
-                            } catch (Exception e) {
-                                if (logger.isDebugEnabled()) {
-                                    logger.debug("Failed to poll " + stressMonitor.getClass().getName(), e);
-                                }
-                            }
-                        }
-                        if (stressRelieved) {
-                            isCurrentlyUnderStress = false;
-                            tracer.stressRelieved();
-                        }
+                        checkIfStressRelieved();
                     } else {
-                        for (StressMonitor stressMonitor : stressMonitors) {
-                            try {
-                                if (stressMonitor.isUnderStress()) {
-                                    isCurrentlyUnderStress = true;
-                                    tracer.stressDetected();
-                                    break;
-                                }
-                            } catch (Exception e) {
-                                if (logger.isDebugEnabled()) {
-                                    logger.debug("Failed to poll " + stressMonitor.getClass().getName(), e);
-                                }
-                            }
-                        }
+                        checkIfUnderStress();
                     }
                 } else if (isCurrentlyUnderStress) {
+                    // to support dynamic disablement under current stress
                     isCurrentlyUnderStress = false;
                     tracer.stressRelieved();
                 }
@@ -126,6 +102,41 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                 logger.info("Stopping the Circuit Breaker thread.");
                 Thread.currentThread().interrupt();
             }
+        }
+    }
+
+    private void checkIfUnderStress() {
+        for (StressMonitor stressMonitor : stressMonitors) {
+            try {
+                if (stressMonitor.isUnderStress()) {
+                    logger.info("Stress detected by {}: {}", stressMonitor.getClass().getName(), stressMonitor.getStressDetectionInfo());
+                    isCurrentlyUnderStress = true;
+                    tracer.stressDetected();
+                    break;
+                }
+            } catch (Exception e) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Failed to poll " + stressMonitor.getClass().getName(), e);
+                }
+            }
+        }
+    }
+
+    private void checkIfStressRelieved() {
+        boolean stressRelieved = true;
+        for (StressMonitor stressMonitor : stressMonitors) {
+            try {
+                stressRelieved &= stressMonitor.isStressRelieved();
+            } catch (Exception e) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Failed to poll " + stressMonitor.getClass().getName(), e);
+                }
+            }
+        }
+        if (stressRelieved) {
+            logger.info("All registered stress monitors indicate that the stress has been relieved");
+            isCurrentlyUnderStress = false;
+            tracer.stressRelieved();
         }
     }
 

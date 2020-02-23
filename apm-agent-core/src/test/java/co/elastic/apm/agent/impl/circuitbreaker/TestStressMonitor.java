@@ -80,4 +80,9 @@ class TestStressMonitor extends StressMonitor {
         pollCounter++;
         return !stressIndicator;
     }
+
+    @Override
+    String getStressDetectionInfo() {
+        return "Stress is simulated";
+    }
 }

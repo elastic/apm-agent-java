@@ -37,4 +37,11 @@ abstract class StressMonitor {
     abstract boolean isUnderStress();
 
     abstract boolean isStressRelieved();
+
+    /**
+     * This method should return detailed info about the monitored state that lead to the latest stress detection
+     *
+     * @return free-text containing detailed info about the monitored state that lead to the latest stress detection
+     */
+    abstract String getStressDetectionInfo();
 }

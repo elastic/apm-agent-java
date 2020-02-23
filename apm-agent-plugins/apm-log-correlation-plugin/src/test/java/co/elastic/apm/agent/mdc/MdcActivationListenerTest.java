@@ -107,7 +107,6 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
             }
         }
         transaction.end();
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test
@@ -126,7 +125,6 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         }
         assertMdcIsEmpty();
         transaction.end();
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

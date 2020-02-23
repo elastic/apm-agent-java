@@ -25,21 +25,15 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractServletTest;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
@@ -62,28 +56,9 @@ import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
 
-    private static ConfigurationRegistry config;
-    private static ElasticApmTracer tracer;
-
     @BeforeAll
     static void initInstrumentation() {
-        config = SpyConfiguration.createSpyConfig();
         when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("/init")));
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-    }
-
-    @AfterAll
-    static void afterAll() {
-        ElasticApmAgent.reset();
-    }
-
-    @BeforeEach
-    void setUp() {
-        SpyConfiguration.reset(config);
     }
 
     @Override
@@ -117,7 +92,6 @@ class ServletInstrumentationTest extends AbstractServletTest {
     void testNoopInstrumentation() throws Exception {
         TracerInternalApiUtils.pauseTracer(tracer);
         callServlet(0, "/test");
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

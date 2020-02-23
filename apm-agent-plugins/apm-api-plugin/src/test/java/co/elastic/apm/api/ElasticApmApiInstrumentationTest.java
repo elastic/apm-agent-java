@@ -319,7 +319,6 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getTransactions()).hasSize(0);
         assertThat(reporter.getSpans()).hasSize(0);
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

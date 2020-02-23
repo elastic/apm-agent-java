@@ -752,9 +752,25 @@ public class ElasticApmTracer {
         serviceNameByClassLoader.clear();
     }
 
+    /**
+     * An enumeration used to represent the current tracer state.
+     */
     public enum TracerState {
+        /**
+         * Agent is in this state either before starting, or after being stopped.
+         */
         STOPPED,
+
+        /**
+         * Indicates that the agent is currently fully functional - tracing, monitoring and sending data to the APM server
+         */
         RUNNING,
+
+        /**
+         * The agent is mostly idle, consuming minimal resources, ready to quickly resume back to RUNNING. When the agent
+         * is PAUSED, it is not tracing and not communicating with the APM server. However, classes are still instrumented
+         * and threads are still alive.
+         */
         PAUSED
     }
 }

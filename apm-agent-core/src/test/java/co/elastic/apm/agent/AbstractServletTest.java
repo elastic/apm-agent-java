@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,12 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.eclipse.jetty.server.NetworkConnector;
@@ -32,7 +38,9 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -41,15 +49,30 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractServletTest {
-    protected static final MockReporter reporter = new MockReporter();
+    protected static MockReporter reporter;
+    protected static ConfigurationRegistry config;
+    protected static ElasticApmTracer tracer;
+
     @Nullable
     private static Server server;
     protected OkHttpClient httpClient;
 
+    @BeforeAll
+    static void setup() {
+        reporter = new MockReporter();
+        config = SpyConfiguration.createSpyConfig();
+        tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .reporter(reporter)
+            .build();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+    }
+
     @AfterAll
-    static void stopServer() throws Exception {
+    static void cleanup() throws Exception {
         server.stop();
         server = null;
+        ElasticApmAgent.reset();
     }
 
     @BeforeEach
@@ -70,6 +93,12 @@ public abstract class AbstractServletTest {
             .connectTimeout(10, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .build();
+    }
+
+    @AfterEach
+    void reset() {
+        SpyConfiguration.reset(config);
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     protected Response get(String path) throws IOException {

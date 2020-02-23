@@ -39,6 +39,7 @@ class GCStressMonitor extends StressMonitor {
     private static final Logger logger = LoggerFactory.getLogger(GCStressMonitor.class);
 
     private final List<MemoryPoolMXBean> heapMBeans = new ArrayList<>();
+    private final StringBuilder latestStressDetectionInfo = new StringBuilder("No stress has been detected so far.");
 
     GCStressMonitor(ElasticApmTracer tracer) {
         super(tracer);
@@ -69,7 +70,7 @@ class GCStressMonitor extends StressMonitor {
         return isThresholdCrossed(circuitBreakerConfiguration.getGcStressThreshold(), true);
     }
 
-    private boolean isThresholdCrossed(double percentageThreshold, boolean infoLogIfCrossed) {
+    private boolean isThresholdCrossed(double percentageThreshold, boolean updateStressInfoIfCrossed) {
         // We apply the same threshold to all heap pools at the moment. We can rethink that if we find it is not the
         // right way to go.
         for (int i = 0; i < heapMBeans.size(); i++) {
@@ -89,9 +90,12 @@ class GCStressMonitor extends StressMonitor {
                     long bytesThreshold = (long) (percentageThreshold * max);
                     long used = memUsageAfterLastGc.getUsed();
                     if (bytesThreshold > 0 && used > bytesThreshold) {
-                        if (infoLogIfCrossed) {
-                            logger.info("Heap {} pool usage after the last GC has crossed the configured threshold {}: {}/{} (used/max)",
-                                heapPoolMBean.getName(), percentageThreshold, used, max);
+                        if (updateStressInfoIfCrossed) {
+                            latestStressDetectionInfo.setLength(0);
+                            latestStressDetectionInfo.append("Heap pool \"").append(heapPoolMBean.getName())
+                                .append("\" usage after the last GC has crossed the configured threshold ")
+                                .append(percentageThreshold).append(": ").append(used).append("/").append(max)
+                                .append("(used/max)");
                         } else if (logger.isDebugEnabled()) {
                             logger.debug("Heap {} pool usage after the last GC is over the threshold of {}: {}/{} (used/max)",
                                 heapPoolMBean.getName(), percentageThreshold, used, max);
@@ -114,5 +118,10 @@ class GCStressMonitor extends StressMonitor {
     @Override
     boolean isStressRelieved() {
         return !isThresholdCrossed(circuitBreakerConfiguration.getGcReliefThreshold(), false);
+    }
+
+    @Override
+    String getStressDetectionInfo() {
+        return latestStressDetectionInfo.toString();
     }
 }

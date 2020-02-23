@@ -83,7 +83,6 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         TracerInternalApiUtils.pauseTracer(tracer);
         filterChain.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     @Test

@@ -68,10 +68,10 @@ public interface LifecycleListener {
      * the agent to restore all tracing capabilities
      * </p>
      * <p>
-     * Exceptions thrown from this method are caught and handled so that they don't prevent further cleanup actions.
+     * Exceptions thrown from this method are caught and handled so that they don't prevent further resume actions.
      * </p>
      *
-     * @throws Exception When something goes wrong performing the cleanup.
+     * @throws Exception When something goes wrong while attempting to resume.
      */
     void resume() throws Exception;
 
