@@ -25,11 +25,12 @@
 package co.elastic.apm.agent.grpc.v1_27_1;
 
 import co.elastic.apm.agent.grpc.AbstractGrpcContextHeadersTest;
+import co.elastic.apm.agent.grpc.GrpcTestNameGenerator;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import co.elastic.apm.agent.grpc.v1_27_1.testapp.GrpcAppProviderImpl;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DisplayNameGeneration;
 
-@DisplayName("GrpcContextHeadersTest 1.27.1")
+@DisplayNameGeneration(GrpcTestNameGenerator.class)
 class GrpcContextHeadersTest extends AbstractGrpcContextHeadersTest {
 
     @Override
