@@ -419,13 +419,25 @@ public class ElasticApmTracer {
      * @param e                     the exception to capture
      * @param initiatingClassLoader the class
      */
-    public void captureException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
-        captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
+    public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
+        ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
+        if (errorCapture != null) {
+            reporter.report(errorCapture);
+        }
     }
 
     @Nullable
-    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
-        return captureException(epochMicros, e, parent, null);
+    public ErrorCapture captureAndReportException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+        ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
+        if (errorCapture != null) {
+            reporter.report(errorCapture);
+        }
+        return errorCapture;
+    }
+
+    @Nullable
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
     }
 
     @Nullable
@@ -446,7 +458,6 @@ public class ElasticApmTracer {
                 error.getTraceContext().getId().setToRandomValue();
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
             }
-            reporter.report(error);
             return error;
         }
         return null;

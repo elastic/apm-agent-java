@@ -69,11 +69,10 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
      */
     private TransactionInfo transactionInfo = new TransactionInfo();
 
-    private ElasticApmTracer tracer;
     private final StringBuilder culprit = new StringBuilder();
 
     public ErrorCapture(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+        super(tracer);
         traceContext = TraceContext.with128BitId(this.tracer);
     }
 
@@ -124,8 +123,8 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
     /**
      * Creates a reference to a {@link TraceContext}
      *
-     * @return {@code this}, for chaining
      * @param parent parent trace context
+     * @return {@code this}, for chaining
      */
     public ErrorCapture asChildOf(TraceContextHolder<?> parent) {
         this.traceContext.asChildOf(parent.getTraceContext());
@@ -149,27 +148,28 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
 
     @Override
     public Span createSpan() {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
+    @Nullable
     public Span createSpan(long epochMicros) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean isChildOf(TraceContextHolder other) {
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Runnable withActive(Runnable runnable) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public <V> Callable<V> withActive(Callable<V> callable) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     public void setException(Throwable e) {
@@ -261,5 +261,9 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
 
     public void setTransactionType(@Nullable String type) {
         transactionInfo.type = type;
+    }
+
+    public void end() {
+        tracer.endError(this);
     }
 }

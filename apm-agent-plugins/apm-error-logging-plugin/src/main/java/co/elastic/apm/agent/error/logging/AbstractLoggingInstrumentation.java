@@ -32,11 +32,11 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameContainsIgnoreCase;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -62,7 +62,7 @@ public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumen
         public static void logEnter(@Advice.Argument(1) Throwable exception,
                                     @Advice.Local("nested") boolean nested,
                                     @Advice.This Object thiz,
-                                    @Advice.Local("error") ErrorCapture error) {
+                                    @Advice.Local("error") @Nullable ErrorCapture error) {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
@@ -74,7 +74,11 @@ public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumen
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void logExit(@Advice.Local("nested") boolean nested) {
+        public static void logExit(@Advice.Local("nested") boolean nested,
+                                   @Advice.Local("error") @Nullable ErrorCapture error) {
+            if (error != null) {
+                error.deactivate().end();
+            }
             if (!nested) {
                 nestedThreadLocal.set(Boolean.FALSE);
             }

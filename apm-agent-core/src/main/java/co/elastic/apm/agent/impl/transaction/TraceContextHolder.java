@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -156,7 +156,7 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     }
 
     public void captureException(long epochMicros, Throwable t) {
-        tracer.captureException(epochMicros, t, this);
+        tracer.captureAndReportException(epochMicros, t, this);
     }
 
     public T captureException(@Nullable Throwable t) {
@@ -168,7 +168,7 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
 
     @Nullable
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
-        ErrorCapture errorCapture = tracer.captureException(getTraceContext().getClock().getEpochMicros(), t, this);
+        ErrorCapture errorCapture = tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
         return errorCapture != null ? errorCapture.getTraceContext().getId().toString() : null;
     }
 
