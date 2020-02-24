@@ -58,9 +58,11 @@ public class RequestStreamRecordingInstrumentation extends ElasticApmInstrumenta
 
     public RequestStreamRecordingInstrumentation(ElasticApmTracer tracer) {
         synchronized (RequestStreamRecordingInstrumentation.class) {
-            wrapperHelperClassManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-                "co.elastic.apm.agent.servlet.helper.InputStreamFactoryHelperImpl",
-                "co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper");
+            if (wrapperHelperClassManager == null) {
+                wrapperHelperClassManager = HelperClassManager.ForSingleClassLoader.of(tracer,
+                    "co.elastic.apm.agent.servlet.helper.InputStreamFactoryHelperImpl",
+                    "co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper");
+            }
         }
     }
 

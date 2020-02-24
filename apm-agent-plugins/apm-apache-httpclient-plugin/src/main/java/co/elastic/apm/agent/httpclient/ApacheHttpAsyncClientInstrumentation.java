@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -55,6 +56,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class ApacheHttpAsyncClientInstrumentation extends ElasticApmInstrumentation {
 
     // Referencing specific Apache HTTP client classes are allowed due to type erasure
+    @Nullable
+    @VisibleForAdvice
     public static HelperClassManager<ApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, FutureCallback<?>, HttpContext>> helperManager;
 
     private static class ApacheHttpAsyncClientAdvice {
@@ -64,7 +67,7 @@ public class ApacheHttpAsyncClientInstrumentation extends ElasticApmInstrumentat
                                             @Advice.Argument(value = 3, readOnly = false) FutureCallback futureCallback,
                                             @Advice.Local("span") @Nullable Span span,
                                             @Advice.Local("wrapped") boolean wrapped) {
-            if (tracer == null || tracer.getActive() == null) {
+            if (tracer == null || tracer.getActive() == null || helperManager == null) {
                 return;
             }
             final TraceContextHolder<?> parent = tracer.getActive();
@@ -102,12 +105,16 @@ public class ApacheHttpAsyncClientInstrumentation extends ElasticApmInstrumentat
     }
 
     public ApacheHttpAsyncClientInstrumentation(ElasticApmTracer tracer) {
-        helperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientHelperImpl",
-            "co.elastic.apm.agent.httpclient.HttpAsyncRequestProducerWrapper",
-            "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientHelperImpl$RequestProducerWrapperAllocator",
-            "co.elastic.apm.agent.httpclient.FutureCallbackWrapper",
-            "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientHelperImpl$FutureCallbackWrapperAllocator");
+        synchronized (ApacheHttpAsyncClientInstrumentation.class) {
+            if (helperManager == null) {
+                helperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+                    "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientHelperImpl",
+                    "co.elastic.apm.agent.httpclient.HttpAsyncRequestProducerWrapper",
+                    "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientHelperImpl$RequestProducerWrapperAllocator",
+                    "co.elastic.apm.agent.httpclient.FutureCallbackWrapper",
+                    "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientHelperImpl$FutureCallbackWrapperAllocator");
+            }
+        }
     }
 
     @Override

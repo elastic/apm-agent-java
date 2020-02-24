@@ -69,9 +69,13 @@ public class OkHttp3ClientAsyncInstrumentation extends ElasticApmInstrumentation
     public static HelperClassManager<WrapperCreator<Callback>> callbackWrapperCreator;
 
     public OkHttp3ClientAsyncInstrumentation(ElasticApmTracer tracer) {
-        callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
-            OkHttp3ClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
-            OkHttp3ClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
+        synchronized (OkHttp3ClientAsyncInstrumentation.class) {
+            if(callbackWrapperCreator == null) {
+                callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
+                    OkHttp3ClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
+                    OkHttp3ClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
+            }
+        }
     }
 
     @VisibleForAdvice

@@ -72,10 +72,12 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
 
     public AsyncInstrumentation(ElasticApmTracer tracer) {
         synchronized (AsyncInstrumentation.class) {
-            asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-                "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
-                "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
-                "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
+            if(asyncHelperManager == null) {
+                asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
+                    "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
+                    "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
+                    "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
+            }
         }
     }
 
