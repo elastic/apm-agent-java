@@ -43,9 +43,11 @@ public abstract class JdbcInstrumentation extends ElasticApmInstrumentation {
     public static HelperClassManager<JdbcHelper> jdbcHelperManager = null;
 
     public JdbcInstrumentation(ElasticApmTracer tracer) {
-        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1");
+        synchronized (JdbcInstrumentation.class) {
+            jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
+                "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+                "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1");
+        }
     }
 
     @Override
