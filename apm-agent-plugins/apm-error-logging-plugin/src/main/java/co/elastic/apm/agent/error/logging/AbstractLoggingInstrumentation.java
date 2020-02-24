@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameContainsIgnoreCase;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
