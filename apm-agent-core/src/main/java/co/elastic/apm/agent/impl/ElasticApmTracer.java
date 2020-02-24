@@ -490,6 +490,10 @@ public class ElasticApmTracer {
         }
     }
 
+    public void endError(ErrorCapture error) {
+        reporter.report(error);
+    }
+
     public void recycle(Transaction transaction) {
         transactionPool.recycle(transaction);
     }

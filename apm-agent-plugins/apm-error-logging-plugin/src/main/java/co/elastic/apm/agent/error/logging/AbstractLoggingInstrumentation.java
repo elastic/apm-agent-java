@@ -26,6 +26,7 @@ package co.elastic.apm.agent.error.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -58,13 +59,16 @@ public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumen
     public static class LoggingAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void logEnter(@Advice.Argument(1) Throwable exception, @Advice.Local("nested") boolean nested) {
+        public static void logEnter(@Advice.Argument(1) Throwable exception,
+                                    @Advice.Local("nested") boolean nested,
+                                    @Advice.This Object thiz,
+                                    @Advice.Local("error") ErrorCapture error) {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
             nested = nestedThreadLocal.get();
             if (!nested) {
-                tracer.getActive().captureException(exception);
+                error = tracer.captureException(exception, tracer.getActive(), thiz.getClass().getClassLoader()).activate();
                 nestedThreadLocal.set(Boolean.TRUE);
             }
         }

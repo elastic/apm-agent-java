@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -37,12 +37,13 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.concurrent.Callable;
 
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class ErrorCapture implements Recyclable {
+public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Recyclable {
 
     private final TraceContext traceContext;
 
@@ -144,6 +145,31 @@ public class ErrorCapture implements Recyclable {
 
     public TraceContext getTraceContext() {
         return traceContext;
+    }
+
+    @Override
+    public Span createSpan() {
+        return null;
+    }
+
+    @Override
+    public Span createSpan(long epochMicros) {
+        return null;
+    }
+
+    @Override
+    public boolean isChildOf(TraceContextHolder other) {
+        return false;
+    }
+
+    @Override
+    public Runnable withActive(Runnable runnable) {
+        return null;
+    }
+
+    @Override
+    public <V> Callable<V> withActive(Callable<V> callable) {
+        return null;
     }
 
     public void setException(Throwable e) {
