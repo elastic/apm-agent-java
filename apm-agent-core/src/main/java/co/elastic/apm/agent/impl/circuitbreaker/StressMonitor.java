@@ -34,9 +34,9 @@ abstract class StressMonitor {
         circuitBreakerConfiguration = tracer.getConfig(CircuitBreakerConfiguration.class);
     }
 
-    abstract boolean isUnderStress();
+    abstract boolean isUnderStress() throws Exception;
 
-    abstract boolean isStressRelieved();
+    abstract boolean isStressRelieved() throws Exception;
 
     /**
      * This method should return detailed info about the monitored state that lead to the latest stress detection

@@ -30,6 +30,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.util.JmxUtils;
 import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;
@@ -47,7 +48,7 @@ import java.util.Map;
 import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 
 /**
- * Record metrics related to the CPU, gathered by the JVM.
+ * Record metrics related to the CPU and memory, gathered by the JVM.
  * <p>
  * Supported JVM implementations:
  * <ul>
@@ -60,18 +61,7 @@ import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
  */
 public class SystemMetrics extends AbstractLifecycleListener {
 
-    /**
-     * List of public, exported interface class names from supported JVM implementations.
-     */
-    private static final List<String> OPERATING_SYSTEM_BEAN_CLASS_NAMES = Arrays.asList(
-        "com.sun.management.OperatingSystemMXBean", // HotSpot
-        "com.ibm.lang.management.OperatingSystemMXBean" // J9
-    );
-
     private final OperatingSystemMXBean operatingSystemBean;
-
-    @Nullable
-    private final Class<?> operatingSystemBeanClass;
 
     @Nullable
     private final Method systemCpuUsage;
@@ -95,12 +85,11 @@ public class SystemMetrics extends AbstractLifecycleListener {
 
     SystemMetrics(File memInfoFile) {
         this.operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
-        this.operatingSystemBeanClass = getFirstClassFound(OPERATING_SYSTEM_BEAN_CLASS_NAMES);
-        this.systemCpuUsage = detectMethod("getSystemCpuLoad");
-        this.processCpuUsage = detectMethod("getProcessCpuLoad");
-        this.freeMemory = detectMethod("getFreePhysicalMemorySize");
-        this.totalMemory = detectMethod("getTotalPhysicalMemorySize");
-        this.virtualProcessMemory = detectMethod("getCommittedVirtualMemorySize");
+        this.systemCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getSystemCpuLoad");
+        this.processCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getProcessCpuLoad");
+        this.freeMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getFreePhysicalMemorySize");
+        this.totalMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getTotalPhysicalMemorySize");
+        this.virtualProcessMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getCommittedVirtualMemorySize");
         this.memInfoFile = memInfoFile;
     }
 
@@ -184,30 +173,5 @@ public class SystemMetrics extends AbstractLifecycleListener {
         } catch (Throwable e) {
             return Double.NaN;
         }
-    }
-
-    @Nullable
-    private Method detectMethod(String name) {
-        if (operatingSystemBeanClass == null) {
-            return null;
-        }
-        try {
-            // ensure the Bean we have is actually an instance of the interface
-            operatingSystemBeanClass.cast(operatingSystemBean);
-            return operatingSystemBeanClass.getMethod(name);
-        } catch (ClassCastException | NoSuchMethodException | SecurityException e) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private Class<?> getFirstClassFound(List<String> classNames) {
-        for (String className : classNames) {
-            try {
-                return Class.forName(className);
-            } catch (ClassNotFoundException ignore) {
-            }
-        }
-        return null;
     }
 }

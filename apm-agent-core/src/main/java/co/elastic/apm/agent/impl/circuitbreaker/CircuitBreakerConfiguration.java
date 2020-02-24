@@ -79,13 +79,47 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.14.0]")
         .tags("performance")
         .description("The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .\n" +
-            "If <<stress_monitor_gc_stress_threshold>> has been crossed, the agent will consider it a heap-stress state. \n" +
+            "If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. \n" +
             "In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should \n" +
             "be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
         .buildWithDefault(0.75);
 
+    private final ConfigurationOption<Integer> cpuConsecutiveMeasurements = ConfigurationOption.integerOption()
+        .key("stress_monitor_cpu_num_measurements")
+        .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
+        .tags("added[1.14.0]")
+        .tags("performance")
+        .description("The number of measurements required in order to determine whether the system is \n" +
+            "either currently under stress, or that the stress detected previously has been relieved.")
+        .dynamic(true)
+        .buildWithDefault(12);
+
+    private final ConfigurationOption<Double> systemCpuStressThreshold = ConfigurationOption.doubleOption()
+        .key("stress_monitor_system_cpu_stress_threshold")
+        .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
+        .tags("added[1.14.0]")
+        .tags("performance")
+        .description("The threshold used by the system CPU monitor to detect system CPU stress. \n" +
+            "If the system CPU crosses this threshold at least `stress_monitor_cpu_num_measurements` consecutive \n" +
+            "measurements, the monitor considers this as a stress state.")
+        .dynamic(true)
+        .addValidator(isInRange(0d, 1d))
+        .buildWithDefault(0.95);
+
+    private final ConfigurationOption<Double> systemCpuReliefThreshold = ConfigurationOption.doubleOption()
+        .key("stress_monitor_system_cpu_relief_threshold")
+        .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
+        .tags("added[1.14.0]")
+        .tags("performance")
+        .description("The threshold used by the system CPU monitor to determine that the system is \n" +
+            "not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below \n" +
+            "this threshold at least `stress_monitor_cpu_num_measurements` consecutive times in order for the \n" +
+            "monitor to decide that the CPU stress has been relieved.")
+        .dynamic(true)
+        .addValidator(isInRange(0d, 1d))
+        .buildWithDefault(0.80);
 
     public boolean isCircuitBreakerEnabled() {
         return circuitBreakerEnabled.get();
@@ -101,5 +135,17 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
 
     public double getGcReliefThreshold() {
         return gcReliefThreshold.get();
+    }
+
+    public int getCpuConsecutiveMeasurements() {
+        return cpuConsecutiveMeasurements.get();
+    }
+
+    public double getSystemCpuStressThreshold() {
+        return systemCpuStressThreshold.get();
+    }
+
+    public double getSystemCpuReliefThreshold() {
+        return systemCpuReliefThreshold.get();
     }
 }

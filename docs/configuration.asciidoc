@@ -67,6 +67,9 @@ Click on a key to get more information.
 ** <<config-stress-monitoring-interval>>
 ** <<config-stress-monitor-gc-stress-threshold>>
 ** <<config-stress-monitor-gc-relief-threshold>>
+** <<config-stress-monitor-cpu-num-measurements>>
+** <<config-stress-monitor-system-cpu-stress-threshold>>
+** <<config-stress-monitor-system-cpu-relief-threshold>>
 * <<config-core>>
 ** <<config-active>>
 ** <<config-instrument>>
@@ -207,7 +210,7 @@ after a recent GC.
 ==== `stress_monitor_gc_relief_threshold` (performance)
 
 The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
-If <<stress_monitor_gc_stress_threshold>> has been crossed, the agent will consider it a heap-stress state. 
+If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
 In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
 be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
 
@@ -223,6 +226,75 @@ be lower than this threshold. The GC monitor relies only on memory consumption m
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitor_gc_relief_threshold` | `stress_monitor_gc_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_RELIEF_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-cpu-num-measurements]]
+==== `stress_monitor_cpu_num_measurements` (performance)
+
+The number of measurements required in order to determine whether the system is 
+either currently under stress, or that the stress detected previously has been relieved.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `12` | Integer | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_cpu_num_measurements` | `stress_monitor_cpu_num_measurements` | `ELASTIC_APM_STRESS_MONITOR_CPU_NUM_MEASUREMENTS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-system-cpu-stress-threshold]]
+==== `stress_monitor_system_cpu_stress_threshold` (performance)
+
+The threshold used by the system CPU monitor to detect system CPU stress. 
+If the system CPU crosses this threshold at least `stress_monitor_cpu_num_measurements` consecutive 
+measurements, the monitor considers this as a stress state.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.95` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_system_cpu_stress_threshold` | `stress_monitor_system_cpu_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_STRESS_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-system-cpu-relief-threshold]]
+==== `stress_monitor_system_cpu_relief_threshold` (performance)
+
+The threshold used by the system CPU monitor to determine that the system is 
+not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
+this threshold at least `stress_monitor_cpu_num_measurements` consecutive times in order for the 
+monitor to decide that the CPU stress has been relieved.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.8` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_system_cpu_relief_threshold` | `stress_monitor_system_cpu_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_RELIEF_THRESHOLD`
 |============
 
 [[config-core]]
@@ -1750,7 +1822,7 @@ The default unit for this option is `ms`
 # stress_monitor_gc_stress_threshold=0.95
 
 # The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
-# If <<stress_monitor_gc_stress_threshold>> has been crossed, the agent will consider it a heap-stress state. 
+# If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
 # In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
 # be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
 #
@@ -1759,6 +1831,36 @@ The default unit for this option is `ms`
 # Default value: 0.75
 #
 # stress_monitor_gc_relief_threshold=0.75
+
+# The number of measurements required in order to determine whether the system is 
+# either currently under stress, or that the stress detected previously has been relieved.
+#
+# This setting can be changed at runtime
+# Type: Integer
+# Default value: 12
+#
+# stress_monitor_cpu_num_measurements=12
+
+# The threshold used by the system CPU monitor to detect system CPU stress. 
+# If the system CPU crosses this threshold at least `stress_monitor_cpu_num_measurements` consecutive 
+# measurements, the monitor considers this as a stress state.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.95
+#
+# stress_monitor_system_cpu_stress_threshold=0.95
+
+# The threshold used by the system CPU monitor to determine that the system is 
+# not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
+# this threshold at least `stress_monitor_cpu_num_measurements` consecutive times in order for the 
+# monitor to decide that the CPU stress has been relieved.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.8
+#
+# stress_monitor_system_cpu_relief_threshold=0.8
 
 ############################################
 # Core                                     #

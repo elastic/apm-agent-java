@@ -59,6 +59,7 @@ public class CircuitBreaker extends AbstractLifecycleListener {
     public void start(ElasticApmTracer tracer) {
         // failsafe loading of stress monitors in isolation
         loadGCStressMonitor(tracer);
+        loadSystemCpuStressMonitor(tracer);
 
         threadPool.execute(new Runnable() {
             @Override
@@ -73,6 +74,14 @@ public class CircuitBreaker extends AbstractLifecycleListener {
             stressMonitors.add(new GCStressMonitor(tracer));
         } catch (Throwable throwable) {
             logger.error("Failed to load the GC stress monitor. Circuit breaker will not be triggered based on GC events.", throwable);
+        }
+    }
+
+    private void loadSystemCpuStressMonitor(ElasticApmTracer tracer) {
+        try {
+            stressMonitors.add(new SystemCpuStressMonitor(tracer));
+        } catch (Throwable throwable) {
+            logger.error("Failed to load the system CPU stress monitor. Circuit breaker will not be triggered based on system CPU events.", throwable);
         }
     }
 
@@ -91,6 +100,7 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                     tracer.stressRelieved();
                 }
             } catch (Throwable throwable) {
+                // Catch all errors, otherwise the thread will terminate
                 logger.error("Error occurred during Circuit Breaker polling", throwable);
             }
             try {
@@ -149,7 +159,7 @@ public class CircuitBreaker extends AbstractLifecycleListener {
     }
 
     @Override
-    public void stop() throws Exception {
+    public void stop() {
         this.threadPool.shutdownNow();
     }
 }
