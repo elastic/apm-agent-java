@@ -49,6 +49,7 @@ public class MdcActivationListener implements ActivationListener {
 
     private static final String TRACE_ID = "trace.id";
     private static final String TRANSACTION_ID = "transaction.id";
+    private static final String ERROR_ID = "error.id";
     private static final Logger logger = LoggerFactory.getLogger(MdcActivationListener.class);
 
     // Never invoked- only used for caching ClassLoaders that can't load the MDC/ThreadContext class
@@ -159,6 +160,9 @@ public class MdcActivationListener implements ActivationListener {
                         put.invoke(TRACE_ID, traceContext.getTraceId().toString());
                         put.invoke(TRANSACTION_ID, traceContext.getTransactionId().toString());
                     }
+                    if (tracer != null && context instanceof ErrorCapture) {
+                        put.invokeExact(ERROR_ID, traceContext.getId().toString());
+                    }
                 }
             }
         }
@@ -174,6 +178,7 @@ public class MdcActivationListener implements ActivationListener {
                     if (tracer.getActive() == null) {
                         remove.invokeExact(TRACE_ID);
                         remove.invokeExact(TRANSACTION_ID);
+                        remove.invokeExact(ERROR_ID);
                     }
                 }
             }
