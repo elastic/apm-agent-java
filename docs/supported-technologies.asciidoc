@@ -388,7 +388,7 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 |Framework |Supported versions | Description | Since
 
 | gRPC
-| 1.23.0 - 1.27.1
+| 1.6.1 - 1.27.1
 | Client (synchronous & asynchronous) & Server instrumentation
 | 1.14.0
 
