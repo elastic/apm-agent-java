@@ -138,13 +138,14 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             // span is created somewhere between those two timing events, but we can't exactly when
             // and it varies a lot from one execution to another
 
-            long waitBeforeCancel = 50;
+            long waitBeforeCancel = 20;
 
             Thread.sleep(waitBeforeCancel);
             logger.info("cancel call after waiting {} ms", waitBeforeCancel);
 
             // cancel the future --> should create a span
             assertThat(msg.cancel(true)).isTrue();
+            long cancelTime = clock.getEpochMicros();
 
             Span span = reporter.getFirstSpan(1000);
             checkSpan(span);
@@ -154,14 +155,12 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
                 .isBetween(sendMessageStart, serverProcessingStart);
 
             // we don't know exactly when span starts, but we can at least make sure it's consistent with what we expect
-            // extra 5ms allowed to make test more reliable as cancellation is not blocking
-            long durationError = serverProcessingStart - sendMessageStart + 5000;
-
-            long waitMicro = waitBeforeCancel * 1000;
+            long estimatedMinSpanTime = cancelTime - serverProcessingStart;
+            long estimatedMaxSpanTime = cancelTime - sendMessageStart;
 
             assertThat(span.getDuration())
                 .describedAs("span duration should be larger than waited time before cancel")
-                .isBetween(waitMicro, waitMicro + durationError);
+                .isBetween(estimatedMinSpanTime, estimatedMaxSpanTime);
 
         } finally {
             // server is still waiting and did not sent response yet
