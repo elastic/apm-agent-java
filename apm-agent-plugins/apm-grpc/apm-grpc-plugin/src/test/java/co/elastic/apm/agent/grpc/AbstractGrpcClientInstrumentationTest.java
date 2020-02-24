@@ -82,6 +82,8 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     public void simpleCall() {
         doSimpleCall("bob");
 
+        tracer.currentTransaction().deactivate().end();
+
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
 

@@ -79,7 +79,9 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
         }
 
         List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions).hasSize(2);
+        assertThat(transactions)
+            .describedAs("should have 2 transactions: client (root) transaction, and gRPC server transaction")
+            .hasSize(2);
 
         assertThat(transactions.get(1)).isSameAs(transaction1);
 
