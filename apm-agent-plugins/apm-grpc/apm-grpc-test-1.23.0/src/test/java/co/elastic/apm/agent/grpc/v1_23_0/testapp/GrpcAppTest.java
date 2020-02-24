@@ -25,7 +25,9 @@
 package co.elastic.apm.agent.grpc.v1_23_0.testapp;
 
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import org.junit.jupiter.api.DisplayName;
 
+@DisplayName("GrpcAppTest 1.23.0")
 class GrpcAppTest extends co.elastic.apm.agent.grpc.testapp.GrpcAppTest {
 
     @Override

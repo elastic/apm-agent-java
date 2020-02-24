@@ -27,7 +27,9 @@ package co.elastic.apm.agent.grpc.v1_27_1;
 import co.elastic.apm.agent.grpc.AbstractGrpcContextHeadersTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import co.elastic.apm.agent.grpc.v1_27_1.testapp.GrpcAppProviderImpl;
+import org.junit.jupiter.api.DisplayName;
 
+@DisplayName("GrpcContextHeadersTest 1.27.1")
 class GrpcContextHeadersTest extends AbstractGrpcContextHeadersTest {
 
     @Override

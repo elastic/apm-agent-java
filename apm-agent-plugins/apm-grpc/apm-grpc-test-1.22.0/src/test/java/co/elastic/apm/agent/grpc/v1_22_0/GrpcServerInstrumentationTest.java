@@ -27,7 +27,9 @@ package co.elastic.apm.agent.grpc.v1_22_0;
 import co.elastic.apm.agent.grpc.AbstractGrpcServerInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import co.elastic.apm.agent.grpc.v1_22_0.testapp.GrpcAppProviderImpl;
+import org.junit.jupiter.api.DisplayName;
 
+@DisplayName("GrpcServerInstrumentationTest 1.22.0")
 class GrpcServerInstrumentationTest extends AbstractGrpcServerInstrumentationTest {
 
     @Override
