@@ -24,8 +24,8 @@
 
     <modules>
         <module>apm-grpc-plugin</module>
-        <module>apm-grpc-test-1.22.0</module>
-        <module>apm-grpc-test-1.23.0</module>
+        <module>apm-grpc-test-1.6.1</module>
+        <!-- other gRPC versions that have been tested : 1.7.1, 1,9.1, 1.13.2, 1.22.0, 1.23.0 -->
         <module>apm-grpc-test-1.27.1</module>
    </modules>
 
