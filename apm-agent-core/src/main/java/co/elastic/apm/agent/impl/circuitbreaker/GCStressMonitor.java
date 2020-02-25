@@ -58,9 +58,9 @@ class GCStressMonitor extends StressMonitor {
                 // Typically, the collection usage is nonnull for heap pools. The survivor pool may be problematic as
                 // JVMs may frequently adjust its size, returning it back to the OS, so we cannot even rely on their max size.
                 heapMBeans.add(memoryPoolMXBean);
-                logger.debug("Registering a heap memory pool ({}}) for stress monitoring", memoryPoolMXBean.getName());
+                logger.debug("Registering a heap memory pool ({}) for stress monitoring", memoryPoolMXBean.getName());
             } else {
-                logger.trace("Ignoring a non-heap memory pool ({}}) for stress monitoring", memoryPoolMXBean.getName());
+                logger.trace("Ignoring a non-heap memory pool ({}) for stress monitoring", memoryPoolMXBean.getName());
             }
         }
     }

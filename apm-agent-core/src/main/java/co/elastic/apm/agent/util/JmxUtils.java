@@ -49,8 +49,9 @@ public class JmxUtils {
      * List of public, exported interface class names from supported JVM implementations.
      */
     private static final List<String> OPERATING_SYSTEM_BEAN_CLASS_NAMES = Arrays.asList(
-        "com.sun.management.OperatingSystemMXBean", // HotSpot
-        "com.ibm.lang.management.OperatingSystemMXBean" // J9
+        // NOTE: THE ORDER IS IMPORTANT AS J9 CONTAINS THE SUN INTERFACE AS WELL
+        "com.ibm.lang.management.OperatingSystemMXBean", // J9
+        "com.sun.management.OperatingSystemMXBean" // HotSpot
     );
 
     @Nullable
