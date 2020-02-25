@@ -37,6 +37,8 @@ pipeline {
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
+    // FIXME: Remove before PR
+    booleanParam(name: 'release_stage', defaultValue: false, description: 'Ungate the release stage')
   }
 
   stages {
@@ -298,6 +300,67 @@ pipeline {
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
+    }
+    stage('Release') {
+      options { skipDefaultCheckout () }
+      when {
+        // FIXME: Remove before PR
+        // tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+        expression { return params.release_stage }
+      }
+      steps {
+
+        // 1. Check to see if oss.sonatype.org is up. We throw an exception and fail the job if there is no response.
+        httpRequest(url: "https://oss.sonatype.org/#welcome")
+
+        // 2. Review project version.
+        script {
+          // Show the select input modal
+          def INPUT_PARAMS = input message: 'Do you wish to update the version?', ok: 'Next', parameters: [choice(name: 'UPDATE_CHOICE', choices:['Yes', 'No'], description: "This will run `mvn release:update-versions`")]
+          echo INPUT_PARAMS
+          if (INPUT_PARAMS == 'Yes') {
+              // FIXME We might not yet have the right credentials loaded to do this
+              sh mvn release:update-versions
+          } else {
+              echo 'Skipping version update'
+          }
+        }
+        // 3. Execute the release Jenkins job on the internal ci server.
+            // For now we assume that the release has been pushed to staging already on the internal CI
+        // 4. Login to oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
+        script {
+          def foundStagingId = nexusFindStagingId(stagingProfileId: "TODO MOVE TO VAULT", description: "TODO")
+          nexusCloseStagingRepository(stagingProfileId: "TODO MOVE TO VAULT", stagingId: foundStagingId)
+          nexusReleaseStagingRepository(stagingProfileId: "TODO MOVE TO VAULT", stagingId: foundStagingId)
+        }
+        // 5. Fetch and checkout the latest tag e.g. git fetch origin
+          // We already have this :)
+        // 6. If this was a major release, create a new branch for the major.
+        script {
+          def isMajor = sh(script: 'git tag|tail -1|cut -f2-3 -d "."|{ read ver; test $ver == "0.0"; }', returnStatus: true)
+          if (isMajor == 0) {
+            echo "This appears to be a major version. We are creating a new branch in the apm-agent-java repo on GitHub."
+            // We need to create a new branch. First get the name of the branch
+            def newBranchName = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
+            echo "This appears to be a major version. We are creating a new branch for $newBranchName in the apm-agent-java repo on GitHub."
+            // Now we need to branch
+            sh(script: "git checkout -b $newBranchName")
+            // And push
+            githubEnv()
+            gitPush() // FIXME. Does it need credentials?
+            // 6.1 Add the new branch to the conf.yaml in the docs repo
+            input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
+          } else {  // This was a minor release
+            // 7. If this was a minor release, reset the current major branch (1.x, 2.x etc) to point to the current tag, e.g. git branch -f 1.x v1.1.0
+            // Determine current tag
+            def curTag = sh(script: "git tag|tail -1", returnStdout: true)
+            def targetBranch = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d '.'|awk \'{print $1".x"}\'', returnStdout: true)
+            sh(script: "git branch -f $targetBranch $curTag")
+          }
+        }
+        // 8. Update CHANGELOG.asciidoc to reflect version release. Go over PRs or git log and add bug fixes and features. 
+
+      }  
     }
     stage('AfterRelease') {
       options { skipDefaultCheckout() }
