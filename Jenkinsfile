@@ -356,10 +356,50 @@ pipeline {
             def curTag = sh(script: "git tag|tail -1", returnStdout: true)
             def targetBranch = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d '.'|awk \'{print $1".x"}\'', returnStdout: true)
             sh(script: "git branch -f $targetBranch $curTag")
+            gitPush()
           }
         }
+        // Checkout the tag again!
+        sh("git checkout ${BUILD_TAG}")
         // 8. Update CHANGELOG.asciidoc to reflect version release. Go over PRs or git log and add bug fixes and features. 
-
+        generateChangelog(repo: 'apm-agent-java')
+        // 9. Go to elastic/apm-agent-java/releases and draft a new release. Provide a link to release notes in documentation as release description.
+        script {
+          def curTag = sh(script: "git tag|tail -1", returnStdout: true)
+          // Construct the URL with anchor for the release notes
+          // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
+          def baseUrl = "https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-"
+          def dotX = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
+          def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
+          def finalUrl = sh(script: "echo $baseUrl$dotX\.html#release-notes-$bareTag")
+          githubReleaseCreate(draft: true, body: "[Release Notes for $bareTag]($finalUrl)")
+        }
+        // 10. Update cloudfoundry/index.yml
+        // Needs to append a line such as the following:
+        // 1.13.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.13.0/elastic-apm-agent-1.13.0.jar
+        script {
+          sh("git checkout master")
+          def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
+          def baseUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent"
+          def lineToAppend = sh(script: "echo '$baseUrl: $baseUrl/$bareTag/elastic-apm-agent-$bareTag\.jar' >> cloudfoundry/index.yml ")
+          gitPush()
+        }
+        // 11. Wait for released package to be available in maven central
+        script {
+          // We are looking for something like this:
+          // https://oss.sonatype.org/service/local/repositories/releases/content/co/elastic/apm/apm-agent-java/1.1.12/apm-agent-java-1.1.12.pom
+          def baseUrl = "https://oss.sonatype.org/service/local/repositories/releases/content/co/elastic/apm/apm-agent-java"
+          def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
+          def fullUrl = sh(script: "$baseUrl/$bareTag/apm-agent-java-$bareTag\.pom")
+          waitUntil(initialRecurrencePeriod: 15000) {
+            script {
+              def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
+              echo "Waiting for the artifacts to be published on Sonatype"
+              return ret == 0
+            }
+          }
+        }
+      // 12. Publish release on Github. This will notify users watching repository.
       }  
     }
     stage('AfterRelease') {
