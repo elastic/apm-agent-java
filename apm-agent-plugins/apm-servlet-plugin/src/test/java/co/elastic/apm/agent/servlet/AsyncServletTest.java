@@ -24,17 +24,9 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.AbstractServletTest;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.AsyncContext;
@@ -55,25 +47,9 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AsyncServletTest extends AbstractServletTest {
+class AsyncServletTest extends AbstractServletTest {
 
     private static final String ACTIVE_TRANSACTION_ATTRIBUTE = "active-transaction";
-
-    private static ElasticApmTracer tracer;
-
-    @BeforeAll
-    static void setUp() {
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-    }
-
-    @AfterAll
-    static void afterAll() {
-        ElasticApmAgent.reset();
-    }
 
     @Override
     protected void setUpHandler(ServletContextHandler handler) {

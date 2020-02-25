@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,11 +32,11 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +49,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 
 /**
  * This class must not import classes from {@code javax.servlet} due to class loader issues.
@@ -62,12 +62,13 @@ public class ServletTransactionHelper {
 
     @VisibleForAdvice
     public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
+
     @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
+
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
-    public static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
-    @VisibleForAdvice
-    public static Set<String> nameInitialized = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
+    private static final Set<String> nameInitialized = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -81,7 +82,10 @@ public class ServletTransactionHelper {
         this.tracer = tracer;
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
-        // clear when unit tests re-init the instrumentation
+    }
+
+    // visible for testing as clearing cache is required between tests execution
+    static void clearServiceNameCache() {
         nameInitialized.clear();
     }
 
