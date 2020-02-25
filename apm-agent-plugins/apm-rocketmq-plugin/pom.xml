@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-plugins</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.13.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-rocketmq-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <rocketmq.client.version>4.2.0</rocketmq.client.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+            <version>${rocketmq.client.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

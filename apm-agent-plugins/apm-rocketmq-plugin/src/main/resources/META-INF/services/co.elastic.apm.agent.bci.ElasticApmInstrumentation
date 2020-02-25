@@ -1,0 +1,3 @@
+co.elastic.apm.agent.rocketmq.instrumentation.producer.RocketMQProducerInstrumentation
+co.elastic.apm.agent.rocketmq.instrumentation.consumer.RocketMQMessageListenerConcurrentlyInstrumentation
+co.elastic.apm.agent.rocketmq.instrumentation.consumer.RocketMQMessageListenerOrderlyInstrumentation

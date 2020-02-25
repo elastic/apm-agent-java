@@ -57,7 +57,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.*;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -90,7 +90,8 @@ public class MockReporter implements Reporter {
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
-        SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
+        SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"),
+            "rocketmq", Set.of("send"));
     }
 
     public MockReporter() {
