@@ -27,6 +27,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.util.ByteUtils;
 import co.elastic.apm.agent.util.HexUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 /**
@@ -79,6 +81,7 @@ public class TraceContext extends TraceContextHolder {
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
     public static final String TRACESTATE_HEADER_NAME = "tracestate";
+    public static final int SERIALIZED_LENGTH = 42;
     private static final int TEXT_HEADER_EXPECTED_LENGTH = 55;
     private static final int TEXT_HEADER_TRACE_ID_OFFSET = 3;
     private static final int TEXT_HEADER_PARENT_ID_OFFSET = 36;
@@ -96,7 +99,6 @@ public class TraceContext extends TraceContextHolder {
     // one byte for the flags field id (0x02), followed by two bytes of flags contents
     private static final int BINARY_FORMAT_FLAGS_OFFSET = 27;
     private static final byte BINARY_FORMAT_FLAGS_FIELD_ID = (byte) 0b0000_0010;
-
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
     /**
      * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
@@ -409,7 +411,10 @@ public class TraceContext extends TraceContextHolder {
         clock.init(parent.clock);
         serviceName = parent.serviceName;
         applicationClassLoader = parent.applicationClassLoader;
-        tracestate.addAll(parent.tracestate);
+        List<String> parentTracestate = parent.tracestate;
+        for (int i = 0, size = parentTracestate.size(); i < size; i++) {
+            tracestate.add(parentTracestate.get(i));
+        }
         onMutation();
     }
 
@@ -657,6 +662,20 @@ public class TraceContext extends TraceContextHolder {
         return tracer.startSpan(fromParent(), this, epochMicros);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TraceContext that = (TraceContext) o;
+        return id.equals(that.id) &&
+            traceId.equals(that.traceId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(traceId, id, parentId, flags);
+    }
+
     void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
         if (classLoader != null) {
             WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
@@ -679,6 +698,51 @@ public class TraceContext extends TraceContextHolder {
 
     public void addTracestate(String headerValue) {
         tracestate.add(headerValue);
+    }
+
+    public byte[] serialize() {
+        byte[] result = new byte[SERIALIZED_LENGTH];
+        serialize(result);
+        return result;
+    }
+
+    public void serialize(byte[] buffer) {
+        int offset = 0;
+        offset = traceId.toBytes(buffer, offset);
+        offset = id.toBytes(buffer, offset);
+        offset = transactionId.toBytes(buffer, offset);
+        buffer[offset++] = flags;
+        buffer[offset++] = (byte) (discard ? 1 : 0);
+        ByteUtils.putLong(buffer, offset, clock.getOffset());
+    }
+
+    private void asChildOf(byte[] buffer, @Nullable String serviceName) {
+        int offset = 0;
+        offset += traceId.fromBytes(buffer, offset);
+        offset += parentId.fromBytes(buffer, offset);
+        offset += transactionId.fromBytes(buffer, offset);
+        id.setToRandomValue();
+        flags = buffer[offset++];
+        discard = buffer[offset++] == (byte) 1;
+        clock.init(ByteUtils.getLong(buffer, offset));
+        this.serviceName = serviceName;
+        onMutation();
+    }
+
+    public void deserialize(byte[] buffer, @Nullable String serviceName) {
+        int offset = 0;
+        offset += traceId.fromBytes(buffer, offset);
+        offset += id.fromBytes(buffer, offset);
+        offset += transactionId.fromBytes(buffer, offset);
+        flags = buffer[offset++];
+        discard = buffer[offset++] == (byte) 1;
+        clock.init(ByteUtils.getLong(buffer, offset));
+        this.serviceName = serviceName;
+        onMutation();
+    }
+
+    public boolean traceIdAndIdEquals(byte[] serialized) {
+        return id.dataEquals(serialized, traceId.getLength()) && traceId.dataEquals(serialized, 0);
     }
 
     public interface ChildContextCreator<T> {

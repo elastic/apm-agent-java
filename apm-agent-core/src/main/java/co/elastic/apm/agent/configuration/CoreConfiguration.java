@@ -360,6 +360,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for which to create a transaction or span.\n" +
             "\n" +
+            "If you want to monitor a large number of methods,\n" +
+            "use  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.\n" +
+            "\n" +
             "This works by instrumenting each matching method to include code that creates a span for the method.\n" +
             "While creating a span is quite cheap in terms of performance,\n" +
             "instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.\n" +

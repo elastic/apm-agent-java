@@ -40,8 +40,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class BookkeeperObjectPool<T> implements ObjectPool<T> {
 
-    private ObjectPool<T> pool;
-    private Set<T> toReturn = Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>());
+    private final ObjectPool<T> pool;
+    private final Set<T> toReturn = Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>());
     // An ever-increasing counter for how many objects where requested from the pool
     private AtomicInteger objectCounter = new AtomicInteger();
 
@@ -85,6 +85,11 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     @Override
     public long getGarbageCreated() {
         return pool.getGarbageCreated();
+    }
+
+    @Override
+    public void clear() {
+        pool.clear();
     }
 
     /**

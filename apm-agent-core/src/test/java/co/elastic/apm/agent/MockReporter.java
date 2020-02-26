@@ -58,6 +58,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -184,16 +185,11 @@ public class MockReporter implements Reporter {
         return transactions.iterator().next();
     }
 
-    public Transaction getFirstTransaction(long timeoutMs) throws InterruptedException {
-        final long end = System.currentTimeMillis() + timeoutMs;
-        do {
-            synchronized (this) {
-                if (!transactions.isEmpty()) {
-                    return getFirstTransaction();
-                }
-            }
-            Thread.sleep(1);
-        } while (System.currentTimeMillis() < end);
+    public Transaction getFirstTransaction(long timeoutMs) {
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
 
