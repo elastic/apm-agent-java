@@ -59,6 +59,16 @@ public class ProfilingFactory implements LifecycleListener {
     }
 
     @Override
+    public void pause() throws Exception {
+        // todo - implement
+    }
+
+    @Override
+    public void resume() throws Exception {
+        // todo - implement
+    }
+
+    @Override
     public void stop() throws Exception {
         profiler.stop();
         if (!jfrFile.delete()) {

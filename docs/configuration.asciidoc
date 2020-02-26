@@ -173,7 +173,7 @@ The interval at which the agent polls the stress monitors. Must be at least `1s`
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============

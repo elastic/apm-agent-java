@@ -293,7 +293,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     @Override
     public void run() {
-        if (config.isProfilingDisabled() || !coreConfig.isActive()) {
+        if (config.isProfilingDisabled() || !tracer.isRunning()) {
             if (jfrParser != null) {
                 jfrParser = null;
                 rootPool.clear();
@@ -544,6 +544,16 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     @Override
     public void start(ElasticApmTracer tracer) {
         scheduler.submit(this);
+    }
+
+    @Override
+    public void pause() throws Exception {
+        // todo - implement
+    }
+
+    @Override
+    public void resume() throws Exception {
+        // todo - implement
     }
 
     @Override
