@@ -24,6 +24,9 @@
  */
 package co.elastic.apm.agent.objectpool;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
 
 import java.util.ArrayList;
@@ -38,6 +41,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestObjectPoolFactory extends ObjectPoolFactory {
 
     private final List<BookkeeperObjectPool<?>> createdPools = new ArrayList<BookkeeperObjectPool<?>>();
+    private BookkeeperObjectPool<Transaction> transactionPool;
+    private BookkeeperObjectPool<Span> spanPool;
 
     @Override
     protected <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
@@ -64,4 +69,23 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
         }
     }
 
+    @Override
+    public ObjectPool<Transaction> createTransactionPool(int maxCapacity, ElasticApmTracer tracer) {
+        transactionPool = (BookkeeperObjectPool<Transaction>) super.createTransactionPool(maxCapacity, tracer);
+        return transactionPool;
+    }
+
+    @Override
+    public ObjectPool<Span> createSpanPool(int maxCapacity, ElasticApmTracer tracer) {
+        spanPool = (BookkeeperObjectPool<Span>) super.createSpanPool(maxCapacity, tracer);
+        return spanPool;
+    }
+
+    public BookkeeperObjectPool<Transaction> getTransactionPool() {
+        return transactionPool;
+    }
+
+    public BookkeeperObjectPool<Span> getSpanPool() {
+        return spanPool;
+    }
 }
