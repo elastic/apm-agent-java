@@ -26,6 +26,7 @@ package co.elastic.apm.agent.grpc.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
@@ -51,14 +52,19 @@ public class GrpcHelperImpl implements GrpcHelper {
 
     /**
      * Map of all in-flight spans, is only used by client part.
-     * Key is {@link ClientCall}, but referred as {@link Object} to avoid loading any gRPC reference in the bootstrap classloader
+     * Key is {@link ClientCall}, value is {@link Span}
      */
-    private static final WeakConcurrentMap<ClientCall<?,?>, Span> inFlightSpans;
+    private static final WeakConcurrentMap<ClientCall<?, ?>, Span> inFlightSpans;
     /**
      * Map of all in-flight {@link ClientCall instances} with the {@link ClientCall.Listener} instance that have been used to
      * start them as key.
      */
     private static final WeakConcurrentMap<ClientCall.Listener<?>, ClientCall<?,?>> inFlightListeners;
+
+    /**
+     * gRPC header cache used to minimize allocations
+     */
+    private static final WeakConcurrentMap.WithInlinedExpunction<String, Metadata.Key<String>> headerCache ;
 
     private static final TextHeaderSetter<Metadata> headerSetter;
     private static final TextHeaderGetter<Metadata> headerGetter;
@@ -66,6 +72,8 @@ public class GrpcHelperImpl implements GrpcHelper {
     static {
         inFlightListeners = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, ClientCall<?, ?>>();
         inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
+        headerCache = new WeakConcurrentMap.WithInlinedExpunction<String,Metadata.Key<String>>();
+
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();
     }
@@ -199,4 +207,31 @@ public class GrpcHelperImpl implements GrpcHelper {
         return span;
     }
 
+    private static class GrpcHeaderSetter implements TextHeaderSetter<Metadata> {
+
+        @Override
+        public void setHeader(String headerName, String headerValue, Metadata carrier) {
+            carrier.put(getHeader(headerName), headerValue);
+        }
+
+    }
+
+    private static class GrpcHeaderGetter extends AbstractHeaderGetter<String, Metadata> implements TextHeaderGetter<Metadata> {
+
+        @Nullable
+        @Override
+        public String getFirstHeader(String headerName, Metadata carrier) {
+            return carrier.get(getHeader(headerName));
+        }
+
+    }
+
+    private static Metadata.Key<String> getHeader(String headerName) {
+        Metadata.Key<String> key = headerCache.get(headerName);
+        if (key == null) {
+            key = Metadata.Key.of(headerName, Metadata.ASCII_STRING_MARSHALLER);
+            headerCache.put(headerName, key);
+        }
+        return key;
+    }
 }
