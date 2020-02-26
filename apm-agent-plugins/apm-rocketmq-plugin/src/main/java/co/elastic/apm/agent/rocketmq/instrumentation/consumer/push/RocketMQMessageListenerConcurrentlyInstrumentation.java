@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rocketmq.instrumentation.consumer;
+package co.elastic.apm.agent.rocketmq.instrumentation.consumer.push;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.rocketmq.helper.RocketMQInstrumentationHelper;
@@ -63,13 +63,10 @@ public class RocketMQMessageListenerConcurrentlyInstrumentation extends BaseRock
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.Argument(value = 0, readOnly = false) MessageListenerConcurrently messageListener) {
-            if (tracer == null || tracer.currentTransaction() != null) {
+            if (tracer == null || helperClassManager == null) {
                 return;
             }
 
-            if (helperClassManager == null) {
-                return;
-            }
             final RocketMQInstrumentationHelper helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
             if (helper == null) {
                 return;

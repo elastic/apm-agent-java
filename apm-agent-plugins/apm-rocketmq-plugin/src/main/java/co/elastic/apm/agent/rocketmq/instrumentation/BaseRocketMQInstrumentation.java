@@ -47,7 +47,11 @@ public abstract class BaseRocketMQInstrumentation extends ElasticApmInstrumentat
                 "co.elastic.apm.agent.rocketmq.helper.SendCallbackWrapper",
                 "co.elastic.apm.agent.rocketmq.helper.MessageListenerWrapper",
                 "co.elastic.apm.agent.rocketmq.helper.MessageListenerOrderlyWrapper",
-                "co.elastic.apm.agent.rocketmq.helper.MessageListenerConcurrentlyWrapper");
+                "co.elastic.apm.agent.rocketmq.helper.MessageListenerConcurrentlyWrapper",
+                "co.elastic.apm.agent.rocketmq.helper.ConsumeMessageListWrapper",
+                "co.elastic.apm.agent.rocketmq.helper.ConsumeMessageIteratorWrapper",
+                "co.elastic.apm.agent.rocketmq.helper.RocketMQMessageHeaderAccessor",
+                "co.elastic.apm.agent.rocketmq.helper.PullCallbackWrapper");
         }
     }
 
@@ -55,4 +59,5 @@ public abstract class BaseRocketMQInstrumentation extends ElasticApmInstrumentat
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("messaging", "rocketmq");
     }
+
 }

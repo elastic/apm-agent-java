@@ -29,9 +29,12 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import org.apache.rocketmq.client.consumer.PullCallback;
+import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.impl.CommunicationMode;
+import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -77,6 +80,14 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
         span.getContext().getDestination().getService().withType("messaging").withName("rocketmq")
             .getResource().append("rocketmq/").append(topic);
 
+        try {
+            span.getTraceContext().setOutgoingTraceContextHeaders(msg, RocketMQMessageHeaderAccessor.getInstance());
+        } catch (Exception exp) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Failed to add user property to rocketmq message {} because {}", msg, exp.getMessage());
+            }
+        }
+
         span.activate();
 
         return span;
@@ -120,5 +131,34 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
         return new MessageListenerOrderlyWrapper(listenerOrderly, tracer);
     }
 
+    @Override
+    public PullResult wrapPullResult(PullResult delegate) {
+        if (delegate == null || delegate.getMsgFoundList() == null || delegate.getMsgFoundList() instanceof ConsumeMessageListWrapper) {
+            return delegate;
+        } else if (delegate instanceof PullResultExt) {
+            PullResultExt pullResultExt = (PullResultExt) delegate;
+            return new PullResultExt(pullResultExt.getPullStatus(),
+                pullResultExt.getNextBeginOffset(),
+                pullResultExt.getMinOffset(),
+                pullResultExt.getMaxOffset(),
+                new ConsumeMessageListWrapper(pullResultExt.getMsgFoundList(), tracer),
+                pullResultExt.getSuggestWhichBrokerId(),
+                pullResultExt.getMessageBinary());
+        } else {
+            return new PullResult(delegate.getPullStatus(),
+                delegate.getNextBeginOffset(),
+                delegate.getMinOffset(),
+                delegate.getMaxOffset(),
+                new ConsumeMessageListWrapper(delegate.getMsgFoundList(), tracer));
+        }
+    }
+
+    @Override
+    public PullCallback wrapPullCallback(final PullCallback delegate) {
+        if (delegate == null) {
+            return null;
+        }
+        return new PullCallbackWrapper(delegate, this);
+    }
 
 }

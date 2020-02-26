@@ -62,7 +62,10 @@ abstract class MessageListenerWrapper<S, C> {
     }
 
     private Transaction startConsumeTrans(List<MessageExt> msgs) {
-        Transaction transaction = null;
+        Transaction transaction = tracer.currentTransaction();
+        if (transaction != null) {
+            return transaction;
+        }
         try {
             MessageExt firstMsgExt = msgs.get(0);
             String topic = firstMsgExt.getTopic();

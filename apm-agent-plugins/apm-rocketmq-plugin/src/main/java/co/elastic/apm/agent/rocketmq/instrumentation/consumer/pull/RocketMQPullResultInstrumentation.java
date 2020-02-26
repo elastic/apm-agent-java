@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rocketmq.instrumentation.consumer;
+package co.elastic.apm.agent.rocketmq.instrumentation.consumer.pull;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.rocketmq.helper.RocketMQInstrumentationHelper;
@@ -32,37 +32,36 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.rocketmq.client.consumer.MQConsumer;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.PullResult;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQInstrumentation {
+public class RocketMQPullResultInstrumentation extends BaseRocketMQInstrumentation {
 
-    public RocketMQMessageListenerOrderlyInstrumentation(ElasticApmTracer tracer) {
+    public RocketMQPullResultInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.apache.rocketmq.client.consumer.DefaultMQPushConsumer");
+        return named("org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("registerMessageListener")
-            .and(takesArgument(0, named("org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly")));
+        return named("pullSyncImpl");
     }
 
     @Override
     public Class<?> getAdviceClass() {
-        return MessageListenerOrderlyAdvice.class;
+        return PullResultAdvice.class;
     }
 
-    private static class MessageListenerOrderlyAdvice {
+    public static class PullResultAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Argument(value = 0, readOnly = false) MessageListenerOrderly messageListener) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.Thrown Throwable thrown,
+                                   @Advice.Return(readOnly = false) PullResult pullResult) {
             if (tracer == null || tracer.currentTransaction() != null) {
                 return;
             }
@@ -70,12 +69,13 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
             if (helperClassManager == null) {
                 return;
             }
+
             final RocketMQInstrumentationHelper helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
             if (helper == null) {
                 return;
             }
 
-            messageListener = helper.wrapMessageListener(messageListener);
+            pullResult = helper.wrapPullResult(pullResult);
         }
 
     }
