@@ -323,7 +323,7 @@ pipeline {
               def INPUT_PARAMS = input message: 'Do you wish to update the version?', ok: 'Next', parameters: [choice(name: 'UPDATE_CHOICE', choices:['Yes', 'No'], description: "This will run `mvn release:update-versions`")]
               echo INPUT_PARAMS
               if (INPUT_PARAMS == 'Yes') {
-                  // FIXME We might not yet have the right credentials loaded to do this
+                  // FIXME We might not yet have the right credentials loaded to do this unless we move over to the internal-ci
                   sh mvn release:update-versions
               } else {
                   echo 'Skipping version update'
@@ -359,7 +359,7 @@ pipeline {
                 sh(script: "git checkout -b $newBranchName")
                 // And push
                 githubEnv()
-                gitPush() // FIXME. Does it need credentials?
+                gitPush() 
                 // 6.1 Add the new branch to the conf.yaml in the docs repo
                 input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
               } else {  // This was a minor release
