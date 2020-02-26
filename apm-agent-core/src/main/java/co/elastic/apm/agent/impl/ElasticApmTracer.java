@@ -434,7 +434,7 @@ public class ElasticApmTracer {
 
     public void endTransaction(Transaction transaction) {
         if (logger.isDebugEnabled()) {
-            logger.debug("} endTransaction {}", transaction);
+            logger.debug("endTransaction {}", transaction);
             if (logger.isTraceEnabled()) {
                 logger.trace("ending transaction at",
                     new RuntimeException("this exception is just used to record where the transaction has been ended from"));
