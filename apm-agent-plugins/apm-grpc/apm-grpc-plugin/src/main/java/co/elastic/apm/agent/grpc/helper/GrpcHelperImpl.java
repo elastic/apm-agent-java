@@ -85,8 +85,11 @@ public class GrpcHelperImpl implements GrpcHelper {
 
         String methodName = serverCall.getMethodDescriptor().getFullMethodName();
 
-        tracer.startChildTransaction(headers, headerGetter, cl)
-            .withName(methodName)
+        Transaction transaction = tracer.startChildTransaction(headers, headerGetter, cl);
+        if (transaction == null) {
+            return;
+        }
+        transaction.withName(methodName)
             .withType("request")
             .activate();
     }
