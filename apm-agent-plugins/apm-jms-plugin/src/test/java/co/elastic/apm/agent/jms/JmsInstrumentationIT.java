@@ -131,13 +131,16 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
         Transaction transaction;
         if (sampler == null) {
-            transaction = tracer.startRootTransaction(null).activate();
+            transaction = tracer.startRootTransaction(null);
         } else {
-            transaction = tracer.startRootTransaction(sampler, -1, null).activate();
+            transaction = tracer.startRootTransaction(sampler, -1, null);
         }
-        transaction.withName("JMS-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        if (transaction != null) {
+            transaction.activate()
+                .withName("JMS-Test Transaction")
+                .withType("request")
+                .withResult("success");
+        }
     }
 
     @After
@@ -178,9 +181,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             Transaction transaction = null;
             Message message = null;
             try {
-                transaction = tracer.startRootTransaction(null)
-                    .withName("JMS-Test Receiver Transaction")
-                    .activate();
+                transaction = tracer.startRootTransaction(null);
+                if (transaction != null) {
+                    transaction.withName("JMS-Test Receiver Transaction")
+                        .activate();
+                }
                 message = receiveMethod.call();
 
                 if (message != null) {
@@ -236,6 +241,27 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
         assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
         assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
+    }
+
+    @Test
+    public void testAgentPaused() throws Exception {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        // End current transaction and start a non-sampled one
+        //noinspection ConstantConditions
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+
+        startAndActivateTransaction(ConstantSampler.of(false));
+        final Queue queue = createTestQueue();
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test
@@ -416,9 +442,12 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
-        //noinspection ConstantConditions
-        if (tracer.currentTransaction().isSampled()) {
-            verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+        if (tracer.isRunning()) {
+            Transaction transaction = tracer.currentTransaction();
+            assertThat(transaction).isNotNull();
+            if (transaction.isSampled()) {
+                verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+            }
         }
     }
 

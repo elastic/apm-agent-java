@@ -27,6 +27,7 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
@@ -148,15 +149,18 @@ public class KafkaIT extends AbstractInstrumentationTest {
     }
 
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
-        Transaction transaction;
+        Transaction transaction = null;
         if (sampler == null) {
-            transaction = tracer.startRootTransaction(null).activate();
+            transaction = tracer.startRootTransaction(null);
         } else {
-            transaction = tracer.startRootTransaction(sampler, -1, null).activate();
+            transaction = tracer.startRootTransaction(sampler, -1, null);
         }
-        transaction.withName("Kafka-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        if (transaction != null) {
+            transaction.activate()
+                .withName("Kafka-Test Transaction")
+                .withType("request")
+                .withResult("success");
+        }
     }
 
     @After
@@ -302,6 +306,27 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
     }
 
+    @Test
+    public void testAgentPaused() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        // End current transaction and start a non-sampled one
+        //noinspection ConstantConditions
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+
+        testScenario = TestScenario.AGENT_PAUSED;
+        startAndActivateTransaction(ConstantSampler.of(false));
+        sendTwoRecordsAndConsumeReplies();
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
+    }
+
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testSendTwoRecords_TransactionNotSampled() {
@@ -337,7 +362,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         record2.headers().add(headerKey, TEST_HEADER_VALUE.getBytes(StandardCharsets.UTF_8));
         producer.send(record1);
         producer.send(record2, (metadata, exception) -> callback.append("done"));
-        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC) {
+        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC && testScenario != TestScenario.AGENT_PAUSED) {
             await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
             if (testScenario != TestScenario.NON_SAMPLED_TRANSACTION) {
                 int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
@@ -552,6 +577,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         HEADERS_CAPTURE_DISABLED,
         SANITIZED_HEADER,
         IGNORE_REQUEST_TOPIC,
+        AGENT_PAUSED,
         NO_CONTEXT_PROPAGATION,
         TOPIC_ADDRESS_COLLECTION_DISABLED,
         NON_SAMPLED_TRANSACTION

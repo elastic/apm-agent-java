@@ -292,35 +292,19 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testDisable() {
+    void testPause() {
         tracerImpl.pause();
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader()); // 1
-        try (Scope scope = transaction.activateInScope()) {
-            assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
-            assertThat(transaction.isSampled()).isFalse();
-            Span span = transaction.createSpan();
-            try (Scope spanScope = span.activateInScope()) {
-                assertThat(tracerImpl.getActive()).isSameAs(span);
-                assertThat(tracerImpl.getActive()).isNotNull();
-            }
-            span.end();
-            assertThat(tracerImpl.getActive()).isSameAs(transaction);
-        }
-        transaction.end();
-        assertThat(tracerImpl.currentTransaction()).isNull();
-        assertThat(reporter.getTransactions()).isEmpty();
-        assertThat(reporter.getSpans()).isEmpty();
-        tracerImpl.resume();
+        assertThat(tracerImpl.startRootTransaction(getClass().getClassLoader())).isNull();
     }
 
     @Test
-    void testDisableMidTransaction() {
+    void testPauseMidTransaction() {
         Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
         try (Scope scope = transaction.activateInScope()) {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
+            tracerImpl.pause();
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
-                tracerImpl.pause();
                 span.withName("test");
                 assertThat(span.getNameAsString()).isEqualTo("test");
                 assertThat(tracerImpl.getActive()).isSameAs(span);
@@ -329,7 +313,6 @@ class ElasticApmTracerTest {
             }
             Span span2 = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span2.activateInScope()) {
-                tracerImpl.pause();
                 span2.withName("test2");
                 assertThat(span2.getNameAsString()).isEqualTo("test2");
                 assertThat(tracerImpl.getActive()).isSameAs(span2);
@@ -342,7 +325,6 @@ class ElasticApmTracerTest {
         assertThat(tracerImpl.currentTransaction()).isNull();
         assertThat(reporter.getSpans()).hasSize(2);
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
-        tracerImpl.resume();
     }
 
     @Test

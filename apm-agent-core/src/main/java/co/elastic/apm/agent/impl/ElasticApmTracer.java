@@ -176,8 +176,9 @@ public class ElasticApmTracer {
      *
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
      *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent
+     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
      */
+    @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
         return startRootTransaction(sampler, -1, initiatingClassLoader);
     }
@@ -190,41 +191,38 @@ public class ElasticApmTracer {
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
      *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
      *                              for log correlation.
-     * @return a transaction which is a child of the provided parent
+     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
      */
+    @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        Transaction transaction;
-        switch (tracerState) {
-            case STOPPED: {
-                throw new IllegalStateException("Requested to create a transaction while the agent is stopped");
-            }
-            case PAUSED: {
-                transaction = noopTransaction();
-                break;
-            }
-            default: {
-                transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
-            }
+        Transaction transaction = null;
+        if (isRunning()) {
+            transaction = createTransaction().start(TraceContext.asRoot(), null, epochMicros, sampler, initiatingClassLoader);
+            afterTransactionStart(initiatingClassLoader, transaction);
         }
-        afterTransactionStart(initiatingClassLoader, transaction);
         return transaction;
     }
 
     /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
+     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
+     * available), then it will be started as the root transaction of the trace.
      *
      * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
      * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
      *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent
+     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
      */
+    @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
     /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
+     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
+     * available), then it will be started as the root transaction of the trace.
      *
      * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
      * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
@@ -233,43 +231,40 @@ public class ElasticApmTracer {
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
      *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
      *                              for log correlation.
-     * @return a transaction which is a child of the provided parent
+     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
      */
+    @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                                  long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        Transaction transaction;
-        switch (tracerState) {
-            case STOPPED: {
-                throw new IllegalStateException("Requested to create a transaction while the agent is stopped");
-            }
-            case PAUSED: {
-                transaction = noopTransaction();
-                break;
-            }
-            default: {
-                transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
-                    textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
-            }
+        Transaction transaction = null;
+        if (isRunning()) {
+            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextTextHeaders(), headerCarrier,
+                textHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+            afterTransactionStart(initiatingClassLoader, transaction);
         }
-        afterTransactionStart(initiatingClassLoader, transaction);
         return transaction;
     }
 
     /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
+     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
+     * available), then it will be started as the root transaction of the trace.
      *
      * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
      * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
      *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent
+     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
      */
+    @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
     /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}
+     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
+     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
+     * available), then it will be started as the root transaction of the trace.
      *
      * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
      * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
@@ -278,25 +273,17 @@ public class ElasticApmTracer {
      * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
      *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
      *                              for log correlation.
-     * @return a transaction which is a child of the provided parent
+     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
      */
+    @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
                                                  Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
-        Transaction transaction;
-        switch (tracerState) {
-            case STOPPED: {
-                throw new IllegalStateException("Requested to create a transaction while the agent is stopped");
-            }
-            case PAUSED: {
-                transaction = noopTransaction();
-                break;
-            }
-            default: {
-                transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
-                    binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
-            }
+        Transaction transaction = null;
+        if (isRunning()) {
+            transaction = createTransaction().start(TraceContext.<C>getFromTraceContextBinaryHeaders(), headerCarrier,
+                binaryHeadersGetter, epochMicros, sampler, initiatingClassLoader);
+            afterTransactionStart(initiatingClassLoader, transaction);
         }
-        afterTransactionStart(initiatingClassLoader, transaction);
         return transaction;
     }
 

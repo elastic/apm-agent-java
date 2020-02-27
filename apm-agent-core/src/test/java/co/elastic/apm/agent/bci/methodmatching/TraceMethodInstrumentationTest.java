@@ -34,6 +34,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -160,14 +161,14 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    void testObjectAllocations() {
+    void testAgentPaused() {
         TracerInternalApiUtils.pauseTracer(tracer);
         int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
         int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
-        new TestDiscardableMethods(tracer).root(false);
+        new TestDiscardableMethods(tracer).root(true);
         assertThat(reporter.getTransactions()).hasSize(0);
         assertThat(reporter.getSpans()).hasSize(0);
-        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount + 1);
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
         assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
@@ -328,10 +329,13 @@ class TraceMethodInstrumentationTest {
         }
 
         private void manuallyTraced() {
-            tracer.getActive().createSpan()
-                .activate()
-                .deactivate()
-                .end();
+            TraceContextHolder<?> active = tracer.getActive();
+            if (active != null) {
+                active.createSpan()
+                    .activate()
+                    .deactivate()
+                    .end();
+            }
         }
 
         private void beforeLongMethod() {

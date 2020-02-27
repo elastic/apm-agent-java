@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.quartz.job;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,6 +92,31 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         responseFuture.get();
         scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
+    }
+
+    @Test
+    public void testAgentPaused() throws SchedulerException, InterruptedException, ExecutionException {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        JobDetail job = JobBuilder.newJob(TestJob.class)
+            .withIdentity("dummyJobName-AgentPaused", "group1").build();
+        Trigger trigger = TriggerBuilder
+            .newTrigger()
+            .withIdentity("myTrigger")
+            .withSchedule(
+                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+            .build();
+        scheduler.scheduleJob(job, trigger);
+        scheduler.start();
+        responseFuture.get();
+        scheduler.deleteJob(job.getKey());
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test

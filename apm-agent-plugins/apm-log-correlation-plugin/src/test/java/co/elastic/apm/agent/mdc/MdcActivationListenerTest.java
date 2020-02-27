@@ -97,16 +97,9 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
     void testDisabledWhenInactive() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
         TracerInternalApiUtils.pauseTracer(tracer);
-        Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
+        Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
+        assertThat(transaction).isNull();
         assertMdcIsEmpty();
-        try (Scope scope = transaction.activateInScope()) {
-            assertMdcIsEmpty();
-            Span child = transaction.createSpan();
-            try (Scope childScope = child.activateInScope()) {
-                assertMdcIsEmpty();
-            }
-        }
-        transaction.end();
     }
 
     @Test

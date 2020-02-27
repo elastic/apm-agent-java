@@ -148,8 +148,10 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             .withSubtype("jms")
                             .withAction("receive");
                     } else if (createPollingTransaction) {
-                        createdSpan = tracer.startRootTransaction(clazz.getClassLoader())
-                            .withType(MESSAGE_POLLING);
+                        createdSpan = tracer.startRootTransaction(clazz.getClassLoader());
+                        if (createdSpan != null) {
+                            ((Transaction) createdSpan).withType(MESSAGE_POLLING);
+                        }
                     }
 
                     if (createdSpan != null) {
@@ -224,20 +226,21 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
 
-                    Transaction messageHandlingTransaction = helper.startJmsTransaction(message, clazz)
-                        .withType(MESSAGE_HANDLING)
-                        .withName(RECEIVE_NAME_PREFIX);
+                    Transaction messageHandlingTransaction = helper.startJmsTransaction(message, clazz);
+                    if (messageHandlingTransaction != null) {
+                        messageHandlingTransaction.withType(MESSAGE_HANDLING)
+                            .withName(RECEIVE_NAME_PREFIX);
 
-                    if (destinationName != null) {
-                        messageHandlingTransaction.appendToName(" from ");
-                        helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
-                        helper.addMessageDetails(message, messageHandlingTransaction);
-                        helper.setMessageAge(message, messageHandlingTransaction);
+                        if (destinationName != null) {
+                            messageHandlingTransaction.appendToName(" from ");
+                            helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
+                            helper.addMessageDetails(message, messageHandlingTransaction);
+                            helper.setMessageAge(message, messageHandlingTransaction);
+                        }
+
+                        messageHandlingTransaction.activate();
                     }
-
-                    messageHandlingTransaction.activate();
                 }
-
             }
         }
     }
