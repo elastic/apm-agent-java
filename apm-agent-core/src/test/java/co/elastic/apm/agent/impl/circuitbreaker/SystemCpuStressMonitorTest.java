@@ -92,26 +92,26 @@ class SystemCpuStressMonitorTest {
     void testStressApi() throws Exception {
         testValues = List.of(0.4, 0.5, 0.99, 1.0, 1.0, 1.0, 0.6, 0.7, 0.98, 0.6, 0.7, 0.7, 0.99);
         for (int i = 0; i < 4; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
+            assertNotUnderStress();
         }
         for (int i = 0; i < 7; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isTrue();
+            assertUnderStress();
         }
-        assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
-        assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
+        assertNotUnderStress();
+        assertNotUnderStress();
     }
 
     @Test
     void testReliefApi() throws Exception {
         testValues = List.of(0.4, 0.5, 0.99, 1.0, 1.0, 1.0, 0.6, 0.7, 0.98, 0.6, 0.7, 0.7, 0.99);
         for (int i = 0; i < 4; i++) {
-            assertThat(systemCpuStressMonitor.isStressRelieved()).isTrue();
+            assertStressRelieved();
         }
         for (int i = 0; i < 7; i++) {
-            assertThat(systemCpuStressMonitor.isStressRelieved()).isFalse();
+            assertStressNotRelieved();
         }
-        assertThat(systemCpuStressMonitor.isStressRelieved()).isTrue();
-        assertThat(systemCpuStressMonitor.isStressRelieved()).isTrue();
+        assertStressRelieved();
+        assertStressRelieved();
     }
 
     @Test
@@ -119,23 +119,23 @@ class SystemCpuStressMonitorTest {
         testValues = List.of(Double.NaN, 0.5, Double.POSITIVE_INFINITY, 0.99, 1.0, Double.NEGATIVE_INFINITY, Double.NaN,
             1.0, 1.0, 0.6, Double.NaN, 0.7, 0.98, 0.6, Double.NaN, 0.7, 0.7, 0.99);
         for (int i = 0; i < 7; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
+            assertNotUnderStress();
         }
         for (int i = 0; i < 9; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isTrue();
+            assertUnderStress();
         }
-        assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
-        assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
+        assertNotUnderStress();
+        assertNotUnderStress();
     }
 
     @Test
     void testMidRangeThenStress() throws Exception {
         testValues = List.of(0.4, 0.5, 0.89, 0.88, 0.92, 0.96, 0.89, 0.97, 0.96, 1.0, 0.97, 0.91, 0.5);
         for (int i = 0; i < 9; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
+            assertNotUnderStress();
         }
         for (int i = 0; i < 4; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isTrue();
+            assertUnderStress();
         }
     }
 
@@ -143,11 +143,31 @@ class SystemCpuStressMonitorTest {
     void testStressThenMidRange() throws Exception {
         testValues = List.of(0.4, 0.5, 0.99, 1.0, 1.0, 1.0, 0.89, 0.81, 0.87, 0.91, 0.87, 0.91, 0.5);
         for (int i = 0; i < 4; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
+            assertNotUnderStress();
         }
         for (int i = 0; i < 9; i++) {
-            assertThat(systemCpuStressMonitor.isUnderStress()).isTrue();
+            assertUnderStress();
         }
+    }
+
+    // this method has a side effect of advancing the iterator that reads the test values from the list
+    private void assertUnderStress() throws Exception {
+        assertThat(systemCpuStressMonitor.isUnderStress()).isTrue();
+    }
+
+    // this method has a side effect of advancing the iterator that reads the test values from the list
+    private void assertNotUnderStress() throws Exception {
+        assertThat(systemCpuStressMonitor.isUnderStress()).isFalse();
+    }
+
+    // this method has a side effect of advancing the iterator that reads the test values from the list
+    private void assertStressNotRelieved() throws Exception {
+        assertThat(systemCpuStressMonitor.isStressRelieved()).isFalse();
+    }
+
+    // this method has a side effect of advancing the iterator that reads the test values from the list
+    private void assertStressRelieved() throws Exception {
+        assertThat(systemCpuStressMonitor.isStressRelieved()).isTrue();
     }
 
     private class MBeanMock implements OperatingSystemMXBean {
