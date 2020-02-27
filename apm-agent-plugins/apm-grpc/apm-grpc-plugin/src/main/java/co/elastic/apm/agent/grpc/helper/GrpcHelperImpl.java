@@ -207,7 +207,7 @@ public class GrpcHelperImpl implements GrpcHelper {
         return span;
     }
 
-    private static class GrpcHeaderSetter implements TextHeaderSetter<Metadata> {
+    public static class GrpcHeaderSetter implements TextHeaderSetter<Metadata> {
 
         @Override
         public void setHeader(String headerName, String headerValue, Metadata carrier) {
@@ -216,7 +216,7 @@ public class GrpcHelperImpl implements GrpcHelper {
 
     }
 
-    private static class GrpcHeaderGetter extends AbstractHeaderGetter<String, Metadata> implements TextHeaderGetter<Metadata> {
+    public static class GrpcHeaderGetter extends AbstractHeaderGetter<String, Metadata> implements TextHeaderGetter<Metadata> {
 
         @Nullable
         @Override
