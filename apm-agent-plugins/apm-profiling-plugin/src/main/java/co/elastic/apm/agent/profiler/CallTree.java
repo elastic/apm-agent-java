@@ -45,7 +45,7 @@ import java.util.Objects;
  * <pre>
  *             count
  *  b b     a      4
- * aaaa ─►  ├─b    1
+ * aaaa --o ├─b    1
  *          └─b    1
  * </pre>
  * <p>
