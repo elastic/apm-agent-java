@@ -27,7 +27,6 @@ package co.elastic.apm.agent.servlet;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
@@ -250,7 +249,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testNoExplicitEndOfInput() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
+        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
         transaction.getContext().getRequest().withBodyBuffer();
         transaction.end();
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody().toString()).isEqualTo("");

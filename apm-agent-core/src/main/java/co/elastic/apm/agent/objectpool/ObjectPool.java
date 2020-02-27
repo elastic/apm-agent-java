@@ -55,4 +55,6 @@ public interface ObjectPool<T> {
      * @return number of times that objects could not be returned to the pool because the pool was already full
      */
     long getGarbageCreated();
+
+    void clear();
 }

@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
 import org.junit.Before;
@@ -45,7 +44,7 @@ public class ExcludedExecutorClassTest extends AbstractInstrumentationTest {
     public void setUp() {
         executor = new ExecutorServiceWrapper(Executors.newFixedThreadPool(1));
         ExecutorInstrumentation.excludedClasses.add(ExecutorServiceWrapper.class.getName());
-        transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withName("Transaction").activate();
+        transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
     }
 
     @After

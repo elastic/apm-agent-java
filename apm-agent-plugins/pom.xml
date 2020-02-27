@@ -46,6 +46,7 @@
         <module>apm-mongoclient-plugin</module>
         <module>apm-process-plugin</module>
         <module>apm-kafka-plugin</module>
+        <module>apm-profiling-plugin</module>
     </modules>
 
     <dependencies>

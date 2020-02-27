@@ -26,10 +26,11 @@ package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
@@ -56,6 +57,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmInstrumentation {
 
+    // Referencing specific AsyncHttpClient classes are allowed due to type erasure
+    @VisibleForAdvice
+    @Nullable
+    public static HelperClassManager<TextHeaderSetter<Request>> headerSetterManager;
+
     @VisibleForAdvice
     public static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
 
@@ -64,6 +70,18 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         AsyncHandlerOnCompletedInstrumentation.class,
         AsyncHandlerOnThrowableInstrumentation.class,
         AsyncHandlerOnStatusReceivedInstrumentation.class);
+
+    public AbstractAsyncHttpClientInstrumentation() {
+        if (headerSetterManager == null) {
+            synchronized (AbstractAsyncHandlerInstrumentation.class) {
+                if (headerSetterManager == null) {
+                    headerSetterManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+                        "co.elastic.apm.agent.asynchttpclient.helper.RequestHeaderSetter"
+                    );
+                }
+            }
+        }
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -93,7 +111,13 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
             if (span != null) {
                 span.activate();
-                request.getHeaders().add(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
+                TextHeaderSetter<Request> headerSetter = null;
+                if (headerSetterManager != null) {
+                    headerSetter = headerSetterManager.getForClassLoaderOfClass(Request.class);
+                }
+                if (headerSetter != null) {
+                    span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                }
                 handlerSpanMap.put(asyncHandler, span);
             }
         }

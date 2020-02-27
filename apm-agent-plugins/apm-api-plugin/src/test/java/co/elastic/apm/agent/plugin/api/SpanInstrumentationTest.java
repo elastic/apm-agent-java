@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
@@ -33,7 +35,9 @@ import co.elastic.apm.api.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -144,8 +148,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
             final Map<String, String> tracingHeaders = new HashMap<>();
             span.injectTraceHeaders(tracingHeaders::put);
             span.injectTraceHeaders(null);
-            final String traceparent = tracer.getActive().getTraceContext().getOutgoingTraceParentTextHeader().toString();
-            assertThat(tracingHeaders).containsEntry(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, traceparent);
+            assertThat(TraceContext.containsTraceContextTextHeaders(tracingHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
         }
     }
 }

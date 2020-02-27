@@ -27,7 +27,6 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.asm.Advice;
@@ -39,7 +38,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.record.RecordBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,11 +105,10 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
             if (apiVersions.maxUsableProduceMagic() >= RecordBatch.MAGIC_VALUE_V2 && headersSupported) {
                 try {
                     //noinspection ConstantConditions
-                    KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header> kafkaInstrumentationHelper =
+                    KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                         kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
                     if (kafkaInstrumentationHelper != null) {
-                        Header elasticHeader = kafkaInstrumentationHelper.getOutgoingTraceparentHeader(span);
-                        record.headers().add(elasticHeader);
+                        kafkaInstrumentationHelper.setOutgoingTraceContextHeaders(span, record);
                     }
                 } catch (final IllegalStateException e) {
                     // headers are in a read-only state
@@ -140,7 +137,12 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                     //noinspection unchecked
                     record = new ProducerRecord(record.topic(), record.partition(), record.timestamp(),
                         record.key(), record.value(), record.headers());
-                    record.headers().remove(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME);
+                    //noinspection ConstantConditions
+                    KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
+                        kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
+                    if (kafkaInstrumentationHelper != null) {
+                        kafkaInstrumentationHelper.removeTraceContextHeader(record);
+                    }
                     span.deactivate();
                     span = null;
                     headersSupported = false;

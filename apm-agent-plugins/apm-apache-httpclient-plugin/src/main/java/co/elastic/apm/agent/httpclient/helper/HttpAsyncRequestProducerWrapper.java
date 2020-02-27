@@ -22,11 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.httpclient.helper;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
@@ -39,18 +39,20 @@ import org.apache.http.protocol.HttpContext;
 
 import java.io.IOException;
 
-public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyclable {
-    private final ApacheHttpAsyncClientHelperImpl helper;
+class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyclable {
+    private final ApacheHttpAsyncClientHelperImpl asyncClientHelper;
     private volatile HttpAsyncRequestProducer delegate;
     private Span span;
+    private TextHeaderSetter<HttpRequest> headerSetter;
 
     HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelperImpl helper) {
-        this.helper = helper;
+        this.asyncClientHelper = helper;
     }
 
-    public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, Span span) {
+    public HttpAsyncRequestProducerWrapper with(HttpAsyncRequestProducer delegate, Span span, TextHeaderSetter<HttpRequest> headerSetter) {
         // Order is important due to visibility - write to delegate last on this (initiating) thread
         this.span = span;
+        this.headerSetter = headerSetter;
         this.delegate = delegate;
         return this;
     }
@@ -72,8 +74,7 @@ public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer
                 span.withName(method).appendToName(" ");
                 span.getContext().getHttp().withMethod(method).withUrl(requestLine.getUri());
             }
-
-            request.setHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
+            span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
         }
 
         HttpHost host = getTarget();
@@ -118,13 +119,14 @@ public class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer
     @Override
     public void close() throws IOException {
         delegate.close();
-        helper.recycle(this);
+        asyncClientHelper.recycle(this);
     }
 
     @Override
     public void resetState() {
         // Order is important due to visibility - write to delegate last
         span = null;
+        headerSetter = null;
         delegate = null;
     }
 }

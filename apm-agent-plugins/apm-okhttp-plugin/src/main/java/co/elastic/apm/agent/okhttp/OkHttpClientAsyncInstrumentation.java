@@ -24,13 +24,12 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
@@ -47,13 +46,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public class OkHttpClientAsyncInstrumentation extends ElasticApmInstrumentation {
+public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(OkHttpClientAsyncInstrumentation.class);
@@ -68,14 +65,12 @@ public class OkHttpClientAsyncInstrumentation extends ElasticApmInstrumentation 
     public static HelperClassManager<WrapperCreator<Callback>> callbackWrapperCreator;
 
     public OkHttpClientAsyncInstrumentation(ElasticApmTracer tracer) {
-        synchronized (OkHttpClientAsyncInstrumentation.class) {
-            if (callbackWrapperCreator == null) {
-                callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
-                    OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
-            }
+        super(tracer);
+        if (callbackWrapperCreator == null) {
+            callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
+                OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
+                OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
         }
-
     }
 
     @VisibleForAdvice
@@ -103,7 +98,14 @@ public class OkHttpClientAsyncInstrumentation extends ElasticApmInstrumentation 
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
             if (span != null) {
                 span.activate();
-                originalRequest = originalRequest.newBuilder().addHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString()).build();
+                if (headerSetterHelperManager != null) {
+                    TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
+                    if (headerSetter != null) {
+                        Request.Builder builder = originalRequest.newBuilder();
+                        span.getTraceContext().setOutgoingTraceContextHeaders(builder, headerSetter);
+                        originalRequest = builder.build();
+                    }
+                }
                 callback = wrapperCreator.wrap(callback, span);
             }
         }
@@ -166,10 +168,4 @@ public class OkHttpClientAsyncInstrumentation extends ElasticApmInstrumentation 
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("enqueue").and(returns(void.class));
     }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "okhttp");
-    }
-
 }

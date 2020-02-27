@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,7 +35,6 @@ import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ApmServerReporter;
@@ -171,7 +170,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
     @Before
     public void startTransaction() {
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("transaction");
         transaction.withType("request");
         transaction.withResult("success");

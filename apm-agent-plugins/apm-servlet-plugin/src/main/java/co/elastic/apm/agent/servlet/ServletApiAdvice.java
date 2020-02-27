@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 
@@ -108,11 +107,14 @@ public class ServletApiAdvice {
             }
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            transaction = servletTransactionHelper.onBefore(
-                request.getServletContext().getClassLoader(),
-                request.getServletPath(), request.getPathInfo(),
-                request.getHeader("User-Agent"),
-                request.getHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME));
+            if (ServletInstrumentation.servletTransactionCreationHelperManager != null) {
+                ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> helper =
+                    ServletInstrumentation.servletTransactionCreationHelperManager.getForClassLoaderOfClass(HttpServletRequest.class);
+                if (helper != null) {
+                    transaction = helper.createAndActivateTransaction(request);
+                }
+            }
+
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 excluded.set(Boolean.TRUE);
