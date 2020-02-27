@@ -240,6 +240,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).isEmpty();
         assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
         assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
+        assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
         assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
     }
 

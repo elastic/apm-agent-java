@@ -149,7 +149,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
     }
 
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
-        Transaction transaction = null;
+        Transaction transaction;
         if (sampler == null) {
             transaction = tracer.startRootTransaction(null);
         } else {
@@ -348,6 +348,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
         transactions.forEach(transaction -> assertThat(transaction.isSampled()).isFalse());
         transactions.forEach(transaction -> assertThat(
             transaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId())
+        );
+        transactions.forEach(transaction -> assertThat(
+            transaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId())
         );
         transactions.forEach(transaction -> assertThat(transaction.getType()).isEqualTo("messaging"));
         transactions.forEach(transaction -> assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC));

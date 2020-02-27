@@ -94,7 +94,8 @@ public class ServletApiAdvice {
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             scope = transactionAttr.activateInScope();
         }
-        if (servletTransactionHelper != null &&
+        if (tracer.isRunning() &&
+            servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(excluded.get())) {
