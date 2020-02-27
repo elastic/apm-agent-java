@@ -51,11 +51,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
 
     static final String NAME_SRV = NAME_SRV_HOST + ":" + NAME_SRV_PORT;
 
-    private static final byte[] FIRST_MESSAGE_BODY = "First message body".getBytes(StandardCharsets.UTF_8);
-
-    private static final byte[] SECOND_MESSAGE_BODY = "Second message body".getBytes(StandardCharsets.UTF_8);
-
-    private static final byte[] THIRD_MESSAGE_BODY = "Third message body".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] MESSAGE_BODY = "message body".getBytes(StandardCharsets.UTF_8);
 
     private static DefaultMQProducer producer;
 
@@ -80,8 +76,6 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
             .withName("test")
             .withType("test")
             .activate();
-
-        System.out.println();
     }
 
     @After
@@ -104,9 +98,9 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     abstract void startConsumer() throws MQClientException;
 
     private void sendMessage() {
-        Message firstMessage = new Message(getTopic(), FIRST_MESSAGE_BODY);
+        Message message = new Message(getTopic(), MESSAGE_BODY);
         try {
-            producer.send(firstMessage);
+            producer.send(message);
         } catch (Exception ignored) {
 
         }
@@ -124,8 +118,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     abstract int getMsgCnt();
 
     private void verifyTracing() {
-        System.out.println("使用的report:" + tracer.getReporter().hashCode());
-//        verifySendSpan();
+        verifySendSpan();
         verifyConsumeTransaction();
     }
 
@@ -141,7 +134,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rocketmq");
         assertThat(span.getAction()).isEqualTo("send");
-        assertThat(span.getNameAsString()).isEqualTo("RocketMQ Send Message#" + getTopic());
+        assertThat(span.getNameAsString()).isEqualTo(String.format("RocketMQ Send Message#%s", getTopic()));
 
         SpanContext context = span.getContext();
 
@@ -150,7 +143,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         Destination.Service service = context.getDestination().getService();
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rocketmq");
-        assertThat(service.getResource().toString()).isEqualTo("rocketmq/" + getTopic());
+        assertThat(service.getResource().toString()).isEqualTo(String.format("rocketmq/%s", getTopic()));
     }
 
     private void verifyConsumeTransaction() {
@@ -161,7 +154,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
 
     protected void verifyConsumeTransactionContents(Transaction transaction) {
         assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getNameAsString()).isEqualTo("RocketMQ Consume Message#" + getTopic());
+        assertThat(transaction.getNameAsString()).isEqualTo(String.format("RocketMQ Consume Message#%s", getTopic()));
     }
 
     abstract String getTopic();

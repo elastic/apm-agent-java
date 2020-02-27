@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.rocketmq.helper;
 
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -45,13 +46,14 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
 
     private static final Logger logger = LoggerFactory.getLogger(RocketMQInstrumentationHelperImpl.class);
 
-    private final ElasticApmTracer tracer;
-
     private final MessagingConfiguration messagingConfiguration;
 
     public RocketMQInstrumentationHelperImpl(ElasticApmTracer tracer) {
-        this.tracer = tracer;
         this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+    }
+
+    private ElasticApmTracer getTracer() {
+        return ElasticApmInstrumentation.tracer;
     }
 
     @Override
@@ -61,7 +63,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
             return null;
         }
 
-        final TraceContextHolder<?> parent = tracer.getActive();
+        final TraceContextHolder<?> parent = getTracer().getActive();
 
         if (null == parent) {
             return null;
@@ -117,7 +119,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
         if (listenerConcurrently instanceof MessageListenerConcurrentlyWrapper) {
             return listenerConcurrently;
         }
-        return new MessageListenerConcurrentlyWrapper(listenerConcurrently, tracer);
+        return new MessageListenerConcurrentlyWrapper(listenerConcurrently, getTracer());
     }
 
     @Override
@@ -128,7 +130,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
         if (listenerOrderly instanceof MessageListenerOrderlyWrapper) {
             return listenerOrderly;
         }
-        return new MessageListenerOrderlyWrapper(listenerOrderly, tracer);
+        return new MessageListenerOrderlyWrapper(listenerOrderly, getTracer());
     }
 
     @Override
@@ -141,7 +143,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
                 pullResultExt.getNextBeginOffset(),
                 pullResultExt.getMinOffset(),
                 pullResultExt.getMaxOffset(),
-                new ConsumeMessageListWrapper(pullResultExt.getMsgFoundList(), tracer),
+                new ConsumeMessageListWrapper(pullResultExt.getMsgFoundList(), getTracer()),
                 pullResultExt.getSuggestWhichBrokerId(),
                 pullResultExt.getMessageBinary());
         } else {
@@ -149,7 +151,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
                 delegate.getNextBeginOffset(),
                 delegate.getMinOffset(),
                 delegate.getMaxOffset(),
-                new ConsumeMessageListWrapper(delegate.getMsgFoundList(), tracer));
+                new ConsumeMessageListWrapper(delegate.getMsgFoundList(), getTracer()));
         }
     }
 
