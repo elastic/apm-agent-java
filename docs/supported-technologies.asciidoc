@@ -297,6 +297,12 @@ If both producer and consumer are traced, then distributed tracing is supported,
 side will be a part of the same trace containing the producer side as well. Kafka streams are not traced.
 |1.13.0
 
+|RocketMQ
+|4.X
+|The agent captures RocketMQ Message sends and consumes.  When the producer send message within a traced transaction, a span will be created.
+In addition, the agent will create transactions as the push consumer uses a defined listener to consume messages or read each message from the results returned by the pull consumer.
+|1.13.1
+
 |===
 
 
