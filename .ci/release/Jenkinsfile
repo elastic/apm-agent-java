@@ -38,7 +38,7 @@ pipeline {
       }
       stages {
         /**
-         Checkout the code and stash it, to use it on other stages.
+         Checkout the code
         */
         stage('Checkout') {
           steps {
