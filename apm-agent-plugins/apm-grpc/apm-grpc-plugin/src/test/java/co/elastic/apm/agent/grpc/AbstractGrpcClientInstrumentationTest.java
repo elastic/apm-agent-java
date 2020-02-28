@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Future;
 
@@ -167,6 +168,18 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             // we need to unblock it to prevent side effects on other tests
             end.await();
         }
+    }
+
+    @Test
+    void clientStreamingCallShouldBeIgnored() {
+        String s = app.sayHelloClientStreaming(Arrays.asList("bob", "alice"), 37);
+        assertThat(s)
+            .describedAs("we should not break expected app behavior")
+            .isEqualTo("hello to [bob,alice] 37 times");
+
+        assertThat(reporter.getSpans())
+            .describedAs("client streaming calls should be ignored")
+            .isEmpty();
     }
 
 }

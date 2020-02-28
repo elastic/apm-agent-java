@@ -27,12 +27,12 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
-import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,5 +113,17 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(transaction.getResult()).isEqualTo(expectedResult);
     }
 
+    @Test
+    void clientStreamingCallShouldBeIgnored() {
+        String s = app.sayHelloClientStreaming(Arrays.asList("bob", "alice"), 37);
+        assertThat(s)
+            .describedAs("we should not break expected app behavior")
+            .isEqualTo("hello to [bob,alice] 37 times");
+
+        assertThat(getReporter().getTransactions())
+            .describedAs("no transaction is expected for client streaming calls")
+            .isEmpty();
+
+    }
 
 }
