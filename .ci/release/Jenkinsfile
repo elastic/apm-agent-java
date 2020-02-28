@@ -24,9 +24,7 @@ pipeline {
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn', description: 'Additional maven options.')
-    booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
-    // FIXME: Remove before PR
-    booleanParam(name: 'release_stage', defaultValue: false, description: 'Ungate the release stage')
+    string(name: 'branch_specifier', defaultValue: 'master')
   }
 
   stages {
