@@ -45,7 +45,7 @@ import java.util.Objects;
  * <pre>
  *             count
  *  b b     a      4
- * aaaa ->  ├─b    1
+ * aaaa --o ├─b    1
  *          └─b    1
  * </pre>
  * <p>
@@ -134,7 +134,7 @@ public class CallTree implements Recyclable {
      *
      * @param stackFrames         the stack trace which is iterated over in reverse order
      * @param index               the current index of {@code stackFrames}
-     * @param activeSpan          the trace context of the currently {@linkplain ElasticApmTracer#getActive() active transaction/span
+     * @param activeSpan          the trace context of the currently {@linkplain ElasticApmTracer#getActive()} active transaction/span
      * @param activationTimestamp the timestamp of when {@code traceContext} has been activated
      * @param nanoTime            the timestamp of when this stack trace has been recorded
      * @param callTreePool
