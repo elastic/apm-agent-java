@@ -36,8 +36,6 @@ pipeline {
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
-    // FIXME: Remove before PR
-    booleanParam(name: 'release_stage', defaultValue: false, description: 'Ungate the release stage')
   }
 
   stages {
