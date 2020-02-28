@@ -45,18 +45,20 @@ pipeline {
         stage('Checkout') {
           steps {
             dir("${BASE_DIR}") {
+              // This is required to ensure that Maven is working with a real branch
               sh(script: "git checkout -f {$branch_specifier}")
             }
           }
         }
       }
     }
-        stage('Release') {
+    stage('Release') {
       options { skipDefaultCheckout () }
       stages{
         // 1. Check to see if oss.sonatype.org is up. We throw an exception and fail the job if there is no response.
         stage('Check oss.sonatype.org') {
           steps {
+            // If this fails, an exception should be thrown and execution will halt
             httpRequest(url: "https://oss.sonatype.org/#welcome")
           }
         }
@@ -82,11 +84,14 @@ pipeline {
         stage('Nexus release') {
           steps {
             script {
-              def spid = 
+              def spid = getVault('nexus')["staging-profile-id"]
               dir("${BASE_DIR}"){
-                def foundStagingId = nexusFindStagingId(stagingProfileId: "TODO MOVE TO VAULT", description: "TODO")
-                nexusCloseStagingRepository(stagingProfileId: "TODO MOVE TO VAULT", stagingId: foundStagingId)
-                nexusReleaseStagingRepository(stagingProfileId: "TODO MOVE TO VAULT", stagingId: foundStagingId)
+                withEnvMask(vars: [[var: "SPID", password: spid]]){
+                  def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
+                  nexusCloseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
+                  nexusReleaseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
+                }
+
               }
             }
           }
