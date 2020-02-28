@@ -31,6 +31,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- allows to reuse grpc stub classes in test code -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>${grpc.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <!-- package test code so they can be reused/imported -->

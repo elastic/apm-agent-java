@@ -27,6 +27,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +59,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     @Test
     void simpleCall() {
-        assertThat(app.sendMessage("bob", 0))
+        assertThat(app.sayHello("bob", 0))
             .isEqualTo("hello(bob)");
 
         Transaction transaction = getReporter().getFirstTransaction();
@@ -67,7 +68,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     @Test
     void nestedCallShouldProduceTwoTransactions() {
-        assertThat(app.sendMessage("bob", 1))
+        assertThat(app.sayHello("bob", 1))
             .isEqualTo("nested(1)->hello(bob)");
 
         List<Transaction> transactions = getReporter().getTransactions();
@@ -91,7 +92,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
     @Test
     void asyncClientCallShouldWorkLikeRegularCall() throws Exception {
 
-        String msg = app.sendMessageAsync("bob", 0).get();
+        String msg = app.sayHelloAsync("bob", 0).get();
         assertThat(msg).isEqualTo("hello(bob)");
 
         Transaction transaction = getReporter().getFirstTransaction();
@@ -99,7 +100,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
     }
 
     private void simpleCallWithError(String name, String expectedResult) {
-        assertThat(app.sendMessage(name, 0))
+        assertThat(app.sayHello(name, 0))
             .isNull();
 
         Transaction transaction = getReporter().getFirstTransaction();

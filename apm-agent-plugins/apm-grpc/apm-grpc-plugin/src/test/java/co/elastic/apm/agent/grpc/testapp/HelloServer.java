@@ -28,14 +28,18 @@ import io.grpc.BindableService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.Status;
+import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public abstract class HelloServer<Req,Rep> {
 
@@ -112,9 +116,26 @@ public abstract class HelloServer<Req,Rep> {
             void sendReply(String msg);
         }
 
-        public void doSayHello(String userName,
-                                  int depth,
-                                  ReplyHandler replyHandler) {
+        public void doSayHello(Req request,
+                               StreamObserver<Rep> responseObserver,
+                               Function<Req, String> getName,
+                               Function<Req, Integer> getDepth,
+                               Function<String, Rep> buildStreamingResponse) {
+
+            String userName = getName.apply(request);
+            int depth = getDepth.apply(request);
+            ReplyHandler replyHandler = new ReplyHandler() {
+                @Override
+                public void gracefulError() {
+                    responseObserver.onError(Status.INVALID_ARGUMENT.asRuntimeException());
+                }
+
+                @Override
+                public void sendReply(String msg) {
+                    responseObserver.onNext(buildStreamingResponse.apply(msg));
+                    responseObserver.onCompleted();
+                }
+            };
 
             String message;
 
@@ -161,6 +182,37 @@ public abstract class HelloServer<Req,Rep> {
 
             logger.info("end of sending response");
 
+        }
+
+        public StreamObserver<Req> sayManyHello(StreamObserver<Rep> responseObserver,
+                                                Function<Req, String> getName,
+                                                Function<Req, Integer> getDepth,
+                                                Function<String,Rep> buildStreamingResponse
+                                                ) {
+            return new StreamObserver<>() {
+
+                List<String> names = new ArrayList<>();
+                Integer depth = 0;
+
+                @Override
+                public void onNext(Req helloRequest) {
+                    names.add(getName.apply(helloRequest));
+                    depth = getDepth.apply(helloRequest);
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    responseObserver.onError(throwable);
+                }
+
+                @Override
+                public void onCompleted() {
+                    String msg = String.format("hello to [%s] %d times", String.join(",", names), depth);
+                    responseObserver.onNext(buildStreamingResponse.apply(msg));
+                    responseObserver.onCompleted();
+                }
+
+            };
         }
 
         private void syncWait(boolean isStart) {

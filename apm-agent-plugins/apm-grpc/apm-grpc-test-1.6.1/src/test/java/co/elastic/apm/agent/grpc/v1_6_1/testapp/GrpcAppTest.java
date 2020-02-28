@@ -25,11 +25,12 @@
 package co.elastic.apm.agent.grpc.v1_6_1.testapp;
 
 import co.elastic.apm.agent.grpc.GrpcTestNameGenerator;
+import co.elastic.apm.agent.grpc.testapp.AbstractGrpcAppTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import org.junit.jupiter.api.DisplayNameGeneration;
 
 @DisplayNameGeneration(GrpcTestNameGenerator.class)
-class GrpcAppTest extends co.elastic.apm.agent.grpc.testapp.GrpcAppTest {
+class GrpcAppTest extends AbstractGrpcAppTest {
 
     @Override
     protected GrpcAppProvider getAppProvider() {

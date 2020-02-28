@@ -112,7 +112,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     }
 
     private void doSimpleCall(String name) {
-        assertThat(app.sendMessage(name, 0))
+        assertThat(app.sayHello(name, 0))
             .isEqualTo(String.format("hello(%s)", name));
     }
 
@@ -127,7 +127,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         app.getServer().useBarriersForProcessing(start, end);
 
         long sendMessageStart = clock.getEpochMicros();
-        Future<String> msg = app.sendMessageAsync("bob", 0);
+        Future<String> msg = app.sayHelloAsync("bob", 0);
 
         // sending the 1st message takes about 100ms on client side
         start.await();

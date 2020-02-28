@@ -49,6 +49,10 @@
     <profiles>
         <profile>
             <id>update-grpc</id>
+            <activation>
+                <!-- active by default as it should be idempotent -->
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <!--
             Separate profile to update generated classes from protocol buffers
 

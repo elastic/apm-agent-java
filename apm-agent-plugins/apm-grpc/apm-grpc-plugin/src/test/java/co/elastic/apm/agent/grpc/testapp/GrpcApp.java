@@ -25,14 +25,15 @@
 package co.elastic.apm.agent.grpc.testapp;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.Future;
 
 public class GrpcApp {
 
-    private HelloServer server;
-    private HelloClient client;
+    private HelloServer<?,?> server;
+    private HelloClient<?,?> client;
 
-    public GrpcApp(HelloServer server, HelloClient client) {
+    public GrpcApp(HelloServer<?,?> server, HelloClient<?,?> client) {
         this.server = server;
         this.client = client;
     }
@@ -46,19 +47,23 @@ public class GrpcApp {
         server.stop();
     }
 
-    public String sendMessage(String name, int depth) {
+    public String sayHello(String name, int depth) {
         return client.sayHello(name, depth);
     }
 
-    public Future<String> sendMessageAsync(String name, int depth) {
+    public Future<String> sayHelloAsync(String name, int depth) {
         return client.saysHelloAsync(name, depth);
     }
 
-    public HelloServer getServer() {
+    public String sayHelloClientStreaming(List<String> names, int depth) {
+        return client.sayManyHello(names, depth);
+    }
+
+    public HelloServer<?,?> getServer() {
         return server;
     }
 
-    public HelloClient getClient() {
+    public HelloClient<?,?> getClient() {
         return client;
     }
 }

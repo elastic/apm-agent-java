@@ -31,19 +31,13 @@ import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloRequest;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import io.grpc.stub.StreamObserver;
 
 class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
 
     private final HelloGrpc.HelloBlockingStub blockingStub;
     private final HelloGrpc.HelloFutureStub futureStub;
+    private final HelloGrpc.HelloStub stub;
 
     public HelloClientImpl(String host, int port) {
         this(ManagedChannelBuilder.forAddress(host, port)
@@ -55,6 +49,7 @@ class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
         super(channel);
         this.blockingStub = HelloGrpc.newBlockingStub(channel);
         this.futureStub = HelloGrpc.newFutureStub(channel);
+        this.stub = HelloGrpc.newStub(channel);
     }
 
     @Override
@@ -76,6 +71,12 @@ class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
     @Override
     public ListenableFuture<HelloReply> executeAsync(HelloRequest request) {
         return futureStub.sayHello(request);
+    }
+
+
+    @Override
+    protected StreamObserver<HelloRequest> doSayManyHello(StreamObserver<HelloReply> responseObserver) {
+        return stub.sayManyHello(responseObserver);
     }
 
     @Override

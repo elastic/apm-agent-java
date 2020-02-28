@@ -42,9 +42,9 @@ import java.util.concurrent.TimeoutException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 // this class just tests the sample application normal behavior, not the behavior when it's instrumented
-public abstract class GrpcAppTest {
+public abstract class AbstractGrpcAppTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(GrpcAppTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractGrpcAppTest.class);
 
     protected static final int PORT = 50051;
     protected static final String HOST = "localhost";
@@ -109,8 +109,14 @@ public abstract class GrpcAppTest {
     }
 
     @Test
+    void simpleClientStreamingCall() {
+        String result = app.sayHelloClientStreaming(Arrays.asList("bob", "joe", "alice"), 42);
+        assertThat(result).isEqualTo("hello to [bob,joe,alice] 42 times");
+    }
+
+    @Test
     void asyncCancelCallBeforeProcessing() {
-        Future<String> msg = app.sendMessageAsync("bob", 0);
+        Future<String> msg = app.sayHelloAsync("bob", 0);
         msg.cancel(true);
         assertThat(msg).isCancelled();
     }
@@ -130,7 +136,7 @@ public abstract class GrpcAppTest {
         CyclicBarrier endBarrier = new CyclicBarrier(2);
         app.getServer().useBarriersForProcessing(startBarrier, endBarrier);
 
-        Future<String> msg = app.sendMessageAsync("bob", 0);
+        Future<String> msg = app.sayHelloAsync("bob", 0);
 
         logger.info("server processing wait for start");
         startBarrier.await();
@@ -174,13 +180,13 @@ public abstract class GrpcAppTest {
 
     private static final SendAndCheckMessageStrategy BLOCKING = (app, name, depth, expectedMsg) -> {
         logger.info("sending message using BLOCKING strategy");
-        String msg = app.sendMessage(name, depth);
+        String msg = app.sayHello(name, depth);
         assertThat(msg).isEqualTo(expectedMsg);
     };
 
     private static final SendAndCheckMessageStrategy ASYNC = (app, name, depth, expectedMsg) -> {
         logger.info("sending message using ASYNC strategy");
-        Future<String> msg = app.sendMessageAsync(name, depth);
+        Future<String> msg = app.sayHelloAsync(name, depth);
         try {
             assertThat(msg.get()).isEqualTo(expectedMsg);
         } catch (InterruptedException e) {

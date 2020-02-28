@@ -30,7 +30,6 @@ import co.elastic.apm.agent.grpc.v1_6_1.testapp.generated.HelloGrpc;
 import co.elastic.apm.agent.grpc.v1_6_1.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.v1_6_1.testapp.generated.HelloRequest;
 import io.grpc.BindableService;
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,22 +54,22 @@ class HelloServerImpl extends HelloServer<HelloRequest, HelloReply> {
         }
 
         @Override
-        public void sayHello(HelloRequest request, StreamObserver<HelloReply> responseObserver) { // TODO : add grpc-stub as test dependency in plugin tests
-            genericServer.doSayHello(request.getUserName(),
-                request.getDepth(),
-                new GenericHelloGrpcImpl.ReplyHandler() {
-                    @Override
-                    public void gracefulError() {
-                        responseObserver.onError(Status.INVALID_ARGUMENT.asRuntimeException());
-                    }
+        public void sayHello(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
+            genericServer.doSayHello(
+                request,
+                responseObserver,
+                HelloRequest::getUserName,
+                HelloRequest::getDepth,
+                m -> HelloReply.newBuilder().setMessage(m).build());
+        }
 
-                    @Override
-                    public void sendReply(String msg) {
-                        responseObserver.onNext(HelloReply.newBuilder().setMessage(msg).build());
-                        responseObserver.onCompleted();
-                    }
-                }
-            );
+        @Override
+        public StreamObserver<HelloRequest> sayManyHello(StreamObserver<HelloReply> responseObserver) {
+            return genericServer.sayManyHello(
+                responseObserver,
+                HelloRequest::getUserName,
+                HelloRequest::getDepth,
+                m -> HelloReply.newBuilder().setMessage(m).build());
         }
 
     }

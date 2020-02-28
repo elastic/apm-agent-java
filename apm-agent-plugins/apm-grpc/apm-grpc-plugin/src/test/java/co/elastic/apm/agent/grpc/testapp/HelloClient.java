@@ -27,13 +27,18 @@ package co.elastic.apm.agent.grpc.testapp;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public abstract class HelloClient<Req, Rep> {
 
@@ -99,6 +104,48 @@ public abstract class HelloClient<Req, Rep> {
         };
 
     }
+
+    public String sayManyHello(List<String> users, int depth) {
+
+        List<Req> requests = users.stream()
+            .map(u -> buildRequest(u, depth))
+            .collect(Collectors.toList());
+
+        AtomicReference<Rep> result = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        StreamObserver<Rep> responseObserver = new StreamObserver<>() {
+
+            @Override
+            public void onNext(Rep reply) {
+                result.set(reply);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                throw new IllegalStateException("unexpected error", throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+                latch.countDown();
+            }
+        };
+        StreamObserver<Req> requestObserver = doSayManyHello(responseObserver);
+        for (Req request : requests) {
+            requestObserver.onNext(request);
+        }
+        requestObserver.onCompleted();
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+        return getResponseMessage(result.get());
+    }
+
+    protected abstract StreamObserver<Req> doSayManyHello(StreamObserver<Rep> responseObserver);
 
     public final void stop() throws InterruptedException {
         boolean doShutdown = !channel.isShutdown();
