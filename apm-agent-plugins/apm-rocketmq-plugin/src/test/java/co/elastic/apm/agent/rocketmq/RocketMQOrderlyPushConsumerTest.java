@@ -50,9 +50,7 @@ public class RocketMQOrderlyPushConsumerTest extends AbstractRocketMQConsumerIns
     @Override
     protected void verifyConsumeTransactionContents(Transaction transaction) {
         super.verifyConsumeTransactionContents(transaction);
-        if (transaction.getResult() != null) {
-            assertThat(transaction.getResult()).isEqualTo(ConsumeOrderlyStatus.SUCCESS.name());
-        }
+        assertThat(transaction.getResult()).isEqualTo(ConsumeOrderlyStatus.SUCCESS.name());
     }
 
     @Override

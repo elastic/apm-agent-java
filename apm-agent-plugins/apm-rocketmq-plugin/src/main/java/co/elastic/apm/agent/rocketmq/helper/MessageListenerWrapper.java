@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +95,8 @@ abstract class MessageListenerWrapper<S, C> {
             if (transaction != null && "messaging".equals(transaction.getType())) {
                 if (status instanceof ConsumeConcurrentlyStatus) {
                     transaction.withResult(((ConsumeConcurrentlyStatus)status).name());
+                } else if (status instanceof ConsumeOrderlyStatus){
+                    transaction.withResult(((ConsumeOrderlyStatus)status).name());
                 }
                 transaction.deactivate().end();
             }

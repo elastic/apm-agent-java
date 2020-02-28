@@ -50,9 +50,7 @@ public class RocketMQConcurrentlyPushConsumerTest extends AbstractRocketMQConsum
     @Override
     protected void verifyConsumeTransactionContents(Transaction transaction) {
         super.verifyConsumeTransactionContents(transaction);
-        if (transaction.getResult() != null) {
-            assertThat(transaction.getResult()).isEqualTo(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.name());
-        }
+        assertThat(transaction.getResult()).isEqualTo(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.name());
     }
 
     @Override
