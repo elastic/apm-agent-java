@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;

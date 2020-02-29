@@ -72,7 +72,7 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
 
     public AsyncInstrumentation(ElasticApmTracer tracer) {
         synchronized (AsyncInstrumentation.class) {
-            // adding a null-check before setting helper manager reference breaks a few other things, which prevents having
+            // adding a null-check before setting helper manager reference breaks test execution, which prevents having
             // the same code construct we have for other HelperClassManager usages.
             //
             // This should probably be changed when upgrading this plugin to use HelperClassManager for all helper

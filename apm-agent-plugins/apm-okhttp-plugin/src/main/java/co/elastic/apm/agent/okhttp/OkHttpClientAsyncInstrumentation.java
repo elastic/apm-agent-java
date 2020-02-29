@@ -66,10 +66,12 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
 
     public OkHttpClientAsyncInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
-        if (callbackWrapperCreator == null) {
-            callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
-                OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
-                OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
+        synchronized (OkHttpClientAsyncInstrumentation.class) {
+            if (callbackWrapperCreator == null) {
+                callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
+                    OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
+                    OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
+            }
         }
     }
 
