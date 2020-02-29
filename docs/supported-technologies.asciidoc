@@ -187,6 +187,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |The agent creates spans for interactions with the Lettuce client.
 |1.13.0
 
+|Redis Redisson
+|3.x
+|The agent creates spans for interactions with the Redisson client.
+|1.13.1
+
 |MongoDB driver
 |3.x
 |The agent creates spans for interactions with the MongoDB driver.
