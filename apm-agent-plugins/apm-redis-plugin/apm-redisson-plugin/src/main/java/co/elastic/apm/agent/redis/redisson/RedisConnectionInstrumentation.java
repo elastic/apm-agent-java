@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 
@@ -84,7 +85,9 @@ public class RedisConnectionInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.redisson.client.RedisConnection");
+        return named("org.redisson.client.RedisConnection")
+            // this method only exist in version: 2.1.5 or higher
+            .and(declaresMethod(named("getChannel")));
     }
 
     @Override
