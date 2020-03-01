@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -49,19 +50,17 @@ public class RedisConnectionInstrumentation extends ElasticApmInstrumentation {
     @Advice.OnMethodEnter
     private static void beforeSend(@Advice.This RedisConnection connection,
                                    @Advice.Argument(0) Object args,
-                                   @Nullable @Advice.Local("span") Span span,
-                                   @Advice.Origin("#m") String method) {
-        span = RedisSpanUtils.createRedisSpan(method);
+                                   @Nullable @Advice.Local("span") Span span) {
+        span = RedisSpanUtils.createRedisSpan("");
         if (span != null) {
             // get command
-            StringBuilder commandBuilder = new StringBuilder();
             if (args instanceof CommandsData) {
-                CommandsData commands = (CommandsData) args;
-                for (CommandData commandData : commands.getCommands()) {
-                    commandBuilder.append(commandData.getCommand().getName()).append(";");
+                List<CommandData<?, ?>> commands = ((CommandsData) args).getCommands();
+                if (commands != null && !commands.isEmpty()) {
+                    span.appendToName(commands.get(0).getCommand().getName()).appendToName("... [bulk]");
                 }
             } else if (args instanceof CommandData) {
-                commandBuilder.append(((CommandData) args).getCommand().getName());
+                span.appendToName(((CommandData) args).getCommand().getName());
             }
 
             // get connection address
@@ -70,7 +69,6 @@ public class RedisConnectionInstrumentation extends ElasticApmInstrumentation {
             span.getContext().getDestination()
                 .withAddress(remoteAddress.getAddress().getHostAddress())
                 .withPort(remoteAddress.getPort());
-            span.withName(commandBuilder.toString());
         }
     }
 
