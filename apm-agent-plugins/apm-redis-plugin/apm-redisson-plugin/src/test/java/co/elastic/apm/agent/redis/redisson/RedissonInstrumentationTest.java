@@ -50,10 +50,14 @@ class RedissonInstrumentationTest extends AbstractRedisInstrumentationTest {
 
     protected RedissonClient redisson;
 
+    public RedissonInstrumentationTest() {
+        super("127.0.0.1");
+    }
+
     @BeforeEach
     void setUp() {
         Config config = new Config();
-        config.useSingleServer().setAddress("localhost:" + redisPort);
+        config.useSingleServer().setAddress("redis://localhost:" + redisPort);
         redisson = Redisson.create(config);
     }
 
@@ -99,7 +103,7 @@ class RedissonInstrumentationTest extends AbstractRedisInstrumentationTest {
             assertThat(strings.get(0)).isEqualTo("a");
         }
 
-        assertTransactionWithRedisSpans("RPUSH", "LLEN", "LLEN", "LINDEX");
+        assertTransactionWithRedisSpans("RPUSH", "LLEN", "LINDEX");
     }
 
     @Test
@@ -152,7 +156,7 @@ class RedissonInstrumentationTest extends AbstractRedisInstrumentationTest {
             assertThat(atomicLong.get()).isEqualTo(1);
         }
 
-        assertTransactionWithRedisSpans("INCR", "INCRBY");
+        assertTransactionWithRedisSpans("INCR", "GET");
     }
 
     /**
