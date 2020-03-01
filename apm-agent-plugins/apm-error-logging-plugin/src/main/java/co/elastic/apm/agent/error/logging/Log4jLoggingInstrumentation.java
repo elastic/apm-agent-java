@@ -35,9 +35,12 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class Log4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
 
+    // prevents the shade plugin from relocating org.slf4j.Logger to co.elastic.apm.agent.shaded.slf4j.Logger
+    private static final String SLF4J_LOGGER = "org!slf4j!Logger".replace('!', '.');
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.logging.log4j.Logger")).and(not(hasSuperType(named("org!slf4j!Logger".replaceAll("!", ".")))));
+        return hasSuperType(named("org.apache.logging.log4j.Logger")).and(not(hasSuperType(named(SLF4J_LOGGER))));
     }
 
     @Override

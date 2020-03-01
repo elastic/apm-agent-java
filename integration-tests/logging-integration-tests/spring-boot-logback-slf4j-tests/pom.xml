@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>logging-integration-tests</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.13.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>spring-boot-logback-slf4j-tests</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <version.spring-boot>2.1.8.RELEASE</version.spring-boot>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${version.spring-boot}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>${version.spring-boot}</version>
+        </dependency>
+    </dependencies>
+</project>
