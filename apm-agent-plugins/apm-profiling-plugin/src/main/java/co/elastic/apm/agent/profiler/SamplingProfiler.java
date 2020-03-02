@@ -160,16 +160,13 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private JfrParser jfrParser;
     private volatile int profilingSessions;
 
-    /**
-     * Events are written to a direct byte buffer first to minimize MappedByteBuffer#put calls
-     * Any put may potentially get stuck, causing long global time-to-safepoint pauses
-     */
     private final ByteBuffer activationEventsBuffer;
     /**
      * Used to efficiently write {@link #activationEventsBuffer} via {@link FileChannel#write(ByteBuffer)}
      */
     private final FileChannel activationEventsFileChannel;
     private final ObjectPool<CallTree> callTreePool;
+    private final TraceContext contextForLogging;
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
@@ -190,6 +187,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         // tells the ring buffer to not override slots which have not been read yet
         this.eventBuffer.addGatingSequences(sequence);
         this.poller = eventBuffer.newPoller();
+        contextForLogging = TraceContext.with64BitId(tracer);
         this.callTreePool = ListBasedObjectPool.<CallTree>ofRecyclable(2 * 1024, new Allocator<CallTree>() {
             @Override
             public CallTree createInstance() {
@@ -481,11 +479,16 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     public void processActivationEventsUpTo(long timestamp, ActivationEvent event, long eof) throws IOException {
         FileChannel activationEventsFileChannel = this.activationEventsFileChannel;
         ByteBuffer buf = activationEventsBuffer;
+        long previousTimestamp = 0;
         while (buf.hasRemaining() || activationEventsFileChannel.position() < eof) {
             if (!buf.hasRemaining()) {
                 readActivationEventsToBuffer(activationEventsFileChannel, eof, buf);
             }
             long eventTimestamp = peekLong(buf);
+            if (eventTimestamp < previousTimestamp) {
+                logger.warn("Timestamp of current activation event ({}) is lower than the one from the previous event ({})", eventTimestamp, previousTimestamp);
+            }
+            previousTimestamp = eventTimestamp;
             if (eventTimestamp <= timestamp) {
                 event.deserialize(buf);
                 event.handle(this);
@@ -559,6 +562,8 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         this.profilingSessionOngoing = profilingSessionOngoing;
         if (!profilingSessionOngoing) {
             clearProfiledThreads();
+        } else if (!profiledThreads.isEmpty() && logger.isDebugEnabled()) {
+            logger.debug("Retaining {} call tree roots", profiledThreads.size());
         }
     }
 
@@ -658,6 +663,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
 
         public void handle(SamplingProfiler samplingProfiler) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Handling event timestamp={} root={} threadId={} activation={}", timestamp, rootContext, threadId, activation);
+            }
             if (activation) {
                 handleActivationEvent(samplingProfiler);
             } else {
@@ -671,22 +679,35 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             } else {
                 CallTree.Root root = samplingProfiler.profiledThreads.get(threadId);
                 if (root != null) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Handling activation for thread {}", threadId);
+                    }
                     root.onActivation(traceContextBuffer, timestamp);
+                } else if (logger.isDebugEnabled()) {
+                    logger.debug("Illegal state when handling activation event for thread {}: no root found for this thread", threadId);
                 }
             }
         }
 
         private void startProfiling(SamplingProfiler samplingProfiler) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Create call tree for thread {}", threadId);
-            }
             CallTree.Root root = CallTree.createRoot(samplingProfiler.rootPool, traceContextBuffer, serviceName, timestamp);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Create call tree ({}) for thread {}", deserialize(samplingProfiler, traceContextBuffer), threadId);
+            }
 
             CallTree.Root orphaned = samplingProfiler.profiledThreads.put(threadId, root);
             if (orphaned != null) {
+                if (logger.isDebugEnabled()) {
+                    logger.warn("Illegal state when stopping profiling for thread {}: orphaned root", threadId);
+                }
                 orphaned.recycle(samplingProfiler.callTreePool);
                 samplingProfiler.rootPool.recycle(orphaned);
             }
+        }
+
+        private TraceContext deserialize(SamplingProfiler samplingProfiler, byte[] traceContextBuffer) {
+            samplingProfiler.contextForLogging.deserialize(traceContextBuffer, null);
+            return samplingProfiler.contextForLogging;
         }
 
         private void handleDeactivationEvent(SamplingProfiler samplingProfiler) {
@@ -695,7 +716,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             } else {
                 CallTree.Root root = samplingProfiler.profiledThreads.get(threadId);
                 if (root != null) {
-                    root.onDeactivation(previousContextBuffer, timestamp);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Handling deactivation for thread {}", threadId);
+                    }
+                    root.onDeactivation(traceContextBuffer, previousContextBuffer, timestamp);
+                } else if (logger.isDebugEnabled()) {
+                    logger.debug("Illegal state when handling deactivation event for thread {}: no root found for this thread", threadId);
                 }
             }
         }
@@ -704,11 +730,18 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             CallTree.Root callTree = samplingProfiler.profiledThreads.get(threadId);
             if (callTree != null && callTree.getRootContext().traceIdAndIdEquals(traceContextBuffer)) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("End call tree for thread {}", threadId);
+                    logger.debug("End call tree ({}) for thread {}", deserialize(samplingProfiler, traceContextBuffer), threadId);
                 }
                 samplingProfiler.profiledThreads.remove(threadId);
                 callTree.end(samplingProfiler.callTreePool, samplingProfiler.config.getInferredSpansMinDuration().getMillis() * 1_000_000);
-                callTree.spanify();
+                int createdSpans = callTree.spanify();
+                if (logger.isDebugEnabled()) {
+                    if (createdSpans > 0) {
+                        logger.debug("Created spans ({}) for thread {}", createdSpans, threadId);
+                    } else {
+                        logger.debug("Created no spans for thread {} (count={})", threadId, callTree.getCount());
+                    }
+                }
                 callTree.recycle(samplingProfiler.callTreePool);
                 samplingProfiler.rootPool.recycle(callTree);
             }
