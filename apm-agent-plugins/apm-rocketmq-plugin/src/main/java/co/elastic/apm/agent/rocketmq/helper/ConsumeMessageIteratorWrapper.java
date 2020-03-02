@@ -77,7 +77,7 @@ public class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
         try {
             String topic = retMsgExt.getTopic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
-                String traceParentProperty = retMsgExt.getProperties().remove(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+                String traceParentProperty = retMsgExt.getProperties().get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
                 Transaction transaction = tracer
                     .startChildTransaction(retMsgExt, RocketMQMessageHeaderAccessor.getInstance(), ConsumeMessageIteratorWrapper.class.getClassLoader())
                     .withType("messaging")

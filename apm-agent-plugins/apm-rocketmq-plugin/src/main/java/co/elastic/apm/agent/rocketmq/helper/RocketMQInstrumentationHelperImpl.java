@@ -160,7 +160,21 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
         if (delegate == null) {
             return null;
         }
-        return new PullCallbackWrapper(delegate, this);
+        return new PullCallbackWrapper(delegate, PullResultWrapperCreator.getInstance());
+    }
+
+    public static class PullResultWrapperCreator {
+
+        private static final PullResultWrapperCreator INSTANCE = new PullResultWrapperCreator();
+
+        public static PullResultWrapperCreator getInstance() {
+            return INSTANCE;
+        }
+
+        PullResult wrapPullResult(PullResult delegate) {
+            return wrapPullResult(delegate);
+        }
+
     }
 
 }

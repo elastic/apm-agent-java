@@ -55,7 +55,7 @@ public class RocketMQMessageHeaderAccessor implements TextHeaderGetter<Message>,
 
     @Override
     public void setHeader(String headerName, String headerValue, Message carrier) {
-        if (StringUtils.isNoneEmpty(carrier.getProperty(headerName))) {
+        if (StringUtils.isEmpty(carrier.getProperty(headerName))) {
             carrier.putUserProperty(headerName, headerValue);
         }
     }
