@@ -37,6 +37,10 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Wrap the registered {@link org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently} to start a transaction
+ * when the method {@link org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently#consumeMessage} is executed
+ */
 public class RocketMQMessageListenerConcurrentlyInstrumentation extends BaseRocketMQInstrumentation {
 
     public RocketMQMessageListenerConcurrentlyInstrumentation(ElasticApmTracer tracer) {

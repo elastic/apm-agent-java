@@ -37,6 +37,10 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Wrap the registered {@link org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly} to start a transaction
+ * when the method {@link org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly#consumeMessage} is executed
+ */
 public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQInstrumentation {
 
     public RocketMQMessageListenerOrderlyInstrumentation(ElasticApmTracer tracer) {

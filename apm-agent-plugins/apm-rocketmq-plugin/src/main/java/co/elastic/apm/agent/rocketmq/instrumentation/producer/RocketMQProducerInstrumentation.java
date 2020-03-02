@@ -41,6 +41,12 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Instruments the {@link org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl#sendKernelImpl} method.
+ * It is the core internal method in the {@link org.apache.rocketmq.client.producer.DefaultMQProducer}
+ * to send messages through various {@link CommunicationMode}
+ * Note: it is not an interface method, and there is a risk that this instrumentation will be invalid due to later changes.
+ */
 public class RocketMQProducerInstrumentation extends BaseRocketMQInstrumentation {
 
     public RocketMQProducerInstrumentation(ElasticApmTracer tracer) {
