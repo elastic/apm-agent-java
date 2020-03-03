@@ -188,7 +188,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |1.13.0
 
 |Redis Redisson
-|3.x
+|2.1.5+
 |The agent creates spans for interactions with the Redisson client.
 |1.13.1
 
@@ -460,4 +460,3 @@ If you are seeing gaps in the span timeline and want to include certain methods,
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
   Try to grant `java.security.AllPermission` to the agent.
-
