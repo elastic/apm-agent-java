@@ -51,10 +51,16 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     @AfterEach
     void afterEach() throws Exception {
-        app.stop();
+        try {
+            // make sure we do not leave anything behind
+            reporter.assertRecycledAfterDecrementingReferences();
 
-        // make sure we do not leave anything behind
-        reporter.assertRecycledAfterDecrementingReferences();
+            // use a try/finally block here to make sure that if the assertion above fails
+            // we do not have a side effect on other tests execution by leaving app running.
+        } finally {
+            app.stop();
+            reporter.reset();
+        }
     }
 
     @Test
@@ -62,8 +68,8 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(app.sayHello("bob", 0))
             .isEqualTo("hello(bob)");
 
-        Transaction transaction = getReporter().getFirstTransaction();
-        checkTransaction(transaction, "OK");
+        Transaction transaction = getReporter().getFirstTransaction(100);
+        checkUnaryTransaction(transaction, "OK");
     }
 
     @Test
@@ -75,7 +81,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(transactions).hasSize(2);
 
         for (Transaction transaction : transactions) {
-            checkTransaction(transaction, "OK");
+            checkUnaryTransaction(transaction, "OK");
         }
     }
 
@@ -96,7 +102,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(msg).isEqualTo("hello(bob)");
 
         Transaction transaction = getReporter().getFirstTransaction();
-        checkTransaction(transaction, "OK");
+        checkUnaryTransaction(transaction, "OK");
     }
 
     private void simpleCallWithError(String name, String expectedResult) {
@@ -104,13 +110,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
             .isNull();
 
         Transaction transaction = getReporter().getFirstTransaction();
-        checkTransaction(transaction, expectedResult);
-    }
-
-    private static void checkTransaction(Transaction transaction, String expectedResult) {
-        assertThat(transaction.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
-        assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getResult()).isEqualTo(expectedResult);
+        checkUnaryTransaction(transaction, expectedResult);
     }
 
     @Test
@@ -120,10 +120,46 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
             .describedAs("we should not break expected app behavior")
             .isEqualTo("hello to [bob,alice] 37 times");
 
-        assertThat(getReporter().getTransactions())
-            .describedAs("no transaction is expected for client streaming calls")
-            .isEmpty();
-
+        checkNoTransaction("client streaming");
     }
+
+    @Test
+    void serverStreamingBasicSupport() {
+        String s = app.sayHelloServerStreaming("joe", 4);
+        assertThat(s)
+            .describedAs("we should not break expected app behavior")
+            .isEqualTo("joe joe joe joe");
+
+        Transaction transaction = getReporter().getFirstTransaction();
+        checkTransaction(transaction, "OK", "SayHelloMany");
+    }
+
+    @Test
+    void bidiStreamingCallShouldBeIgnored() {
+        String s = app.sayHelloBidiStreaming(Arrays.asList("bob", "alice"), 2);
+        assertThat(s)
+            .describedAs("we should not break expected app behavior")
+            .isEqualTo("hello(bob) hello(bob) hello(alice) hello(alice)");
+
+        checkNoTransaction("bidi streaming");
+    }
+
+    private static void checkUnaryTransaction(Transaction transaction, String expectedResult){
+        checkTransaction(transaction, expectedResult, "SayHello");
+    }
+
+    private static void checkTransaction(Transaction transaction, String expectedResult, String rpcName) {
+        assertThat(transaction.getNameAsString()).isEqualTo(String.format("helloworld.Hello/%s", rpcName));
+        assertThat(transaction.getType()).isEqualTo("request");
+        assertThat(transaction.getResult()).isEqualTo(expectedResult);
+    }
+
+    private void checkNoTransaction(String usage) {
+        List<Transaction> transactions = getReporter().getTransactions();
+        assertThat(transactions)
+            .describedAs("no transaction is expected for %s calls", usage)
+            .isEmpty();
+    }
+
 
 }

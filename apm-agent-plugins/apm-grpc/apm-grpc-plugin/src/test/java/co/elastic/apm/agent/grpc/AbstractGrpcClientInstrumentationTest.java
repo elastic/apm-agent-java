@@ -70,12 +70,17 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
                 .end();
         }
 
-        // make sure we do not leave anything behind
-        reporter.assertRecycledAfterDecrementingReferences();
+        try {
+            // make sure we do not leave anything behind
+            reporter.assertRecycledAfterDecrementingReferences();
 
-        reporter.reset();
+            // use a try/finally block here to make sure that if the assertion above fails
+            // we do not have a side effect on other tests execution by leaving app running.
+        } finally {
+            reporter.reset();
+            app.stop();
+        }
 
-        app.stop();
     }
 
 
@@ -177,9 +182,32 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             .describedAs("we should not break expected app behavior")
             .isEqualTo("hello to [bob,alice] 37 times");
 
-        assertThat(reporter.getSpans())
-            .describedAs("client streaming calls should be ignored")
-            .isEmpty();
+        assertNoSpan();
     }
+
+    @Test
+    void serverStreamingCallShouldBeIgnored() {
+        String s = app.sayHelloServerStreaming("alice", 5);
+        assertThat(s)
+            .describedAs("we should not break expected app behavior")
+            .isEqualTo("alice alice alice alice alice");
+
+        assertNoSpan();
+    }
+
+    @Test
+    void bidiStreamingCallShouldBeIgnored() {
+        String result = app.sayHelloBidiStreaming(Arrays.asList("bob", "alice", "oscar"), 2);
+        assertThat(result)
+            .describedAs("we should not break expected app behavior")
+            .isEqualTo("hello(bob) hello(bob) hello(alice) hello(alice) hello(oscar) hello(oscar)");
+
+        assertNoSpan();
+    }
+
+    private static void assertNoSpan() {
+        reporter.assertNoSpan(100);
+    }
+
 
 }

@@ -59,6 +59,14 @@ public class GrpcApp {
         return client.sayManyHello(names, depth);
     }
 
+    public String sayHelloServerStreaming(String name, int depth){
+        return client.sayHelloMany(name, depth);
+    }
+
+    public String sayHelloBidiStreaming(List<String> names, int depth){
+        return client.sayHelloManyMany(names, depth);
+    }
+
     public HelloServer<?,?> getServer() {
         return server;
     }

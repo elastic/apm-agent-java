@@ -80,6 +80,16 @@ class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
     }
 
     @Override
+    protected void doSayHelloMany(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
+        stub.sayHelloMany(request, responseObserver);
+    }
+
+    @Override
+    protected StreamObserver<HelloRequest> doSayHelloManyMany(StreamObserver<HelloReply> responseObserver) {
+        return stub.sayHelloStream(responseObserver);
+    }
+
+    @Override
     public String getResponseMessage(HelloReply reply) {
         return reply.getMessage();
     }

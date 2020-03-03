@@ -59,12 +59,16 @@ public final class Rpc {
     java.lang.String[] descriptorData = {
       "\n\trpc.proto\022\nhelloworld\"/\n\014HelloRequest\022" +
       "\020\n\010userName\030\001 \001(\t\022\r\n\005depth\030\002 \001(\005\"\035\n\nHell" +
-      "oReply\022\017\n\007message\030\001 \001(\t2\211\001\n\005Hello\022<\n\010Say" +
+      "oReply\022\017\n\007message\030\001 \001(\t2\225\002\n\005Hello\022<\n\010Say" +
       "Hello\022\030.helloworld.HelloRequest\032\026.hellow" +
       "orld.HelloReply\022B\n\014SayManyHello\022\030.hellow" +
       "orld.HelloRequest\032\026.helloworld.HelloRepl" +
-      "y(\001B6\n2co.elastic.apm.agent.grpc.v1_6_1." +
-      "testapp.generatedP\001b\006proto3"
+      "y(\001\022B\n\014SayHelloMany\022\030.helloworld.HelloRe" +
+      "quest\032\026.helloworld.HelloReply0\001\022F\n\016SayHe" +
+      "lloStream\022\030.helloworld.HelloRequest\032\026.he" +
+      "lloworld.HelloReply(\0010\001B6\n2co.elastic.ap",
+      "m.agent.grpc.v1_6_1.testapp.generatedP\001b" +
+      "\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {

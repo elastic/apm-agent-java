@@ -44,7 +44,7 @@ import javax.annotation.Nullable;
  * Helper class for gRPC client and server calls.
  *
  * <br>
- * Since instances of this class are loaded through {@see co.elastic.apm.agent.bci.HelperClassManager}, we can use all
+ * Since instances of this class are loaded through {@link co.elastic.apm.agent.bci.HelperClassManager}, we can use all
  * classes that are part of the gRPC API.
  */
 @SuppressWarnings("unused")

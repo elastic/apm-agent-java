@@ -184,11 +184,11 @@ public abstract class HelloServer<Req,Rep> {
 
         }
 
-        public StreamObserver<Req> sayManyHello(StreamObserver<Rep> responseObserver,
-                                                Function<Req, String> getName,
-                                                Function<Req, Integer> getDepth,
-                                                Function<String,Rep> buildStreamingResponse
-                                                ) {
+        public StreamObserver<Req> doSayManyHello(StreamObserver<Rep> responseObserver,
+                                                  Function<Req, String> getName,
+                                                  Function<Req, Integer> getDepth,
+                                                  Function<String, Rep> buildStreamingResponse) {
+
             return new StreamObserver<>() {
 
                 List<String> names = new ArrayList<>();
@@ -210,6 +210,52 @@ public abstract class HelloServer<Req,Rep> {
                     String msg = String.format("hello to [%s] %d times", String.join(",", names), depth);
                     responseObserver.onNext(buildStreamingResponse.apply(msg));
                     responseObserver.onCompleted();
+                }
+
+            };
+        }
+
+        public void doSayHelloMany(Req request,
+                                   StreamObserver<Rep> responseObserver,
+                                   Function<Req, String> getName,
+                                   Function<Req, Integer> getDepth,
+                                   Function<String, Rep> buildStreamingResponse) {
+
+            for (int i = 0; i < getDepth.apply(request); i++) {
+                responseObserver.onNext(buildStreamingResponse.apply(getName.apply(request)));
+            }
+            responseObserver.onCompleted();
+        }
+
+        public StreamObserver<Req> doSayHelloStream(StreamObserver<Rep> responseObserver,
+                                                  Function<Req, String> getName,
+                                                  Function<Req, Integer> getDepth,
+                                                  Function<String, Rep> buildStreamingResponse) {
+
+            return new StreamObserver<>() {
+
+                @Override
+                public void onNext(Req helloRequest) {
+                    String name = getName.apply(helloRequest);
+                    int count = getDepth.apply(helloRequest);
+
+                    if (count <= 0) {
+                        responseObserver.onCompleted();
+                    } else {
+                        for (int i = 0; i < count; i++) {
+                            responseObserver.onNext(buildStreamingResponse.apply(String.format("hello(%s)", name)));
+                        }
+                    }
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    responseObserver.onError(throwable);
+                }
+
+                @Override
+                public void onCompleted() {
+                    // client terminated call, just ignore for now
                 }
 
             };

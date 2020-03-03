@@ -19,8 +19,11 @@ service Hello {
     rpc SayHello (HelloRequest) returns (HelloReply);
 
     // client streaming
-    rpc SayManyHello(stream HelloRequest) returns (HelloReply);
+    rpc SayManyHello (stream HelloRequest) returns (HelloReply);
 
-    // server streaming TODO
-    // bidi streaming TODO
+    // server streaming
+    rpc SayHelloMany (HelloRequest) returns (stream HelloReply);
+
+    // bidi streaming
+    rpc SayHelloStream (stream HelloRequest) returns (stream HelloReply);
 }

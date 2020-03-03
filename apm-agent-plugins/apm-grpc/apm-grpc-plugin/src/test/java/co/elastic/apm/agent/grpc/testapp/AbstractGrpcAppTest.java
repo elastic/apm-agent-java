@@ -115,6 +115,18 @@ public abstract class AbstractGrpcAppTest {
     }
 
     @Test
+    void simpleServerStreamingCall() {
+        String result = app.sayHelloServerStreaming("oscar", 3);
+        assertThat(result).isEqualTo("oscar oscar oscar");
+    }
+
+    @Test
+    void simpleBidiStreamingCall() {
+        String result = app.sayHelloBidiStreaming(Arrays.asList("bob", "alice", "oscar"), 2);
+        assertThat(result).isEqualTo("hello(bob) hello(bob) hello(alice) hello(alice) hello(oscar) hello(oscar)");
+    }
+
+    @Test
     void asyncCancelCallBeforeProcessing() {
         Future<String> msg = app.sayHelloAsync("bob", 0);
         msg.cancel(true);

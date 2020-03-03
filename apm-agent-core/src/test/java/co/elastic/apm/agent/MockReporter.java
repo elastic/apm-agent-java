@@ -41,12 +41,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
+import org.awaitility.core.ConditionFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +58,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.*;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -189,24 +189,34 @@ public class MockReporter implements Reporter {
     }
 
     public Transaction getFirstTransaction(long timeoutMs) {
-        await()
-            .pollDelay(10, TimeUnit.MILLISECONDS)
-            .timeout(timeoutMs, TimeUnit.MILLISECONDS)
+        awaitTimeout(timeoutMs)
             .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
 
-    public Span getFirstSpan(long timeoutMs) throws InterruptedException {
-        final long end = System.currentTimeMillis() + timeoutMs;
-        do {
-            synchronized (this) {
-                if (!spans.isEmpty()) {
-                    return getFirstSpan();
-                }
-            }
-            Thread.sleep(1);
-        } while (System.currentTimeMillis() < end);
+    private static ConditionFactory awaitTimeout(long timeoutMs) {
+        return await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    public Span getFirstSpan(long timeoutMs) {
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getSpans()).isNotEmpty());
         return getFirstSpan();
+    }
+
+    public synchronized void assertNoSpan() {
+        assertThat(getSpans())
+            .describedAs("no span expected")
+            .isEmpty();
+    }
+
+    public void assertNoSpan(long timeoutMs) {
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getSpans()).isEmpty());
+
+        assertNoSpan();
     }
 
     @Override
@@ -231,7 +241,7 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized List<Span> getSpans() {
-        return spans;
+        return Collections.unmodifiableList(spans);
     }
 
     public synchronized List<ErrorCapture> getErrors() {
@@ -286,11 +296,11 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         closed = true;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         transactions.clear();
         spans.clear();
         errors.clear();
@@ -301,7 +311,7 @@ public class MockReporter implements Reporter {
      * after reporting to the APM Server.
      * See {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)}
      */
-    public void decrementReferences() {
+    public synchronized void decrementReferences() {
         transactions.forEach(Transaction::decrementReferences);
         spans.forEach(Span::decrementReferences);
     }
@@ -310,7 +320,7 @@ public class MockReporter implements Reporter {
      * Decrements transactions and spans reference count and check that they are properly recycled. This method should likely be called
      * last in the test execution as it destroys any transaction/span that has happened.
      */
-    public void assertRecycledAfterDecrementingReferences() {
+    public synchronized void assertRecycledAfterDecrementingReferences() {
 
         Predicate<AbstractSpan<?>> hasEmptyTraceContext = as -> as.getTraceContext().getId().isEmpty();
 

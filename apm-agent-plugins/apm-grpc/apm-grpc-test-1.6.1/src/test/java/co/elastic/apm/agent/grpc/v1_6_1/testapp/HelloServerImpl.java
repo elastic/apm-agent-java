@@ -65,13 +65,32 @@ class HelloServerImpl extends HelloServer<HelloRequest, HelloReply> {
 
         @Override
         public StreamObserver<HelloRequest> sayManyHello(StreamObserver<HelloReply> responseObserver) {
-            return genericServer.sayManyHello(
+            return genericServer.doSayManyHello(
                 responseObserver,
                 HelloRequest::getUserName,
                 HelloRequest::getDepth,
                 m -> HelloReply.newBuilder().setMessage(m).build());
         }
 
+        @Override
+        public void sayHelloMany(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
+            genericServer.doSayHelloMany(
+                request,
+                responseObserver,
+                HelloRequest::getUserName,
+                HelloRequest::getDepth,
+                (m) -> HelloReply.newBuilder().setMessage(m).build()
+            );
+        }
+
+        @Override
+        public StreamObserver<HelloRequest> sayHelloStream(StreamObserver<HelloReply> responseObserver) {
+            return genericServer.doSayHelloStream(
+                responseObserver,
+                HelloRequest::getUserName,
+                HelloRequest::getDepth,
+                m -> HelloReply.newBuilder().setMessage(m).build());
+        }
     }
 
 }

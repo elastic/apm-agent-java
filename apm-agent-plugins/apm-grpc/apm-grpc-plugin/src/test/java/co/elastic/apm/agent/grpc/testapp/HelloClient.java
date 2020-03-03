@@ -58,6 +58,13 @@ public abstract class HelloClient<Req, Rep> {
 
     public abstract String getResponseMessage(Rep response);
 
+    /**
+     * Synchronous (blocking) hello
+     *
+     * @param user user name
+     * @param depth depth of nested calls, {@literal 0} for simple calls, use positive value for nesting
+     * @return an hello statement
+     */
     public final String sayHello(String user, int depth) {
         Req request = buildRequest(user, depth);
         Rep reply;
@@ -70,6 +77,13 @@ public abstract class HelloClient<Req, Rep> {
         return getResponseMessage(reply);
     }
 
+    /**
+     * Asynchronous hello
+     *
+     * @param user  user name
+     * @param depth depth of nested calls, {@literal 0} for simple calls, use positive value for nesting
+     * @return an hello statement
+     */
     public final Future<String> saysHelloAsync(String user, int depth) {
         Req request = buildRequest(user, depth);
         ListenableFuture<Rep> future = executeAsync(request);
@@ -105,6 +119,13 @@ public abstract class HelloClient<Req, Rep> {
 
     }
 
+    /**
+     * Client streaming hello
+     *
+     * @param users list of users to say hello to
+     * @param depth number of hello that should be said
+     * @return an hello statement
+     */
     public String sayManyHello(List<String> users, int depth) {
 
         List<Req> requests = users.stream()
@@ -136,16 +157,101 @@ public abstract class HelloClient<Req, Rep> {
         }
         requestObserver.onCompleted();
 
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
+        awaitLatch(latch);
 
         return getResponseMessage(result.get());
     }
 
     protected abstract StreamObserver<Req> doSayManyHello(StreamObserver<Rep> responseObserver);
+
+
+    /**
+     * Server streaming hello
+     *
+     * @param user  user name
+     * @param depth depth of nested calls, {@literal 0} for simple calls, use positive value for nesting
+     * @return an hello statement
+     */
+    public String sayHelloMany(String user, int depth) {
+
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Req request = buildRequest(user, depth);
+
+        StringBuilder sb = new StringBuilder();
+
+        StreamObserver<Rep> streamObserver = concatenateStreamObserver(latch, sb);
+
+        doSayHelloMany(request, streamObserver);
+
+        awaitLatch(latch);
+
+        return sb.toString();
+    }
+
+    protected abstract void doSayHelloMany(Req request, StreamObserver<Rep> streamObserver);
+
+    public String sayHelloManyMany(List<String> users, int depth) {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        StringBuilder sb = new StringBuilder();
+
+        StreamObserver<Rep> streamObserver = concatenateStreamObserver(latch, sb);
+
+        StreamObserver<Req> requestStream = doSayHelloManyMany(streamObserver);
+
+        for (String user : users) {
+            requestStream.onNext(buildRequest(user, depth));
+        }
+
+        // we use a specific message to make server end the call
+        requestStream.onNext(buildRequest("nobody", 0));
+
+        // client still needs to complete the call, otherwise server will still have a request pending which
+        // prevents proper server shutdown.
+        requestStream.onCompleted();
+
+        awaitLatch(latch);
+
+        return sb.toString();
+    }
+
+    protected abstract StreamObserver<Req> doSayHelloManyMany(StreamObserver<Rep> streamObserver);
+
+    private static void awaitLatch(CountDownLatch latch) {
+        try {
+            boolean await = latch.await(1, TimeUnit.SECONDS);
+            if(!await){
+                throw new IllegalStateException("giving up waiting for latch, something is wrong");
+            }
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private StreamObserver<Rep> concatenateStreamObserver(CountDownLatch latch, StringBuilder sb) {
+        return new StreamObserver<>() {
+            @Override
+            public void onNext(Rep rep) {
+                if (sb.length() > 0) {
+                    sb.append(" ");
+                }
+                sb.append(getResponseMessage(rep));
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                throw new IllegalStateException("unexpected error", throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+                // server terminated call
+                latch.countDown();
+            }
+        };
+    }
+
 
     public final void stop() throws InterruptedException {
         boolean doShutdown = !channel.isShutdown();
