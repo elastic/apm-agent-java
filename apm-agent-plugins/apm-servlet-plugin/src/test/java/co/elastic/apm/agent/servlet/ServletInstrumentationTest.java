@@ -24,11 +24,9 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.DispatcherType;
@@ -47,7 +45,6 @@ import java.io.IOException;
 import java.util.EnumSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
 
