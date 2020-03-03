@@ -45,7 +45,7 @@ public interface LifecycleListener {
      *
      * @param tracer The tracer.
      */
-    void start(ElasticApmTracer tracer);
+    void start(ElasticApmTracer tracer) throws Exception;
 
     /**
      * Callback for when {@link ElasticApmTracer#pause()} has been called.

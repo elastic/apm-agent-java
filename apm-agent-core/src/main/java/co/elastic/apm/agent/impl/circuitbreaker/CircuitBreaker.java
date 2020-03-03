@@ -93,16 +93,16 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                         if (isStressRelieved()) {
                             logger.info("All registered stress monitors indicate that the stress has been relieved");
                             isCurrentlyUnderStress = false;
-                            tracer.stressRelieved();
+                            tracer.onStressRelieved();
                         }
                     } else if (isUnderStress()) {
                         isCurrentlyUnderStress = true;
-                        tracer.stressDetected();
+                        tracer.onStressDetected();
                     }
                 } else if (isCurrentlyUnderStress) {
                     // to support dynamic disablement under current stress
                     isCurrentlyUnderStress = false;
-                    tracer.stressRelieved();
+                    tracer.onStressRelieved();
                 }
             } catch (Throwable throwable) {
                 // Catch all errors, otherwise the thread will terminate

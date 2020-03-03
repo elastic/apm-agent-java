@@ -122,7 +122,13 @@ public class ElasticApmTracer {
     boolean assertionsEnabled = false;
     private long lastSpanMaxWarningTimestamp;
 
-    private volatile TracerState tracerState = TracerState.STOPPED;
+    /**
+     * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
+     * {@link ElasticApmTracer#getState()}, or when updated through one of the lifecycle-effecting synchronized methods
+     * {@link ElasticApmTracer#start(List)}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
+     * {@link ElasticApmTracer#stop()}.
+     */
+    private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean activeConfigOptionSet;
 
@@ -585,24 +591,32 @@ public class ElasticApmTracer {
     }
 
     synchronized void start(List<LifecycleListener> lifecycleListeners) {
+        if (tracerState != TracerState.UNINITIALIZED) {
+            logger.warn("Trying to start an already initialized agent");
+            return;
+        }
         this.lifecycleListeners.addAll(lifecycleListeners);
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
-            lifecycleListener.start(this);
+            try {
+                lifecycleListener.start(this);
+            } catch (Exception e) {
+                logger.error("Failed to start " + lifecycleListener.getClass().getName(), e);
+            }
         }
+        tracerState = TracerState.RUNNING;
         if (activeConfigOptionSet) {
-            tracerState = TracerState.RUNNING;
             logger.info("Tracer switched to RUNNING state");
         } else {
             pause();
         }
     }
 
-    public synchronized void stressDetected() {
+    public synchronized void onStressDetected() {
         currentlyUnderStress = true;
         pause();
     }
 
-    public synchronized void stressRelieved() {
+    public synchronized void onStressRelieved() {
         currentlyUnderStress = false;
         if (activeConfigOptionSet) {
             resume();
@@ -749,12 +763,12 @@ public class ElasticApmTracer {
      */
     public enum TracerState {
         /**
-         * Agent is in this state either before starting, or after being stopped.
+         * The agent's state before it has been started for the first time.
          */
-        STOPPED,
+        UNINITIALIZED,
 
         /**
-         * Indicates that the agent is currently fully functional - tracing, monitoring and sending data to the APM server
+         * Indicates that the agent is currently fully functional - tracing, monitoring and sending data to the APM server.
          */
         RUNNING,
 
@@ -763,6 +777,12 @@ public class ElasticApmTracer {
          * is PAUSED, it is not tracing and not communicating with the APM server. However, classes are still instrumented
          * and threads are still alive.
          */
-        PAUSED
+        PAUSED,
+
+        /**
+         * Indicates that the agent had been stopped.
+         * NOTE: this state is irreversible- the agent cannot resume if it has already been stopped.
+         */
+        STOPPED
     }
 }

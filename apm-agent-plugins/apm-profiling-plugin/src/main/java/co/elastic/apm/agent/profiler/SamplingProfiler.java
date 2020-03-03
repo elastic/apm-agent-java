@@ -26,7 +26,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
@@ -117,7 +117,7 @@ import java.util.concurrent.locks.LockSupport;
  * we will {@link JfrParser#resolveStackTrace(long, boolean, List, int) resolve the full stack trace}.
  * </p>
  */
-public class SamplingProfiler implements Runnable, LifecycleListener {
+public class SamplingProfiler extends AbstractLifecycleListener implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(SamplingProfiler.class);
     private static final int ACTIVATION_EVENTS_IN_FILE = 1_000_000;
@@ -544,16 +544,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     @Override
     public void start(ElasticApmTracer tracer) {
         scheduler.submit(this);
-    }
-
-    @Override
-    public void pause() throws Exception {
-        // todo - implement
-    }
-
-    @Override
-    public void resume() throws Exception {
-        // todo - implement
     }
 
     @Override
