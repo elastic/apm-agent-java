@@ -26,9 +26,10 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
@@ -48,7 +49,7 @@ public abstract class AbstractInstrumentationTest {
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
-    private static TestObjectPoolFactory objectPoolFactory;
+    protected static TestObjectPoolFactory objectPoolFactory;
 
     @BeforeAll
     @BeforeClass
@@ -57,12 +58,11 @@ public abstract class AbstractInstrumentationTest {
 
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
-
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(LifecycleListener.ClosableAdapter.of(() -> {
+            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
                 objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
                 reporter.assertRecycledAfterDecrementingReferences();
             }))
@@ -91,5 +91,7 @@ public abstract class AbstractInstrumentationTest {
         assertThat(tracer.getActive())
             .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
             .isNull();
+
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 }

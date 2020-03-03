@@ -82,7 +82,7 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
                 .addConfigSource(new SimpleSource()
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")
                     .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
-                    .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
+                    .add("active", Boolean.toString(apmEnabled))
                     .add("api_request_size", "10mb")
                     .add("capture_headers", "false")
 //                     .add("profiling_inferred_spans", "true")

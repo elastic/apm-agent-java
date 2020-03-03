@@ -30,6 +30,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -138,8 +139,8 @@ public class ElasticApmTracerBuilder {
         }
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
-        tracer.registerLifecycleListeners(lifecycleListeners);
-        tracer.registerLifecycleListeners(extraLifecycleListeners);
+        lifecycleListeners.addAll(extraLifecycleListeners);
+        tracer.start(lifecycleListeners);
         return tracer;
     }
 
@@ -153,7 +154,7 @@ public class ElasticApmTracerBuilder {
                 logger.debug("Finished scheduled configuration reload");
             }
         }, rate, rate, seconds);
-        return LifecycleListener.ClosableAdapter.of(new Closeable() {
+        return ClosableLifecycleListenerAdapter.of(new Closeable() {
             @Override
             public void close() {
                 configurationReloader.shutdown();
@@ -173,7 +174,7 @@ public class ElasticApmTracerBuilder {
             logger.warn(e.getMessage());
             return ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource("Noop Configuration")
-                    .add(CoreConfiguration.ACTIVE, "false")
+                    .add(TracerConfiguration.ACTIVE, "false")
                     .add(CoreConfiguration.INSTRUMENT, "false")
                     .add(CoreConfiguration.SERVICE_NAME, "none")
                     .add(CoreConfiguration.SAMPLE_RATE, "0"))

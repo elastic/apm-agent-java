@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
@@ -130,6 +131,27 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("bar2");
         assertThat(reporter.getSpans().get(1).getTraceContext().getParentId()).isEqualTo(reporter.getSpans().get(2).getTraceContext().getId());
         assertThat(reporter.getFirstSpan().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
+    }
+
+    @Test
+    public void testAgentPaused() {
+        // end current transaction first
+        endTransaction();
+        reporter.reset();
+
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        Transaction transaction = ElasticApm.startTransaction();
+        transaction.setType("default").setName("transaction");
+        transaction.startSpan("test", "agent", "paused").setName("span").end();
+        transaction.end();
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test

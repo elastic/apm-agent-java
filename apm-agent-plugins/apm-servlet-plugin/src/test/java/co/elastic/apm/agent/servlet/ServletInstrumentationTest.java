@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.util.EnumSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
 
@@ -78,7 +77,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testNoopInstrumentation() throws Exception {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        TracerInternalApiUtils.pauseTracer(tracer);
         callServlet(0, "/test");
     }
 

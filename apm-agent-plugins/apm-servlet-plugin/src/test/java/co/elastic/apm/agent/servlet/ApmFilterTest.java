@@ -26,6 +26,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
@@ -79,7 +80,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testDisabled() throws IOException, ServletException {
-        when(tracer.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        TracerInternalApiUtils.pauseTracer(tracer);
         filterChain.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
