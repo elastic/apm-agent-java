@@ -33,7 +33,9 @@ endif::[]
   unless <<config-use-elastic-traceparent-header, `use_elastic_traceparent_header`>> is set to false.
 * Creating spans for slow methods with the help of the sampling profiler https://github.com/jvm-profiling-tools/async-profiler[async-profiler].
   This is a low-overhead way of seeing which methods make your transactions slow and a replacement for the `trace_methods` configuration option.
-  See <<supported-java-methods>> for more details.
+  See <<supported-java-methods>> for more details
+* Adding a Circuit Breaker to pause the agent when stress is detected on the system and resume when the stress is relieved.
+  See <<circuit-breaker>> and {pull}1040[#1040] for more info.
 
 [float]
 ===== Bug fixes
