@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.AbstractServletTest;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -48,7 +47,7 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AsyncServletTest extends AbstractServletTest {
+class AsyncServletTest extends AbstractServletTest {
 
     private static final String ACTIVE_TRANSACTION_ATTRIBUTE = "active-transaction";
 
@@ -195,9 +194,13 @@ public class AsyncServletTest extends AbstractServletTest {
 
         @Override
         public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-            assertThat(tracer.currentTransaction()).isNotNull();
+            assertThat(tracer.currentTransaction())
+                .describedAs("should be within a transaction at beginning of doFilter")
+                .isNotNull();
             chain.doFilter(request, response);
-            assertThat(tracer.currentTransaction()).isNotNull();
+            assertThat(tracer.currentTransaction())
+                .describedAs("should be within a transaction at end of doFilter")
+                .isNotNull();
         }
 
         @Override

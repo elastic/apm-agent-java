@@ -226,6 +226,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void close() {
+        logger.info("dropped events because of full queue: {}", dropped.get());
         disruptor.getRingBuffer().tryPublishEvent(SHUTDOWN_EVENT_TRANSLATOR);
         try {
             disruptor.shutdown(5, TimeUnit.SECONDS);
@@ -273,6 +274,9 @@ public class ApmServerReporter implements Reporter {
         if (dropTransactionIfQueueFull) {
             boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(eventTranslator, event);
             if (queueFull) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Could not add {} {} to ring buffer as no slots are available", event.getClass().getSimpleName(), event);
+                }
                 dropped.incrementAndGet();
                 return false;
             }

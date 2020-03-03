@@ -22,25 +22,17 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import net.bytebuddy.agent.ByteBuddyAgent;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.eclipse.jetty.server.NetworkConnector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -48,43 +40,30 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public abstract class AbstractServletTest {
-    protected static MockReporter reporter;
-    protected static ConfigurationRegistry config;
-    protected static ElasticApmTracer tracer;
+abstract class AbstractServletTest extends AbstractInstrumentationTest {
 
     @Nullable
     private static Server server;
+
+    @Nullable
     protected OkHttpClient httpClient;
 
-    @BeforeAll
-    static void setup() {
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-    }
-
-    @AfterAll
-    static void cleanup() throws Exception {
-        server.stop();
-        server = null;
-        ElasticApmAgent.reset();
-    }
-
     @BeforeEach
-    final void initServer() throws Exception {
-        if (server == null) {
-            server = new Server();
-            server.addConnector(new ServerConnector(server));
-            ServletContextHandler handler = new ServletContextHandler();
-            setUpHandler(handler);
-            server.setHandler(handler);
-            server.start();
-        }
+    void initServerAndClient() throws Exception {
+
+        // because we reuse the same classloader with different servlet context names
+        // we need to explicitly reset the name cache to make service name detection work as expected
+        ServletTransactionHelper.clearServiceNameCache();
+
+        // server is not reused between tests as handler is provided from subclass
+        // another alternative
+        server = new Server();
+        server.addConnector(new ServerConnector(server));
+        ServletContextHandler handler = new ServletContextHandler();
+        setUpHandler(handler);
+        server.setHandler(handler);
+        server.start();
+
         assertThat(getPort()).isPositive();
 
         httpClient = new OkHttpClient.Builder()
@@ -96,9 +75,9 @@ public abstract class AbstractServletTest {
     }
 
     @AfterEach
-    void reset() {
-        SpyConfiguration.reset(config);
-        TracerInternalApiUtils.resumeTracer(tracer);
+    void stopServer() throws Exception {
+        server.stop();
+        server = null;
     }
 
     protected Response get(String path) throws IOException {
@@ -106,11 +85,6 @@ public abstract class AbstractServletTest {
     }
 
     protected abstract void setUpHandler(ServletContextHandler handler);
-
-    @AfterEach
-    final void tearDown() {
-        reporter.reset();
-    }
 
     protected int getPort() {
         return ((NetworkConnector) server.getConnectors()[0]).getLocalPort();

@@ -24,11 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.AbstractServletTest;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,17 +45,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
-
-    @BeforeAll
-    static void initInstrumentation() {
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("/init")));
-    }
 
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
@@ -111,9 +101,15 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
-            assertThat(reporter.getTransactions().stream().map(transaction -> transaction.getTraceContext().getServiceName()).distinct()).containsExactly(getClass().getSimpleName());
+            assertThat(reporter.getTransactions()
+                .stream()
+                .map(transaction -> transaction.getTraceContext().getServiceName())
+                .distinct())
+                .describedAs("transaction service name should be inherited from test class name")
+                .containsExactly(getClass().getSimpleName());
         }
-        assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
+        assertThat(reporter.getTransactions())
+            .hasSize(expectedTransactions);
     }
 
 
@@ -151,7 +147,8 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
         @Override
         public void service(ServletRequest req, ServletResponse res) throws IOException {
-            res.getWriter().append("Hello World!")
+            res.getWriter()
+                .append("Hello World!")
                 .flush();
             res.getBufferSize();
         }
