@@ -47,7 +47,8 @@
     "aggs": {
       "traces_with_inferred_spans": {
         "cardinality": {
-          "field": "trace.id"
+          "field": "trace.id",
+          "precision_threshold": 100000
         }
       }
     }
