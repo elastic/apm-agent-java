@@ -228,13 +228,13 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     }
 
     @Override
-    public void pause() throws Exception {
-        //todo
+    public void pause() {
+        // Keep polling for remote config changes, in case the user wants to resume a paused agent or change the stress
+        // monitoring configurations.
     }
 
     @Override
-    public void resume() throws Exception {
-        //todo
+    public void resume() {
     }
 
     @Override
