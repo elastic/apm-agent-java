@@ -190,7 +190,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Redis Redisson
 |2.1.5+
 |The agent creates spans for interactions with the Redisson client.
-|1.13.1
+|1.15.0
 
 |MongoDB driver
 |3.x
