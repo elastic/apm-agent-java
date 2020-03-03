@@ -194,6 +194,18 @@ public class MockReporter implements Reporter {
         return getFirstTransaction();
     }
 
+    public void assertNoTransaction(){
+        assertThat(getTransactions())
+            .describedAs("no transaction expected")
+            .isEmpty();
+    }
+
+    public void assertNoTransaction(long timeoutMs){
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getTransactions()).isEmpty());
+        assertNoTransaction();
+    }
+
     private static ConditionFactory awaitTimeout(long timeoutMs) {
         return await()
             .pollDelay(10, TimeUnit.MILLISECONDS)
@@ -206,7 +218,7 @@ public class MockReporter implements Reporter {
         return getFirstSpan();
     }
 
-    public synchronized void assertNoSpan() {
+    public void assertNoSpan() {
         assertThat(getSpans())
             .describedAs("no span expected")
             .isEmpty();

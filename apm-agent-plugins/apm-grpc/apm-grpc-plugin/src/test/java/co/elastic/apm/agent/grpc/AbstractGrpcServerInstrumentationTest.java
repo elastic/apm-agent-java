@@ -101,7 +101,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         String msg = app.sayHelloAsync("bob", 0).get();
         assertThat(msg).isEqualTo("hello(bob)");
 
-        Transaction transaction = getReporter().getFirstTransaction();
+        Transaction transaction = getFirstTransaction();
         checkUnaryTransaction(transaction, "OK");
     }
 
@@ -109,7 +109,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(app.sayHello(name, 0))
             .isNull();
 
-        Transaction transaction = getReporter().getFirstTransaction();
+        Transaction transaction = getFirstTransaction();
         checkUnaryTransaction(transaction, expectedResult);
     }
 
@@ -120,7 +120,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
             .describedAs("we should not break expected app behavior")
             .isEqualTo("hello to [bob,alice] 37 times");
 
-        checkNoTransaction("client streaming");
+        checkNoTransaction();
     }
 
     @Test
@@ -130,8 +130,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
             .describedAs("we should not break expected app behavior")
             .isEqualTo("joe joe joe joe");
 
-        Transaction transaction = getReporter().getFirstTransaction();
-        checkTransaction(transaction, "OK", "SayHelloMany");
+        checkNoTransaction();
     }
 
     @Test
@@ -141,25 +140,21 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
             .describedAs("we should not break expected app behavior")
             .isEqualTo("hello(bob) hello(bob) hello(alice) hello(alice)");
 
-        checkNoTransaction("bidi streaming");
+        checkNoTransaction();
     }
 
     private static void checkUnaryTransaction(Transaction transaction, String expectedResult){
-        checkTransaction(transaction, expectedResult, "SayHello");
-    }
-
-    private static void checkTransaction(Transaction transaction, String expectedResult, String rpcName) {
-        assertThat(transaction.getNameAsString()).isEqualTo(String.format("helloworld.Hello/%s", rpcName));
+        assertThat(transaction.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo(expectedResult);
     }
 
-    private void checkNoTransaction(String usage) {
-        List<Transaction> transactions = getReporter().getTransactions();
-        assertThat(transactions)
-            .describedAs("no transaction is expected for %s calls", usage)
-            .isEmpty();
+    private static void checkNoTransaction() {
+        getReporter().assertNoTransaction(100);
     }
 
+    private static Transaction getFirstTransaction() {
+        return getReporter().getFirstTransaction(100);
+    }
 
 }
