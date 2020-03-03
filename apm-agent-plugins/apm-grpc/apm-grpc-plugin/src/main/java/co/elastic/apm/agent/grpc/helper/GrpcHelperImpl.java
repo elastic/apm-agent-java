@@ -119,6 +119,11 @@ public class GrpcHelperImpl implements GrpcHelper {
             return null;
         }
 
+        // we only support unary method calls and ignore others for now
+        if (method != null && method.getType() != MethodDescriptor.MethodType.UNARY) {
+            return null;
+        }
+
         span = transaction.createExitSpan();
         if (span == null) {
             // as it's an external call, we only need a single span for nested calls
