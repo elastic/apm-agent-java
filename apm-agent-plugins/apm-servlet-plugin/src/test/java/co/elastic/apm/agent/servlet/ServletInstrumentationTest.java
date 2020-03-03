@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,21 +24,10 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.AbstractServletTest;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
@@ -54,34 +43,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
-
-    private static ConfigurationRegistry config;
-
-    @BeforeAll
-    static void initInstrumentation() {
-        config = SpyConfiguration.createSpyConfig();
-        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("/init")));
-        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build(), ByteBuddyAgent.install());
-    }
-
-    @AfterAll
-    static void afterAll() {
-        ElasticApmAgent.reset();
-    }
-
-    @BeforeEach
-    void setUp() {
-        SpyConfiguration.reset(config);
-    }
 
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
@@ -133,9 +99,15 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
-            assertThat(reporter.getTransactions().stream().map(transaction -> transaction.getTraceContext().getServiceName()).distinct()).containsExactly(getClass().getSimpleName());
+            assertThat(reporter.getTransactions()
+                .stream()
+                .map(transaction -> transaction.getTraceContext().getServiceName())
+                .distinct())
+                .describedAs("transaction service name should be inherited from test class name")
+                .containsExactly(getClass().getSimpleName());
         }
-        assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
+        assertThat(reporter.getTransactions())
+            .hasSize(expectedTransactions);
     }
 
 
@@ -173,7 +145,8 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
         @Override
         public void service(ServletRequest req, ServletResponse res) throws IOException {
-            res.getWriter().append("Hello World!")
+            res.getWriter()
+                .append("Hello World!")
                 .flush();
             res.getBufferSize();
         }

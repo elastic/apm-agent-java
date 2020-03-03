@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -44,17 +44,16 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractInstrumentationTest {
+
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
-
     private static TestObjectPoolFactory objectPoolFactory;
 
     @BeforeAll
     @BeforeClass
     public static void beforeAll() {
         objectPoolFactory = new TestObjectPoolFactory();
-
 
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
@@ -77,27 +76,11 @@ public abstract class AbstractInstrumentationTest {
         ElasticApmAgent.reset();
     }
 
-    public static void reset() {
-        SpyConfiguration.reset(config);
-        reporter.reset();
-    }
-
-    public static ElasticApmTracer getTracer() {
-        return tracer;
-    }
-
-    public static MockReporter getReporter() {
-        return reporter;
-    }
-
-    public static ConfigurationRegistry getConfig() {
-        return config;
-    }
-
     @Before
     @BeforeEach
-    public final void resetReporter() {
-        reset();
+    public final void resetConfigAndReporter() {
+        SpyConfiguration.reset(config);
+        reporter.reset();
     }
 
     @After

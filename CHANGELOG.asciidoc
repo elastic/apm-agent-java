@@ -38,6 +38,20 @@ endif::[]
 [float]
 ===== Bug fixes
 
+[[release-notes-x.x.x]]
+==== 1.14.0 - (Next)
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* `Span#captureException` and `Transaction#captureException` in public Api return reported error id. - {pull}[#1015]
+
+[float]
+===== Bug fixes
+* properly handle `java.sql.SQLException` for unsupported JDBC features {pull}[#1035] https://github.com/elastic/apm-agent-java/issues/1025[#1025]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
@@ -58,7 +72,6 @@ endif::[]
 for more details) - {pull}1009[#1009]
 * Add support for log correlation for log4j and log4j2, even when not used in combination with slf4j.
   See <<supported-logging-frameworks>> for details.
-* `Span#captureException` and `Transaction#captureException` in public Api return reported error id. - {pull}[#1015]
 
 [float]
 ===== Bug Fixes
