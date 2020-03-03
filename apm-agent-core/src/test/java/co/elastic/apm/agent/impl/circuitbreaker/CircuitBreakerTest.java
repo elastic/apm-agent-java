@@ -56,7 +56,7 @@ public class CircuitBreakerTest {
     public void setup() {
         config = SpyConfiguration.createSpyConfig(new SimpleSource(TEST_CONFIG_SOURCE_NAME));
         circuitBreakerConfiguration = config.getConfig(CircuitBreakerConfiguration.class);
-        doReturn(1L).when(circuitBreakerConfiguration).getStressMonitoringPollingInterval();
+        doReturn(1L).when(circuitBreakerConfiguration).getStressMonitoringPollingIntervalMillis();
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(new MockReporter())

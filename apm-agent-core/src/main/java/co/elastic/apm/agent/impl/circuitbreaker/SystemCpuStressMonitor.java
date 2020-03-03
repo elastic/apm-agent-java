@@ -98,7 +98,8 @@ public class SystemCpuStressMonitor extends StressMonitor {
             double systemCpuValue = ((Number) mbeanMethodImpl.invoke(getOperatingSystemBean())).doubleValue();
             if (!Double.isNaN(systemCpuValue) && !Double.isInfinite(systemCpuValue)) {
                 logger.debug("System CPU measurement: {}", systemCpuValue);
-                int cpuConsecutiveMeasurements = circuitBreakerConfiguration.getCpuConsecutiveMeasurements();
+                int cpuConsecutiveMeasurements = (int) (circuitBreakerConfiguration.getCpuStressDurationThresholdMillis() /
+                                        circuitBreakerConfiguration.getStressMonitoringPollingIntervalMillis());
                 if (systemCpuValue > circuitBreakerConfiguration.getSystemCpuStressThreshold()) {
                     consecutiveMeasurementsAboveStressThreshold++;
                     if (consecutiveMeasurementsAboveStressThreshold == cpuConsecutiveMeasurements) {

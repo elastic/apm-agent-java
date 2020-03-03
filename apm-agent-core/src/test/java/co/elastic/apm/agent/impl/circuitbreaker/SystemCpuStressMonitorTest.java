@@ -61,7 +61,8 @@ class SystemCpuStressMonitorTest {
     static void setup() throws NoSuchMethodException {
         ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         CircuitBreakerConfiguration circuitBreakerConfiguration = configurationRegistry.getConfig(CircuitBreakerConfiguration.class);
-        when(circuitBreakerConfiguration.getCpuConsecutiveMeasurements()).thenReturn(3);
+        long pollingInterval = circuitBreakerConfiguration.getStressMonitoringPollingIntervalMillis();
+        when(circuitBreakerConfiguration.getCpuStressDurationThresholdMillis()).thenReturn(pollingInterval * 3);
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(new MockReporter())

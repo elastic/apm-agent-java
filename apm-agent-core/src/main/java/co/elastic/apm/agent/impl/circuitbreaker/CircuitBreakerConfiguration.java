@@ -86,15 +86,18 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         .addValidator(isInRange(0d, 1d))
         .buildWithDefault(0.75);
 
-    private final ConfigurationOption<Integer> cpuConsecutiveMeasurements = ConfigurationOption.integerOption()
-        .key("stress_monitor_cpu_num_measurements")
+    private final ConfigurationOption<TimeDuration> cpuStressDurationThreshold = TimeDurationValueConverter.durationOption("m")
+        .key("stress_monitor_cpu_duration_threshold")
         .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
         .tags("added[1.14.0]")
         .tags("performance")
-        .description("The number of measurements required in order to determine whether the system is \n" +
-            "either currently under stress, or that the stress detected previously has been relieved.")
+        .description("The minimal time required in order to determine whether the system is \n" +
+            "either currently under stress, or that the stress detected previously has been relieved. \n" +
+            "All measurements during this time must be consistent in comparison to the relevant threshold in \n" +
+            "order to detect a change of stress state. Must be at least `1m`.")
+        .addValidator(isNotInRange(TimeDuration.of("0ms"), TimeDuration.of("59s")))
         .dynamic(true)
-        .buildWithDefault(12);
+        .buildWithDefault(TimeDuration.of("1m"));
 
     private final ConfigurationOption<Double> systemCpuStressThreshold = ConfigurationOption.doubleOption()
         .key("stress_monitor_system_cpu_stress_threshold")
@@ -125,7 +128,7 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         return circuitBreakerEnabled.get();
     }
 
-    public long getStressMonitoringPollingInterval() {
+    public long getStressMonitoringPollingIntervalMillis() {
         return stressMonitoringInterval.get().getMillis();
     }
 
@@ -137,8 +140,8 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         return gcReliefThreshold.get();
     }
 
-    public int getCpuConsecutiveMeasurements() {
-        return cpuConsecutiveMeasurements.get();
+    public long getCpuStressDurationThresholdMillis() {
+        return cpuStressDurationThreshold.get().getMillis();
     }
 
     public double getSystemCpuStressThreshold() {

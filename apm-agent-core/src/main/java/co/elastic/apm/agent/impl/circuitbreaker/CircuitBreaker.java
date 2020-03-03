@@ -51,7 +51,7 @@ public class CircuitBreaker extends AbstractLifecycleListener {
     public CircuitBreaker(ElasticApmTracer tracer) {
         this.tracer = tracer;
         circuitBreakerConfiguration = tracer.getConfig(CircuitBreakerConfiguration.class);
-        pollInterval = circuitBreakerConfiguration.getStressMonitoringPollingInterval();
+        pollInterval = circuitBreakerConfiguration.getStressMonitoringPollingIntervalMillis();
         threadPool = ExecutorUtils.createSingleThreadDeamonPool("circuit-breaker", 1);
     }
 
@@ -90,9 +90,14 @@ public class CircuitBreaker extends AbstractLifecycleListener {
             try {
                 if (circuitBreakerConfiguration.isCircuitBreakerEnabled()) {
                     if (isCurrentlyUnderStress) {
-                        checkIfStressRelieved();
-                    } else {
-                        checkIfUnderStress();
+                        if (isStressRelieved()) {
+                            logger.info("All registered stress monitors indicate that the stress has been relieved");
+                            isCurrentlyUnderStress = false;
+                            tracer.stressRelieved();
+                        }
+                    } else if (isUnderStress()) {
+                        isCurrentlyUnderStress = true;
+                        tracer.stressDetected();
                     }
                 } else if (isCurrentlyUnderStress) {
                     // to support dynamic disablement under current stress
@@ -115,14 +120,12 @@ public class CircuitBreaker extends AbstractLifecycleListener {
         }
     }
 
-    private void checkIfUnderStress() {
+    private boolean isUnderStress() {
         for (StressMonitor stressMonitor : stressMonitors) {
             try {
                 if (stressMonitor.isUnderStress()) {
                     logger.info("Stress detected by {}: {}", stressMonitor.getClass().getName(), stressMonitor.getStressDetectionInfo());
-                    isCurrentlyUnderStress = true;
-                    tracer.stressDetected();
-                    break;
+                    return true;
                 }
             } catch (Exception e) {
                 if (logger.isDebugEnabled()) {
@@ -130,9 +133,10 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                 }
             }
         }
+        return false;
     }
 
-    private void checkIfStressRelieved() {
+    private boolean isStressRelieved() {
         boolean stressRelieved = true;
         for (StressMonitor stressMonitor : stressMonitors) {
             try {
@@ -143,11 +147,7 @@ public class CircuitBreaker extends AbstractLifecycleListener {
                 }
             }
         }
-        if (stressRelieved) {
-            logger.info("All registered stress monitors indicate that the stress has been relieved");
-            isCurrentlyUnderStress = false;
-            tracer.stressRelieved();
-        }
+        return stressRelieved;
     }
 
     void registerStressMonitor(StressMonitor monitor) {

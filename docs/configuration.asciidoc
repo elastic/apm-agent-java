@@ -67,7 +67,7 @@ Click on a key to get more information.
 ** <<config-stress-monitoring-interval>>
 ** <<config-stress-monitor-gc-stress-threshold>>
 ** <<config-stress-monitor-gc-relief-threshold>>
-** <<config-stress-monitor-cpu-num-measurements>>
+** <<config-stress-monitor-cpu-duration-threshold>>
 ** <<config-stress-monitor-system-cpu-stress-threshold>>
 ** <<config-stress-monitor-system-cpu-relief-threshold>>
 * <<config-core>>
@@ -238,24 +238,29 @@ be lower than this threshold. The GC monitor relies only on memory consumption m
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-stress-monitor-cpu-num-measurements]]
-==== `stress_monitor_cpu_num_measurements` (performance)
+[[config-stress-monitor-cpu-duration-threshold]]
+==== `stress_monitor_cpu_duration_threshold` (performance)
 
-The number of measurements required in order to determine whether the system is 
-either currently under stress, or that the stress detected previously has been relieved.
+The minimal time required in order to determine whether the system is 
+either currently under stress, or that the stress detected previously has been relieved. 
+All measurements during this time must be consistent in comparison to the relevant threshold in 
+order to detect a change of stress state. Must be at least `1m`.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `1m`.
+The default unit for this option is `m`.
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `12` | Integer | true
+| `1m` | TimeDuration | true
 |============
 
 
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.stress_monitor_cpu_num_measurements` | `stress_monitor_cpu_num_measurements` | `ELASTIC_APM_STRESS_MONITOR_CPU_NUM_MEASUREMENTS`
+| `elastic.apm.stress_monitor_cpu_duration_threshold` | `stress_monitor_cpu_duration_threshold` | `ELASTIC_APM_STRESS_MONITOR_CPU_DURATION_THRESHOLD`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2043,14 +2048,18 @@ The default unit for this option is `ms`.
 #
 # stress_monitor_gc_relief_threshold=0.75
 
-# The number of measurements required in order to determine whether the system is 
-# either currently under stress, or that the stress detected previously has been relieved.
+# The minimal time required in order to determine whether the system is 
+# either currently under stress, or that the stress detected previously has been relieved. 
+# All measurements during this time must be consistent in comparison to the relevant threshold in 
+# order to detect a change of stress state. Must be at least `1m`.
 #
 # This setting can be changed at runtime
-# Type: Integer
-# Default value: 12
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 1m.
+# The default unit for this option is m.
+# Default value: 1m
 #
-# stress_monitor_cpu_num_measurements=12
+# stress_monitor_cpu_duration_threshold=1m
 
 # The threshold used by the system CPU monitor to detect system CPU stress. 
 # If the system CPU crosses this threshold at least `stress_monitor_cpu_num_measurements` consecutive 
