@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.error.logging;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +36,7 @@ abstract class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumen
     @BeforeEach
     void startTransaction() {
         reporter.reset();
-        tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        tracer.startRootTransaction(null).activate();
     }
 
     @AfterEach

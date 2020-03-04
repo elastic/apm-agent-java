@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -33,7 +32,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
-import java.util.Iterator;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -68,7 +66,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doStartTransaction(@Advice.Origin Class<?> clazz, @Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
+                transaction = tracer.startRootTransaction(clazz.getClassLoader());
             }
         }
     }
@@ -79,6 +77,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doStartTransactionWithRemoteParentFunction"));
         }
 
+        @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doStartTransaction(@Advice.Origin Class<?> clazz,
@@ -86,21 +85,16 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                                                @Advice.Argument(0) MethodHandle getFirstHeader,
                                                @Advice.Argument(1) @Nullable Object headerExtractor,
                                                @Advice.Argument(2) MethodHandle getAllHeaders,
-                                               @Advice.Argument(3) @Nullable Object headersExtractor) throws Throwable {
+                                               @Advice.Argument(3) @Nullable Object headersExtractor) {
             if (tracer != null) {
-                if (headerExtractor != null) {
-                    final String traceparentHeader = (String) getFirstHeader.invoke(headerExtractor, TraceContext.TRACE_PARENT_HEADER);
-                    transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceparentHeader, clazz.getClassLoader());
-                } else if (headersExtractor != null) {
-                    final Iterable<String> traceparentHeader = (Iterable<String>) getAllHeaders.invoke(headersExtractor, TraceContext.TRACE_PARENT_HEADER);
-                    final Iterator<String> iterator = traceparentHeader.iterator();
-                    if (iterator.hasNext()) {
-                        transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), iterator.next(), clazz.getClassLoader());
-                    } else {
-                        transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
-                    }
+                if (headersExtractor != null) {
+                    HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
+                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
+                } else if (headerExtractor != null) {
+                    HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
+                    transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
                 } else {
-                    transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
+                    transaction = tracer.startRootTransaction(clazz.getClassLoader());
                 }
             }
         }

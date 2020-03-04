@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -26,10 +26,13 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +73,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     public Span startJmsSendSpan(Destination destination, Message message) {
 
         final TraceContextHolder<?> activeSpan = tracer.getActive();
-        if (activeSpan == null || !activeSpan.isSampled()) {
+        if (activeSpan == null) {
             return null;
         }
 
@@ -96,9 +99,14 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
+            span.getTraceContext().setOutgoingTraceContextHeaders(message, JmsMessagePropertyAccessor.instance());
             if (span.isSampled()) {
-                message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                span.getContext().getDestination().getService()
+                    .withName("jms")
+                    .withResource("jms")
+                    .withType(MESSAGING_TYPE);
                 if (destinationName != null) {
+                    span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
                     span.withName("JMS SEND to ");
                     addDestinationDetails(null, destination, destinationName, span);
                     if (isDestinationNameComputed) {
@@ -106,11 +114,21 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                     }
                 }
             }
-
         } catch (JMSException e) {
             logger.error("Failed to capture JMS span", e);
         }
         return span;
+    }
+
+    @Override
+    @Nullable
+    public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
+        return tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+    }
+
+    @Override
+    public void makeChildOf(Transaction childTransaction, Message parentMessage) {
+        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
     }
 
     @VisibleForAdvice
@@ -180,7 +198,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                 .getContext().getMessage().withQueue(destinationName);
         } else if (destination instanceof Topic) {
             span.appendToName("topic ").appendToName(destinationName)
-                .getContext().getMessage().withTopic(destinationName);
+                .getContext().getMessage().withQueue(destinationName);
         }
     }
 

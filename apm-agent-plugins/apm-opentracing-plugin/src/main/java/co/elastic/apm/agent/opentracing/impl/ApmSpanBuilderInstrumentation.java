@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -38,7 +38,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -101,7 +100,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
             return null;
         }
 
-        @Nonnull
+        @Nullable
         private static AbstractSpan<?> createTransaction(Map<String, Object> tags, String operationName, long microseconds,
                                                          @Nullable Iterable<Map.Entry<String, String>> baggage, ElasticApmTracer tracer, ClassLoader classLoader) {
             if ("client".equals(tags.get("span.kind"))) {
@@ -116,21 +115,8 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startTransaction(TraceContext.fromTraceparentHeader(), getTraceContextHeader(baggage), sampler, microseconds, classLoader);
+                return tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
             }
-        }
-
-        @Nullable
-        @VisibleForAdvice
-        static String getTraceContextHeader(@Nullable Iterable<Map.Entry<String, String>> baggage) {
-            if (baggage != null) {
-                for (Map.Entry<String, String> entry : baggage) {
-                    if (entry.getKey().equalsIgnoreCase(TraceContext.TRACE_PARENT_HEADER)) {
-                        return entry.getValue();
-                    }
-                }
-            }
-            return null;
         }
     }
 

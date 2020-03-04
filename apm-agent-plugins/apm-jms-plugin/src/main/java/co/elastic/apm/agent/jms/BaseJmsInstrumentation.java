@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -27,6 +27,7 @@ package co.elastic.apm.agent.jms;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -34,8 +35,8 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.Message;
 import javax.jms.MessageListener;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -57,7 +58,8 @@ public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
         if (jmsInstrHelperManager == null) {
             jmsInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
                 "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl",
-                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapper");
+                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapper",
+                "co.elastic.apm.agent.jms.JmsMessagePropertyAccessor");
         }
 
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
@@ -69,7 +71,7 @@ public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("jms", "incubating");
+        return Collections.singletonList("jms");
     }
 
     @Override

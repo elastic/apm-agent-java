@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumentation {
 
-    @SuppressWarnings({"WeakerAccess", "AnonymousHasLambdaAlternative"})
+    @SuppressWarnings({"WeakerAccess"})
     @VisibleForAdvice
     public static final ThreadLocal<Boolean> nestedThreadLocal = new ThreadLocal<Boolean>() {
         @Override

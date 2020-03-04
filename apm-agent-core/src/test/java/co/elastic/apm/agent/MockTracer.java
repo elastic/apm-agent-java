@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,8 +25,10 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.Reporter;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -57,9 +59,25 @@ public class MockTracer {
      * the configuration.
      */
     public static ElasticApmTracer createRealTracer(Reporter reporter, ConfigurationRegistry config) {
+
+        // use an object pool that does bookkeeping to allow for extra usage checks
+        TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
+
         return new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
+            // use testing bookkeeper implementation here so we will check that no forgotten recyclable object
+            // is left behind
+            .withObjectPoolFactory(objectPoolFactory)
+            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
+
+                if (reporter instanceof MockReporter) {
+                    ((MockReporter) reporter).assertRecycledAfterDecrementingReferences();
+                }
+
+                // checking proper object pool usage using tracer lifecycle events
+                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+            }))
             .build();
     }
 

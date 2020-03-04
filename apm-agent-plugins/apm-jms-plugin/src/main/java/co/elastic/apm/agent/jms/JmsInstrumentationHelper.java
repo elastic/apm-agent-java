@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
 
@@ -37,7 +38,7 @@ public interface JmsInstrumentationHelper<D, M, L> {
     /**
      * In some cases, dashes are not allowed in JMS Message property names
      */
-    String JMS_TRACE_PARENT_PROPERTY = TraceContext.TRACE_PARENT_HEADER.replace('-', '_');
+    String JMS_TRACE_PARENT_PROPERTY = TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.replace('-', '_');
 
     /**
      * When the agent computes a destination name instead of using the default queue name- it should be passed as a
@@ -71,6 +72,11 @@ public interface JmsInstrumentationHelper<D, M, L> {
 
     @Nullable
     Span startJmsSendSpan(D destination, M message);
+
+    @Nullable
+    Transaction startJmsTransaction(M parentMessage, Class<?> instrumentedClass);
+
+    void makeChildOf(Transaction childTransaction, M parentMessage);
 
     @Nullable
     L wrapLambda(@Nullable L listener);

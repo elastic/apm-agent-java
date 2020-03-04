@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -25,8 +25,8 @@
 package co.elastic.apm.agent.mongoclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.bson.Document;
 import org.junit.After;
@@ -37,6 +37,7 @@ import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -62,7 +63,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @Before
     public void startTransaction() throws Exception {
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("Mongo Transaction");
         transaction.withType("request");
         transaction.withResultIfUnset("success");
@@ -90,6 +91,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.testcollection.create");
+        verifyDestinationDetails(reporter.getSpans());
     }
 
     @Test
@@ -98,6 +100,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.listCollections");
+        verifyDestinationDetails(reporter.getSpans());
     }
 
     @Test
@@ -107,6 +110,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(count).isZero();
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.testcollection.count");
+        verifyDestinationDetails(reporter.getSpans());
     }
 
     @Test
@@ -122,6 +126,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(count).isOne();
         assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("testdb.testcollection.insert");
         assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("testdb.testcollection.count");
+        verifyDestinationDetails(reporter.getSpans());
     }
 
     @Test
@@ -147,6 +152,8 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
                 "testdb.testcollection.insert",
                 "testdb.testcollection.find",
                 "testdb.testcollection.getMore");
+
+        verifyDestinationDetails(reporter.getSpans());
     }
 
     @Test
@@ -171,6 +178,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(count).isOne();
         assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("testdb.testcollection.update");
         assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("testdb.testcollection.count");
+        verifyDestinationDetails(reporter.getSpans());
     }
 
     @Test
@@ -191,6 +199,19 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         assertThat(count).isZero();
         assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("testdb.testcollection.delete");
         assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("testdb.testcollection.count");
+        verifyDestinationDetails(reporter.getSpans());
+    }
+
+    private void verifyDestinationDetails(List<Span> spanList) {
+        for (Span span : spanList) {
+            Destination destination = span.getContext().getDestination();
+            assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(27017));
+            Destination.Service service = destination.getService();
+            assertThat(service.getName().toString()).isEqualTo("mongodb");
+            assertThat(service.getResource().toString()).isEqualTo("mongodb");
+            assertThat(service.getType()).isEqualTo("db");
+        }
     }
 
     protected abstract long update(Document query, Document updatedObject) throws Exception;

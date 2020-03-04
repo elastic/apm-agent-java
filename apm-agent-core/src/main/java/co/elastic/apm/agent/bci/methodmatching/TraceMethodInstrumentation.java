@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -30,7 +30,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.asm.Advice;
@@ -75,9 +74,10 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
         if (tracer != null) {
             final TraceContextHolder<?> parent = tracer.getActive();
             if (parent == null) {
-                span = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                    .withName(signature)
-                    .activate();
+                span = tracer.startRootTransaction(clazz.getClassLoader());
+                if (span != null) {
+                    span.withName(signature).activate();
+                }
             } else if (parent.isSampled()) {
                 span = parent.createSpan()
                     .withName(signature)

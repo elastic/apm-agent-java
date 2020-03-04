@@ -20,25 +20,68 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.15.0]]
+==== 1.15.0 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.14.0]]
+==== 1.14.0 - 2020/03/04
+
+[float]
+===== Features
+
+* Support for the official https://www.w3.org/TR/trace-context[W3C] `traceparent` and `tracestate` headers. +
+  The agent now accepts both the `elastic-apm-traceparent` and the official `traceparent` header.
+By default, it sends both headers on outgoing requests, unless <<config-use-elastic-traceparent-header, `use_elastic_traceparent_header`>> is set to false.
+* Creating spans for slow methods with the help of the sampling profiler https://github.com/jvm-profiling-tools/async-profiler[async-profiler].
+This is a low-overhead way of seeing which methods make your transactions slow and a replacement for the `trace_methods` configuration option.
+See <<supported-java-methods>> for more details
+* Adding a Circuit Breaker to pause the agent when stress is detected on the system and resume when the stress is relieved.
+See <<circuit-breaker>> and {pull}1040[#1040] for more info.
+* `Span#captureException` and `Transaction#captureException` in public API return reported error id - {pull}1015[#1015]
+
+[float]
+===== Bug fixes
+
+* java.lang.IllegalStateException: Cannot resolve type description for <com.another.commercial.apm.agent.Class> - {pull}1037[#1037]
+* properly handle `java.sql.SQLException` for unsupported JDBC features {pull}[#1035] https://github.com/elastic/apm-agent-java/issues/1025[#1025]
+
 [[release-notes-1.13.0]]
-==== 1.13.0 (Next)
+==== 1.13.0 - 2020/02/11
 
 [float]
 ===== Features
 
 * Add support for <<supported-databases, Redis Lettuce client>>
 * Add `context.message.age.ms` field for JMS message receiving spans and transactions - {pull}970[#970]
-* Instrument log4j Logger#error(String, Throwable) (#919)
-  Automatically captures exceptions when calling `logger.error("message", exception)`
+* Instrument log4j Logger#error(String, Throwable) ({pull}919[#919]) Automatically captures exceptions when calling `logger.error("message", exception)`
+* Add instrumentation for external process execution through `java.lang.Process` and Apache `commons-exec` - {pull}903[#903]
+* Add `destination` fields to exit span contexts - {pull}976[#976]
+* Removed `context.message.topic.name` field - {pull}993[#993]
+* Add support for Kafka clients - {pull}981[#981]
+* Add support for binary `traceparent` header format (see the https://github.com/elastic/apm/blob/master/docs/agent-development.md#Binary-Fields[spec]
+for more details) - {pull}1009[#1009]
+* Add support for log correlation for log4j and log4j2, even when not used in combination with slf4j.
+  See <<supported-logging-frameworks>> for details.
 
 [float]
 ===== Bug Fixes
 
 * Fix parsing value of `trace_methods` configuration property {pull}930[#930]
 * Workaround for `java.util.logging` deadlock {pull}965[#965]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* JMS should propagate traceparent header when transactions are not sampled {pull}999[#999]
+* Spans are not closed if JDBC implementation does not support `getUpdateCount` {pull}1008[#1008]
 
 [[release-notes-1.12.0]]
 ==== 1.12.0 - 2019/11/21

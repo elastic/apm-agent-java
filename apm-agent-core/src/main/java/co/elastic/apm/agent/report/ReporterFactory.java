@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
@@ -37,10 +36,9 @@ public class ReporterFactory {
 
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, ApmServerClient apmServerClient, MetaData metaData) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry,
             reporterConfiguration, metaData, apmServerClient);
-        return new ApmServerReporter(true, reporterConfiguration, coreConfiguration, reportingEventHandler);
+        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
     }
 
     @Nonnull

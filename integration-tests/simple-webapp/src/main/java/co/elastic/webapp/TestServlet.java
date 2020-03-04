@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -50,6 +50,14 @@ public class TestServlet extends HttpServlet {
 
         boolean causeDbError = req.getParameter(CAUSE_DB_ERROR) != null;
         boolean causeServletError = req.getParameter(CAUSE_TRANSACTION_ERROR) != null;
+        String sleep = req.getParameter("sleep");
+        if (sleep != null) {
+            try {
+                Thread.sleep(Long.parseLong(sleep));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         // if invoked following AsyncContext.dispatch, original request properties are not available. Instead the query string is made
         // available through this request attribute

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -25,10 +25,10 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -45,7 +45,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
@@ -149,8 +148,10 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             .withSubtype("jms")
                             .withAction("receive");
                     } else if (createPollingTransaction) {
-                        createdSpan = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                            .withType(MESSAGE_POLLING);
+                        createdSpan = tracer.startRootTransaction(clazz.getClassLoader());
+                        if (createdSpan != null) {
+                            ((Transaction) createdSpan).withType(MESSAGE_POLLING);
+                        }
                     }
 
                     if (createdSpan != null) {
@@ -172,14 +173,12 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
                     jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
 
-                String messageSenderContext = null;
                 Destination destination = null;
                 String destinationName = null;
                 boolean discard = false;
                 boolean addDetails = true;
                 if (message != null) {
                     try {
-                        messageSenderContext = message.getStringProperty(JMS_TRACE_PARENT_PROPERTY);
                         destination = message.getJMSDestination();
                         if (helper != null) {
                             destinationName = helper.extractDestinationName(message, destination);
@@ -190,16 +189,13 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
 
                     if (abstractSpan instanceof Transaction) {
+                        Transaction transaction = (Transaction) abstractSpan;
                         if (discard) {
-                            ((Transaction) abstractSpan).ignoreTransaction();
-                        } else {
-                            if (messageSenderContext != null) {
-                                abstractSpan.getTraceContext().asChildOf(messageSenderContext);
-                            }
-                            ((Transaction) abstractSpan).withType(MESSAGING_TYPE);
-                            if (helper != null) {
-                                helper.addMessageDetails(message, abstractSpan);
-                            }
+                            transaction.ignoreTransaction();
+                        } else if (helper != null) {
+                            helper.makeChildOf(transaction, message);
+                            transaction.withType(MESSAGING_TYPE);
+                            helper.addMessageDetails(message, abstractSpan);
                         }
                     }
                 } else if (abstractSpan instanceof Transaction) {
@@ -225,23 +221,25 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 }
 
-                if (!discard && messageSenderContext != null && tracer != null && tracer.currentTransaction() == null
-                    && messagingConfiguration != null
+                if (!discard && tracer != null && tracer.currentTransaction() == null && helper != null
+                    && message != null && messagingConfiguration != null
                     && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
 
-                    Transaction messageHandlingTransaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), messageSenderContext, clazz.getClassLoader())
-                        .withType(MESSAGE_HANDLING)
-                        .withName(RECEIVE_NAME_PREFIX);
+                    Transaction messageHandlingTransaction = helper.startJmsTransaction(message, clazz);
+                    if (messageHandlingTransaction != null) {
+                        messageHandlingTransaction.withType(MESSAGE_HANDLING)
+                            .withName(RECEIVE_NAME_PREFIX);
 
-                    if (helper != null && destinationName != null) {
-                        messageHandlingTransaction.appendToName(" from ");
-                        helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
-                        helper.addMessageDetails(message, messageHandlingTransaction);
-                        helper.setMessageAge(message, messageHandlingTransaction);
+                        if (destinationName != null) {
+                            messageHandlingTransaction.appendToName(" from ");
+                            helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
+                            helper.addMessageDetails(message, messageHandlingTransaction);
+                            helper.setMessageAge(message, messageHandlingTransaction);
+                        }
+
+                        messageHandlingTransaction.activate();
                     }
-
-                    messageHandlingTransaction.activate();
                 }
             }
         }

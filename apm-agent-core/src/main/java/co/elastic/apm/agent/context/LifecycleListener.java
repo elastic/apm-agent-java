@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -26,6 +26,8 @@ package co.elastic.apm.agent.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
+import java.io.Closeable;
+
 /**
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
  * <p>
@@ -43,7 +45,35 @@ public interface LifecycleListener {
      *
      * @param tracer The tracer.
      */
-    void start(ElasticApmTracer tracer);
+    void start(ElasticApmTracer tracer) throws Exception;
+
+    /**
+     * Callback for when {@link ElasticApmTracer#pause()} has been called.
+     * <p>
+     * Typically, this method is used to reduce overhead on the application to a minimum. This can be done by cleaning
+     * up resources like object pools, as well as by avoiding tracing-related overhead.
+     * </p>
+     * <p>
+     * Exceptions thrown from this method are caught and handled so that they don't prevent further cleanup actions.
+     * </p>
+     *
+     * @throws Exception When something goes wrong performing the cleanup.
+     */
+    void pause() throws Exception;
+
+    /**
+     * Callback for when {@link ElasticApmTracer#resume()} has been called.
+     * <p>
+     * Typically, used in order to revert the actions taken by the {@link LifecycleListener#pause()} method, allowing
+     * the agent to restore all tracing capabilities
+     * </p>
+     * <p>
+     * Exceptions thrown from this method are caught and handled so that they don't prevent further resume actions.
+     * </p>
+     *
+     * @throws Exception When something goes wrong while attempting to resume.
+     */
+    void resume() throws Exception;
 
     /**
      * Callback for when {@link ElasticApmTracer#stop()} has been called.
@@ -58,4 +88,5 @@ public interface LifecycleListener {
      * @throws Exception When something goes wrong performing the cleanup.
      */
     void stop() throws Exception;
+
 }

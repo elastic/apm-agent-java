@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -27,14 +27,17 @@ package co.elastic.apm.agent.context;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 public abstract class AbstractLifecycleListener implements LifecycleListener {
-    protected final ElasticApmTracer tracer;
-
-    protected AbstractLifecycleListener(ElasticApmTracer tracer) {
-        this.tracer = tracer;
-    }
 
     @Override
     public void start(ElasticApmTracer tracer) {
+    }
+
+    @Override
+    public void pause() throws Exception {
+    }
+
+    @Override
+    public void resume() throws Exception {
     }
 
     @Override

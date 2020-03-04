@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -26,7 +26,6 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -41,7 +40,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -106,7 +104,11 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             //noinspection ConstantConditions
             JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
                 jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
-            if (helper != null && destination != null) {
+            if (helper == null) {
+                return null;
+            }
+
+            if (destination != null) {
                 destinationName = helper.extractDestinationName(message, destination);
                 if (helper.ignoreDestination(destinationName)) {
                     return null;
@@ -114,31 +116,18 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             }
 
             // Create a transaction - even if running on same JVM as the sender
-            Transaction transaction = null;
+            Transaction transaction = helper.startJmsTransaction(message, clazz);
+            if (transaction != null) {
+                transaction.withType(MESSAGING_TYPE)
+                    .withName(RECEIVE_NAME_PREFIX);
 
-            try {
-                String traceParentProperty = message.getStringProperty(JMS_TRACE_PARENT_PROPERTY);
-                if (traceParentProperty != null) {
-                    transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(),
-                        traceParentProperty, clazz.getClassLoader());
-                }
-            } catch (JMSException e) {
-                logger.warn("Failed to retrieve trace context property from JMS message", e);
-            }
-
-            if (transaction == null) {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
-            }
-
-            transaction.withType(MESSAGING_TYPE).withName(RECEIVE_NAME_PREFIX);
-            if (helper != null) {
                 if (destinationName != null) {
                     helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
                 }
                 helper.addMessageDetails(message, transaction);
                 helper.setMessageAge(message, transaction);
+                transaction.activate();
             }
-            transaction.activate();
 
             return transaction;
         }

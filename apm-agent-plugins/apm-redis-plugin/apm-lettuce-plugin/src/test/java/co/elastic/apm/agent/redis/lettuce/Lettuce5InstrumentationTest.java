@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -51,6 +51,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     public void setUpLettuce() {
         RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
         connection = client.connect();
+        reporter.disableDestinationAddressCheck();
     }
 
     @Test
@@ -108,5 +109,10 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     @After
     public void tearDownLettuce() {
         connection.close();
+    }
+
+    @Override
+    protected boolean destinationAddressSupported() {
+        return false;
     }
 }

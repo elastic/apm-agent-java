@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
 
@@ -67,6 +68,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private AbstractSpan<?> parent;
     @Nullable
     private Transaction transaction;
+    @Nullable
+    private List<StackFrame> stackFrames;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
@@ -82,6 +85,10 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             this.parent = parentSpan;
             this.transaction = parentSpan.transaction;
         }
+        return start(epochMicros, dropped);
+    }
+
+    private Span start(long epochMicros, boolean dropped) {
         if (dropped) {
             traceContext.setRecorded(false);
         }
@@ -192,7 +199,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     public void beforeEnd(long epochMicros) {
         if (logger.isDebugEnabled()) {
-            logger.debug("} endSpan {}", this);
+            logger.debug("endSpan {}", this);
             if (logger.isTraceEnabled()) {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }
@@ -224,6 +231,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         action = null;
         parent = null;
         transaction = null;
+        // recycling this array list by clear()-ing it doesn't seem worth it
+        // it's used in the context of profiling-inferred spans which entails allocations anyways
+        // when trying to recycle this list by clearing it, we increase the static memory overhead of the agent
+        // because all spans in the pool contain that list even if they are not used as inferred spans
+        stackFrames = null;
     }
 
     @Override
@@ -255,5 +267,14 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     protected void recycle() {
         tracer.recycle(this);
+    }
+
+    public void setStackTrace(List<StackFrame> stackTrace) {
+        this.stackFrames = stackTrace;
+    }
+
+    @Nullable
+    public List<StackFrame> getStackFrames() {
+        return stackFrames;
     }
 }

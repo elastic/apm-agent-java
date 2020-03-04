@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -188,16 +188,16 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * as the underlying {@link StringBuilder} instance will be reused.
      * </p>
      *
-     * @param s the string to append to the name
+     * @param cs the char sequence to append to the name
      * @return {@code this}, for chaining
      */
-    public T appendToName(String s) {
-        return appendToName(s, PRIO_DEFAULT);
+    public T appendToName(CharSequence cs) {
+        return appendToName(cs, PRIO_DEFAULT);
     }
 
-    public T appendToName(String s, int priority) {
+    public T appendToName(CharSequence cs, int priority) {
         if (priority >= namePriority) {
-            this.name.append(s);
+            this.name.append(cs);
             this.namePriority = priority;
         }
         return (T) this;
@@ -372,9 +372,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     public void incrementReferences() {
-        references.incrementAndGet();
+        int referenceCount = references.incrementAndGet();
         if (logger.isDebugEnabled()) {
-            logger.debug("increment references to {} ({})", this, references);
+            logger.debug("increment references to {} ({})", this, referenceCount);
             if (logger.isTraceEnabled()) {
                 logger.trace("incrementing references at",
                     new RuntimeException("This is an expected exception. Is just used to record where the reference count has been incremented."));
@@ -385,7 +385,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     public void decrementReferences() {
         int referenceCount = references.decrementAndGet();
         if (logger.isDebugEnabled()) {
-            logger.debug("decrement references to {} ({})", this, references);
+            logger.debug("decrement references to {} ({})", this, referenceCount);
             if (logger.isTraceEnabled()) {
                 logger.trace("decrementing references at",
                     new RuntimeException("This is an expected exception. Is just used to record where the reference count has been decremented."));

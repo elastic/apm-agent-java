@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
@@ -79,7 +80,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testDisabled() throws IOException, ServletException {
-        when(tracer.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        TracerInternalApiUtils.pauseTracer(tracer);
         filterChain.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }

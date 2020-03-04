@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -25,14 +25,12 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -41,8 +39,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -86,18 +82,19 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                     .activate();
                 abstractSpan = span;
             } else {
-                Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
-                if (spanName.isEmpty()) {
-                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                } else {
-                    transaction.withName(spanName, PRIO_USER_SUPPLIED);
+                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    if (spanName.isEmpty()) {
+                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                    } else {
+                        transaction.withName(spanName, PRIO_USER_SUPPLIED);
+                    }
+                    transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
+                        .activate();
                 }
-                transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
-                    .activate();
                 abstractSpan = transaction;
             }
         }
-
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)

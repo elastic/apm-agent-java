@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -70,13 +70,22 @@ public class Id implements Recyclable {
         onMutation();
     }
 
-    public void fromBytes(byte[] bytes, int offset) {
+    /**
+     * Sets the id based on a byte array
+     *
+     * @param bytes the byte array used to fill this id's {@link #data}
+     * @param offset the offset in the byte array
+     * @return the number of read bytes which is equivalent to {@link #getLength()}
+     */
+    public int fromBytes(byte[] bytes, int offset) {
         System.arraycopy(bytes, offset, data, 0, data.length);
         onMutation();
+        return data.length;
     }
 
-    public void toBytes(byte[] bytes, int offset) {
+    public int toBytes(byte[] bytes, int offset) {
         System.arraycopy(data, 0, bytes, offset, data.length);
+        return offset + data.length;
     }
 
     public void fromLongs(long... values) {
@@ -119,6 +128,16 @@ public class Id implements Recyclable {
         if (o == null || getClass() != o.getClass()) return false;
         Id that = (Id) o;
         return Arrays.equals(data, that.data);
+    }
+
+    public boolean dataEquals(byte[] data, int offset) {
+        byte[] thisData = this.data;
+        for (int i = 0; i < thisData.length; i++) {
+            if (thisData[i] != data[i + offset]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

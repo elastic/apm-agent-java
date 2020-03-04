@@ -5,7 +5,7 @@
 To adapt the Elastic APM agent to your needs,
 you can configure it using different configuration sources,
 which have different naming conventions for the property key.
-The first configuration sources override the configuration values of over the latter sources.
+In descending order of precedence:
 
 [arabic]
 . {apm-app-ref}/agent-configuration.html[Central configuration]
@@ -17,6 +17,8 @@ The first configuration sources override the configuration values of over the la
   You can place a `elasticapm.properties` in the same directory the agent jar resides in.
   To customize the location, set the <<config-config-file>> option.
   No prefix is required for the configuration keys.
+
+Central configuration overrides all other settings. Java system properties override Environment variables. Environment variables override `elasticapm.properties`
 
 Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
 {kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
@@ -85,7 +87,7 @@ ${option.description}
 <#if option.valueType?matches("TimeDuration")>
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `${option.defaultValueAsString}`.
-The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`
+The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`.
 </#if>
 <#if option.validOptions?has_content>
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>

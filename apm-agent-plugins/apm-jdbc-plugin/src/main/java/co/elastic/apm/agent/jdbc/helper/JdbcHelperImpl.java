@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
@@ -38,16 +39,25 @@ import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 
+@SuppressWarnings("unused") // indirect access to this class provided through HelperClassManager
 public class JdbcHelperImpl extends JdbcHelper {
-    public static final String DB_SPAN_TYPE = "db";
-    public static final String DB_SPAN_ACTION = "query";
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
-    private static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+
+    // Important implementation note:
+    //
+    // because this class is potentially loaded from multiple classloaders, making those fields 'static' will not
+    // have the expected behavior, thus, any direct reference to `JdbcHelperImpl` should only be obtained from the
+    // HelperClassManager<JdbcHelper> instance.
+    private final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+    private final WeakConcurrentMap<Class<?>, Boolean> updateCountSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
+    private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
+    private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
 
     @VisibleForAdvice
-    public static final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
+    public final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
         @Override
         protected SignatureParser initialValue() {
             return new SignatureParser();
@@ -55,11 +65,20 @@ public class JdbcHelperImpl extends JdbcHelper {
     };
 
     @Override
+    public void clearInternalStorage() {
+        metaDataMap.clear();
+        updateCountSupported.clear();
+        metadataSupported.clear();
+        connectionSupported.clear();
+    }
+
+    @Override
     @Nullable
-    public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
-        if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
+    public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
+        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
             return null;
         }
+
         Span span = parent.createSpan().activate();
         StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (spanName != null) {
@@ -70,37 +89,29 @@ public class JdbcHelperImpl extends JdbcHelper {
         // if that is traced as well -> StackOverflowError
         // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
         span.withType(DB_SPAN_TYPE);
-        try {
-            final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
-            span.withSubtype(connectionMetaData.dbVendor)
+
+        // write fields that do not rely on metadata
+        span.getContext().getDb()
+            .withStatement(sql)
+            .withType("sql");
+
+        Connection connection = safeGetConnection((Statement) statement);
+        ConnectionMetaData connectionMetaData = connection == null ? null : getConnectionMetaData(connection);
+        if (connectionMetaData != null) {
+            span.withSubtype(connectionMetaData.getDbVendor())
                 .withAction(DB_SPAN_ACTION);
             span.getContext().getDb()
-                .withUser(connectionMetaData.user)
-                .withStatement(sql)
-                .withType("sql");
-        } catch (SQLException e) {
-            logger.warn("Ignored exception", e);
+                .withUser(connectionMetaData.getUser());
+            Destination destination = span.getContext().getDestination()
+                .withAddress(connectionMetaData.getHost())
+                .withPort(connectionMetaData.getPort());
+            destination.getService()
+                .withName(connectionMetaData.getDbVendor())
+                .withResource(connectionMetaData.getDbVendor())
+                .withType(DB_SPAN_TYPE);
         }
-        return span;
-    }
 
-    @Nullable
-    private String getMethod(@Nullable String sql) {
-        if (sql == null) {
-            return null;
-        }
-        // don't allocate objects for the common case
-        if (sql.startsWith("SELECT") || sql.startsWith("select")) {
-            return "SELECT";
-        }
-        sql = sql.trim();
-        final int indexOfWhitespace = sql.indexOf(' ');
-        if (indexOfWhitespace > 0) {
-            return sql.substring(0, indexOfWhitespace).toUpperCase();
-        } else {
-            // for example COMMIT
-            return sql.toUpperCase();
-        }
+        return span;
     }
 
     /*
@@ -117,42 +128,97 @@ public class JdbcHelperImpl extends JdbcHelper {
         return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
     }
 
-
-    private ConnectionMetaData getConnectionMetaData(Connection connection) throws SQLException {
+    @Nullable
+    private ConnectionMetaData getConnectionMetaData(Connection connection) {
         ConnectionMetaData connectionMetaData = metaDataMap.get(connection);
-        if (connectionMetaData == null) {
-            final DatabaseMetaData metaData = connection.getMetaData();
-            String dbVendor = getDbVendor(metaData.getURL());
-            connectionMetaData = new ConnectionMetaData(dbVendor, metaData.getUserName());
+        if (connectionMetaData != null) {
+            return connectionMetaData;
+        }
+
+        Class<?> type = connection.getClass();
+        Boolean supported = isSupported(metadataSupported, type);
+        if (supported == Boolean.FALSE) {
+            return null;
+        }
+
+        try {
+            DatabaseMetaData metaData = connection.getMetaData();
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), metaData.getUserName());
+            if (supported == null) {
+                markSupported(metadataSupported, type);
+            }
+        } catch (SQLException e) {
+            markNotSupported(metadataSupported, type, e);
+        }
+
+        if (connectionMetaData != null) {
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
-
     }
 
-    private String getDbVendor(String url) {
-        // jdbc:h2:mem:test
-        //     ^
-        int indexOfJdbc = url.indexOf("jdbc:");
-        if (indexOfJdbc != -1) {
-            // h2:mem:test
-            String urlWithoutJdbc = url.substring(indexOfJdbc + 5);
-            int indexOfColonAfterVendor = urlWithoutJdbc.indexOf(":");
-            if (indexOfColonAfterVendor != -1) {
-                // h2
-                return urlWithoutJdbc.substring(0, indexOfColonAfterVendor);
+    @Nullable
+    private Connection safeGetConnection(Statement statement) {
+        Connection connection = null;
+        Class<?> type = statement.getClass();
+        Boolean supported = isSupported(connectionSupported, type);
+        if (supported == Boolean.FALSE) {
+            return null;
+        }
+
+        try {
+            connection = statement.getConnection();
+            if (supported == null) {
+                markSupported(connectionSupported, type);
             }
+        } catch (SQLException e) {
+            markNotSupported(connectionSupported, type, e);
         }
-        return "unknown";
+
+        return connection;
     }
 
-    private static class ConnectionMetaData {
-        final String dbVendor;
-        final String user;
 
-        private ConnectionMetaData(String dbVendor, String user) {
-            this.dbVendor = dbVendor;
-            this.user = user;
+    @Override
+    public long safeGetUpdateCount(Object statement) {
+        long result = Long.MIN_VALUE;
+        if (!(statement instanceof Statement)) {
+            return result;
+        }
+
+        Class<?> type = statement.getClass();
+        Boolean supported = isSupported(updateCountSupported, type);
+        if (supported == Boolean.FALSE) {
+            return result;
+        }
+
+        try {
+            result = ((Statement) statement).getUpdateCount();
+            if (supported == null) {
+                markSupported(updateCountSupported, type);
+            }
+        } catch (SQLException e) {
+            markNotSupported(updateCountSupported, type, e);
+        }
+
+        return result;
+    }
+
+    @Nullable
+    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
+        return featureMap.get(type);
+    }
+
+    private static void markSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type) {
+        map.put(type, Boolean.TRUE);
+    }
+
+    private static void markNotSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type, SQLException e) {
+        Boolean previous = map.put(type, Boolean.FALSE);
+        if (previous == null) {
+            logger.warn("JDBC feature not supported on class " + type, e);
         }
     }
+
+
 }

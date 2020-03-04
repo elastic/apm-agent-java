@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -32,11 +32,12 @@ import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,12 +58,14 @@ import static org.mockito.Mockito.when;
 class TraceMethodInstrumentationTest {
 
     private MockReporter reporter;
+    private TestObjectPoolFactory objectPoolFactory;
     private ElasticApmTracer tracer;
     private CoreConfiguration coreConfiguration;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
         reporter = new MockReporter();
+        objectPoolFactory = new TestObjectPoolFactory();
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
@@ -85,6 +88,7 @@ class TraceMethodInstrumentationTest {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
+            .withObjectPoolFactory(objectPoolFactory)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
@@ -92,6 +96,7 @@ class TraceMethodInstrumentationTest {
     @AfterEach
     void tearDown() {
         ElasticApmAgent.reset();
+
     }
 
     @Test
@@ -116,7 +121,7 @@ class TraceMethodInstrumentationTest {
 
     @Test
     void testTraceMethodNonSampledTransaction() {
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(false), 0, getClass().getClassLoader());
+        Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(false), 0, getClass().getClassLoader());
         transaction.withName("not sampled");
         try (Scope scope = transaction.activateInScope()) {
             TestClass.traceMe();
@@ -165,6 +170,18 @@ class TraceMethodInstrumentationTest {
         new TestDiscardableMethods(tracer).root(true);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(7);
+    }
+
+    @Test
+    void testAgentPaused() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+        new TestDiscardableMethods(tracer).root(true);
+        assertThat(reporter.getTransactions()).hasSize(0);
+        assertThat(reporter.getSpans()).hasSize(0);
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test
@@ -324,10 +341,13 @@ class TraceMethodInstrumentationTest {
         }
 
         private void manuallyTraced() {
-            tracer.getActive().createSpan()
-                .activate()
-                .deactivate()
-                .end();
+            TraceContextHolder<?> active = tracer.getActive();
+            if (active != null) {
+                active.createSpan()
+                    .activate()
+                    .deactivate()
+                    .end();
+            }
         }
 
         private void beforeLongMethod() {

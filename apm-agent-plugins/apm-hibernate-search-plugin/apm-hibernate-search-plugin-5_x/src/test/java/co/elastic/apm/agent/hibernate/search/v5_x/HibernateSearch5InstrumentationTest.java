@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -26,7 +26,6 @@ package co.elastic.apm.agent.hibernate.search.v5_x;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.hibernate.search.DeleteFileVisitor;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -76,7 +75,7 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void initSingleTest() {
-        tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        tracer.startRootTransaction(null).activate();
     }
 
     @AfterEach

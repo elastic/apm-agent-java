@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -27,7 +27,6 @@ package co.elastic.apm.agent.jms.spring;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQMapMessage;
@@ -79,7 +78,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
         reporter.reset();
         try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
-            Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+            Transaction transaction = tracer.startRootTransaction(null).activate();
             transaction.withName("JMS-Spring-Test Transaction");
             transaction.withType("request");
             transaction.withResult("success");

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 import javax.annotation.Nullable;
@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
  * See {@link AgentMain#init(String, java.lang.instrument.Instrumentation)}
  * </p>
  */
-public class OsgiBootDelegationEnabler implements LifecycleListener {
+public class OsgiBootDelegationEnabler extends AbstractLifecycleListener {
     private static final String APM_BASE_PACKAGE = "co.elastic.apm.agent.*";
     // see https://confluence.atlassian.com/jirakb/using-javaagent-with-jira-790793295.html#UsingjavaagentwithJIRA-Resolution
     private static final String ATLASSIAN_BOOTDELEGATION_DEFAULTS = "META-INF.services,com.yourkit,com.singularity.*,com.jprofiler," +
@@ -69,10 +69,5 @@ public class OsgiBootDelegationEnabler implements LifecycleListener {
         } else {
             System.setProperty(propertyName, append);
         }
-    }
-
-    @Override
-    public void stop() {
-        // noop
     }
 }

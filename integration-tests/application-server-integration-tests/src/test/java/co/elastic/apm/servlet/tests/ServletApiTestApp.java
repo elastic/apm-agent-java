@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -53,6 +53,7 @@ public class ServletApiTestApp extends TestApp {
         testTransactionErrorReporting(test);
         testSpanErrorReporting(test);
         testExecutorService(test);
+        testExecuteCommandServlet(test);
         testHttpUrlConnection(test);
         testCaptureBody(test);
         testJmxMetrics(test);
@@ -81,6 +82,26 @@ public class ServletApiTestApp extends TestApp {
         String transactionId = test.assertTransactionReported(pathToTest, 200).get("id").textValue();
         final List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
         assertThat(spans).hasSize(1);
+    }
+
+    private void testExecuteCommandServlet(AbstractServletContainerIntegrationTest test) throws Exception {
+        testExecuteCommand(test, "?variant=WAIT_FOR");
+        testExecuteCommand(test, "?variant=DESTROY");
+    }
+
+    private void testExecuteCommand(AbstractServletContainerIntegrationTest test, String queryPath) throws IOException, InterruptedException {
+        test.clearMockServerLog();
+        final String pathToTest = "/simple-webapp/execute-cmd-servlet";
+        test.executeAndValidateRequest(pathToTest + queryPath, null, 200, null);
+        String transactionId = test.assertTransactionReported(pathToTest, 200).get("id").textValue();
+        List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
+        assertThat(spans).hasSize(1);
+
+        for (JsonNode span : spans) {
+            assertThat(span.get("parent_id").textValue()).isEqualTo(transactionId);
+            assertThat(span.get("name").asText()).isEqualTo("java");
+            assertThat(span.get("type").asText()).isEqualTo("process.java.execute");
+        }
     }
 
     private void testHttpUrlConnection(AbstractServletContainerIntegrationTest test) throws IOException, InterruptedException {

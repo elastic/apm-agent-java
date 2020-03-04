@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -30,15 +30,18 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -49,11 +52,13 @@ import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSou
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class ElasticApmTracerBuilder {
@@ -70,6 +75,8 @@ public class ElasticApmTracerBuilder {
     private Map<String, String> inlineConfig = new HashMap<>();
     @Nullable
     private final String agentArguments;
+    private ObjectPoolFactory objectPoolFactory;
+    private List<LifecycleListener> extraLifecycleListeners;
 
     public ElasticApmTracerBuilder() {
         this(null);
@@ -80,6 +87,8 @@ public class ElasticApmTracerBuilder {
         final List<ConfigurationSource> configSources = getConfigSources(this.agentArguments);
         LoggingConfiguration.init(configSources);
         logger = LoggerFactory.getLogger(getClass());
+        objectPoolFactory = new ObjectPoolFactory();
+        extraLifecycleListeners = new ArrayList<>();
     }
 
     public ElasticApmTracerBuilder configurationRegistry(ConfigurationRegistry configurationRegistry) {
@@ -97,18 +106,29 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
+    public ElasticApmTracerBuilder withObjectPoolFactory(ObjectPoolFactory objectPoolFactory) {
+        this.objectPoolFactory = objectPoolFactory;
+        return this;
+    }
+
+    public ElasticApmTracerBuilder withLifecycleListener(LifecycleListener listener) {
+        this.extraLifecycleListeners.add(listener);
+        return this;
+    }
+
     public ElasticApmTracer build() {
         boolean addApmServerConfigSource = false;
+        List<LifecycleListener> lifecycleListeners = new ArrayList<>();
         if (configurationRegistry == null) {
             addApmServerConfigSource = true;
             final List<ConfigurationSource> configSources = getConfigSources(agentArguments);
             configurationRegistry = getDefaultConfigurationRegistry(configSources);
+            lifecycleListeners.add(scheduleReloadAtRate(configurationRegistry, 30, TimeUnit.SECONDS));
         }
         final ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
         final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
         final MetaData metaData = MetaData.create(configurationRegistry, null, null);
         ApmServerConfigurationSource configurationSource = null;
-        List<LifecycleListener> lifecycleListeners = new ArrayList<>();
         if (addApmServerConfigSource) {
             configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
             configurationRegistry.addConfigurationSource(configurationSource);
@@ -117,10 +137,29 @@ public class ElasticApmTracerBuilder {
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
-        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter);
+        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
-        tracer.registerLifecycleListeners(lifecycleListeners);
+        lifecycleListeners.addAll(extraLifecycleListeners);
+        tracer.start(lifecycleListeners);
         return tracer;
+    }
+
+    private LifecycleListener scheduleReloadAtRate(final ConfigurationRegistry configurationRegistry, final int rate, TimeUnit seconds) {
+        final ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDeamonPool("configuration-reloader");
+        configurationReloader.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                logger.debug("Beginning scheduled configuration reload (interval is {} sec)...", rate);
+                configurationRegistry.reloadDynamicConfigurationOptions();
+                logger.debug("Finished scheduled configuration reload");
+            }
+        }, rate, rate, seconds);
+        return ClosableLifecycleListenerAdapter.of(new Closeable() {
+            @Override
+            public void close() {
+                configurationReloader.shutdown();
+            }
+        });
     }
 
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {
@@ -130,13 +169,12 @@ public class ElasticApmTracerBuilder {
                 .optionProviders(DependencyInjectingServiceLoader.load(ConfigurationOptionProvider.class))
                 .failOnMissingRequiredValues(true)
                 .build();
-            configurationRegistry.scheduleReloadAtRate(30, TimeUnit.SECONDS);
             return configurationRegistry;
         } catch (IllegalStateException e) {
             logger.warn(e.getMessage());
             return ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource("Noop Configuration")
-                    .add(CoreConfiguration.ACTIVE, "false")
+                    .add(TracerConfiguration.ACTIVE, "false")
                     .add(CoreConfiguration.INSTRUMENT, "false")
                     .add(CoreConfiguration.SERVICE_NAME, "none")
                     .add(CoreConfiguration.SAMPLE_RATE, "0"))

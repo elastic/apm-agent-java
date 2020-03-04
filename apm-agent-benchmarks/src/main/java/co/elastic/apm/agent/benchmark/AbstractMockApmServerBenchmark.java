@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -82,9 +82,11 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
                 .addConfigSource(new SimpleSource()
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")
                     .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
-                    .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
+                    .add("active", Boolean.toString(apmEnabled))
                     .add("api_request_size", "10mb")
                     .add("capture_headers", "false")
+//                     .add("profiling_inferred_spans", "true")
+//                     .add("profiling_interval", "10s")
                     .add("classes_excluded_from_instrumentation", "java.*,com.sun.*,sun.*")
                     .add("server_urls", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))

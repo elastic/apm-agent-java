@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.12.1-SNAPSHOT</version>
+        <version>1.14.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -28,7 +28,7 @@
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate-plugin</module>
         <module>apm-httpclient-core</module>
-        <module>apm-slf4j-plugin</module>
+        <module>apm-log-correlation-plugin</module>
         <module>apm-es-restclient-plugin</module>
         <module>apm-okhttp-plugin</module>
         <module>apm-java-concurrent-plugin</module>
@@ -44,6 +44,9 @@
         <module>apm-jmx-plugin</module>
         <module>apm-mule4-plugin</module>
         <module>apm-mongoclient-plugin</module>
+        <module>apm-process-plugin</module>
+        <module>apm-kafka-plugin</module>
+        <module>apm-profiling-plugin</module>
     </modules>
 
     <dependencies>

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -67,8 +67,7 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     public boolean isExpectedStacktrace(String path) {
-        // only from version 9.4 Jetty includes a valid Throwable instance and only in the onComplete
-        return version.equals("9.4") || !path.equals("/async-dispatch-servlet");
+        return !path.equals("/async-dispatch-servlet");
     }
 
     @Override

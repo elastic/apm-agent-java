@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,7 @@ import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /*
@@ -51,7 +52,7 @@ import java.util.List;
 
 /**
  * This matcher is used in for example to disable tracing for certain URLs.
- * The advantage of this class compared to alternatives is is that {@linkplain #matches(String) matching} strings is completely allocation free.
+ * The advantage of this class compared to alternatives is is that {@linkplain #matches(CharSequence) matching} strings is completely allocation free.
  * <p>
  * The wildcard matcher supports the {@code *} wildcard which matches zero or more characters.
  * By default, matches are a case insensitive.
@@ -80,6 +81,7 @@ public abstract class WildcardMatcher {
     private static final String CASE_SENSITIVE_PREFIX = "(?-i)";
     private static final String WILDCARD = "*";
     private static final WildcardMatcher MATCH_ALL = valueOf(WILDCARD);
+    private static final List<WildcardMatcher> MATCH_ALL_LIST = Collections.singletonList(MATCH_ALL);
 
     public static WildcardMatcher caseSensitiveMatcher(String matcher) {
         return valueOf(CASE_SENSITIVE_PREFIX + matcher);
@@ -87,6 +89,10 @@ public abstract class WildcardMatcher {
 
     public static WildcardMatcher matchAll() {
         return MATCH_ALL;
+    }
+
+    public static List<WildcardMatcher> matchAllList() {
+        return MATCH_ALL_LIST;
     }
 
     /**
@@ -140,20 +146,30 @@ public abstract class WildcardMatcher {
      * @param s        the string to match against
      * @return {@code true}, if any of the matchers match the provided string
      */
-    @Nullable
-    public static boolean isAnyMatch(List<WildcardMatcher> matchers, @Nullable String s) {
+    public static boolean isAnyMatch(List<WildcardMatcher> matchers, @Nullable CharSequence s) {
         return anyMatch(matchers, s) != null;
     }
 
     /**
-     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(String) matching} the provided string.
+     * Returns {@code true}, if none of the matchers match the provided string.
+     *
+     * @param matchers the matchers which should be used to match the provided string
+     * @param s        the string to match against
+     * @return {@code true}, if none of the matchers match the provided string
+     */
+    public static boolean isNoneMatch(List<WildcardMatcher> matchers, @Nullable CharSequence s) {
+        return !isAnyMatch(matchers, s);
+    }
+
+    /**
+     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(CharSequence) matching} the provided string.
      *
      * @param matchers the matchers which should be used to match the provided string
      * @param s        the string to match against
      * @return the first matching {@link WildcardMatcher}, or {@code null} if none match.
      */
     @Nullable
-    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, @Nullable String s) {
+    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, @Nullable CharSequence s) {
         if (s == null) {
             return null;
         }
@@ -161,16 +177,16 @@ public abstract class WildcardMatcher {
     }
 
     /**
-     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(String) matching} the provided partitioned string.
+     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(CharSequence) matching} the provided partitioned string.
      *
      * @param matchers   the matchers which should be used to match the provided string
      * @param firstPart  The first part of the string to match against.
      * @param secondPart The second part of the string to match against.
      * @return the first matching {@link WildcardMatcher}, or {@code null} if none match.
-     * @see #matches(String, String)
+     * @see #matches(CharSequence, CharSequence)
      */
     @Nullable
-    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, String firstPart, @Nullable String secondPart) {
+    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, CharSequence firstPart, @Nullable CharSequence secondPart) {
         for (int i = 0; i < matchers.size(); i++) {
             if (matchers.get(i).matches(firstPart, secondPart)) {
                 return matchers.get(i);
@@ -183,14 +199,14 @@ public abstract class WildcardMatcher {
      * Based on https://stackoverflow.com/a/29809553/1125055
      * Thx to Zach Vorhies
      */
-    public static int indexOfIgnoreCase(final String haystack1, final String haystack2, final String needle, final boolean ignoreCase, final int start, final int end) {
+    public static int indexOfIgnoreCase(final CharSequence haystack1, final CharSequence haystack2, final String needle, final boolean ignoreCase, final int start, final int end) {
         if (start < 0) {
             return -1;
         }
         int totalHaystackLength = haystack1.length() + haystack2.length();
         if (needle.isEmpty() || totalHaystackLength == 0) {
             // Fallback to legacy behavior.
-            return haystack1.indexOf(needle);
+            return indexOf(haystack1, needle);
         }
 
         final int haystack1Length = haystack1.length();
@@ -222,7 +238,14 @@ public abstract class WildcardMatcher {
         return -1;
     }
 
-    static char charAt(int i, String firstPart, String secondPart, int firstPartLength) {
+    private static int indexOf(CharSequence input, String s) {
+        if (input instanceof StringBuilder) {
+            return ((StringBuilder) input).indexOf(s);
+        }
+        return input.toString().indexOf(s);
+    }
+
+    static char charAt(int i, CharSequence firstPart, CharSequence secondPart, int firstPartLength) {
         return i < firstPartLength ? firstPart.charAt(i) : secondPart.charAt(i - firstPartLength);
     }
 
@@ -233,10 +256,10 @@ public abstract class WildcardMatcher {
      * @param s the String to match
      * @return whether the String matches the given pattern
      */
-    public abstract boolean matches(String s);
+    public abstract boolean matches(CharSequence s);
 
     /**
-     * This is a different version of {@link #matches(String)} which has the same semantics as calling
+     * This is a different version of {@link #matches(CharSequence)} which has the same semantics as calling
      * {@code matcher.matches(firstPart + secondPart);}.
      * <p>
      * The difference is that this method does not allocate memory.
@@ -248,7 +271,7 @@ public abstract class WildcardMatcher {
      * when the wildcard pattern matches the partitioned string,
      * {@code false} otherwise.
      */
-    public abstract boolean matches(String firstPart, @Nullable String secondPart);
+    public abstract boolean matches(CharSequence firstPart, @Nullable CharSequence secondPart);
 
     @Override
     public boolean equals(Object obj) {
@@ -276,7 +299,7 @@ public abstract class WildcardMatcher {
         }
 
         @Override
-        public boolean matches(String s) {
+        public boolean matches(CharSequence s) {
             int offset = 0;
             for (int i = 0; i < wildcardMatchers.size(); i++) {
                 final SimpleWildcardMatcher matcher = wildcardMatchers.get(i);
@@ -290,7 +313,7 @@ public abstract class WildcardMatcher {
         }
 
         @Override
-        public boolean matches(String firstPart, @Nullable String secondPart) {
+        public boolean matches(CharSequence firstPart, @Nullable CharSequence secondPart) {
             int offset = 0;
             for (int i = 0; i < wildcardMatchers.size(); i++) {
                 final SimpleWildcardMatcher matcher = wildcardMatchers.get(i);
@@ -344,20 +367,20 @@ public abstract class WildcardMatcher {
         }
 
         @Override
-        public boolean matches(String s) {
+        public boolean matches(CharSequence s) {
             return indexOf(s, 0) != -1;
         }
 
         @Override
-        public boolean matches(String firstPart, @Nullable String secondPart) {
+        public boolean matches(CharSequence firstPart, @Nullable CharSequence secondPart) {
             return indexOf(firstPart, secondPart, 0) != -1;
         }
 
-        int indexOf(final String s, final int offset) {
+        int indexOf(final CharSequence s, final int offset) {
             return indexOf(s, "", offset);
         }
 
-        int indexOf(String firstPart, @Nullable String secondPart, int offset) {
+        int indexOf(CharSequence firstPart, @Nullable CharSequence secondPart, int offset) {
             if (secondPart == null) {
                 secondPart = "";
             }

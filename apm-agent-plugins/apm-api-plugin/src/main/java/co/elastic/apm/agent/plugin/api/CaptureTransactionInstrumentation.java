@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -30,7 +30,6 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.An
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -74,14 +73,16 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
         if (tracer != null) {
             final Object active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
-                if (transactionName.isEmpty()) {
-                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                } else {
-                    transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    if (transactionName.isEmpty()) {
+                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                    } else {
+                        transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                    }
+                    transaction.withType(type)
+                        .activate();
                 }
-                transaction.withType(type)
-                    .activate();
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }

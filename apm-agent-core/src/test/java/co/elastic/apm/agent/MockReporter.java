@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -24,10 +24,9 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.error.ErrorPayload;
-import co.elastic.apm.agent.impl.payload.PayloadUtils;
-import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -46,15 +45,20 @@ import com.networknt.schema.ValidationMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -64,6 +68,14 @@ public class MockReporter implements Reporter {
     private static final JsonSchema errorSchema;
     private static final JsonSchema spanSchema;
     private static final DslJsonSerializer dslJsonSerializer;
+
+    // A set of exit span subtypes that do not support address and port discovery
+    private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
+    // A map of exit span type to actions that that do not support address and port discovery
+    private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
+    // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
+    private boolean disableDestinationAddressCheck;
+
     private final List<Transaction> transactions = new ArrayList<>();
     private final List<Span> spans = new ArrayList<>();
     private final List<ErrorCapture> errors = new ArrayList<>();
@@ -78,6 +90,8 @@ public class MockReporter implements Reporter {
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+        SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
+        SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
 
     public MockReporter() {
@@ -91,6 +105,10 @@ public class MockReporter implements Reporter {
 
     private static JsonSchema getSchema(String resource) {
         return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
+    }
+
+    public void disableDestinationAddressCheck() {
+        disableDestinationAddressCheck = true;
     }
 
     @Override
@@ -108,7 +126,27 @@ public class MockReporter implements Reporter {
             return;
         }
         verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+        verifyDestinationFields(span);
         spans.add(span);
+    }
+
+    private void verifyDestinationFields(Span span) {
+        if (!span.isExit()) {
+            return;
+        }
+        Destination destination = span.getContext().getDestination();
+        if (!disableDestinationAddressCheck && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
+            // see if this span's action is not supported for its subtype
+            Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
+            if (!unsupportedActions.contains(span.getAction())) {
+                assertThat(destination.getAddress()).isNotEmpty();
+                assertThat(destination.getPort()).isGreaterThan(0);
+            }
+        }
+        Destination.Service service = destination.getService();
+        assertThat(service.getName()).isNotEmpty();
+        assertThat(service.getResource()).isNotEmpty();
+        assertThat(service.getType()).isNotNull();
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {
@@ -147,16 +185,11 @@ public class MockReporter implements Reporter {
         return transactions.iterator().next();
     }
 
-    public Transaction getFirstTransaction(long timeoutMs) throws InterruptedException {
-        final long end = System.currentTimeMillis() + timeoutMs;
-        do {
-            synchronized (this) {
-                if (!transactions.isEmpty()) {
-                    return getFirstTransaction();
-                }
-            }
-            Thread.sleep(1);
-        } while (System.currentTimeMillis() < end);
+    public Transaction getFirstTransaction(long timeoutMs) {
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
 
@@ -183,7 +216,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs) {
+    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
         // noop
     }
 
@@ -201,27 +234,6 @@ public class MockReporter implements Reporter {
 
     public synchronized ErrorCapture getFirstError() {
         return errors.iterator().next();
-    }
-
-    /**
-     * @deprecated part of v1 intake protocol
-     */
-    @Deprecated
-    public String generateTransactionPayloadJson() {
-        TransactionPayload payload = PayloadUtils.createTransactionPayload();
-        payload.getTransactions().addAll(transactions);
-        payload.getSpans().addAll(spans);
-        return dslJsonSerializer.toJsonString(payload);
-    }
-
-    /**
-     * @deprecated part of v1 intake protocol
-     */
-    @Deprecated
-    public String generateErrorPayloadJson() {
-        ErrorPayload errorPayload = PayloadUtils.createErrorPayload();
-        errorPayload.getErrors().addAll(errors);
-        return dslJsonSerializer.toJsonString(errorPayload);
     }
 
     @Override
@@ -271,8 +283,8 @@ public class MockReporter implements Reporter {
 
     public void reset() {
         transactions.clear();
-        errors.clear();
         spans.clear();
+        errors.clear();
     }
 
     /**
@@ -285,12 +297,44 @@ public class MockReporter implements Reporter {
         spans.forEach(Span::decrementReferences);
     }
 
+    /**
+     * Decrements transactions and spans reference count and check that they are properly recycled. This method should likely be called
+     * last in the test execution as it destroys any transaction/span that has happened.
+     */
     public void assertRecycledAfterDecrementingReferences() {
-        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isFalse());
-        spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isFalse());
-        transactions.forEach(Transaction::decrementReferences);
-        spans.forEach(Span::decrementReferences);
-        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isTrue());
-        spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isTrue());
+
+        Predicate<AbstractSpan<?>> hasEmptyTraceContext = as -> as.getTraceContext().getId().isEmpty();
+
+        List<Transaction> transactionsToFlush = transactions.stream()
+            .filter(hasEmptyTraceContext.negate())
+            .collect(Collectors.toList());
+
+        List<Span> spansToFlush = spans.stream()
+            .filter(hasEmptyTraceContext.negate())
+            .collect(Collectors.toList());
+
+        transactionsToFlush.forEach(Transaction::decrementReferences);
+        spansToFlush.forEach(Span::decrementReferences);
+
+        // after decrement, all transactions and spans should have been recycled
+        transactions.forEach(t -> {
+            assertThat(hasEmptyTraceContext.test(t))
+                .describedAs("should have empty trace context : %s", t)
+                .isTrue();
+            assertThat(t.isReferenced())
+                .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                .isFalse();
+        });
+        spans.forEach(s -> {
+            assertThat(hasEmptyTraceContext.test(s))
+                .describedAs("should have empty trace context : %s", s)
+                .isTrue();
+            assertThat(s.isReferenced())
+                .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                .isFalse();
+        });
+
+        // errors are recycled directly because they have no reference counter
+        errors.forEach(ErrorCapture::recycle);
     }
 }

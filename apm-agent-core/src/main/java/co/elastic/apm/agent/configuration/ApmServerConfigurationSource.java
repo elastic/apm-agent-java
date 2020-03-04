@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
-import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -106,7 +105,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
 
     @Override
     public void start(final ElasticApmTracer tracer) {
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("apm-remote-config-poller", 1);
+        threadPool = ExecutorUtils.createSingleThreadDeamonPool("remote-config-poller", 1);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
@@ -226,6 +225,16 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     @Override
     public String getName() {
         return "APM Server";
+    }
+
+    @Override
+    public void pause() {
+        // Keep polling for remote config changes, in case the user wants to resume a paused agent or change the stress
+        // monitoring configurations.
+    }
+
+    @Override
+    public void resume() {
     }
 
     @Override

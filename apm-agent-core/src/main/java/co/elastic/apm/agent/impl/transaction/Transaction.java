@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -98,7 +98,21 @@ public class Transaction extends AbstractSpan<Transaction> {
     public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
                                  Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
         traceContext.setApplicationClassLoader(initiatingClassLoader);
-        if (parent == null || !childContextCreator.asChildOf(traceContext, parent)) {
+        boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
+        onTransactionStart(startedAsChild, epochMicros, sampler);
+        return this;
+    }
+
+    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg,
+                                    long epochMicros, Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
+        traceContext.setApplicationClassLoader(initiatingClassLoader);
+        boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
+        onTransactionStart(startedAsChild, epochMicros, sampler);
+        return this;
+    }
+
+    private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
+        if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
         if (epochMicros >= 0) {
@@ -107,7 +121,6 @@ public class Transaction extends AbstractSpan<Transaction> {
             setStartTimestamp(traceContext.getClock().getEpochMicros());
         }
         onAfterStart();
-        return this;
     }
 
     public Transaction startNoop() {

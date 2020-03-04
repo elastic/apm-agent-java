@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -103,16 +102,12 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
     @VisibleForAdvice
     @Nullable
     public static TraceContext parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
-        TraceContext childTraceContext = null;
         if (tracer != null) {
-            for (Map.Entry<String, String> next : textMap) {
-                if (TraceContext.TRACE_PARENT_HEADER.equals(next.getKey())) {
-                    childTraceContext = TraceContext.with64BitId(tracer);
-                    TraceContext.fromTraceparentHeader().asChildOf(childTraceContext, next.getValue());
-                    break;
-                }
+            TraceContext childTraceContext = TraceContext.with64BitId(tracer);
+            if (TraceContext.<Iterable<Map.Entry<String, String>>>getFromTraceContextTextHeaders().asChildOf(childTraceContext, textMap, OpenTracingTextMapBridge.instance())) {
+                return childTraceContext;
             }
         }
-        return childTraceContext;
+        return null;
     }
 }

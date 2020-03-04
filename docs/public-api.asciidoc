@@ -131,7 +131,7 @@ See <<api-transaction-activate, `transaction.activate()`>> on how to achieve tha
 ==== `Transaction startTransactionWithRemoteParent(HeaderExtractor)` added[1.3.0]
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
-* `headerExtractor`: a functional interface which receives a header name and returns the fist header with that name
+* `headerExtractor`: a functional interface which receives a header name and returns the first header with that name
 
 Example:
 
@@ -163,7 +163,7 @@ NOTE: If the protocol supports multi-value headers, use <<api-start-transaction-
 
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
-* `headerExtractor`:  a functional interface which receives a header name and returns the fist header with that name
+* `headerExtractor`:  a functional interface which receives a header name and returns the first header with that name
 * `headersExtractor`: a functional interface which receives a header name and returns all headers with that name
 
 Example:
@@ -382,8 +382,8 @@ transaction.setUser(user.getId(), user.getEmail(), user.getUsername());
 
 [float]
 [[api-transaction-capture-exception]]
-==== `void captureException(Exception e)`
-Captures an exception and reports it to the APM server.
+==== `String captureException(Exception e)`
+Captures an exception and reports it to the APM server. Since version 1.14.0 - returns the id of reported error.
 
 [float]
 [[api-transaction-get-id]]
@@ -666,8 +666,8 @@ span.addLabel("foo", "bar");
 
 [float]
 [[api-span-capture-exception]]
-==== `void captureException(Exception e)`
-Captures an exception and reports it to the APM server.
+==== `String captureException(Exception e)`
+Captures an exception and reports it to the APM server. Since version 1.14.0 - returns the id of reported error.
 
 [float]
 [[api-span-get-id]]

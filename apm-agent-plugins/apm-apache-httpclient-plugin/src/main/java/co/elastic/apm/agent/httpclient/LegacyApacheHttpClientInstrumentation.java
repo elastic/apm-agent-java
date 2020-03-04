@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -24,9 +24,11 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -40,8 +42,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -51,7 +51,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 @SuppressWarnings("Duplicates")
-public class LegacyApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
+public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
+
+    public LegacyApacheHttpClientInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     private static class LegacyApacheHttpClientAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -66,12 +70,17 @@ public class LegacyApacheHttpClientInstrumentation extends ElasticApmInstrumenta
             if (request instanceof HttpUriRequest) {
                 HttpUriRequest uriRequest = (HttpUriRequest) request;
                 span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), host.getHostName());
+                TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
+                TextHeaderGetter<HttpRequest> headerGetter = headerGetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
                 if (span != null) {
                     span.activate();
-                    request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
-                } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER) && parent != null) {
+                    if (headerSetter != null) {
+                        span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                    }
+                } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter)
+                    && headerSetter != null && parent != null) {
                     // re-adds the header on redirects
-                    request.addHeader(TraceContext.TRACE_PARENT_HEADER, parent.getTraceContext().getOutgoingTraceParentHeader().toString());
+                    parent.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
                 }
 
             }
@@ -118,10 +127,5 @@ public class LegacyApacheHttpClientInstrumentation extends ElasticApmInstrumenta
             .and(takesArgument(0, hasSuperType(named("org.apache.http.HttpHost"))))
             .and(takesArgument(1, hasSuperType(named("org.apache.http.HttpRequest"))))
             .and(takesArgument(2, hasSuperType(named("org.apache.http.protocol.HttpContext"))));
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "apache-httpclient");
     }
 }

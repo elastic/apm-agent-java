@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -25,6 +25,9 @@
 package co.elastic.apm.agent.quartz.job;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,10 +115,26 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
 
     @Test
     void testJobManualCall() throws SchedulerException, InterruptedException {
-        TestJob job = new TestJob();
-        job.execute(null);
+        new TestJobCreatingSpan(tracer, true).execute(null);
         assertThat(reporter.getTransactions().size()).isEqualTo(1);
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualToIgnoringCase("TestJob#execute");
+        Transaction transaction = reporter.getTransactions().get(0);
+        assertThat(transaction.getNameAsString()).isEqualToIgnoringCase("TestJobCreatingSpan#execute");
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertThat(reporter.getSpans().get(0).getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
+    }
+
+    @Test
+    public void testAgentPaused() throws SchedulerException, InterruptedException, ExecutionException {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        new TestJobCreatingSpan(tracer, false).execute(null);
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test
@@ -156,6 +175,29 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
     public static class TestJob implements Job {
         @Override
         public void execute(JobExecutionContext context) throws JobExecutionException {
+            responseFuture.complete(Boolean.TRUE);
+        }
+    }
+
+    public static class TestJobCreatingSpan implements Job {
+        private final ElasticApmTracer tracer;
+        private final boolean traced;
+
+        public TestJobCreatingSpan(ElasticApmTracer tracer, boolean traced) {
+            this.tracer = tracer;
+            this.traced = traced;
+        }
+
+        @Override
+        public void execute(JobExecutionContext context) throws JobExecutionException {
+            Transaction transaction = tracer.currentTransaction();
+            if (traced) {
+                assertThat(transaction).isNotNull();
+                transaction.createSpan().end();
+            } else {
+                assertThat(transaction).isNull();
+                assertThat(tracer.getActive()).isNull();
+            }
             responseFuture.complete(Boolean.TRUE);
         }
     }

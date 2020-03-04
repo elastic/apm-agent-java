@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -38,12 +36,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collection;
-import java.util.Collections;
 
-import static co.elastic.apm.agent.jdbc.ConnectionInstrumentation.JDBC_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -57,21 +51,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Creates spans for JDBC {@link Statement} execution
  */
-public abstract class StatementInstrumentation extends ElasticApmInstrumentation {
-
-    @SuppressWarnings("WeakerAccess")
-    @Nullable
-    @VisibleForAdvice
-    public static HelperClassManager<JdbcHelper> jdbcHelperManager;
+public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
     StatementInstrumentation(ElasticApmTracer tracer, ElementMatcher<? super MethodDescription> methodMatcher) {
+        super(tracer);
         this.methodMatcher = methodMatcher;
-        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1",
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
     @Override
@@ -91,11 +77,6 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         return methodMatcher;
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(JDBC_INSTRUMENTATION_GROUP);
-    }
-
     /**
      * Instruments:
      * <ul>
@@ -106,6 +87,7 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
      *     <li>{@link Statement#executeQuery(String)} </li>
      * </ul>
      */
+    @SuppressWarnings("DuplicatedCode")
     public static class ExecuteWithQueryInstrumentation extends StatementInstrumentation {
 
         public ExecuteWithQueryInstrumentation(ElasticApmTracer tracer) {
@@ -120,31 +102,47 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Span onBeforeExecute(@Advice.This Statement statement,
-                                           @Advice.Argument(0) String sql) throws SQLException {
-            if (tracer != null && jdbcHelperManager != null) {
-                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helperImpl != null) {
-                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), false);
-                }
+                                           @Advice.Argument(0) String sql) {
+
+            if (tracer == null || jdbcHelperManager == null) {
+                return null;
             }
-            return null;
+
+            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helperImpl == null) {
+                return null;
+            }
+
+            return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
+
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.This Statement statement,
                                           @Advice.Enter @Nullable Span span,
-                                          @Advice.Thrown @Nullable Throwable t) throws SQLException {
-            if (span != null) {
-                if( t == null){
-                    span.getContext()
-                        .getDb()
-                        .withAffectedRowsCount(statement.getUpdateCount());
-                }
-                span.captureException(t)
-                    .deactivate()
-                    .end();
+                                          @Advice.Thrown @Nullable Throwable t) {
+            if (span == null) {
+                return;
             }
+
+            if (t == null && jdbcHelperManager != null) {
+                JdbcHelper helper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+                if (helper != null) {
+                    long count = helper.safeGetUpdateCount(statement);
+                    if (count != Long.MIN_VALUE) {
+                        span.getContext()
+                            .getDb()
+                            .withAffectedRowsCount(count);
+                    }
+                }
+
+            }
+
+            span.captureException(t)
+                .deactivate()
+                .end();
+
         }
     }
 
@@ -175,14 +173,17 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Span onBeforeExecute(@Advice.This Statement statement,
-                                           @Advice.Argument(0) String sql) throws SQLException {
-            if (tracer != null && jdbcHelperManager != null) {
-                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helperImpl != null) {
-                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), false);
-                }
+                                           @Advice.Argument(0) String sql) {
+            if (tracer == null || jdbcHelperManager == null) {
+                return null;
             }
-            return null;
+
+            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helperImpl == null) {
+                return null;
+            }
+
+            return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
         @VisibleForAdvice
@@ -190,15 +191,19 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         public static void onAfterExecute(@Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
-            if (span != null) {
-                if (t == null) {
-                    span.getContext().getDb().withAffectedRowsCount(returnValue);
-                }
-
-                span.captureException(t)
-                    .deactivate()
-                    .end();
+            if (span == null) {
+                return;
             }
+
+            if (t == null) {
+                span.getContext()
+                    .getDb()
+                    .withAffectedRowsCount(returnValue);
+            }
+
+            span.captureException(t)
+                .deactivate()
+                .end();
         }
     }
 
@@ -217,11 +222,13 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void storeSql(@Advice.This Statement statement, @Advice.Argument(0) String sql) {
-            if (jdbcHelperManager != null) {
-                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helperImpl != null) {
-                    helperImpl.mapStatementToSql(statement, sql);
-                }
+            if (jdbcHelperManager == null) {
+                return;
+            }
+
+            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helperImpl != null) {
+                helperImpl.mapStatementToSql(statement, sql);
             }
         }
     }
@@ -247,48 +254,54 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Span onBeforeExecute(@Advice.This Statement statement) throws SQLException {
-            if (tracer != null && jdbcHelperManager != null) {
-                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helperImpl != null) {
-                    final @Nullable String sql = helperImpl.retrieveSqlForStatement(statement);
-                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), true);
-                }
+        @SuppressWarnings("DuplicatedCode")
+        public static Span onBeforeExecute(@Advice.This Statement statement) {
+            if (tracer == null || jdbcHelperManager == null) {
+                return null;
             }
-            return null;
+            JdbcHelper helper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helper == null) {
+                return null;
+            }
+
+            String sql = helper.retrieveSqlForStatement(statement);
+            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Enter @Nullable Span span,
                                           @Advice.Thrown Throwable t,
                                           @Advice.Return Object returnValue) {
-            if (span != null) {
-
-                // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
-                // does not seem to return the sum of all elements. As we can use instanceof to check return type
-                // we do not need to use a separate advice. 'execute' return value is auto-boxed into a Boolean,
-                // but there is no extra allocation.
-                long affectedCount = 0;
-                if (returnValue instanceof int[]) {
-                    int[] array = (int[]) returnValue;
-                    for (int i = 0; i < array.length; i++) {
-                        affectedCount += array[i];
-                    }
-                } else if (returnValue instanceof long[]) {
-                    long[] array = (long[]) returnValue;
-                    for (int i = 0; i < array.length; i++) {
-                        affectedCount += array[i];
-                    }
-                }
-                span.getContext()
-                    .getDb()
-                    .withAffectedRowsCount(affectedCount);
-
-                span.captureException(t)
-                    .deactivate()
-                    .end();
+            if (span == null) {
+                return;
             }
+
+            // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
+            // does not seem to return the sum of all elements. As we can use instanceof to check return type
+            // we do not need to use a separate advice. 'execute' return value is auto-boxed into a Boolean,
+            // but there is no extra allocation.
+            long affectedCount = 0;
+            if (returnValue instanceof int[]) {
+                int[] array = (int[]) returnValue;
+                for (int i = 0; i < array.length; i++) {
+                    affectedCount += array[i];
+                }
+            } else if (returnValue instanceof long[]) {
+                long[] array = (long[]) returnValue;
+                for (int i = 0; i < array.length; i++) {
+                    affectedCount += array[i];
+                }
+            }
+            span.getContext()
+                .getDb()
+                .withAffectedRowsCount(affectedCount);
+
+            span.captureException(t)
+                .deactivate()
+                .end();
         }
+
     }
 
     /**
@@ -309,30 +322,38 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Span onBeforeExecute(@Advice.This Statement statement) throws SQLException {
-            if (tracer != null && jdbcHelperManager != null) {
-                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helperImpl != null) {
-                    final @Nullable String sql = helperImpl.retrieveSqlForStatement(statement);
-                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), true);
-                }
+        @SuppressWarnings("DuplicatedCode")
+        public static Span onBeforeExecute(@Advice.This Statement statement) {
+            if (tracer == null || jdbcHelperManager == null) {
+                return null;
             }
-            return null;
+
+            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helperImpl == null) {
+                return null;
+            }
+
+            String sql = helperImpl.retrieveSqlForStatement(statement);
+            return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
-            if (span != null) {
-                if (t == null) {
-                    span.getContext().getDb().withAffectedRowsCount(returnValue);
-                }
-
-                span.captureException(t)
-                    .deactivate()
-                    .end();
+            if (span == null) {
+                return;
             }
+
+            if (t == null) {
+                span.getContext()
+                    .getDb()
+                    .withAffectedRowsCount(returnValue);
+            }
+
+            span.captureException(t)
+                .deactivate()
+                .end();
         }
     }
 
@@ -354,12 +375,13 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Span onBeforeExecute(@Advice.This Statement statement) throws SQLException {
+        @SuppressWarnings("DuplicatedCode")
+        public static Span onBeforeExecute(@Advice.This Statement statement) {
             if (tracer != null && jdbcHelperManager != null) {
                 JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
                 if (helperImpl != null) {
-                    final @Nullable String sql = helperImpl.retrieveSqlForStatement(statement);
-                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), true);
+                    @Nullable String sql = helperImpl.retrieveSqlForStatement(statement);
+                    return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), true);
                 }
             }
             return null;
@@ -368,18 +390,27 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.This Statement statement,
                                           @Advice.Enter @Nullable Span span,
-                                          @Advice.Thrown Throwable t) throws SQLException {
-            if (span != null) {
-                span.getContext()
-                    .getDb()
-                    // getUpdateCount javadoc indicates that this method should be called only once
-                    // however in practice adding this extra call seem to not have noticeable side effects
-                    .withAffectedRowsCount(statement.getUpdateCount());
+                                          @Advice.Thrown @Nullable Throwable t) {
 
-                span.captureException(t)
-                    .deactivate()
-                    .end();
+            if (span == null) {
+                return;
             }
+
+            if (t == null && jdbcHelperManager != null) {
+                JdbcHelper jdbcHelper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+                if (jdbcHelper != null) {
+                    span.getContext()
+                        .getDb()
+                        // getUpdateCount javadoc indicates that this method should be called only once
+                        // however in practice adding this extra call seem to not have noticeable side effects
+                        .withAffectedRowsCount(jdbcHelper.safeGetUpdateCount(statement));
+                }
+            }
+
+            span.captureException(t)
+                .deactivate()
+                .end();
         }
+
     }
 }

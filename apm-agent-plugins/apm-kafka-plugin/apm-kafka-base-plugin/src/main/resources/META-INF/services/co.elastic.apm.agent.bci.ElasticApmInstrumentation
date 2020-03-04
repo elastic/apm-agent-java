@@ -1,0 +1,2 @@
+co.elastic.apm.agent.kafka.KafkaProducerInstrumentation
+co.elastic.apm.agent.kafka.KafkaConsumerInstrumentation

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -52,11 +52,11 @@ public class DataSourceIT extends AbstractJdbcInstrumentationTest {
     public static Iterable<Supplier<DataSource>> dataSourceSuppliers() {
         return asList(
             labelledSupplier(DataSourceIT::getTomcatDataSource, "tomcat"),
-            labelledSupplier(DataSourceIT::getHikariDataSource,"hikari"),
-            labelledSupplier(DataSourceIT::getViburDataSource,"vibur"),
-            labelledSupplier(DataSourceIT::getDruidDataSource,"druid"),
+            labelledSupplier(DataSourceIT::getHikariDataSource, "hikari"),
+            labelledSupplier(DataSourceIT::getViburDataSource, "vibur"),
+            labelledSupplier(DataSourceIT::getDruidDataSource, "druid"),
             labelledSupplier(DataSourceIT::getDbcpDataSource, "dbcp"),
-            labelledSupplier(DataSourceIT::getDbcp2DataSource,"dbcp2"),
+            labelledSupplier(DataSourceIT::getDbcp2DataSource, "dbcp2"),
             labelledSupplier(DataSourceIT::getC3p0DataSource, "c3p0")
         );
     }

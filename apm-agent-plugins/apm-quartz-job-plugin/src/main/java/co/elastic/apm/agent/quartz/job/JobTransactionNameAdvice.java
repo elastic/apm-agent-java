@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -27,7 +27,6 @@ package co.elastic.apm.agent.quartz.job;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -48,15 +47,19 @@ public class JobTransactionNameAdvice {
             TraceContextHolder<?> active = ElasticApmInstrumentation.tracer.getActive();
             if (context == null) {
                 logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
-                transaction = ElasticApmInstrumentation.tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                    .withName(signature)
-                    .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
-                    .activate();
+                transaction = ElasticApmInstrumentation.tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    transaction.withName(signature)
+                        .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
+                        .activate();
+                }
             } else if (active == null) {
-                transaction = ElasticApmInstrumentation.tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                    .withName(context.getJobDetail().getKey().toString())
-                    .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
-                    .activate();
+                transaction = ElasticApmInstrumentation.tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    transaction.withName(context.getJobDetail().getKey().toString())
+                        .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
+                        .activate();
+                }
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }
