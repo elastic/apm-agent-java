@@ -20,13 +20,15 @@ endif::[]
 
 === Unreleased
 [[release-notes-1.14.0]]
-==== 1.14.0 - YYYY/MM/DD
+==== 1.15.0 - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
 
 [float]
 ===== Features
+
+* Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
 
 [float]
 ===== Bug fixes
@@ -49,13 +51,12 @@ See <<supported-java-methods>> for more details
 * Adding a Circuit Breaker to pause the agent when stress is detected on the system and resume when the stress is relieved.
 See <<circuit-breaker>> and {pull}1040[#1040] for more info.
 * `Span#captureException` and `Transaction#captureException` in public API return reported error id - {pull}1015[#1015]
-* Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
 
 [float]
 ===== Bug fixes
 
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* java.lang.IllegalStateException: Cannot resolve type description for <com.another.commercial.apm.agent.Class> - {pull}1037[#1037]
+* properly handle `java.sql.SQLException` for unsupported JDBC features {pull}[#1035] https://github.com/elastic/apm-agent-java/issues/1025[#1025]
 
 [[release-notes-1.13.0]]
 ==== 1.13.0 - 2020/02/11
