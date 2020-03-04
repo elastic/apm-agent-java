@@ -41,6 +41,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.byLessThan;
 
 public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -128,23 +129,24 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         EpochTickClock clock = new EpochTickClock();
         clock.init();
 
-        CyclicBarrier start = new CyclicBarrier(2);
-        CyclicBarrier end = new CyclicBarrier(2);
-        app.getServer().useBarriersForProcessing(start, end);
+        CyclicBarrier startProcessing = new CyclicBarrier(2);
+        CyclicBarrier endProcessing = new CyclicBarrier(2);
+        app.getServer().useBarriersForProcessing(startProcessing, endProcessing);
 
         long sendMessageStart = clock.getEpochMicros();
         Future<String> msg = app.sayHelloAsync("bob", 0);
 
         // sending the 1st message takes about 100ms on client side
-        start.await();
+        startProcessing.await();
+
+        long serverProcessingStart = clock.getEpochMicros();
 
         try {
-            long serverProcessingStart = clock.getEpochMicros();
 
             // span is created somewhere between those two timing events, but we can't exactly when
             // and it varies a lot from one execution to another
 
-            long waitBeforeCancel = 20;
+            long waitBeforeCancel = 100;
 
             Thread.sleep(waitBeforeCancel);
             logger.info("cancel call after waiting {} ms", waitBeforeCancel);
@@ -153,25 +155,24 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             assertThat(msg.cancel(true)).isTrue();
             long cancelTime = clock.getEpochMicros();
 
-            Span span = reporter.getFirstSpan(1000);
+            Span span = reporter.getFirstSpan(100);
             checkSpan(span);
 
             assertThat(span.getTimestamp())
-                .describedAs("span timestamp should be between start sending message and start processing on server")
-                .isBetween(sendMessageStart, serverProcessingStart);
-
-            // we don't know exactly when span starts, but we can at least make sure it's consistent with what we expect
-            long estimatedMinSpanTime = cancelTime - serverProcessingStart;
-            long estimatedMaxSpanTime = cancelTime - sendMessageStart;
+                .describedAs("span timestamp should be after starting sending message")
+                .isGreaterThanOrEqualTo(sendMessageStart - 50_000);
 
             assertThat(span.getDuration())
                 .describedAs("span duration should be larger than waited time before cancel")
-                .isBetween(estimatedMinSpanTime, estimatedMaxSpanTime);
+                .isGreaterThan(waitBeforeCancel * 1_000L)
+                // we expect an error that is related to the time it took to send the message plus a 5ms margin
+                // this is quite approximate, but we just want to ensure that agent provides something close to reality
+                .isCloseTo(waitBeforeCancel * 1_000L, byLessThan((serverProcessingStart - sendMessageStart) + 5_000L));
 
         } finally {
             // server is still waiting and did not sent response yet
             // we need to unblock it to prevent side effects on other tests
-            end.await();
+            endProcessing.await();
         }
     }
 
