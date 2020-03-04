@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -72,8 +72,16 @@ public class AgentMain {
             // for example, Spring Boot restarts the application in dev mode
             return;
         }
+
+        String javaVersion = System.getProperty("java.version");
+        if (!isJavaVersionSupported(javaVersion)) {
+            // gracefully abort agent startup is better than unexpected failure down the road
+            System.err.println(String.format("Failed ot start agent - JVM version not supported: %s", javaVersion));
+            return;
+        }
+
         try {
-            FileSystems.getDefault();
+            FileSystems.getDefault(); // likely not required if it was only for java 7 compatibility
             final File agentJarFile = getAgentJarFile();
             try (JarFile jarFile = new JarFile(agentJarFile)) {
                 instrumentation.appendToBootstrapClassLoaderSearch(jarFile);
@@ -87,6 +95,43 @@ public class AgentMain {
         } catch (Exception e) {
             System.err.println("Failed to start agent");
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Checks if a given version of the JVM is supported by this agent.
+     * Supports values provided before and after https://openjdk.java.net/jeps/223
+     *
+     * @param javaVersion jvm version, from {@code System.getProperty("java.version")}
+     * @return true if the version is supported, false otherwise
+     */
+    // package-protected for testing
+    static boolean isJavaVersionSupported(String javaVersion) {
+        boolean postJsr223 = !javaVersion.startsWith("1.");
+        // new scheme introduced in java 9, thus we can use it as a shortcut
+        if (postJsr223) {
+            return true;
+        }
+
+        char major = javaVersion.charAt(2);
+        if (major < '7') {
+            // given code is compiled with java 7, this one is unlikely in practice
+            return false;
+        } else if (major == '7' || major > '8') {
+            return true;
+        } else {
+            // java 8
+            int updateIndex = javaVersion.lastIndexOf("_");
+            if (updateIndex <= 0) {
+                return false;
+            } else {
+                String updateVersion = javaVersion.substring(updateIndex + 1);
+                try {
+                    return Integer.parseInt(updateVersion) >= 40;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
         }
     }
 
