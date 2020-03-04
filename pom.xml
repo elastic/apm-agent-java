@@ -255,6 +255,10 @@
                     <releaseProfiles>gpg</releaseProfiles>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <checkModificationExcludes>
+                        <checkModificationExclude>**/apm-agent-benchmarks/src/main/resources/**</checkModificationExclude>
+                        <checkModificationExclude>**/apm-agent-plugins/apm-profiling-plugin/src/main/resources/**</checkModificationExclude>
+                    </checkModificationExcludes>
                 </configuration>
             </plugin>
             <plugin>
