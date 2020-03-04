@@ -83,17 +83,18 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                 abstractSpan = span;
             } else {
                 Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-                if (spanName.isEmpty()) {
-                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                } else {
-                    transaction.withName(spanName, PRIO_USER_SUPPLIED);
+                if (transaction != null) {
+                    if (spanName.isEmpty()) {
+                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                    } else {
+                        transaction.withName(spanName, PRIO_USER_SUPPLIED);
+                    }
+                    transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
+                        .activate();
                 }
-                transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
-                    .activate();
                 abstractSpan = transaction;
             }
         }
-
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -94,14 +94,13 @@ public class ApmServerReporter implements Reporter {
     private final Disruptor<ReportingEvent> disruptor;
     private final AtomicLong dropped = new AtomicLong();
     private final boolean dropTransactionIfQueueFull;
-    private final CoreConfiguration coreConfiguration;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
     @Nullable
     private ScheduledThreadPoolExecutor metricsReportingScheduler;
 
     public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             CoreConfiguration coreConfiguration, ReportingEventHandler reportingEventHandler) {
+                             ReportingEventHandler reportingEventHandler) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
@@ -113,7 +112,6 @@ public class ApmServerReporter implements Reporter {
                 return thread;
             }
         }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
-        this.coreConfiguration = coreConfiguration;
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
@@ -228,6 +226,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void close() {
+        logger.info("dropped events because of full queue: {}", dropped.get());
         disruptor.getRingBuffer().tryPublishEvent(SHUTDOWN_EVENT_TRANSLATOR);
         try {
             disruptor.shutdown(5, TimeUnit.SECONDS);
@@ -251,13 +250,13 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void scheduleMetricReporting(final MetricRegistry metricRegistry, long intervalMs) {
+    public void scheduleMetricReporting(final MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
         if (intervalMs > 0 && metricsReportingScheduler == null) {
             metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("metrics-reporter");
             metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    if (!coreConfiguration.isActive()) {
+                    if (!tracer.isRunning()) {
                         return;
                     }
                     disruptor.getRingBuffer().tryPublishEvent(new EventTranslatorOneArg<ReportingEvent, MetricRegistry>() {
@@ -275,6 +274,9 @@ public class ApmServerReporter implements Reporter {
         if (dropTransactionIfQueueFull) {
             boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(eventTranslator, event);
             if (queueFull) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Could not add {} {} to ring buffer as no slots are available", event.getClass().getSimpleName(), event);
+                }
                 dropped.incrementAndGet();
                 return false;
             }

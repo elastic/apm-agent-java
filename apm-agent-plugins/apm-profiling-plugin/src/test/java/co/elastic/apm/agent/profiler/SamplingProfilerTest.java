@@ -68,6 +68,11 @@ class SamplingProfilerTest {
         when(profilingConfig.getSamplingInterval()).thenReturn(TimeDuration.of("5ms"));
         tracer = MockTracer.createRealTracer(reporter, config);
         profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
+        // ensure profiler is initialized
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(6000, TimeUnit.MILLISECONDS)
+            .until(() -> profiler.getProfilingSessions() > 1);
     }
 
     @AfterEach
@@ -77,11 +82,6 @@ class SamplingProfilerTest {
 
     @Test
     void testProfileTransaction() throws Exception {
-        // ensure profiler is initialized
-        await()
-            .pollDelay(10, TimeUnit.MILLISECONDS)
-            .timeout(5000, TimeUnit.MILLISECONDS)
-            .until(() -> profiler.getProfilingSessions() > 1);
         Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
         try (Scope scope = transaction.activateInScope()) {
             // makes sure that the rest will be captured by another profiling session
