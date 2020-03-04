@@ -50,6 +50,7 @@ See <<supported-java-methods>> for more details
 * Adding a Circuit Breaker to pause the agent when stress is detected on the system and resume when the stress is relieved.
 See <<circuit-breaker>> and {pull}1040[#1040] for more info.
 * `Span#captureException` and `Transaction#captureException` in public API return reported error id - {pull}1015[#1015]
+* Add support for Apache RocketMQ clients - {pull}1057[#1057]
 
 [float]
 ===== Bug fixes

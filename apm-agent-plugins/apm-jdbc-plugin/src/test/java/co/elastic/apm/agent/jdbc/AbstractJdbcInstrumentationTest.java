@@ -109,32 +109,25 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         transaction.deactivate().end();
     }
 
-    // execute in a single test because creating a new connection is expensive,
-    // as it spins up another docker container
-    @Test
-    public void test() {
-        executeTest(this::testStatement);
-        executeTest(this::testUpdateStatement);
-        executeTest(this::testStatementNotSupportingUpdateCount);
-        executeTest(this::testStatementNotSupportingConnection);
-        executeTest(this::testStatementWithoutConnectionMetadata);
-
-        executeTest(() -> testUpdate(false));
-        executeTest(() -> testUpdate(true));
-
-        executeTest(() -> testPreparedStatementUpdate(false));
-        executeTest(() -> testPreparedStatementUpdate(true));
-
-        executeTest(() -> testBatch(false));
-        executeTest(() -> testBatch(true));
-
-        executeTest(this::testPreparedStatement);
-        executeTest(this::testUpdatePreparedStatement);
-
-        executeTest(() -> testBatchPreparedStatement(false));
-        executeTest(() -> testBatchPreparedStatement(true));
-
-        executeTest(this::testMultipleRowsModifiedStatement);
+    /**
+     * @param task jdbc task to execute
+     * @return false if feature is not supported, true otherwise
+     */
+    private static boolean executePotentiallyUnsupportedFeature(JdbcTask task) throws SQLException {
+        try {
+            task.execute();
+        } catch (SQLFeatureNotSupportedException | UnsupportedOperationException unsupported) {
+            // silently ignored as this feature is not supported by most JDBC drivers
+            return false;
+        } catch (SQLException e) {
+            if (e.getCause() instanceof UnsupportedOperationException) {
+                // same as above, because c3p0 have it's own way to say feature not supported
+                return false;
+            } else {
+                throw new SQLException(e);
+            }
+        }
+        return true;
     }
 
     /**
@@ -215,8 +208,32 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         checkWithoutConnectionMetadata(statement, testConnection::getUnsupportedThrownCount);
     }
 
-    private interface ThrownCountCheck{
-        int getThrownCount();
+    // execute in a single test because creating a new connection is expensive,
+    // as it spins up another docker container
+    @Test
+    public void test() {
+        executeTest(this::testStatement);
+        executeTest(this::testUpdateStatement);
+        executeTest(this::testStatementNotSupportingUpdateCount);
+        executeTest(this::testStatementNotSupportingConnection);
+        executeTest(this::testStatementWithoutConnectionMetadata);
+
+        executeTest(() -> testUpdate(false));
+        executeTest(() -> testUpdate(true));
+
+        executeTest(() -> testPreparedStatementUpdate(false));
+        executeTest(() -> testPreparedStatementUpdate(true));
+
+        executeTest(() -> testBatch(false));
+        executeTest(() -> testBatch(true));
+
+        executeTest(this::testPreparedStatement);
+        executeTest(this::testUpdatePreparedStatement);
+
+        executeTest(() -> testBatchPreparedStatement(false));
+        executeTest(() -> testBatchPreparedStatement(true));
+
+        executeTest(this::testMultipleRowsModifiedStatement);
     }
 
     private void checkWithoutConnectionMetadata(TestStatement statement, ThrownCountCheck check) throws SQLException {
@@ -472,24 +489,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             && metaData.getDatabaseProductVersion().startsWith(versionPrefix);
     }
 
-    /**
-     * @param task jdbc task to execute
-     * @return false if feature is not supported, true otherwise
-     */
-    private static boolean executePotentiallyUnsupportedFeature(JdbcTask task) throws SQLException {
-        try {
-            task.execute();
-        } catch (SQLFeatureNotSupportedException | UnsupportedOperationException unsupported) {
-            // silently ignored as this feature is not supported by most JDBC drivers
-            return false;
-        } catch (SQLException e) {
-            if (e.getCause() instanceof UnsupportedOperationException) {
-                // same as above, because c3p0 have it's own way to say feature not supported
-                return false;
-            } else {
-                throw new SQLException(e);
-            }
-        }
-        return true;
+    private interface ThrownCountCheck{
+        int getThrownCount();
     }
 }

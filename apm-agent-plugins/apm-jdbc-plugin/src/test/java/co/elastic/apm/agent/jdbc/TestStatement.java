@@ -65,8 +65,9 @@ class TestStatement implements Statement {
         return unsupportedThrownCount;
     }
 
-    void setConnection(Connection connection) {
-        this.connection = connection;
+    public int getUpdateCount() throws SQLException {
+        unsupportedCheck(isGetUpdateCountSupported);
+        return delegate.getUpdateCount();
     }
 
 
@@ -134,9 +135,13 @@ class TestStatement implements Statement {
         return delegate.getResultSet();
     }
 
-    public int getUpdateCount() throws SQLException {
-        unsupportedCheck(isGetUpdateCountSupported);
-        return delegate.getUpdateCount();
+    public Connection getConnection() throws SQLException {
+        unsupportedCheck(isGetConnectionSupported);
+
+        if (null != connection) {
+            return connection;
+        }
+        return delegate.getConnection();
     }
 
     public boolean getMoreResults() throws SQLException {
@@ -179,13 +184,8 @@ class TestStatement implements Statement {
         return delegate.executeBatch();
     }
 
-    public Connection getConnection() throws SQLException {
-        unsupportedCheck(isGetConnectionSupported);
-
-        if (null != connection) {
-            return connection;
-        }
-        return delegate.getConnection();
+    void setConnection(Connection connection) {
+        this.connection = connection;
     }
 
     public boolean getMoreResults(int current) throws SQLException {

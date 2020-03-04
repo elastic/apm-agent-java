@@ -114,18 +114,9 @@ public class JdbcHelperImpl extends JdbcHelper {
         return span;
     }
 
-    /*
-     * This makes sure that even when there are wrappers for the statement,
-     * we only record each JDBC call once.
-     */
-    private boolean isAlreadyMonitored(@Nullable TraceContextHolder<?> parent) {
-        if (!(parent instanceof Span)) {
-            return false;
-        }
-        Span parentSpan = (Span) parent;
-        // a db span can't be the child of another db span
-        // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
+    @Nullable
+    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
+        return featureMap.get(type);
     }
 
     @Nullable
@@ -204,11 +195,6 @@ public class JdbcHelperImpl extends JdbcHelper {
         return result;
     }
 
-    @Nullable
-    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
-        return featureMap.get(type);
-    }
-
     private static void markSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type) {
         map.put(type, Boolean.TRUE);
     }
@@ -218,6 +204,20 @@ public class JdbcHelperImpl extends JdbcHelper {
         if (previous == null) {
             logger.warn("JDBC feature not supported on class " + type, e);
         }
+    }
+
+    /*
+     * This makes sure that even when there are wrappers for the statement,
+     * we only record each JDBC call once.
+     */
+    private boolean isAlreadyMonitored(@Nullable TraceContextHolder<?> parent) {
+        if (!(parent instanceof Span)) {
+            return false;
+        }
+        Span parentSpan = (Span) parent;
+        // a db span can't be the child of another db span
+        // this means the span has already been created for this db call
+        return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
     }
 
 
