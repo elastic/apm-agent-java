@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -241,7 +242,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs) {
+    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
         // noop
     }
 

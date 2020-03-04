@@ -26,7 +26,7 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -63,7 +63,7 @@ public abstract class AbstractInstrumentationTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(LifecycleListener.ClosableAdapter.of(() -> {
+            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
                 reporter.assertRecycledAfterDecrementingReferences();
                 // after recycling, there should be nothing left in use in object pools
                 objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();

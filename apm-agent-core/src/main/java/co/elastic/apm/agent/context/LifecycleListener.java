@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -45,7 +45,35 @@ public interface LifecycleListener {
      *
      * @param tracer The tracer.
      */
-    void start(ElasticApmTracer tracer);
+    void start(ElasticApmTracer tracer) throws Exception;
+
+    /**
+     * Callback for when {@link ElasticApmTracer#pause()} has been called.
+     * <p>
+     * Typically, this method is used to reduce overhead on the application to a minimum. This can be done by cleaning
+     * up resources like object pools, as well as by avoiding tracing-related overhead.
+     * </p>
+     * <p>
+     * Exceptions thrown from this method are caught and handled so that they don't prevent further cleanup actions.
+     * </p>
+     *
+     * @throws Exception When something goes wrong performing the cleanup.
+     */
+    void pause() throws Exception;
+
+    /**
+     * Callback for when {@link ElasticApmTracer#resume()} has been called.
+     * <p>
+     * Typically, used in order to revert the actions taken by the {@link LifecycleListener#pause()} method, allowing
+     * the agent to restore all tracing capabilities
+     * </p>
+     * <p>
+     * Exceptions thrown from this method are caught and handled so that they don't prevent further resume actions.
+     * </p>
+     *
+     * @throws Exception When something goes wrong while attempting to resume.
+     */
+    void resume() throws Exception;
 
     /**
      * Callback for when {@link ElasticApmTracer#stop()} has been called.
@@ -61,26 +89,4 @@ public interface LifecycleListener {
      */
     void stop() throws Exception;
 
-    class ClosableAdapter implements LifecycleListener {
-
-        private final Closeable closeable;
-
-        public static LifecycleListener of(Closeable closeable) {
-            return new ClosableAdapter(closeable);
-        }
-
-        private ClosableAdapter(Closeable closeable) {
-            this.closeable = closeable;
-        }
-
-        @Override
-        public void start(ElasticApmTracer tracer) {
-
-        }
-
-        @Override
-        public void stop() throws Exception {
-            closeable.close();
-        }
-    }
 }

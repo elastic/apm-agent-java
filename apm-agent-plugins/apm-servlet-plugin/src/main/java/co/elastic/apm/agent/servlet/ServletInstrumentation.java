@@ -67,6 +67,11 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     public ServletInstrumentation(ElasticApmTracer tracer) {
         ServletApiAdvice.init(tracer);
+        // adding a null-check before setting helper manager reference breaks test execution, which prevents having
+        // the same code construct we have for other HelperClassManager usages.
+        //
+        // This should probably be changed when upgrading this plugin to use HelperClassManager for all helper
+        // classes.
         servletTransactionCreationHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
             "co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelperImpl",
             "co.elastic.apm.agent.servlet.helper.ServletRequestHeaderGetter"

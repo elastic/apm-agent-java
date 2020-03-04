@@ -77,6 +77,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doStartTransactionWithRemoteParentFunction"));
         }
 
+        @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doStartTransaction(@Advice.Origin Class<?> clazz,

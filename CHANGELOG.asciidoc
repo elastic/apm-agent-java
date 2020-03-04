@@ -27,14 +27,28 @@ endif::[]
 
 [float]
 ===== Features
-* `Span#captureException` and `Transaction#captureException` in public Api return reported error id. - {pull}[#1015]
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.14.0]]
+==== 1.14.0 - 2020/03/04
+
+[float]
+===== Features
+
 * Support for the official https://www.w3.org/TR/trace-context[W3C] `traceparent` and `tracestate` headers. +
   The agent now accepts both the `elastic-apm-traceparent` and the official `traceparent` header.
-  By default, it sends both headers on outgoing requests,
-  unless <<config-use-elastic-traceparent-header, `use_elastic_traceparent_header`>> is set to false.
+By default, it sends both headers on outgoing requests, unless <<config-use-elastic-traceparent-header, `use_elastic_traceparent_header`>> is set to false.
 * Creating spans for slow methods with the help of the sampling profiler https://github.com/jvm-profiling-tools/async-profiler[async-profiler].
-  This is a low-overhead way of seeing which methods make your transactions slow and a replacement for the `trace_methods` configuration option.
-  See <<supported-java-methods>> for more details.
+This is a low-overhead way of seeing which methods make your transactions slow and a replacement for the `trace_methods` configuration option.
+See <<supported-java-methods>> for more details
+* Adding a Circuit Breaker to pause the agent when stress is detected on the system and resume when the stress is relieved.
+See <<circuit-breaker>> and {pull}1040[#1040] for more info.
+* `Span#captureException` and `Transaction#captureException` in public API return reported error id - {pull}1015[#1015]
 * Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
 
 [float]

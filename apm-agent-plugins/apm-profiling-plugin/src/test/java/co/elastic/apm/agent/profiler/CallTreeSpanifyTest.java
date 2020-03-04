@@ -72,7 +72,7 @@ class CallTreeSpanifyTest {
             " bbb  ",
             "aaaaee"
         });
-        callTree.spanify();
+        assertThat(callTree.spanify()).isEqualTo(4);
         assertThat(reporter.getSpans()).hasSize(4);
         assertThat(reporter.getSpans().stream()
             .map(Span::getNameAsString)
@@ -113,7 +113,7 @@ class CallTreeSpanifyTest {
         root.onActivation(spanContext.serialize(), TimeUnit.MILLISECONDS.toNanos(5));
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool, 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20), callTreePool, 0);
-        root.onDeactivation(rootContext.serialize(), TimeUnit.MILLISECONDS.toNanos(25));
+        root.onDeactivation(spanContext.serialize(), rootContext.serialize(), TimeUnit.MILLISECONDS.toNanos(25));
 
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(30), callTreePool, 0);
         root.end(callTreePool, 0);
