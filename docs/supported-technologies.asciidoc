@@ -39,6 +39,10 @@ the agent does not capture transactions.
 [[supported-java-versions]]
 === Java versions
 
+Early Java 8 versions before update 40 are *not supported* because they have
+several bugs that might result in JVM crashes when a java agent is active,
+thus agent *will not start* on those versions.
+
 |===
 |Vendor |Supported versions | Notes
 
