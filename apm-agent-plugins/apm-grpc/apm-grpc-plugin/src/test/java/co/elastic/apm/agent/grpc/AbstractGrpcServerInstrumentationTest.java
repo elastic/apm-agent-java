@@ -34,8 +34,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -77,12 +80,18 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(app.sayHello("bob", 1))
             .isEqualTo("nested(1)->hello(bob)");
 
-        List<Transaction> transactions = getReporter().getTransactions();
-        assertThat(transactions).hasSize(2);
+        await()
+            .pollDelay(1, TimeUnit.MILLISECONDS)
+            .timeout(100, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> {
+                List<Transaction> transactions = getReporter().getTransactions();
+                assertThat(transactions).hasSize(2);
 
-        for (Transaction transaction : transactions) {
-            checkUnaryTransaction(transaction, "OK");
-        }
+                for (Transaction transaction : transactions) {
+                    checkUnaryTransaction(transaction, "OK");
+                }
+            });
+
     }
 
     @Test
