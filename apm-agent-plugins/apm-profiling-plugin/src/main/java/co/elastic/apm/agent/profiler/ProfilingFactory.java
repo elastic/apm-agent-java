@@ -24,14 +24,14 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.util.ExecutorUtils;
 
 import java.io.File;
 import java.io.IOException;
 
-public class ProfilingFactory implements LifecycleListener {
+public class ProfilingFactory extends AbstractLifecycleListener {
 
     private final SamplingProfiler profiler;
     private final NanoClock nanoClock;

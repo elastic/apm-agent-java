@@ -30,12 +30,46 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
-public class StatementNotSupportingUpdateCount implements Statement {
+class TestStatement implements Statement {
     private final Statement delegate;
 
-    public StatementNotSupportingUpdateCount(Statement delegate) {
+    private boolean isGetConnectionSupported;
+    private boolean isGetUpdateCountSupported;
+    private int unsupportedThrownCount;
+
+    private Connection connection;
+
+    public TestStatement(Statement delegate) {
         this.delegate = delegate;
+        this.unsupportedThrownCount = 0;
+        this.isGetConnectionSupported = true;
+        this.isGetUpdateCountSupported = true;
     }
+
+    private void unsupportedCheck(boolean isFeatureSupported) throws SQLException {
+        if (!isFeatureSupported) {
+            unsupportedThrownCount++;
+            throw new SQLException("Not supported");
+        }
+    }
+
+    public void setGetConnectionSupported(boolean supported) {
+        this.isGetConnectionSupported = supported;
+    }
+
+    public void setGetUpdateCountSupported(boolean supported) {
+        this.isGetUpdateCountSupported = supported;
+    }
+
+    int getUnsupportedThrownCount(){
+        return unsupportedThrownCount;
+    }
+
+    public int getUpdateCount() throws SQLException {
+        unsupportedCheck(isGetUpdateCountSupported);
+        return delegate.getUpdateCount();
+    }
+
 
     public ResultSet executeQuery(String sql) throws SQLException {
         return delegate.executeQuery(sql);
@@ -101,8 +135,13 @@ public class StatementNotSupportingUpdateCount implements Statement {
         return delegate.getResultSet();
     }
 
-    public int getUpdateCount() throws SQLException {
-        throw new SQLException("Not supported");
+    public Connection getConnection() throws SQLException {
+        unsupportedCheck(isGetConnectionSupported);
+
+        if (null != connection) {
+            return connection;
+        }
+        return delegate.getConnection();
     }
 
     public boolean getMoreResults() throws SQLException {
@@ -145,8 +184,8 @@ public class StatementNotSupportingUpdateCount implements Statement {
         return delegate.executeBatch();
     }
 
-    public Connection getConnection() throws SQLException {
-        return delegate.getConnection();
+    void setConnection(Connection connection) {
+        this.connection = connection;
     }
 
     public boolean getMoreResults(int current) throws SQLException {

@@ -53,27 +53,13 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACE
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
-    public static final String ACTIVE = "active";
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
-    private static final String CORE_CATEGORY = "Core";
+    public static final String CORE_CATEGORY = "Core";
     private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
-
-    private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
-        .key(ACTIVE)
-        .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should be active or not.\n" +
-            "When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
-            "When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.\n" +
-            "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
-            "mostly idle in this state, so the overhead should be negligible.\n" +
-            "\n" +
-            "You can use this setting to dynamically disable Elastic APM at runtime.")
-        .dynamic(true)
-        .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
         .key(INSTRUMENT)
@@ -525,10 +511,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .tags("internal")
         .buildWithDefault(4096);
-
-    public boolean isActive() {
-        return active.get();
-    }
 
     public boolean isInstrument() {
         return instrument.get();

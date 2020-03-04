@@ -27,7 +27,6 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -46,7 +45,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -294,34 +292,19 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testDisable() {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader()); // 1
-        try (Scope scope = transaction.activateInScope()) {
-            assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
-            assertThat(transaction.isSampled()).isFalse();
-            Span span = transaction.createSpan();
-            try (Scope spanScope = span.activateInScope()) {
-                assertThat(tracerImpl.getActive()).isSameAs(span);
-                assertThat(tracerImpl.getActive()).isNotNull();
-            }
-            span.end();
-            assertThat(tracerImpl.getActive()).isSameAs(transaction);
-        }
-        transaction.end();
-        assertThat(tracerImpl.currentTransaction()).isNull();
-        assertThat(reporter.getTransactions()).isEmpty();
-        assertThat(reporter.getSpans()).isEmpty();
+    void testPause() {
+        tracerImpl.pause();
+        assertThat(tracerImpl.startRootTransaction(getClass().getClassLoader())).isNull();
     }
 
     @Test
-    void testDisableMidTransaction() {
+    void testPauseMidTransaction() {
         Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
         try (Scope scope = transaction.activateInScope()) {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
+            tracerImpl.pause();
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
-                when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span.withName("test");
                 assertThat(span.getNameAsString()).isEqualTo("test");
                 assertThat(tracerImpl.getActive()).isSameAs(span);
@@ -330,7 +313,6 @@ class ElasticApmTracerTest {
             }
             Span span2 = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span2.activateInScope()) {
-                when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span2.withName("test2");
                 assertThat(span2.getNameAsString()).isEqualTo("test2");
                 assertThat(tracerImpl.getActive()).isSameAs(span2);
@@ -362,41 +344,6 @@ class ElasticApmTracerTest {
         assertThat(reporter.getSpans()).hasSize(0);
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
-    }
-
-    @Test
-    void testLifecycleListener() {
-        int startBefore = TestLifecycleListener.start.get();
-        int stopBefore = TestLifecycleListener.stop.get();
-        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-        assertThat(TestLifecycleListener.start.get()).isEqualTo(startBefore + 1);
-        assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore);
-
-        tracer.stop();
-        assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore + 1);
-    }
-
-    /*
-     * Has an entry in
-     * src/test/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener
-     */
-    public static class TestLifecycleListener extends AbstractLifecycleListener {
-
-        public static final AtomicInteger start = new AtomicInteger();
-        public static final AtomicInteger stop = new AtomicInteger();
-
-        public TestLifecycleListener(ElasticApmTracer tracer) {
-            super(tracer);
-            start.incrementAndGet();
-        }
-
-        @Override
-        public void stop() {
-            stop.incrementAndGet();
-        }
     }
 
     @Test

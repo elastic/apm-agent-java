@@ -74,9 +74,10 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
         if (tracer != null) {
             final TraceContextHolder<?> parent = tracer.getActive();
             if (parent == null) {
-                span = tracer.startRootTransaction(clazz.getClassLoader())
-                    .withName(signature)
-                    .activate();
+                span = tracer.startRootTransaction(clazz.getClassLoader());
+                if (span != null) {
+                    span.withName(signature).activate();
+                }
             } else if (parent.isSampled()) {
                 span = parent.createSpan()
                     .withName(signature)

@@ -73,6 +73,7 @@ public interface JmsInstrumentationHelper<D, M, L> {
     @Nullable
     Span startJmsSendSpan(D destination, M message);
 
+    @Nullable
     Transaction startJmsTransaction(M parentMessage, Class<?> instrumentedClass);
 
     void makeChildOf(Transaction childTransaction, M parentMessage);

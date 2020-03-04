@@ -148,7 +148,7 @@ public class MdcActivationListener implements ActivationListener {
 
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
-        if (loggingConfiguration.isLogCorrelationEnabled() && coreConfiguration.isActive()) {
+        if (loggingConfiguration.isLogCorrelationEnabled() && tracer.isRunning()) {
 
             for (WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache : mdcPutMethodHandleCaches) {
                 MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(context));

@@ -24,14 +24,6 @@
  */
 package co.elastic.apm.agent.spring.scheduled;
 
-import java.util.Arrays;
-import java.util.Collection;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
@@ -45,6 +37,12 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
@@ -67,10 +65,12 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
         if (tracer != null) {
             TraceContextHolder<?> active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startRootTransaction(clazz.getClassLoader())
-                    .withName(signature)
-                    .withType("scheduled")
-                    .activate();
+                transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    transaction.withName(signature)
+                        .withType("scheduled")
+                        .activate();
+                }
 
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);

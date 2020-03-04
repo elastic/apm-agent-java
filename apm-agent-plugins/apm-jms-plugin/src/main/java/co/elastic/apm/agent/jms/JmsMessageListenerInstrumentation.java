@@ -116,16 +116,18 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             }
 
             // Create a transaction - even if running on same JVM as the sender
-            Transaction transaction = helper.startJmsTransaction(message, clazz)
-                .withType(MESSAGING_TYPE)
-                .withName(RECEIVE_NAME_PREFIX);
+            Transaction transaction = helper.startJmsTransaction(message, clazz);
+            if (transaction != null) {
+                transaction.withType(MESSAGING_TYPE)
+                    .withName(RECEIVE_NAME_PREFIX);
 
-            if (destinationName != null) {
-                helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
+                if (destinationName != null) {
+                    helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
+                }
+                helper.addMessageDetails(message, transaction);
+                helper.setMessageAge(message, transaction);
+                transaction.activate();
             }
-            helper.addMessageDetails(message, transaction);
-            helper.setMessageAge(message, transaction);
-            transaction.activate();
 
             return transaction;
         }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -35,8 +35,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -52,14 +50,26 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Matches the various {@link Connection#prepareCall} and {@link Connection#prepareStatement} methods
  * and keeps a reference to from the resulting {@link java.sql.CallableStatement} or {@link PreparedStatement} to the sql.
  */
-public class ConnectionInstrumentation extends ElasticApmInstrumentation {
+public class ConnectionInstrumentation extends JdbcInstrumentation {
 
-    static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
+    public ConnectionInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @VisibleForAdvice
     @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void storeSql(@Advice.Return final PreparedStatement statement, @Advice.Argument(0) String sql) {
-        JdbcHelper.mapStatementToSql(statement, sql);
+    public static void storeSql(@Advice.Return PreparedStatement statement,
+                                @Advice.Argument(0) String sql) {
+
+        if (jdbcHelperManager == null) {
+            return;
+        }
+
+        JdbcHelper jdbcHelper = jdbcHelperManager.getForClassLoaderOfClass(PreparedStatement.class);
+        if (jdbcHelper != null) {
+            jdbcHelper.mapStatementToSql(statement, sql);
+        }
+
     }
 
     @Override
@@ -79,11 +89,6 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
             .and(returns(hasSuperType(named("java.sql.PreparedStatement"))))
             .and(takesArgument(0, String.class))
             .and(isPublic());
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(JDBC_INSTRUMENTATION_GROUP);
     }
 
 }

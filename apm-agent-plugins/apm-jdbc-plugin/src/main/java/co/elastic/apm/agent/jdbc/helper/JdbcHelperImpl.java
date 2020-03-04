@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -39,57 +39,44 @@ import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 
+@SuppressWarnings("unused") // indirect access to this class provided through HelperClassManager
 public class JdbcHelperImpl extends JdbcHelper {
-    public static final String DB_SPAN_TYPE = "db";
-    public static final String DB_SPAN_ACTION = "query";
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
-    private static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
     @VisibleForAdvice
-    public static final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
+    public final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
         @Override
         protected SignatureParser initialValue() {
             return new SignatureParser();
         }
     };
+    // Important implementation note:
+    //
+    // because this class is potentially loaded from multiple classloaders, making those fields 'static' will not
+    // have the expected behavior, thus, any direct reference to `JdbcHelperImpl` should only be obtained from the
+    // HelperClassManager<JdbcHelper> instance.
+    private final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+    private final WeakConcurrentMap<Class<?>, Boolean> updateCountSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
+    private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
+    private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
 
-    @Override
     @Nullable
-    public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
-        if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
-            return null;
+    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
+        return featureMap.get(type);
+    }
+
+    private static void markSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type) {
+        map.put(type, Boolean.TRUE);
+    }
+
+    private static void markNotSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type, SQLException e) {
+        Boolean previous = map.put(type, Boolean.FALSE);
+        if (previous == null) {
+            logger.warn("JDBC feature not supported on class " + type, e);
         }
-        Span span = parent.createSpan().activate();
-        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
-        if (spanName != null) {
-            SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
-        }
-        // setting the type here is important
-        // getting the meta data can result in another jdbc call
-        // if that is traced as well -> StackOverflowError
-        // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
-        span.withType(DB_SPAN_TYPE);
-        try {
-            final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
-            span.withSubtype(connectionMetaData.getDbVendor())
-                .withAction(DB_SPAN_ACTION);
-            span.getContext().getDb()
-                .withUser(connectionMetaData.getUser())
-                .withStatement(sql)
-                .withType("sql");
-            Destination destination = span.getContext().getDestination()
-                .withAddress(connectionMetaData.getHost())
-                .withPort(connectionMetaData.getPort());
-            destination.getService()
-                .withName(connectionMetaData.getDbVendor())
-                .withResource(connectionMetaData.getDbVendor())
-                .withType(DB_SPAN_TYPE);
-        } catch (SQLException e) {
-            logger.warn("Ignored exception", e);
-        }
-        return span;
     }
 
     /*
@@ -106,14 +93,130 @@ public class JdbcHelperImpl extends JdbcHelper {
         return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
     }
 
-    private ConnectionMetaData getConnectionMetaData(Connection connection) throws SQLException {
+    @Override
+    public void clearInternalStorage() {
+        metaDataMap.clear();
+        updateCountSupported.clear();
+        metadataSupported.clear();
+        connectionSupported.clear();
+    }
+
+    @Override
+    @Nullable
+    public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
+        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
+            return null;
+        }
+
+        Span span = parent.createSpan().activate();
+        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+        if (spanName != null) {
+            SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+        }
+        // setting the type here is important
+        // getting the meta data can result in another jdbc call
+        // if that is traced as well -> StackOverflowError
+        // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
+        span.withType(DB_SPAN_TYPE);
+
+        // write fields that do not rely on metadata
+        span.getContext().getDb()
+            .withStatement(sql)
+            .withType("sql");
+
+        Connection connection = safeGetConnection((Statement) statement);
+        ConnectionMetaData connectionMetaData = connection == null ? null : getConnectionMetaData(connection);
+        if (connectionMetaData != null) {
+            span.withSubtype(connectionMetaData.getDbVendor())
+                .withAction(DB_SPAN_ACTION);
+            span.getContext().getDb()
+                .withUser(connectionMetaData.getUser());
+            Destination destination = span.getContext().getDestination()
+                .withAddress(connectionMetaData.getHost())
+                .withPort(connectionMetaData.getPort());
+            destination.getService()
+                .withName(connectionMetaData.getDbVendor())
+                .withResource(connectionMetaData.getDbVendor())
+                .withType(DB_SPAN_TYPE);
+        }
+
+        return span;
+    }
+
+    @Nullable
+    private ConnectionMetaData getConnectionMetaData(Connection connection) {
         ConnectionMetaData connectionMetaData = metaDataMap.get(connection);
-        if (connectionMetaData == null) {
-            final DatabaseMetaData metaData = connection.getMetaData();
+        if (connectionMetaData != null) {
+            return connectionMetaData;
+        }
+
+        Class<?> type = connection.getClass();
+        Boolean supported = isSupported(metadataSupported, type);
+        if (supported == Boolean.FALSE) {
+            return null;
+        }
+
+        try {
+            DatabaseMetaData metaData = connection.getMetaData();
             connectionMetaData = ConnectionMetaData.create(metaData.getURL(), metaData.getUserName());
+            if (supported == null) {
+                markSupported(metadataSupported, type);
+            }
+        } catch (SQLException e) {
+            markNotSupported(metadataSupported, type, e);
+        }
+
+        if (connectionMetaData != null) {
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
-
     }
+
+    @Nullable
+    private Connection safeGetConnection(Statement statement) {
+        Connection connection = null;
+        Class<?> type = statement.getClass();
+        Boolean supported = isSupported(connectionSupported, type);
+        if (supported == Boolean.FALSE) {
+            return null;
+        }
+
+        try {
+            connection = statement.getConnection();
+            if (supported == null) {
+                markSupported(connectionSupported, type);
+            }
+        } catch (SQLException e) {
+            markNotSupported(connectionSupported, type, e);
+        }
+
+        return connection;
+    }
+
+    @Override
+    public long safeGetUpdateCount(Object statement) {
+        long result = Long.MIN_VALUE;
+        if (!(statement instanceof Statement)) {
+            return result;
+        }
+
+        Class<?> type = statement.getClass();
+        Boolean supported = isSupported(updateCountSupported, type);
+        if (supported == Boolean.FALSE) {
+            return result;
+        }
+
+        try {
+            result = ((Statement) statement).getUpdateCount();
+            if (supported == null) {
+                markSupported(updateCountSupported, type);
+            }
+        } catch (SQLException e) {
+            markNotSupported(updateCountSupported, type, e);
+        }
+
+        return result;
+    }
+
+
 }

@@ -28,6 +28,7 @@ package co.elastic.apm.agent.jms;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -50,7 +51,6 @@ import javax.jms.Queue;
 import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -66,6 +66,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
@@ -73,8 +75,6 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QUEUE_PREFIX;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -130,13 +130,16 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
         Transaction transaction;
         if (sampler == null) {
-            transaction = tracer.startRootTransaction(null).activate();
+            transaction = tracer.startRootTransaction(null);
         } else {
-            transaction = tracer.startRootTransaction(sampler, -1, null).activate();
+            transaction = tracer.startRootTransaction(sampler, -1, null);
         }
-        transaction.withName("JMS-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        if (transaction != null) {
+            transaction.activate()
+                .withName("JMS-Test Transaction")
+                .withType("request")
+                .withResult("success");
+        }
     }
 
     @After
@@ -177,9 +180,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             Transaction transaction = null;
             Message message = null;
             try {
-                transaction = tracer.startRootTransaction(null)
-                    .withName("JMS-Test Receiver Transaction")
-                    .activate();
+                transaction = tracer.startRootTransaction(null);
+                if (transaction != null) {
+                    transaction.withName("JMS-Test Receiver Transaction")
+                        .activate();
+                }
                 message = receiveMethod.call();
 
                 if (message != null) {
@@ -234,12 +239,34 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).isEmpty();
         assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
         assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
+        assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
         assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
     }
 
     @Test
-    public void testQueueSendReceiveOnNonTracedThreadInActive() throws Exception {
-        when(coreConfiguration.isActive()).thenReturn(false);
+    public void testAgentPaused() throws Exception {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        // End current transaction and start a non-sampled one
+        //noinspection ConstantConditions
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+
+        startAndActivateTransaction(ConstantSampler.of(false));
+        final Queue queue = createTestQueue();
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
+    }
+
+    @Test
+    public void testQueueSendReceiveOnNonTracedThreadInactive() throws Exception {
+        TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
@@ -270,7 +297,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testInactiveReceive() throws Exception {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
@@ -415,9 +442,12 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
-        //noinspection ConstantConditions
-        if (tracer.currentTransaction().isSampled()) {
-            verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+        if (tracer.isRunning()) {
+            Transaction transaction = tracer.currentTransaction();
+            assertThat(transaction).isNotNull();
+            if (transaction.isSampled()) {
+                verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+            }
         }
     }
 
@@ -486,7 +516,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             return;
         }
 
-        boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
+        boolean isActive = tracer.isRunning();
         if (!isActive || strategy == POLLING || receiveNoWaitFlow.get()) {
             assertThat(spans).hasSize(1);
         } else {
@@ -570,7 +600,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testInactiveOnMessage() throws Exception {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        TracerInternalApiUtils.pauseTracer(tracer);
         Queue queue = createTestQueue();
         CompletableFuture<Message> incomingMessageFuture = brokerFacade.registerConcreteListenerImplementation(queue);
         String message = UUID.randomUUID().toString();
