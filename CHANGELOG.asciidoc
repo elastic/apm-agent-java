@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
 
 [float]
 ===== Bug fixes
