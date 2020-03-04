@@ -78,24 +78,28 @@ public class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
             String topic = retMsgExt.getTopic();
             if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
                 String traceParentProperty = retMsgExt.getProperties().get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
-                Transaction transaction = tracer
-                    .startChildTransaction(retMsgExt, RocketMQMessageHeaderAccessor.getInstance(), ConsumeMessageIteratorWrapper.class.getClassLoader())
-                    .withType("messaging")
-                    .withName("RocketMQ Consume Message#" + topic)
-                    .activate();
-                Message traceContextMsg = transaction.getContext().getMessage();
-                traceContextMsg.withQueue(topic);
-                traceContextMsg.withAge(System.currentTimeMillis() - retMsgExt.getBornTimestamp());
+                Transaction transaction = tracer.startChildTransaction(retMsgExt,
+                    RocketMQMessageHeaderAccessor.getInstance(),
+                    ConsumeMessageIteratorWrapper.class.getClassLoader());
+                if (transaction != null) {
+                    transaction.withType("messaging")
+                        .withName("RocketMQ Consume Message#" + topic)
+                        .activate();
 
-                if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
-                    for (Map.Entry<String, String> property: retMsgExt.getProperties().entrySet()) {
-                        traceContextMsg.addHeader( property.getKey(), property.getValue());
+                    Message traceContextMsg = transaction.getContext().getMessage();
+                    traceContextMsg.withQueue(topic);
+                    traceContextMsg.withAge(System.currentTimeMillis() - retMsgExt.getBornTimestamp());
+
+                    if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
+                        for (Map.Entry<String, String> property: retMsgExt.getProperties().entrySet()) {
+                            traceContextMsg.addHeader( property.getKey(), property.getValue());
+                        }
                     }
-                }
 
-                if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
-                    traceContextMsg.appendToBody("msgId=").appendToBody(retMsgExt.getMsgId()).appendToBody("; ")
-                        .appendToBody("body=").appendToBody(new String(retMsgExt.getBody()));
+                    if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
+                        traceContextMsg.appendToBody("msgId=").appendToBody(retMsgExt.getMsgId()).appendToBody("; ")
+                            .appendToBody("body=").appendToBody(new String(retMsgExt.getBody()));
+                    }
                 }
             }
         } catch (Exception e) {

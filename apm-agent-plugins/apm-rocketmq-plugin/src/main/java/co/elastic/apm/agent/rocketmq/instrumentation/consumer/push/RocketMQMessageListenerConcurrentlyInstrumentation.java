@@ -67,7 +67,7 @@ public class RocketMQMessageListenerConcurrentlyInstrumentation extends BaseRock
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.Argument(value = 0, readOnly = false) MessageListenerConcurrently messageListener) {
-            if (tracer == null || helperClassManager == null) {
+            if (tracer == null || !tracer.isRunning() || helperClassManager == null) {
                 return;
             }
 

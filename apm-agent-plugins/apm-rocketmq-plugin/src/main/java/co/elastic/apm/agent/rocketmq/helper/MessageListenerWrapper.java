@@ -71,13 +71,15 @@ abstract class MessageListenerWrapper<S, C> {
             MessageExt firstMsgExt = msgs.get(0);
             String topic = firstMsgExt.getTopic();
             if (!ignoreTopic(topic)) {
-                transaction = tracer.startRootTransaction(null)
-                    .withType("messaging")
-                    .withName("RocketMQ Consume Message#" + topic)
-                    .activate();
-                transaction.getContext().getMessage()
-                    .withQueue(topic)
-                    .withAge(System.currentTimeMillis() - firstMsgExt.getBornTimestamp());
+                transaction = tracer.startRootTransaction(null);
+                if (transaction != null) {
+                    transaction.withType("messaging")
+                        .withName("RocketMQ Consume Message#" + topic)
+                        .activate();
+                    transaction.getContext().getMessage()
+                        .withQueue(topic)
+                        .withAge(System.currentTimeMillis() - firstMsgExt.getBornTimestamp());
+                }
             }
         } catch (Exception e) {
             logger.error("Error in RocketMQ consume transaction creation", e);

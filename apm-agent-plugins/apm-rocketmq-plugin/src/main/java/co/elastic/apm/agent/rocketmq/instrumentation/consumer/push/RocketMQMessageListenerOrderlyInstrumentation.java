@@ -67,7 +67,7 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.Argument(value = 0, readOnly = false) MessageListenerOrderly messageListener) {
-            if (tracer == null || helperClassManager == null) {
+            if (tracer == null || !tracer.isRunning() || helperClassManager == null) {
                 return;
             }
 
