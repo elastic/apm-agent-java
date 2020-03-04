@@ -43,8 +43,10 @@ public class CircuitBreaker extends AbstractLifecycleListener {
     private final ElasticApmTracer tracer;
     private final CircuitBreakerConfiguration circuitBreakerConfiguration;
     private final long pollInterval;
-    private final List<StressMonitor> stressMonitors = new CopyOnWriteArrayList<>();
+
     private boolean isCurrentlyUnderStress = false;
+
+    private final List<StressMonitor> stressMonitors = new CopyOnWriteArrayList<>();
 
     public CircuitBreaker(ElasticApmTracer tracer) {
         this.tracer = tracer;

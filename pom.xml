@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.14.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -255,6 +255,10 @@
                     <releaseProfiles>gpg</releaseProfiles>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <checkModificationExcludes>
+                        <checkModificationExclude>**/apm-agent-benchmarks/src/main/resources/**</checkModificationExclude>
+                        <checkModificationExclude>**/apm-agent-plugins/apm-profiling-plugin/src/main/resources/**</checkModificationExclude>
+                    </checkModificationExcludes>
                 </configuration>
             </plugin>
             <plugin>

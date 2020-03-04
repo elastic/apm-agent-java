@@ -46,13 +46,6 @@ public class JdbcHelperImpl extends JdbcHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
 
-    @VisibleForAdvice
-    public final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
-        @Override
-        protected SignatureParser initialValue() {
-            return new SignatureParser();
-        }
-    };
     // Important implementation note:
     //
     // because this class is potentially loaded from multiple classloaders, making those fields 'static' will not
@@ -63,35 +56,13 @@ public class JdbcHelperImpl extends JdbcHelper {
     private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
     private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
 
-    @Nullable
-    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
-        return featureMap.get(type);
-    }
-
-    private static void markSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type) {
-        map.put(type, Boolean.TRUE);
-    }
-
-    private static void markNotSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type, SQLException e) {
-        Boolean previous = map.put(type, Boolean.FALSE);
-        if (previous == null) {
-            logger.warn("JDBC feature not supported on class " + type, e);
+    @VisibleForAdvice
+    public final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
+        @Override
+        protected SignatureParser initialValue() {
+            return new SignatureParser();
         }
-    }
-
-    /*
-     * This makes sure that even when there are wrappers for the statement,
-     * we only record each JDBC call once.
-     */
-    private boolean isAlreadyMonitored(@Nullable TraceContextHolder<?> parent) {
-        if (!(parent instanceof Span)) {
-            return false;
-        }
-        Span parentSpan = (Span) parent;
-        // a db span can't be the child of another db span
-        // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
-    }
+    };
 
     @Override
     public void clearInternalStorage() {
@@ -141,6 +112,20 @@ public class JdbcHelperImpl extends JdbcHelper {
         }
 
         return span;
+    }
+
+    /*
+     * This makes sure that even when there are wrappers for the statement,
+     * we only record each JDBC call once.
+     */
+    private boolean isAlreadyMonitored(@Nullable TraceContextHolder<?> parent) {
+        if (!(parent instanceof Span)) {
+            return false;
+        }
+        Span parentSpan = (Span) parent;
+        // a db span can't be the child of another db span
+        // this means the span has already been created for this db call
+        return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
     }
 
     @Nullable
@@ -193,6 +178,7 @@ public class JdbcHelperImpl extends JdbcHelper {
         return connection;
     }
 
+
     @Override
     public long safeGetUpdateCount(Object statement) {
         long result = Long.MIN_VALUE;
@@ -216,6 +202,22 @@ public class JdbcHelperImpl extends JdbcHelper {
         }
 
         return result;
+    }
+
+    @Nullable
+    private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
+        return featureMap.get(type);
+    }
+
+    private static void markSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type) {
+        map.put(type, Boolean.TRUE);
+    }
+
+    private static void markNotSupported(WeakConcurrentMap<Class<?>, Boolean> map, Class<?> type, SQLException e) {
+        Boolean previous = map.put(type, Boolean.FALSE);
+        if (previous == null) {
+            logger.warn("JDBC feature not supported on class " + type, e);
+        }
     }
 
 

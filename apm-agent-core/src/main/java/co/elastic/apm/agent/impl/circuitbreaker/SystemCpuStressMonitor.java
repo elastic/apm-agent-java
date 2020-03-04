@@ -42,11 +42,14 @@ public class SystemCpuStressMonitor extends StressMonitor {
     private final StringBuilder latestStressDetectionInfo = new StringBuilder("No stress has been detected so far.");
 
     private final OperatingSystemMXBean operatingSystemBean;
-    @Nullable
-    private final Method systemCpuUsageMethod;
+
     private int consecutiveMeasurementsAboveStressThreshold;
     private int consecutiveMeasurementsBelowReliefThreshold;
+
     private boolean currentlyUnderStress;
+
+    @Nullable
+    private final Method systemCpuUsageMethod;
 
     SystemCpuStressMonitor(ElasticApmTracer tracer) {
         super(tracer);

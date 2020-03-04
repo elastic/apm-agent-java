@@ -86,13 +86,13 @@ public class TestConnection implements Connection {
     }
 
     @Override
-    public boolean getAutoCommit() throws SQLException {
-        return delegate.getAutoCommit();
+    public void setAutoCommit(boolean autoCommit) throws SQLException {
+        delegate.setAutoCommit(autoCommit);
     }
 
     @Override
-    public void setAutoCommit(boolean autoCommit) throws SQLException {
-        delegate.setAutoCommit(autoCommit);
+    public boolean getAutoCommit() throws SQLException {
+        return delegate.getAutoCommit();
     }
 
     @Override
@@ -125,18 +125,13 @@ public class TestConnection implements Connection {
     }
 
     @Override
-    public boolean isReadOnly() throws SQLException {
-        return delegate.isReadOnly();
-    }
-
-    @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
         delegate.setReadOnly(readOnly);
     }
 
     @Override
-    public String getCatalog() throws SQLException {
-        return delegate.getCatalog();
+    public boolean isReadOnly() throws SQLException {
+        return delegate.isReadOnly();
     }
 
     @Override
@@ -145,13 +140,18 @@ public class TestConnection implements Connection {
     }
 
     @Override
-    public int getTransactionIsolation() throws SQLException {
-        return delegate.getTransactionIsolation();
+    public String getCatalog() throws SQLException {
+        return delegate.getCatalog();
     }
 
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
         delegate.setTransactionIsolation(level);
+    }
+
+    @Override
+    public int getTransactionIsolation() throws SQLException {
+        return delegate.getTransactionIsolation();
     }
 
     @Override
@@ -190,13 +190,13 @@ public class TestConnection implements Connection {
     }
 
     @Override
-    public int getHoldability() throws SQLException {
-        return delegate.getHoldability();
+    public void setHoldability(int holdability) throws SQLException {
+        delegate.setHoldability(holdability);
     }
 
     @Override
-    public void setHoldability(int holdability) throws SQLException {
-        delegate.setHoldability(holdability);
+    public int getHoldability() throws SQLException {
+        return delegate.getHoldability();
     }
 
     @Override
@@ -280,6 +280,11 @@ public class TestConnection implements Connection {
     }
 
     @Override
+    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+        delegate.setClientInfo(properties);
+    }
+
+    @Override
     public String getClientInfo(String name) throws SQLException {
         return delegate.getClientInfo(name);
     }
@@ -287,11 +292,6 @@ public class TestConnection implements Connection {
     @Override
     public Properties getClientInfo() throws SQLException {
         return delegate.getClientInfo();
-    }
-
-    @Override
-    public void setClientInfo(Properties properties) throws SQLClientInfoException {
-        delegate.setClientInfo(properties);
     }
 
     @Override
@@ -305,13 +305,13 @@ public class TestConnection implements Connection {
     }
 
     @Override
-    public String getSchema() throws SQLException {
-        return delegate.getSchema();
+    public void setSchema(String schema) throws SQLException {
+        delegate.setSchema(schema);
     }
 
     @Override
-    public void setSchema(String schema) throws SQLException {
-        delegate.setSchema(schema);
+    public String getSchema() throws SQLException {
+        return delegate.getSchema();
     }
 
     @Override

@@ -30,12 +30,12 @@ public class ClosableLifecycleListenerAdapter extends AbstractLifecycleListener 
 
     private final Closeable closeable;
 
-    private ClosableLifecycleListenerAdapter(Closeable closeable) {
-        this.closeable = closeable;
-    }
-
     public static LifecycleListener of(Closeable closeable) {
         return new ClosableLifecycleListenerAdapter(closeable);
+    }
+
+    private ClosableLifecycleListenerAdapter(Closeable closeable) {
+        this.closeable = closeable;
     }
 
     @Override

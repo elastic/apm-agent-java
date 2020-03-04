@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.servlet.wildfly;
 
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 /**

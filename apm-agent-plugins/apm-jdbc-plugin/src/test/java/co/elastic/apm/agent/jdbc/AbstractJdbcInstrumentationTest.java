@@ -109,69 +109,6 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         transaction.deactivate().end();
     }
 
-    /**
-     * Wraps JDBC code that may throw {@link SQLException} and properly resets reporter after test execution
-     *
-     * @param task test task
-     */
-    private static void executeTest(JdbcTask task) {
-        try {
-            task.execute();
-        } catch (SQLException e) {
-            fail("unexpected exception", e);
-        } finally {
-            // reset reporter is important otherwise one test may pollute results of the following test
-            reporter.reset();
-
-            // clear internal jdbc helper required due to metadata caching and global state about unsupported
-            // JDBC driver features (based on classes instances)
-            if (JdbcInstrumentation.jdbcHelperManager != null) {
-                JdbcHelper jdbcHelper = JdbcInstrumentation.jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (jdbcHelper != null) {
-                    jdbcHelper.clearInternalStorage();
-                }
-            }
-        }
-    }
-
-    /**
-     * @param task jdbc task to execute
-     * @return false if feature is not supported, true otherwise
-     */
-    private static boolean executePotentiallyUnsupportedFeature(JdbcTask task) throws SQLException {
-        try {
-            task.execute();
-        } catch (SQLFeatureNotSupportedException | UnsupportedOperationException unsupported) {
-            // silently ignored as this feature is not supported by most JDBC drivers
-            return false;
-        } catch (SQLException e) {
-            if (e.getCause() instanceof UnsupportedOperationException) {
-                // same as above, because c3p0 have it's own way to say feature not supported
-                return false;
-            } else {
-                throw new SQLException(e);
-            }
-        }
-        return true;
-    }
-
-    private interface JdbcTask {
-        void execute() throws SQLException;
-    }
-
-    private void testStatement() throws SQLException {
-        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=1";
-        ResultSet resultSet = connection.createStatement().executeQuery(sql);
-        assertQuerySucceededAndSpanRecorded(resultSet, sql, false);
-    }
-
-    private void testUpdateStatement() throws SQLException {
-        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
-        boolean isResultSet = connection.createStatement().execute(sql);
-        assertThat(isResultSet).isFalse();
-        assertSpanRecorded(sql, false, 1);
-    }
-
     // execute in a single test because creating a new connection is expensive,
     // as it spins up another docker container
     @Test
@@ -198,6 +135,48 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         executeTest(() -> testBatchPreparedStatement(true));
 
         executeTest(this::testMultipleRowsModifiedStatement);
+    }
+
+    /**
+     * Wraps JDBC code that may throw {@link SQLException} and properly resets reporter after test execution
+     *
+     * @param task test task
+     */
+    private static void executeTest(JdbcTask task) {
+        try {
+            task.execute();
+        } catch (SQLException e) {
+            fail("unexpected exception", e);
+        } finally {
+            // reset reporter is important otherwise one test may pollute results of the following test
+            reporter.reset();
+
+            // clear internal jdbc helper required due to metadata caching and global state about unsupported
+            // JDBC driver features (based on classes instances)
+            if (JdbcInstrumentation.jdbcHelperManager != null) {
+                JdbcHelper jdbcHelper = JdbcInstrumentation.jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+                if (jdbcHelper != null) {
+                    jdbcHelper.clearInternalStorage();
+                }
+            }
+        }
+    }
+
+    private interface JdbcTask {
+        void execute() throws SQLException;
+    }
+
+    private void testStatement() throws SQLException {
+        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=1";
+        ResultSet resultSet = connection.createStatement().executeQuery(sql);
+        assertQuerySucceededAndSpanRecorded(resultSet, sql, false);
+    }
+
+    private void testUpdateStatement() throws SQLException {
+        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
+        boolean isResultSet = connection.createStatement().execute(sql);
+        assertThat(isResultSet).isFalse();
+        assertSpanRecorded(sql, false, 1);
     }
 
     private void testStatementNotSupportingUpdateCount() throws SQLException {
@@ -234,6 +213,10 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(statement.getConnection()).isSameAs(testConnection);
 
         checkWithoutConnectionMetadata(statement, testConnection::getUnsupportedThrownCount);
+    }
+
+    private interface ThrownCountCheck{
+        int getThrownCount();
     }
 
     private void checkWithoutConnectionMetadata(TestStatement statement, ThrownCountCheck check) throws SQLException {
@@ -489,7 +472,24 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             && metaData.getDatabaseProductVersion().startsWith(versionPrefix);
     }
 
-    private interface ThrownCountCheck{
-        int getThrownCount();
+    /**
+     * @param task jdbc task to execute
+     * @return false if feature is not supported, true otherwise
+     */
+    private static boolean executePotentiallyUnsupportedFeature(JdbcTask task) throws SQLException {
+        try {
+            task.execute();
+        } catch (SQLFeatureNotSupportedException | UnsupportedOperationException unsupported) {
+            // silently ignored as this feature is not supported by most JDBC drivers
+            return false;
+        } catch (SQLException e) {
+            if (e.getCause() instanceof UnsupportedOperationException) {
+                // same as above, because c3p0 have it's own way to say feature not supported
+                return false;
+            } else {
+                throw new SQLException(e);
+            }
+        }
+        return true;
     }
 }

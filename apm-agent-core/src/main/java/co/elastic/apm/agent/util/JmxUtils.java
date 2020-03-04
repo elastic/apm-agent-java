@@ -42,6 +42,9 @@ import java.util.List;
 public class JmxUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JmxUtils.class);
+
+    private static boolean initialized;
+
     /**
      * List of public, exported interface class names from supported JVM implementations.
      */
@@ -50,7 +53,7 @@ public class JmxUtils {
         "com.ibm.lang.management.OperatingSystemMXBean", // J9
         "com.sun.management.OperatingSystemMXBean" // HotSpot
     );
-    private static boolean initialized;
+
     @Nullable
     private static Class<?> operatingSystemBeanClass;
 

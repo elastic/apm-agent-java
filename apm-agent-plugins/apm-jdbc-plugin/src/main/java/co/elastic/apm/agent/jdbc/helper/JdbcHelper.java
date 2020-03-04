@@ -33,9 +33,10 @@ import javax.annotation.Nullable;
 
 public abstract class JdbcHelper {
 
+    private static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
-    private static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
     /**
      * Maps the provided sql to the provided Statement object
