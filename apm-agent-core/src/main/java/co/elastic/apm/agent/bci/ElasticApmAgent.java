@@ -156,7 +156,7 @@ public class ElasticApmAgent {
             instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
                 @Override
                 public void onChange(ConfigurationOption configurationOption, Object oldValue, Object newValue) {
-                    doReInitInstrumentation(loadInstrumentations(tracer));
+                    reInitInstrumentation();
                 }
             });
         }
