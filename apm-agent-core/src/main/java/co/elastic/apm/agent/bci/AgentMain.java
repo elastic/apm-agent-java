@@ -74,7 +74,8 @@ public class AgentMain {
         }
 
         String javaVersion = System.getProperty("java.version");
-        if (!isJavaVersionSupported(javaVersion)) {
+        String javaVmName = System.getProperty("java.vm.name");
+        if (!isJavaVersionSupported(javaVersion, javaVmName)) {
             // Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
             // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
             // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
@@ -104,43 +105,52 @@ public class AgentMain {
     }
 
     /**
-     * Checks if a given version of the JVM is supported by this agent.
-     * Supports values provided before and after https://openjdk.java.net/jeps/223
+     * Checks if a given version of the JVM is likely supported by this agent.
+     * <br/>
+     * Supports values provided before and after https://openjdk.java.net/jeps/223, in case parsing fails due to an
+     * unknown version format, we assume it's supported, thus this method might return false positives, but never false
+     * negatives.
      *
-     * @param javaVersion jvm version, from {@code System.getProperty("java.version")}
+     * @param version jvm version, from {@code System.getProperty("java.version")}
+     * @param vmName  jvm name, from {@code System.getProperty("java.vm.name")}
      * @return true if the version is supported, false otherwise
      */
     // package-protected for testing
-    static boolean isJavaVersionSupported(String javaVersion) {
-        boolean postJsr223 = !javaVersion.startsWith("1.");
+    static boolean isJavaVersionSupported(String version, String vmName) {
+        boolean postJsr223 = !version.startsWith("1.");
         // new scheme introduced in java 9, thus we can use it as a shortcut
         if (postJsr223) {
             return true;
         }
 
-        char major = javaVersion.charAt(2);
+        char major = version.charAt(2);
         if (major < '7') {
             // given code is compiled with java 7, this one is unlikely in practice
             return false;
         } else if (major == '7' || major > '8') {
             return true;
+        } else if (!vmName.contains("HotSpot(TM)")) {
+            // non-hotspot JVMs are not concerned (yet)
+            return true;
         } else {
             // java 8
-            int updateIndex = javaVersion.lastIndexOf("_");
+            int updateIndex = version.lastIndexOf("_");
             if (updateIndex <= 0) {
+                // GA release '1.8.0'
                 return false;
             } else {
-                int versionSuffixIndex = javaVersion.indexOf('-', updateIndex + 1);
+                int versionSuffixIndex = version.indexOf('-', updateIndex + 1);
                 String updateVersion;
-                if(versionSuffixIndex <= 0) {
-                    updateVersion = javaVersion.substring(updateIndex + 1);
+                if (versionSuffixIndex <= 0) {
+                    updateVersion = version.substring(updateIndex + 1);
                 } else {
-                    updateVersion = javaVersion.substring(updateIndex + 1, versionSuffixIndex);
+                    updateVersion = version.substring(updateIndex + 1, versionSuffixIndex);
                 }
                 try {
                     return Integer.parseInt(updateVersion) >= 40;
                 } catch (NumberFormatException e) {
-                    return false;
+                    // in case of unknown format, we just support by default
+                    return true;
                 }
             }
         }
