@@ -76,7 +76,7 @@ public class AgentMain {
         String javaVersion = System.getProperty("java.version");
         if (!isJavaVersionSupported(javaVersion)) {
             // gracefully abort agent startup is better than unexpected failure down the road
-            System.err.println(String.format("Failed ot start agent - JVM version not supported: %s", javaVersion));
+            System.err.println(String.format("Failed to start agent - JVM version not supported: %s", javaVersion));
             return;
         }
 
@@ -125,7 +125,13 @@ public class AgentMain {
             if (updateIndex <= 0) {
                 return false;
             } else {
-                String updateVersion = javaVersion.substring(updateIndex + 1);
+                int versionSuffixIndex = javaVersion.indexOf('-', updateIndex + 1);
+                String updateVersion;
+                if(versionSuffixIndex <= 0) {
+                    updateVersion = javaVersion.substring(updateIndex + 1);
+                } else {
+                    updateVersion = javaVersion.substring(updateIndex + 1, versionSuffixIndex);
+                }
                 try {
                     return Integer.parseInt(updateVersion) >= 40;
                 } catch (NumberFormatException e) {

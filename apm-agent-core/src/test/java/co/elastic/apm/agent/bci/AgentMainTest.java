@@ -33,23 +33,37 @@ class AgentMainTest {
     @Test
     void java6AndEarlierNotSupported() {
         checkNotSupported("1.5.0");
-        checkNotSupported("1.6.0"); // 211
+        checkNotSupported("1.5.0-hello");
+        checkNotSupported("1.5.0_1");
+        checkNotSupported("1.5.0_1-hello");
+        checkNotSupported("1.6.0");
+        checkNotSupported("1.6.0-hello");
+        checkNotSupported("1.6.0_42");
+        checkNotSupported("1.6.0_42-hello");
     }
 
     @Test
     void java7AllVersionsSupported() {
         checkSupported("1.7.0");
+        checkSupported("1.7.0-hello");
         checkSupported("1.7.0_1");
+        checkSupported("1.7.0_1-hello");
         checkSupported("1.7.0_241");
+        checkSupported("1.7.0_241-hello");
     }
 
     @Test
     void java8OnlySupportedAfterUpdate40() {
         checkNotSupported("1.8.0");
+        checkNotSupported("1.8.0-hello");
         checkNotSupported("1.8.0_1");
+        checkNotSupported("1.8.0_1-hello");
         checkNotSupported("1.8.0_39");
+        checkNotSupported("1.8.0_39-hello");
         checkSupported("1.8.0_40");
+        checkSupported("1.8.0_40-hello");
         checkSupported("1.8.0_241");
+        checkSupported("1.8.0_241-hello");
     }
 
     @Test
