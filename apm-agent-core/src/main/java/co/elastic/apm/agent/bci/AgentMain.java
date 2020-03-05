@@ -75,13 +75,18 @@ public class AgentMain {
 
         String javaVersion = System.getProperty("java.version");
         if (!isJavaVersionSupported(javaVersion)) {
-            // gracefully abort agent startup is better than unexpected failure down the road
+            // Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
+            // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
+            // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
+            // for JVM internals, there is no other option but to use an up-to-date JVM instead.
             System.err.println(String.format("Failed to start agent - JVM version not supported: %s", javaVersion));
             return;
         }
 
         try {
-            FileSystems.getDefault(); // likely not required if it was only for java 7 compatibility
+            // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
+            FileSystems.getDefault();
+
             final File agentJarFile = getAgentJarFile();
             try (JarFile jarFile = new JarFile(agentJarFile)) {
                 instrumentation.appendToBootstrapClassLoaderSearch(jarFile);
