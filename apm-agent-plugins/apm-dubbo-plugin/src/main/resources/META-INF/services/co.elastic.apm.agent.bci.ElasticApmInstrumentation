@@ -1,0 +1,2 @@
+co.elastic.apm.agent.dubbo.ApacheDubboInstrumentation
+co.elastic.apm.agent.dubbo.AlibabaDubboInstrumentation

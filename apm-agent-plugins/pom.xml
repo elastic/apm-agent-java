@@ -47,6 +47,7 @@
         <module>apm-process-plugin</module>
         <module>apm-kafka-plugin</module>
         <module>apm-profiling-plugin</module>
+        <module>apm-dubbo-plugin</module>
     </modules>
 
     <dependencies>

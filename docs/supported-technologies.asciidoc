@@ -252,6 +252,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 1.7.0
 
+|Apache Dubbo
+| 2.7.x 2.6.x
+|
+| 1.15.0
+
 |===
 
 
