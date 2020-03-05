@@ -23,6 +23,7 @@
         <module>apm-lettuce-3-tests</module>
         <module>apm-lettuce-plugin</module>
         <module>apm-redis-common</module>
+        <module>apm-redisson-plugin</module>
     </modules>
 
     <dependencies>

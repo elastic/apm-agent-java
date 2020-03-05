@@ -29,6 +29,8 @@ endif::[]
 [float]
 ===== Features
 
+* Add support for <<supported-databases, Redis Redisson client>>
+
 [float]
 ===== Bug fixes
 
