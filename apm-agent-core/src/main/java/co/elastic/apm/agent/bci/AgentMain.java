@@ -133,7 +133,7 @@ public class AgentMain {
             // non-hotspot JVMs are not concerned (yet)
             return true;
         } else {
-            // java 8
+            // HotSpot 8
             int updateIndex = version.lastIndexOf("_");
             if (updateIndex <= 0) {
                 // GA release '1.8.0'
