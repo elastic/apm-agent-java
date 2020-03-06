@@ -54,6 +54,15 @@ the agent does not capture transactions.
 |8
 |
 
+NOTE: Early Java 8 versions before update 40 are *not supported* because they have
+several bugs that might result in JVM crashes when a java agent is active,
+thus agent *will not start* on those versions.
+
+Here is an example of the message displayed when this happens.
+```
+Failed ot start agent - JVM version not supported: 1.8.0_31
+```
+
 |===
 
 [float]
