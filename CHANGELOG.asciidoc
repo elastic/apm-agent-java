@@ -29,8 +29,8 @@ endif::[]
 [float]
 ===== Features
 * Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
-
 * Add support for <<supported-databases, Redis Redisson client>>
+* Do not instrument Servlet API before 3.0 {pull}1077[#1077]
 
 [float]
 ===== Bug fixes
