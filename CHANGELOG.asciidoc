@@ -48,6 +48,8 @@ for more details) - {pull}1009[#1009]
 * Workaround for `java.util.logging` deadlock {pull}965[#965]
 * JMS should propagate traceparent header when transactions are not sampled {pull}999[#999]
 * Spans are not closed if JDBC implementation does not support `getUpdateCount` {pull}1008[#1008]
+* Fixed prevention the shade plugin from relocating `org.slf4j.Logger` to `co.elastic.apm.agent.shaded.slf4j.Logger`
+in `Log4jLoggingInstrumentation` and `Slf4jLoggingInstrumentation`.  - {pull}1049[#1049]
 
 [[release-notes-1.12.0]]
 ==== 1.12.0 - 2019/11/21
