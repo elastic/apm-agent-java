@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rocketmq.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -33,24 +32,18 @@ import org.apache.rocketmq.common.message.MessageExt;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class MessageListenerConcurrentlyWrapper extends MessageListenerWrapper<ConsumeConcurrentlyStatus, ConsumeConcurrentlyContext> implements MessageListenerConcurrently {
+public class MessageListenerConcurrentlyWrapper implements MessageListenerConcurrently {
 
     @Nonnull
     private MessageListenerConcurrently delegate;
 
-    MessageListenerConcurrentlyWrapper(@Nonnull MessageListenerConcurrently delegate,
-                                       @Nonnull ElasticApmTracer tracer) {
-        super(tracer);
+    MessageListenerConcurrentlyWrapper(@Nonnull MessageListenerConcurrently delegate){
         this.delegate = delegate;
     }
 
     @Override
     public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-        return doConsumeMessage(msgs, context);
-    }
-
-    @Override
-    ConsumeConcurrentlyStatus consumeDelegateImpl(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
         return delegate.consumeMessage(msgs, context);
     }
+
 }

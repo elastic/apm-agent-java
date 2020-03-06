@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.rocketmq.instrumentation.consumer.push;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.rocketmq.helper.ConsumeMessageListWrapper;
 import co.elastic.apm.agent.rocketmq.helper.RocketMQInstrumentationHelper;
 import co.elastic.apm.agent.rocketmq.instrumentation.BaseRocketMQInstrumentation;
 import net.bytebuddy.asm.Advice;
@@ -32,14 +34,22 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.rocketmq.client.consumer.MQConsumer;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
+import org.apache.rocketmq.common.message.MessageExt;
 
+import java.util.List;
+
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
- * Wrap the registered {@link org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly} to start a transaction
- * when the method {@link org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly#consumeMessage} is executed
+ *  Create a transaction for each message.
+ *  When DefaultMQPushConsumer.consumeMessageBatchMaxSize = 1（msgs.size() == 1）,
+ *  create a transaction directly around the method and collect the consume results.
+ *  In another case, we will replace the argument 'msgs' with {@link co.elastic.apm.agent.rocketmq.helper.ConsumeMessageListWrapper},
+ *  so that a transaction will be started when the message is polled by the iterator.
  */
 public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQInstrumentation {
 
@@ -49,13 +59,13 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.apache.rocketmq.client.consumer.DefaultMQPushConsumer");
+        return not(isInterface())
+            .and(hasSuperType(named("org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("registerMessageListener")
-            .and(takesArgument(0, named("org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly")));
+        return named("consumeMessage");
     }
 
     @Override
@@ -66,17 +76,33 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
     private static class MessageListenerOrderlyAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Argument(value = 0, readOnly = false) MessageListenerOrderly messageListener) {
+        private static void onEnter(@Advice.Local("transaction") Transaction transaction,
+                                    @Advice.Local("helper") RocketMQInstrumentationHelper helper,
+                                    @Advice.Argument(value = 0, readOnly = false) List<MessageExt> msgs) {
             if (tracer == null || !tracer.isRunning() || helperClassManager == null) {
                 return;
             }
 
-            final RocketMQInstrumentationHelper helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
+            helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
             if (helper == null) {
                 return;
             }
 
-            messageListener = helper.wrapMessageListener(messageListener);
+            if (msgs.size() == 1) {
+                transaction = helper.onConsumeStart(msgs.get(0));
+            } else if (msgs.size() > 1 && !(msgs instanceof ConsumeMessageListWrapper)){
+                msgs = new ConsumeMessageListWrapper(msgs, tracer);
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.Thrown Throwable thrown,
+                                   @Advice.Local("transaction") Transaction transaction,
+                                   @Advice.Local("helper") RocketMQInstrumentationHelper helper,
+                                   @Advice.Return ConsumeOrderlyStatus status) {
+            if (transaction != null) {
+                helper.onConsumeEnd(transaction, thrown, status);
+            }
         }
 
     }

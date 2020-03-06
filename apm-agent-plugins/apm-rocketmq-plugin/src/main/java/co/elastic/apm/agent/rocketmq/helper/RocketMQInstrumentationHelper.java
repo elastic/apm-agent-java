@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.rocketmq.helper;
 
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -32,6 +33,7 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public interface RocketMQInstrumentationHelper {
@@ -40,12 +42,16 @@ public interface RocketMQInstrumentationHelper {
 
     SendCallback wrapSendCallback(SendCallback delegate, Span span);
 
-    MessageListenerConcurrently wrapMessageListener(MessageListenerConcurrently listenerConcurrently);
+    MessageListenerConcurrently wrapLambda(MessageListenerConcurrently listenerConcurrently);
 
-    MessageListenerOrderly wrapMessageListener(MessageListenerOrderly listenerOrderly);
+    MessageListenerOrderly wrapLambda(MessageListenerOrderly listenerOrderly);
 
-    PullResult wrapPullResult(PullResult delegate);
+    PullResult replaceMsgList(PullResult delegate);
 
     PullCallback wrapPullCallback(PullCallback delegate);
+
+    Transaction onConsumeStart(MessageExt msg);
+
+    void onConsumeEnd(Transaction transaction, Throwable throwable, Object ret);
 
 }

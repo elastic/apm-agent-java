@@ -1,5 +1,7 @@
 co.elastic.apm.agent.rocketmq.instrumentation.producer.RocketMQProducerInstrumentation
 co.elastic.apm.agent.rocketmq.instrumentation.consumer.push.RocketMQMessageListenerConcurrentlyInstrumentation
 co.elastic.apm.agent.rocketmq.instrumentation.consumer.push.RocketMQMessageListenerOrderlyInstrumentation
+co.elastic.apm.agent.rocketmq.instrumentation.consumer.push.RocketMQLambdaMessageListenerInstrumentation$RegisterMsgListenerOrderlyInstrumentation
+co.elastic.apm.agent.rocketmq.instrumentation.consumer.push.RocketMQLambdaMessageListenerInstrumentation$RegisterMsgListenerConcurrentlyInstrumentation
 co.elastic.apm.agent.rocketmq.instrumentation.consumer.pull.RocketMQPullResultInstrumentation
 co.elastic.apm.agent.rocketmq.instrumentation.consumer.pull.RocketMQPullCallbackInstrumentation

@@ -28,16 +28,22 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import org.apache.rocketmq.client.consumer.MQConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,9 +52,12 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
 
     private static final Logger logger = LoggerFactory.getLogger(RocketMQInstrumentationHelperImpl.class);
 
+    private final ElasticApmTracer tracer;
+
     private final MessagingConfiguration messagingConfiguration;
 
     public RocketMQInstrumentationHelperImpl(ElasticApmTracer tracer) {
+        this.tracer = tracer;
         this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }
 
@@ -95,46 +104,32 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
         return span;
     }
 
-    private boolean ignoreTopic(String topic) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic);
-    }
-
     @Override
     public SendCallback wrapSendCallback(SendCallback delegate, Span span) {
-        if (delegate == null) {
-            return null;
-        }
-        if (delegate instanceof SendCallbackWrapper) {
+        if (delegate == null || delegate instanceof SendCallbackWrapper) {
             return delegate;
         }
         return new SendCallbackWrapper(delegate, span);
     }
 
-
     @Override
-    public MessageListenerConcurrently wrapMessageListener(MessageListenerConcurrently listenerConcurrently) {
-        if (listenerConcurrently == null) {
-            return null;
+    public MessageListenerConcurrently wrapLambda(MessageListenerConcurrently listenerConcurrently) {
+        if (listenerConcurrently != null && isLambda(listenerConcurrently)) {
+            return new MessageListenerConcurrentlyWrapper(listenerConcurrently);
         }
-        if (listenerConcurrently instanceof MessageListenerConcurrentlyWrapper) {
-            return listenerConcurrently;
-        }
-        return new MessageListenerConcurrentlyWrapper(listenerConcurrently, getTracer());
+        return listenerConcurrently;
     }
 
     @Override
-    public MessageListenerOrderly wrapMessageListener(MessageListenerOrderly listenerOrderly) {
-        if (listenerOrderly == null) {
-            return null;
+    public MessageListenerOrderly wrapLambda(MessageListenerOrderly listenerOrderly) {
+        if (listenerOrderly != null && isLambda(listenerOrderly)) {
+            return new MessageListenerOrderlyWrapper(listenerOrderly);
         }
-        if (listenerOrderly instanceof MessageListenerOrderlyWrapper) {
-            return listenerOrderly;
-        }
-        return new MessageListenerOrderlyWrapper(listenerOrderly, getTracer());
+        return listenerOrderly;
     }
 
     @Override
-    public PullResult wrapPullResult(PullResult delegate) {
+    public PullResult replaceMsgList(PullResult delegate) {
         if (delegate == null || delegate.getMsgFoundList() == null || delegate.getMsgFoundList() instanceof ConsumeMessageListWrapper) {
             return delegate;
         } else if (delegate instanceof PullResultExt) {
@@ -157,24 +152,70 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
 
     @Override
     public PullCallback wrapPullCallback(final PullCallback delegate) {
-        if (delegate == null) {
-            return null;
+        if (delegate == null || delegate instanceof PullCallbackWrapper) {
+            return delegate;
         }
-        return new PullCallbackWrapper(delegate, PullResultWrapperCreator.getInstance());
+        return new PullCallbackWrapper(delegate, this);
     }
 
-    public static class PullResultWrapperCreator {
+    @Override
+    public Transaction onConsumeStart(MessageExt msg) {
+        Transaction transaction = null;
+        try {
+            Transaction currentTransaction = tracer.currentTransaction();
+            if (isMessagingTransaction(currentTransaction)) {
+                currentTransaction.deactivate().end();
+            }
+            String topic = msg.getTopic();
+            if (!ignoreTopic(topic)) {
+                String traceParentProperty = msg.getUserProperty(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
+                transaction = tracer.startChildTransaction(msg,
+                    RocketMQMessageHeaderAccessor.getInstance(),
+                    MQConsumer.class.getClassLoader());
+                if (transaction != null) {
+                    transaction.withType("messaging")
+                        .withName("RocketMQ Consume Message#" + topic)
+                        .activate();
+                    transaction.getContext().getMessage()
+                        .withQueue(topic)
+                        .withAge(System.currentTimeMillis() - msg.getBornTimestamp());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error in RocketMQ consume transaction creation", e);
+        }
+        return transaction;
+    }
 
-        private static final PullResultWrapperCreator INSTANCE = new PullResultWrapperCreator();
-
-        public static PullResultWrapperCreator getInstance() {
-            return INSTANCE;
+    @Override
+    public void onConsumeEnd(Transaction transaction, Throwable throwable, Object ret) {
+        try {
+            if (ret instanceof ConsumeConcurrentlyStatus) {
+                transaction.withResult(((ConsumeConcurrentlyStatus)ret).name());
+            } else if (ret instanceof ConsumeOrderlyStatus){
+                transaction.withResult(((ConsumeOrderlyStatus)ret).name());
+            } else {
+                transaction.withResult(ret.toString());
+            }
+            transaction.captureException(throwable)
+                .deactivate()
+                .end();
+        } catch (Exception e) {
+            logger.error("Error in transaction end", e);
         }
 
-        PullResult wrapPullResult(PullResult delegate) {
-            return wrapPullResult(delegate);
-        }
+    }
 
+    private boolean ignoreTopic(String topic) {
+        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic);
+    }
+
+    private boolean isLambda(Object obj) {
+        return obj.getClass().getName().contains("/");
+    }
+
+    private boolean isMessagingTransaction(Transaction transaction) {
+        return transaction != null && "messaging".equals(transaction.getType());
     }
 
 }

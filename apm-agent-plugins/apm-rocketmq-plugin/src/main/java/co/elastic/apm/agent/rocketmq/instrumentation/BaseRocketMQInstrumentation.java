@@ -51,8 +51,7 @@ public abstract class BaseRocketMQInstrumentation extends ElasticApmInstrumentat
                 "co.elastic.apm.agent.rocketmq.helper.ConsumeMessageListWrapper",
                 "co.elastic.apm.agent.rocketmq.helper.ConsumeMessageIteratorWrapper",
                 "co.elastic.apm.agent.rocketmq.helper.RocketMQMessageHeaderAccessor",
-                "co.elastic.apm.agent.rocketmq.helper.PullCallbackWrapper",
-                "co.elastic.apm.agent.rocketmq.helper.RocketMQInstrumentationHelperImpl$PullResultWrapperCreator");
+                "co.elastic.apm.agent.rocketmq.helper.PullCallbackWrapper");
         }
     }
 

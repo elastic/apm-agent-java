@@ -34,16 +34,16 @@ public class PullCallbackWrapper implements PullCallback {
     @Nonnull
     private PullCallback delegate;
 
-    private RocketMQInstrumentationHelperImpl.PullResultWrapperCreator wrapperCreator;
+    private RocketMQInstrumentationHelper helper;
 
-    public PullCallbackWrapper(@Nonnull PullCallback delegate, RocketMQInstrumentationHelperImpl.PullResultWrapperCreator wrapperCreator) {
+    public PullCallbackWrapper(@Nonnull PullCallback delegate, RocketMQInstrumentationHelper helper) {
         this.delegate = delegate;
-        this.wrapperCreator = wrapperCreator;
+        this.helper = helper;
     }
 
     @Override
     public void onSuccess(PullResult pullResult) {
-        delegate.onSuccess(wrapperCreator.wrapPullResult(pullResult));
+        delegate.onSuccess(helper.replaceMsgList(pullResult));
     }
 
     @Override

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rocketmq.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -33,24 +32,17 @@ import org.apache.rocketmq.common.message.MessageExt;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class MessageListenerOrderlyWrapper extends MessageListenerWrapper<ConsumeOrderlyStatus, ConsumeOrderlyContext> implements MessageListenerOrderly {
+public class MessageListenerOrderlyWrapper implements MessageListenerOrderly {
 
     @Nonnull
     private MessageListenerOrderly delegate;
 
-    MessageListenerOrderlyWrapper(@Nonnull MessageListenerOrderly delegate,
-                                  @Nonnull ElasticApmTracer tracer) {
-        super(tracer);
+    MessageListenerOrderlyWrapper(@Nonnull MessageListenerOrderly delegate) {
         this.delegate = delegate;
     }
 
     @Override
     public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
-        return doConsumeMessage(msgs, context);
-    }
-
-    @Override
-    ConsumeOrderlyStatus consumeDelegateImpl(List<MessageExt> msgs, ConsumeOrderlyContext context) {
         return delegate.consumeMessage(msgs, context);
     }
 

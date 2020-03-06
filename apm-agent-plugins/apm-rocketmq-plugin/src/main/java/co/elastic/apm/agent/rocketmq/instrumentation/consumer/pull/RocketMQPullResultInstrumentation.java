@@ -38,8 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
  * Instruments the {@link org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl#pullSyncImpl} method.
- * Wrap the {@link org.apache.rocketmq.client.consumer.PullCallback}, the 'msgFoundList' in
- * {@link org.apache.rocketmq.client.consumer.PullResult} is wrapped with
+ * Replace the 'msgFoundList' in {@link org.apache.rocketmq.client.consumer.PullResult} with
  * {@link co.elastic.apm.agent.rocketmq.helper.ConsumeMessageListWrapper},
  * so that a transaction will be started when the message is polled by the iterator.
  * Note: it is not an interface method, and there is a risk that this instrumentation will be invalid due to later changes.
@@ -83,7 +82,7 @@ public class RocketMQPullResultInstrumentation extends BaseRocketMQInstrumentati
                 return;
             }
 
-            pullResult = helper.wrapPullResult(pullResult);
+            pullResult = helper.replaceMsgList(pullResult);
         }
 
     }

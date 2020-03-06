@@ -28,7 +28,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Message;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -66,46 +65,9 @@ public class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
     @Override
     public MessageExt next() {
         endCurrentMessagingTransaction();
-
-        MessageExt retMsgExt = delegate.next();
-
-        Transaction currentTransaction = tracer.currentTransaction();
-        if (currentTransaction != null && !"messaging".equals(currentTransaction.getType())) {
-            return retMsgExt;
-        }
-
-        try {
-            String topic = retMsgExt.getTopic();
-            if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
-                String traceParentProperty = retMsgExt.getProperties().get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
-                Transaction transaction = tracer.startChildTransaction(retMsgExt,
-                    RocketMQMessageHeaderAccessor.getInstance(),
-                    ConsumeMessageIteratorWrapper.class.getClassLoader());
-                if (transaction != null) {
-                    transaction.withType("messaging")
-                        .withName("RocketMQ Consume Message#" + topic)
-                        .activate();
-
-                    Message traceContextMsg = transaction.getContext().getMessage();
-                    traceContextMsg.withQueue(topic);
-                    traceContextMsg.withAge(System.currentTimeMillis() - retMsgExt.getBornTimestamp());
-
-                    if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
-                        for (Map.Entry<String, String> property: retMsgExt.getProperties().entrySet()) {
-                            traceContextMsg.addHeader( property.getKey(), property.getValue());
-                        }
-                    }
-
-                    if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
-                        traceContextMsg.appendToBody("msgId=").appendToBody(retMsgExt.getMsgId()).appendToBody("; ")
-                            .appendToBody("body=").appendToBody(new String(retMsgExt.getBody()));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Error in transaction creation based on RocketMQ message", e);
-        }
-        return retMsgExt;
+        MessageExt messageExt = delegate.next();
+        startMessagingTransaction(messageExt);
+        return messageExt;
     }
 
     @Override
@@ -121,6 +83,38 @@ public class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
             }
         } catch (Exception e) {
             logger.error("Error in RocketMQ iterator wrapper", e);
+        }
+    }
+
+    private void startMessagingTransaction(MessageExt messageExt) {
+        try {
+            String topic = messageExt.getTopic();
+            if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
+                Transaction transaction = tracer.startChildTransaction(messageExt,
+                    RocketMQMessageHeaderAccessor.getInstance(),
+                    ConsumeMessageIteratorWrapper.class.getClassLoader());
+                if (transaction != null) {
+                    transaction.withType("messaging")
+                        .withName("RocketMQ Consume Message#" + topic)
+                        .activate();
+
+                    Message messageContext = transaction.getContext().getMessage();
+                    messageContext.withQueue(topic).withAge(System.currentTimeMillis() - messageExt.getBornTimestamp());
+
+                    if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
+                        for (Map.Entry<String, String> property: messageExt.getProperties().entrySet()) {
+                            messageContext.addHeader( property.getKey(), property.getValue());
+                        }
+                    }
+
+                    if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
+                        messageContext.appendToBody("msgId=").appendToBody(messageExt.getMsgId()).appendToBody("; ")
+                            .appendToBody("body=").appendToBody(new String(messageExt.getBody()));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error in transaction creation based on RocketMQ message", e);
         }
     }
 
