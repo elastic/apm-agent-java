@@ -24,9 +24,6 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -42,8 +39,6 @@ import org.springframework.http.client.ClientHttpResponse;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Objects;
 
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
@@ -55,21 +50,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation {
-
-    // We can refer Spring type thanks to type erasure
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderSetter<HttpRequest>> headerSetterHelperManager;
+public class SpringRestTemplateInstrumentation extends AbstractRestTemplateInstrumentation {
 
     public SpringRestTemplateInstrumentation(ElasticApmTracer tracer) {
-        synchronized (SpringRestTemplateInstrumentation.class) {
-            if (headerSetterHelperManager == null) {
-                headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    "co.elastic.apm.agent.resttemplate.SpringRestRequestHeaderSetter"
-                );
-            }
-        }
+        super(tracer);
     }
 
     @Override
@@ -91,11 +75,6 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
     @Override
     public Class<?> getAdviceClass() {
         return SpringRestTemplateAdvice.class;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "spring-resttemplate");
     }
 
     public static class SpringRestTemplateAdvice {
