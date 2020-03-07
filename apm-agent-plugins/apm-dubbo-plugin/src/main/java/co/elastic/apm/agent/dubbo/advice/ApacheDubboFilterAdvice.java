@@ -24,11 +24,12 @@
  */
 package co.elastic.apm.agent.dubbo.advice;
 
+import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.DubboApiInfo;
-import co.elastic.apm.agent.dubbo.helper.DubboHelper;
+import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -46,12 +47,14 @@ public class ApacheDubboFilterAdvice {
     public static ElasticApmTracer tracer;
 
     @VisibleForAdvice
-    public static ApacheDubboAttachmentHelper helper = new ApacheDubboAttachmentHelper();
+    public static HelperClassManager<ApacheDubboAttachmentHelper> helperClassManager;
 
     public static void init(ElasticApmTracer tracer) {
         ApacheDubboFilterAdvice.tracer = tracer;
-        DubboHelper.init(tracer);
+        DubboTraceHelper.init(tracer);
         IgnoreExceptionHelper.init(tracer);
+        helperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+            "co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelperImpl");
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -65,14 +68,14 @@ public class ApacheDubboFilterAdvice {
         DubboApiInfo dubboApiInfo = new DubboApiInfo(
             apiClazz, invocation.getMethodName(),
             invocation.getParameterTypes(), version);
-
+        ApacheDubboAttachmentHelper helper = helperClassManager.getForClassLoaderOfClass(Invocation.class);
         // for consumer side, just create span, more information will be collected in provider side
         if (context.isConsumerSide()) {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
 
-            span = DubboHelper.createConsumerSpan(dubboApiInfo, context.getRemoteAddress());
+            span = DubboTraceHelper.createConsumerSpan(dubboApiInfo, context.getRemoteAddress());
             if (span != null) {
                 span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
             }
@@ -87,7 +90,7 @@ public class ApacheDubboFilterAdvice {
 
         Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
-            DubboHelper.fillTransaction(transaction, dubboApiInfo);
+            DubboTraceHelper.fillTransaction(transaction, dubboApiInfo);
         }
     }
 
@@ -105,11 +108,11 @@ public class ApacheDubboFilterAdvice {
             }
             try {
                 if (t != null) {
-                    if (DubboHelper.isBizException(apiClazz, t.getClass())) {
+                    if (DubboTraceHelper.isBizException(apiClazz, t.getClass())) {
                         IgnoreExceptionHelper.addIgnoreException(t);
                     }
                 }
-                String providerServiceName = result.getAttachment(DubboHelper.PROVIDER_SERVICE_NAME_KEY);
+                String providerServiceName = result.getAttachment(DubboTraceHelper.PROVIDER_SERVICE_NAME_KEY);
                 if (providerServiceName != null) {
                     span.getContext().getDestination().getService().withName(providerServiceName);
                 }
@@ -126,14 +129,14 @@ public class ApacheDubboFilterAdvice {
         if (transaction != null) {
             try {
                 String providerServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
-                result.setAttachment(DubboHelper.PROVIDER_SERVICE_NAME_KEY, providerServiceName);
+                result.setAttachment(DubboTraceHelper.PROVIDER_SERVICE_NAME_KEY, providerServiceName);
                 boolean hasError = t != null
-                    && !DubboHelper.isBizException(invocation.getInvoker().getInterface(), t.getClass());
+                    && !DubboTraceHelper.isBizException(invocation.getInvoker().getInterface(), t.getClass());
                 if (hasError) {
                     transaction.captureException(t);
                 }
 
-                DubboHelper.doCapture(invocation.getArguments(), t, result.getValue());
+                DubboTraceHelper.doCapture(invocation.getArguments(), t, result.getValue());
             } finally {
                 transaction.deactivate().end();
             }

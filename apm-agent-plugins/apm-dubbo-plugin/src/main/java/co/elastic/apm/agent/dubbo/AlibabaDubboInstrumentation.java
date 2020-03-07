@@ -24,12 +24,8 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.dubbo.advice.AlibabaDubboFilterAdvice;
-import co.elastic.apm.agent.dubbo.helper.DubboAttachmentHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import com.alibaba.dubbo.rpc.Invocation;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -39,13 +35,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class AlibabaDubboInstrumentation extends AbstractDubboInstrumentation {
 
-    @VisibleForAdvice
-    public static HelperClassManager<DubboAttachmentHelper<Invocation>> alibabaDubboAttachmentHelperClassManager;
-
     public AlibabaDubboInstrumentation(ElasticApmTracer tracer) {
         AlibabaDubboFilterAdvice.init(tracer);
-        alibabaDubboAttachmentHelperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelper");
     }
 
     @Override

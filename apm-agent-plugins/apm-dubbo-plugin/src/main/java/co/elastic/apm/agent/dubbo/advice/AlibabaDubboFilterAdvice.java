@@ -24,11 +24,12 @@
  */
 package co.elastic.apm.agent.dubbo.advice;
 
+import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.DubboApiInfo;
-import co.elastic.apm.agent.dubbo.helper.DubboHelper;
+import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -47,12 +48,14 @@ public class AlibabaDubboFilterAdvice {
     public static ElasticApmTracer tracer;
 
     @VisibleForAdvice
-    public static AlibabaDubboAttachmentHelper helper = new AlibabaDubboAttachmentHelper();
+    public static HelperClassManager<AlibabaDubboAttachmentHelper> helperManager;
 
     public static void init(ElasticApmTracer tracer) {
         AlibabaDubboFilterAdvice.tracer = tracer;
-        DubboHelper.init(tracer);
+        DubboTraceHelper.init(tracer);
         IgnoreExceptionHelper.init(tracer);
+        helperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+            "co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelperImpl");
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -66,12 +69,13 @@ public class AlibabaDubboFilterAdvice {
         DubboApiInfo apiInfo = new DubboApiInfo(
             apiClazz, invocation.getMethodName(),
             invocation.getParameterTypes(), version);
+        AlibabaDubboAttachmentHelper helper = helperManager.getForClassLoaderOfClass(Invocation.class);
         // for consumer side, just create span, more information will be collected in provider side
         if (context.isConsumerSide()) {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
-            span = DubboHelper.createConsumerSpan(apiInfo, context.getRemoteAddress());
+            span = DubboTraceHelper.createConsumerSpan(apiInfo, context.getRemoteAddress());
             if (span != null) {
                 if (helper != null) {
                     span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
@@ -91,7 +95,7 @@ public class AlibabaDubboFilterAdvice {
 
         Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
-            DubboHelper.fillTransaction(transaction, apiInfo);
+            DubboTraceHelper.fillTransaction(transaction, apiInfo);
         }
 
     }
@@ -106,12 +110,12 @@ public class AlibabaDubboFilterAdvice {
         if (context.isConsumerSide()) {
             try {
                 if (t != null) {
-                    if (DubboHelper.isBizException(apiClazz, t.getClass())) {
+                    if (DubboTraceHelper.isBizException(apiClazz, t.getClass())) {
                         IgnoreExceptionHelper.addIgnoreException(t);
                     }
                 }
 
-                String providerServiceName = result.getAttachment(DubboHelper.PROVIDER_SERVICE_NAME_KEY);
+                String providerServiceName = result.getAttachment(DubboTraceHelper.PROVIDER_SERVICE_NAME_KEY);
                 if (providerServiceName == null) {
                     providerServiceName = "[NOT SUPPORT]";
                 }
@@ -130,15 +134,15 @@ public class AlibabaDubboFilterAdvice {
                 String providerServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
                 if (result instanceof RpcResult) {
                     RpcResult rpcResult = (RpcResult) result;
-                    rpcResult.setAttachment(DubboHelper.PROVIDER_SERVICE_NAME_KEY, providerServiceName);
+                    rpcResult.setAttachment(DubboTraceHelper.PROVIDER_SERVICE_NAME_KEY, providerServiceName);
                 }
                 boolean hasError = t != null
-                    && !DubboHelper.isBizException(invocation.getInvoker().getInterface(), t.getClass());
+                    && !DubboTraceHelper.isBizException(invocation.getInvoker().getInterface(), t.getClass());
                 if (hasError) {
                     transaction.captureException(t);
                 }
 
-                DubboHelper.doCapture(invocation.getArguments(), t, result.getValue());
+                DubboTraceHelper.doCapture(invocation.getArguments(), t, result.getValue());
             } finally {
                 transaction.deactivate().end();
             }

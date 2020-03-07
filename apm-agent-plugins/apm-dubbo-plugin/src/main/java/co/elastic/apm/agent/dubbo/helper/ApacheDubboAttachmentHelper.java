@@ -24,17 +24,9 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import org.apache.dubbo.rpc.Invocation;
 
-public class ApacheDubboAttachmentHelper extends DubboAttachmentHelper<Invocation> {
-
-    @Override
-    void doSetHeader(String headerName, String headerValue, Invocation invocation) {
-        invocation.setAttachment(headerName, headerValue);
-    }
-
-    @Override
-    String doGetHeader(String headerName, Invocation invocation) {
-        return invocation.getAttachment(headerName);
-    }
+public interface ApacheDubboAttachmentHelper extends TextHeaderGetter<Invocation>, TextHeaderSetter<Invocation> {
 }

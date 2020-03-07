@@ -38,7 +38,7 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 
 @VisibleForAdvice
-public class DubboHelper {
+public class DubboTraceHelper {
 
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
@@ -50,7 +50,7 @@ public class DubboHelper {
     public static final String PROVIDER_SERVICE_NAME_KEY = "elastic-apm-dubbo-provider";
 
     public static void init(ElasticApmTracer tracer) {
-        DubboHelper.tracer = tracer;
+        DubboTraceHelper.tracer = tracer;
     }
 
     @VisibleForAdvice
@@ -76,7 +76,7 @@ public class DubboHelper {
 
     @VisibleForAdvice
     public static Span createConsumerSpan(DubboApiInfo apiInfo, InetSocketAddress remoteAddress) {
-        TraceContextHolder<?> traceContext = DubboHelper.tracer.getActive();
+        TraceContextHolder<?> traceContext = DubboTraceHelper.tracer.getActive();
         if (traceContext == null) {
             return null;
         }

@@ -24,24 +24,31 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import org.apache.dubbo.rpc.Invocation;
 
 import javax.annotation.Nullable;
 
-public abstract class DubboAttachmentHelper<C> implements TextHeaderSetter<C>, TextHeaderGetter<C> {
+public class ApacheDubboAttachmentHelperImpl implements ApacheDubboAttachmentHelper {
 
-    public static final String SEPARATOR = ",";
+    private static final String SEPARATOR = ",";
+
+    void doSetHeader(String headerName, String headerValue, Invocation invocation) {
+        invocation.setAttachment(headerName, headerValue);
+    }
+
+    String doGetHeader(String headerName, Invocation invocation) {
+        return invocation.getAttachment(headerName);
+    }
 
     @Nullable
     @Override
-    public String getFirstHeader(String headerName, C carrier) {
-        return doGetHeader(headerName, carrier);
+    public String getFirstHeader(String headerName, Invocation invocation) {
+        return doGetHeader(headerName, invocation);
     }
 
     @Override
-    public <S> void forEach(String headerName, C carrier, S state, HeaderConsumer<String, S> consumer) {
-        String headerValueStr = doGetHeader(headerName, carrier);
+    public <S> void forEach(String headerName, Invocation invocation, S state, HeaderConsumer<String, S> consumer) {
+        String headerValueStr = doGetHeader(headerName, invocation);
         if (headerValueStr == null) {
             return;
         }
@@ -52,16 +59,12 @@ public abstract class DubboAttachmentHelper<C> implements TextHeaderSetter<C>, T
     }
 
     @Override
-    public void setHeader(String headerName, String headerValue, C carrier) {
-        String oldHeader = getFirstHeader(headerName, carrier);
+    public void setHeader(String headerName, String headerValue, Invocation invocation) {
+        String oldHeader = getFirstHeader(headerName, invocation);
         String newHeader = headerValue;
         if (oldHeader != null) {
             newHeader = oldHeader + SEPARATOR + headerValue;
         }
-        doSetHeader(headerName, newHeader, carrier);
+        doSetHeader(headerName, newHeader, invocation);
     }
-
-    abstract void doSetHeader(String headerName, String headerValue, C carrier);
-
-    abstract String doGetHeader(String headerName, C carrier);
 }
