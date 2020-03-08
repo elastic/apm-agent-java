@@ -19,7 +19,7 @@ endif::[]
 ////
 
 === Unreleased
-[[release-notes-1.14.0]]
+[[release-notes-1.15.0]]
 ==== 1.15.0 - YYYY/MM/DD
 
 [float]
