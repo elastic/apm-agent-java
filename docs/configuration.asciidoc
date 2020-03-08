@@ -269,8 +269,8 @@ The default unit for this option is `m`.
 ==== `stress_monitor_system_cpu_stress_threshold` (performance)
 
 The threshold used by the system CPU monitor to detect system CPU stress. 
-If the system CPU crosses this threshold at least `stress_monitor_cpu_num_measurements` consecutive 
-measurements, the monitor considers this as a stress state.
+If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+the monitor considers this as a stress state.
 
 
 [options="header"]
@@ -293,7 +293,7 @@ measurements, the monitor considers this as a stress state.
 
 The threshold used by the system CPU monitor to determine that the system is 
 not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
-this threshold at least `stress_monitor_cpu_num_measurements` consecutive times in order for the 
+this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
 monitor to decide that the CPU stress has been relieved.
 
 
@@ -2062,8 +2062,8 @@ The default unit for this option is `ms`.
 # stress_monitor_cpu_duration_threshold=1m
 
 # The threshold used by the system CPU monitor to detect system CPU stress. 
-# If the system CPU crosses this threshold at least `stress_monitor_cpu_num_measurements` consecutive 
-# measurements, the monitor considers this as a stress state.
+# If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+# the monitor considers this as a stress state.
 #
 # This setting can be changed at runtime
 # Type: Double
@@ -2073,7 +2073,7 @@ The default unit for this option is `ms`.
 
 # The threshold used by the system CPU monitor to determine that the system is 
 # not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
-# this threshold at least `stress_monitor_cpu_num_measurements` consecutive times in order for the 
+# this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
 # monitor to decide that the CPU stress has been relieved.
 #
 # This setting can be changed at runtime
