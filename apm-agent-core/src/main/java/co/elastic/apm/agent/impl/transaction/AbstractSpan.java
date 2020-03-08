@@ -169,12 +169,15 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     /**
      * Resets and returns the name {@link StringBuilder} if one of the following applies:
-     *  1.  the provided priority is {@code >} {@link #namePriority}
-     *  2.  the provided priority is {@code ==} {@link #namePriority} AND `overrideIfSamePriority` is `true`
+     * <ul>
+     *      <li>the provided priority is {@code >} {@link #namePriority}</li>
+     *      <li>the provided priority is {@code ==} {@link #namePriority} AND {@code overrideIfSamePriority} is {@code true}</li>
+     * </ul>
      * Otherwise, returns {@code null}
      *
-     * @param namePriority the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
-     * @return the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority}, {@code null} otherwise.
+     * @param namePriority           the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
+     * @param overrideIfSamePriority specifies whether the existing name should be overridden if {@code namePriority} equals the priority used to set the current name
+     * @return the name {@link StringBuilder} if the provided priority is sufficient for overriding, {@code null} otherwise.
      */
     @Nullable
     public StringBuilder getAndOverrideName(int namePriority, boolean overrideIfSamePriority) {
