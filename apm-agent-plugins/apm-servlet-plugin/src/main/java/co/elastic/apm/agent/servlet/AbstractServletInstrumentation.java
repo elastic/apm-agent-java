@@ -36,7 +36,7 @@ import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 
 public abstract class AbstractServletInstrumentation extends ElasticApmInstrumentation {
 
-    AbstractServletInstrumentation(ElasticApmTracer tracer){
+    protected AbstractServletInstrumentation(ElasticApmTracer tracer){
         ServletApiAdvice.init(tracer);
     }
 
