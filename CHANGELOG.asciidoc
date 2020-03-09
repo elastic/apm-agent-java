@@ -28,9 +28,13 @@ endif::[]
 
 [float]
 ===== Features
+* Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
+
+* Add support for <<supported-databases, Redis Redisson client>>
 
 [float]
 ===== Bug fixes
+* When JAX-RS-annotated method delegates to another JAX-RS-annotated method, transaction name should include method A - {pull}1062[#1062]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
