@@ -63,7 +63,7 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
     public static HelperClassManager<ServletTransactionCreationHelper<HttpServletRequest>> servletTransactionCreationHelperManager;
 
     public ServletInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
+        ServletApiAdvice.init(tracer);
         // adding a null-check before setting helper manager reference breaks test execution, which prevents having
         // the same code construct we have for other HelperClassManager usages.
         //

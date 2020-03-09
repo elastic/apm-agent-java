@@ -43,7 +43,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class FilterChainInstrumentation extends AbstractServletInstrumentation {
 
     public FilterChainInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
+        ServletApiAdvice.init(tracer);
     }
 
     @Override

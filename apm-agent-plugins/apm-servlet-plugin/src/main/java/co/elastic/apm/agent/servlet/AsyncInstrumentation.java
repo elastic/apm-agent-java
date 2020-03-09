@@ -70,7 +70,6 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
     public static HelperClassManager<AsyncContextAdviceHelper<AsyncContext>> asyncHelperManager;
 
     public AsyncInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
         synchronized (AsyncInstrumentation.class) {
             // adding a null-check before setting helper manager reference breaks test execution, which prevents having
             // the same code construct we have for other HelperClassManager usages.
