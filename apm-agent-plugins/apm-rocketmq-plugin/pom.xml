@@ -16,6 +16,7 @@
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
         <rocketmq.client.version>4.2.0</rocketmq.client.version>
+        <version.testcontainers>1.12.4</version.testcontainers>
     </properties>
 
     <dependencies>
@@ -30,6 +31,13 @@
             <artifactId>rocketmq-client</artifactId>
             <version>${rocketmq.client.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${version.testcontainers}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
