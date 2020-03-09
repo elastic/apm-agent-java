@@ -56,7 +56,6 @@ public abstract class AbstractDubboInstrumentationTest {
 
     private DubboTestApi dubboTestApi;
 
-    private static final String DUBBO_SERVICE_NAME = "dubbo-service-name";
 
     private static CoreConfiguration coreConfig;
 
@@ -68,7 +67,6 @@ public abstract class AbstractDubboInstrumentationTest {
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         coreConfig = tracer.getConfig(CoreConfiguration.class);
-        when(coreConfig.getServiceName()).thenReturn(DUBBO_SERVICE_NAME);
     }
 
     @BeforeEach
@@ -233,6 +231,15 @@ public abstract class AbstractDubboInstrumentationTest {
         throw new RuntimeException("not ok");
     }
 
+    @Test
+    public void testTimeout() {
+        try {
+            dubboTestApi.timeout("hello");
+        } catch (Exception e) {
+
+        }
+    }
+
     private void noCaptureBody(Transaction transaction) {
         assertThat(transaction.getContext().hasCustom()).isFalse();
     }
@@ -299,7 +306,7 @@ public abstract class AbstractDubboInstrumentationTest {
         Destination.Service service = destination.getService();
         assertThat(service.getType()).isEqualTo("external");
         assertThat(service.getResource().toString()).isEqualTo("dubbo");
-        assertThat(service.getName().toString()).isEqualTo(DUBBO_SERVICE_NAME);
+        assertThat(service.getName().toString()).isEqualTo("dubbo");
     }
 
     abstract int getPort();

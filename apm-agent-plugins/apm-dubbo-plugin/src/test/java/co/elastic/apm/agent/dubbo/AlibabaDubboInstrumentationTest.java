@@ -65,6 +65,7 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         referenceConfig.setApplication(consumerApp);
         referenceConfig.setInterface(DubboTestApi.class);
         referenceConfig.setUrl("dubbo://localhost:" + getPort());
+        referenceConfig.setTimeout(1000);
 
         return referenceConfig.get();
     }

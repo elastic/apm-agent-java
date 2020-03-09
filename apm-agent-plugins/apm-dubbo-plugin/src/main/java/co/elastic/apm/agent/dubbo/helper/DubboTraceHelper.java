@@ -92,7 +92,7 @@ public class DubboTraceHelper {
         destination.withAddress(remoteAddress.getHostName()).withPort(remoteAddress.getPort());
 
         Destination.Service service = destination.getService();
-        service.withType(EXTERNAL_TYPE).withResource(DUBBO_SUBTYPE);
+        service.withType(EXTERNAL_TYPE).withResource(DUBBO_SUBTYPE).withName(DUBBO_SUBTYPE);
 
         return span.activate();
     }

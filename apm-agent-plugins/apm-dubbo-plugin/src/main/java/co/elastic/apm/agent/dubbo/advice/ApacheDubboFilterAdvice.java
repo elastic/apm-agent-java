@@ -26,7 +26,6 @@ package co.elastic.apm.agent.dubbo.advice;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.DubboApiInfo;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
@@ -98,25 +97,21 @@ public class ApacheDubboFilterAdvice {
     public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                           @Advice.Return Result result,
                                           @Advice.Local("span") Span span,
-                                          @Advice.Local("apiClazz") Class<?> apiClazz) {
+                                          @Advice.Local("apiClazz") Class<?> apiClazz,
+                                          @Advice.Thrown Throwable t) {
 
-        Throwable t = result.getException();
+        Throwable actualExp = t != null ? t : result.getException();
         RpcContext context = RpcContext.getContext();
         if (context.isConsumerSide()) {
             if (span == null) {
                 return;
             }
             try {
-                if (t != null) {
-                    if (DubboTraceHelper.isBizException(apiClazz, t.getClass())) {
-                        IgnoreExceptionHelper.addIgnoreException(t);
+                if (actualExp != null) {
+                    if (DubboTraceHelper.isBizException(apiClazz, actualExp.getClass())) {
+                        IgnoreExceptionHelper.addIgnoreException(actualExp);
                     }
                 }
-                String providerServiceName = result.getAttachment(DubboTraceHelper.PROVIDER_SERVICE_NAME_KEY);
-                if (providerServiceName != null) {
-                    span.getContext().getDestination().getService().withName(providerServiceName);
-                }
-
                 //for consumer side, no need to capture exception, let upper application handle it or capture it
             } finally {
                 span.deactivate().end();
@@ -128,15 +123,13 @@ public class ApacheDubboFilterAdvice {
         Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
             try {
-                String providerServiceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
-                result.setAttachment(DubboTraceHelper.PROVIDER_SERVICE_NAME_KEY, providerServiceName);
-                boolean hasError = t != null
-                    && !DubboTraceHelper.isBizException(invocation.getInvoker().getInterface(), t.getClass());
+                boolean hasError = actualExp != null
+                    && !DubboTraceHelper.isBizException(invocation.getInvoker().getInterface(), actualExp.getClass());
                 if (hasError) {
-                    transaction.captureException(t);
+                    transaction.captureException(actualExp);
                 }
-
-                DubboTraceHelper.doCapture(invocation.getArguments(), t, result.getValue());
+                Object ret = result != null ? result.getValue() : null;
+                DubboTraceHelper.doCapture(invocation.getArguments(), actualExp, ret);
             } finally {
                 transaction.deactivate().end();
             }

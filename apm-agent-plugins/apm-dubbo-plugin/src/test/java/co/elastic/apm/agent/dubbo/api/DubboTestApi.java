@@ -32,4 +32,5 @@ public interface DubboTestApi {
 
     String throwUnexpectedException(String arg1);
 
+    String timeout(String arg);
 }
