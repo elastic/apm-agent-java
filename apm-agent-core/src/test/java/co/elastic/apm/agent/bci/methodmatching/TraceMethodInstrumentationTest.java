@@ -116,6 +116,7 @@ class TraceMethodInstrumentationTest {
         TestClass.traceMe();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
+        // if original configuration was used, a span would have been created - see `testTraceMethod`
         assertThat(reporter.getSpans()).hasSize(0);
     }
 

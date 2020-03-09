@@ -67,8 +67,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A boolean specifying if the agent should instrument the application to collect performance metrics for the app. " +
             "When set to false, Elastic APM will not affect your application at all.\n" +
             "\n" +
-            "NOTE: Both active and instrument needs to be true for instrumentation to be running.")
+            "NOTE: Both active and instrument needs to be true for instrumentation to be running.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
+        .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
@@ -216,8 +219,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out incubating features, set the value to an empty string.")
+            "If you want to try out incubating features, set the value to an empty string.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
+        .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
         .buildWithDefault(Collections.<String>singleton("incubating"));
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
@@ -416,8 +422,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
             "----\n" +
-            "NOTE: This method is only available in the Elastic APM Java Agent.")
+            "NOTE: This method is only available in the Elastic APM Java Agent.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
+        .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")

@@ -132,7 +132,7 @@ public class ElasticApmAgent {
         return instrumentations;
     }
 
-    public static void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
+    public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                            Iterable<ElasticApmInstrumentation> instrumentations) {
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -152,7 +152,7 @@ public class ElasticApmAgent {
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
-        for (ConfigurationOption instrumentationOption : coreConfig.getInstrumentationOptions()) {
+        for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
             instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
                 @Override
                 public void onChange(ConfigurationOption configurationOption, Object oldValue, Object newValue) {
@@ -163,7 +163,7 @@ public class ElasticApmAgent {
     }
 
     public static synchronized Future<?> reInitInstrumentation() {
-        ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
+        final ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
         if (tracer == null || instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }
@@ -183,8 +183,7 @@ public class ElasticApmAgent {
     static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations) {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.info("Re initializing instrumentation");
-        // HYBRID to speed up the matchers, assuming dependant classes have already loaded so we don't interfere with the ordering of initialization
-        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID);
+        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY);
 
         resettableClassFileTransformer = agentBuilder.patchOnByteBuddyAgent(resettableClassFileTransformer);
     }
