@@ -20,7 +20,6 @@
         <module>spring-boot-2</module>
         <module>soap-test</module>
         <module>cdi-app</module>
-        <module>logging-integration-tests</module>
     </modules>
 
     <properties>
