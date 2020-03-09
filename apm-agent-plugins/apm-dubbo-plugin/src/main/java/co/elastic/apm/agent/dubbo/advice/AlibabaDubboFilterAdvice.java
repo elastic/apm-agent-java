@@ -108,6 +108,9 @@ public class AlibabaDubboFilterAdvice {
         Throwable actualExp = t != null? t : result.getException();
         RpcContext context = RpcContext.getContext();
         if (context.isConsumerSide()) {
+            if (span == null) {
+                return;
+            }
             try {
                 if (actualExp != null) {
                     if (DubboTraceHelper.isBizException(apiClazz, actualExp.getClass())) {
