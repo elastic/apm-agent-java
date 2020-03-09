@@ -37,6 +37,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * When JAX-RS-annotated method delegates to another JAX-RS-annotated method, transaction name should include method A - {pull}1062[#1062]
+* Fixed bug that prevented an APM Error from being created when calling `org.slf4j.Logger#error` - {pull}1049[#1049]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
