@@ -51,6 +51,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
@@ -532,6 +533,8 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeField("duration", span.getDurationMs());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
+        } else if (span.getStackFrames() != null) {
+            serializeStackTrace(span.getStackFrames());
         }
         serializeSpanContext(span.getContext(), span.getTraceContext());
         serializeSpanType(span);
@@ -661,6 +664,35 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             }
         }
         return true;
+    }
+
+    private void serializeStackTrace(List<StackFrame> stackTrace) {
+        if (stackTrace.isEmpty()) {
+            return;
+        }
+        writeFieldName("stacktrace");
+        jw.writeByte(ARRAY_START);
+        StringBuilder replaceBuilder = this.replaceBuilder;
+        for (int i = 0, size = stackTrace.size(); i < size; i++) {
+            if (i != 0) {
+                jw.writeByte(COMMA);
+            }
+            serializeStackTraceElement(stackTrace.get(i), replaceBuilder);
+        }
+        jw.writeByte(ARRAY_END);
+        jw.writeByte(COMMA);
+    }
+
+    private void serializeStackTraceElement(StackFrame frame, StringBuilder replaceBuilder) {
+        jw.writeByte(OBJECT_START);
+
+        replaceBuilder.setLength(0);
+        frame.appendFileName(replaceBuilder);
+        writeField("filename", replaceBuilder);
+        writeField("function", frame.getMethodName());
+        writeField("library_frame", isLibraryFrame(frame.getClassName()));
+        writeLastField("lineno", -1);
+        jw.writeByte(OBJECT_END);
     }
 
     private void serializeSpanContext(SpanContext context, TraceContext traceContext) {

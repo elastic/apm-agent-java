@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -53,27 +53,13 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACE
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
-    public static final String ACTIVE = "active";
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
-    private static final String CORE_CATEGORY = "Core";
+    public static final String CORE_CATEGORY = "Core";
     private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
-
-    private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
-        .key(ACTIVE)
-        .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should be active or not.\n" +
-            "When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
-            "When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.\n" +
-            "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
-            "mostly idle in this state, so the overhead should be negligible.\n" +
-            "\n" +
-            "You can use this setting to dynamically disable Elastic APM at runtime.")
-        .dynamic(true)
-        .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
         .key(INSTRUMENT)
@@ -374,16 +360,29 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for which to create a transaction or span.\n" +
             "\n" +
-            "The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
-            "You can use wildcards for the class name, the annotation name, the method name and the parameter types.\n" +
-            "The `*` wildcard matches zero or more characters.\n" +
-            "That means that a wildcard in a package name also matches sub-packages\n" +
-            "Specifying an annotation is optional.\n" +
-            "When matching for annotations, only classes that are annotated with the specified annotation are considered.\n" +
-            "You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes " +
-            "that are annotated with an annotation that is itself annotated with the given meta-annotation.\n" +
-            "Specifying the parameter types is optional.\n" +
-            "The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.\n" +
+            "If you want to monitor a large number of methods,\n" +
+            "use  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.\n" +
+            "\n" +
+            "This works by instrumenting each matching method to include code that creates a span for the method.\n" +
+            "While creating a span is quite cheap in terms of performance,\n" +
+            "instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.\n" +
+            "\n" +
+            "Using a pointcut-like syntax, you can match based on\n" +
+            "\n" +
+            " - Method modifier (optional) +\n" +
+            "   Example: `public`, `protected`, `private` or `*`\n" +
+            " - Package and class name (wildcards include sub-packages) +\n" +
+            "   Example: `org.example.*`\n" +
+            " - Method name (optional since 1.4.0) +\n" +
+            "   Example: `myMeth*d`\n" +
+            " - Method argument types (optional) +\n" +
+            "   Example: `(*lang.String, int[])`\n" +
+            " - Classes with a specific annotation (optional) +\n" +
+            "   Example: `@*ApplicationScoped`\n" +
+            " - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +\n" +
+            "   Example: `@@javax.enterpr*se.context.NormalScope`\n" +
+            "\n" +
+            "The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.\n" +
             "\n" +
             "A few examples:\n" +
             "\n" +
@@ -432,9 +431,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - A \"forcibly-traced method\" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.\n" +
             "Set to 0 to disable.\n" +
             "\n" +
-            "NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.\n" +
-            "In order not to break span references, all spans leading to an async operations are never discarded, regardless \n" +
-            "of their duration.\n")
+            "NOTE: Transactions are never discarded, regardless of their duration.\n" +
+            "This configuration affects only spans.\n" +
+            "In order not to break span references,\n" +
+            "all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,\n" +
+            "regardless of their duration.\n")
         .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
@@ -485,9 +486,31 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 
-    public boolean isActive() {
-        return active.get();
-    }
+    private final ConfigurationOption<Boolean> useElasticTraceparentHeader = ConfigurationOption.booleanOption()
+        .key("use_elastic_traceparent_header")
+        .tags("added[1.14.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent\n" +
+            "adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).\n" +
+            "These headers (`traceparent` and `tracestate`) are defined in the\n" +
+            "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
+            "\n" +
+            "When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`\n" +
+            "for backwards compatibility with older versions of Elastic APM agents.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Integer> tracestateHeaderSizeLimit = ConfigurationOption.integerOption()
+        .key("tracestate_header_size_limit")
+        .tags("added[1.14.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("The agent delegates the `tracestate` header, if received, as defined in the\n" +
+            "https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.\n" +
+            "\n" +
+            "This setting limits the size of the `tracestate` header.")
+        .dynamic(true)
+        .tags("internal")
+        .buildWithDefault(4096);
 
     public boolean isInstrument() {
         return instrument.get();
@@ -603,6 +626,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isBreakdownMetricsEnabled() {
         return breakdownMetrics.get();
+    }
+
+    public boolean isElasticTraceparentHeaderEnabled() {
+        return useElasticTraceparentHeader.get();
+    }
+
+    public int getTracestateSizeLimit() {
+        return tracestateHeaderSizeLimit.get();
     }
 
     /*

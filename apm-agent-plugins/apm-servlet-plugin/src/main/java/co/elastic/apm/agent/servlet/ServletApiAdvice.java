@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 
@@ -49,8 +48,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
 /**
  * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
@@ -63,9 +62,11 @@ public class ServletApiAdvice {
     @Nullable
     @VisibleForAdvice
     public static ServletTransactionHelper servletTransactionHelper;
+
     @Nullable
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
+
     @VisibleForAdvice
     public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
         @Override
@@ -82,7 +83,6 @@ public class ServletApiAdvice {
         servletTransactionHelper = new ServletTransactionHelper(tracer);
     }
 
-    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                              @Advice.Local("transaction") Transaction transaction,
@@ -95,7 +95,8 @@ public class ServletApiAdvice {
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             scope = transactionAttr.activateInScope();
         }
-        if (servletTransactionHelper != null &&
+        if (tracer.isRunning() &&
+            servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(excluded.get())) {
@@ -107,11 +108,14 @@ public class ServletApiAdvice {
             }
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            transaction = servletTransactionHelper.onBefore(
-                request.getServletContext().getClassLoader(),
-                request.getServletPath(), request.getPathInfo(),
-                request.getHeader("User-Agent"),
-                request.getHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME));
+            if (ServletInstrumentation.servletTransactionCreationHelperManager != null) {
+                ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> helper =
+                    ServletInstrumentation.servletTransactionCreationHelperManager.getForClassLoaderOfClass(HttpServletRequest.class);
+                if (helper != null) {
+                    transaction = helper.createAndActivateTransaction(request);
+                }
+            }
+
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 excluded.set(Boolean.TRUE);
@@ -124,10 +128,10 @@ public class ServletApiAdvice {
                         req.addCookie(cookie.getName(), cookie.getValue());
                     }
                 }
-                final Enumeration headerNames = request.getHeaderNames();
+                final Enumeration<String> headerNames = request.getHeaderNames();
                 if (headerNames != null) {
                     while (headerNames.hasMoreElements()) {
-                        final String headerName = (String) headerNames.nextElement();
+                        final String headerName = headerNames.nextElement();
                         req.addHeader(headerName, request.getHeaders(headerName));
                     }
                 }

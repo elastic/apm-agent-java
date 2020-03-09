@@ -34,7 +34,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -70,12 +69,12 @@ public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecor
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void wrapRecordList(@Nullable @Advice.Return(readOnly = false) List<ConsumerRecord> list) {
-            if (tracer == null || tracer.currentTransaction() != null) {
+            if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {
                 return;
             }
 
             //noinspection ConstantConditions,rawtypes
-            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header> kafkaInstrumentationHelper =
+            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (list != null && kafkaInstrumentationHelper != null) {
                 list = kafkaInstrumentationHelper.wrapConsumerRecordList(list);

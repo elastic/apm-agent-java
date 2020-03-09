@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,7 +30,6 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.An
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -74,14 +73,16 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
         if (tracer != null) {
             final Object active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
-                if (transactionName.isEmpty()) {
-                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                } else {
-                    transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    if (transactionName.isEmpty()) {
+                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                    } else {
+                        transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                    }
+                    transaction.withType(type)
+                        .activate();
                 }
-                transaction.withType(type)
-                    .activate();
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }

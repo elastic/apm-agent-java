@@ -33,7 +33,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
 
@@ -68,12 +67,12 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void wrapIterable(@Nullable @Advice.Return(readOnly = false) Iterable<ConsumerRecord> iterable) {
-            if (tracer == null || tracer.currentTransaction() != null) {
+            if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {
                 return;
             }
 
             //noinspection ConstantConditions,rawtypes
-            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header> kafkaInstrumentationHelper =
+            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (iterable != null && kafkaInstrumentationHelper != null) {
                 iterable = kafkaInstrumentationHelper.wrapConsumerRecordIterable(iterable);

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -225,6 +225,16 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     @Override
     public String getName() {
         return "APM Server";
+    }
+
+    @Override
+    public void pause() {
+        // Keep polling for remote config changes, in case the user wants to resume a paused agent or change the stress
+        // monitoring configurations.
+    }
+
+    @Override
+    public void resume() {
     }
 
     @Override

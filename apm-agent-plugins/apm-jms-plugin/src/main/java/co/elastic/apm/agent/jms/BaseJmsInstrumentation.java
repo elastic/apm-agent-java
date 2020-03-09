@@ -58,7 +58,8 @@ public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
         if (jmsInstrHelperManager == null) {
             jmsInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
                 "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl",
-                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapper");
+                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapper",
+                "co.elastic.apm.agent.jms.JmsMessagePropertyAccessor");
         }
 
         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);

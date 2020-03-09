@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumentation {
 
-    @SuppressWarnings({"WeakerAccess", "AnonymousHasLambdaAlternative"})
+    @SuppressWarnings({"WeakerAccess"})
     @VisibleForAdvice
     public static final ThreadLocal<Boolean> nestedThreadLocal = new ThreadLocal<Boolean>() {
         @Override

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -98,7 +98,21 @@ public class Transaction extends AbstractSpan<Transaction> {
     public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
                                  Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
         traceContext.setApplicationClassLoader(initiatingClassLoader);
-        if (parent == null || !childContextCreator.asChildOf(traceContext, parent)) {
+        boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
+        onTransactionStart(startedAsChild, epochMicros, sampler);
+        return this;
+    }
+
+    public <T, A> Transaction start(TraceContext.ChildContextCreatorTwoArg<T, A> childContextCreator, @Nullable T parent, A arg,
+                                    long epochMicros, Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
+        traceContext.setApplicationClassLoader(initiatingClassLoader);
+        boolean startedAsChild = childContextCreator.asChildOf(traceContext, parent, arg);
+        onTransactionStart(startedAsChild, epochMicros, sampler);
+        return this;
+    }
+
+    private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
+        if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
         if (epochMicros >= 0) {
@@ -107,7 +121,6 @@ public class Transaction extends AbstractSpan<Transaction> {
             setStartTimestamp(traceContext.getClock().getEpochMicros());
         }
         onAfterStart();
-        return this;
     }
 
     public Transaction startNoop() {

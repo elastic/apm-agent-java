@@ -38,7 +38,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -101,7 +100,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
             return null;
         }
 
-        @Nonnull
+        @Nullable
         private static AbstractSpan<?> createTransaction(Map<String, Object> tags, String operationName, long microseconds,
                                                          @Nullable Iterable<Map.Entry<String, String>> baggage, ElasticApmTracer tracer, ClassLoader classLoader) {
             if ("client".equals(tags.get("span.kind"))) {
@@ -116,21 +115,8 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startTransaction(TraceContext.fromTraceparentHeader(), getTraceContextHeader(baggage), sampler, microseconds, classLoader);
+                return tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
             }
-        }
-
-        @Nullable
-        @VisibleForAdvice
-        static String getTraceContextHeader(@Nullable Iterable<Map.Entry<String, String>> baggage) {
-            if (baggage != null) {
-                for (Map.Entry<String, String> entry : baggage) {
-                    if (entry.getKey().equalsIgnoreCase(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
-                        return entry.getValue();
-                    }
-                }
-            }
-            return null;
         }
     }
 

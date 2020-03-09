@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -72,8 +72,22 @@ public class AgentMain {
             // for example, Spring Boot restarts the application in dev mode
             return;
         }
+
+        String javaVersion = System.getProperty("java.version");
+        String javaVmName = System.getProperty("java.vm.name");
+        if (!isJavaVersionSupported(javaVersion, javaVmName)) {
+            // Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
+            // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
+            // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
+            // for JVM internals, there is no other option but to use an up-to-date JVM instead.
+            System.err.println(String.format("Failed to start agent - JVM version not supported: %s", javaVersion));
+            return;
+        }
+
         try {
+            // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
             FileSystems.getDefault();
+
             final File agentJarFile = getAgentJarFile();
             try (JarFile jarFile = new JarFile(agentJarFile)) {
                 instrumentation.appendToBootstrapClassLoaderSearch(jarFile);
@@ -87,6 +101,58 @@ public class AgentMain {
         } catch (Exception e) {
             System.err.println("Failed to start agent");
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Checks if a given version of the JVM is likely supported by this agent.
+     * <br/>
+     * Supports values provided before and after https://openjdk.java.net/jeps/223, in case parsing fails due to an
+     * unknown version format, we assume it's supported, thus this method might return false positives, but never false
+     * negatives.
+     *
+     * @param version jvm version, from {@code System.getProperty("java.version")}
+     * @param vmName  jvm name, from {@code System.getProperty("java.vm.name")}
+     * @return true if the version is supported, false otherwise
+     */
+    // package-protected for testing
+    static boolean isJavaVersionSupported(String version, String vmName) {
+        boolean postJsr223 = !version.startsWith("1.");
+        // new scheme introduced in java 9, thus we can use it as a shortcut
+        if (postJsr223) {
+            return true;
+        }
+
+        char major = version.charAt(2);
+        if (major < '7') {
+            // given code is compiled with java 7, this one is unlikely in practice
+            return false;
+        } else if (major == '7' || major > '8') {
+            return true;
+        } else if (!vmName.contains("HotSpot(TM)")) {
+            // non-hotspot JVMs are not concerned (yet)
+            return true;
+        } else {
+            // HotSpot 8
+            int updateIndex = version.lastIndexOf("_");
+            if (updateIndex <= 0) {
+                // GA release '1.8.0'
+                return false;
+            } else {
+                int versionSuffixIndex = version.indexOf('-', updateIndex + 1);
+                String updateVersion;
+                if (versionSuffixIndex <= 0) {
+                    updateVersion = version.substring(updateIndex + 1);
+                } else {
+                    updateVersion = version.substring(updateIndex + 1, versionSuffixIndex);
+                }
+                try {
+                    return Integer.parseInt(updateVersion) >= 40;
+                } catch (NumberFormatException e) {
+                    // in case of unknown format, we just support by default
+                    return true;
+                }
+            }
         }
     }
 

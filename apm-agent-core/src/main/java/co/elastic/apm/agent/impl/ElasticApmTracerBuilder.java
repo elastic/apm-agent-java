@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,6 +30,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -138,13 +139,13 @@ public class ElasticApmTracerBuilder {
         }
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
-        tracer.registerLifecycleListeners(lifecycleListeners);
-        tracer.registerLifecycleListeners(extraLifecycleListeners);
+        lifecycleListeners.addAll(extraLifecycleListeners);
+        tracer.start(lifecycleListeners);
         return tracer;
     }
 
     private LifecycleListener scheduleReloadAtRate(final ConfigurationRegistry configurationRegistry, final int rate, TimeUnit seconds) {
-        final ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDeamonPool("configuration-reloader", 1);
+        final ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDeamonPool("configuration-reloader");
         configurationReloader.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -153,7 +154,7 @@ public class ElasticApmTracerBuilder {
                 logger.debug("Finished scheduled configuration reload");
             }
         }, rate, rate, seconds);
-        return LifecycleListener.ClosableAdapter.of(new Closeable() {
+        return ClosableLifecycleListenerAdapter.of(new Closeable() {
             @Override
             public void close() {
                 configurationReloader.shutdown();
@@ -173,7 +174,7 @@ public class ElasticApmTracerBuilder {
             logger.warn(e.getMessage());
             return ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource("Noop Configuration")
-                    .add(CoreConfiguration.ACTIVE, "false")
+                    .add(TracerConfiguration.ACTIVE, "false")
                     .add(CoreConfiguration.INSTRUMENT, "false")
                     .add(CoreConfiguration.SERVICE_NAME, "none")
                     .add(CoreConfiguration.SAMPLE_RATE, "0"))

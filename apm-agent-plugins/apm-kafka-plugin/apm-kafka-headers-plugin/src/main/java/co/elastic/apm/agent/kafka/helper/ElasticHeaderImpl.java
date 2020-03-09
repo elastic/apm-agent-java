@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,18 +36,19 @@ import javax.annotation.Nullable;
  * it. If that's not the case, distributed tracing through Kafka may be impaired, therefore a warning is logged and
  * the returned value is null.
  */
-public class ElasticHeaderImpl implements Header {
+class ElasticHeaderImpl implements Header {
 
     public static final Logger logger = LoggerFactory.getLogger(ElasticHeaderImpl.class);
 
     private final String key;
-    private final byte[] value;
+    @Nullable
+    byte[] value;
 
     private long settingThreadId;
 
-    public ElasticHeaderImpl(String key) {
+    public ElasticHeaderImpl(String key, int headerLength) {
         this.key = key;
-        value = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH];
+        value = new byte[headerLength];
     }
 
     @Override
@@ -61,6 +61,7 @@ public class ElasticHeaderImpl implements Header {
      *
      * @return the byte array representing the value
      */
+    @Nullable
     public byte[] valueForSetting() {
         settingThreadId = Thread.currentThread().getId();
         return value;
@@ -74,9 +75,12 @@ public class ElasticHeaderImpl implements Header {
     @Override
     @Nullable
     public byte[] value() {
-        if (Thread.currentThread().getId() != settingThreadId) {
-            logger.warn("The assumption of same thread setting and serializing the header is invalid. Distributed tracing will not work");
-            return null;
+        if (Thread.currentThread().getId() != settingThreadId && value != null) {
+            // Our assumption that the same thread setting the value is the one serializing the header is invalid.
+            // We log this once and set the value of this header to null. Distributed tracing will still work but will
+            // allocate a byte array for every record
+            logger.warn("The assumption of same thread setting and serializing the header is invalid.");
+            value = null;
         }
         return value;
     }

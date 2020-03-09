@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,12 +25,17 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -55,8 +60,22 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
 
+    @Nullable
+    @VisibleForAdvice
+    // referring to HttpServletRequest is legal because of type erasure
+    public static HelperClassManager<ServletTransactionCreationHelper<HttpServletRequest>> servletTransactionCreationHelperManager;
+
     public ServletInstrumentation(ElasticApmTracer tracer) {
         ServletApiAdvice.init(tracer);
+        // adding a null-check before setting helper manager reference breaks test execution, which prevents having
+        // the same code construct we have for other HelperClassManager usages.
+        //
+        // This should probably be changed when upgrading this plugin to use HelperClassManager for all helper
+        // classes.
+        servletTransactionCreationHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
+            "co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelperImpl",
+            "co.elastic.apm.agent.servlet.helper.ServletRequestHeaderGetter"
+        );
     }
 
     @Override
@@ -87,4 +106,9 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
         return Collections.singleton(SERVLET_API);
     }
 
+    @VisibleForAdvice
+    public interface ServletTransactionCreationHelper<R> {
+        @Nullable
+        Transaction createAndActivateTransaction(R request);
+    }
 }

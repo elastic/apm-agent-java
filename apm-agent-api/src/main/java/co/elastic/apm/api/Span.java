@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -58,7 +58,7 @@ public interface Span {
     /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
      * Instead, setting the span type can be done when starting a new span through {@link #startSpan(String, String, String)}.
-     * 
+     *
      * @param type the type of the span
      */
     @Nonnull
@@ -280,8 +280,9 @@ public interface Span {
      * Captures an exception and reports it to the APM server.
      *
      * @param throwable the exception to report
+     * @return the id of reported error
      */
-    void captureException(Throwable throwable);
+    String captureException(Throwable throwable);
 
     /**
      * Returns the id of this span (never {@code null})

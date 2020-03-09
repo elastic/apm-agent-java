@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -57,6 +58,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -183,16 +185,11 @@ public class MockReporter implements Reporter {
         return transactions.iterator().next();
     }
 
-    public Transaction getFirstTransaction(long timeoutMs) throws InterruptedException {
-        final long end = System.currentTimeMillis() + timeoutMs;
-        do {
-            synchronized (this) {
-                if (!transactions.isEmpty()) {
-                    return getFirstTransaction();
-                }
-            }
-            Thread.sleep(1);
-        } while (System.currentTimeMillis() < end);
+    public Transaction getFirstTransaction(long timeoutMs) {
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
 
@@ -219,7 +216,7 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs) {
+    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
         // noop
     }
 

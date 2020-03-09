@@ -27,10 +27,13 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.squareup.okhttp.HttpUrl;
+import com.squareup.okhttp.Request;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -44,7 +47,11 @@ import java.util.Collection;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
+public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumentation {
+
+    public OkHttpClientInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public Class<?> getAdviceClass() {
@@ -74,8 +81,14 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
                     OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
                 if (span != null) {
                     span.activate();
-                    originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME,
-                        span.getTraceContext().getOutgoingTraceParentTextHeader().toString()).build();
+                    if (headerSetterHelperManager != null) {
+                        TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
+                        if (headerSetter != null) {
+                            Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
+                            span.getTraceContext().setOutgoingTraceContextHeaders(builder, headerSetter);
+                            originalRequest = builder.build();
+                        }
+                    }
                 }
             }
         }
@@ -107,11 +120,4 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("execute").and(returns(named("com.squareup.okhttp.Response")));
     }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "okhttp");
-    }
-
-
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -61,8 +61,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -139,8 +141,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_METRICS_INTERVAL", "1s")
             .withEnv("ELASTIC_APM_CAPTURE_JMX_METRICS", "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=test_heap_metric]")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
+            .withEnv("ELASTIC_APM_CIRCUIT_BREAKER_ENABLED", "true")
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
+            .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -345,7 +349,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .describedAs("at least one span is expected")
             .isNotEmpty();
         for (JsonNode span : reportedSpans) {
-            assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
+            assertThat(span.get("transaction_id").textValue())
+                .describedAs("Unexpected transaction id for span %s", span)
+                .isEqualTo(transactionId);
         }
         return reportedSpans;
     }
@@ -407,9 +413,18 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public List<JsonNode> getReportedSpans() {
-        final List<JsonNode> transactions = getEvents("span");
-        transactions.forEach(mockReporter::verifySpanSchema);
-        return transactions;
+        List<JsonNode> spans = getEvents("span").stream()
+            .filter(s -> !isInferredSpan(s))
+            .collect(Collectors.toList());
+        spans.forEach(mockReporter::verifySpanSchema);
+        return spans;
+    }
+
+    private boolean isInferredSpan(JsonNode s) {
+        return Optional.ofNullable(s.get("type"))
+            .map(JsonNode::textValue)
+            .filter(type -> type.endsWith("inferred"))
+            .isPresent();
     }
 
     public List<JsonNode> getReportedErrors() {
@@ -424,10 +439,14 @@ public abstract class AbstractServletContainerIntegrationTest {
             final ObjectMapper objectMapper = new ObjectMapper();
             for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))) {
                 final String bodyAsString = httpRequest.getBodyAsString();
-                validateEventMetadata(bodyAsString);
                 for (String ndJsonLine : bodyAsString.split("\n")) {
                     final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
                     if (ndJson.get(eventType) != null) {
+                        // as inferred spans are created only after the profiling session ends
+                        // they can leak into another test
+                        if (!isInferredSpan(ndJson.get(eventType))) {
+                            validateEventMetadata(bodyAsString);
+                        }
                         events.add(ndJson.get(eventType));
                     }
                 }
@@ -445,7 +464,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 final JsonNode event = objectMapper.readTree(line);
                 final JsonNode metadata = event.get("metadata");
                 if (metadata != null) {
-                    validataMetadataEvent(metadata);
+                    validateMetadataEvent(metadata);
                 } else {
                     validateServiceName(event.get("error"));
                     validateServiceName(event.get("span"));
@@ -464,11 +483,13 @@ public abstract class AbstractServletContainerIntegrationTest {
             assertThat(contextService)
                 .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
-                assertThat(contextService.get("name").textValue()).isEqualTo(expectedServiceName);
+            assertThat(contextService.get("name").textValue())
+                .describedAs("Event has non-expected service name %s", event)
+                .isEqualTo(expectedServiceName);
         }
     }
 
-    private void validataMetadataEvent(JsonNode metadata) {
+    private void validateMetadataEvent(JsonNode metadata) {
         JsonNode service = metadata.get("service");
         assertThat(service.get("name").textValue()).isEqualTo(expectedDefaultServiceName);
         JsonNode agent = service.get("agent");
@@ -499,5 +520,9 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public OkHttpClient getHttpClient() {
         return httpClient;
+    }
+
+    public boolean isHotSpotBased() {
+        return true;
     }
 }
