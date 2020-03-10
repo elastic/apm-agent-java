@@ -29,6 +29,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
@@ -80,6 +81,10 @@ public abstract class AbstractInstrumentationTest {
     public static void reset() {
         SpyConfiguration.reset(config);
         reporter.reset();
+
+        // resume tracer in case it has been paused
+        // otherwise the 1st test that pauses tracer will have side effects on others
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     public static ElasticApmTracer getTracer() {
