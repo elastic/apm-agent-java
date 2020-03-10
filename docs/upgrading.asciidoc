@@ -1,5 +1,6 @@
 [[upgrading]]
 == Upgrading
+
 Upgrades between minor versions of the agent, like from 1.1 to 1.2 are always backwards compatible.
 Upgrades that involve a major version bump often come with some backwards incompatible changes.
 
@@ -7,6 +8,16 @@ Before upgrading the agent, be sure to review the:
 
 * <<release-notes,Agent release notes>>
 * {apm-overview-ref-v}/agent-server-compatibility.html[Agent and Server compatibility chart]
+
+[float]
+[[upgrade-steps]]
+=== Recommended upgrade steps
+
+. Shut down the application.
+. Download the latest release of the agent jar file from
+https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent[maven central].
+. Optionally change JVM settings, e.g., if the path to the agent jar has changed due to a different file name.
+. Restart the application.
 
 [float]
 [[end-of-life-dates]]
