@@ -177,7 +177,9 @@ pipeline {
                 def baseUrl = "https://oss.sonatype.org/service/local/repositories/releases/content/co/elastic/apm/apm-agent-java"
                 def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
                 def fullUrl = sh(script: "$baseUrl/$bareTag/apm-agent-java-$bareTag\.pom")
-                waitUntil(initialRecurrencePeriod: 15000) {
+                echo "Sleeping for ten minutes to wait for Sonatype"
+                sleep(time: 10, unit: "MINUTES")
+                waitUntil(initialRecurrencePeriod: 60000) {
                   script {
                     def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
                     echo "Waiting for the artifacts to be published on Sonatype"
