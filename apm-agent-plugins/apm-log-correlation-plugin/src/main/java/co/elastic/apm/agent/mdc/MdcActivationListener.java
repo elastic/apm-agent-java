@@ -151,7 +151,6 @@ public class MdcActivationListener implements ActivationListener {
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
         if (loggingConfiguration.isLogCorrelationEnabled() && tracer.isRunning()) {
-
             for (WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache : mdcPutMethodHandleCaches) {
                 MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(context));
                 if (put != null && put != NOOP) {
@@ -161,7 +160,7 @@ public class MdcActivationListener implements ActivationListener {
                         put.invoke(TRANSACTION_ID, traceContext.getTransactionId().toString());
                     }
                     if (tracer != null && context instanceof ErrorCapture) {
-                        put.invokeExact(ERROR_ID, traceContext.getId().toString());
+                        put.invoke(ERROR_ID, traceContext.getId().toString());
                     }
                 }
             }
