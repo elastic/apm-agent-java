@@ -196,11 +196,7 @@ pipeline {
           }
         }
         // 13. Publish Docker images
-        stage('Docker push') {
-          when {
-            beforeAgent true
-            expression { return params.push_docker }
-          }
+        stage('Build and push Docker images') {
           steps {
             sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
             // Get Docker registry credentials
