@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,9 +35,13 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class Slf4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
 
+    // prevents the shade plugin from relocating org.slf4j.Logger to co.elastic.apm.agent.shaded.slf4j.Logger
+    private static final String SLF4J_LOGGER = "org!slf4j!Logger".replace('!', '.');
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.slf4j.Logger")).and(not(hasSuperType(named("org.apache.logging.log4j.Logger"))));
+        return hasSuperType(named(SLF4J_LOGGER)
+            .and(not(hasSuperType(named("org.apache.logging.log4j.Logger")))));
     }
 
     @Override

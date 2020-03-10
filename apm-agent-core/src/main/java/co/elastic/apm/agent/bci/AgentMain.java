@@ -51,7 +51,7 @@ public class AgentMain {
      * @param instrumentation The instrumentation instance.
      */
     public static void premain(String agentArguments, Instrumentation instrumentation) {
-        init(agentArguments, instrumentation);
+        init(agentArguments, instrumentation, true);
     }
 
     /**
@@ -62,10 +62,10 @@ public class AgentMain {
      */
     @SuppressWarnings("unused")
     public static void agentmain(String agentArguments, Instrumentation instrumentation) {
-        init(agentArguments, instrumentation);
+        init(agentArguments, instrumentation, false);
     }
 
-    public synchronized static void init(String agentArguments, Instrumentation instrumentation) {
+    public synchronized static void init(String agentArguments, Instrumentation instrumentation, boolean premain) {
         if (Boolean.getBoolean("ElasticApm.attached")) {
             // agent is already attached; don't attach twice
             // don't fail as this is a valid case
@@ -95,8 +95,8 @@ public class AgentMain {
             // invoking via reflection to make sure the class is not loaded by the system classloader,
             // but only from the bootstrap classloader
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, null)
-                .getMethod("initialize", String.class, Instrumentation.class, File.class)
-                .invoke(null, agentArguments, instrumentation, agentJarFile);
+                .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
+                .invoke(null, agentArguments, instrumentation, agentJarFile, premain);
             System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
         } catch (Exception e) {
             System.err.println("Failed to start agent");

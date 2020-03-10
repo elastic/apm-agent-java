@@ -39,10 +39,12 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -56,6 +58,7 @@ import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -71,7 +74,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
+import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
@@ -106,9 +113,10 @@ public class ElasticApmAgent {
      * @param instrumentation the instrumentation instance
      * @param agentJarFile    a reference to the agent jar on the file system
      */
-    public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile) {
+    public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
-        initInstrumentation(new ElasticApmTracerBuilder(agentArguments).build(), instrumentation);
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
+        initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
@@ -125,8 +133,13 @@ public class ElasticApmAgent {
         return instrumentations;
     }
 
-    public static void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
-                                           Iterable<ElasticApmInstrumentation> instrumentations) {
+    public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
+                                                        Iterable<ElasticApmInstrumentation> instrumentations) {
+        initInstrumentation(tracer, instrumentation, instrumentations, false);
+    }
+
+    private static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
+                                                        Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
             public void run() {
@@ -141,12 +154,55 @@ public class ElasticApmAgent {
             return;
         }
         ElasticApmInstrumentation.staticInit(tracer);
+        // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
+        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
+        resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
+            instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
+                @Override
+                public void onChange(ConfigurationOption configurationOption, Object oldValue, Object newValue) {
+                    reInitInstrumentation();
+                }
+            });
+        }
+    }
+
+    public static synchronized Future<?> reInitInstrumentation() {
+        final ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
+        if (tracer == null || instrumentation == null) {
+            throw new IllegalStateException("Can't re-init agent before it has been initialized");
+        }
+        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDeamonPool("apm-reinit", 1);
+        try {
+            return executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    doReInitInstrumentation(loadInstrumentations(tracer));
+                }
+            });
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations) {
+        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+        logger.info("Re initializing instrumentation");
+        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
+
+        resettableClassFileTransformer = agentBuilder.patchOnByteBuddyAgent(resettableClassFileTransformer);
+    }
+
+    private static AgentBuilder initAgentBuilder(ElasticApmTracer tracer, Instrumentation instrumentation,
+                                                 Iterable<ElasticApmInstrumentation> instrumentations, Logger logger,
+                                                 AgentBuilder.DescriptionStrategy descriptionStrategy, boolean premain) {
         final CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY);
+        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger, descriptionStrategy, premain);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
@@ -155,8 +211,7 @@ public class ElasticApmAgent {
             }
         }
         logger.debug("Applied {} advices", numberOfAdvices);
-
-        resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
+        return agentBuilder;
     }
 
     private static boolean isIncluded(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
@@ -321,16 +376,16 @@ public class ElasticApmAgent {
             throw new IllegalStateException("Reset was called before init");
         }
         dynamicallyInstrumentedClasses.clear();
-        resettableClassFileTransformer.reset(instrumentation, AgentBuilder.RedefinitionStrategy.RETRANSFORMATION);
+        resettableClassFileTransformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
         resettableClassFileTransformer = null;
         for (ResettableClassFileTransformer transformer : dynamicClassFileTransformers) {
-            transformer.reset(instrumentation, AgentBuilder.RedefinitionStrategy.RETRANSFORMATION);
+            transformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
         }
         dynamicClassFileTransformers.clear();
         instrumentation = null;
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy, boolean premain) {
         final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
 
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
@@ -347,8 +402,11 @@ public class ElasticApmAgent {
         }
 
         return new AgentBuilder.Default(byteBuddy)
-            .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-            .with(AgentBuilder.DescriptionStrategy.Default.POOL_ONLY)
+            .with(RedefinitionStrategy.RETRANSFORMATION)
+            // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
+            .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(100))
+            .with(premain ? RedefinitionStrategy.Listener.NoOp.INSTANCE : RedefinitionStrategy.Listener.Pausing.of(100, TimeUnit.MILLISECONDS))
+            .with(descriptionStrategy)
             .with(locationStrategy)
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
@@ -458,7 +516,7 @@ public class ElasticApmAgent {
                     final ByteBuddy byteBuddy = new ByteBuddy()
                         .with(TypeValidation.of(logger.isDebugEnabled()))
                         .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-                    AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID);
+                    AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID, false);
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());

@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
  * <p>
  * Note: in Apache Felix the boot delegation only works for classes loaded by the bootstrap classloader,
  * which means that the whole agent code needs to be added to the bootstrap classloader.
- * See {@link AgentMain#init(String, java.lang.instrument.Instrumentation)}
+ * See {@link AgentMain#init(String, java.lang.instrument.Instrumentation, boolean)}
  * </p>
  */
 public class OsgiBootDelegationEnabler extends AbstractLifecycleListener {
