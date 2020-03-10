@@ -144,7 +144,7 @@ pipeline {
                 def dotX = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
                 def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
                 def finalUrl = sh(script: "echo $baseUrl$dotX\.html#release-notes-$bareTag")
-                def ret = githubReleaseCreate(draft: true, body: "[Release Notes for $bareTag]($finalUrl)")
+                def ret = githubReleaseCreate(draft: true, name: "Release ${bareTag}", body: "[Release Notes for ${bareTag}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
               }
             }
