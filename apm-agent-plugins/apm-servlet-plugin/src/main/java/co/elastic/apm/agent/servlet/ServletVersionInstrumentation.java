@@ -42,7 +42,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -65,7 +64,7 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
     public static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
 
     @VisibleForAdvice
-    public static AtomicBoolean doLogAndWarn = new AtomicBoolean(true);
+    public static volatile boolean alreadyLogged = false;
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -97,9 +96,10 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
         private static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-            if (!doLogAndWarn.getAndSet(false)) {
+            if (alreadyLogged) {
                 return;
             }
+            alreadyLogged = true;
 
             int majorVersion = -1;
             int minorVersion = -1;
@@ -135,9 +135,10 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
         private static void onEnter(@Advice.This Servlet servlet) {
-            if (!doLogAndWarn.getAndSet(false)) {
+            if (alreadyLogged) {
                 return;
             }
+            alreadyLogged = true;
 
             ServletConfig servletConfig = servlet.getServletConfig();
 
