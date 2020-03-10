@@ -10,7 +10,7 @@ pipeline {
     DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     NEXUS_SECRET = 'secret/apm-team/ci/nexus'
-    MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
+    MAVEN_CONFIG = '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
 
   }
@@ -23,7 +23,6 @@ pipeline {
 
   }
   parameters {
-    string(name: 'MAVEN_CONFIG', defaultValue: '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn', description: 'Additional maven options.')
     string(name: 'branch_specifier', defaultValue: 'master')
   }
 
@@ -34,7 +33,6 @@ pipeline {
         HOME = "${env.WORKSPACE}"
         JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-        MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
       stages {
         /**
