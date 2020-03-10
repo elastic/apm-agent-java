@@ -27,11 +27,18 @@ endif::[]
 
 [float]
 ===== Features
+* Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
+
+* Add support for <<supported-databases, Redis Redisson client>>
+* Makes <<config-instrument>>, <<config-trace-methods>>, and <<config-disable-instrumentations>> dynamic.
+  Note that changing these values at runtime can slow down the application temporarily.
 
 * Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
 
 [float]
 ===== Bug fixes
+* When JAX-RS-annotated method delegates to another JAX-RS-annotated method, transaction name should include method A - {pull}1062[#1062]
+* Fixed bug that prevented an APM Error from being created when calling `org.slf4j.Logger#error` - {pull}1049[#1049]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

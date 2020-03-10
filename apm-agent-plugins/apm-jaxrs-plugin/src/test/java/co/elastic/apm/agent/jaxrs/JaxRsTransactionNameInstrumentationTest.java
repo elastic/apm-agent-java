@@ -41,6 +41,7 @@ import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
@@ -110,6 +111,17 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
         assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
         assertThat(actualTransactions.get(2).getNameAsString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameMethodDelegation() {
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("methodDelegation/methodA");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("MethodDelegationResource#methodA");
     }
 
     @Test
@@ -262,6 +274,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             ProxiedClass$Proxy.class,
             ResourceWithPathOnMethod.class,
             ResourceWithPathOnMethodSlash.class,
+            MethodDelegationResource.class,
             FooBarResource.class,
             EmptyPathResource.class,
             ResourceWithPathAndWithPathOnInterface.class);
@@ -320,6 +333,20 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     public static class ResourceWithPath extends AbstractResourceClassWithoutPath {
         public String testMethod() {
             return "ok";
+        }
+    }
+
+    @Path("methodDelegation")
+    public static class MethodDelegationResource {
+        @GET
+        @Path("methodA")
+        public String methodA(){
+            methodB();
+            return "ok";
+        }
+
+        @POST
+        public void methodB(){
         }
     }
 

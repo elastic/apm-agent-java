@@ -51,7 +51,7 @@ class JfrParserTest {
         URL url = getClass().getClassLoader().getResource("recording.jfr");
 
         // URL provides url-encoded path, we have to explicitly decode it otherwise we won't find the file
-        String filePath = URLDecoder.decode(url.getPath(), StandardCharsets.UTF_8);
+        String filePath = URLDecoder.decode(url.getPath(), StandardCharsets.UTF_8.name());
 
         jfrParser.parse(new File(filePath), List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
         AtomicInteger stackTraces = new AtomicInteger();

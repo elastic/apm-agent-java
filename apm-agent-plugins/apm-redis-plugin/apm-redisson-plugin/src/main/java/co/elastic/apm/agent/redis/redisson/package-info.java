@@ -22,20 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.error.logging;
+@NonnullApi
+package co.elastic.apm.agent.redis.redisson;
 
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-class Slf4jLoggingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(Slf4jLoggingInstrumentationTest.class);
-
-    @Test
-    void captureException() {
-        logger.error("exception captured", new RuntimeException("some business exception"));
-        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
-    }
-
-}
+import co.elastic.apm.agent.annotation.NonnullApi;
