@@ -34,24 +34,6 @@ class AgentMainTest {
 
     private static String HOTSPOT_VM_NAME = "Java HotSpot(TM) 64-Bit Server VM";
 
-    private static void checkSupported(String vmName, Stream<String> versions) {
-        versions.forEach((v) -> {
-            boolean supported = AgentMain.isJavaVersionSupported(v, vmName);
-            assertThat(supported)
-                .describedAs("java.version = '%s' java.vm.name = '%s' should be supported", v, vmName)
-                .isTrue();
-        });
-    }
-
-    private static void checkNotSupported(String vmName, Stream<String> versions) {
-        versions.forEach((v) -> {
-            boolean supported = AgentMain.isJavaVersionSupported(v, vmName);
-            assertThat(supported)
-                .describedAs("java.version = '%s' java.vm.name = '%s' should not be supported", v, vmName)
-                .isFalse();
-        });
-    }
-
     @Test
     void java6AndEarlierNotSupported() {
         checkNotSupported("", Stream.of(
@@ -141,6 +123,24 @@ class AgentMainTest {
             "1.8.0_",
             "1.8.0_aaa"
         ));
+    }
+
+    private static void checkSupported(String vmName, Stream<String> versions) {
+        versions.forEach((v) -> {
+            boolean supported = AgentMain.isJavaVersionSupported(v, vmName);
+            assertThat(supported)
+                .describedAs("java.version = '%s' java.vm.name = '%s' should be supported", v, vmName)
+                .isTrue();
+        });
+    }
+
+    private static void checkNotSupported(String vmName, Stream<String> versions) {
+        versions.forEach((v) -> {
+            boolean supported = AgentMain.isJavaVersionSupported(v, vmName);
+            assertThat(supported)
+                .describedAs("java.version = '%s' java.vm.name = '%s' should not be supported", v, vmName)
+                .isFalse();
+        });
     }
 
 }

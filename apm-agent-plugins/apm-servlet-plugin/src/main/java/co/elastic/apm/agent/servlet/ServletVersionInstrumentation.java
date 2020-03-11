@@ -87,6 +87,12 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
      */
     public static class Init extends ServletVersionInstrumentation {
 
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("init")
+                .and(takesArgument(0, named("javax.servlet.ServletConfig")));
+        }
+
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
         private static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
@@ -112,18 +118,19 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
                 logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created", majorVersion, minorVersion);
             }
         }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("init")
-                .and(takesArgument(0, named("javax.servlet.ServletConfig")));
-        }
     }
 
     /**
      * Instruments {@link javax.servlet.Servlet#service(ServletRequest, ServletResponse)}
      */
     public static class Service extends ServletVersionInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("service")
+                .and(takesArgument(0, named("javax.servlet.ServletRequest")))
+                .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
@@ -151,13 +158,6 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
             if (majorVersion < 3) {
                 logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created", majorVersion, minorVersion);
             }
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("service")
-                .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-                .and(takesArgument(1, named("javax.servlet.ServletResponse")));
         }
     }
 
