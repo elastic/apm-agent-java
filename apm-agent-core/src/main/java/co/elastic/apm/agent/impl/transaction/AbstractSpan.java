@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -164,7 +164,25 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      */
     @Nullable
     public StringBuilder getAndOverrideName(int namePriority) {
-        if (namePriority >= this.namePriority) {
+        return getAndOverrideName(namePriority, true);
+    }
+
+    /**
+     * Resets and returns the name {@link StringBuilder} if one of the following applies:
+     * <ul>
+     *      <li>the provided priority is {@code >} {@link #namePriority}</li>
+     *      <li>the provided priority is {@code ==} {@link #namePriority} AND {@code overrideIfSamePriority} is {@code true}</li>
+     * </ul>
+     * Otherwise, returns {@code null}
+     *
+     * @param namePriority           the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
+     * @param overrideIfSamePriority specifies whether the existing name should be overridden if {@code namePriority} equals the priority used to set the current name
+     * @return the name {@link StringBuilder} if the provided priority is sufficient for overriding, {@code null} otherwise.
+     */
+    @Nullable
+    public StringBuilder getAndOverrideName(int namePriority, boolean overrideIfSamePriority) {
+        boolean shouldOverride = (overrideIfSamePriority) ? namePriority >= this.namePriority : namePriority > this.namePriority;
+        if (shouldOverride) {
             this.namePriority = namePriority;
             this.name.setLength(0);
             return name;
@@ -208,7 +226,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     public T withName(@Nullable String name, int priority) {
-        if (priority >= namePriority && name != null && !name.isEmpty()) {
+        return withName(name, priority, true);
+    }
+
+    public T withName(@Nullable String name, int priority, boolean overrideIfSamePriority) {
+        boolean shouldOverride = (overrideIfSamePriority) ? priority >= this.namePriority : priority > this.namePriority;
+        if (shouldOverride && name != null && !name.isEmpty()) {
             this.name.setLength(0);
             this.name.append(name);
             this.namePriority = priority;

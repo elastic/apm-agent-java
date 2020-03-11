@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.Test;
 
@@ -49,6 +50,18 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("AnnotationTestClass#span");
         assertThat(reporter.getSpans().get(1).isChildOf(reporter.getFirstTransaction())).isTrue();
+    }
+
+    @Test
+    public void testAgentPaused_CaptureTransaction() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+        new AnnotationTestClass().transaction();
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test
@@ -106,6 +119,18 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
         assertThat(reporter.getFirstSpan().getSubtype()).isEqualTo("subtype");
         assertThat(reporter.getFirstSpan().getAction()).isEqualTo("action");
+    }
+
+    @Test
+    public void testAgentPaused_TracedAnnotation() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+        TracedAnnotationTest.tracedTransaction();
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test

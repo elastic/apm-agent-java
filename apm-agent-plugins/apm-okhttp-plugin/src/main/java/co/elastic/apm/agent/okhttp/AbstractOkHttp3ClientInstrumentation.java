@@ -43,9 +43,13 @@ public abstract class AbstractOkHttp3ClientInstrumentation extends ElasticApmIns
     public static HelperClassManager<TextHeaderSetter<Request.Builder>> headerSetterHelperManager;
 
     public AbstractOkHttp3ClientInstrumentation(ElasticApmTracer tracer) {
-        headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.okhttp.OkHttp3RequestHeaderSetter"
-        );
+        synchronized (AbstractOkHttp3ClientInstrumentation.class) {
+            if (headerSetterHelperManager == null) {
+                headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+                    "co.elastic.apm.agent.okhttp.OkHttp3RequestHeaderSetter"
+                );
+            }
+        }
     }
 
     @Override

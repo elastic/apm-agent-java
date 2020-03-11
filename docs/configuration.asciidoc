@@ -62,6 +62,14 @@ ELASTIC_APM_SERVER_URLS=http://localhost:8200
 This is a list of all configuration options grouped by their category.
 Click on a key to get more information.
 
+* <<config-circuit-breaker>>
+** <<config-circuit-breaker-enabled>>
+** <<config-stress-monitoring-interval>>
+** <<config-stress-monitor-gc-stress-threshold>>
+** <<config-stress-monitor-gc-relief-threshold>>
+** <<config-stress-monitor-cpu-duration-threshold>>
+** <<config-stress-monitor-system-cpu-stress-threshold>>
+** <<config-stress-monitor-system-cpu-relief-threshold>>
 * <<config-core>>
 ** <<config-active>>
 ** <<config-instrument>>
@@ -127,6 +135,181 @@ Click on a key to get more information.
 ** <<config-stack-trace-limit>>
 ** <<config-span-frames-min-duration>>
 
+[[config-circuit-breaker]]
+=== Circuit-Breaker configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-circuit-breaker-enabled]]
+==== `circuit_breaker_enabled` (performance)
+
+A boolean specifying whether the circuit breaker should be enabled or not. 
+When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
+If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
+<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
+has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+agent will resume and become fully functional.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.circuit_breaker_enabled` | `circuit_breaker_enabled` | `ELASTIC_APM_CIRCUIT_BREAKER_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitoring-interval]]
+==== `stress_monitoring_interval` (performance)
+
+The interval at which the agent polls the stress monitors. Must be at least `1s`.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5s`.
+The default unit for this option is `s`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `5s` | TimeDuration | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitoring_interval` | `stress_monitoring_interval` | `ELASTIC_APM_STRESS_MONITORING_INTERVAL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-gc-stress-threshold]]
+==== `stress_monitor_gc_stress_threshold` (performance)
+
+The threshold used by the GC monitor to rely on for identifying heap stress.
+The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
+the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+after a recent GC.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.95` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_gc_stress_threshold` | `stress_monitor_gc_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_STRESS_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-gc-relief-threshold]]
+==== `stress_monitor_gc_relief_threshold` (performance)
+
+The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
+If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
+In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.75` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_gc_relief_threshold` | `stress_monitor_gc_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_RELIEF_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-cpu-duration-threshold]]
+==== `stress_monitor_cpu_duration_threshold` (performance)
+
+The minimal time required in order to determine whether the system is 
+either currently under stress, or that the stress detected previously has been relieved. 
+All measurements during this time must be consistent in comparison to the relevant threshold in 
+order to detect a change of stress state. Must be at least `1m`.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `1m`.
+The default unit for this option is `m`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `1m` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_cpu_duration_threshold` | `stress_monitor_cpu_duration_threshold` | `ELASTIC_APM_STRESS_MONITOR_CPU_DURATION_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-system-cpu-stress-threshold]]
+==== `stress_monitor_system_cpu_stress_threshold` (performance)
+
+The threshold used by the system CPU monitor to detect system CPU stress. 
+If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+the monitor considers this as a stress state.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.95` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_system_cpu_stress_threshold` | `stress_monitor_system_cpu_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_STRESS_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-system-cpu-relief-threshold]]
+==== `stress_monitor_system_cpu_relief_threshold` (performance)
+
+The threshold used by the system CPU monitor to determine that the system is 
+not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
+this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
+monitor to decide that the CPU stress has been relieved.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.8` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_system_cpu_relief_threshold` | `stress_monitor_system_cpu_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_RELIEF_THRESHOLD`
+|============
+
 [[config-core]]
 === Core configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -159,17 +342,19 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-instrument]]
-==== `instrument`
+==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 
 NOTE: Both active and instrument needs to be true for instrumentation to be running.
 
+NOTE: Changing this value at runtime can slow down the application temporarily.
+
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `true` | Boolean | false
+| `true` | Boolean | true
 |============
 
 
@@ -412,17 +597,19 @@ you should add an additional entry to this list (make sure to also include the d
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-disable-instrumentations]]
-==== `disable_instrumentations`
+==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 If you want to try out incubating features, set the value to an empty string.
+
+NOTE: Changing this value at runtime can slow down the application temporarily.
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `incubating` | Collection | false
+| `incubating` | Collection | true
 |============
 
 
@@ -582,7 +769,7 @@ NOTE: This feature requires APM Server 7.2+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-trace-methods]]
-==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0])
+==== `trace_methods` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of methods for which to create a transaction or span.
 
@@ -645,11 +832,13 @@ public @@javax.inject.Scope your.application.package.*
 ----
 NOTE: This method is only available in the Elastic APM Java Agent.
 
+NOTE: Changing this value at runtime can slow down the application temporarily.
+
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | List | false
+| `<none>` | List | true
 |============
 
 
@@ -1392,7 +1581,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `(?-i)java.*, (?-i)javax.*, (?-i)sun.*, (?-i)com.sun.*, (?-i)jdk.*, (?-i)org.apache.tomcat.*, (?-i)org.apache.catalina.*, (?-i)org.apache.coyote.*, (?-i)org.jboss.as.*, (?-i)org.glassfish.*, (?-i)org.eclipse.jetty.*, (?-i)com.ibm.websphere.*` | List | true
+| `(?-i)java.*, (?-i)javax.*, (?-i)sun.*, (?-i)com.sun.*, (?-i)jdk.*, (?-i)org.apache.tomcat.*, (?-i)org.apache.catalina.*, (?-i)org.apache.coyote.*, (?-i)org.jboss.as.*, (?-i)org.glassfish.*, (?-i)org.eclipse.jetty.*, (?-i)com.ibm.websphere.*, (?-i)io.undertow.*` | List | true
 |============
 
 
@@ -1816,6 +2005,90 @@ The default unit for this option is `ms`.
 .elasticapm.properties
 ----
 ############################################
+# Circuit-Breaker                          #
+############################################
+
+# A boolean specifying whether the circuit breaker should be enabled or not. 
+# When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
+# If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
+# <<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
+# has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+# agent will resume and become fully functional.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# circuit_breaker_enabled=false
+
+# The interval at which the agent polls the stress monitors. Must be at least `1s`.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5s.
+# The default unit for this option is s.
+# Default value: 5s
+#
+# stress_monitoring_interval=5s
+
+# The threshold used by the GC monitor to rely on for identifying heap stress.
+# The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
+# the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+# after a recent GC.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.95
+#
+# stress_monitor_gc_stress_threshold=0.95
+
+# The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
+# If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
+# In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+# be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.75
+#
+# stress_monitor_gc_relief_threshold=0.75
+
+# The minimal time required in order to determine whether the system is 
+# either currently under stress, or that the stress detected previously has been relieved. 
+# All measurements during this time must be consistent in comparison to the relevant threshold in 
+# order to detect a change of stress state. Must be at least `1m`.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 1m.
+# The default unit for this option is m.
+# Default value: 1m
+#
+# stress_monitor_cpu_duration_threshold=1m
+
+# The threshold used by the system CPU monitor to detect system CPU stress. 
+# If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+# the monitor considers this as a stress state.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.95
+#
+# stress_monitor_system_cpu_stress_threshold=0.95
+
+# The threshold used by the system CPU monitor to determine that the system is 
+# not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
+# this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
+# monitor to decide that the CPU stress has been relieved.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.8
+#
+# stress_monitor_system_cpu_relief_threshold=0.8
+
+############################################
 # Core                                     #
 ############################################
 
@@ -1836,8 +2109,10 @@ The default unit for this option is `ms`.
 # A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: Boolean
 # Default value: true
 #
@@ -1974,10 +2249,12 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 # If you want to try out incubating features, set the value to an empty string.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: incubating
 #
@@ -2125,8 +2402,10 @@ The default unit for this option is `ms`.
 # public @@javax.inject.Scope your.application.package.*
 # ----
 # NOTE: This method is only available in the Elastic APM Java Agent.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: 
 #
@@ -2581,9 +2860,9 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: (?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*
+# Default value: (?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*
 #
-# profiling_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*
+# profiling_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*
 
 # The interval at which profiling sessions should be started.
 #

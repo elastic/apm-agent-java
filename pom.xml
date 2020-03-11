@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.13.1-SNAPSHOT</version>
+    <version>1.14.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -95,7 +95,7 @@
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>0.1.19</version.json-schema-validator>
-        <version.byte-buddy>1.10.1</version.byte-buddy>
+        <version.byte-buddy>1.10.8</version.byte-buddy>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
@@ -255,6 +255,10 @@
                     <releaseProfiles>gpg</releaseProfiles>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <checkModificationExcludes>
+                        <checkModificationExclude>**/apm-agent-benchmarks/src/main/resources/**</checkModificationExclude>
+                        <checkModificationExclude>**/apm-agent-plugins/apm-profiling-plugin/src/main/resources/**</checkModificationExclude>
+                    </checkModificationExcludes>
                 </configuration>
             </plugin>
             <plugin>

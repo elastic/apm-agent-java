@@ -310,6 +310,7 @@ public class JfrParser implements Recyclable {
      * @param maxStackDepth  The max size of the stackFrames list (excluded frames don't take up space).
      *                       In contrast to async-profiler's {@code jstackdepth} argument this does not truncate the bottom of the stack, only the top.
      *                       This is important to properly create a call tree without making it overly complex.
+     * @throws IOException if there is an error reading in current buffer
      */
     public void resolveStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames, int maxStackDepth) throws IOException {
         if (!bufferedFile.isSet()) {
@@ -438,6 +439,7 @@ public class JfrParser implements Recyclable {
          * @param stackTraceId The id of the stack trace event.
          *                     Can be used to resolve the stack trace via {@link #resolveStackTrace(long, boolean, List, int)}
          * @param nanoTime     The timestamp of the event which can be correlated with {@link System#nanoTime()}
+         * @throws IOException if there is any error reading stack trace
          */
         void onCallTree(long threadId, long stackTraceId, long nanoTime) throws IOException;
     }

@@ -67,10 +67,12 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
         if (tracer != null) {
             TraceContextHolder<?> active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startRootTransaction(clazz.getClassLoader())
-                    .withName(signature)
-                    .withType("scheduled")
-                    .activate();
+                transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    transaction.withName(signature)
+                        .withType("scheduled")
+                        .activate();
+                }
 
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);

@@ -1,4 +1,6 @@
 co.elastic.apm.agent.servlet.ServletInstrumentation
+co.elastic.apm.agent.servlet.ServletVersionInstrumentation$Init
+co.elastic.apm.agent.servlet.ServletVersionInstrumentation$Service
 co.elastic.apm.agent.servlet.FilterChainInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation

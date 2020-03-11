@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,7 @@ import java.util.Objects;
  * <pre>
  *             count
  *  b b     a      4
- * aaaa ->  ├─b    1
+ * aaaa --o ├─b    1
  *          └─b    1
  * </pre>
  * <p>
@@ -134,7 +135,7 @@ public class CallTree implements Recyclable {
      *
      * @param stackFrames         the stack trace which is iterated over in reverse order
      * @param index               the current index of {@code stackFrames}
-     * @param activeSpan          the trace context of the currently {@linkplain ElasticApmTracer#getActive() active transaction/span
+     * @param activeSpan          the trace context of the currently {@linkplain ElasticApmTracer#getActive()} active transaction/span
      * @param activationTimestamp the timestamp of when {@code traceContext} has been activated
      * @param nanoTime            the timestamp of when this stack trace has been recorded
      * @param callTreePool
@@ -308,22 +309,25 @@ public class CallTree implements Recyclable {
         }
     }
 
-    void spanify(CallTree.Root root, TraceContext parentContext) {
+    int spanify(CallTree.Root root, TraceContext parentContext) {
+        int createdSpans = 0;
         if (activeContextOfDirectParent != null) {
             parentContext = activeContextOfDirectParent;
         }
         Span span = null;
         if (!isPillar() || isLeaf()) {
+            createdSpans++;
             span = asSpan(root, parentContext);
             this.isSpan = true;
         }
         List<CallTree> children = getChildren();
         for (int i = 0, size = children.size(); i < size; i++) {
-            children.get(i).spanify(root, span != null ? span.getTraceContext() : parentContext);
+            createdSpans += children.get(i).spanify(root, span != null ? span.getTraceContext() : parentContext);
         }
         if (span != null) {
             span.end(span.getTimestamp() + getDurationUs());
         }
+        return createdSpans;
     }
 
     protected Span asSpan(Root root, TraceContext parentContext) {
@@ -437,12 +441,14 @@ public class CallTree implements Recyclable {
             setActiveSpan(active, timestamp);
         }
 
-        public void onDeactivation(byte[] active, long timestamp) {
+        public void onDeactivation(byte[] deactivated, byte[] active, long timestamp) {
+            if (logger.isDebugEnabled() && !Arrays.equals(activeSpanSerialized, deactivated)) {
+                logger.warn("Illegal state: deactivating span that is not active");
+            }
             if (activeSpan != null) {
                 handleDeactivation(activeSpan, activationTimestamp, timestamp);
-            } else {
-                logger.debug("tried to handle deactivation without an active span");
             }
+            // else: activeSpan has not been materialized because no stack traces were added during this activation
             setActiveSpan(active, timestamp);
         }
 
@@ -467,11 +473,13 @@ public class CallTree implements Recyclable {
          * of a regular span so that it correctly reflects being a child of an inferred span.
          * </p>
          */
-        public void spanify() {
+        public int spanify() {
+            int createdSpans = 0;
             List<CallTree> callTrees = getChildren();
             for (int i = 0, size = callTrees.size(); i < size; i++) {
-                callTrees.get(i).spanify(this, rootContext);
+                createdSpans += callTrees.get(i).spanify(this, rootContext);
             }
+            return createdSpans;
         }
 
         public TraceContext getRootContext() {

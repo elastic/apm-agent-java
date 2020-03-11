@@ -54,6 +54,15 @@ the agent does not capture transactions.
 |8
 |
 
+NOTE: Early Java 8 versions before update 40 are *not supported* because they have
+several bugs that might result in JVM crashes when a java agent is active,
+thus agent *will not start* on those versions.
+
+Here is an example of the message displayed when this happens.
+```
+Failed ot start agent - JVM version not supported: 1.8.0_31
+```
+
 |===
 
 [float]
@@ -186,6 +195,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |3.4+
 |The agent creates spans for interactions with the Lettuce client.
 |1.13.0
+
+|Redis Redisson
+|2.1.5+
+|The agent creates spans for interactions with the Redisson client.
+|1.15.0
 
 |MongoDB driver
 |3.x
@@ -455,4 +469,3 @@ If you are seeing gaps in the span timeline and want to include certain methods,
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
   Try to grant `java.security.AllPermission` to the agent.
-

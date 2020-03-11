@@ -50,15 +50,15 @@ Each request should at least add some lines similar to these in the logs:
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - startSpan '' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 {
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Activating '' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 on thread 66
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Deactivating 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 on thread 66
-[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - } endSpan 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - endSpan 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Receiving SPAN event (sequence 23)
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Starting new request to http://localhost:8200/intake/v2/events
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Deactivating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01 on thread 66
-[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - } endSpan 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - endSpan 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Scheduling request timeout in 10s
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Receiving SPAN event (sequence 24)
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Deactivating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01 on thread 66
-[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - } endTransaction 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - endTransaction 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Receiving TRANSACTION event (sequence 25)
 ----
 

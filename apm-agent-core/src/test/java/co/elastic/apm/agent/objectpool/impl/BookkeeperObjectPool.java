@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * {@link ObjectPool} wrapper implementation that keeps track of all created object instances, and thus allows to check
@@ -41,6 +42,8 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
 
     private final ObjectPool<T> pool;
     private final Set<T> toReturn = Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>());
+    // An ever-increasing counter for how many objects where requested from the pool
+    private AtomicInteger objectCounter = new AtomicInteger();
 
     static {
         boolean isTest = false;
@@ -61,6 +64,7 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     public T createInstance() {
         T instance = pool.createInstance();
         toReturn.add(instance);
+        objectCounter.incrementAndGet();
         return instance;
     }
 
@@ -93,5 +97,15 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
      */
     public Collection<T> getRecyclablesToReturn() {
         return toReturn;
+    }
+
+    /**
+     * Returns the number of times an object has been requested from the pool since its creation.
+     * The returned value cannot be used as any indication as to the number of objects actually allocated by the pool.
+     *
+     * @return number of times {@link ObjectPool#createInstance()} was called on this pool since its creation
+     */
+    public int getRequestedObjectCount() {
+        return objectCounter.get();
     }
 }

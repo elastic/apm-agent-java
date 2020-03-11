@@ -123,7 +123,8 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.caseSensitiveMatcher("org.jboss.as.*"),
             WildcardMatcher.caseSensitiveMatcher("org.glassfish.*"),
             WildcardMatcher.caseSensitiveMatcher("org.eclipse.jetty.*"),
-            WildcardMatcher.caseSensitiveMatcher("com.ibm.websphere.*")
+            WildcardMatcher.caseSensitiveMatcher("com.ibm.websphere.*"),
+            WildcardMatcher.caseSensitiveMatcher("io.undertow.*")
         ));
 
     private final ConfigurationOption<TimeDuration> profilerInterval = TimeDurationValueConverter.durationOption("s")
