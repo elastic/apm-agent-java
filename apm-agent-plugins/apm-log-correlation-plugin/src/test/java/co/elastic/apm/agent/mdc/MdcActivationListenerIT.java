@@ -101,7 +101,10 @@ class MdcActivationListenerIT {
 
     @Test
    void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4j() {
-        log4jMdcWorking = true;
+        Assumptions.assumeTrue(() -> {
+            org.apache.log4j.MDC.put("test", true);
+            return org.apache.log4j.MDC.get("test") == Boolean.TRUE;
+        }, "Log4j MDC is not working, this happens with some versions of Java 10 where log4j thinks it's Java 1");
         assertMdcErrorIdIsEmpty();
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
 
