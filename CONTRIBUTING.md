@@ -256,6 +256,7 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
 1. Update [`CHANGELOG.asciidoc`](CHANGELOG.asciidoc) to reflect the new version release:
    1. Go over PRs or git log and add bug fixes and features.
    1. Move release notes from the `Unreleased` sub-heading to the correct `[[release-notes-{major}.x]]` sub-heading ([Example PR](https://github.com/elastic/apm-agent-java/pull/1027/files) for 1.13.0 release).
+1. For major releases, update the EOL table in [`upgrading.asciidoc`](docs/upgrading.asciidoc).
 1. Review Maven project version, you must have `${project.version}` equal to `1.2.3-SNAPSHOT`, `-SNAPSHOT` suffix will be removed during release process.
    1. If needed, use following command to set version `mvn versions:set -DnewVersion=1.2.3-SNAPSHOT`, then commit and push changes.
 1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:
