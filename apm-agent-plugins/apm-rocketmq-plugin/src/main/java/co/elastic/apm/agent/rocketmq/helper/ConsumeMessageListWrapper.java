@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rocketmq.helper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.apache.rocketmq.common.message.MessageExt;
 
 import javax.annotation.Nonnull;
@@ -36,14 +35,10 @@ import java.util.ListIterator;
 public class ConsumeMessageListWrapper implements List<MessageExt> {
 
     @Nonnull
-    private final ElasticApmTracer tracer;
-
-    @Nonnull
     private final List<MessageExt> delegate;
 
-    public ConsumeMessageListWrapper(@Nonnull List<MessageExt> delegate, @Nonnull ElasticApmTracer tracer) {
+    public ConsumeMessageListWrapper(@Nonnull List<MessageExt> delegate) {
         this.delegate = delegate;
-        this.tracer = tracer;
     }
 
     @Override
@@ -63,7 +58,7 @@ public class ConsumeMessageListWrapper implements List<MessageExt> {
 
     @Override
     public Iterator<MessageExt> iterator() {
-        return new ConsumeMessageIteratorWrapper(delegate.iterator(), tracer);
+        return new ConsumeMessageIteratorWrapper(delegate.iterator());
     }
 
     @Override
@@ -158,6 +153,6 @@ public class ConsumeMessageListWrapper implements List<MessageExt> {
 
     @Override
     public List<MessageExt> subList(int fromIndex, int toIndex) {
-        return new ConsumeMessageListWrapper(delegate.subList(fromIndex, toIndex), tracer);
+        return new ConsumeMessageListWrapper(delegate.subList(fromIndex, toIndex));
     }
 }

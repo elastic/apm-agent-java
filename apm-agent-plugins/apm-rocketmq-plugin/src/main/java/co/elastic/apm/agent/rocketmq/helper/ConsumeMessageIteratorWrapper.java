@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.rocketmq.helper;
 
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -49,9 +50,9 @@ public class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
 
     private final MessagingConfiguration messagingConfiguration;
 
-    ConsumeMessageIteratorWrapper(Iterator<MessageExt> delegate, ElasticApmTracer tracer) {
+    public ConsumeMessageIteratorWrapper(Iterator<MessageExt> delegate) {
         this.delegate = delegate;
-        this.tracer = tracer;
+        this.tracer = ElasticApmInstrumentation.tracer;
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }

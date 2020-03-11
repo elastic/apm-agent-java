@@ -91,7 +91,7 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
             if (msgs.size() == 1) {
                 transaction = helper.onConsumeStart(msgs.get(0));
             } else if (msgs.size() > 1 && !(msgs instanceof ConsumeMessageListWrapper)){
-                msgs = new ConsumeMessageListWrapper(msgs, tracer);
+                msgs = new ConsumeMessageListWrapper(msgs);
             }
         }
 

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.rocketmq.helper;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -48,21 +49,22 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(RocketMQInstrumentationHelperImpl.class);
 
-    private final ElasticApmTracer tracer;
-
-    private final MessagingConfiguration messagingConfiguration;
-
-    public RocketMQInstrumentationHelperImpl(ElasticApmTracer tracer) {
-        this.tracer = tracer;
-        this.messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
-    }
-
     private ElasticApmTracer getTracer() {
         return ElasticApmInstrumentation.tracer;
+    }
+
+    private CoreConfiguration getCoreConfiguration() {
+        return getTracer().getConfig(CoreConfiguration.class);
+    }
+
+    private MessagingConfiguration getMessagingConfiguration() {
+        return getTracer().getConfig(MessagingConfiguration.class);
     }
 
     @Override
@@ -138,7 +140,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
                 pullResultExt.getNextBeginOffset(),
                 pullResultExt.getMinOffset(),
                 pullResultExt.getMaxOffset(),
-                new ConsumeMessageListWrapper(pullResultExt.getMsgFoundList(), getTracer()),
+                new ConsumeMessageListWrapper(pullResultExt.getMsgFoundList()),
                 pullResultExt.getSuggestWhichBrokerId(),
                 pullResultExt.getMessageBinary());
         } else {
@@ -146,7 +148,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
                 delegate.getNextBeginOffset(),
                 delegate.getMinOffset(),
                 delegate.getMaxOffset(),
-                new ConsumeMessageListWrapper(delegate.getMsgFoundList(), getTracer()));
+                new ConsumeMessageListWrapper(delegate.getMsgFoundList()));
         }
     }
 
@@ -162,23 +164,34 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     public Transaction onConsumeStart(MessageExt msg) {
         Transaction transaction = null;
         try {
-            Transaction currentTransaction = tracer.currentTransaction();
+            Transaction currentTransaction = getTracer().currentTransaction();
             if (isMessagingTransaction(currentTransaction)) {
                 currentTransaction.deactivate().end();
             }
             String topic = msg.getTopic();
             if (!ignoreTopic(topic)) {
                 String traceParentProperty = msg.getUserProperty(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
-                transaction = tracer.startChildTransaction(msg,
+                transaction = getTracer().startChildTransaction(msg,
                     RocketMQMessageHeaderAccessor.getInstance(),
                     MQConsumer.class.getClassLoader());
                 if (transaction != null) {
                     transaction.withType("messaging")
                         .withName("RocketMQ Consume Message#" + topic)
                         .activate();
-                    transaction.getContext().getMessage()
-                        .withQueue(topic)
-                        .withAge(System.currentTimeMillis() - msg.getBornTimestamp());
+
+                    co.elastic.apm.agent.impl.context.Message messageContext = transaction.getContext().getMessage();
+                    messageContext.withQueue(topic).withAge(System.currentTimeMillis() - msg.getBornTimestamp());
+
+                    if (transaction.isSampled() && getCoreConfiguration().isCaptureHeaders()) {
+                        for (Map.Entry<String, String> property: msg.getProperties().entrySet()) {
+                            messageContext.addHeader(property.getKey(), property.getValue());
+                        }
+                    }
+
+                    if (transaction.isSampled() && getCoreConfiguration().getCaptureBody() != CoreConfiguration.EventType.OFF) {
+                        messageContext.appendToBody("msgId=").appendToBody(msg.getMsgId()).appendToBody("; ")
+                            .appendToBody("body=").appendToBody(new String(msg.getBody()));
+                    }
                 }
             }
         } catch (Exception e) {
@@ -207,7 +220,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     }
 
     private boolean ignoreTopic(String topic) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic);
+        return WildcardMatcher.isAnyMatch(getMessagingConfiguration().getIgnoreMessageQueues(), topic);
     }
 
     private boolean isLambda(Object obj) {
