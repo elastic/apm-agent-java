@@ -149,22 +149,6 @@ pipeline {
 
           }
         }
-        // 10. Update cloudfoundry/index.yml
-        // Needs to append a line such as the following:
-        // 1.13.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.13.0/elastic-apm-agent-1.13.0.jar
-        stage('Update Cloudfoundry') {
-          steps {
-            dir("${basedir}") {
-              script {
-                sh("git checkout master")
-                def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
-                def baseUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent"
-                def lineToAppend = sh(script: "echo '$baseUrl: $baseUrl/$bareTag/elastic-apm-agent-$bareTag\.jar' >> cloudfoundry/index.yml ")
-                gitPush()
-              }
-            }
-          }
-        }
         // 11. Wait for released package to be available in maven central
         stage('Wait for artifact to be available in Maven Central') {
           steps {
@@ -189,13 +173,29 @@ pipeline {
 
           }
         }
-        // 12. Publish release on Github. This will notify users watching repository.
+        // 12. Update cloudfoundry/index.yml
+        // Needs to append a line such as the following:
+        // 1.13.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.13.0/elastic-apm-agent-1.13.0.jar
+        stage('Update Cloudfoundry') {
+          steps {
+            dir("${basedir}") {
+              script {
+                sh("git checkout master")
+                def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
+                def baseUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent"
+                def lineToAppend = sh(script: "echo '$baseUrl: $baseUrl/$bareTag/elastic-apm-agent-$bareTag\.jar' >> cloudfoundry/index.yml ")
+                gitPush()
+              }
+            }
+          }
+        }
+        // 13. Publish release on Github. This will notify users watching repository.
         stage('Publish release on GitHub') {
           steps {
             githubReleasePublish(id: ${env.RELEASE_ID})
           }
         }
-        // 13. Publish Docker images
+        // 14. Publish Docker images
         stage('Build and push Docker images') {
           steps {
             sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
