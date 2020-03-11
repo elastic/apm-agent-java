@@ -100,7 +100,7 @@ class MdcActivationListenerIT {
     }
 
     @Test
-    public void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4j() {
+   void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4j() {
         log4jMdcWorking = true;
         assertMdcErrorIdIsEmpty();
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
