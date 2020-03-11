@@ -32,12 +32,14 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Ignore
 public class RocketMQAsyncPullConsumerTest extends AbstractRocketMQConsumerInstrumentationTest {
 
     private static final Lock lock = new ReentrantLock();
@@ -56,7 +58,7 @@ public class RocketMQAsyncPullConsumerTest extends AbstractRocketMQConsumerInstr
         new Thread(() -> {
             while (running) {
                 try {
-                    MessageQueue messageQueue = consumer.fetchSubscribeMessageQueues(REQUEST_TOPIC).iterator().next();
+                    MessageQueue messageQueue = consumer.fetchSubscribeMessageQueues(getRequestTopic()).iterator().next();
                     if (offset < 0) {
                         offset = consumer.fetchConsumeOffset(messageQueue, true);
                     }

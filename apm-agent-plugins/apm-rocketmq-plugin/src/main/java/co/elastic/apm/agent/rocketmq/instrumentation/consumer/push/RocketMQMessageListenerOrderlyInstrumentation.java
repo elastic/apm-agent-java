@@ -79,7 +79,7 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
         private static void onEnter(@Advice.Local("transaction") Transaction transaction,
                                     @Advice.Local("helper") RocketMQInstrumentationHelper helper,
                                     @Advice.Argument(value = 0, readOnly = false) List<MessageExt> msgs) {
-            if (tracer == null || !tracer.isRunning() || helperClassManager == null) {
+            if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null || helperClassManager == null) {
                 return;
             }
 
@@ -88,10 +88,12 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
                 return;
             }
 
+            // by default, DefaultMQPushConsumer.consumeMessageBatchMaxSize=1
+            // create a transaction around the method so that the re make it
             if (msgs.size() == 1) {
                 transaction = helper.onConsumeStart(msgs.get(0));
             } else if (msgs.size() > 1 && !(msgs instanceof ConsumeMessageListWrapper)){
-                msgs = new ConsumeMessageListWrapper(msgs);
+                msgs = new ConsumeMessageListWrapper(msgs, helper);
             }
         }
 

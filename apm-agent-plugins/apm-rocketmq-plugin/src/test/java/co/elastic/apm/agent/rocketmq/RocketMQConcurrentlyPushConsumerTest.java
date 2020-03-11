@@ -48,8 +48,9 @@ public class RocketMQConcurrentlyPushConsumerTest extends AbstractRocketMQConsum
     public static void setupConsumer() throws MQClientException {
         consumer = new DefaultMQPushConsumer("Request-Consumer");
         consumer.setNamesrvAddr(rocketmq.getNameServer());
-        consumer.subscribe(REQUEST_TOPIC, "*");
-
+        consumer.subscribe(getRequestTopic(), "*");
+        consumer.setConsumeThreadMin(1);
+        consumer.setConsumeThreadMax(1);
         consumer.registerMessageListener(new MessageListenerOrderly() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
@@ -68,7 +69,7 @@ public class RocketMQConcurrentlyPushConsumerTest extends AbstractRocketMQConsum
     @Override
     void verifyConsumeTransactionContents(Transaction transaction, @Nullable Span parentSpan, String topic, @Nullable String messageValue) {
         super.verifyConsumeTransactionContents(transaction, parentSpan, topic, messageValue);
-        if (topic.equals(REQUEST_TOPIC)) {
+        if (topic.equals(getRequestTopic())) {
             assertThat(transaction.getResult()).isEqualTo(ConsumeOrderlyStatus.SUCCESS.name());
         }
     }

@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.rocketmq.helper;
 
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 
@@ -43,12 +45,18 @@ public class PullCallbackWrapper implements PullCallback {
 
     @Override
     public void onSuccess(PullResult pullResult) {
-        delegate.onSuccess(helper.replaceMsgList(pullResult));
+        PullResult resultToUse = existsTransaction() ? pullResult : helper.replaceMsgList(pullResult);
+        delegate.onSuccess(resultToUse);
     }
 
     @Override
     public void onException(Throwable e) {
         delegate.onException(e);
+    }
+
+    private boolean existsTransaction() {
+        ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
+        return tracer != null && tracer.currentTransaction() != null;
     }
 
 }

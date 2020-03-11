@@ -140,7 +140,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
                 pullResultExt.getNextBeginOffset(),
                 pullResultExt.getMinOffset(),
                 pullResultExt.getMaxOffset(),
-                new ConsumeMessageListWrapper(pullResultExt.getMsgFoundList()),
+                new ConsumeMessageListWrapper(pullResultExt.getMsgFoundList(), this),
                 pullResultExt.getSuggestWhichBrokerId(),
                 pullResultExt.getMessageBinary());
         } else {
@@ -148,7 +148,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
                 delegate.getNextBeginOffset(),
                 delegate.getMinOffset(),
                 delegate.getMaxOffset(),
-                new ConsumeMessageListWrapper(delegate.getMsgFoundList()));
+                new ConsumeMessageListWrapper(delegate.getMsgFoundList(), this));
         }
     }
 
@@ -164,13 +164,8 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     public Transaction onConsumeStart(MessageExt msg) {
         Transaction transaction = null;
         try {
-            Transaction currentTransaction = getTracer().currentTransaction();
-            if (isMessagingTransaction(currentTransaction)) {
-                currentTransaction.deactivate().end();
-            }
             String topic = msg.getTopic();
             if (!ignoreTopic(topic)) {
-                String traceParentProperty = msg.getUserProperty(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME);
                 transaction = getTracer().startChildTransaction(msg,
                     RocketMQMessageHeaderAccessor.getInstance(),
                     MQConsumer.class.getClassLoader());
@@ -184,7 +179,10 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
 
                     if (transaction.isSampled() && getCoreConfiguration().isCaptureHeaders()) {
                         for (Map.Entry<String, String> property: msg.getProperties().entrySet()) {
-                            messageContext.addHeader(property.getKey(), property.getValue());
+                            if (!TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME.equals(property.getKey()) &&
+                                WildcardMatcher.anyMatch(getCoreConfiguration().getSanitizeFieldNames(), property.getKey()) == null) {
+                                messageContext.addHeader(property.getKey(), property.getValue());
+                            }
                         }
                     }
 

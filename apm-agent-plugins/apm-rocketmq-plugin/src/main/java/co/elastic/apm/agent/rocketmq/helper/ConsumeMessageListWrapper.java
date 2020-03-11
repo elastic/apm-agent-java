@@ -37,8 +37,11 @@ public class ConsumeMessageListWrapper implements List<MessageExt> {
     @Nonnull
     private final List<MessageExt> delegate;
 
-    public ConsumeMessageListWrapper(@Nonnull List<MessageExt> delegate) {
+    private final RocketMQInstrumentationHelper helper;
+
+    public ConsumeMessageListWrapper(@Nonnull List<MessageExt> delegate, RocketMQInstrumentationHelper helper) {
         this.delegate = delegate;
+        this.helper = helper;
     }
 
     @Override
@@ -58,7 +61,7 @@ public class ConsumeMessageListWrapper implements List<MessageExt> {
 
     @Override
     public Iterator<MessageExt> iterator() {
-        return new ConsumeMessageIteratorWrapper(delegate.iterator());
+        return new ConsumeMessageIteratorWrapper(delegate.iterator(), helper);
     }
 
     @Override
@@ -153,6 +156,6 @@ public class ConsumeMessageListWrapper implements List<MessageExt> {
 
     @Override
     public List<MessageExt> subList(int fromIndex, int toIndex) {
-        return new ConsumeMessageListWrapper(delegate.subList(fromIndex, toIndex));
+        return new ConsumeMessageListWrapper(delegate.subList(fromIndex, toIndex), helper);
     }
 }

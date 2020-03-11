@@ -31,7 +31,9 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
+@Ignore
 public class RocketMQSyncPullConsumerTest extends AbstractRocketMQConsumerInstrumentationTest {
 
     private static DefaultMQPullConsumer consumer;
@@ -50,7 +52,7 @@ public class RocketMQSyncPullConsumerTest extends AbstractRocketMQConsumerInstru
         new Thread(() -> {
             try {
                 while (running) {
-                    MessageQueue messageQueue = consumer.fetchSubscribeMessageQueues(REQUEST_TOPIC).iterator().next();
+                    MessageQueue messageQueue = consumer.fetchSubscribeMessageQueues(getRequestTopic()).iterator().next();
                     if (offset < 0) {
                         offset = consumer.fetchConsumeOffset(messageQueue, true);
                     }
