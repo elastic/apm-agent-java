@@ -281,6 +281,32 @@ pipeline {
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
     }
+    stage('AfterRelease') {
+      options { skipDefaultCheckout() }
+      when {
+        tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+      }
+      stages {
+        stage('Opbeans') {
+          environment {
+            REPO_NAME = "${OPBEANS_REPO}"
+          }
+          steps {
+            deleteDir()
+            dir("${OPBEANS_REPO}"){
+              git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                  url: "git@github.com:elastic/${OPBEANS_REPO}.git"
+              // It's required to transform the tag value to the artifact version
+              sh script: ".ci/bump-version.sh ${env.BRANCH_NAME.replaceAll('^v', '')}", label: 'Bump version'
+              // The opbeans-java pipeline will trigger a release for the master branch
+              gitPush()
+              // The opbeans-java pipeline will trigger a release for the release tag
+              gitCreateTag(tag: "${env.BRANCH_NAME}")
+            }
+          }
+        }
+      }
+    }
   }
   post {
     cleanup {
