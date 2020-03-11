@@ -8,6 +8,15 @@
         "description": "A boolean specifying if the agent should be active or not.\nWhen active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\nWhen inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.\nAs this is a reversible switch, agent threads are not being killed when inactivated, but they will be \nmostly idle in this state, so the overhead should be negligible.\n\nYou can use this setting to dynamically disable Elastic APM at runtime."
     },
     {
+        "key": "instrument",
+        "type": "Boolean",
+        "category": "Core",
+        "default": "true",
+        "tags": [],
+        "since": "1.0.0",
+        "description": "A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.\n\nNOTE: Both active and instrument needs to be true for instrumentation to be running.\n\nNOTE: Changing this value at runtime can slow down the application temporarily."
+    },
+    {
         "key": "transaction_sample_rate",
         "type": "Double",
         "category": "Core",
@@ -38,6 +47,15 @@
         "tags": ["security"],
         "since": "1.0.0",
         "description": "Sometimes it is necessary to sanitize the data sent to Elastic APM,\ne.g. remove sensitive data.\n\nConfigure a list of wildcard patterns of field names which should be sanitized.\nThese apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n\nThis option supports the wildcard `*`, which matches zero or more characters.\nExamples: `/foo/*/bar/*/baz*`, `*foo*`.\nMatching is case insensitive by default.\nPrepending an element with `(?-i)` makes the matching case sensitive.\n\nNOTE: Data in the query string is considered non-sensitive,\nas sensitive information should not be sent in the query string.\nSee https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information\n\nNOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.\nIf you do find sensitive data in the Elasticsearch index,\nyou should add an additional entry to this list (make sure to also include the default entries)."
+    },
+    {
+        "key": "disable_instrumentations",
+        "type": "Collection",
+        "category": "Core",
+        "default": "incubating",
+        "tags": [],
+        "since": "1.0.0",
+        "description": "A list of instrumentations which should be disabled.\nValid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.\nIf you want to try out incubating features, set the value to an empty string.\n\nNOTE: Changing this value at runtime can slow down the application temporarily."
     },
     {
         "key": "unnest_exceptions",
@@ -74,6 +92,15 @@
         "tags": ["performance"],
         "since": "1.0.0",
         "description": "If set to `true`, the agent will capture request and response headers, including cookies.\n\nNOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations."
+    },
+    {
+        "key": "trace_methods",
+        "type": "List",
+        "category": "Core",
+        "default": "",
+        "tags": [],
+        "since": "1.0.0",
+        "description": "A list of methods for which to create a transaction or span.\n\nIf you want to monitor a large number of methods,\nuse  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.\n\nThis works by instrumenting each matching method to include code that creates a span for the method.\nWhile creating a span is quite cheap in terms of performance,\ninstrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.\n\nUsing a pointcut-like syntax, you can match based on\n\n - Method modifier (optional) +\n   Example: `public`, `protected`, `private` or `*`\n - Package and class name (wildcards include sub-packages) +\n   Example: `org.example.*`\n - Method name (optional since 1.4.0) +\n   Example: `myMeth*d`\n - Method argument types (optional) +\n   Example: `(*lang.String, int[])`\n - Classes with a specific annotation (optional) +\n   Example: `@*ApplicationScoped`\n - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +\n   Example: `@@javax.enterpr*se.context.NormalScope`\n\nThe syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.\n\nA few examples:\n\n - `org.example.*` added[1.4.0,Omitting the method is possible since 1.4.0]\n - `org.example.*#*` (before 1.4.0, you need to specify a method matcher)\n - `org.example.MyClass#myMethod`\n - `org.example.MyClass#myMethod()`\n - `org.example.MyClass#myMethod(java.lang.String)`\n - `org.example.MyClass#myMe*od(java.lang.String, int)`\n - `private org.example.MyClass#myMe*od(java.lang.String, *)`\n - `* org.example.MyClas*#myMe*od(*.String, int[])`\n - `public org.example.services.*Service#*`\n - `public @java.inject.ApplicationScoped org.example.*`\n - `public @java.inject.* org.example.*`\n - `public @@javax.enterprise.context.NormalScope org.example.*`\n\nNOTE: Only use wildcards if necessary.\nThe more methods you match the more overhead will be caused by the agent.\nAlso note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).\n\nNOTE: The agent will create stack traces for spans which took longer than\n<<config-span-frames-min-duration, `span_frames_min_duration`>>.\nWhen tracing a large number of methods (for example by using wildcards),\nthis may lead to high overhead.\nConsider increasing the threshold or disabling stack trace collection altogether.\n\nCommon configurations:\n\nTrace all public methods in CDI-Annotated beans:\n\n----\npublic @@javax.enterprise.context.NormalScope your.application.package.*\npublic @@javax.inject.Scope your.application.package.*\n----\nNOTE: This method is only available in the Elastic APM Java Agent.\n\nNOTE: Changing this value at runtime can slow down the application temporarily."
     },
     {
         "key": "central_config",
@@ -218,6 +245,85 @@
         "description": "Used to filter out specific messaging queues/topics from being traced. \n\nThis property should be set to an array containing one or more strings.\nWhen set, sends-to and receives-from the specified queues/topic will be ignored.\n\nThis option supports the wildcard `*`, which matches zero or more characters.\nExamples: `/foo/*/bar/*/baz*`, `*foo*`.\nMatching is case insensitive by default.\nPrepending an element with `(?-i)` makes the matching case sensitive."
     },
     {
+        "key": "circuit_breaker_enabled",
+        "type": "Boolean",
+        "category": "Circuit-Breaker",
+        "default": "false",
+        "tags": ["performance"],
+        "since": "1.0.0",
+        "description": "A boolean specifying whether the circuit breaker should be enabled or not. \nWhen enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. \nIf ANY of the monitors detects a stress indication, the agent will become inactive, as if the \n<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. \nWhen inactive, the agent continues polling the same monitors in order to detect whether the stress state \nhas been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the \nagent will resume and become fully functional."
+    },
+    {
+        "key": "stress_monitor_gc_stress_threshold",
+        "type": "Double",
+        "category": "Circuit-Breaker",
+        "default": "0.95",
+        "tags": ["performance"],
+        "since": "1.0.0",
+        "validation": {
+            "min": 0,
+            "max": 1,
+            "negativeMatch": false
+        },
+        "description": "The threshold used by the GC monitor to rely on for identifying heap stress.\nThe same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, \nthe agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured \nafter a recent GC."
+    },
+    {
+        "key": "stress_monitor_gc_relief_threshold",
+        "type": "Double",
+        "category": "Circuit-Breaker",
+        "default": "0.75",
+        "tags": ["performance"],
+        "since": "1.0.0",
+        "validation": {
+            "min": 0,
+            "max": 1,
+            "negativeMatch": false
+        },
+        "description": "The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .\nIf `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. \nIn order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should \nbe lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC."
+    },
+    {
+        "key": "stress_monitor_cpu_duration_threshold",
+        "type": "TimeDuration",
+        "category": "Circuit-Breaker",
+        "default": "1m",
+        "tags": ["performance"],
+        "since": "1.0.0",
+        "validation": {
+            "min": "0ms",
+            "max": "59s",
+            "negativeMatch": true
+        },
+        "description": "The minimal time required in order to determine whether the system is \neither currently under stress, or that the stress detected previously has been relieved. \nAll measurements during this time must be consistent in comparison to the relevant threshold in \norder to detect a change of stress state. Must be at least `1m`."
+    },
+    {
+        "key": "stress_monitor_system_cpu_stress_threshold",
+        "type": "Double",
+        "category": "Circuit-Breaker",
+        "default": "0.95",
+        "tags": ["performance"],
+        "since": "1.0.0",
+        "validation": {
+            "min": 0,
+            "max": 1,
+            "negativeMatch": false
+        },
+        "description": "The threshold used by the system CPU monitor to detect system CPU stress. \nIf the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, \nthe monitor considers this as a stress state."
+    },
+    {
+        "key": "stress_monitor_system_cpu_relief_threshold",
+        "type": "Double",
+        "category": "Circuit-Breaker",
+        "default": "0.8",
+        "tags": ["performance"],
+        "since": "1.0.0",
+        "validation": {
+            "min": 0,
+            "max": 1,
+            "negativeMatch": false
+        },
+        "description": "The threshold used by the system CPU monitor to determine that the system is \nnot under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below \nthis threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the \nmonitor to decide that the CPU stress has been relieved."
+    },
+    {
         "key": "capture_jmx_metrics",
         "type": "List",
         "category": "JMX",
@@ -275,7 +381,7 @@
         "key": "profiling_excluded_classes",
         "type": "List",
         "category": "Profiling",
-        "default": "(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*",
+        "default": "(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*",
         "tags": [],
         "since": "1.14.0",
         "description": "Excludes classes for which no profiler-inferred spans should be created.\n\nThis option supports the wildcard `*`, which matches zero or more characters.\nExamples: `/foo/*/bar/*/baz*`, `*foo*`.\nMatching is case insensitive by default.\nPrepending an element with `(?-i)` makes the matching case sensitive."

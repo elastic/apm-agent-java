@@ -13,7 +13,7 @@
         <#if option.validOptions?has_content>
         "enum": [${option.validOptions?map(option -> '"${option?json_string}"')?join(", ")}],
         </#if>
-        "since": "${option.tags?filter(tag -> tag?starts_with("added"))?map(added -> added?replace("added\\[(.*?)\\]", "$1", "r"))?first!"1.0.0"}",
+        "since": "${option.tags?filter(tag -> tag?starts_with("added"))?map(added -> added?replace("added\\[(.*?)(,.*?)?\\]", "$1", "r"))?first!"1.0.0"}",
         <#assign regexValidator= validatorAccessor.getRegexValidator(option)!/>
         <#assign rangeValidator= validatorAccessor.getRangeValidator(option)!/>
         <#if regexValidator?has_content || rangeValidator?has_content>

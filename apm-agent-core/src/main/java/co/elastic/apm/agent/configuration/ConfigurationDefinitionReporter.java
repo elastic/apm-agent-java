@@ -1,6 +1,6 @@
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.HttpUtils;
@@ -20,7 +20,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * Sends a definition of all available dynamic configuration options to APM Server so that the APM Kibana app can offer those options for central configuration
  */
-public class ConfigurationDefinitionReporter implements LifecycleListener, Runnable {
+public class ConfigurationDefinitionReporter extends AbstractLifecycleListener implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigurationDefinitionReporter.class);
     private static final String FAILED_LOG = "Failed to send central configuration definition to APM Server with status {} and message '{}'";
@@ -75,9 +75,5 @@ public class ConfigurationDefinitionReporter implements LifecycleListener, Runna
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-    }
-
-    @Override
-    public void stop() {
     }
 }
