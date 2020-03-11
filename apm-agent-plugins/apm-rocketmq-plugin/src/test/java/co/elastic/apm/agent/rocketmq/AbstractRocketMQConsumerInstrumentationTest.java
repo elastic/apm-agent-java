@@ -116,9 +116,16 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
                 producer.createTopic(MixAll.DEFAULT_TOPIC, REPLY_TOPIC, 1);
             } catch (Exception exception) {
                 createTopicExp = exception;
+                try {
+                    Thread.sleep((retry+1) * 100);
+                } catch (Exception ignore) {
+
+                }
+
             }
         }
         if (createTopicExp != null) {
+            createTopicExp.printStackTrace();
             throw new IllegalStateException("Create topic failure.", createTopicExp);
         }
 
@@ -364,8 +371,6 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         assertThat(iterator.hasNext()).isFalse();
     }
 
-
-
     private void verifyTracing() {
         List<Span> spans = reporter.getSpans();
 
@@ -467,26 +472,22 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
 
         private DefaultMQPullConsumer consumer;
 
-        private MessageQueue messageQueue;
-
         private long offset = 0;
-
-        private boolean running = false;
 
         public synchronized void start() {
             try {
                 consumer = new DefaultMQPullConsumer("Reply-Consumer");
                 consumer.setNamesrvAddr(rocketmq.getNameServer());
                 consumer.start();
-                messageQueue = consumer.fetchSubscribeMessageQueues(REPLY_TOPIC).iterator().next();
             } catch (MQClientException e) {
-                System.err.println("Error in consumer start:" + e.getMessage());
+                logger.error("Error in consumer start.", e);
             }
         }
 
         public List<MessageExt> poll(int size) {
             try {
-                PullResult pullResult = consumer.pull(consumer.fetchSubscribeMessageQueues(REPLY_TOPIC).iterator().next(), null, offset, size, 2000);
+                MessageQueue messageQueue = consumer.fetchSubscribeMessageQueues(REPLY_TOPIC).iterator().next();
+                PullResult pullResult = consumer.pull(messageQueue, null, offset, size, 2000);
                 offset = pullResult.getNextBeginOffset();
                 if (pullResult.getPullStatus() == PullStatus.FOUND) {
                     List<MessageExt> messageExts =  pullResult.getMsgFoundList();
@@ -498,7 +499,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
                     return this.poll(size);
                 }
             } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
-                System.err.println("Error in poll message:" + e.getMessage());
+                logger.error("Error in poll message", e);
             }
             return this.poll(size);
         }

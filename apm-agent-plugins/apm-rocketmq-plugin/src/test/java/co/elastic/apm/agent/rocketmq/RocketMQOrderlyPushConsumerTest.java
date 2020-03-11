@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.rocketmq;
 
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
@@ -33,7 +35,10 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import javax.annotation.Nullable;
 import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class RocketMQOrderlyPushConsumerTest extends AbstractRocketMQConsumerInstrumentationTest {
 
@@ -58,6 +63,14 @@ public class RocketMQOrderlyPushConsumerTest extends AbstractRocketMQConsumerIns
     @AfterClass
     public static void shutdownConsumer() {
         consumer.shutdown();
+    }
+
+    @Override
+    void verifyConsumeTransactionContents(Transaction transaction, @Nullable Span parentSpan, String topic, @Nullable String messageValue) {
+        super.verifyConsumeTransactionContents(transaction, parentSpan, topic, messageValue);
+        if (topic.equals(REQUEST_TOPIC)) {
+            assertThat(transaction.getResult()).isEqualTo(ConsumeOrderlyStatus.SUCCESS.name());
+        }
     }
 
 }
