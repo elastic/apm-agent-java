@@ -61,15 +61,31 @@ pipeline {
         // 2. Review project version.
         stage('Review project version') {
           steps {
+            // 2.1 Fetch the current version from pom.xml
+            def ver = mvnVersion(showQualifiers: true)
+            // 2.2 Raise a prompt asking if the version is correct or if they wish to update
             script {
-              // Show the select input modal
-              def INPUT_PARAMS = input message: 'Do you wish to update the version?', ok: 'Next', parameters: [choice(name: 'UPDATE_CHOICE', choices:['Yes', 'No'], description: "This will run `mvn release:update-versions`")]
-              if (INPUT_PARAMS == 'Yes') {
-                  dir("${BASE_DIR}") {
-                    sh mvn release:update-versions
-                  }
+              def should_continue = input(message: "Current version is ${ver}", parameters: [
+                [
+                  $class: 'ChoiceParameterDefinition',
+                  name: "Do you wish to update the version?",
+                  "choices": ["Yes", "No"],
+                  description: "Selecting 'Yes' will allow you to select the new version in the next step."
+                ]
+              ])
+              if (should_continue == 'Yes'){
+                def new_version = input(message: "Please enter version to change to:", parameters:
+                  [
+                    [
+                      $class: 'StringParameterDefinition',
+                      defaultValue: "${ver}",
+                      description: 'We will run mvn versions:set -DnewVersion=<NEW_VERSION>', name: 'New Version'
+                    ]
+                  ]
+                )
+                sh(name: "mavenVersionUpdate", script: "mvn versions:set -DnewVersion=${new_version}")
               } else {
-                  echo 'Skipping version update'
+                echo "Skipping version update"
               }
             }
           }
