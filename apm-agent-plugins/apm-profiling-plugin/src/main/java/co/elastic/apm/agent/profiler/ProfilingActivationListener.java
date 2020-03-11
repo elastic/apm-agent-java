@@ -26,6 +26,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 
 import java.util.Objects;
@@ -46,7 +47,7 @@ public class ProfilingActivationListener implements ActivationListener {
 
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
-        if (!context.isSampled()) {
+        if (!context.isSampled() || context instanceof ErrorCapture) {
             return;
         }
         profiler.onActivation(context, tracer.getActive());
@@ -54,7 +55,7 @@ public class ProfilingActivationListener implements ActivationListener {
 
     @Override
     public void afterDeactivate(TraceContextHolder<?> deactivatedContext) throws Throwable {
-        if (!deactivatedContext.isSampled()) {
+        if (!deactivatedContext.isSampled() || deactivatedContext instanceof ErrorCapture) {
             return;
         }
         profiler.onDeactivation(deactivatedContext, tracer.getActive());

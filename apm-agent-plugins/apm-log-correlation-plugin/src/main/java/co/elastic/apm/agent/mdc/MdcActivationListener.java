@@ -159,7 +159,7 @@ public class MdcActivationListener implements ActivationListener {
                         put.invoke(TRACE_ID, traceContext.getTraceId().toString());
                         put.invoke(TRANSACTION_ID, traceContext.getTransactionId().toString());
                     }
-                    if (tracer != null && context instanceof ErrorCapture) {
+                    if (context instanceof ErrorCapture) {
                         put.invoke(ERROR_ID, traceContext.getId().toString());
                     }
                 }

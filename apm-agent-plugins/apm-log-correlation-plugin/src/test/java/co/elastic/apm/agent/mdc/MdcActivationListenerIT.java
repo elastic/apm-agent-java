@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,33 +34,32 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class MdcActivationListenerIT {
-
-    private static final Logger logger = LoggerFactory.getLogger(MdcActivationListenerIT.class);
-    private static final org.apache.logging.log4j.Logger apacheLogger = LogManager.getLogger(MdcActivationListenerIT.class);
 
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
     private LoggingConfiguration loggingConfiguration;
-
-    private Boolean log4jMdcWorking;
 
     @BeforeAll
     static void beforeAll() {
@@ -87,46 +86,53 @@ class MdcActivationListenerIT {
     }
 
     @Test
-   void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithSlf4j() {
-        log4jMdcWorking = true;
-        assertMdcErrorIdIsEmpty();
+    void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithSlf4j() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Logger mockedLogger = mock(Logger.class);
+        doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(mockedLogger).error(anyString(), any(Exception.class));
+
+        assertMdcErrorIdIsEmpty();
 
         Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
         transaction.activate();
-        logger.error("Some slf4j exception", new RuntimeException("Hello exception"));
-        assertMdcErrorIdIsNotBlank();
-        transaction.end();
+        mockedLogger.error("Some slf4j exception", new RuntimeException("Hello exception"));
+        transaction.deactivate().end();
+
+        assertMdcErrorIdIsEmpty();
     }
 
     @Test
-   void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4j() {
+    void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4j() {
         Assumptions.assumeTrue(() -> {
             org.apache.log4j.MDC.put("test", true);
             return org.apache.log4j.MDC.get("test") == Boolean.TRUE;
         }, "Log4j MDC is not working, this happens with some versions of Java 10 where log4j thinks it's Java 1");
-        assertMdcErrorIdIsEmpty();
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        org.apache.logging.log4j.Logger logger = mock(org.apache.logging.log4j.Logger.class);
+        doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(logger).error(anyString(), any(Exception.class));
+
+        assertMdcErrorIdIsEmpty();
 
         Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
         transaction.activate();
-        apacheLogger.error("Some apache logger exception", new RuntimeException("Hello exception"));
+        logger.error("Some apache logger exception", new RuntimeException("Hello exception"));
+        transaction.deactivate().end();
 
-        assertMdcErrorIdIsNotBlank();
-        transaction.end();
+        assertMdcErrorIdIsEmpty();
     }
 
     private void assertMdcErrorIdIsEmpty() {
         assertThat(MDC.get("error.id")).isNull();
-        if (log4jMdcWorking == Boolean.TRUE) {
+        if (org.apache.log4j.MDC.get("test") == Boolean.TRUE) {
             assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
         }
     }
 
-    private void assertMdcErrorIdIsNotBlank() {
+    private Answer<Void> assertMdcErrorIdIsNotEmpty() {
         assertThat(MDC.get("error.id")).isNotBlank();
-        if (log4jMdcWorking == Boolean.TRUE) {
+        if (org.apache.log4j.MDC.get("test") == Boolean.TRUE) {
             assertThat(org.apache.log4j.MDC.get("error.id")).isNotNull();
         }
+        return null;
     }
 }

@@ -148,7 +148,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
 
     @Override
     public Span createSpan() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
     }
 
     @Override
@@ -159,7 +159,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
 
     @Override
     public boolean isChildOf(TraceContextHolder other) {
-        throw new UnsupportedOperationException();
+        return getTraceContext().isChildOf(other);
     }
 
     @Override
