@@ -108,7 +108,7 @@ class MdcActivationListenerIT {
     void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithSlf4jNotInTransaction() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
         Logger mockedLogger = mock(Logger.class);
-        doAnswer(invocation -> assertMdcErrorIdIsEmpty()).when(mockedLogger).error(anyString(), any(Exception.class));
+        doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(mockedLogger).error(anyString(), any(Exception.class));
 
         assertMdcErrorIdIsEmpty();
 
@@ -146,7 +146,7 @@ class MdcActivationListenerIT {
         }, "Log4j MDC is not working, this happens with some versions of Java 10 where log4j thinks it's Java 1");
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
         org.apache.logging.log4j.Logger logger = mock(org.apache.logging.log4j.Logger.class);
-        doAnswer(invocation -> assertMdcErrorIdIsEmpty()).when(logger).error(anyString(), any(Exception.class));
+        doAnswer(invocation -> assertMdcErrorIdIsNotEmpty()).when(logger).error(anyString(), any(Exception.class));
 
         assertMdcErrorIdIsEmpty();
 
@@ -155,13 +155,11 @@ class MdcActivationListenerIT {
         assertMdcErrorIdIsEmpty();
     }
 
-
-    private Answer<Void> assertMdcErrorIdIsEmpty() {
+    private void assertMdcErrorIdIsEmpty() {
         assertThat(MDC.get("error.id")).isNull();
         if (org.apache.log4j.MDC.get("test") == Boolean.TRUE) {
             assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
         }
-        return null;
     }
 
     private Answer<Void> assertMdcErrorIdIsNotEmpty() {

@@ -63,7 +63,7 @@ public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumen
                                     @Advice.Local("nested") boolean nested,
                                     @Advice.This Object thiz,
                                     @Advice.Local("error") @Nullable ErrorCapture error) {
-            if (tracer == null || tracer.getActive() == null) {
+            if (tracer == null) {
                 return;
             }
             nested = nestedThreadLocal.get();
