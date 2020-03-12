@@ -55,7 +55,7 @@ public class ProfilingActivationListener implements ActivationListener {
 
     @Override
     public void afterDeactivate(TraceContextHolder<?> deactivatedContext) throws Throwable {
-        if (!deactivatedContext.isSampled()) {
+        if (!deactivatedContext.isSampled() || deactivatedContext instanceof ErrorCapture) {
             return;
         }
         profiler.onDeactivation(deactivatedContext, tracer.getActive());

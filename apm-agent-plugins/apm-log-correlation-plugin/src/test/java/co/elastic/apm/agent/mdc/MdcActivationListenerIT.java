@@ -157,16 +157,12 @@ class MdcActivationListenerIT {
 
     private void assertMdcErrorIdIsEmpty() {
         assertThat(MDC.get("error.id")).isNull();
-        if (org.apache.log4j.MDC.get("test") == Boolean.TRUE) {
-            assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
-        }
+        assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
     }
 
     private Answer<Void> assertMdcErrorIdIsNotEmpty() {
         assertThat(MDC.get("error.id")).isNotBlank();
-        if (org.apache.log4j.MDC.get("test") == Boolean.TRUE) {
-            assertThat(org.apache.log4j.MDC.get("error.id")).isNotNull();
-        }
+        assertThat(org.apache.log4j.MDC.get("error.id")).isNotNull();
         return null;
     }
 }
