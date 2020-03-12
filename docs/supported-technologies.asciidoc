@@ -418,7 +418,7 @@ If you are seeing gaps in the span timeline and want to include certain methods,
 |Sampling-based profiler (experimental) added[1.14.0]
 |Leverages https://github.com/jvm-profiling-tools/async-profiler[async-profiler]
  to periodically record which methods are running (stack traces).
- Enable by setting <<config-profiling-spans-enabled, `profiling_spans_enabled`>> to `true`.
+ Enable by setting <<config-profiling-inferred-spans-enabled, `profiling_inferred_spans_enabled`>> to `true`.
 |Very low overhead, no code changes required.
  Great to find out which parts of the code make your application slow,
  without having to apply application-specific configuration.
