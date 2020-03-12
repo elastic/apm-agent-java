@@ -41,7 +41,7 @@ endif::[]
 
 [float]
 ===== Potentially breaking changes
-* Renamed some configuration options related to the experimental profiler-inferred spans feature:
+* Renamed some configuration options related to the experimental profiler-inferred spans feature ({pull}1084[#1084]):
 ** `profiling_spans_enabled` -> `profiling_inferred_spans_enabled`
 ** `profiling_sampling_interval` -> `profiling_inferred_spans_sampling_interval`
 ** `profiling_spans_min_duration` -> `profiling_inferred_spans_min_duration`
