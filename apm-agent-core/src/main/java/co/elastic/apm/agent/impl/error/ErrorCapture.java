@@ -154,7 +154,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
     @Override
     @Nullable
     public Span createSpan(long epochMicros) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
     }
 
     @Override
@@ -164,12 +164,12 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
 
     @Override
     public Runnable withActive(Runnable runnable) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Wrapping of provided Runnable of an error is not possible");
     }
 
     @Override
     public <V> Callable<V> withActive(Callable<V> callable) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Wrapping of provided Callable of an error is not possible");
     }
 
     public void setException(Throwable e) {

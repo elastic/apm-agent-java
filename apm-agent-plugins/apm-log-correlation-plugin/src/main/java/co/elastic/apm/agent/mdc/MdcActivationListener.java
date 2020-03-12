@@ -155,12 +155,11 @@ public class MdcActivationListener implements ActivationListener {
                 MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(context));
                 if (put != null && put != NOOP) {
                     TraceContext traceContext = context.getTraceContext();
-                    if (tracer.getActive() == null) {
-                        put.invoke(TRACE_ID, traceContext.getTraceId().toString());
-                        put.invoke(TRANSACTION_ID, traceContext.getTransactionId().toString());
-                    }
                     if (context instanceof ErrorCapture) {
                         put.invoke(ERROR_ID, traceContext.getId().toString());
+                    } else if (tracer.getActive() == null) {
+                        put.invoke(TRACE_ID, traceContext.getTraceId().toString());
+                        put.invoke(TRANSACTION_ID, traceContext.getTransactionId().toString());
                     }
                 }
             }
@@ -174,10 +173,11 @@ public class MdcActivationListener implements ActivationListener {
             for (WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcRemoveMethodHandleCache : mdcRemoveMethodHandleCaches) {
                 MethodHandle remove = mdcRemoveMethodHandleCache.get(getApplicationClassLoader(deactivatedContext));
                 if (remove != null && remove != NOOP) {
-                    if (tracer.getActive() == null) {
+                    if (deactivatedContext instanceof ErrorCapture) {
+                        remove.invokeExact(ERROR_ID);
+                    } else if (tracer.getActive() == null) {
                         remove.invokeExact(TRACE_ID);
                         remove.invokeExact(TRANSACTION_ID);
-                        remove.invokeExact(ERROR_ID);
                     }
                 }
             }

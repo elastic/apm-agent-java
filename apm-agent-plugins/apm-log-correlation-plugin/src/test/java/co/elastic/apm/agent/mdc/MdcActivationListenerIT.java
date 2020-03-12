@@ -96,7 +96,23 @@ class MdcActivationListenerIT {
         Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
         transaction.activate();
         mockedLogger.error("Some slf4j exception", new RuntimeException("Hello exception"));
+
+        assertMdcErrorIdIsEmpty();
+
         transaction.deactivate().end();
+
+        assertMdcErrorIdIsEmpty();
+    }
+
+    @Test
+    void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithSlf4jNotInTransaction() {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Logger mockedLogger = mock(Logger.class);
+        doAnswer(invocation -> assertMdcErrorIdIsEmpty()).when(mockedLogger).error(anyString(), any(Exception.class));
+
+        assertMdcErrorIdIsEmpty();
+
+        mockedLogger.error("Some slf4j exception", new RuntimeException("Hello exception"));
 
         assertMdcErrorIdIsEmpty();
     }
@@ -116,16 +132,36 @@ class MdcActivationListenerIT {
         Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
         transaction.activate();
         logger.error("Some apache logger exception", new RuntimeException("Hello exception"));
+        assertMdcErrorIdIsEmpty();
         transaction.deactivate().end();
 
         assertMdcErrorIdIsEmpty();
     }
 
-    private void assertMdcErrorIdIsEmpty() {
+    @Test
+    void testVerifyThatWithEnabledCorrelationAndLoggedErrorMdcErrorIdIsNotBlankWithLog4jNotInTransaction() {
+        Assumptions.assumeTrue(() -> {
+            org.apache.log4j.MDC.put("test", true);
+            return org.apache.log4j.MDC.get("test") == Boolean.TRUE;
+        }, "Log4j MDC is not working, this happens with some versions of Java 10 where log4j thinks it's Java 1");
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        org.apache.logging.log4j.Logger logger = mock(org.apache.logging.log4j.Logger.class);
+        doAnswer(invocation -> assertMdcErrorIdIsEmpty()).when(logger).error(anyString(), any(Exception.class));
+
+        assertMdcErrorIdIsEmpty();
+
+        logger.error("Some apache logger exception", new RuntimeException("Hello exception"));
+
+        assertMdcErrorIdIsEmpty();
+    }
+
+
+    private Answer<Void> assertMdcErrorIdIsEmpty() {
         assertThat(MDC.get("error.id")).isNull();
         if (org.apache.log4j.MDC.get("test") == Boolean.TRUE) {
             assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
         }
+        return null;
     }
 
     private Answer<Void> assertMdcErrorIdIsNotEmpty() {
