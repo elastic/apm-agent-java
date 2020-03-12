@@ -415,7 +415,7 @@ If you are seeing gaps in the span timeline and want to include certain methods,
 |Less flexible on it's own but can be combined with the API.
  Just get the <<api-current-span, current span>> on an annotated method and customize the span to your liking.
 
-|Sampling-based profiler (incubating) added[1.14.0]
+|Sampling-based profiler (experimental) added[1.14.0]
 |Leverages https://github.com/jvm-profiling-tools/async-profiler[async-profiler]
  to periodically record which methods are running (stack traces).
  Enable by setting <<config-profiling-spans-enabled, `profiling_spans_enabled`>> to `true`.
