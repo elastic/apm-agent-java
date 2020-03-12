@@ -427,7 +427,7 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public ErrorCapture captureAndReportException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+    public ErrorCapture captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
         ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
         if (errorCapture != null) {
             reporter.report(errorCapture);

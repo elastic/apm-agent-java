@@ -61,14 +61,14 @@ public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumen
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void logEnter(@Advice.Argument(1) Throwable exception,
                                     @Advice.Local("nested") boolean nested,
-                                    @Advice.This Object thiz,
+                                    @Advice.Origin Class<?> clazz,
                                     @Advice.Local("error") @Nullable ErrorCapture error) {
             if (tracer == null) {
                 return;
             }
             nested = nestedThreadLocal.get();
             if (!nested) {
-                error = tracer.captureException(exception, tracer.getActive(), thiz.getClass().getClassLoader()).activate();
+                error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader()).activate();
                 nestedThreadLocal.set(Boolean.TRUE);
             }
         }
