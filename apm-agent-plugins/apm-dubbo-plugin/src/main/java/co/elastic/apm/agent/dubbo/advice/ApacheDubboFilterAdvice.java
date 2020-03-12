@@ -31,6 +31,7 @@ import co.elastic.apm.agent.dubbo.helper.DubboApiInfo;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -59,7 +60,9 @@ public class ApacheDubboFilterAdvice {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnterFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                            @Advice.Local("span") Span span,
-                                           @Advice.Local("apiClazz") Class<?> apiClazz) {
+                                           @Advice.Local("apiClazz") Class<?> apiClazz,
+                                           @Advice.Local("transaction") Transaction transaction,
+                                           @Advice.Local("scope") Scope scope) {
         RpcContext context = RpcContext.getContext();
         String version = context.getUrl().getParameter("version");
         Invoker<?> invoker = invocation.getInvoker();
@@ -68,6 +71,9 @@ public class ApacheDubboFilterAdvice {
             apiClazz, invocation.getMethodName(),
             invocation.getParameterTypes(), version);
         ApacheDubboAttachmentHelper helper = helperClassManager.getForClassLoaderOfClass(Invocation.class);
+        if (helper == null) {
+            return;
+        }
         // for consumer side, just create span, more information will be collected in provider side
         if (context.isConsumerSide()) {
             if (tracer == null || tracer.getActive() == null) {
@@ -83,12 +89,9 @@ public class ApacheDubboFilterAdvice {
 
 
         // for provider side
-        if (tracer.currentTransaction() == null) {
-            tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader()).activate();
-        }
-
-        Transaction transaction = tracer.currentTransaction();
+        transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
         if (transaction != null) {
+            scope = transaction.activateInScope();
             DubboTraceHelper.fillTransaction(transaction, dubboApiInfo);
         }
     }
@@ -98,7 +101,9 @@ public class ApacheDubboFilterAdvice {
                                           @Advice.Return Result result,
                                           @Advice.Local("span") Span span,
                                           @Advice.Local("apiClazz") Class<?> apiClazz,
-                                          @Advice.Thrown Throwable t) {
+                                          @Advice.Thrown Throwable t,
+                                          @Advice.Local("transaction") Transaction transaction,
+                                          @Advice.Local("scope") Scope scope) {
 
         Throwable actualExp = t != null ? t : result.getException();
         RpcContext context = RpcContext.getContext();
@@ -120,7 +125,9 @@ public class ApacheDubboFilterAdvice {
         }
 
         // provider side
-        Transaction transaction = tracer.currentTransaction();
+        if (scope != null) {
+            scope.close();
+        }
         if (transaction != null) {
             try {
                 boolean hasError = actualExp != null
