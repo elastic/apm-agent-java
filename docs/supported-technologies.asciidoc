@@ -423,10 +423,8 @@ If you are seeing gaps in the span timeline and want to include certain methods,
  Great to find out which parts of the code make your application slow,
  without having to apply application-specific configuration.
 |Does not work on Windows.
- Only creates spans while a profiling session is ongoing.
- This can be controlled via <<config-profiling-duration, `profiling_duration`>> and <<config-profiling-interval, `profiling_interval`>>.
  The duration of profiler-inferred spans are not exact measurements, only estimates.
- The accuracy depends on <<config-profiling-sampling-interval, `profiling_sampling_interval`>>.
+ The accuracy depends on <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spans_sampling_interval`>>.
 
 |Configuration-based method instrumentation
 |Use the <<config-trace-methods, `trace_methods`>> configuration option to specify additional methods to instrument.
