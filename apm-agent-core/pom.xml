@@ -170,7 +170,7 @@
 
     <profiles>
         <profile>
-            <id>update-gherkins-spec</id>
+            <id>update-gherkin-spec</id>
             <build>
                 <plugins>
                     <plugin>
