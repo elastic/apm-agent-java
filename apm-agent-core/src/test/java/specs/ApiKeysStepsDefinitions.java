@@ -25,7 +25,6 @@
 package specs;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.HttpUtils;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -38,7 +37,6 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -55,11 +53,6 @@ import static org.assertj.core.api.Fail.fail;
 import static org.mockito.Mockito.when;
 
 public class ApiKeysStepsDefinitions {
-
-    // those constants should be provided by the gherkin test, not using hard-coded values
-    // as it would require to update the test definition, we'll keep it as-is for now.
-    private static final String SECRET_TOKEN = "secr3tT0ken";
-    private static final String API_KEY = "@p1Key";
 
     // so far, only reporter and it's configuration is being tested
     private ReporterConfiguration configuration = null;
@@ -106,11 +99,6 @@ public class ApiKeysStepsDefinitions {
             .thenReturn(value);
     }
 
-    @When("an api key is set in the config")
-    public void setApiKey() {
-        setApiKeyConfig(API_KEY);
-    }
-
     @And("an api key is not set in the config")
     public void apiKeyNotSetInConfig() {
         // this is the default, thus there is nothing to do but to assert for it just in case
@@ -118,22 +106,7 @@ public class ApiKeysStepsDefinitions {
             .isNull();
     }
 
-    @Then("the api key is sent in the Authorization header")
-    public void assertApiKeyInAuthorizationHeader() {
-        checkExpectedHeader("ApiKey " + API_KEY);
-    }
-
     // Secret token
-
-    @And("a secret_token is set in the config")
-    public void secretTokenSetInConfig() {
-        setSecretToken(SECRET_TOKEN);
-    }
-
-    @Then("the secret token is sent in the Authorization header")
-    public void secretTokenIsSent() {
-        checkExpectedHeader("Bearer " + SECRET_TOKEN);
-    }
 
     @When("a secret_token is set to {string} in the config")
     public void setSecretToken(String value) {
