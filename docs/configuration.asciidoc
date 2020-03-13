@@ -121,6 +121,7 @@ Click on a key to get more information.
 ** <<config-profiling-duration>>
 * <<config-reporter>>
 ** <<config-secret-token>>
+** <<config-api-key>>
 ** <<config-server-urls>>
 ** <<config-server-timeout>>
 ** <<config-verify-server-cert>>
@@ -1674,6 +1675,31 @@ Use if APM Server requires a token.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-api-key]]
+==== `api_key`
+
+This string is used to ensure that only your agents can send data to your APM server.
+
+Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.
+When both secret token and API key are used, API key has priority and secret token is ignored.
+Use if APM Server requires an API key.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.api_key` | `api_key` | `ELASTIC_APM_API_KEY`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-server-urls]]
 ==== `server_urls`
 
@@ -2905,6 +2931,18 @@ The default unit for this option is `ms`.
 # Default value: 
 #
 # secret_token=
+
+# This string is used to ensure that only your agents can send data to your APM server.
+# 
+# Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.
+# When both secret token and API key are used, API key has priority and secret token is ignored.
+# Use if APM Server requires an API key.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# api_key=
 
 # The URLs for your APM Servers
 #

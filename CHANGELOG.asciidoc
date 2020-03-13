@@ -29,10 +29,10 @@ endif::[]
 [float]
 ===== Features
 * Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
-
 * Add support for <<supported-databases, Redis Redisson client>>
 * Makes <<config-instrument>>, <<config-trace-methods>>, and <<config-disable-instrumentations>> dynamic.
   Note that changing these values at runtime can slow down the application temporarily.
+* Add support for API keys for apm backend authentication {pull}1083[#1083]
 
 [float]
 ===== Bug fixes
