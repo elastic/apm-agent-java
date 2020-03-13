@@ -183,7 +183,8 @@
                         </configuration>
                         <executions>
                             <execution>
-                                <phase>process-test-resources</phase>
+                                <!-- make sure we update specs before executing tests-->
+                                <phase>validate</phase>
                                 <goals>
                                     <goal>exec</goal>
                                 </goals>
