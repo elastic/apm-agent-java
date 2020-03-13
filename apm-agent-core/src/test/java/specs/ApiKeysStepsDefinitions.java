@@ -24,6 +24,7 @@
  */
 package specs;
 
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.HttpUtils;
@@ -51,7 +52,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ApiKeysStepsDefinitions {
@@ -89,18 +89,13 @@ public class ApiKeysStepsDefinitions {
     @Given("an agent")
     public void initAgent() {
         // we just initialize configuration as reporter is initialized lazily
-        configuration = mock(ReporterConfiguration.class);
+        configuration = SpyConfiguration.createSpyConfig().getConfig(ReporterConfiguration.class);
 
         URL serverUrl = buildUrl(String.format("http://localhost:%d/", server.port()));
 
         when(configuration.getServerUrls())
             .thenReturn(Collections.singletonList(serverUrl));
 
-        // just required to avoid NPEs
-        when(configuration.getServerUrlsOption())
-            .thenReturn(mock(ConfigurationOption.class));
-        when(configuration.getServerTimeout())
-            .thenReturn(TimeDuration.of("1s"));
     }
 
     // API Key
