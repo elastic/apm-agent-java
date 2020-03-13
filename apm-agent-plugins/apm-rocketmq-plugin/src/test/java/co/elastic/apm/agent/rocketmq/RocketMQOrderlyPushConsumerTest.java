@@ -34,14 +34,12 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Ignore
 public class RocketMQOrderlyPushConsumerTest extends AbstractRocketMQConsumerInstrumentationTest {
 
     private static DefaultMQPushConsumer consumer;

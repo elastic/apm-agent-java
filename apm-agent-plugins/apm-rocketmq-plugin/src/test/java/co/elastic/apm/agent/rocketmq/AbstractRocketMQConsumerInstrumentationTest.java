@@ -59,7 +59,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.MethodRule;
-import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +68,7 @@ import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -81,7 +81,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
 
     private static int TOPIC_VERSION = 0;
 
-    private static boolean createTopicSuccess = false;
+    private static final AtomicBoolean sendCallbackDone = new AtomicBoolean(false);
 
     private static final String FIRST_MESSAGE_BODY = "First message body";
     private static final String SECOND_MESSAGE_BODY = "Second message body";
@@ -89,8 +89,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     private static final String TEST_HEADER_KEY = "Test-Header";
     private static final String PASSWORD_HEADER_KEY = "password";
     private static final String TEST_PROPERTY_VALUE = "Test-Property-Value";
-
-    protected static RocketMQContainer rocketmq;
+    protected static RocketMQContainer rocketmq = new RocketMQContainer();
     private static TestScenario testScenario;
     private static RecordIterationMode iterationMode;
 
@@ -102,26 +101,27 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
 
     @Nonnull
     private static ReplyConsumer replyConsumer;
+    private static boolean TOPIC_CREATION_SUCCESS = false;
 
     public AbstractRocketMQConsumerInstrumentationTest() {
         this.coreConfiguration = config.getConfig(CoreConfiguration.class);
         this.messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
+    static {
+        rocketmq.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> rocketmq.close()));
+    }
+
     @Rule
-    public MethodRule skipRule = new MethodRule() {
+    public MethodRule skipRule = (base, method, target) -> new Statement() {
         @Override
-        public Statement apply(Statement base, FrameworkMethod method, Object target) {
-            return new Statement() {
-                @Override
-                public void evaluate() throws Throwable {
-                    if (createTopicSuccess) {
-                        base.evaluate();
-                    } else {
-                        logger.warn("Create topic failure, skip test#{}", method.getName());
-                    }
-                }
-            };
+        public void evaluate() throws Throwable {
+            if (TOPIC_CREATION_SUCCESS) {
+                base.evaluate();
+            } else {
+                logger.warn("Create topic failure, skip test#{}", method.getName());
+            }
         }
     };
 
@@ -129,17 +129,12 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         return "Request-Topic-" + TOPIC_VERSION;
     }
 
-    static String getReplyTopic() {
+    private static String getReplyTopic() {
         return "Reply-Topic-" + TOPIC_VERSION;
     }
 
     @BeforeClass
     public static void setup() throws MQClientException {
-        if (rocketmq == null) {
-            rocketmq = new RocketMQContainer();
-            rocketmq.start();
-        }
-
         TOPIC_VERSION++;
 
         producer = new DefaultMQProducer("Request-Consumer");
@@ -149,9 +144,8 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         try {
             createTopic(getRequestTopic());
             createTopic(getReplyTopic() );
-            createTopicSuccess = true;
+            TOPIC_CREATION_SUCCESS = true;
         } catch (Exception ignore) {
-            logger.error(ignore.getMessage());
         }
 
         replyConsumer = new ReplyConsumer();
@@ -228,59 +222,13 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     public void testHeaderCaptureDisabled() throws Exception {
         when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
         testScenario = TestScenario.HEADERS_CAPTURE_DISABLED;
-        iterationMode = RecordIterationMode.ITERABLE_FOR;
         sendTwoMessageAndConsumeReplies();
         verifyTracing();
-    }
-
-    private static void createTopic(String topic) {
-        Exception createTopicExp = null;
-        for (int retry = 0; retry < 3; retry++) {
-            try {
-                producer.createTopic(MixAll.DEFAULT_TOPIC, topic, 1);
-                return;
-            } catch (Exception exception) {
-                createTopicExp = exception;
-                try {
-                    Thread.sleep((retry+1) * 100);
-                } catch (Exception ignore) {
-
-                }
-            }
-        }
-        throw new IllegalStateException("Create topic failure.", createTopicExp);
-    }
-
-    static void doConsume(List<MessageExt> msgs) {
-        try {
-            if (iterationMode == RecordIterationMode.ITERABLE_FOR) {
-                for (MessageExt msg: msgs) {
-                    producer.send(new Message(getReplyTopic() , msg.getBody()));
-                }
-            } else if (iterationMode == RecordIterationMode.ITERABLE_FOREACH) {
-                msgs.forEach(new RequestMessageConsumer());
-            } else if (iterationMode == RecordIterationMode.ITERABLE_SPLITERATOR) {
-                msgs.spliterator().forEachRemaining(new RequestMessageConsumer());
-            }  else if (iterationMode == RecordIterationMode.SUB_LIST) {
-                for (MessageExt msg : msgs.subList(0, 1)) {
-                    producer.send(new Message(getReplyTopic() , msg.getBody()));
-                }
-            } else if (iterationMode == RecordIterationMode.PARTIALLY_ITERATE) {
-                Iterator<MessageExt> iterator = msgs.iterator();
-                while (iterator.hasNext()) {
-                    MessageExt msg = iterator.next();
-                    producer.send(new Message(getReplyTopic() , msg.getBody()));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     @Test
     public void testHeaderSanitation() throws Exception {
         testScenario = TestScenario.SANITIZED_HEADER;
-        iterationMode = RecordIterationMode.ITERABLE_FOR;
         sendTwoMessageAndConsumeReplies();
         verifyTracing();
     }
@@ -308,7 +256,6 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     public void testIgnoreTopic() throws Exception {
         when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(getRequestTopic())));
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
-        iterationMode = RecordIterationMode.ITERABLE_FOR;
         sendTwoMessageAndConsumeReplies();
 
         List<Span> spans = reporter.getSpans();
@@ -321,7 +268,6 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     @Test
     public void testTransactionCreationWithoutContext() throws Exception {
         testScenario = TestScenario.NO_CONTEXT_PROPAGATION;
-        iterationMode = RecordIterationMode.ITERABLE_FOR;
         tracer.currentTransaction().deactivate().end();
         reporter.reset();
 
@@ -367,6 +313,24 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         transactions.forEach(transaction -> assertThat(transaction.getNameAsString()).isEqualTo(String.format("RocketMQ Consume Message#%s", getRequestTopic())));
     }
 
+    private static void createTopic(String topic) {
+        Exception createTopicExp = null;
+        for (int retry = 0; retry < 3; retry++) {
+            try {
+                producer.createTopic(MixAll.DEFAULT_TOPIC, topic, 1);
+                return;
+            } catch (Exception exception) {
+                createTopicExp = exception;
+                try {
+                    Thread.sleep((retry+1) * 100);
+                } catch (Exception ignore) {
+
+                }
+            }
+        }
+        throw new IllegalStateException("Create topic failure.", createTopicExp);
+    }
+
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
         Transaction transaction;
         if (sampler == null) {
@@ -382,43 +346,31 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         }
     }
 
-    private void sendTwoMessageAndConsumeReplies() throws Exception {
-        final StringBuilder callback = new StringBuilder();
-        String propertyName = (testScenario == TestScenario.SANITIZED_HEADER) ? PASSWORD_HEADER_KEY : TEST_HEADER_KEY;
-        Message message1 = new Message(getRequestTopic(), FIRST_MESSAGE_BODY.getBytes());
-        message1.putUserProperty(propertyName, TEST_PROPERTY_VALUE);
-        Message message2 = new Message(getRequestTopic(), SECOND_MESSAGE_BODY.getBytes());
-        message2.putUserProperty(propertyName, TEST_PROPERTY_VALUE);
-
-        producer.send(message1);
-        producer.send(message2, new SendCallback() {
-            @Override
-            public void onSuccess(SendResult sendResult) {
-                callback.append("success");
+    static void doConsume(List<MessageExt> msgs) {
+        await().atMost(2000, TimeUnit.MILLISECONDS).until(sendCallbackDone::get);
+        try {
+            if (iterationMode == RecordIterationMode.ITERABLE_FOR) {
+                for (MessageExt msg: msgs) {
+                    producer.send(new Message(getReplyTopic() , msg.getBody()));
+                }
+            } else if (iterationMode == RecordIterationMode.ITERABLE_FOREACH) {
+                msgs.forEach(new RequestMessageConsumer());
+            } else if (iterationMode == RecordIterationMode.ITERABLE_SPLITERATOR) {
+                msgs.spliterator().forEachRemaining(new RequestMessageConsumer());
+            }  else if (iterationMode == RecordIterationMode.SUB_LIST) {
+                for (MessageExt msg : msgs.subList(0, 1)) {
+                    producer.send(new Message(getReplyTopic() , msg.getBody()));
+                }
+            } else if (iterationMode == RecordIterationMode.PARTIALLY_ITERATE) {
+                Iterator<MessageExt> iterator = msgs.iterator();
+                while (iterator.hasNext()) {
+                    MessageExt msg = iterator.next();
+                    producer.send(new Message(getReplyTopic() , msg.getBody()));
+                }
             }
-
-            @Override
-            public void onException(Throwable e) {
-                callback.append("failure");
-            }
-        });
-
-        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC && testScenario != TestScenario.AGENT_PAUSED) {
-            await().atMost(10, TimeUnit.SECONDS).until(() -> reporter.getTransactions().size() == 2);
-            if (testScenario != TestScenario.NON_SAMPLED_TRANSACTION) {
-                int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
-                await().atMost(500, TimeUnit.MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        List<MessageExt> replies = replyConsumer.poll(2);
-
-        assertThat(callback).isNotEmpty();
-        assertThat(replies).hasSize(2);
-        Iterator<MessageExt> iterator = replies.iterator();
-        assertThat(new String(iterator.next().getBody())).isEqualTo(FIRST_MESSAGE_BODY);
-        assertThat(new String(iterator.next().getBody())).isEqualTo(SECOND_MESSAGE_BODY);
-        assertThat(iterator.hasNext()).isFalse();
     }
 
 
@@ -519,6 +471,59 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         }
     }
 
+    private void sendTwoMessageAndConsumeReplies() throws Exception {
+        final StringBuilder callback = new StringBuilder();
+        String propertyName = (testScenario == TestScenario.SANITIZED_HEADER) ? PASSWORD_HEADER_KEY : TEST_HEADER_KEY;
+        Message message1 = new Message(getRequestTopic(), FIRST_MESSAGE_BODY.getBytes());
+        message1.putUserProperty(propertyName, TEST_PROPERTY_VALUE);
+        Message message2 = new Message(getRequestTopic(), SECOND_MESSAGE_BODY.getBytes());
+        message2.putUserProperty(propertyName, TEST_PROPERTY_VALUE);
+
+        producer.send(message1);
+        producer.send(message2, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                callback.append("success");
+                sendCallbackDone.set(true);
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                callback.append("failure");
+                sendCallbackDone.set(true);
+            }
+        });
+
+        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC && testScenario != TestScenario.AGENT_PAUSED) {
+            await().atMost(10, TimeUnit.SECONDS).until(() -> reporter.getTransactions().size() == 2);
+            if (testScenario != TestScenario.NON_SAMPLED_TRANSACTION) {
+                int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
+                await().atMost(500, TimeUnit.MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
+            }
+        }
+
+        List<MessageExt> replies = replyConsumer.poll(2);
+
+        assertThat(callback).isNotEmpty();
+        assertThat(replies).hasSize(2);
+        Iterator<MessageExt> iterator = replies.iterator();
+        assertThat(new String(iterator.next().getBody())).isEqualTo(FIRST_MESSAGE_BODY);
+        assertThat(new String(iterator.next().getBody())).isEqualTo(SECOND_MESSAGE_BODY);
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    static class RequestMessageConsumer implements Consumer<MessageExt> {
+
+        @Override
+        public void accept(MessageExt messageExt) {
+            try {
+                producer.send(new Message(getReplyTopic() , messageExt.getBody()));
+            } catch (MQClientException | RemotingException | InterruptedException | MQBrokerException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     static class ReplyConsumer {
 
         private DefaultMQPullConsumer consumer;
@@ -536,49 +541,34 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
         }
 
         public List<MessageExt> poll(int size) {
-            return poll(size, 0);
+            return poll(size, 0, -1);
         }
 
-        public List<MessageExt> poll(int size, int retry) {
-            retry = retry < 0 ? 0 : retry;
-            if (retry < 3) {
+        public List<MessageExt> poll(int size, int retry, long start) {
+            start = start > 0 ? start : System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < 3000) {
                 try {
-                    MessageQueue messageQueue = consumer.fetchSubscribeMessageQueues(getReplyTopic() ).iterator().next();
-                    PullResult pullResult = consumer.pull(messageQueue, null, offset, size, 2000);
+                    MessageQueue messageQueue = consumer.fetchSubscribeMessageQueues(getReplyTopic()).iterator().next();
+                    PullResult pullResult = consumer.pull(messageQueue, null, offset, size, 1000);
                     offset = pullResult.getNextBeginOffset();
                     if (pullResult.getPullStatus() == PullStatus.FOUND) {
                         List<MessageExt> messageExts =  pullResult.getMsgFoundList();
                         if (messageExts.size() < size) {
-                            messageExts.addAll(this.poll(size - messageExts.size(), retry + 1));
+                            messageExts.addAll(this.poll(size - messageExts.size(), retry + 1, start));
                         }
                         return messageExts;
-                    } else {
-                        return this.poll(size, retry + 1);
                     }
-                } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
+                } catch (Exception e) {
                     logger.error("Error in poll message", e);
                 }
-                return this.poll(size, retry + 1);
             }
-            throw new RuntimeException("Poll message fail in 3 times.");
+            throw new RuntimeException("Poll message fail in 3s");
         }
 
         public void shutdown() {
             consumer.shutdown();
         }
 
-    }
-
-    static class RequestMessageConsumer implements Consumer<MessageExt> {
-
-        @Override
-        public void accept(MessageExt messageExt) {
-            try {
-                producer.send(new Message(getReplyTopic() , messageExt.getBody()));
-            } catch (MQClientException | RemotingException | InterruptedException | MQBrokerException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
 }

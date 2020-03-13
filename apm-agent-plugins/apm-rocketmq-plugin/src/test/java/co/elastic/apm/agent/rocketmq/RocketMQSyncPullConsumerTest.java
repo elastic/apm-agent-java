@@ -31,9 +31,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
-@Ignore
 public class RocketMQSyncPullConsumerTest extends AbstractRocketMQConsumerInstrumentationTest {
 
     private static DefaultMQPullConsumer consumer;
