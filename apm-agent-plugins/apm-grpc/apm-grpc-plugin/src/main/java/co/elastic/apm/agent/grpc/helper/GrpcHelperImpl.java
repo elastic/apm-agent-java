@@ -158,7 +158,6 @@ public class GrpcHelperImpl implements GrpcHelper {
         }
 
         inFlightListeners.put(responseListener, clientCall);
-        span.setStartTimestampNow();
         span.getTraceContext().setOutgoingTraceContextHeaders(headers, headerSetter);
     }
 
