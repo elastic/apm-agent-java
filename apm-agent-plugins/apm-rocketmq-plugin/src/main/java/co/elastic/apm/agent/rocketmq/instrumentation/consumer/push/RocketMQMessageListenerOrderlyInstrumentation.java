@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,7 +26,6 @@ package co.elastic.apm.agent.rocketmq.instrumentation.consumer.push;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.rocketmq.helper.ConsumeMessageListWrapper;
 import co.elastic.apm.agent.rocketmq.helper.RocketMQInstrumentationHelper;
 import co.elastic.apm.agent.rocketmq.instrumentation.BaseRocketMQInstrumentation;
 import net.bytebuddy.asm.Advice;
@@ -34,9 +33,18 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.rocketmq.client.consumer.MQConsumer;
+import org.apache.rocketmq.client.consumer.PullCallback;
+import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.impl.CommunicationMode;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -77,13 +85,13 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.Local("transaction") Transaction transaction,
-                                    @Advice.Local("helper") RocketMQInstrumentationHelper helper,
                                     @Advice.Argument(value = 0, readOnly = false) List<MessageExt> msgs) {
             if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null || helperClassManager == null) {
                 return;
             }
 
-            helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
+            final RocketMQInstrumentationHelper<Message, MessageQueue, CommunicationMode, SendCallback, MessageListenerConcurrently,
+                MessageListenerOrderly, PullResult, PullCallback, MessageExt> helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
             if (helper == null) {
                 return;
             }
@@ -92,21 +100,22 @@ public class RocketMQMessageListenerOrderlyInstrumentation extends BaseRocketMQI
             // create a transaction around the method so that the re make it
             if (msgs.size() == 1) {
                 transaction = helper.onConsumeStart(msgs.get(0));
-            } else if (msgs.size() > 1 && !(msgs instanceof ConsumeMessageListWrapper)){
-                msgs = new ConsumeMessageListWrapper(msgs, helper);
+            } else if (msgs.size() > 1){
+                msgs = helper.wrapMessageList(msgs);
             }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Advice.Thrown Throwable thrown,
-                                   @Advice.Local("transaction") Transaction transaction,
-                                   @Advice.Local("helper") RocketMQInstrumentationHelper helper,
+                                   @Nullable @Advice.Local("transaction") Transaction transaction,
                                    @Advice.Return ConsumeOrderlyStatus status) {
-            if (transaction != null) {
-                helper.onConsumeEnd(transaction, thrown, status);
+            if (transaction != null && helperClassManager != null) {
+                final RocketMQInstrumentationHelper<Message, MessageQueue, CommunicationMode, SendCallback, MessageListenerConcurrently,
+                    MessageListenerOrderly, PullResult, PullCallback, MessageExt> helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
+                if (helper != null) {
+                    helper.onConsumeEnd(transaction, thrown, status);
+                }
             }
         }
-
     }
-
 }

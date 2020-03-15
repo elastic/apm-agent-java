@@ -26,31 +26,34 @@ package co.elastic.apm.agent.rocketmq.helper;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.apache.rocketmq.client.consumer.PullCallback;
-import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
-import org.apache.rocketmq.client.impl.CommunicationMode;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
 
-public interface RocketMQInstrumentationHelper {
+import javax.annotation.Nullable;
+import java.util.List;
 
-    Span onSendStart(Message msg, MessageQueue mq, CommunicationMode communicationMode);
+public interface RocketMQInstrumentationHelper<M, MQ, CM, SC, MLC, MLO, PR, PC, ME> {
 
-    SendCallback wrapSendCallback(SendCallback delegate, Span span);
+    @Nullable
+    Span onSendStart(M msg, MQ mq, CM communicationMode);
 
-    MessageListenerConcurrently wrapLambda(MessageListenerConcurrently listenerConcurrently);
+    @Nullable
+    SC wrapSendCallback(@Nullable SC delegate, Span span);
 
-    MessageListenerOrderly wrapLambda(MessageListenerOrderly listenerOrderly);
+    @Nullable
+    MLC wrapMessageListenerConcurrently(@Nullable MLC listenerConcurrently);
 
-    PullResult replaceMsgList(PullResult delegate);
+    @Nullable
+    MLO wrapMessageListenerOrderly(@Nullable MLO listenerOrderly);
 
-    PullCallback wrapPullCallback(PullCallback delegate);
+    @Nullable
+    PR replaceMsgList(@Nullable PR delegate);
 
-    Transaction onConsumeStart(MessageExt msg);
+    @Nullable
+    PC wrapPullCallback(@Nullable PC delegate);
+
+    List<ME> wrapMessageList(List<ME> msgs);
+
+    @Nullable
+    Transaction onConsumeStart(ME msg);
 
     void onConsumeEnd(Transaction transaction, Throwable throwable, Object ret);
 

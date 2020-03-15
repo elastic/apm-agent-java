@@ -22,26 +22,7 @@
  * under the License.
  * #L%
  */
+@NonnullApi
 package co.elastic.apm.agent.rocketmq.helper;
 
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.common.message.MessageExt;
-
-import java.util.List;
-
-class MessageListenerConcurrentlyWrapper implements MessageListenerConcurrently {
-
-    private MessageListenerConcurrently delegate;
-
-    MessageListenerConcurrentlyWrapper(MessageListenerConcurrently delegate){
-        this.delegate = delegate;
-    }
-
-    @Override
-    public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-        return delegate.consumeMessage(msgs, context);
-    }
-
-}
+import co.elastic.apm.agent.annotation.NonnullApi;

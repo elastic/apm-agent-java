@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,7 +32,15 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.rocketmq.client.consumer.MQConsumer;
+import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.impl.CommunicationMode;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -77,7 +85,8 @@ public class RocketMQPullResultInstrumentation extends BaseRocketMQInstrumentati
                 return;
             }
 
-            final RocketMQInstrumentationHelper helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
+            final RocketMQInstrumentationHelper<Message, MessageQueue, CommunicationMode, SendCallback, MessageListenerConcurrently,
+                MessageListenerOrderly, PullResult, PullCallback, MessageExt> helper = helperClassManager.getForClassLoaderOfClass(MQConsumer.class);
             if (helper == null) {
                 return;
             }

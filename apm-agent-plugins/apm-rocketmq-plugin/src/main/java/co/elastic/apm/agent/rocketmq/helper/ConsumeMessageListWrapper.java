@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,20 +26,18 @@ package co.elastic.apm.agent.rocketmq.helper;
 
 import org.apache.rocketmq.common.message.MessageExt;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-public class ConsumeMessageListWrapper implements List<MessageExt> {
+class ConsumeMessageListWrapper implements List<MessageExt> {
 
-    @Nonnull
     private final List<MessageExt> delegate;
 
-    private final RocketMQInstrumentationHelper helper;
+    private final RocketMQInstrumentationHelperImpl helper;
 
-    public ConsumeMessageListWrapper(@Nonnull List<MessageExt> delegate, RocketMQInstrumentationHelper helper) {
+    ConsumeMessageListWrapper(List<MessageExt> delegate, RocketMQInstrumentationHelperImpl helper) {
         this.delegate = delegate;
         this.helper = helper;
     }

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -53,26 +54,34 @@ public abstract class AbstractInstrumentationTest {
 
     @BeforeAll
     @BeforeClass
-    public static void beforeAll() {
-        objectPoolFactory = new TestObjectPoolFactory();
+    public static synchronized void beforeAll() {
+        if (ElasticApmInstrumentation.tracer == null) {
+            objectPoolFactory = new TestObjectPoolFactory();
 
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
-                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-                reporter.assertRecycledAfterDecrementingReferences();
-            }))
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+            reporter = new MockReporter();
+            config = SpyConfiguration.createSpyConfig();
+            tracer = new ElasticApmTracerBuilder()
+                .configurationRegistry(config)
+                .reporter(reporter)
+                .withObjectPoolFactory(objectPoolFactory)
+                .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
+                    objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                    reporter.assertRecycledAfterDecrementingReferences();
+                }))
+                .build();
+            ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+        } else {
+            tracer = ElasticApmInstrumentation.tracer;
+            ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+            config = tracer.getConfigurationRegistry();
+            objectPoolFactory = (TestObjectPoolFactory) tracer.getObjectPoolFactory();
+            reporter = (MockReporter) tracer.getReporter();
+        }
     }
 
     @AfterAll
     @AfterClass
-    public static void afterAll() {
+    public static synchronized void afterAll() {
         ElasticApmAgent.reset();
     }
 

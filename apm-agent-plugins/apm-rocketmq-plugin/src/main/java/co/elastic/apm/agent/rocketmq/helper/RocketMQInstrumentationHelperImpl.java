@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rocketmq.helper;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -49,32 +48,42 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
-public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentationHelper {
+public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentationHelper<Message, MessageQueue, CommunicationMode,
+    SendCallback, MessageListenerConcurrently, MessageListenerOrderly, PullResult, PullCallback, MessageExt> {
 
     private static final Logger logger = LoggerFactory.getLogger(RocketMQInstrumentationHelperImpl.class);
 
-    private ElasticApmTracer getTracer() {
-        return ElasticApmInstrumentation.tracer;
+    private final ElasticApmTracer tracer;
+
+    public RocketMQInstrumentationHelperImpl(ElasticApmTracer tracer) {
+        this.tracer = tracer;
     }
 
     private CoreConfiguration getCoreConfiguration() {
-        return getTracer().getConfig(CoreConfiguration.class);
+        return tracer.getConfig(CoreConfiguration.class);
     }
 
     private MessagingConfiguration getMessagingConfiguration() {
-        return getTracer().getConfig(MessagingConfiguration.class);
+        return tracer.getConfig(MessagingConfiguration.class);
+    }
+
+    public ElasticApmTracer getTracer() {
+        return tracer;
     }
 
     @Override
+    @Nullable
     public Span onSendStart(Message msg, MessageQueue mq, CommunicationMode communicationMode) {
         String topic = msg.getTopic();
         if (ignoreTopic(topic)) {
             return null;
         }
 
-        final TraceContextHolder<?> parent = getTracer().getActive();
+        final TraceContextHolder<?> parent = tracer.getActive();
 
         if (null == parent) {
             return null;
@@ -107,7 +116,8 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     }
 
     @Override
-    public SendCallback wrapSendCallback(SendCallback delegate, Span span) {
+    @Nullable
+    public SendCallback wrapSendCallback(@Nullable SendCallback delegate, Span span) {
         if (delegate == null || delegate instanceof SendCallbackWrapper) {
             return delegate;
         }
@@ -115,7 +125,8 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     }
 
     @Override
-    public MessageListenerConcurrently wrapLambda(MessageListenerConcurrently listenerConcurrently) {
+    @Nullable
+    public MessageListenerConcurrently wrapMessageListenerConcurrently(@Nullable MessageListenerConcurrently listenerConcurrently) {
         if (listenerConcurrently != null && isLambda(listenerConcurrently)) {
             return new MessageListenerConcurrentlyWrapper(listenerConcurrently);
         }
@@ -123,7 +134,8 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     }
 
     @Override
-    public MessageListenerOrderly wrapLambda(MessageListenerOrderly listenerOrderly) {
+    @Nullable
+    public MessageListenerOrderly wrapMessageListenerOrderly(@Nullable MessageListenerOrderly listenerOrderly) {
         if (listenerOrderly != null && isLambda(listenerOrderly)) {
             return new MessageListenerOrderlyWrapper(listenerOrderly);
         }
@@ -131,7 +143,8 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     }
 
     @Override
-    public PullResult replaceMsgList(PullResult delegate) {
+    @Nullable
+    public PullResult replaceMsgList(@Nullable PullResult delegate) {
         if (delegate == null || delegate.getMsgFoundList() == null || delegate.getMsgFoundList() instanceof ConsumeMessageListWrapper) {
             return delegate;
         } else if (delegate instanceof PullResultExt) {
@@ -153,7 +166,8 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     }
 
     @Override
-    public PullCallback wrapPullCallback(final PullCallback delegate) {
+    @Nullable
+    public PullCallback wrapPullCallback(@Nullable final PullCallback delegate) {
         if (delegate == null || delegate instanceof PullCallbackWrapper) {
             return delegate;
         }
@@ -161,12 +175,21 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     }
 
     @Override
+    public List<MessageExt> wrapMessageList(List<MessageExt> msgs) {
+        if (!(msgs instanceof ConsumeMessageListWrapper)){
+            return new ConsumeMessageListWrapper(msgs, this);
+        }
+        return msgs;
+    }
+
+    @Override
+    @Nullable
     public Transaction onConsumeStart(MessageExt msg) {
         Transaction transaction = null;
         try {
             String topic = msg.getTopic();
             if (!ignoreTopic(topic)) {
-                transaction = getTracer().startChildTransaction(msg,
+                transaction = tracer.startChildTransaction(msg,
                     RocketMQMessageHeaderAccessor.getInstance(),
                     MQConsumer.class.getClassLoader());
                 if (transaction != null) {
@@ -224,9 +247,4 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
     private boolean isLambda(Object obj) {
         return obj.getClass().getName().contains("/");
     }
-
-    private boolean isMessagingTransaction(Transaction transaction) {
-        return transaction != null && "messaging".equals(transaction.getType());
-    }
-
 }
