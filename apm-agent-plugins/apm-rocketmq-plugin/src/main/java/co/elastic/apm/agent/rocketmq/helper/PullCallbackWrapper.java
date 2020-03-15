@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -29,23 +29,20 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 
-import javax.annotation.Nonnull;
+class PullCallbackWrapper implements PullCallback {
 
-public class PullCallbackWrapper implements PullCallback {
-
-    @Nonnull
     private PullCallback delegate;
 
-    private RocketMQInstrumentationHelper helper;
+    private RocketMQInstrumentationHelperImpl helper;
 
-    public PullCallbackWrapper(@Nonnull PullCallback delegate, RocketMQInstrumentationHelper helper) {
+    PullCallbackWrapper(PullCallback delegate, RocketMQInstrumentationHelperImpl helper) {
         this.delegate = delegate;
         this.helper = helper;
     }
 
     @Override
     public void onSuccess(PullResult pullResult) {
-        PullResult resultToUse = existsTransaction() ? pullResult : helper.replaceMsgList(pullResult);
+        PullResult resultToUse = helper.getTracer().currentTransaction() != null ? pullResult : helper.replaceMsgList(pullResult);
         delegate.onSuccess(resultToUse);
     }
 
@@ -53,10 +50,4 @@ public class PullCallbackWrapper implements PullCallback {
     public void onException(Throwable e) {
         delegate.onException(e);
     }
-
-    private boolean existsTransaction() {
-        ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
-        return tracer != null && tracer.currentTransaction() != null;
-    }
-
 }

@@ -98,6 +98,7 @@ public class ElasticApmTracer {
     private final ObjectPool<ContextInScopeRunnableWrapper> runnableContextWrapperObjectPool;
     private final ObjectPool<ContextInScopeCallableWrapper<?>> callableContextWrapperObjectPool;
     private final Reporter reporter;
+    private final ObjectPoolFactory objectPoolFactory;
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
@@ -149,6 +150,7 @@ public class ElasticApmTracer {
             }
         });
 
+        this.objectPoolFactory = poolFactory;
         transactionPool = poolFactory.createTransactionPool(maxPooledElements, this);
         spanPool = poolFactory.createSpanPool(maxPooledElements, this);
 
@@ -575,6 +577,10 @@ public class ElasticApmTracer {
 
     public Sampler getSampler() {
         return sampler;
+    }
+
+    public ObjectPoolFactory getObjectPoolFactory() {
+        return objectPoolFactory;
     }
 
     @Nullable

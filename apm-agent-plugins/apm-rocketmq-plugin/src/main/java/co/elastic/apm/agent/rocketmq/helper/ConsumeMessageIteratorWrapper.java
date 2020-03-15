@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,19 +31,18 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 
-public class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
+class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
 
     private static final Logger logger = LoggerFactory.getLogger(ConsumeMessageIteratorWrapper.class);
 
-    private final ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
-
     private final Iterator<MessageExt> delegate;
 
-    private final RocketMQInstrumentationHelper helper;
+    private final RocketMQInstrumentationHelperImpl helper;
 
-    public ConsumeMessageIteratorWrapper(Iterator<MessageExt> delegate, RocketMQInstrumentationHelper helper) {
+    ConsumeMessageIteratorWrapper(Iterator<MessageExt> delegate, RocketMQInstrumentationHelperImpl helper) {
         this.delegate = delegate;
         this.helper = helper;
     }
@@ -69,11 +68,9 @@ public class ConsumeMessageIteratorWrapper implements Iterator<MessageExt> {
 
     private void endCurrentMessagingTransaction() {
         try {
-            if (tracer != null) {
-                Transaction transaction = tracer.currentTransaction();
-                if (transaction != null && "messaging".equals(transaction.getType())) {
-                    transaction.deactivate().end();
-                }
+            Transaction transaction = helper.getTracer().currentTransaction();
+            if (transaction != null && "messaging".equals(transaction.getType())) {
+                transaction.deactivate().end();
             }
         } catch (Exception e) {
             logger.error("Error in RocketMQ iterator wrapper", e);

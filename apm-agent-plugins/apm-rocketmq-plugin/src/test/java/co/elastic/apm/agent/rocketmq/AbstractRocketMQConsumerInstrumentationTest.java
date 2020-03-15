@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -63,7 +63,6 @@ import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
@@ -96,10 +95,8 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     private final CoreConfiguration coreConfiguration;
     private final MessagingConfiguration messagingConfiguration;
 
-    @Nonnull
     private static DefaultMQProducer producer;
 
-    @Nonnull
     private static ReplyConsumer replyConsumer;
     private static boolean TOPIC_CREATION_SUCCESS = false;
 
@@ -137,7 +134,7 @@ public abstract class AbstractRocketMQConsumerInstrumentationTest extends Abstra
     public static void setup() throws MQClientException {
         TOPIC_VERSION++;
 
-        producer = new DefaultMQProducer("Request-Consumer");
+        producer = new DefaultMQProducer("Request-Producer");
         producer.setNamesrvAddr(rocketmq.getNameServer());
         producer.start();
 
