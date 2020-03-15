@@ -181,7 +181,7 @@ public class ConnectionMetaData {
                     // (DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))
                     try {
                         hostPort = parseAddressList(connectionUrl);
-                        if (hostPort.host != null) {
+                        if (hostPort != null) {
                             host = hostPort.host;
                             if (hostPort.port > 0) {
                                 port = hostPort.port;
@@ -225,6 +225,7 @@ public class ConnectionMetaData {
                 return new ConnectionMetaData(dbVendor, host, port, user);
             }
 
+            @Nullable
             private HostPort parseAddressList(String connectionUrl) {
                 TreeNode parsedTree = null;
                 Deque<TreeNode> stack = new ArrayDeque<>();
@@ -270,7 +271,7 @@ public class ConnectionMetaData {
                 } else {
                     ret = findAddressInTree(parsedTree);
                 }
-                return (ret != null) ? ret : new HostPort(null, -1);
+                return ret;
             }
 
             @Nullable
