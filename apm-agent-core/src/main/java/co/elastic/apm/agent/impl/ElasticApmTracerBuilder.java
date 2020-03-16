@@ -72,7 +72,6 @@ public class ElasticApmTracerBuilder {
     private ConfigurationRegistry configurationRegistry;
     @Nullable
     private Reporter reporter;
-    private Map<String, String> inlineConfig = new HashMap<>();
     @Nullable
     private final String agentArguments;
     private ObjectPoolFactory objectPoolFactory;
@@ -84,7 +83,7 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracerBuilder(@Nullable String agentArguments) {
         this.agentArguments = agentArguments;
-        final List<ConfigurationSource> configSources = getConfigSources(this.agentArguments);
+        List<ConfigurationSource> configSources = getConfigSources(agentArguments);
         LoggingConfiguration.init(configSources);
         logger = LoggerFactory.getLogger(getClass());
         objectPoolFactory = new ObjectPoolFactory();
@@ -101,10 +100,6 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
-    public ElasticApmTracerBuilder withConfig(String key, String value) {
-        inlineConfig.put(key, value);
-        return this;
-    }
 
     public ElasticApmTracerBuilder withObjectPoolFactory(ObjectPoolFactory objectPoolFactory) {
         this.objectPoolFactory = objectPoolFactory;
@@ -163,22 +158,24 @@ public class ElasticApmTracerBuilder {
     }
 
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {
+        List<ConfigurationOptionProvider> providers = DependencyInjectingServiceLoader.load(ConfigurationOptionProvider.class);
         try {
-            final ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
+            return ConfigurationRegistry.builder()
                 .configSources(configSources)
-                .optionProviders(DependencyInjectingServiceLoader.load(ConfigurationOptionProvider.class))
+                .optionProviders(providers)
                 .failOnMissingRequiredValues(true)
                 .build();
-            return configurationRegistry;
         } catch (IllegalStateException e) {
             logger.warn(e.getMessage());
+
+            // provide a default no-op configuration in case of invalid configuration (missing required value for example)
             return ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource("Noop Configuration")
                     .add(TracerConfiguration.ACTIVE, "false")
                     .add(CoreConfiguration.INSTRUMENT, "false")
                     .add(CoreConfiguration.SERVICE_NAME, "none")
                     .add(CoreConfiguration.SAMPLE_RATE, "0"))
-                .optionProviders(DependencyInjectingServiceLoader.load(ConfigurationOptionProvider.class))
+                .optionProviders(providers)
                 .build();
         }
     }
@@ -198,17 +195,7 @@ public class ElasticApmTracerBuilder {
         }
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
-        result.add(new AbstractConfigurationSource() {
-            @Override
-            public String getValue(String key) {
-                return inlineConfig.get(key);
-            }
 
-            @Override
-            public String getName() {
-                return "Inline configuration";
-            }
-        });
         String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
         if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
             result.add(new PropertyFileConfigurationSource(configFileLocation));

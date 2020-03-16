@@ -113,6 +113,7 @@ public class ElasticApmAgent {
      * @param instrumentation the instrumentation instance
      * @param agentJarFile    a reference to the agent jar on the file system
      */
+    @SuppressWarnings("unused") // called through reflection
     public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
