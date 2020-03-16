@@ -112,7 +112,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw test
+                ./mvnw test -Pupdate-gherkin-spec
                 """
               }
             }

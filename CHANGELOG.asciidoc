@@ -33,6 +33,7 @@ endif::[]
 * Makes <<config-instrument>>, <<config-trace-methods>>, and <<config-disable-instrumentations>> dynamic.
 Note that changing these values at runtime can slow down the application temporarily.
 * Do not instrument Servlet API before 3.0 {pull}1077[#1077]
+* Add support for API keys for apm backend authentication {pull}1083[#1083]
 
 [float]
 ===== Bug fixes
