@@ -46,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
-import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSource;
 import org.stagemonitor.configuration.source.SimpleSource;
@@ -54,9 +53,7 @@ import org.stagemonitor.configuration.source.SimpleSource;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -67,15 +64,21 @@ public class ElasticApmTracerBuilder {
      * See {@link co.elastic.apm.attach.ElasticApmAttacher#TEMP_PROPERTIES_FILE_KEY}
      */
     private static final String TEMP_PROPERTIES_FILE_KEY = "c";
+
     private final Logger logger;
+
     @Nullable
     private ConfigurationRegistry configurationRegistry;
+
     @Nullable
     private Reporter reporter;
+
     @Nullable
     private final String agentArguments;
+
     private ObjectPoolFactory objectPoolFactory;
-    private List<LifecycleListener> extraLifecycleListeners;
+
+    private final List<LifecycleListener> extraLifecycleListeners;
 
     public ElasticApmTracerBuilder() {
         this(null);
@@ -83,8 +86,7 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracerBuilder(@Nullable String agentArguments) {
         this.agentArguments = agentArguments;
-        List<ConfigurationSource> configSources = getConfigSources(agentArguments);
-        LoggingConfiguration.init(configSources);
+        LoggingConfiguration.init(getConfigSources(agentArguments));
         logger = LoggerFactory.getLogger(getClass());
         objectPoolFactory = new ObjectPoolFactory();
         extraLifecycleListeners = new ArrayList<>();
@@ -114,24 +116,30 @@ public class ElasticApmTracerBuilder {
     public ElasticApmTracer build() {
         boolean addApmServerConfigSource = false;
         List<LifecycleListener> lifecycleListeners = new ArrayList<>();
+
         if (configurationRegistry == null) {
+            // setup default config registry, should be already set when testing
             addApmServerConfigSource = true;
-            final List<ConfigurationSource> configSources = getConfigSources(agentArguments);
+            List<ConfigurationSource> configSources = getConfigSources(agentArguments);
             configurationRegistry = getDefaultConfigurationRegistry(configSources);
             lifecycleListeners.add(scheduleReloadAtRate(configurationRegistry, 30, TimeUnit.SECONDS));
         }
-        final ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
-        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
-        final MetaData metaData = MetaData.create(configurationRegistry, null, null);
-        ApmServerConfigurationSource configurationSource = null;
+
+        ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
+        MetaData metaData = MetaData.create(configurationRegistry, null, null);
+
         if (addApmServerConfigSource) {
-            configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
+            // adding remote configuration source last will make it highest priority
+            DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
+            ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
             configurationRegistry.addConfigurationSource(configurationSource);
             lifecycleListeners.add(configurationSource);
         }
+
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
+
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
@@ -180,10 +188,23 @@ public class ElasticApmTracerBuilder {
         }
     }
 
-    /*
-     * Must not initialize any loggers with this as the logger is configured based on configuration.
+    /**
+     * Provides an ordered list of local configuration sources, sorted from least priority to higher priority (last wins)
+     *
+     * @param agentArguments agent arguments (if any)
+     * @return ordered list of configuration sources
      */
+    // Must not initialize any loggers with this as the logger is configured based on configuration.
     private List<ConfigurationSource> getConfigSources(@Nullable String agentArguments) {
+        // Order is defined using an 'configuration onion', outer layers can override inner layers.
+        // Proximity to the application/process is then used to define the layers
+        // - default config (implicit)
+        // - agent arguments (if any, also used for runtime attachment)
+        // - JVM system properties
+        // - OS environment variables
+        // - external configuration properties file
+        // - remote configuration (not set here)
+
         List<ConfigurationSource> result = new ArrayList<>();
         if (agentArguments != null && !agentArguments.isEmpty()) {
             AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
@@ -193,6 +214,13 @@ public class ElasticApmTracerBuilder {
                 result.add(attachmentConfig);
             }
         }
+
+        // lookup elasticapm.properties on the classpath, which is used for unit tests and using runtime attachment API
+        // this allows to provide embedded agent configuration in a spring-boot application where the agent.
+        if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
+            result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
+        }
+
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
 
@@ -200,11 +228,7 @@ public class ElasticApmTracerBuilder {
         if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
             result.add(new PropertyFileConfigurationSource(configFileLocation));
         }
-        // looks if we can find a elasticapm.properties on the classpath
-        // mainly useful for unit tests
-        if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
-            result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
-        }
+
         return result;
     }
 
