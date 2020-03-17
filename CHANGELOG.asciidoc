@@ -33,6 +33,7 @@ endif::[]
 * Makes <<config-instrument>>, <<config-trace-methods>>, and <<config-disable-instrumentations>> dynamic.
 Note that changing these values at runtime can slow down the application temporarily.
 * Do not instrument Servlet API before 3.0 {pull}1077[#1077]
+* Add support for API keys for apm backend authentication {pull}1083[#1083]
 
 [float]
 ===== Bug fixes
@@ -40,6 +41,17 @@ Note that changing these values at runtime can slow down the application tempora
 * When JAX-RS-annotated method delegates to another JAX-RS-annotated method, transaction name should include method A - {pull}1062[#1062]
 * Fixed bug that prevented an APM Error from being created when calling `org.slf4j.Logger#error` - {pull}1049[#1049]
 * Wrong address in JDBC spans for Oracle, MySQL and MariaDB when multiple hosts are configured - {pull}1082[#1082]
+
+[float]
+===== Potentially breaking changes
+* Renamed some configuration options related to the experimental profiler-inferred spans feature ({pull}1084[#1084]):
+** `profiling_spans_enabled` -> `profiling_inferred_spans_enabled`
+** `profiling_sampling_interval` -> `profiling_inferred_spans_sampling_interval`
+** `profiling_spans_min_duration` -> `profiling_inferred_spans_min_duration`
+** `profiling_included_classes` -> `profiling_inferred_spans_included_classes`
+** `profiling_excluded_classes` -> `profiling_inferred_spans_excluded_classes`
+** Removed `profiling_interval` and `profiling_duration` (both are fixed to 5s now)
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
