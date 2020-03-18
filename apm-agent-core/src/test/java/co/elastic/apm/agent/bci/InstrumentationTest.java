@@ -225,9 +225,13 @@ class InstrumentationTest {
     }
 
     public static class SuppressExceptionInstrumentation extends ElasticApmInstrumentation {
-        @Advice.OnMethodExit(suppress = Throwable.class)
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onMethodEnterAndExit() {
+        public static void onMethodEnter() {
+            throw new RuntimeException("This exception should be suppressed");
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onMethodExit(@Advice.Thrown Throwable throwable) {
             throw new RuntimeException("This exception should be suppressed");
         }
 
