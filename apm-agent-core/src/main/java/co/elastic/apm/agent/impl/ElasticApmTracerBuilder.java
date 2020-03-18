@@ -127,12 +127,15 @@ public class ElasticApmTracerBuilder {
 
         ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
         MetaData metaData = MetaData.create(configurationRegistry, null, null);
-
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
             DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
             ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
+
+            // unlike the ordering of configuration sources above, this will make it highest priority
+            // as it's inserted first in the list.
             configurationRegistry.addConfigurationSource(configurationSource);
+
             lifecycleListeners.add(configurationSource);
         }
 
@@ -189,45 +192,42 @@ public class ElasticApmTracerBuilder {
     }
 
     /**
-     * Provides an ordered list of local configuration sources, sorted from least priority to higher priority (last wins)
+     * Provides an ordered list of local configuration sources, sorted in decreasing priority (first wins)
      *
      * @param agentArguments agent arguments (if any)
      * @return ordered list of configuration sources
      */
     // Must not initialize any loggers with this as the logger is configured based on configuration.
     private List<ConfigurationSource> getConfigSources(@Nullable String agentArguments) {
-        // Order is defined using an 'configuration onion', outer layers can override inner layers.
-        // Proximity to the application/process is then used to define the layers
-        // - default config (implicit)
-        // - agent arguments (if any, also used for runtime attachment)
-        // - JVM system properties
-        // - OS environment variables
-        // - external configuration properties file
-        // - remote configuration (not set here)
-
         List<ConfigurationSource> result = new ArrayList<>();
-        if (agentArguments != null && !agentArguments.isEmpty()) {
-            AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
-            result.add(agentArgs);
-            ConfigurationSource attachmentConfig = getAttachmentArguments(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
-            if (attachmentConfig != null) {
-                result.add(attachmentConfig);
-            }
-        }
 
-        // lookup elasticapm.properties on the classpath, which is used for unit tests and using runtime attachment API
-        // this allows to provide embedded agent configuration in a spring-boot application where the agent.
-        if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
-            result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
-        }
+        // highest priority : JVM system properties (before adding remote configuration)
 
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
 
-        String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
-        if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
-            result.add(new PropertyFileConfigurationSource(configFileLocation));
+        if (agentArguments != null && !agentArguments.isEmpty()) {
+            // runtime attachment: self-attachment API and attacher jar
+            // configuration is stored in a temporary file to pass it to the agent
+            AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
+            ConfigurationSource attachmentConfig = getAttachmentConfigSource(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
+            if (attachmentConfig != null) {
+                result.add(attachmentConfig);
+            }
+        } else {
+            // loads properties file next to agent jar or with path provided from config.
+            String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
+            if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
+                result.add(new PropertyFileConfigurationSource(configFileLocation));
+            }
         }
+
+        // this one is only used for testing --> probably removing it as it's confusing
+        if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
+            result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
+        }
+
+        // lowest priority: implicit default configuration
 
         return result;
     }
@@ -236,7 +236,7 @@ public class ElasticApmTracerBuilder {
      * Loads the configuration from the temporary properties file created by ElasticApmAttacher
      */
     @Nullable
-    private ConfigurationSource getAttachmentArguments(@Nullable String configFileLocation) {
+    private ConfigurationSource getAttachmentConfigSource(@Nullable String configFileLocation) {
         if (configFileLocation != null) {
             Properties fromFileSystem = PropertyFileConfigurationSource.getFromFileSystem(configFileLocation);
             if (fromFileSystem != null) {

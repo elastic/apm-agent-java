@@ -5,10 +5,8 @@ Please only make changes in configuration.asciidoc.ftl
 ////
 [[configuration]]
 == Configuration
-To adapt the Elastic APM agent to your needs,
-you can configure it using different configuration sources,
-which have different naming conventions for the property key.
-In descending order of precedence:
+The Elastic APM agent can be configured through different configuration sources,
+with the following descending order of precedence:
 
 [arabic]
 . {apm-app-ref}/agent-configuration.html[Central configuration]
@@ -16,12 +14,15 @@ In descending order of precedence:
   All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. `elasticapm.properties` file +
-  You can place a `elasticapm.properties` in the same directory the agent jar resides in.
-  To customize the location, set the <<config-config-file>> option.
+. runtime attach parameters, those are mutually exclusive +
   No prefix is required for the configuration keys.
-
-Central configuration overrides all other settings. Java system properties override Environment variables. Environment variables override `elasticapm.properties`
+.. `--config` parameter (<<setup-attach-cli>>)
+.. arguments of  `ElasticApmAttacher.attach(...)` (<<setup-attach-api>>)
+.. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
+. `elasticapm.properties` file, by default in the same directory the agent jar. +
+  Location can be set with the <<config-config-file>> option. +
+  No prefix is required for the configuration keys.
+. default values
 
 Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
 {kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
