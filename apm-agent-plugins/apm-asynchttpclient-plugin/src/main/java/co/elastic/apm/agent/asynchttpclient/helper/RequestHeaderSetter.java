@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import org.asynchttpclient.Request;
 
 @VisibleForAdvice
+@SuppressWarnings("unused")
 public class RequestHeaderSetter implements TextHeaderSetter<Request> {
 
     @Override
