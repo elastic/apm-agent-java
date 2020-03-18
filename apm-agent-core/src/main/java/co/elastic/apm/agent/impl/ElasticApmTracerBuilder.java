@@ -222,7 +222,8 @@ public class ElasticApmTracerBuilder {
             }
         }
 
-        // this one is only used for testing --> probably removing it as it's confusing
+        // only used for testing, will not load elasticapm.properties from app classpath as this code is
+        // running in the bootstrap classloader.
         if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
             result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
         }
