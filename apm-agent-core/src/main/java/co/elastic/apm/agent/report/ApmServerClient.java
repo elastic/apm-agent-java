@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -142,9 +142,20 @@ public class ApmServerClient {
                 trustAll((HttpsURLConnection) connection);
             }
         }
-        if (reporterConfiguration.getSecretToken() != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
+        String secretToken = reporterConfiguration.getSecretToken();
+        String apiKey = reporterConfiguration.getApiKey();
+        String authHeaderValue = null;
+
+        if (apiKey != null) {
+            authHeaderValue = String.format("ApiKey %s", apiKey);
+        } else if (secretToken != null) {
+            authHeaderValue = String.format("Bearer %s", secretToken);
         }
+
+        if (authHeaderValue != null) {
+            connection.setRequestProperty("Authorization", authHeaderValue);
+        }
+
         connection.setRequestProperty("User-Agent", USER_AGENT);
         connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());

@@ -43,7 +43,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractInstrumentationTest {
-
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
@@ -66,11 +65,31 @@ public abstract class AbstractInstrumentationTest {
         ElasticApmAgent.reset();
     }
 
-    @Before
-    @BeforeEach
-    public final void resetConfigAndReporter() {
+    public static void reset() {
         SpyConfiguration.reset(config);
         reporter.reset();
+
+        // resume tracer in case it has been paused
+        // otherwise the 1st test that pauses tracer will have side effects on others
+        TracerInternalApiUtils.resumeTracer(tracer);
+    }
+
+    public static ElasticApmTracer getTracer() {
+        return tracer;
+    }
+
+    public static MockReporter getReporter() {
+        return reporter;
+    }
+
+    public static ConfigurationRegistry getConfig() {
+        return config;
+    }
+
+    @Before
+    @BeforeEach
+    public final void resetReporter() {
+        reset();
     }
 
     @After
@@ -81,7 +100,5 @@ public abstract class AbstractInstrumentationTest {
         assertThat(tracer.getActive())
             .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
             .isNull();
-
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 }
