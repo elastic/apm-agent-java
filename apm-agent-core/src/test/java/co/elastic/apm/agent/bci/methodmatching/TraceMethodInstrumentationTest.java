@@ -25,12 +25,11 @@
 package co.elastic.apm.agent.bci.methodmatching;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
@@ -64,9 +63,10 @@ class TraceMethodInstrumentationTest {
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
-        reporter = new MockReporter();
-        objectPoolFactory = new TestObjectPoolFactory();
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        reporter = mockInstrumentationSetup.reporter;
+        objectPoolFactory = mockInstrumentationSetup.objectPoolFactory;
+        ConfigurationRegistry config = mockInstrumentationSetup.config;
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
@@ -85,11 +85,7 @@ class TraceMethodInstrumentationTest {
             when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
         }
 
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .withObjectPoolFactory(objectPoolFactory)
-            .build();
+        tracer = mockInstrumentationSetup.tracer;
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

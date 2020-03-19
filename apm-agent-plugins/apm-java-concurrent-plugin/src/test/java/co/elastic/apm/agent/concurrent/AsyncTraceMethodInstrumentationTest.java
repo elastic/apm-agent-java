@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,13 +25,12 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,8 +55,9 @@ class AsyncTraceMethodInstrumentationTest {
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
-        reporter = new MockReporter();
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        reporter = mockInstrumentationSetup.reporter;
+        ConfigurationRegistry config = mockInstrumentationSetup.config;
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
             MethodMatcher.of("private co.elastic.apm.agent.concurrent.AsyncTraceMethodInstrumentationTest$TestAsyncTraceMethodsClass#*"))
@@ -68,10 +68,7 @@ class AsyncTraceMethodInstrumentationTest {
             when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
         }
 
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
+        tracer = mockInstrumentationSetup.tracer;
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

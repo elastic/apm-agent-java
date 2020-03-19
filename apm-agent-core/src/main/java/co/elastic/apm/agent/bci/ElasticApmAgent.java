@@ -368,11 +368,15 @@ public class ElasticApmAgent {
     /**
      * Reverts instrumentation of classes and re-transforms them to their state without the agent.
      * <p>
-     * This is only to be used for unit tests
+     * NOTE: THIS IS ONLY TO BE USED FOR UNIT TESTS
      * </p>
      */
     public static synchronized void reset() {
-        if (resettableClassFileTransformer == null || instrumentation == null) {
+        if (instrumentation == null) {
+            return;
+        }
+
+        if (resettableClassFileTransformer == null) {
             throw new IllegalStateException("Reset was called before init");
         }
         dynamicallyInstrumentedClasses.clear();
