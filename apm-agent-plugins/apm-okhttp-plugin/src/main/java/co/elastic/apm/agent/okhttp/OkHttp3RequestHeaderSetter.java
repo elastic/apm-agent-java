@@ -27,6 +27,7 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import okhttp3.Request;
 
+@SuppressWarnings("unused")
 public class OkHttp3RequestHeaderSetter implements TextHeaderSetter<Request.Builder> {
 
     @Override

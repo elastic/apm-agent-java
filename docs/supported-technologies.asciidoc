@@ -14,6 +14,7 @@ This section lists all supported technologies.
 * <<supported-scheduling-frameworks>>
 * <<supported-logging-frameworks>>
 * <<supported-process-frameworks>>
+* <<supported-rpc-frameworks>>
 * <<supported-java-methods>>
 * <<supported-metrics>>
 * <<supported-technologies-caveats>>
@@ -390,6 +391,20 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 |1.3
 | Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation.
 | 1.13.0
+
+|===
+
+[float]
+[[supported-rpc-frameworks]]
+=== RPC frameworks
+
+|===
+|Framework |Supported versions | Description | Since
+
+| gRPC
+| 1.6.1 - 1.27.1
+| Client (synchronous & asynchronous) & Server instrumentation
+| 1.14.0
 
 |===
 
