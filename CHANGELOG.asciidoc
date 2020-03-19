@@ -25,6 +25,10 @@ endif::[]
 
 [float]
 ===== Breaking changes
+* Ordering of configuration sources has slightly changed, please review <<configuration>>:
+** `elasticapm.properties` file now has higher priority over java system properties and environment variables, +
+This change allows to change dynamic options values at runtime by editing file, previously values set in java properties
+or environment variables could not be overriden, even if they were dynamic.
 
 [float]
 ===== Features
