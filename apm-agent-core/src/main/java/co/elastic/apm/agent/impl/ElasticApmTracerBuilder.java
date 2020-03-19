@@ -203,8 +203,18 @@ public class ElasticApmTracerBuilder {
 
         // highest priority : JVM system properties (before adding remote configuration)
 
+        // java system properties
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
+
+        // environment variables
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
+
+        // loads properties file next to agent jar or with path provided from config.
+        // while it depends on sources above, it has higher priority and is thus inserted before them
+        String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
+        if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
+            result.add(0, new PropertyFileConfigurationSource(configFileLocation));
+        }
 
         if (agentArguments != null && !agentArguments.isEmpty()) {
             // runtime attachment: self-attachment API and attacher jar
@@ -214,16 +224,11 @@ public class ElasticApmTracerBuilder {
             if (attachmentConfig != null) {
                 result.add(attachmentConfig);
             }
-        } else {
-            // loads properties file next to agent jar or with path provided from config.
-            String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
-            if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
-                result.add(new PropertyFileConfigurationSource(configFileLocation));
-            }
         }
 
         // only used for testing, will not load elasticapm.properties from app classpath as this code is
-        // running in the bootstrap classloader.
+        // running in the bootstrap classloader. When testing, it loads elasticapm.properties only because agent classes
+        // are loaded by the system classloader and not the bootstrap classloader
         if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
             result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
         }
