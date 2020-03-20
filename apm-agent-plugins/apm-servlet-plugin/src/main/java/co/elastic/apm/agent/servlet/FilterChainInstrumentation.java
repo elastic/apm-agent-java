@@ -24,11 +24,17 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -41,10 +47,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@link javax.servlet.FilterChain}s to create transactions.
  */
 public class FilterChainInstrumentation extends AbstractServletInstrumentation {
-
-    public FilterChainInstrumentation(ElasticApmTracer tracer) {
-        ServletApiAdvice.init(tracer);
-    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -64,9 +66,25 @@ public class FilterChainInstrumentation extends AbstractServletInstrumentation {
             .and(takesArgument(1, named("javax.servlet.ServletResponse")));
     }
 
-    @Override
-    public Class<?> getAdviceClass() {
-        return ServletApiAdvice.class;
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    public static Transaction onEnterServletService(@Advice.Origin Class<?> clazz,
+                                                    @Advice.Argument(0) ServletRequest servletRequest) throws Throwable {
+        return (Transaction) MethodHandleDispatcher
+            .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletApiAdvice#onEnterServletService")
+            .invoke(servletRequest);
+    }
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    public static void onExitServletService(@Advice.Origin Class<?> clazz,
+                                            @Advice.Argument(0) ServletRequest servletRequest,
+                                            @Advice.Argument(1) ServletResponse servletResponse,
+                                            @Advice.Enter @Nullable Transaction transaction,
+                                            @Advice.Thrown @Nullable Throwable t,
+                                            @Advice.This Object thiz) throws Throwable {
+        MethodHandleDispatcher
+            .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletApiAdvice#onExitServletService")
+            .invoke(servletRequest, servletResponse, transaction, t, thiz);
     }
 
 }

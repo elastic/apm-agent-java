@@ -26,15 +26,21 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -63,7 +69,6 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
     public static HelperClassManager<ServletTransactionCreationHelper<HttpServletRequest>> servletTransactionCreationHelperManager;
 
     public ServletInstrumentation(ElasticApmTracer tracer) {
-        ServletApiAdvice.init(tracer);
         // adding a null-check before setting helper manager reference breaks test execution, which prevents having
         // the same code construct we have for other HelperClassManager usages.
         //
@@ -94,8 +99,29 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ServletApiAdvice.class;
+    public List<String> helpers() {
+        return Arrays.asList("co.elastic.apm.agent.servlet.ServletApiAdvice", "co.elastic.apm.agent.servlet.ServletApiAdvice$1");
+    }
+
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    public static Transaction onEnterServletService(@Advice.Origin Class<?> clazz,
+                                                    @Advice.Argument(0) ServletRequest servletRequest) throws Throwable {
+        return (Transaction) MethodHandleDispatcher
+            .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletApiAdvice#onEnterServletService")
+            .invoke(servletRequest);
+    }
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    public static void onExitServletService(@Advice.Origin Class<?> clazz,
+                                            @Advice.Argument(0) ServletRequest servletRequest,
+                                            @Advice.Argument(1) ServletResponse servletResponse,
+                                            @Advice.Enter @Nullable Transaction transaction,
+                                            @Advice.Thrown @Nullable Throwable t,
+                                            @Advice.This Object thiz) throws Throwable {
+        MethodHandleDispatcher
+            .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletApiAdvice#onExitServletService")
+            .invoke(servletRequest, servletResponse, transaction, t, thiz);
     }
 
     @VisibleForAdvice

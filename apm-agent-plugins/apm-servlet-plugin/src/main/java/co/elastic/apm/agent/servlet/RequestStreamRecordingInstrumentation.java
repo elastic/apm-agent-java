@@ -56,7 +56,6 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
     public static HelperClassManager<InputStreamWrapperFactory> wrapperHelperClassManager;
 
     public RequestStreamRecordingInstrumentation(ElasticApmTracer tracer) {
-        ServletApiAdvice.init(tracer);
         synchronized (RequestStreamRecordingInstrumentation.class) {
             if (wrapperHelperClassManager == null) {
                 wrapperHelperClassManager = HelperClassManager.ForSingleClassLoader.of(tracer,

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,27 +24,38 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.loading.ClassInjector;
+import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * This class helps to overcome the fact that the agent classes can't access the classes they want to instrument.
@@ -271,6 +282,74 @@ public abstract class HelperClassManager<T> {
         }
     }
 
+    public static class ForDispatcher {
+
+        private static final Map<ClassLoader, Set<Collection<String>>> alreadyInjected = new WeakHashMap<ClassLoader, Set<Collection<String>>>();
+
+        public synchronized static void inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject) throws IOException, ReflectiveOperationException {
+            Set<Collection<String>> injectedClasses = alreadyInjected.get(targetClassLoader);
+            if (injectedClasses == null) {
+                injectedClasses = new HashSet<>();
+                alreadyInjected.put(targetClassLoader, injectedClasses);
+            }
+            if (injectedClasses.contains(classesToInject)) {
+                return;
+            }
+            injectedClasses.add(classesToInject);
+
+            ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = MethodHandleDispatcher.getDispatcherForClassLoader(targetClassLoader);
+            if (dispatcherForClassLoader == null) {
+                // there's always a dispatcher for the bootstrap CL
+                assert targetClassLoader != null;
+                Class<MethodHandleDispatcherHolder> dispatcher = injectHelperDispatcher(targetClassLoader, protectionDomain);
+                dispatcherForClassLoader = (ConcurrentMap<String, MethodHandle>) dispatcher.getField("registry").get(null);
+                MethodHandleDispatcher.setDispatcherForClassLoader(targetClassLoader, dispatcherForClassLoader);
+            }
+
+            ClassLoader agentClassLoader = HelperClassManager.class.getClassLoader();
+            ClassLoader parent;
+            if (agentClassLoader != null && agentClassLoader != ClassLoader.getSystemClassLoader()) {
+                // future world: when the agent is loaded from an isolated class loader
+                parent = new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
+            } else {
+                parent = targetClassLoader;
+            }
+            Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInject);
+            ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions);
+
+            for (String name : classesToInject) {
+                Class<?> clazz = Class.forName(name, true, helperCL);
+                if (clazz.getClassLoader() != helperCL) {
+                    throw new IllegalStateException("Helper classes not loaded from helper class loader, instead loaded from " + clazz.getClassLoader());
+                }
+                try {
+                    registerStaticMethodHandles(dispatcherForClassLoader, clazz);
+                } catch (NoSuchMethodException e) {
+                    // ignore
+                }
+            }
+        }
+
+        private static Class<MethodHandleDispatcherHolder> injectHelperDispatcher(@Nullable ClassLoader classLoader, @Nullable ProtectionDomain protectionDomain) throws IOException, ClassNotFoundException {
+            ClassInjector injector = new ClassInjector.UsingUnsafe(classLoader, protectionDomain);
+            byte[] classBytes = IOUtils.readToBytes(MethodHandleDispatcherHolder.class.getClassLoader().getResourceAsStream("MethodHandleDispatcherHolder.class"));
+            return (Class<MethodHandleDispatcherHolder>) injector.injectRaw(Collections.singletonMap(MethodHandleDispatcherHolder.class.getName(), classBytes)).values().iterator().next();
+        }
+
+        public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, Class<?> helperClass) throws ReflectiveOperationException {
+            for (Method method : helperClass.getMethods()) {
+                if (Modifier.isStatic(method.getModifiers())) {
+                    MethodHandle methodHandle = MethodHandles.lookup().unreflect(method);
+                    String key = helperClass.getName() + "#" + method.getName();
+                    MethodHandle previousValue = dispatcher.put(key, methodHandle);
+                    if (previousValue != null) {
+                        throw new IllegalArgumentException("There is already a mapping for '" + key + "'");
+                    }
+                }
+            }
+        }
+    }
+
     static Class injectClass(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
         if (targetClassLoader == null) {
             if (isBootstrapClass) {
@@ -335,15 +414,23 @@ public abstract class HelperClassManager<T> {
 
     private static Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames) throws IOException {
         Map<String, byte[]> typeDefinitions = new HashMap<>();
+        ClassFileLocator agentClassFileLocator = getAgentClassFileLocator();
         for (final String helperName : helperClassNames) {
-            final byte[] classBytes = getAgentClassBytes(helperName);
+            final byte[] classBytes = agentClassFileLocator.locate(helperName).resolve();
             typeDefinitions.put(helperName, classBytes);
         }
         return typeDefinitions;
     }
 
     private static byte[] getAgentClassBytes(String className) throws IOException {
-        final ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(ClassLoader.getSystemClassLoader());
-        return locator.locate(className).resolve();
+        return getAgentClassFileLocator().locate(className).resolve();
+    }
+
+    private static ClassFileLocator getAgentClassFileLocator() {
+        ClassLoader agentClassLoader = HelperClassManager.class.getClassLoader();
+        if (agentClassLoader == null) {
+            agentClassLoader = ClassLoader.getSystemClassLoader();
+        }
+        return ClassFileLocator.ForClassLoader.of(agentClassLoader);
     }
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,13 +24,17 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.lang.invoke.WrongMethodTypeException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -122,6 +126,48 @@ class HelperClassManagerTest {
         assertThat(helperClassManager1.clId2helperMap.get(targetClassLoader3).get()).isEqualTo(helper3);
         assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.size()).isEqualTo(1);
         assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.get(targetClassLoader3)).isNotNull();
+    }
+
+    @Test
+    void testForDispatcher() throws Throwable {
+        injectForDispatcher(TestHelper.class);
+        assertThat(MethodHandleDispatcher
+            .getMethodHandle(HelperClassManagerTest.class, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelper#getParentClassLoader")
+            .invoke())
+            .isEqualTo(HelperClassManagerTest.class.getClassLoader());
+    }
+
+    public static class TestHelper {
+        public static ClassLoader getParentClassLoader() {
+            return TestHelper.class.getClassLoader().getParent();
+        }
+    }
+
+    @Test
+    void testWrongArguments() throws Throwable {
+        injectForDispatcher(TestHelper.class);
+        assertThatThrownBy(() -> MethodHandleDispatcher
+            .getMethodHandle(HelperClassManagerTest.class, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelper#getParentClassLoader")
+            .invoke(boolean.class))
+            .isInstanceOf(WrongMethodTypeException.class);
+    }
+
+    private void injectForDispatcher(Class<?> helper) throws IOException, ReflectiveOperationException {
+        HelperClassManager.ForDispatcher.inject(HelperClassManagerTest.class.getClassLoader(), HelperClassManagerTest.class.getProtectionDomain(), Collections.singletonList(helper.getName()));
+    }
+
+    @Test
+    void testForDispatcherOverloadedMethod() {
+        assertThatThrownBy(() -> injectForDispatcher(OverloadedMethodHelper.class))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("There is already a mapping for");
+    }
+
+    public static class OverloadedMethodHelper {
+        public static void foo() {
+        }
+        public static void foo(boolean bar) {
+        }
     }
 
     private void assertFailLoadingOnlyOnce(HelperClassManager<Object> helperClassManager, Class libClass1) {

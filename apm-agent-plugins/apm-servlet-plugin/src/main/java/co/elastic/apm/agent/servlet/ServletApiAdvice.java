@@ -24,17 +24,17 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.CallDepth;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
+import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -48,6 +48,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
@@ -60,40 +61,34 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineSer
 public class ServletApiAdvice {
 
     @Nullable
-    @VisibleForAdvice
-    public static ServletTransactionHelper servletTransactionHelper;
+    private static ServletTransactionHelper servletTransactionHelper;
 
-    @Nullable
-    @VisibleForAdvice
-    public static ElasticApmTracer tracer;
-
-    @VisibleForAdvice
-    public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
+    private static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
             return Boolean.FALSE;
         }
     };
+    private static ThreadLocal<Scope> scopeThreadLocal = new ThreadLocal<Scope>();
 
-    @VisibleForAdvice
-    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
+    private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
-    static void init(ElasticApmTracer tracer) {
-        ServletApiAdvice.tracer = tracer;
+    static {
         servletTransactionHelper = new ServletTransactionHelper(tracer);
     }
 
+    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
-                                             @Advice.Local("transaction") Transaction transaction,
-                                             @Advice.Local("scope") Scope scope) {
+    public static Transaction onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
+        int depth = CallDepth.increment(Servlet.class);
         if (tracer == null) {
-            return;
+            return null;
         }
+        Transaction transaction = null;
         // re-activate transactions for async requests
         final Transaction transactionAttr = (Transaction) servletRequest.getAttribute(TRANSACTION_ATTRIBUTE);
-        if (tracer.currentTransaction() == null && transactionAttr != null) {
-            scope = transactionAttr.activateInScope();
+        if (depth == 0 && tracer.currentTransaction() == null && transactionAttr != null) {
+            scopeThreadLocal.set(transactionAttr.activateInScope());
         }
         if (tracer.isRunning() &&
             servletTransactionHelper != null &&
@@ -119,7 +114,7 @@ public class ServletApiAdvice {
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 excluded.set(Boolean.TRUE);
-                return;
+                return null;
             }
             final Request req = transaction.getContext().getRequest();
             if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
@@ -141,20 +136,23 @@ public class ServletApiAdvice {
                 request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
                 request.getRemoteAddr(), request.getHeader("Content-Type"));
         }
+        return transaction;
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                             @Advice.Argument(1) ServletResponse servletResponse,
-                                            @Advice.Local("transaction") @Nullable Transaction transaction,
-                                            @Advice.Local("scope") @Nullable Scope scope,
+                                            @Advice.Enter @Nullable Transaction transaction,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
+        int depth = CallDepth.decrement(Servlet.class);
         if (tracer == null) {
             return;
         }
         excluded.set(Boolean.FALSE);
-        if (scope != null) {
+        Scope scope = scopeThreadLocal.get();
+        if (depth == 0 && scope != null) {
+            scopeThreadLocal.remove();
             scope.close();
         }
         if (thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {

@@ -34,6 +34,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -382,6 +383,7 @@ public class ElasticApmAgent {
             transformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
         }
         dynamicClassFileTransformers.clear();
+        MethodHandleDispatcher.clear();
         instrumentation = null;
     }
 
