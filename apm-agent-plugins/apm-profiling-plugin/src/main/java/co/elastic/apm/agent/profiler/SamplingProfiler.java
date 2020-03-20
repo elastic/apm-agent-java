@@ -408,7 +408,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             return;
         }
         long eof = startProcessingActivationEventsFile();
-        if (eof == 0 && activationEventsBuffer.limit() == 0) {
+        if (eof == 0 && activationEventsBuffer.limit() == 0 && profiledThreads.isEmpty()) {
             logger.debug("No activation events during this period. Skip processing stack traces.");
             return;
         }
