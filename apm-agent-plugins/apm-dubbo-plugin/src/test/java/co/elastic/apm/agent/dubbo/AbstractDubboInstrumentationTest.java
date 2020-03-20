@@ -24,20 +24,15 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,24 +43,14 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-public abstract class AbstractDubboInstrumentationTest {
-
-    protected static final MockReporter reporter = new MockReporter();
-
-    private static ElasticApmTracer tracer;
+public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumentationTest {
 
     private DubboTestApi dubboTestApi;
-
 
     private static CoreConfiguration coreConfig;
 
     @BeforeAll
     static void initInstrumentation() {
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         coreConfig = tracer.getConfig(CoreConfiguration.class);
     }
 
@@ -78,7 +63,6 @@ public abstract class AbstractDubboInstrumentationTest {
     @AfterEach
     void clearReporter() {
         tracer.currentTransaction().deactivate().end();
-        reporter.reset();
     }
 
     protected abstract DubboTestApi buildDubboTestApi();
