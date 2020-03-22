@@ -30,12 +30,10 @@ import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -66,7 +64,6 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         }
     }
 
-    @Test
     void simpleCall() {
         assertThat(app.sayHello("bob", 0))
             .isEqualTo("hello(bob)");
@@ -75,7 +72,6 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         checkUnaryTransaction(transaction, "OK");
     }
 
-    @Test
     void nestedCallShouldProduceTwoTransactions() {
         assertThat(app.sayHello("bob", 1))
             .isEqualTo("nested(1)->hello(bob)");
@@ -94,17 +90,14 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     }
 
-    @Test
     void simpleCallWithInvalidArgumentError() {
         simpleCallWithError(null, "INVALID_ARGUMENT");
     }
 
-    @Test
     void simpleCallWithRuntimeError() {
         simpleCallWithError("boom", "UNKNOWN");
     }
 
-    @Test
     void asyncClientCallShouldWorkLikeRegularCall() throws Exception {
 
         String msg = app.sayHelloAsync("bob", 0).get();
@@ -122,7 +115,6 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         checkUnaryTransaction(transaction, expectedResult);
     }
 
-    @Test
     void clientStreamingCallShouldBeIgnored() {
         String s = app.sayHelloClientStreaming(Arrays.asList("bob", "alice"), 37);
         assertThat(s)
@@ -132,7 +124,6 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         checkNoTransaction();
     }
 
-    @Test
     void serverStreamingBasicSupport() {
         String s = app.sayHelloServerStreaming("joe", 4);
         assertThat(s)
@@ -142,7 +133,6 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         checkNoTransaction();
     }
 
-    @Test
     void bidiStreamingCallShouldBeIgnored() {
         String s = app.sayHelloBidiStreaming(Arrays.asList("bob", "alice"), 2);
         assertThat(s)
