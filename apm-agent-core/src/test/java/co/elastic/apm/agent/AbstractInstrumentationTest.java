@@ -65,7 +65,7 @@ public abstract class AbstractInstrumentationTest {
         ElasticApmAgent.reset();
     }
 
-    public static void reset() {
+    public static void staticReset() {
         SpyConfiguration.reset(config);
         reporter.reset();
 
@@ -88,8 +88,8 @@ public abstract class AbstractInstrumentationTest {
 
     @Before
     @BeforeEach
-    public final void resetReporter() {
-        reset();
+    public final void reset() {
+        staticReset();
     }
 
     @After
