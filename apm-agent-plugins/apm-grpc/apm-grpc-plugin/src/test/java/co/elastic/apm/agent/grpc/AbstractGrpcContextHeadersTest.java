@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -62,6 +63,7 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
         }
     }
 
+    @Test
     void simpleClientContextPropagation() {
         // we have 2 transactions and 1 span
         // transaction 1 (root transaction) will do the gRPC call and create a span

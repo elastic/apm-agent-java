@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +85,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     }
 
 
+    @Test
     public void simpleCall() {
         doSimpleCall("bob");
 
@@ -103,6 +105,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         assertThat(span.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
     }
 
+    @Test
     public void simpleCallOutsideTransactionShouldBeIgnored() {
 
         // terminate transaction early
@@ -120,6 +123,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             .isEqualTo(String.format("hello(%s)", name));
     }
 
+    @Test
     public void cancelClientCall() throws Exception {
 
         EpochTickClock clock = new EpochTickClock();
@@ -172,6 +176,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         }
     }
 
+    @Test
     void clientStreamingCallShouldBeIgnored() {
         String s = app.sayHelloClientStreaming(Arrays.asList("bob", "alice"), 37);
         assertThat(s)
@@ -181,6 +186,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         assertNoSpan();
     }
 
+    @Test
     void serverStreamingCallShouldBeIgnored() {
         String s = app.sayHelloServerStreaming("alice", 5);
         assertThat(s)
@@ -190,6 +196,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         assertNoSpan();
     }
 
+    @Test
     void bidiStreamingCallShouldBeIgnored() {
         String result = app.sayHelloBidiStreaming(Arrays.asList("bob", "alice", "oscar"), 2);
         assertThat(result)
