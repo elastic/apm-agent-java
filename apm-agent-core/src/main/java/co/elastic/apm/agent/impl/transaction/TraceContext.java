@@ -231,6 +231,7 @@ public class TraceContext extends TraceContextHolder {
      * @see EpochTickClock
      */
     private EpochTickClock clock = new EpochTickClock();
+
     @Nullable
     private String serviceName;
 

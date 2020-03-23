@@ -209,7 +209,7 @@ public class MockReporter implements Reporter {
 
     private static ConditionFactory awaitTimeout(long timeoutMs) {
         return await()
-            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .pollDelay(5, TimeUnit.MILLISECONDS)
             .timeout(timeoutMs, TimeUnit.MILLISECONDS);
     }
 
