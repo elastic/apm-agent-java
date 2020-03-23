@@ -135,9 +135,6 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
 
         try {
 
-            // span is created somewhere between those two timing events, but we can't exactly when
-            // and it varies a lot from one execution to another
-
             long waitBeforeCancel = 20;
 
             Thread.sleep(waitBeforeCancel);
