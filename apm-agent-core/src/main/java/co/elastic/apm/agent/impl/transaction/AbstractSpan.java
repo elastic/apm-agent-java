@@ -86,6 +86,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
         /**
          * Stops the timer and increments the duration if no other direct children are still running
+         *
          * @param endTimestamp
          */
         void onChildEnd(long endTimestamp) {
@@ -193,6 +194,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     /**
      * Only intended for testing purposes as this allocates a {@link String}
+     *
      * @return
      */
     public String getNameAsString() {
@@ -378,8 +380,20 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return tracer.wrapCallable(callable, this);
     }
 
+    /**
+     * Set start timestamp
+     *
+     * @param epochMicros start timestamp in micro-seconds since epoch
+     */
     public void setStartTimestamp(long epochMicros) {
         timestamp = epochMicros;
+    }
+
+    /**
+     * Set start timestamp from context current clock
+     */
+    public void setStartTimestampNow() {
+        timestamp = getTraceContext().getClock().getEpochMicros();
     }
 
     void onChildStart(long epochMicros) {

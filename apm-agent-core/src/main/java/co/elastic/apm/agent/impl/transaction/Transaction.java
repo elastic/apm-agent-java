@@ -118,7 +118,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {
-            setStartTimestamp(traceContext.getClock().getEpochMicros());
+            setStartTimestampNow();
         }
         onAfterStart();
     }
