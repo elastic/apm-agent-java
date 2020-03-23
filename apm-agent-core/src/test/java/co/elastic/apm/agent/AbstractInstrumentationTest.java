@@ -25,7 +25,6 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -46,7 +45,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractInstrumentationTest {
-
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
@@ -54,42 +52,57 @@ public abstract class AbstractInstrumentationTest {
 
     @BeforeAll
     @BeforeClass
-    public static synchronized void beforeAll() {
-        if (ElasticApmInstrumentation.tracer == null) {
-            objectPoolFactory = new TestObjectPoolFactory();
+    public static void beforeAll() {
+        objectPoolFactory = new TestObjectPoolFactory();
 
-            reporter = new MockReporter();
-            config = SpyConfiguration.createSpyConfig();
-            tracer = new ElasticApmTracerBuilder()
-                .configurationRegistry(config)
-                .reporter(reporter)
-                .withObjectPoolFactory(objectPoolFactory)
-                .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
-                    objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-                    reporter.assertRecycledAfterDecrementingReferences();
-                }))
-                .build();
-            ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-        } else {
-            tracer = ElasticApmInstrumentation.tracer;
-            ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-            config = tracer.getConfigurationRegistry();
-            objectPoolFactory = (TestObjectPoolFactory) tracer.getObjectPoolFactory();
-            reporter = (MockReporter) tracer.getReporter();
-        }
+
+        reporter = new MockReporter();
+        config = SpyConfiguration.createSpyConfig();
+
+        tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .reporter(reporter)
+            .withObjectPoolFactory(objectPoolFactory)
+            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
+                reporter.assertRecycledAfterDecrementingReferences();
+                // after recycling, there should be nothing left in use in object pools
+                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+            }))
+            .build();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
     @AfterAll
     @AfterClass
-    public static synchronized void afterAll() {
+    public static void afterAll() {
         ElasticApmAgent.reset();
+    }
+
+    public static void reset() {
+        SpyConfiguration.reset(config);
+        reporter.reset();
+
+        // resume tracer in case it has been paused
+        // otherwise the 1st test that pauses tracer will have side effects on others
+        TracerInternalApiUtils.resumeTracer(tracer);
+    }
+
+    public static ElasticApmTracer getTracer() {
+        return tracer;
+    }
+
+    public static MockReporter getReporter() {
+        return reporter;
+    }
+
+    public static ConfigurationRegistry getConfig() {
+        return config;
     }
 
     @Before
     @BeforeEach
-    public final void resetConfigAndReporter() {
-        SpyConfiguration.reset(config);
-        reporter.reset();
+    public final void resetReporter() {
+        reset();
     }
 
     @After
@@ -100,7 +113,5 @@ public abstract class AbstractInstrumentationTest {
         assertThat(tracer.getActive())
             .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
             .isNull();
-
-        TracerInternalApiUtils.resumeTracer(tracer);
     }
 }

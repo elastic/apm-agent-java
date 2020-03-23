@@ -31,6 +31,7 @@ import org.apache.http.HttpRequest;
 
 import javax.annotation.Nullable;
 
+@SuppressWarnings("unused")
 public class RequestHeaderAccessor implements TextHeaderGetter<HttpRequest>, TextHeaderSetter<HttpRequest> {
     @Override
     public void setHeader(String headerName, String headerValue, HttpRequest request) {

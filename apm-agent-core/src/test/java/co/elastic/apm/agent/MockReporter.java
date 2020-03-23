@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
+import org.awaitility.core.ConditionFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -140,14 +141,14 @@ public class MockReporter implements Reporter {
             // see if this span's action is not supported for its subtype
             Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
             if (!unsupportedActions.contains(span.getAction())) {
-                assertThat(destination.getAddress()).isNotEmpty();
-                assertThat(destination.getPort()).isGreaterThan(0);
+                assertThat(destination.getAddress()).describedAs("destination address is required").isNotEmpty();
+                assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
         }
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).isNotEmpty();
-        assertThat(service.getResource()).isNotEmpty();
-        assertThat(service.getType()).isNotNull();
+        assertThat(service.getName()).describedAs("service name is required").isNotEmpty();
+        assertThat(service.getResource()).describedAs("service resourse is required").isNotEmpty();
+        assertThat(service.getType()).describedAs("service type is required").isNotNull();
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {
@@ -183,28 +184,53 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized Transaction getFirstTransaction() {
-        return transactions.iterator().next();
+        assertThat(transactions)
+            .describedAs("at least one transaction expected, none have been reported (yet)")
+            .isNotEmpty();
+        return transactions.get(0);
     }
 
     public Transaction getFirstTransaction(long timeoutMs) {
-        await()
-            .pollDelay(10, TimeUnit.MILLISECONDS)
-            .timeout(timeoutMs, TimeUnit.MILLISECONDS)
+        awaitTimeout(timeoutMs)
             .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
 
-    public Span getFirstSpan(long timeoutMs) throws InterruptedException {
-        final long end = System.currentTimeMillis() + timeoutMs;
-        do {
-            synchronized (this) {
-                if (!spans.isEmpty()) {
-                    return getFirstSpan();
-                }
-            }
-            Thread.sleep(1);
-        } while (System.currentTimeMillis() < end);
+    public void assertNoTransaction(){
+        assertThat(getTransactions())
+            .describedAs("no transaction expected")
+            .isEmpty();
+    }
+
+    public void assertNoTransaction(long timeoutMs){
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getTransactions()).isEmpty());
+        assertNoTransaction();
+    }
+
+    private static ConditionFactory awaitTimeout(long timeoutMs) {
+        return await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    public Span getFirstSpan(long timeoutMs) {
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getSpans()).isNotEmpty());
         return getFirstSpan();
+    }
+
+    public void assertNoSpan() {
+        assertThat(getSpans())
+            .describedAs("no span expected")
+            .isEmpty();
+    }
+
+    public void assertNoSpan(long timeoutMs) {
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getSpans()).isEmpty());
+
+        assertNoSpan();
     }
 
     @Override
@@ -222,11 +248,14 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized Span getFirstSpan() {
+        assertThat(spans)
+            .describedAs("at least one span expected, none have been reported")
+            .isNotEmpty();
         return spans.get(0);
     }
 
     public synchronized List<Span> getSpans() {
-        return spans;
+        return Collections.unmodifiableList(spans);
     }
 
     public synchronized List<ErrorCapture> getErrors() {
@@ -234,6 +263,9 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized ErrorCapture getFirstError() {
+        assertThat(errors)
+            .describedAs("at least one error expected, none have been reported")
+            .isNotEmpty();
         return errors.iterator().next();
     }
 
@@ -278,11 +310,11 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         closed = true;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         transactions.clear();
         spans.clear();
         errors.clear();
@@ -293,7 +325,7 @@ public class MockReporter implements Reporter {
      * after reporting to the APM Server.
      * See {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)}
      */
-    public void decrementReferences() {
+    public synchronized void decrementReferences() {
         transactions.forEach(Transaction::decrementReferences);
         spans.forEach(Span::decrementReferences);
     }
@@ -302,7 +334,7 @@ public class MockReporter implements Reporter {
      * Decrements transactions and spans reference count and check that they are properly recycled. This method should likely be called
      * last in the test execution as it destroys any transaction/span that has happened.
      */
-    public void assertRecycledAfterDecrementingReferences() {
+    public synchronized void assertRecycledAfterDecrementingReferences() {
 
         Predicate<AbstractSpan<?>> hasEmptyTraceContext = as -> as.getTraceContext().getId().isEmpty();
 

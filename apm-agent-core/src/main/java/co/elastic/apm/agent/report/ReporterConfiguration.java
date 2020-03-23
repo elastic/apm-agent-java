@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -43,7 +43,9 @@ import java.util.List;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNotInRange;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
+
     public static final String REPORTER_CATEGORY = "Reporter";
+
     private final ConfigurationOption<String> secretToken = ConfigurationOption.stringOption()
         .key("secret_token")
         .configurationCategory(REPORTER_CATEGORY)
@@ -51,6 +53,17 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "Both the agents and the APM server have to be configured with the same secret token.\n" +
             "Use if APM Server requires a token.")
+        .sensitive()
+        .build();
+
+    private final ConfigurationOption<String> apiKey = ConfigurationOption.stringOption()
+        .key("api_key")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("This string is used to ensure that only your agents can send data to your APM server.\n" +
+            "\n" +
+            "Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.\n" +
+            "When both secret token and API key are used, API key has priority and secret token is ignored.\n" +
+            "Use if APM Server requires an API key.")
         .sensitive()
         .build();
 
@@ -171,6 +184,11 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
+    }
+
+    @Nullable
+    public String getApiKey() {
+        return apiKey.get();
     }
 
     public List<URL> getServerUrls() {
