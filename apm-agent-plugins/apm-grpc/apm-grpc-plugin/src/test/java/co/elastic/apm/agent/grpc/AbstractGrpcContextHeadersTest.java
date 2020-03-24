@@ -78,7 +78,7 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
             endRootTransaction(transaction1);
         }
 
-        reporter.awaitUntilAsserted(100, ()->{
+        reporter.awaitUntilAsserted(100, () -> {
             assertThat(reporter.getTransactions())
                 .describedAs("should have 2 transactions: client (root) transaction, and gRPC server transaction")
                 .hasSize(2);
@@ -87,9 +87,12 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions).hasSize(2);
 
-        assertThat(transactions.get(1)).isSameAs(transaction1);
+        assertThat(transactions).contains(transaction1);
 
-        Transaction transaction2 = transactions.get(0);
+        Transaction transaction2 = transactions.stream()
+            .filter((t) -> !t.equals(transaction1))
+            .findFirst()
+            .orElseThrow();
 
         Span span = reporter.getFirstSpan();
 
