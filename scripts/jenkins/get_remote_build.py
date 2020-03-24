@@ -32,3 +32,4 @@ if __name__ == '__main__':
     write_last(tmp_file, cur_hash)
     
     print(last_hash == cur_hash)
+    
