@@ -43,6 +43,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ConditionFactory;
+import org.awaitility.core.ThrowingRunnable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -205,6 +206,11 @@ public class MockReporter implements Reporter {
         awaitTimeout(timeoutMs)
             .untilAsserted(() -> assertThat(getTransactions()).isEmpty());
         assertNoTransaction();
+    }
+
+    public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable assertion){
+        awaitTimeout(timeoutMs)
+            .untilAsserted(assertion);
     }
 
     private static ConditionFactory awaitTimeout(long timeoutMs) {
