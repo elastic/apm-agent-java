@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.RegisterMethodHandle;
 import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelper;
@@ -102,13 +102,12 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
                 );
         }
 
-        @VisibleForAdvice
         public static class StartAsyncAdvice {
 
-            public static final AsyncContextAdviceHelper helper = new AsyncContextAdviceHelper(tracer);
+            private static final AsyncContextAdviceHelper helper = new AsyncContextAdviceHelper(tracer);
 
-            @Advice.OnMethodExit(suppress = Throwable.class)
-            public static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
+            @RegisterMethodHandle
+            public static void onExitStartAsync(AsyncContext asyncContext) {
                 helper.onExitStartAsync(asyncContext);
             }
         }
@@ -124,7 +123,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class)
-        public static void onExitAsyncContextStart(@Advice.Origin Class<?> clazz) throws Throwable {
+        private static void onExitAsyncContextStart(@Advice.Origin Class<?> clazz) throws Throwable {
             MethodHandleDispatcher
                 .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice#onExitAsyncContextStart")
                 .invoke();
@@ -148,10 +147,10 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
                 .and(takesArguments(Runnable.class));
         }
 
-        @VisibleForAdvice
         public static class AsyncContextStartAdvice {
 
             @Nullable
+            @RegisterMethodHandle
             public static Runnable onEnterAsyncContextStart(@Nullable Runnable runnable) {
                 if (tracer != null && runnable != null && tracer.isWrappingAllowedOnThread()) {
                     final Transaction transaction = tracer.currentTransaction();
@@ -163,7 +162,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
                 return runnable;
             }
 
-            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class)
+            @RegisterMethodHandle
             public static void onExitAsyncContextStart() {
                 if (tracer != null) {
                     tracer.allowWrappingOnThread();

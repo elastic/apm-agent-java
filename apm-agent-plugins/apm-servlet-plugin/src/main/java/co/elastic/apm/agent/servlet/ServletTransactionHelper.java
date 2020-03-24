@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.RegisterMethodHandle;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Request;
@@ -51,13 +51,9 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 
-@VisibleForAdvice
 public class ServletTransactionHelper {
 
-    @VisibleForAdvice
     public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
-
-    @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
 
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
@@ -70,18 +66,17 @@ public class ServletTransactionHelper {
     private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
 
-    @VisibleForAdvice
     public ServletTransactionHelper(ElasticApmTracer tracer) {
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
-    // visible for testing as clearing cache is required between tests execution
+    // needed for testing as clearing cache is required between tests execution
+    @RegisterMethodHandle
     public static void clearServiceNameCache() {
         nameInitialized.clear();
     }
 
-    @VisibleForAdvice
     public static void determineServiceName(@Nullable String servletContextName, ClassLoader servletContextClassLoader, @Nullable String contextPath) {
         if (ElasticApmInstrumentation.tracer == null || !nameInitialized.add(contextPath == null ? "null" : contextPath)) {
             return;
@@ -105,8 +100,7 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
-    public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
+    void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr, @Nullable String contentTypeHeader) {
 
@@ -140,15 +134,13 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
-    public static void setUsernameIfUnset(@Nullable String userName, TransactionContext context) {
+    static void setUsernameIfUnset(@Nullable String userName, TransactionContext context) {
         // only set username if not manually set
         if (context.getUser().getUsername() == null) {
             context.getUser().withUsername(userName);
         }
     }
 
-    @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
                         @Nullable String contentTypeHeader, boolean deactivate) {
@@ -169,7 +161,7 @@ public class ServletTransactionHelper {
         transaction.end();
     }
 
-    private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
+    void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                            @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
         if (exception != null && status == 200) {
@@ -225,7 +217,6 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
     public boolean captureParameters(String method, @Nullable String contentTypeHeader) {
         return contentTypeHeader != null
             && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
@@ -309,8 +300,7 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
-    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction) {
+    static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction) {
         if (servletClass == null) {
             return;
         }

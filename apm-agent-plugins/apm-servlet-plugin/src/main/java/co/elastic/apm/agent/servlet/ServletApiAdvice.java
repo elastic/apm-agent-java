@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.bci.RegisterMethodHandle;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
@@ -31,7 +32,6 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
 import co.elastic.apm.agent.util.CallDepth;
-import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
@@ -74,8 +74,8 @@ public class ServletApiAdvice {
     }
 
     @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Transaction onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
+    @RegisterMethodHandle
+    public static Transaction onEnterServletService(ServletRequest servletRequest) {
         int depth = CallDepth.increment(Servlet.class);
         if (tracer == null) {
             return null;
@@ -128,12 +128,12 @@ public class ServletApiAdvice {
         return transaction;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
-                                            @Advice.Argument(1) ServletResponse servletResponse,
-                                            @Advice.Enter @Nullable Transaction transaction,
-                                            @Advice.Thrown @Nullable Throwable t,
-                                            @Advice.This Object thiz) {
+    @RegisterMethodHandle
+    public static void onExitServletService(ServletRequest servletRequest,
+                                            ServletResponse servletResponse,
+                                            @Nullable Transaction transaction,
+                                            @Nullable Throwable t,
+                                            Object thiz) {
         int depth = CallDepth.decrement(Servlet.class);
         if (tracer == null) {
             return;

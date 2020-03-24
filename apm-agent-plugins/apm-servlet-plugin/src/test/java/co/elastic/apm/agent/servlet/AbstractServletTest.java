@@ -51,12 +51,6 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void initServerAndClient() throws Throwable {
-
-        // because we reuse the same classloader with different servlet context names
-        // we need to explicitly reset the name cache to make service name detection work as expected
-        // we can't call the static method directly because the actual class is within an isolated helper class loader
-        MethodHandleDispatcher.getMethodHandle(getClass(), "co.elastic.apm.agent.servlet.ServletTransactionHelper#clearServiceNameCache").invoke();
-
         // server is not reused between tests as handler is provided from subclass
         // another alternative
         server = new Server();
@@ -74,6 +68,11 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
             .connectTimeout(10, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .build();
+
+        // because we reuse the same classloader with different servlet context names
+        // we need to explicitly reset the name cache to make service name detection work as expected
+        // we can't call the static method directly because the actual class is within an isolated helper class loader
+        MethodHandleDispatcher.getMethodHandle(getClass(), "co.elastic.apm.agent.servlet.ServletTransactionHelper#clearServiceNameCache").invoke();
     }
 
     @AfterEach

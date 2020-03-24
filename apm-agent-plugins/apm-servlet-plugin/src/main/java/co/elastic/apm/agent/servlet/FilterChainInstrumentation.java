@@ -68,20 +68,20 @@ public class FilterChainInstrumentation extends AbstractServletInstrumentation {
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Transaction onEnterServletService(@Advice.Origin Class<?> clazz,
-                                                    @Advice.Argument(0) ServletRequest servletRequest) throws Throwable {
+    private static Transaction onEnterServletService(@Advice.Origin Class<?> clazz,
+                                                     @Advice.Argument(0) ServletRequest servletRequest) throws Throwable {
         return (Transaction) MethodHandleDispatcher
             .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletApiAdvice#onEnterServletService")
             .invoke(servletRequest);
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onExitServletService(@Advice.Origin Class<?> clazz,
-                                            @Advice.Argument(0) ServletRequest servletRequest,
-                                            @Advice.Argument(1) ServletResponse servletResponse,
-                                            @Advice.Enter @Nullable Transaction transaction,
-                                            @Advice.Thrown @Nullable Throwable t,
-                                            @Advice.This Object thiz) throws Throwable {
+    private static void onExitServletService(@Advice.Origin Class<?> clazz,
+                                             @Advice.Argument(0) ServletRequest servletRequest,
+                                             @Advice.Argument(1) ServletResponse servletResponse,
+                                             @Advice.Enter @Nullable Transaction transaction,
+                                             @Advice.Thrown @Nullable Throwable t,
+                                             @Advice.This Object thiz) throws Throwable {
         MethodHandleDispatcher
             .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletApiAdvice#onExitServletService")
             .invoke(servletRequest, servletResponse, transaction, t, thiz);

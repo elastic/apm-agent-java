@@ -287,6 +287,8 @@ public abstract class HelperClassManager<T> {
         private static final Map<ClassLoader, Set<Collection<String>>> alreadyInjected = new WeakHashMap<ClassLoader, Set<Collection<String>>>();
 
         public synchronized static void inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject) throws IOException, ReflectiveOperationException {
+            classesToInject = new ArrayList<>(classesToInject);
+            classesToInject.add(MethodHandleRegisterer.class.getName());
             Set<Collection<String>> injectedClasses = alreadyInjected.get(targetClassLoader);
             if (injectedClasses == null) {
                 injectedClasses = new HashSet<>();
@@ -316,6 +318,7 @@ public abstract class HelperClassManager<T> {
             }
             Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInject);
             ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions);
+            Class<MethodHandleRegisterer> methodHandleRegistererClass = (Class<MethodHandleRegisterer>) Class.forName(MethodHandleRegisterer.class.getName(), true, helperCL);
 
             for (String name : classesToInject) {
                 Class<?> clazz = Class.forName(name, true, helperCL);
@@ -323,9 +326,11 @@ public abstract class HelperClassManager<T> {
                     throw new IllegalStateException("Helper classes not loaded from helper class loader, instead loaded from " + clazz.getClassLoader());
                 }
                 try {
-                    registerStaticMethodHandles(dispatcherForClassLoader, clazz);
-                } catch (NoSuchMethodException e) {
-                    // ignore
+                    // call in from the context of the created helper class loader so that helperClass.getMethods() doesn't throw NoClassDefFoundError
+                    Method registerStaticMethodHandles = methodHandleRegistererClass.getMethod("registerStaticMethodHandles", ConcurrentMap.class, Class.class);
+                    registerStaticMethodHandles.invoke(null, dispatcherForClassLoader, clazz);
+                } catch (Exception e) {
+                    throw new IllegalStateException("Exception while registering method handles for class " + name, e);
                 }
             }
         }
@@ -336,18 +341,17 @@ public abstract class HelperClassManager<T> {
             return (Class<MethodHandleDispatcherHolder>) injector.injectRaw(Collections.singletonMap(MethodHandleDispatcherHolder.class.getName(), classBytes)).values().iterator().next();
         }
 
-        public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, Class<?> helperClass) throws ReflectiveOperationException {
-            if (!Modifier.isPublic(helperClass.getModifiers())) {
-                logger.debug("Skip registering method handles for non-public class {}", helperClass);
-                return;
-            }
-            for (Method method : helperClass.getMethods()) {
-                if (Modifier.isStatic(method.getModifiers())) {
-                    MethodHandle methodHandle = MethodHandles.lookup().unreflect(method);
-                    String key = helperClass.getName() + "#" + method.getName();
-                    MethodHandle previousValue = dispatcher.put(key.intern(), methodHandle);
-                    if (previousValue != null) {
-                        throw new IllegalArgumentException("There is already a mapping for '" + key + "'");
+        public static class MethodHandleRegisterer {
+
+            public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, Class<?> helperClass) throws ReflectiveOperationException {
+                for (Method method : helperClass.getDeclaredMethods()) {
+                    if (Modifier.isStatic(method.getModifiers()) && method.getAnnotation(RegisterMethodHandle.class) != null) {
+                        MethodHandle methodHandle = MethodHandles.lookup().unreflect(method);
+                        String key = helperClass.getName() + "#" + method.getName();
+                        MethodHandle previousValue = dispatcher.put(key.intern(), methodHandle);
+                        if (previousValue != null) {
+                            throw new IllegalArgumentException("There is already a mapping for '" + key + "'");
+                        }
                     }
                 }
             }

@@ -141,6 +141,7 @@ public class ApmAsyncListener implements AsyncListener, Recyclable {
     // because only the onExitServletService method may contain references to the servlet API
     // (see class-level Javadoc)
     private void endTransaction(AsyncEvent event) {
+        Transaction transaction = this.transaction;
         // To ensure transaction is ended only by a single event
         if (completed.getAndSet(true) || transaction == null) {
             return;

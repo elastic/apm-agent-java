@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.bci.RegisterMethodHandle;
 import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper;
@@ -49,14 +50,14 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 public class RequestStreamRecordingInstrumentation extends AbstractServletInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onReadEnter(@Advice.Origin Class<?> clazz) throws Throwable {
+    private static void onReadEnter(@Advice.Origin Class<?> clazz) throws Throwable {
         MethodHandleDispatcher
             .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice#onReadEnter")
             .invoke();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void afterGetInputStream(@Advice.Origin Class<?> clazz, @Advice.Return(readOnly = false) ServletInputStream inputStream) throws Throwable {
+    private static void afterGetInputStream(@Advice.Origin Class<?> clazz, @Advice.Return(readOnly = false) ServletInputStream inputStream) throws Throwable {
         inputStream = (ServletInputStream) MethodHandleDispatcher
             .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice#afterGetInputStream")
             .invoke(inputStream);
@@ -84,13 +85,13 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
 
     public static class GetInputStreamAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @RegisterMethodHandle
         public static void onReadEnter() {
             CallDepth.increment(GetInputStreamAdvice.class);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static ServletInputStream afterGetInputStream(@Advice.Return(readOnly = false) ServletInputStream inputStream) {
+        @RegisterMethodHandle
+        public static ServletInputStream afterGetInputStream(ServletInputStream inputStream) {
             int callDepth = CallDepth.decrement(GetInputStreamAdvice.class);
             if (callDepth > 0 || tracer == null) {
                 return inputStream;

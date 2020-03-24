@@ -25,7 +25,8 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.RegisterMethodHandle;
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -60,12 +61,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public abstract class ServletVersionInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
-
-    @VisibleForAdvice
-    public static volatile boolean alreadyLogged = false;
-
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("Servlet").or(nameContainsIgnoreCase("jsp"));
@@ -95,28 +90,10 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
-        private static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
-            if (alreadyLogged) {
-                return;
-            }
-            alreadyLogged = true;
-
-            int majorVersion = -1;
-            int minorVersion = -1;
-            String serverInfo = null;
-            if (servletConfig != null) {
-                ServletContext servletContext = servletConfig.getServletContext();
-                if (null != servletContext) {
-                    majorVersion = servletContext.getMajorVersion();
-                    minorVersion = servletContext.getMinorVersion();
-                    serverInfo = servletContext.getServerInfo();
-                }
-            }
-
-            logger.info("Servlet container info = {}", serverInfo);
-            if (majorVersion < 3) {
-                logger.warn("Unsupported servlet version detected: {}.{}, no Servlet transaction will be created", majorVersion, minorVersion);
-            }
+        private static void onEnter(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable ServletConfig servletConfig) throws Throwable {
+            MethodHandleDispatcher
+                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServletConfig")
+                .invoke(servletConfig);
         }
     }
 
@@ -134,13 +111,30 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
-        private static void onEnter(@Advice.This Servlet servlet) {
+        private static void onEnter(@Advice.Origin Class<?> clazz, @Advice.This Servlet servlet) throws Throwable {
+            MethodHandleDispatcher
+                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServlet")
+                .invoke(servlet);
+        }
+    }
+
+    public static class ServletVersionHelper {
+
+        private static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
+
+        private static volatile boolean alreadyLogged = false;
+
+        @RegisterMethodHandle
+        public static void warnIfVersionNotSupportedServlet(Servlet servlet) {
+            warnIfVersionNotSupportedServletConfig(servlet.getServletConfig());
+        }
+
+        @RegisterMethodHandle
+        public static void warnIfVersionNotSupportedServletConfig(@Nullable ServletConfig servletConfig) {
             if (alreadyLogged) {
                 return;
             }
             alreadyLogged = true;
-
-            ServletConfig servletConfig = servlet.getServletConfig();
 
             int majorVersion = -1;
             int minorVersion = -1;
