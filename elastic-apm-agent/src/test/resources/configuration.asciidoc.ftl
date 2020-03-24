@@ -5,31 +5,39 @@
 The Elastic APM agent can be configured through different configuration sources,
 with the following descending order of precedence:
 
+No prefix is required for the configuration keys unless stated otherwise.
+
 [arabic]
-. {apm-app-ref}/agent-configuration.html[Central configuration]
-. `elasticapm.properties` file, by default in the same directory the agent jar. +
-  Location can be set with the <<config-config-file>> option in system properties or environment variables. +
-  No prefix is required for the configuration keys.
+. {apm-app-ref}/agent-configuration.html[Central configuration] +
+   Supports <<configuration-dynamic>>
+. `elasticapm.properties` file +
+  In same folder as agent jar or provided through <<config-config-file>> option. +
+  Supports <<configuration-dynamic>>
 . Java system properties +
-  All configuration keys are prefixed with `elastic.apm.`
+  All configuration keys are prefixed with `elastic.apm.` +
+  Supports <<configuration-dynamic>> when set from the application.
 . Environment variables +
   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
 . runtime attach parameters, those are mutually exclusive +
-  No prefix is required for the configuration keys.
 .. `--config` parameter (<<setup-attach-cli>>)
 .. arguments of  `ElasticApmAttacher.attach(...)` (<<setup-attach-api>>)
 .. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
-. `elasticapm.properties` file, by default in the same directory the agent jar. +
-  Location can be set with the <<config-config-file>> option. +
-  No prefix is required for the configuration keys.
 . default values
-
-Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
-{kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
-Java system properties can be dynamic as well by being set from within the application.
 
 Please note that there are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a
 classpath resource. Only the external file can be used for dynamic configuration.
+
+[[configuration-dynamic]]
+=== Dynamic configuration
+
+Configuration options marked with Dynamic true can be changed at runtime when set from sources that support it:
+
+- {kibana-ref}/agent-configuration.html[Central configuration]
+- `elasticapm.properties` file
+- Java system properties when set from within the application.
+
+[[configuration-minimal]]
+=== Minimal configuration
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
