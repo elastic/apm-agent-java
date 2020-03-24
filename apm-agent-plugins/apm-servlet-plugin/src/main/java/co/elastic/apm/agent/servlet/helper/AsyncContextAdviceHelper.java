@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.agent.servlet.AsyncInstrumentation;
 import co.elastic.apm.agent.servlet.ServletApiAdvice;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 import org.jctools.queues.atomic.AtomicQueueFactory;
@@ -41,7 +40,7 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIB
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
-public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncContextAdviceHelper<AsyncContext> {
+public class AsyncContextAdviceHelper {
 
     private static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
     private static final int MAX_POOLED_ELEMENTS = 256;
@@ -50,7 +49,7 @@ public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncC
     private final ServletTransactionHelper servletTransactionHelper;
     private final ElasticApmTracer tracer;
 
-    public AsyncContextAdviceHelperImpl(ElasticApmTracer tracer) {
+    public AsyncContextAdviceHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
 
@@ -67,11 +66,10 @@ public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncC
     private final class ApmAsyncListenerAllocator implements Allocator<ApmAsyncListener> {
         @Override
         public ApmAsyncListener createInstance() {
-            return new ApmAsyncListener(AsyncContextAdviceHelperImpl.this);
+            return new ApmAsyncListener(AsyncContextAdviceHelper.this);
         }
     }
 
-    @Override
     public void onExitStartAsync(AsyncContext asyncContext) {
         final ServletRequest request = asyncContext.getRequest();
         if (request.getAttribute(ASYNC_LISTENER_ADDED) != null) {

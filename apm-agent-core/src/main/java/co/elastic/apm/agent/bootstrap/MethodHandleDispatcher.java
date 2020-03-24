@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -69,8 +69,8 @@ public class MethodHandleDispatcher {
      *  ── strong reference
      * </pre>
      */
-    public static WeakConcurrentMap<ClassLoader, WeakReference<ConcurrentMap<String, MethodHandle>>> dispatcherByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
-    public static ConcurrentMap<String, MethodHandle> bootstrapDispatcher = new ConcurrentHashMap<>();
+    private static WeakConcurrentMap<ClassLoader, WeakReference<ConcurrentMap<String, MethodHandle>>> dispatcherByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private static ConcurrentMap<String, MethodHandle> bootstrapDispatcher = new ConcurrentHashMap<>();
 
     /**
      * Calls {@link ConcurrentMap#clear()} on all injected {@link MethodHandleDispatcherHolder}s.
@@ -86,7 +86,10 @@ public class MethodHandleDispatcher {
      */
     public synchronized static void clear() {
         for (Map.Entry<ClassLoader, WeakReference<ConcurrentMap<String, MethodHandle>>> entry : dispatcherByClassLoader) {
-            entry.getValue().clear();
+            ConcurrentMap<String, MethodHandle> dispatcher = entry.getValue().get();
+            if (dispatcher != null) {
+                dispatcher.clear();
+            }
         }
         dispatcherByClassLoader.clear();
         bootstrapDispatcher.clear();
@@ -111,7 +114,10 @@ public class MethodHandleDispatcher {
     public static MethodHandle getMethodHandle(Class<?> classOfTargetClassLoader, String methodHandleName) {
         ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = getDispatcherForClassLoader(classOfTargetClassLoader.getClassLoader());
         if (dispatcherForClassLoader != null) {
-            return dispatcherForClassLoader.get(methodHandleName);
+            MethodHandle methodHandle = dispatcherForClassLoader.get(methodHandleName);
+            if (methodHandle != null) {
+                return methodHandle;
+            }
         }
         throw new IllegalArgumentException("No method handle found for " + methodHandleName);
     }

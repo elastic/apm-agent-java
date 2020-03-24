@@ -24,10 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -38,9 +35,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -63,23 +57,6 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
 
-    @Nullable
-    @VisibleForAdvice
-    // referring to HttpServletRequest is legal because of type erasure
-    public static HelperClassManager<ServletTransactionCreationHelper<HttpServletRequest>> servletTransactionCreationHelperManager;
-
-    public ServletInstrumentation(ElasticApmTracer tracer) {
-        // adding a null-check before setting helper manager reference breaks test execution, which prevents having
-        // the same code construct we have for other HelperClassManager usages.
-        //
-        // This should probably be changed when upgrading this plugin to use HelperClassManager for all helper
-        // classes.
-        servletTransactionCreationHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-            "co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelperImpl",
-            "co.elastic.apm.agent.servlet.helper.ServletRequestHeaderGetter"
-        );
-    }
-
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("Servlet").or(nameContainsIgnoreCase("jsp"));
@@ -96,11 +73,6 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
         return named("service")
             .and(takesArgument(0, named("javax.servlet.ServletRequest")))
             .and(takesArgument(1, named("javax.servlet.ServletResponse")));
-    }
-
-    @Override
-    public List<String> helpers() {
-        return Arrays.asList("co.elastic.apm.agent.servlet.ServletApiAdvice", "co.elastic.apm.agent.servlet.ServletApiAdvice$1");
     }
 
     @Nullable
@@ -122,11 +94,5 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
         MethodHandleDispatcher
             .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletApiAdvice#onExitServletService")
             .invoke(servletRequest, servletResponse, transaction, t, thiz);
-    }
-
-    @VisibleForAdvice
-    public interface ServletTransactionCreationHelper<R> {
-        @Nullable
-        Transaction createAndActivateTransaction(R request);
     }
 }

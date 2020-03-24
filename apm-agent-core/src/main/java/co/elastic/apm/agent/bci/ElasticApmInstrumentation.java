@@ -27,6 +27,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -37,7 +38,6 @@ import net.bytebuddy.matcher.ElementMatchers;
 import javax.annotation.Nullable;
 import java.security.ProtectionDomain;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -171,8 +171,8 @@ public abstract class ElasticApmInstrumentation {
         return null;
     }
 
-    public List<String> helpers() {
-        return Collections.emptyList();
+    public List<String> helpers() throws Exception {
+        return PackageScanner.getClassNames(getClass().getPackageName());
     }
 
     public void onTypeMatch(TypeDescription typeDescription, ClassLoader classLoader, ProtectionDomain protectionDomain, @Nullable Class<?> classBeingRedefined) throws Exception {

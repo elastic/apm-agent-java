@@ -385,6 +385,7 @@ public class ElasticApmAgent {
         }
         dynamicClassFileTransformers.clear();
         MethodHandleDispatcher.clear();
+        HelperClassManager.ForDispatcher.clear();
         instrumentation = null;
     }
 

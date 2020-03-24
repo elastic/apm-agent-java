@@ -337,16 +337,24 @@ public abstract class HelperClassManager<T> {
         }
 
         public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, Class<?> helperClass) throws ReflectiveOperationException {
+            if (!Modifier.isPublic(helperClass.getModifiers())) {
+                logger.debug("Skip registering method handles for non-public class {}", helperClass);
+                return;
+            }
             for (Method method : helperClass.getMethods()) {
                 if (Modifier.isStatic(method.getModifiers())) {
                     MethodHandle methodHandle = MethodHandles.lookup().unreflect(method);
                     String key = helperClass.getName() + "#" + method.getName();
-                    MethodHandle previousValue = dispatcher.put(key, methodHandle);
+                    MethodHandle previousValue = dispatcher.put(key.intern(), methodHandle);
                     if (previousValue != null) {
                         throw new IllegalArgumentException("There is already a mapping for '" + key + "'");
                     }
                 }
             }
+        }
+
+        public synchronized static void clear() {
+            alreadyInjected.clear();
         }
     }
 

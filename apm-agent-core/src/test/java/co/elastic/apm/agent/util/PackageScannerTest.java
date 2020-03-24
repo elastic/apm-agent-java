@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,16 +22,28 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.servlet.helper;
+package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation;
+import org.junit.Test;
 
-import javax.servlet.ServletInputStream;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class InputStreamFactoryHelperImpl implements RequestStreamRecordingInstrumentation.InputStreamWrapperFactory {
-    @Override
-    public ServletInputStream wrap(Request request, ServletInputStream servletInputStream) {
-        return new RecordingServletInputStreamWrapper(request, servletInputStream);
+public class PackageScannerTest {
+
+    @Test
+    public void getClassNames() throws Exception {
+        assertThat(PackageScanner.getClassNames(getClass().getPackageName()))
+            .contains(PackageScanner.class.getName());
+    }
+
+    @Test
+    public void getDoesNotContainTestClasses() throws Exception {
+        assertThat(PackageScanner.getClassNames(getClass().getPackageName()))
+            .doesNotContain(getClass().getName());
+    }
+
+    @Test
+    public void getClassNamesOfNonExistentPackage() throws Exception {
+        assertThat(PackageScanner.getClassNames("foo.bar")).isEmpty();
     }
 }

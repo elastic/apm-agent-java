@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.eclipse.jetty.server.NetworkConnector;
@@ -49,11 +50,12 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
     protected OkHttpClient httpClient;
 
     @BeforeEach
-    void initServerAndClient() throws Exception {
+    void initServerAndClient() throws Throwable {
 
         // because we reuse the same classloader with different servlet context names
         // we need to explicitly reset the name cache to make service name detection work as expected
-        ServletTransactionHelper.clearServiceNameCache();
+        // we can't call the static method directly because the actual class is within an isolated helper class loader
+        MethodHandleDispatcher.getMethodHandle(getClass(), "co.elastic.apm.agent.servlet.ServletTransactionHelper#clearServiceNameCache").invoke();
 
         // server is not reused between tests as handler is provided from subclass
         // another alternative

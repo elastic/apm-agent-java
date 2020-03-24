@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
 import co.elastic.apm.agent.util.CallDepth;
 import net.bytebuddy.asm.Advice;
 
@@ -52,16 +53,10 @@ import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
-/**
- * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
- * {@code javax.servlet}, as these are inlined into the matching methods.
- * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- */
 public class ServletApiAdvice {
 
-    @Nullable
-    private static ServletTransactionHelper servletTransactionHelper;
+    private static final ServletTransactionHelper servletTransactionHelper;
+    private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
 
     private static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
         @Override
@@ -75,6 +70,7 @@ public class ServletApiAdvice {
 
     static {
         servletTransactionHelper = new ServletTransactionHelper(tracer);
+        servletTransactionCreationHelper = new ServletTransactionCreationHelper(tracer);
     }
 
     @Nullable
@@ -91,7 +87,6 @@ public class ServletApiAdvice {
             scopeThreadLocal.set(transactionAttr.activateInScope());
         }
         if (tracer.isRunning() &&
-            servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(excluded.get())) {
@@ -103,13 +98,7 @@ public class ServletApiAdvice {
             }
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            if (ServletInstrumentation.servletTransactionCreationHelperManager != null) {
-                ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> helper =
-                    ServletInstrumentation.servletTransactionCreationHelperManager.getForClassLoaderOfClass(HttpServletRequest.class);
-                if (helper != null) {
-                    transaction = helper.createAndActivateTransaction(request);
-                }
-            }
+            transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
 
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
@@ -164,8 +153,7 @@ public class ServletApiAdvice {
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }
         }
-        if (servletTransactionHelper != null &&
-            transaction != null &&
+        if (transaction != null &&
             servletRequest instanceof HttpServletRequest &&
             servletResponse instanceof HttpServletResponse) {
 

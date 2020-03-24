@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -60,16 +60,16 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_
 public class ApmAsyncListener implements AsyncListener, Recyclable {
 
     private final AtomicBoolean completed = new AtomicBoolean(false);
-    private final AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl;
+    private final AsyncContextAdviceHelper asyncContextAdviceHelper;
     private final ServletTransactionHelper servletTransactionHelper;
     @Nullable
     private volatile Transaction transaction;
     @Nullable
     private volatile Throwable throwable;
 
-    ApmAsyncListener(AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl) {
-        this.asyncContextAdviceHelperImpl = asyncContextAdviceHelperImpl;
-        this.servletTransactionHelper = asyncContextAdviceHelperImpl.getServletTransactionHelper();
+    ApmAsyncListener(AsyncContextAdviceHelper asyncContextAdviceHelper) {
+        this.asyncContextAdviceHelper = asyncContextAdviceHelper;
+        this.servletTransactionHelper = asyncContextAdviceHelper.getServletTransactionHelper();
     }
 
     ApmAsyncListener withTransaction(Transaction transaction) {
@@ -174,7 +174,7 @@ public class ApmAsyncListener implements AsyncListener, Recyclable {
                 response.isCommitted(), response.getStatus(), request.getMethod(), parameterMap,
                 request.getServletPath(), request.getPathInfo(), contentTypeHeader, false);
         } finally {
-            asyncContextAdviceHelperImpl.recycle(this);
+            asyncContextAdviceHelper.recycle(this);
         }
     }
 

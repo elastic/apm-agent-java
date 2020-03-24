@@ -47,14 +47,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 
-/**
- * This class must not import classes from {@code javax.servlet} due to class loader issues.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- */
 @VisibleForAdvice
 public class ServletTransactionHelper {
 
@@ -81,7 +77,7 @@ public class ServletTransactionHelper {
     }
 
     // visible for testing as clearing cache is required between tests execution
-    static void clearServiceNameCache() {
+    public static void clearServiceNameCache() {
         nameInitialized.clear();
     }
 
