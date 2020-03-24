@@ -57,13 +57,15 @@ public class MethodHandleDispatcher {
      *     Ext/Platform CL           ╷          │                                     ╷
      *       ↑                       ╷          │                                     ╷
      *     System CL                 ╷          │                                     ╷
-     *       ↑        ┌──────────────┼─────── Helper CL                               ╷
-     *     Common     │              ╷         - HelperClass ←╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶┘
-     *     ↑    ↑     ↓              ╷              ↑
-     * WebApp1  WebApp2 ←╶╶╶╶╶╶╶╶╶╶╶╶┘              │
-     *          - {@link MethodHandleDispatcherHolder}
-     *            - ConcurrentMap<String, MethodHandle>
-     *
+     *       ↑                       ╷          │                                     ╷
+     *     Common                    ╷          │                                     ╷
+     *     ↑    ↑                    ╷          │                                     ╷
+     * WebApp1  WebApp2 ←╶╶╶╶╶╶╶╶╶╶╶╶┘          │                                     ╷
+     *          ↑ - {@link MethodHandleDispatcherHolder}                              ╷
+     *          │   - ConcurrentMap<String, MethodHandle>                             ╷
+     *          │                               │    │                                ╷
+     *          └─────────────────────── Helper CL   ↓                                ╷
+     *                                    - HelperClass ←╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶┘
      * Legend:
      *  ╶╶ weak reference
      *  ── strong reference
