@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceContextHolder<T> {
     public static final int PRIO_USER_SUPPLIED = 1000;
     public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
     public static final int PRIO_METHOD_SIGNATURE = 100;
