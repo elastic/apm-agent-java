@@ -24,6 +24,7 @@ endif::[]
 
 [float]
 ===== Breaking changes
+
 * Ordering of configuration sources has slightly changed, please review <<configuration>>:
 ** `elasticapm.properties` file now has higher priority over java system properties and environment variables, +
 This change allows to change dynamic options values at runtime by editing file, previously values set in java properties
@@ -31,6 +32,7 @@ or environment variables could not be overriden, even if they were dynamic.
 
 [float]
 ===== Features
+
 * Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
 * Add support for <<supported-databases, Redis Redisson client>>
 * Makes <<config-instrument>>, <<config-trace-methods>>, and <<config-disable-instrumentations>> dynamic.
@@ -46,6 +48,7 @@ Note that changing these values at runtime can slow down the application tempora
 * Fixed bug that prevented an APM Error from being created when calling `org.slf4j.Logger#error` - {pull}1049[#1049]
 * Wrong address in JDBC spans for Oracle, MySQL and MariaDB when multiple hosts are configured - {pull}1082[#1082]
 * Document and re-order configuration priorities {pull}1087[#1087]
+* Improve heuristic for `service_name` when not set through config {pull}1097[#1097]
 
 [float]
 ===== Potentially breaking changes
