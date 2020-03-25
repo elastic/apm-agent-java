@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import net.bytebuddy.ByteBuddy;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +41,14 @@ public class PackageScannerTest {
     public void getDoesNotContainTestClasses() throws Exception {
         assertThat(PackageScanner.getClassNames(getClass().getPackageName()))
             .doesNotContain(getClass().getName());
+    }
+
+    @Test
+    public void testScanJar() throws Exception {
+        assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName()))
+            .contains(ByteBuddy.class.getName());
+        assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName()))
+            .contains(ByteBuddy.class.getName());
     }
 
     @Test

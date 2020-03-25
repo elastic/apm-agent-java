@@ -35,7 +35,6 @@ import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -313,6 +312,7 @@ public abstract class HelperClassManager<T> {
                 return;
             }
             injectedClasses.add(classesToInject);
+            logger.debug("Creating helper class loader for {} containing {}", targetClassLoader, classesToInject);
 
             ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = getOrCreateDispatcherForClassLoader(targetClassLoader, protectionDomain);
 
@@ -338,7 +338,7 @@ public abstract class HelperClassManager<T> {
             if (dispatcherForClassLoader == null) {
                 // there's always a dispatcher for the bootstrap CL
                 assert targetClassLoader != null;
-                Class<MethodHandleDispatcherHolder> dispatcher = injectHelperDispatcher(targetClassLoader, protectionDomain);
+                Class<?> dispatcher = injectClass(targetClassLoader, protectionDomain, MethodHandleDispatcherHolder.class.getName(), true);
                 dispatcherForClassLoader = (ConcurrentMap<String, MethodHandle>) dispatcher.getField("registry").get(null);
                 MethodHandleDispatcher.setDispatcherForClassLoader(targetClassLoader, dispatcherForClassLoader);
             }
@@ -385,12 +385,6 @@ public abstract class HelperClassManager<T> {
             }
         }
 
-        private static Class<MethodHandleDispatcherHolder> injectHelperDispatcher(@Nullable ClassLoader classLoader, @Nullable ProtectionDomain protectionDomain) throws IOException {
-            ClassInjector injector = new ClassInjector.UsingUnsafe(classLoader, protectionDomain);
-            byte[] classBytes = IOUtils.readToBytes(MethodHandleDispatcherHolder.class.getClassLoader().getResourceAsStream("MethodHandleDispatcherHolder.class"));
-            return (Class<MethodHandleDispatcherHolder>) injector.injectRaw(Collections.singletonMap(MethodHandleDispatcherHolder.class.getName(), classBytes)).values().iterator().next();
-        }
-
         /**
          * This class is loaded form the helper class loader so that {@link Class#getDeclaredMethods()} doesn't throw a
          * {@link NoClassDefFoundError}.
@@ -419,7 +413,7 @@ public abstract class HelperClassManager<T> {
         }
     }
 
-    static Class injectClass(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
+    static Class<?> injectClass(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
         if (targetClassLoader == null) {
             if (isBootstrapClass) {
                 return Class.forName(className, false, null);

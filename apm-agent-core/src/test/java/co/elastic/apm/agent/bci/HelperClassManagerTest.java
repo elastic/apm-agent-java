@@ -39,6 +39,7 @@ import java.util.Collections;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 
 class HelperClassManagerTest {
@@ -151,10 +152,8 @@ class HelperClassManagerTest {
 
         MethodHandleDispatcher.clear();
         System.gc();
-        Thread.sleep(1000);
 
-        assertThat(helperClassLoader.get()).isNull();
-
+        await().untilAsserted(() -> assertThat(helperClassLoader.get()).isNull());
     }
 
     public static class TestHelper {
@@ -208,6 +207,24 @@ class HelperClassManagerTest {
         private static void foo() {
         }
     }
+
+    @Test
+    void testMultipleCL() throws Throwable {
+        ClassLoader targetClassLoader1 = new URLClassLoader(new URL[]{}, getClass().getClassLoader());
+        HelperClassManager.ForDispatcher.inject(targetClassLoader1, getClass().getProtectionDomain(), Collections.singletonList(TestHelper.class.getName()));
+        assertThat(MethodHandleDispatcher
+            .getMethodHandle(targetClassLoader1, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelper#getParentClassLoader")
+            .invoke())
+            .isEqualTo(targetClassLoader1);
+
+        ClassLoader targetClassLoader2 = new URLClassLoader(new URL[]{}, getClass().getClassLoader());
+        HelperClassManager.ForDispatcher.inject(targetClassLoader2, getClass().getProtectionDomain(), Collections.singletonList(TestHelper.class.getName()));
+        assertThat(MethodHandleDispatcher
+            .getMethodHandle(targetClassLoader2, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelper#getParentClassLoader")
+            .invoke())
+            .isEqualTo(targetClassLoader2);
+    }
+
 
     private void assertFailLoadingOnlyOnce(HelperClassManager<Object> helperClassManager, Class libClass1) {
         ThrowableAssert.ThrowingCallable throwingCallable = () -> helperClassManager.doGetForClassLoaderOfClass(libClass1);

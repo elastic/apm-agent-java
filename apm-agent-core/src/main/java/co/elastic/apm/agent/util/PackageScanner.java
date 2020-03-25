@@ -54,30 +54,45 @@ public class PackageScanner {
     public static List<String> getClassNames(final String basePackage) throws IOException, URISyntaxException {
         String baseFolderResource = basePackage.replace('.', '/');
         final List<String> classNames = new ArrayList<>();
-        Enumeration<URL> resources = PackageScanner.class.getClassLoader().getResources(baseFolderResource);
+        Enumeration<URL> resources = getResourcesFromAgentClassLoader(baseFolderResource);
         while (resources.hasMoreElements()) {
             URL resource = resources.nextElement();
             URI uri = resource.toURI();
-            final Path basePath;
             if (uri.getScheme().equals("jar")) {
-                FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
-                basePath = fileSystem.getPath(baseFolderResource);
+                try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
+                    final Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
+                    classNames.addAll(listClassNames(basePackage, basePath));
+                }
             } else {
-                basePath = Paths.get(uri);
+                final Path basePath = Paths.get(uri);
                 if (basePath.toString().contains("test-classes")) {
                     continue;
                 }
+                classNames.addAll(listClassNames(basePackage, basePath));
             }
-            Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    if (file.toString().endsWith(".class")) {
-                        classNames.add(basePackage + "." + basePath.relativize(file).toString().replace('/', '.').replace(".class", ""));
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
         }
         return classNames;
+    }
+
+    private static List<String> listClassNames(final String basePackage, final Path basePath) throws IOException {
+        final List<String> classNames = new ArrayList<>();
+        Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                if (file.toString().endsWith(".class")) {
+                    classNames.add(basePackage + "." + basePath.relativize(file).toString().replace('/', '.').replace(".class", ""));
+                }
+                return FileVisitResult.CONTINUE;
+            }
+        });
+        return classNames;
+    }
+
+    private static Enumeration<URL> getResourcesFromAgentClassLoader(String baseFolderResource) throws IOException {
+        ClassLoader agentCL = PackageScanner.class.getClassLoader();
+        if (agentCL == null) {
+            agentCL = ClassLoader.getSystemClassLoader();
+        }
+        return agentCL.getResources(baseFolderResource);
     }
 }

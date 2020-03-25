@@ -115,7 +115,11 @@ public class MethodHandleDispatcher {
      * @return
      */
     public static MethodHandle getMethodHandle(Class<?> classOfTargetClassLoader, String methodHandleName) {
-        ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = getDispatcherForClassLoader(classOfTargetClassLoader.getClassLoader());
+        return getMethodHandle(classOfTargetClassLoader.getClassLoader(), methodHandleName);
+    }
+
+    public static MethodHandle getMethodHandle(ClassLoader targetClassLoader, String methodHandleName) {
+        ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = getDispatcherForClassLoader(targetClassLoader);
         if (dispatcherForClassLoader != null) {
             MethodHandle methodHandle = dispatcherForClassLoader.get(methodHandleName);
             if (methodHandle != null) {
