@@ -24,9 +24,6 @@ No prefix is required for the configuration keys unless stated otherwise.
 .. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
 . default values
 
-Please note that there are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a
-classpath resource. Only the external file can be used for dynamic configuration.
-
 [float]
 [[configuration-dynamic]]
 === Dynamic configuration
@@ -36,6 +33,9 @@ Configuration options marked with Dynamic true can be changed at runtime when se
 - {kibana-ref}/agent-configuration.html[Central configuration]
 - `elasticapm.properties` file
 - Java system properties when set from within the application.
+
+NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource +
+Only the external file can be used for dynamic configuration.
 
 [float]
 [[configuration-minimal]]
