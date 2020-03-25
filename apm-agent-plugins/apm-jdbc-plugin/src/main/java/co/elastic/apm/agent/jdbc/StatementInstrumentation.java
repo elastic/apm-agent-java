@@ -245,7 +245,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static Span onBeforeExecute(@Advice.Origin Class<?> clazz, @Advice.This PreparedStatement statement) throws Throwable {
+        private static Span onBeforeExecute(@Advice.Origin Class<?> clazz, @Advice.This Statement statement) throws Throwable {
             return (Span) MethodHandleDispatcher
                 .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
                 .invoke(statement, true);
@@ -281,7 +281,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static Span onBeforeExecute(@Advice.Origin Class<?> clazz, @Advice.This PreparedStatement statement) throws Throwable {
+        private static Span onBeforeExecute(@Advice.Origin Class<?> clazz, @Advice.This Statement statement) throws Throwable {
             return (Span) MethodHandleDispatcher
                 .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
                 .invoke(statement, true);
