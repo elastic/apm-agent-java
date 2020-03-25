@@ -37,7 +37,7 @@ public abstract class JdbcInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public List<String> helpers() throws Exception {
-        return PackageScanner.getClassNames(getClass().getPackageName());
+        return PackageScanner.getClassNames(getClass().getPackage().getName());
     }
 
     @Override
