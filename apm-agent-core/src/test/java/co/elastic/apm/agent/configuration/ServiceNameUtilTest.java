@@ -68,14 +68,18 @@ class ServiceNameUtilTest {
     @Test
     void parseApplicationServers() {
         assertSoftly(softly -> {
-            softly.assertThat(getDefaultServiceName("org.eclipse.jetty.xml.XmlConfiguration")).isEqualTo("jetty-application");
-            softly.assertThat(getDefaultServiceName("org.apache.catalina.startup.Bootstrap start")).isEqualTo("tomcat-application");
+            softly.assertThat(getDefaultServiceName("org.eclipse.jetty.xml.XmlConfiguration"))
+                .isEqualTo("jetty-application");
+            softly.assertThat(getDefaultServiceName("org.apache.catalina.startup.Bootstrap start"))
+                .isEqualTo("tomcat-application");
             softly.assertThat(getDefaultServiceName("com.sun.enterprise.glassfish.bootstrap.ASMain -upgrade false -read-stdin true -postbootcommandfile /opt/payara5/post-boot-commands.asadmin -domainname domain1 -domaindir /opt/payara5/glassfish/domains/domain1 -asadmin-args --host,,,localhost,,,--port,,,4848,,,--passwordfile,,,/opt/pwdfile,,,--secure=false,,,--terse=false,,,--echo=false,,,--interactive=false,,,start-domain,,,--verbose=false,,,--watchdog=false,,,--debug=false,,,--domaindir,,,/opt/payara5/glassfish/domains,,,domain1 -instancename server -type DAS -verbose false -asadmin-classpath /opt/payara5/glassfish/lib/client/appserver-cli.jar -debug false -asadmin-classname com.sun.enterprise.admin.cli.AdminMain -watchdog false"))
                 .isEqualTo("glassfish-application");
             softly.assertThat(getDefaultServiceName("/opt/ibm/wlp/bin/tools/ws-server.jar defaultServer"))
                 .isEqualTo("websphere-application");
             softly.assertThat(getDefaultServiceName("/opt/jboss/wildfly/jboss-modules.jar -mp /opt/jboss/wildfly/modules org.jboss.as.standalone -Djboss.home.dir=/opt/jboss/wildfly -Djboss.server.base.dir=/opt/jboss/wildfly/standalone -b 0.0.0.0"))
                 .isEqualTo("jboss-application");
+            softly.assertThat(getDefaultServiceName("weblogic.Server"))
+                .isEqualTo("weblogic-application");
 
         });
     }
