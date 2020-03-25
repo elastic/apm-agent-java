@@ -456,8 +456,8 @@ public class ElasticApmTracer {
         return configurationRegistry;
     }
 
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> pluginClass) {
-        return configurationRegistry.getConfig(pluginClass);
+    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configProvider) {
+        return configurationRegistry.getConfig(configProvider);
     }
 
     public void endTransaction(Transaction transaction) {
