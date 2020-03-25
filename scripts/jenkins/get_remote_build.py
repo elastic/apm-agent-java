@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This script retreives the latest successful build from
+This script retrieves the latest successful build from
 apm-ci.elastic.co and returns the commit hash
 """
 import os
