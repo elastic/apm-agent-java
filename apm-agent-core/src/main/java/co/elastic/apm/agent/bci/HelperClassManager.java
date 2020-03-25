@@ -348,6 +348,7 @@ public abstract class HelperClassManager<T> {
                     if (Modifier.isStatic(method.getModifiers()) && method.getAnnotation(RegisterMethodHandle.class) != null) {
                         MethodHandle methodHandle = MethodHandles.lookup().unreflect(method);
                         String key = helperClass.getName() + "#" + method.getName();
+                        // intern() to speed up map lookups (short-circuits String::equals via reference equality check)
                         MethodHandle previousValue = dispatcher.put(key.intern(), methodHandle);
                         if (previousValue != null) {
                             throw new IllegalArgumentException("There is already a mapping for '" + key + "'");

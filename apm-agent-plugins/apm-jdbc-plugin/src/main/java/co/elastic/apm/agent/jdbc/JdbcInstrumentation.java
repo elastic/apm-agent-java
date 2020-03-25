@@ -25,32 +25,13 @@
 package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
 public abstract class JdbcInstrumentation extends ElasticApmInstrumentation {
 
     private static final Collection<String> JDBC_GROUPS = Collections.singleton("jdbc");
-
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<JdbcHelper> jdbcHelperManager = null;
-
-    public JdbcInstrumentation(ElasticApmTracer tracer) {
-        synchronized (JdbcInstrumentation.class) {
-            if (jdbcHelperManager == null) {
-                jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-                    "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
-                    "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1");
-            }
-        }
-    }
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {

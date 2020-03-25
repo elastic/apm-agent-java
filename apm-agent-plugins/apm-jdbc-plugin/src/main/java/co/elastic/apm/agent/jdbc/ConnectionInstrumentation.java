@@ -24,9 +24,7 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
+import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -52,24 +50,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ConnectionInstrumentation extends JdbcInstrumentation {
 
-    public ConnectionInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
-    @VisibleForAdvice
     @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void storeSql(@Advice.Return PreparedStatement statement,
-                                @Advice.Argument(0) String sql) {
-
-        if (jdbcHelperManager == null) {
-            return;
-        }
-
-        JdbcHelper jdbcHelper = jdbcHelperManager.getForClassLoaderOfClass(PreparedStatement.class);
-        if (jdbcHelper != null) {
-            jdbcHelper.mapStatementToSql(statement, sql);
-        }
-
+    private static void storeSql(@Advice.Origin Class<?> clazz,
+                                 @Advice.Return PreparedStatement statement,
+                                 @Advice.Argument(0) String sql) throws Throwable {
+        MethodHandleDispatcher
+            .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#mapStatementToSql")
+            .invoke(statement, sql);
     }
 
     @Override
