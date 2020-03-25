@@ -28,7 +28,7 @@ if __name__ == '__main__':
     tmp_file = '/tmp/apm-ci-jenkins-last-hash'
 
     last_hash = read_hash(tmp_file)
-    cur_hash = getSCMInfroFromLatestGoodBuild("http://apm-ci.elastic.co", "apm-agent-go/opbeans-go-mbp/master")
+    cur_hash = getSCMInfoFromLatestGoodBuild("http://apm-ci.elastic.co", "apm-agent-go/opbeans-go-mbp/master")
     write_last(tmp_file, cur_hash)
     
     print(last_hash == cur_hash)
