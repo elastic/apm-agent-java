@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
@@ -153,7 +154,9 @@ public abstract class HelperClassManager<T> {
      * </p>
      *
      * @param <T> the type of the helper class interface
+     * @deprecated In favor of {@link ForDispatcher}
      */
+    @Deprecated
     public static class ForSingleClassLoader<T> extends HelperClassManager<T> {
 
         @Nullable
@@ -210,7 +213,9 @@ public abstract class HelperClassManager<T> {
      * startup time and when new applications are deployed). These maps shouldn't grow big as they have an entry per class loader.
      *
      * @param <T>
+     * @deprecated In favor of {@link ForDispatcher}
      */
+    @Deprecated
     public static class ForAnyClassLoader<T> extends HelperClassManager<T> {
 
         // doesn't need to be concurrent - invoked only from a synchronized context
@@ -286,19 +291,49 @@ public abstract class HelperClassManager<T> {
 
         private static final Map<ClassLoader, Set<Collection<String>>> alreadyInjected = new WeakHashMap<ClassLoader, Set<Collection<String>>>();
 
-        public synchronized static void inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject) throws IOException, ReflectiveOperationException {
+        /**
+         * Creates an isolated CL that has two parents: the target class loader and the agent CL.
+         * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
+         * <p>
+         * After the helper CL is created, it registers {@link RegisterMethodHandle}-annotated methods in {@link MethodHandleDispatcher}.
+         * These method handles are then called from within advices ({@link net.bytebuddy.asm.Advice.OnMethodEnter}/{@link net.bytebuddy.asm.Advice.OnMethodExit}).
+         * This lets them call the helpers that are loaded from the helper CL.
+         * The helpers have full access to both the agent API and the types visible to the target CL (such as the servlet API).
+         * </p>
+         * <p>
+         * See {@link MethodHandleDispatcher} for a diagram.
+         * </p>
+         */
+        public synchronized static void inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject) throws Exception {
             classesToInject = new ArrayList<>(classesToInject);
             classesToInject.add(MethodHandleRegisterer.class.getName());
-            Set<Collection<String>> injectedClasses = alreadyInjected.get(targetClassLoader);
-            if (injectedClasses == null) {
-                injectedClasses = new HashSet<>();
-                alreadyInjected.put(targetClassLoader, injectedClasses);
-            }
+
+            Set<Collection<String>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);
             if (injectedClasses.contains(classesToInject)) {
                 return;
             }
             injectedClasses.add(classesToInject);
 
+            ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = getOrCreateDispatcherForClassLoader(targetClassLoader, protectionDomain);
+
+            ClassLoader parent = getHelperClassLoaderParent(targetClassLoader);
+            Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInject);
+            // child first semantics are important here as the helper CL contains classes that are also present in the agent CL
+            ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions);
+
+            registerMethodHandles(classesToInject, dispatcherForClassLoader, helperCL);
+        }
+
+        private static Set<Collection<String>> getOrCreateInjectedClasses(@Nullable ClassLoader targetClassLoader) {
+            Set<Collection<String>> injectedClasses = alreadyInjected.get(targetClassLoader);
+            if (injectedClasses == null) {
+                injectedClasses = new HashSet<>();
+                alreadyInjected.put(targetClassLoader, injectedClasses);
+            }
+            return injectedClasses;
+        }
+
+        private static ConcurrentMap<String, MethodHandle> getOrCreateDispatcherForClassLoader(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain) throws IOException, ClassNotFoundException, IllegalAccessException, NoSuchFieldException {
             ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = MethodHandleDispatcher.getDispatcherForClassLoader(targetClassLoader);
             if (dispatcherForClassLoader == null) {
                 // there's always a dispatcher for the bootstrap CL
@@ -307,19 +342,30 @@ public abstract class HelperClassManager<T> {
                 dispatcherForClassLoader = (ConcurrentMap<String, MethodHandle>) dispatcher.getField("registry").get(null);
                 MethodHandleDispatcher.setDispatcherForClassLoader(targetClassLoader, dispatcherForClassLoader);
             }
+            return dispatcherForClassLoader;
+        }
 
+        @Nullable
+        private static ClassLoader getHelperClassLoaderParent(@Nullable ClassLoader targetClassLoader) {
             ClassLoader agentClassLoader = HelperClassManager.class.getClassLoader();
-            ClassLoader parent;
             if (agentClassLoader != null && agentClassLoader != ClassLoader.getSystemClassLoader()) {
                 // future world: when the agent is loaded from an isolated class loader
-                parent = new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
-            } else {
-                parent = targetClassLoader;
+                // the helper class loader has both, the agent class loader and the target class loader as the parent
+                return new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
             }
-            Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInject);
-            ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions);
-            Class<MethodHandleRegisterer> methodHandleRegistererClass = (Class<MethodHandleRegisterer>) Class.forName(MethodHandleRegisterer.class.getName(), true, helperCL);
+           return targetClassLoader;
+        }
 
+        /**
+         * Gets all {@link RegisterMethodHandle} annotated methods and registers them in {@link MethodHandleDispatcher}
+         *
+         * @param classesToInject
+         * @param dispatcherForClassLoader
+         * @param helperCL
+         * @throws ClassNotFoundException
+         */
+        private static void registerMethodHandles(List<String> classesToInject, ConcurrentMap<String, MethodHandle> dispatcherForClassLoader, ClassLoader helperCL) throws Exception {
+            Class<MethodHandleRegisterer> methodHandleRegistererClass = (Class<MethodHandleRegisterer>) Class.forName(MethodHandleRegisterer.class.getName(), true, helperCL);
             for (String name : classesToInject) {
                 Class<?> clazz = Class.forName(name, true, helperCL);
                 if (clazz.getClassLoader() != helperCL) {
@@ -329,18 +375,27 @@ public abstract class HelperClassManager<T> {
                     // call in from the context of the created helper class loader so that helperClass.getMethods() doesn't throw NoClassDefFoundError
                     Method registerStaticMethodHandles = methodHandleRegistererClass.getMethod("registerStaticMethodHandles", ConcurrentMap.class, Class.class);
                     registerStaticMethodHandles.invoke(null, dispatcherForClassLoader, clazz);
-                } catch (Exception e) {
-                    throw new IllegalStateException("Exception while registering method handles for class " + name, e);
+                } catch (InvocationTargetException e) {
+                    Throwable targetException = e.getTargetException();
+                    if (targetException instanceof Exception) {
+                        throw (Exception) targetException;
+                    }
+                    throw e;
                 }
             }
         }
 
-        private static Class<MethodHandleDispatcherHolder> injectHelperDispatcher(@Nullable ClassLoader classLoader, @Nullable ProtectionDomain protectionDomain) throws IOException, ClassNotFoundException {
+        private static Class<MethodHandleDispatcherHolder> injectHelperDispatcher(@Nullable ClassLoader classLoader, @Nullable ProtectionDomain protectionDomain) throws IOException {
             ClassInjector injector = new ClassInjector.UsingUnsafe(classLoader, protectionDomain);
             byte[] classBytes = IOUtils.readToBytes(MethodHandleDispatcherHolder.class.getClassLoader().getResourceAsStream("MethodHandleDispatcherHolder.class"));
             return (Class<MethodHandleDispatcherHolder>) injector.injectRaw(Collections.singletonMap(MethodHandleDispatcherHolder.class.getName(), classBytes)).values().iterator().next();
         }
 
+        /**
+         * This class is loaded form the helper class loader so that {@link Class#getDeclaredMethods()} doesn't throw a
+         * {@link NoClassDefFoundError}.
+         * This would otherwise happen as the methods may reference types not visible to the agent class loader (such as the servlet API).
+         */
         public static class MethodHandleRegisterer {
 
             public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, Class<?> helperClass) throws ReflectiveOperationException {
@@ -360,6 +415,7 @@ public abstract class HelperClassManager<T> {
 
         public synchronized static void clear() {
             alreadyInjected.clear();
+            MethodHandleDispatcher.clear();
         }
     }
 

@@ -27,9 +27,9 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.assertj.core.api.ThrowableAssert;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.lang.invoke.WrongMethodTypeException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
@@ -49,6 +49,11 @@ class HelperClassManagerTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @AfterEach
+    void tearDown() {
+        HelperClassManager.ForDispatcher.clear();
     }
 
     @Test
@@ -137,7 +142,27 @@ class HelperClassManagerTest {
             .isEqualTo(HelperClassManagerTest.class.getClassLoader());
     }
 
+    @Test
+    void testHelperClassLoaderUnloading() throws Throwable {
+        injectForDispatcher(TestHelper.class);
+        WeakReference<ClassLoader> helperClassLoader = new WeakReference<>((ClassLoader) MethodHandleDispatcher
+            .getMethodHandle(HelperClassManagerTest.class, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelper#getClassLoader")
+            .invoke());
+
+        MethodHandleDispatcher.clear();
+        System.gc();
+        Thread.sleep(1000);
+
+        assertThat(helperClassLoader.get()).isNull();
+
+    }
+
     public static class TestHelper {
+        @RegisterMethodHandle
+        public static ClassLoader getClassLoader() {
+            return TestHelper.class.getClassLoader();
+        }
+        @RegisterMethodHandle
         public static ClassLoader getParentClassLoader() {
             return TestHelper.class.getClassLoader().getParent();
         }
@@ -152,7 +177,7 @@ class HelperClassManagerTest {
             .isInstanceOf(WrongMethodTypeException.class);
     }
 
-    private void injectForDispatcher(Class<?> helper) throws IOException, ReflectiveOperationException {
+    private void injectForDispatcher(Class<?> helper) throws Exception {
         HelperClassManager.ForDispatcher.inject(HelperClassManagerTest.class.getClassLoader(), HelperClassManagerTest.class.getProtectionDomain(), Collections.singletonList(helper.getName()));
     }
 
@@ -164,9 +189,23 @@ class HelperClassManagerTest {
     }
 
     public static class OverloadedMethodHelper {
+        @RegisterMethodHandle
         public static void foo() {
         }
+        @RegisterMethodHandle
         public static void foo(boolean bar) {
+        }
+    }
+
+    @Test
+    void testForDispatcherPrivateMethod() {
+        assertThatThrownBy(() -> injectForDispatcher(HelperWithPrivateMethod.class))
+            .isInstanceOf(IllegalAccessException.class);
+    }
+
+    public static class HelperWithPrivateMethod {
+        @RegisterMethodHandle
+        private static void foo() {
         }
     }
 

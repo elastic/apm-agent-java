@@ -26,10 +26,12 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
+import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 
@@ -38,6 +40,11 @@ public abstract class AbstractServletInstrumentation extends ElasticApmInstrumen
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton(SERVLET_API);
+    }
+
+    @Override
+    public List<String> helpers() throws Exception {
+        return PackageScanner.getClassNames(getClass().getPackageName());
     }
 
     @Override

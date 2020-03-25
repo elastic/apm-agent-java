@@ -25,13 +25,20 @@
 package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.util.PackageScanner;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 public abstract class JdbcInstrumentation extends ElasticApmInstrumentation {
 
     private static final Collection<String> JDBC_GROUPS = Collections.singleton("jdbc");
+
+    @Override
+    public List<String> helpers() throws Exception {
+        return PackageScanner.getClassNames(getClass().getPackageName());
+    }
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {

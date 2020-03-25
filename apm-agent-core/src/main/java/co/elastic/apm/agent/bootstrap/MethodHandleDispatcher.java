@@ -51,21 +51,22 @@ public class MethodHandleDispatcher {
      * which would keep the application class loader alive.
      * This would lead to a class loader leak if the web application is undeployed (all classes of the web app can't be unloaded).
      * <pre>
-     *   Bootstrap CL ←─────────────────────── Agent CL
-     *       ↑ - {@link MethodHandleDispatcher} ↑
-     *       │  - WeakConcurrentMap<ClassLoader,│WeakReference<ConcurrentMap<String, MethodHandle>>>
-     *     Ext/Platform CL           ╷          │                                     ╷
-     *       ↑                       ╷          │                                     ╷
-     *     System CL                 ╷          │                                     ╷
-     *       ↑                       ╷          │                                     ╷
-     *     Common                    ╷          │                                     ╷
-     *     ↑    ↑                    ╷          │                                     ╷
-     * WebApp1  WebApp2 ←╶╶╶╶╶╶╶╶╶╶╶╶┘          │                                     ╷
-     *          ↑ - {@link MethodHandleDispatcherHolder}                              ╷
-     *          │   - ConcurrentMap<String, MethodHandle>                             ╷
-     *          │                               │    │                                ╷
-     *          └─────────────────────── Helper CL   ↓                                ╷
-     *                                    - HelperClass ←╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶┘
+     *   Bootstrap CL ←─────────────────────────────────── Agent CL
+     *       ↑ └{@link MethodHandleDispatcher}              ↑
+     *       │   └ WeakConcurrentMap<ClassLoader, WeakReference<ConcurrentMap<String, MethodHandle>>>
+     *     Ext/Platform CL           ╷                      │                          ╷
+     *       ↑                       ╷                      │                          ╷
+     *     System CL                 ╷                      │                          ╷
+     *       ↑                       ╷                      │                          ╷
+     *     Common                    ╷                      │                          ╷
+     *     ↑    ↑                    ╷                      │                          ╷
+     * WebApp1  WebApp2 ←╶╶╶╶╶╶╶╶╶╶╶╶┘                      │                          ╷
+     *          ↑ - {@link MethodHandleDispatcherHolder}    │                          ╷
+     *          │   - ConcurrentMap<String, MethodHandle>   │                          ╷
+     *          │          ┌────────────────────┘           │                          ╷
+     *          Helper CL ─┼────────────────────────────────┘                          ╷
+     *           │         ↓                                                           ╷
+     *           └ HelperClass ←╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶┘
      * Legend:
      *  ╶╶ weak reference
      *  ── strong reference
