@@ -7,7 +7,7 @@ apm-ci.elastic.co and returns the commit hash
 import os
 from jenkinsapi.jenkins import Jenkins
 
-def getSCMInfroFromLatestGoodBuild(url, jobName, username=None, password=None):
+def getSCMInfoFromLatestGoodBuild(url, jobName, username=None, password=None):
     J = Jenkins(url, username, password)
     job = J[jobName]
     lgb = job.get_last_good_build()
