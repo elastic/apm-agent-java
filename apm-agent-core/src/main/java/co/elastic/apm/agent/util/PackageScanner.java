@@ -59,9 +59,12 @@ public class PackageScanner {
             URL resource = resources.nextElement();
             URI uri = resource.toURI();
             if (uri.getScheme().equals("jar")) {
-                try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
-                    final Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
-                    classNames.addAll(listClassNames(basePackage, basePath));
+                // avoids FileSystemAlreadyExistsException
+                synchronized (PackageScanner.class) {
+                    try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
+                        final Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
+                        classNames.addAll(listClassNames(basePackage, basePath));
+                    }
                 }
             } else {
                 final Path basePath = Paths.get(uri);
