@@ -33,6 +33,7 @@ import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
+import net.bytebuddy.pool.TypePool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +57,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
  * This class helps to overcome the fact that the agent classes can't access the classes they want to instrument.
@@ -366,21 +370,35 @@ public abstract class HelperClassManager<T> {
          */
         private static void registerMethodHandles(List<String> classesToInject, ConcurrentMap<String, MethodHandle> dispatcherForClassLoader, ClassLoader helperCL) throws Exception {
             Class<MethodHandleRegisterer> methodHandleRegistererClass = (Class<MethodHandleRegisterer>) Class.forName(MethodHandleRegisterer.class.getName(), true, helperCL);
+            TypePool typePool = TypePool.Default.of(getAgentClassFileLocator());
             for (String name : classesToInject) {
-                Class<?> clazz = Class.forName(name, true, helperCL);
-                if (clazz.getClassLoader() != helperCL) {
-                    throw new IllegalStateException("Helper classes not loaded from helper class loader, instead loaded from " + clazz.getClassLoader());
-                }
-                try {
-                    // call in from the context of the created helper class loader so that helperClass.getMethods() doesn't throw NoClassDefFoundError
-                    Method registerStaticMethodHandles = methodHandleRegistererClass.getMethod("registerStaticMethodHandles", ConcurrentMap.class, Class.class);
-                    registerStaticMethodHandles.invoke(null, dispatcherForClassLoader, clazz);
-                } catch (InvocationTargetException e) {
-                    Throwable targetException = e.getTargetException();
-                    if (targetException instanceof Exception) {
-                        throw (Exception) targetException;
+                // check with Byte Buddy matchers, acting on the byte code as opposed to reflection first
+                // to avoid NoClassDefFoundErrors when the classes refer to optional types
+                boolean isHelperClass = !typePool.describe(name)
+                    .resolve()
+                    .getDeclaredMethods()
+                    .filter(isAnnotatedWith(named(RegisterMethodHandle.class.getName())))
+                    .isEmpty();
+                if (isHelperClass) {
+
+                    Class<?> clazz = Class.forName(name, true, helperCL);
+                    if (clazz.getClassLoader() != helperCL) {
+                        throw new IllegalStateException("Helper classes not loaded from helper class loader, instead loaded from " + clazz.getClassLoader());
                     }
-                    throw e;
+                    try {
+                        // call in from the context of the created helper class loader so that helperClass.getMethods() doesn't throw NoClassDefFoundError
+                        Method registerStaticMethodHandles = methodHandleRegistererClass.getMethod("registerStaticMethodHandles", ConcurrentMap.class, Class.class);
+                        registerStaticMethodHandles.invoke(null, dispatcherForClassLoader, clazz);
+                    } catch (Exception e) {
+                        logger.error("Exception while trying to register method handles for {}", name);
+                        if (e instanceof InvocationTargetException) {
+                            Throwable targetException = ((InvocationTargetException) e).getTargetException();
+                            if (targetException instanceof Exception) {
+                                throw (Exception) targetException;
+                            }
+                        }
+                        throw e;
+                    }
                 }
             }
         }

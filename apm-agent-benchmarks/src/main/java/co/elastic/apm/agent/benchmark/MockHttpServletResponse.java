@@ -180,11 +180,6 @@ public class MockHttpServletResponse implements HttpServletResponse {
     }
 
     @Override
-    public void setContentLengthLong(long len) {
-
-    }
-
-    @Override
     public int getBufferSize() {
         return 0;
     }
