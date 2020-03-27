@@ -114,7 +114,7 @@ Disabling <<config-capture-headers>> can save allocations, network bandwidth, an
 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state.
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the
-<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
+<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the
 agent will resume and become fully functional.

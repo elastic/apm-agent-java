@@ -63,6 +63,8 @@ Note that changing these values at runtime can slow down the application tempora
 * Do not instrument Servlet API before 3.0 {pull}1077[#1077]
 * Add support for API keys for apm backend authentication {pull}1083[#1083]
 * Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
+* Deprecating `active` configuration option in favor of `recording`.
+  Setting `active` still works as it's now an alias for `recording`.
 
 [float]
 ===== Bug fixes

@@ -182,7 +182,7 @@ public class ElasticApmTracerBuilder {
             // provide a default no-op configuration in case of invalid configuration (missing required value for example)
             return ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource("Noop Configuration")
-                    .add(TracerConfiguration.ACTIVE, "false")
+                    .add(TracerConfiguration.RECORDING, "false")
                     .add(CoreConfiguration.INSTRUMENT, "false")
                     .add(CoreConfiguration.SERVICE_NAME, "none")
                     .add(CoreConfiguration.SAMPLE_RATE, "0"))
