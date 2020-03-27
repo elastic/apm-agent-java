@@ -19,8 +19,24 @@ endif::[]
 ////
 
 === Unreleased
+[[release-notes-1.16.0]]
+==== 1.16.0 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.15.0]]
-==== 1.15.0 - YYYY/MM/DD
+==== 1.15.0 - 2020/03/27
 
 [float]
 ===== Breaking changes
@@ -29,6 +45,13 @@ endif::[]
 ** `elasticapm.properties` file now has higher priority over java system properties and environment variables, +
 This change allows to change dynamic options values at runtime by editing file, previously values set in java properties
 or environment variables could not be overriden, even if they were dynamic.
+* Renamed some configuration options related to the experimental profiler-inferred spans feature ({pull}1084[#1084]):
+** `profiling_spans_enabled` -> `profiling_inferred_spans_enabled`
+** `profiling_sampling_interval` -> `profiling_inferred_spans_sampling_interval`
+** `profiling_spans_min_duration` -> `profiling_inferred_spans_min_duration`
+** `profiling_included_classes` -> `profiling_inferred_spans_included_classes`
+** `profiling_excluded_classes` -> `profiling_inferred_spans_excluded_classes`
+** Removed `profiling_interval` and `profiling_duration` (both are fixed to 5s now)
 
 [float]
 ===== Features
@@ -50,19 +73,6 @@ Note that changing these values at runtime can slow down the application tempora
 * Document and re-order configuration priorities {pull}1087[#1087]
 * Improve heuristic for `service_name` when not set through config {pull}1097[#1097]
 
-[float]
-===== Potentially breaking changes
-* Renamed some configuration options related to the experimental profiler-inferred spans feature ({pull}1084[#1084]):
-** `profiling_spans_enabled` -> `profiling_inferred_spans_enabled`
-** `profiling_sampling_interval` -> `profiling_inferred_spans_sampling_interval`
-** `profiling_spans_min_duration` -> `profiling_inferred_spans_min_duration`
-** `profiling_included_classes` -> `profiling_inferred_spans_included_classes`
-** `profiling_excluded_classes` -> `profiling_inferred_spans_excluded_classes`
-** Removed `profiling_interval` and `profiling_duration` (both are fixed to 5s now)
-
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.14.0]]
 ==== 1.14.0 - 2020/03/04
