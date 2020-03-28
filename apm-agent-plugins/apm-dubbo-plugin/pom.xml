@@ -30,5 +30,24 @@
             <version>2.7.5</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpclient-core</artifactId>
+            <type>test-jar</type>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.14.7</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-okhttp-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

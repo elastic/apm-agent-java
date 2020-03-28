@@ -43,11 +43,11 @@ public class DubboTraceHelper {
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
 
-    private static String EXTERNAL_TYPE = "external";
+    private static final String EXTERNAL_TYPE = "external";
 
-    private static String DUBBO_SUBTYPE = "dubbo";
+    private static final String DUBBO_SUBTYPE = "dubbo";
 
-    public static final String PROVIDER_SERVICE_NAME_KEY = "elastic-apm-dubbo-provider";
+    public static final String SPAN_KEY = "span";
 
     public static void init(ElasticApmTracer tracer) {
         DubboTraceHelper.tracer = tracer;

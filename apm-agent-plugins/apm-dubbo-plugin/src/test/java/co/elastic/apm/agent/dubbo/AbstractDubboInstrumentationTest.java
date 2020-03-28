@@ -28,6 +28,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
+import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -216,13 +217,16 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     }
 
     @Test
-    public void testTimeout() {
-        try {
-            dubboTestApi.timeout("hello");
-        } catch (Exception e) {
+    public void testAsyncNoReturn() throws Exception {
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        dubboTestApi.asyncNoReturn("arg1");
 
-        }
+        assertThat(reporter.getFirstTransaction(5000)).isNotNull();
+        assertThat(reporter.getFirstSpan(5000)).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(2);
     }
+
 
     private void noCaptureBody(Transaction transaction) {
         assertThat(transaction.getContext().hasCustom()).isFalse();

@@ -26,11 +26,23 @@ package co.elastic.apm.agent.dubbo;
 
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.alibaba.dubbo.config.ApplicationConfig;
+import com.alibaba.dubbo.config.MethodConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.ServiceConfig;
+import com.alibaba.dubbo.rpc.RpcContext;
+import org.junit.jupiter.api.Test;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
@@ -67,11 +79,44 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         referenceConfig.setUrl("dubbo://localhost:" + getPort());
         referenceConfig.setTimeout(1000);
 
+        List<MethodConfig> methodConfigList = new LinkedList<>();
+        referenceConfig.setMethods(methodConfigList);
+        MethodConfig asyncConfig = new MethodConfig();
+        asyncConfig.setName("async");
+        asyncConfig.setAsync(true);
+        methodConfigList.add(asyncConfig);
+
+        MethodConfig asyncNoReturnConfig = new MethodConfig();
+        asyncNoReturnConfig.setName("asyncNoReturn");
+        asyncNoReturnConfig.setAsync(true);
+        asyncNoReturnConfig.setReturn(false);
+        methodConfigList.add(asyncNoReturnConfig);
+
         return referenceConfig.get();
     }
 
     @Override
     int getPort() {
         return 20880;
+    }
+
+    @Test
+    public void testAsync() throws Exception {
+        String arg = "hello";
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String ret = dubboTestApi.async(arg);
+        assertThat(ret).isNull();
+        Future<Object> future = RpcContext.getContext().getFuture();
+        assertThat(future).isNotNull();
+        ret = (String) future.get();
+        assertThat(ret).isEqualTo(arg);
+
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions.size()).isEqualTo(1);
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "async", new Class[]{String.class});
+
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans.size()).isEqualTo(1);
     }
 }

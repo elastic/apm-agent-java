@@ -41,7 +41,7 @@ import com.alibaba.dubbo.rpc.RpcContext;
 import net.bytebuddy.asm.Advice;
 
 @VisibleForAdvice
-public class AlibabaDubboFilterAdvice {
+public class AlibabaMonitorFilterAdvice {
 
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
@@ -50,7 +50,7 @@ public class AlibabaDubboFilterAdvice {
     public static HelperClassManager<AlibabaDubboAttachmentHelper> helperManager;
 
     public static void init(ElasticApmTracer tracer) {
-        AlibabaDubboFilterAdvice.tracer = tracer;
+        AlibabaMonitorFilterAdvice.tracer = tracer;
         DubboTraceHelper.init(tracer);
         IgnoreExceptionHelper.init(tracer);
         helperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
@@ -65,11 +65,10 @@ public class AlibabaDubboFilterAdvice {
                                            @Advice.Local("scope") Scope scope) {
         RpcContext context = RpcContext.getContext();
         String version = context.getUrl().getParameter("version");
+
         Invoker<?> invoker = invocation.getInvoker();
         apiClazz = invoker.getInterface();
-        DubboApiInfo apiInfo = new DubboApiInfo(
-            apiClazz, invocation.getMethodName(),
-            invocation.getParameterTypes(), version);
+        DubboApiInfo apiInfo = new DubboApiInfo(apiClazz, invocation.getMethodName(), invocation.getParameterTypes(), version);
         AlibabaDubboAttachmentHelper helper = helperManager.getForClassLoaderOfClass(Invocation.class);
         if (helper == null) {
             return;
@@ -103,7 +102,7 @@ public class AlibabaDubboFilterAdvice {
                                           @Advice.Thrown Throwable t,
                                           @Advice.Local("transaction") Transaction transaction,
                                           @Advice.Local("scope") Scope scope) {
-        Throwable actualExp = t != null? t : result.getException();
+        Throwable actualExp = t != null ? t : result.getException();
         RpcContext context = RpcContext.getContext();
         if (context.isConsumerSide()) {
             if (span == null) {
@@ -117,7 +116,12 @@ public class AlibabaDubboFilterAdvice {
                 }
                 //for consumer side, no need to capture exception, let upper application handle it or capture it
             } finally {
-                span.deactivate().end();
+                span.deactivate();
+                if (context.getFuture() == null) {
+                    span.end();
+                } else {
+                    context.set(DubboTraceHelper.SPAN_KEY, span);
+                }
             }
             return;
         }

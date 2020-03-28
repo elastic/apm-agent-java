@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,25 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.dubbo.api;
+package co.elastic.apm.agent.dubbo.helper;
 
-import java.util.concurrent.CompletableFuture;
+import co.elastic.apm.agent.impl.transaction.Span;
 
-public interface DubboTestApi {
+public interface WrapperCreator<T> {
 
-    String normalReturn(String arg1, Integer arg2);
-
-    String throwBizException(String arg1);
-
-    String throwUnexpectedException(String arg1);
-
-    String timeout(String arg);
-
-    String async(String arg1);
-
-    void asyncNoReturn(String arg1);
-
-    CompletableFuture<String> asyncByFuture(String arg1);
-
-    String asyncByAsyncContext(String arg1);
+    T wrap(T delegate, Span span);
 }

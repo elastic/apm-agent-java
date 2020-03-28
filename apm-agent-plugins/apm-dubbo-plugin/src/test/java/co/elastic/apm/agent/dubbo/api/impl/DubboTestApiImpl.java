@@ -26,8 +26,47 @@ package co.elastic.apm.agent.dubbo.api.impl;
 
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import org.apache.dubbo.rpc.AsyncContext;
+import org.apache.dubbo.rpc.RpcContext;
+
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 public class DubboTestApiImpl implements DubboTestApi {
+
+    private static WireMockServer server = new WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort());
+
+    static {
+        try {
+            MappingBuilder mappingBuilder = get(urlEqualTo("/")).willReturn(aResponse().withStatus(200));
+            server.addStubMapping(mappingBuilder.build());
+            server.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private OkHttpClient client;
+
+    private ExecutorService executorService;
+
+    public DubboTestApiImpl() {
+        client = new OkHttpClient();
+        executorService = Executors.newSingleThreadExecutor();
+    }
 
     @Override
     public String normalReturn(String arg1, Integer arg2) {
@@ -52,5 +91,63 @@ public class DubboTestApiImpl implements DubboTestApi {
             e.printStackTrace();
         }
         return "timeout case";
+    }
+
+    @Override
+    public String async(String arg1) {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            //e.printStackTrace();
+        }
+        if ("error".equals(arg1)) {
+            throw new RuntimeException();
+        }
+        return arg1;
+    }
+
+    @Override
+    public void asyncNoReturn(String arg1) {
+        doSomething();
+    }
+
+    @Override
+    public CompletableFuture<String> asyncByFuture(final String arg1) {
+        return CompletableFuture.supplyAsync(() -> {
+            doSomething();
+            return arg1;
+        });
+    }
+
+    @Override
+    public String asyncByAsyncContext(String arg1) {
+        AsyncContext asyncContext = RpcContext.startAsync();
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                doSomething();
+                asyncContext.write(arg1);
+            }
+        });
+        return null;
+    }
+
+    private void invokeHttp() {
+        Request request = new Request.Builder()
+            .url("http://localhost:" + server.port() + "/")
+            .build();
+        try {
+            client.newCall(request).execute().body().close();
+        } catch (IOException e) {
+
+        }
+    }
+
+    private void doSomething() {
+        try {
+            Thread.sleep(100);
+            invokeHttp();
+        } catch (InterruptedException e) {
+        }
     }
 }

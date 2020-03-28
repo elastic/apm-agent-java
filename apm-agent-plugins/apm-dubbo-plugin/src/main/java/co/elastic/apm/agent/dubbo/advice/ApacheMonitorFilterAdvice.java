@@ -41,7 +41,7 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 
 @VisibleForAdvice
-public class ApacheDubboFilterAdvice {
+public class ApacheMonitorFilterAdvice {
 
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
@@ -50,7 +50,7 @@ public class ApacheDubboFilterAdvice {
     public static HelperClassManager<ApacheDubboAttachmentHelper> helperClassManager;
 
     public static void init(ElasticApmTracer tracer) {
-        ApacheDubboFilterAdvice.tracer = tracer;
+        ApacheMonitorFilterAdvice.tracer = tracer;
         DubboTraceHelper.init(tracer);
         IgnoreExceptionHelper.init(tracer);
         helperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,

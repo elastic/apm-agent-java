@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.dubbo.advice.ApacheDubboFilterAdvice;
+import co.elastic.apm.agent.dubbo.advice.AlibabaMonitorFilterAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -33,28 +33,27 @@ import net.bytebuddy.matcher.ElementMatcher;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+public class AlibabaMonitorFilterInstrumentation extends AbstractDubboInstrumentation {
 
-public class ApacheDubboInstrumentation extends AbstractDubboInstrumentation {
-
-    public ApacheDubboInstrumentation(ElasticApmTracer tracer) {
-        ApacheDubboFilterAdvice.init(tracer);
+    public AlibabaMonitorFilterInstrumentation(ElasticApmTracer tracer) {
+        AlibabaMonitorFilterAdvice.init(tracer);
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.apache.dubbo.monitor.support.MonitorFilter");
+        return named("com.alibaba.dubbo.monitor.support.MonitorFilter");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("invoke")
-            .and(takesArgument(0, named("org.apache.dubbo.rpc.Invoker")))
-            .and(takesArgument(1, named("org.apache.dubbo.rpc.Invocation")));
+            .and(takesArgument(0, named("com.alibaba.dubbo.rpc.Invoker")))
+            .and(takesArgument(1, named("com.alibaba.dubbo.rpc.Invocation")));
     }
 
     @Override
     public Class<?> getAdviceClass() {
-        return ApacheDubboFilterAdvice.class;
+        return AlibabaMonitorFilterAdvice.class;
     }
 
 }
