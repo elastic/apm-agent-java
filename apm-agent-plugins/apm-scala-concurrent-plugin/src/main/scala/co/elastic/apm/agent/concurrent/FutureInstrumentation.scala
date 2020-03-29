@@ -33,8 +33,6 @@ class FutureInstrumentation extends ElasticApmInstrumentation {
     val active = ElasticApmInstrumentation.getActive
     val tracer = ElasticApmInstrumentation.tracer
     if (active != null && tracer != null && tracer.isWrappingAllowedOnThread) {
-
-
       active.setDiscard(false)
       tracer.avoidWrappingOnThread()
     }
