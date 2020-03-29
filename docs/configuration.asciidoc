@@ -5,27 +5,44 @@ Please only make changes in configuration.asciidoc.ftl
 ////
 [[configuration]]
 == Configuration
-To adapt the Elastic APM agent to your needs,
-you can configure it using different configuration sources,
-which have different naming conventions for the property key.
-In descending order of precedence:
+The Elastic APM agent can be configured through different configuration sources,
+with the following descending order of precedence:
+
+No prefix is required for the configuration keys unless stated otherwise.
 
 [arabic]
-. {apm-app-ref}/agent-configuration.html[Central configuration]
+. {apm-app-ref}/agent-configuration.html[Central configuration] +
+   Supports <<configuration-dynamic>>
+. `elasticapm.properties` file +
+  In same folder as agent jar or provided through <<config-config-file>> option. +
+  Supports <<configuration-dynamic>>
 . Java system properties +
-  All configuration keys are prefixed with `elastic.apm.`
+  All configuration keys are prefixed with `elastic.apm.` +
+  Supports <<configuration-dynamic>> when set from the application.
 . Environment variables +
   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. `elasticapm.properties` file +
-  You can place a `elasticapm.properties` in the same directory the agent jar resides in.
-  To customize the location, set the <<config-config-file>> option.
-  No prefix is required for the configuration keys.
+. runtime attach parameters, those are mutually exclusive +
+.. `--config` parameter (<<setup-attach-cli>>)
+.. arguments of  `ElasticApmAttacher.attach(...)` (<<setup-attach-api>>)
+.. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
+. default values
 
-Central configuration overrides all other settings. Java system properties override Environment variables. Environment variables override `elasticapm.properties`
+[float]
+[[configuration-dynamic]]
+=== Dynamic configuration
 
-Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
-{kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
-Java system properties can be dynamic as well by being set from within the application.
+Configuration options marked with Dynamic true can be changed at runtime when set from sources that support it:
+
+- {kibana-ref}/agent-configuration.html[Central configuration]
+- `elasticapm.properties` file
+- Java system properties when set from within the application.
+
+NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource +
+Only the external file can be used for dynamic configuration.
+
+[float]
+[[configuration-minimal]]
+=== Minimal configuration
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
@@ -62,8 +79,16 @@ ELASTIC_APM_SERVER_URLS=http://localhost:8200
 This is a list of all configuration options grouped by their category.
 Click on a key to get more information.
 
+* <<config-circuit-breaker>>
+** <<config-circuit-breaker-enabled>>
+** <<config-stress-monitoring-interval>>
+** <<config-stress-monitor-gc-stress-threshold>>
+** <<config-stress-monitor-gc-relief-threshold>>
+** <<config-stress-monitor-cpu-duration-threshold>>
+** <<config-stress-monitor-system-cpu-stress-threshold>>
+** <<config-stress-monitor-system-cpu-relief-threshold>>
 * <<config-core>>
-** <<config-active>>
+** <<config-recording>>
 ** <<config-instrument>>
 ** <<config-service-name>>
 ** <<config-service-node-name>>
@@ -103,8 +128,15 @@ Click on a key to get more information.
 ** <<config-enable-log-correlation>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
+* <<config-profiling>>
+** <<config-profiling-inferred-spans-enabled>>
+** <<config-profiling-inferred-spans-sampling-interval>>
+** <<config-profiling-inferred-spans-min-duration>>
+** <<config-profiling-inferred-spans-included-classes>>
+** <<config-profiling-inferred-spans-excluded-classes>>
 * <<config-reporter>>
 ** <<config-secret-token>>
+** <<config-api-key>>
 ** <<config-server-urls>>
 ** <<config-server-timeout>>
 ** <<config-verify-server-cert>>
@@ -119,20 +151,198 @@ Click on a key to get more information.
 ** <<config-stack-trace-limit>>
 ** <<config-span-frames-min-duration>>
 
+[[config-circuit-breaker]]
+=== Circuit-Breaker configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-circuit-breaker-enabled]]
+==== `circuit_breaker_enabled` (performance)
+
+A boolean specifying whether the circuit breaker should be enabled or not. 
+When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
+If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
+<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
+has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+agent will resume and become fully functional.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.circuit_breaker_enabled` | `circuit_breaker_enabled` | `ELASTIC_APM_CIRCUIT_BREAKER_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitoring-interval]]
+==== `stress_monitoring_interval` (performance)
+
+The interval at which the agent polls the stress monitors. Must be at least `1s`.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5s`.
+The default unit for this option is `s`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `5s` | TimeDuration | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitoring_interval` | `stress_monitoring_interval` | `ELASTIC_APM_STRESS_MONITORING_INTERVAL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-gc-stress-threshold]]
+==== `stress_monitor_gc_stress_threshold` (performance)
+
+The threshold used by the GC monitor to rely on for identifying heap stress.
+The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
+the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+after a recent GC.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.95` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_gc_stress_threshold` | `stress_monitor_gc_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_STRESS_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-gc-relief-threshold]]
+==== `stress_monitor_gc_relief_threshold` (performance)
+
+The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
+If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
+In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.75` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_gc_relief_threshold` | `stress_monitor_gc_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_RELIEF_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-cpu-duration-threshold]]
+==== `stress_monitor_cpu_duration_threshold` (performance)
+
+The minimal time required in order to determine whether the system is 
+either currently under stress, or that the stress detected previously has been relieved. 
+All measurements during this time must be consistent in comparison to the relevant threshold in 
+order to detect a change of stress state. Must be at least `1m`.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `1m`.
+The default unit for this option is `m`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `1m` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_cpu_duration_threshold` | `stress_monitor_cpu_duration_threshold` | `ELASTIC_APM_STRESS_MONITOR_CPU_DURATION_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-system-cpu-stress-threshold]]
+==== `stress_monitor_system_cpu_stress_threshold` (performance)
+
+The threshold used by the system CPU monitor to detect system CPU stress. 
+If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+the monitor considers this as a stress state.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.95` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_system_cpu_stress_threshold` | `stress_monitor_system_cpu_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_STRESS_THRESHOLD`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-stress-monitor-system-cpu-relief-threshold]]
+==== `stress_monitor_system_cpu_relief_threshold` (performance)
+
+The threshold used by the system CPU monitor to determine that the system is 
+not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
+this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
+monitor to decide that the CPU stress has been relieved.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0.8` | Double | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stress_monitor_system_cpu_relief_threshold` | `stress_monitor_system_cpu_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_RELIEF_THRESHOLD`
+|============
+
 [[config-core]]
 === Core configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-active]]
-==== `active`
+[[config-recording]]
+==== `recording`
 
-A boolean specifying if the agent should be active or not.
-When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
-When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+A boolean specifying if the agent should be recording or not.
+When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
+except for polling the central configuration endpoint.
 As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
 mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
+
+The key of this option used to be `active`. The old key still works but is now deprecated.
 
 
 [options="header"]
@@ -145,23 +355,25 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.active` | `active` | `ELASTIC_APM_ACTIVE`
+| `elastic.apm.recording` | `recording` | `ELASTIC_APM_RECORDING`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-instrument]]
-==== `instrument`
+==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 
 NOTE: Both active and instrument needs to be true for instrumentation to be running.
 
+NOTE: Changing this value at runtime can slow down the application temporarily.
+
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `true` | Boolean | false
+| `true` | Boolean | true
 |============
 
 
@@ -404,17 +616,19 @@ you should add an additional entry to this list (make sure to also include the d
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-disable-instrumentations]]
-==== `disable_instrumentations`
+==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 If you want to try out incubating features, set the value to an empty string.
+
+NOTE: Changing this value at runtime can slow down the application temporarily.
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `incubating` | Collection | false
+| `incubating` | Collection | true
 |============
 
 
@@ -574,9 +788,12 @@ NOTE: This feature requires APM Server 7.2+
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-trace-methods]]
-==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0])
+==== `trace_methods` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of methods for which to create a transaction or span.
+
+If you want to monitor a large number of methods,
+use  <<config-profiling-inferred-spans-enabled, `profiling_inferred_spans_enabled`>> instead.
 
 This works by instrumenting each matching method to include code that creates a span for the method.
 While creating a span is quite cheap in terms of performance,
@@ -634,11 +851,13 @@ public @@javax.inject.Scope your.application.package.*
 ----
 NOTE: This method is only available in the Elastic APM Java Agent.
 
+NOTE: Changing this value at runtime can slow down the application temporarily.
+
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | List | false
+| `<none>` | List | true
 |============
 
 
@@ -671,7 +890,7 @@ regardless of their duration.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`
+The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1246,6 +1465,146 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
 |============
 
+[[config-profiling]]
+=== Profiling configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-inferred-spans-enabled]]
+==== `profiling_inferred_spans_enabled` (added[1.15.0] experimental)
+
+Set to `true` to make the agent create spans for method executions based on
+https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
+
+Due to the nature of how sampling profilers work,
+the duration of the inferred spans are not exact, but only estimations.
+The <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spans_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+
+The inferred spans are created after a profiling session has ended.
+This means there is a delay between the regular and the inferred spans being visible in the UI.
+
+NOTE: This feature is not available on Windows
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_inferred_spans_enabled` | `profiling_inferred_spans_enabled` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_ENABLED`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-inferred-spans-sampling-interval]]
+==== `profiling_inferred_spans_sampling_interval` (added[1.15.0])
+
+The frequency at which stack traces are gathered within a profiling session.
+The lower you set it, the more accurate the durations will be.
+This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
+The minimal duration of a profiling-inferred span is the same as the value of this setting.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `50ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `50ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_inferred_spans_sampling_interval` | `profiling_inferred_spans_sampling_interval` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_SAMPLING_INTERVAL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-inferred-spans-min-duration]]
+==== `profiling_inferred_spans_min_duration` (added[1.15.0])
+
+The minimum duration of an inferred span.
+Note that the min duration is also implicitly set by the sampling interval.
+However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_inferred_spans_min_duration` | `profiling_inferred_spans_min_duration` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_MIN_DURATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-inferred-spans-included-classes]]
+==== `profiling_inferred_spans_included_classes` (added[1.15.0])
+
+If set, the agent will only create inferred spans for methods which match this list.
+Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
+Example: `org.example.myapp.*`
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `*` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_inferred_spans_included_classes` | `profiling_inferred_spans_included_classes` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_INCLUDED_CLASSES`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-inferred-spans-excluded-classes]]
+==== `profiling_inferred_spans_excluded_classes` (added[1.15.0])
+
+Excludes classes for which no profiler-inferred spans should be created.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `(?-i)java.*, (?-i)javax.*, (?-i)sun.*, (?-i)com.sun.*, (?-i)jdk.*, (?-i)org.apache.tomcat.*, (?-i)org.apache.catalina.*, (?-i)org.apache.coyote.*, (?-i)org.jboss.as.*, (?-i)org.glassfish.*, (?-i)org.eclipse.jetty.*, (?-i)com.ibm.websphere.*, (?-i)io.undertow.*` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_inferred_spans_excluded_classes` | `profiling_inferred_spans_excluded_classes` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_EXCLUDED_CLASSES`
+|============
+
 [[config-reporter]]
 === Reporter configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1270,6 +1629,31 @@ Use if APM Server requires a token.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.secret_token` | `secret_token` | `ELASTIC_APM_SECRET_TOKEN`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-api-key]]
+==== `api_key`
+
+This string is used to ensure that only your agents can send data to your APM server.
+
+Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.
+When both secret token and API key are used, API key has priority and secret token is ignored.
+Use if APM Server requires an API key.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.api_key` | `api_key` | `ELASTIC_APM_API_KEY`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1315,7 +1699,7 @@ WARNING: If timeouts are disabled or set to a high value, your app could experie
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1415,7 +1799,7 @@ NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1465,7 +1849,7 @@ Set to `0s` to deactivate.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `30s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1581,7 +1965,7 @@ To disable stack trace collection for spans completely, set the value to `0ms`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5ms`.
-The default unit for this option is `ms`
+The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1605,28 +1989,117 @@ The default unit for this option is `ms`
 .elasticapm.properties
 ----
 ############################################
+# Circuit-Breaker                          #
+############################################
+
+# A boolean specifying whether the circuit breaker should be enabled or not. 
+# When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
+# If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
+# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
+# has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+# agent will resume and become fully functional.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# circuit_breaker_enabled=false
+
+# The interval at which the agent polls the stress monitors. Must be at least `1s`.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5s.
+# The default unit for this option is s.
+# Default value: 5s
+#
+# stress_monitoring_interval=5s
+
+# The threshold used by the GC monitor to rely on for identifying heap stress.
+# The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
+# the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+# after a recent GC.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.95
+#
+# stress_monitor_gc_stress_threshold=0.95
+
+# The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
+# If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
+# In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+# be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.75
+#
+# stress_monitor_gc_relief_threshold=0.75
+
+# The minimal time required in order to determine whether the system is 
+# either currently under stress, or that the stress detected previously has been relieved. 
+# All measurements during this time must be consistent in comparison to the relevant threshold in 
+# order to detect a change of stress state. Must be at least `1m`.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 1m.
+# The default unit for this option is m.
+# Default value: 1m
+#
+# stress_monitor_cpu_duration_threshold=1m
+
+# The threshold used by the system CPU monitor to detect system CPU stress. 
+# If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+# the monitor considers this as a stress state.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.95
+#
+# stress_monitor_system_cpu_stress_threshold=0.95
+
+# The threshold used by the system CPU monitor to determine that the system is 
+# not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
+# this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
+# monitor to decide that the CPU stress has been relieved.
+#
+# This setting can be changed at runtime
+# Type: Double
+# Default value: 0.8
+#
+# stress_monitor_system_cpu_relief_threshold=0.8
+
+############################################
 # Core                                     #
 ############################################
 
-# A boolean specifying if the agent should be active or not.
-# When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
-# When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+# A boolean specifying if the agent should be recording or not.
+# When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+# When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
+# except for polling the central configuration endpoint.
 # As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
 # mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
+# 
+# The key of this option used to be `active`. The old key still works but is now deprecated.
 #
 # This setting can be changed at runtime
 # Type: Boolean
 # Default value: true
 #
-# active=true
+# recording=true
 
 # A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: Boolean
 # Default value: true
 #
@@ -1763,10 +2236,12 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 # If you want to try out incubating features, set the value to an empty string.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: incubating
 #
@@ -1856,6 +2331,9 @@ The default unit for this option is `ms`
 
 # A list of methods for which to create a transaction or span.
 # 
+# If you want to monitor a large number of methods,
+# use  <<config-profiling-inferred-spans-enabled, `profiling_inferred_spans_enabled`>> instead.
+# 
 # This works by instrumenting each matching method to include code that creates a span for the method.
 # While creating a span is quite cheap in terms of performance,
 # instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
@@ -1911,8 +2389,10 @@ The default unit for this option is `ms`
 # public @@javax.inject.Scope your.application.package.*
 # ----
 # NOTE: This method is only available in the Elastic APM Java Agent.
+# 
+# NOTE: Changing this value at runtime can slow down the application temporarily.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: 
 #
@@ -2292,6 +2772,81 @@ The default unit for this option is `ms`
 # ignore_message_queues=
 
 ############################################
+# Profiling                                #
+############################################
+
+# Set to `true` to make the agent create spans for method executions based on
+# https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
+# 
+# Due to the nature of how sampling profilers work,
+# the duration of the inferred spans are not exact, but only estimations.
+# The <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spans_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+# 
+# The inferred spans are created after a profiling session has ended.
+# This means there is a delay between the regular and the inferred spans being visible in the UI.
+# 
+# NOTE: This feature is not available on Windows
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# profiling_inferred_spans_enabled=false
+
+# The frequency at which stack traces are gathered within a profiling session.
+# The lower you set it, the more accurate the durations will be.
+# This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
+# The minimal duration of a profiling-inferred span is the same as the value of this setting.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 50ms.
+# The default unit for this option is ms.
+# Default value: 50ms
+#
+# profiling_inferred_spans_sampling_interval=50ms
+
+# The minimum duration of an inferred span.
+# Note that the min duration is also implicitly set by the sampling interval.
+# However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# profiling_inferred_spans_min_duration=0ms
+
+# If set, the agent will only create inferred spans for methods which match this list.
+# Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
+# Example: `org.example.myapp.*`
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: *
+#
+# profiling_inferred_spans_included_classes=*
+
+# Excludes classes for which no profiler-inferred spans should be created.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: (?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*
+#
+# profiling_inferred_spans_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*
+
+############################################
 # Reporter                                 #
 ############################################
 
@@ -2305,6 +2860,18 @@ The default unit for this option is `ms`
 # Default value: 
 #
 # secret_token=
+
+# This string is used to ensure that only your agents can send data to your APM server.
+# 
+# Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.
+# When both secret token and API key are used, API key has priority and secret token is ignored.
+# Use if APM Server requires an API key.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# api_key=
 
 # The URLs for your APM Servers
 #

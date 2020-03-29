@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -62,7 +61,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * (see {@link StartAsyncInstrumentation.StartAsyncAdvice#onExitStartAsync(AsyncContext)}
  * and {@link AsyncContextInstrumentation.AsyncContextStartAdvice#onEnterAsyncContextStart(Runnable)}).
  */
-public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
+public abstract class AsyncInstrumentation extends AbstractServletInstrumentation {
 
     private static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
     @Nullable
@@ -71,10 +70,18 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
     public static HelperClassManager<AsyncContextAdviceHelper<AsyncContext>> asyncHelperManager;
 
     public AsyncInstrumentation(ElasticApmTracer tracer) {
-        asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-            "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
-            "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
-            "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
+        synchronized (AsyncInstrumentation.class) {
+            // adding a null-check before setting helper manager reference breaks test execution, which prevents having
+            // the same code construct we have for other HelperClassManager usages.
+            //
+            // This should probably be changed when upgrading this plugin to use HelperClassManager for all helper
+            // classes.
+            asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
+                "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
+                "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
+                "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
+
+        }
     }
 
     @Override

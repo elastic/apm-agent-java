@@ -3,6 +3,7 @@
 
 * <<agent-overhead>>
 * <<tuning-agent>>
+* <<circuit-breaker>>
 
 [float]
 [[agent-overhead]]
@@ -106,3 +107,15 @@ Upping the <<config-span-frames-min-duration>> or disabling stack trace collecti
 
 By default, the Java agent records all request and response headers, including cookies.
 Disabling <<config-capture-headers>> can save allocations, network bandwidth, and disk space.
+
+[float]
+[[circuit-breaker]]
+=== Circuit Breaker
+
+When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state.
+If ANY of the monitors detects a stress indication, the agent will become inactive, as if the
+<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
+When inactive, the agent continues polling the same monitors in order to detect whether the stress state
+has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the
+agent will resume and become fully functional.
+For fine-grained Circuit Breaker configurations please refer to <<config-circuit-breaker>>.

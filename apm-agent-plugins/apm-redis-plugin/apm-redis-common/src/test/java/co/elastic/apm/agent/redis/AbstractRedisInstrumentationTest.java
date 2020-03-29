@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -46,6 +46,15 @@ import static org.awaitility.Awaitility.await;
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
     protected RedisServer server;
     protected int redisPort;
+    private String expectedAddress;
+
+    public AbstractRedisInstrumentationTest() {
+        this.expectedAddress = "localhost";
+    }
+
+    public AbstractRedisInstrumentationTest(String expectedAddress) {
+        this.expectedAddress = expectedAddress;
+    }
 
     private static int getAvailablePort() throws IOException {
         try (ServerSocket socket = ServerSocketFactory.getDefault().createServerSocket(0, 1, InetAddress.getByName("localhost"))) {
@@ -84,7 +93,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         for (Span span : spanList) {
             Destination destination = span.getContext().getDestination();
             if (destinationAddressSupported()) {
-                assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+                assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
                 assertThat(destination.getPort()).isEqualTo(redisPort);
             }
             Destination.Service service = destination.getService();

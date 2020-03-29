@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.Scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.JedisShardInfo;
 import redis.clients.jedis.ShardedJedis;
 
@@ -38,15 +39,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Jedis2InstrumentationTest extends Jedis1InstrumentationTest {
 
     private ShardedJedis shardedJedis;
+    private BinaryJedis binaryJedis;
 
     @BeforeEach
     void setUp() {
         shardedJedis = new ShardedJedis(List.of(new JedisShardInfo("localhost", redisPort)));
+        binaryJedis = new BinaryJedis("localhost", redisPort);
     }
 
     @AfterEach
     void tearDown() {
         shardedJedis.close();
+        binaryJedis.close();
     }
 
     @Test
@@ -54,6 +58,16 @@ class Jedis2InstrumentationTest extends Jedis1InstrumentationTest {
         try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
             shardedJedis.set("foo", "bar");
             assertThat(shardedJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
+        }
+
+        assertTransactionWithRedisSpans("SET", "GET");
+    }
+
+    @Test
+    void testBinaryJedis() {
+        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
+            binaryJedis.set("foo".getBytes(), "bar".getBytes());
+            assertThat(binaryJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
         }
 
         assertTransactionWithRedisSpans("SET", "GET");

@@ -74,13 +74,15 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
             final Object active = tracer.getActive();
             if (active == null) {
                 transaction = tracer.startRootTransaction(clazz.getClassLoader());
-                if (transactionName.isEmpty()) {
-                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                } else {
-                    transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                if (transaction != null) {
+                    if (transactionName.isEmpty()) {
+                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                    } else {
+                        transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                    }
+                    transaction.withType(type)
+                        .activate();
                 }
-                transaction.withType(type)
-                    .activate();
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }

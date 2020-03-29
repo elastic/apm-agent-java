@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceContextHolder<T> {
     public static final int PRIO_USER_SUPPLIED = 1000;
     public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
     public static final int PRIO_METHOD_SIGNATURE = 100;
@@ -86,6 +86,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
         /**
          * Stops the timer and increments the duration if no other direct children are still running
+         *
          * @param endTimestamp
          */
         void onChildEnd(long endTimestamp) {
@@ -164,7 +165,25 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      */
     @Nullable
     public StringBuilder getAndOverrideName(int namePriority) {
-        if (namePriority >= this.namePriority) {
+        return getAndOverrideName(namePriority, true);
+    }
+
+    /**
+     * Resets and returns the name {@link StringBuilder} if one of the following applies:
+     * <ul>
+     *      <li>the provided priority is {@code >} {@link #namePriority}</li>
+     *      <li>the provided priority is {@code ==} {@link #namePriority} AND {@code overrideIfSamePriority} is {@code true}</li>
+     * </ul>
+     * Otherwise, returns {@code null}
+     *
+     * @param namePriority           the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
+     * @param overrideIfSamePriority specifies whether the existing name should be overridden if {@code namePriority} equals the priority used to set the current name
+     * @return the name {@link StringBuilder} if the provided priority is sufficient for overriding, {@code null} otherwise.
+     */
+    @Nullable
+    public StringBuilder getAndOverrideName(int namePriority, boolean overrideIfSamePriority) {
+        boolean shouldOverride = (overrideIfSamePriority) ? namePriority >= this.namePriority : namePriority > this.namePriority;
+        if (shouldOverride) {
             this.namePriority = namePriority;
             this.name.setLength(0);
             return name;
@@ -175,6 +194,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     /**
      * Only intended for testing purposes as this allocates a {@link String}
+     *
      * @return
      */
     public String getNameAsString() {
@@ -208,7 +228,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     public T withName(@Nullable String name, int priority) {
-        if (priority >= namePriority && name != null && !name.isEmpty()) {
+        return withName(name, priority, true);
+    }
+
+    public T withName(@Nullable String name, int priority, boolean overrideIfSamePriority) {
+        boolean shouldOverride = (overrideIfSamePriority) ? priority >= this.namePriority : priority > this.namePriority;
+        if (shouldOverride && name != null && !name.isEmpty()) {
             this.name.setLength(0);
             this.name.append(name);
             this.namePriority = priority;
@@ -355,8 +380,20 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return tracer.wrapCallable(callable, this);
     }
 
+    /**
+     * Set start timestamp
+     *
+     * @param epochMicros start timestamp in micro-seconds since epoch
+     */
     public void setStartTimestamp(long epochMicros) {
         timestamp = epochMicros;
+    }
+
+    /**
+     * Set start timestamp from context current clock
+     */
+    public void setStartTimestampNow() {
+        timestamp = getTraceContext().getClock().getEpochMicros();
     }
 
     void onChildStart(long epochMicros) {

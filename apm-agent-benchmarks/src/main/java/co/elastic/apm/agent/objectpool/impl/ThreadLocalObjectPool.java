@@ -59,6 +59,10 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
         return getStack().size();
     }
 
+    @Override
+    public void clear() {
+    }
+
     private FixedSizeStack<T> getStack() {
         FixedSizeStack<T> stack = objectPool.get();
         if (stack == null) {

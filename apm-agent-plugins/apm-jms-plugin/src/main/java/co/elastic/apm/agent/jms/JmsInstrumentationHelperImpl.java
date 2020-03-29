@@ -121,6 +121,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     }
 
     @Override
+    @Nullable
     public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
         return tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
     }

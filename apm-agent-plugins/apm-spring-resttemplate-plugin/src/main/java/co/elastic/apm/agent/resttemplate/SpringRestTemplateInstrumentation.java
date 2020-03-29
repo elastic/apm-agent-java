@@ -63,9 +63,13 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
     public static HelperClassManager<TextHeaderSetter<HttpRequest>> headerSetterHelperManager;
 
     public SpringRestTemplateInstrumentation(ElasticApmTracer tracer) {
-        headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.resttemplate.SpringRestRequestHeaderSetter"
-        );
+        synchronized (SpringRestTemplateInstrumentation.class) {
+            if (headerSetterHelperManager == null) {
+                headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+                    "co.elastic.apm.agent.resttemplate.SpringRestRequestHeaderSetter"
+                );
+            }
+        }
     }
 
     @Override

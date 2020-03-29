@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,9 +26,10 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
@@ -47,8 +48,7 @@ public abstract class AbstractInstrumentationTest {
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
-
-    private static TestObjectPoolFactory objectPoolFactory;
+    protected static TestObjectPoolFactory objectPoolFactory;
 
     @BeforeAll
     @BeforeClass
@@ -63,9 +63,10 @@ public abstract class AbstractInstrumentationTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(LifecycleListener.ClosableAdapter.of(() -> {
-                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
                 reporter.assertRecycledAfterDecrementingReferences();
+                // after recycling, there should be nothing left in use in object pools
+                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
             }))
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -80,6 +81,10 @@ public abstract class AbstractInstrumentationTest {
     public static void reset() {
         SpyConfiguration.reset(config);
         reporter.reset();
+
+        // resume tracer in case it has been paused
+        // otherwise the 1st test that pauses tracer will have side effects on others
+        TracerInternalApiUtils.resumeTracer(tracer);
     }
 
     public static ElasticApmTracer getTracer() {

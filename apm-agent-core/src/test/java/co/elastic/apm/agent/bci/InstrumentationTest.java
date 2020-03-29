@@ -80,6 +80,30 @@ class InstrumentationTest {
     }
 
     @Test
+    void testReInitEnableOneInstrumentation() {
+        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        CoreConfiguration configConfig = config.getConfig(CoreConfiguration.class);
+        when(configConfig.getDisabledInstrumentations()).thenReturn(Collections.singletonList("test"));
+        init(config, List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+
+        when(configConfig.getDisabledInstrumentations()).thenReturn(List.of());
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEqualTo("intercepted");
+    }
+
+    @Test
+    void testReInitDisableAllInstrumentations() {
+        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        init(config, List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEqualTo("intercepted");
+
+        when(config.getConfig(CoreConfiguration.class).isInstrument()).thenReturn(false);
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
     void testDontInstrumentOldClassFileVersions() {
         ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
@@ -201,9 +225,13 @@ class InstrumentationTest {
     }
 
     public static class SuppressExceptionInstrumentation extends ElasticApmInstrumentation {
-        @Advice.OnMethodExit(suppress = Throwable.class)
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onMethodEnterAndExit() {
+        public static void onMethodEnter() {
+            throw new RuntimeException("This exception should be suppressed");
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onMethodExit(@Advice.Thrown Throwable throwable) {
             throw new RuntimeException("This exception should be suppressed");
         }
 

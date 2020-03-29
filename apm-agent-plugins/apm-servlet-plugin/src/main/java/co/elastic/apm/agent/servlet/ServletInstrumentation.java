@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -36,8 +35,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -56,7 +53,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * this makes sure to record a transaction in that case.
  * </p>
  */
-public class ServletInstrumentation extends ElasticApmInstrumentation {
+public class ServletInstrumentation extends AbstractServletInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
 
@@ -67,6 +64,11 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     public ServletInstrumentation(ElasticApmTracer tracer) {
         ServletApiAdvice.init(tracer);
+        // adding a null-check before setting helper manager reference breaks test execution, which prevents having
+        // the same code construct we have for other HelperClassManager usages.
+        //
+        // This should probably be changed when upgrading this plugin to use HelperClassManager for all helper
+        // classes.
         servletTransactionCreationHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
             "co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelperImpl",
             "co.elastic.apm.agent.servlet.helper.ServletRequestHeaderGetter"
@@ -94,11 +96,6 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     @Override
     public Class<?> getAdviceClass() {
         return ServletApiAdvice.class;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(SERVLET_API);
     }
 
     @VisibleForAdvice

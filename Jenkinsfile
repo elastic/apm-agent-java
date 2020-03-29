@@ -58,12 +58,22 @@ pipeline {
             deleteDir()
             gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
+            script {
+              dir("${BASE_DIR}"){
+                // Skip all the stages except docs for PR's with asciidoc and md changes only
+                env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+              }
+            }
           }
         }
         /**
         Build on a linux environment.
         */
         stage('Build') {
+          when {
+            beforeAgent true
+            expression { return env.ONLY_DOCS == "false" }
+          }
           steps {
             withGithubNotify(context: 'Build', tab: 'artifacts') {
               deleteDir()
@@ -86,6 +96,10 @@ pipeline {
       }
     }
     stage('Tests') {
+      when {
+        beforeAgent true
+        expression { return env.ONLY_DOCS == "false" }
+      }
       environment {
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -112,7 +126,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw test
+                ./mvnw test -Pupdate-gherkin-spec
                 """
               }
             }
@@ -266,16 +280,18 @@ pipeline {
     stage('Integration Tests') {
       agent none
       when {
-        anyOf {
-          changeRequest()
-          expression { return !params.Run_As_Master_Branch }
+        allOf {
+          expression { return env.ONLY_DOCS == "false" }
+          anyOf {
+            changeRequest()
+            expression { return !params.Run_As_Master_Branch }
+          }
         }
       }
       steps {
-        log(level: 'INFO', text: 'Launching Async ITs')
         build(job: env.ITS_PIPELINE, propagate: false, wait: false,
-              parameters: [string(name: 'AGENT_INTEGRATION_TEST', value: 'Java'),
-                           string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT}"),
+              parameters: [string(name: 'INTEGRATION_TEST', value: 'Java'),
+                           string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT} --opbeans-java-agent-branch ${env.GIT_BASE_COMMIT}"),
                            string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_ITS_NAME),
                            string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])

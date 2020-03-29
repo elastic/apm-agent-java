@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -39,9 +39,11 @@ public final class ExecutorUtils {
         // don't instantiate
     }
 
-    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDeamonPool(final String threadPurpose, int queueCapacity) {
+    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDeamonPool(final String threadPurpose) {
         final ThreadFactory daemonThreadFactory = new NamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
-        return new ScheduledThreadPoolExecutor(queueCapacity, daemonThreadFactory);
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, daemonThreadFactory);
+        executor.setMaximumPoolSize(1);
+        return executor;
     }
 
     public static ThreadPoolExecutor createSingleThreadDeamonPool(final String threadPurpose, int queueCapacity) {
@@ -53,7 +55,7 @@ public final class ExecutorUtils {
     public static class NamedThreadFactory implements ThreadFactory {
         private final String threadName;
 
-        NamedThreadFactory(String threadName) {
+        public NamedThreadFactory(String threadName) {
             this.threadName = threadName;
         }
 

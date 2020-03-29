@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -43,6 +43,7 @@ import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.IOUtils;
@@ -52,8 +53,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,7 +61,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -673,6 +672,30 @@ class DslJsonSerializerTest {
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
         return t;
+    }
+
+    @Test
+    void testSpanStackFrameSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.setStackTrace(Arrays.asList(StackFrame.of("foo.Bar", "baz"), StackFrame.of("foo.Bar$Baz", "qux")));
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonStackTrace = spanJson.get("stacktrace");
+        assertThat(jsonStackTrace.getNodeType()).isEqualTo(JsonNodeType.ARRAY);
+        assertThat(jsonStackTrace).isNotNull();
+        assertThat(jsonStackTrace).hasSize(2);
+
+        assertThat(jsonStackTrace.get(0).get("filename").textValue()).isEqualTo("Bar.java");
+        assertThat(jsonStackTrace.get(0).get("function").textValue()).isEqualTo("baz");
+        assertThat(jsonStackTrace.get(0).get("library_frame").booleanValue()).isTrue();
+        assertThat(jsonStackTrace.get(0).get("lineno").intValue()).isEqualTo(-1);
+        assertThat(jsonStackTrace.get(0).get("module")).isNull();
+
+        assertThat(jsonStackTrace.get(1).get("filename").textValue()).isEqualTo("Bar.java");
+        assertThat(jsonStackTrace.get(1).get("function").textValue()).isEqualTo("qux");
+        assertThat(jsonStackTrace.get(1).get("library_frame").booleanValue()).isTrue();
+        assertThat(jsonStackTrace.get(1).get("lineno").intValue()).isEqualTo(-1);
+        assertThat(jsonStackTrace.get(1).get("module")).isNull();
     }
 
     private JsonNode readJsonString(String jsonString) {
