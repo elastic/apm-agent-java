@@ -72,10 +72,10 @@ pipeline {
         // 2. Review project version.
         stage('Review project version') {
           steps {
-            // 2.1 Fetch the current version from pom.xml
-            def ver = mvnVersion(showQualifiers: true)
-            // 2.2 Raise a prompt asking if the version is correct or if they wish to update
             script {
+              // 2.1 Fetch the current version from pom.xml
+              def ver = mvnVersion(showQualifiers: true)
+              // 2.2 Raise a prompt asking if the version is correct or if they wish to update
               def should_continue = input(message: "Current version is ${ver}", parameters: [
                 [
                   $class: 'ChoiceParameterDefinition',
