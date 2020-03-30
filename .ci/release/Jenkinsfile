@@ -42,7 +42,7 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               // This is required to ensure that Maven is working with a real branch
-              sh(script: "git checkout -f {$branch_specifier}")
+              sh(script: "git checkout -f ${branch_specifier}")
             }
           }
         }
