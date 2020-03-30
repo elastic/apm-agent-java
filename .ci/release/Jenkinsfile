@@ -172,6 +172,7 @@ pipeline {
                 def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${curVer}", , returnStdout: true)
                 def ret = githubReleaseCreate(draft: true, name: "Release ${curVer}", body: "[Release Notes for ${curVer}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
+                env.RELEASE_NOTES_URL = finalUrl
               }
             }
 
@@ -220,6 +221,8 @@ pipeline {
         // 13. Publish release on Github. This will notify users watching repository.
         stage('Publish release on GitHub') {
           steps {
+            // wait until we can get the release notes
+            
             githubReleasePublish(id: ${env.RELEASE_ID})
           }
         }
