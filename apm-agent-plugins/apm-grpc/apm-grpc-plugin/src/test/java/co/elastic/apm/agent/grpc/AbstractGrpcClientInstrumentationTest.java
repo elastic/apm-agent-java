@@ -27,11 +27,11 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
-import co.elastic.apm.agent.impl.transaction.EpochTickClock;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +41,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.byLessThan;
 
 public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -126,48 +125,32 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     @Test
     public void cancelClientCall() throws Exception {
 
-        EpochTickClock clock = new EpochTickClock();
-        clock.init();
-
         CyclicBarrier startProcessing = new CyclicBarrier(2);
         CyclicBarrier endProcessing = new CyclicBarrier(2);
         app.getServer().useBarriersForProcessing(startProcessing, endProcessing);
 
-        long sendMessageStart = clock.getEpochMicros();
         Future<String> msg = app.sayHelloAsync("bob", 0);
 
-        // sending the 1st message takes about 100ms on client side
         startProcessing.await();
-
-        long serverProcessingStart = clock.getEpochMicros();
 
         try {
 
-            // span is created somewhere between those two timing events, but we can't exactly when
-            // and it varies a lot from one execution to another
-
-            long waitBeforeCancel = 100;
+            long waitBeforeCancel = 20;
 
             Thread.sleep(waitBeforeCancel);
             logger.info("cancel call after waiting {} ms", waitBeforeCancel);
 
             // cancel the future --> should create a span
             assertThat(msg.cancel(true)).isTrue();
-            long cancelTime = clock.getEpochMicros();
 
-            Span span = reporter.getFirstSpan(100);
+
+            Span span = reporter.getFirstSpan(200);
+
+            // we should have a span created and properly terminated, even if the server
+            // thread is still waiting for proper termination.
+            //
+            // we can't reliably do assertions on the actual duration without introducing flaky tests
             checkSpan(span);
-
-            assertThat(span.getTimestamp())
-                .describedAs("span timestamp should be after starting sending message")
-                .isGreaterThanOrEqualTo(sendMessageStart - 50_000);
-
-            assertThat(span.getDuration())
-                .describedAs("span duration should be larger than waited time before cancel")
-                .isGreaterThan(waitBeforeCancel * 1_000L)
-                // we expect an error that is related to the time it took to send the message plus a 5ms margin
-                // this is quite approximate, but we just want to ensure that agent provides something close to reality
-                .isCloseTo(waitBeforeCancel * 1_000L, byLessThan((serverProcessingStart - sendMessageStart) + 5_000L));
 
         } finally {
             // server is still waiting and did not sent response yet

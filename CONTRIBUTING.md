@@ -243,6 +243,8 @@ all the other asciidoc text files are written manually.
 A preview of the documentation is generated for each pull-request.
 Click on the build `Details` of the `elasticsearch-ci/docs` job and go to the bottom of the `Console Output` to see the link.
 
+This step is part of Elasticsearch CI, and the build job is [the following](https://elasticsearch-ci.elastic.co/view/Docs/job/elastic+docs+apm-agent-java+pull-request/).
+
 In order to generate a local copy of agent documentation, you will need to clone [docs](https://github.com/elastic/docs) repository
 and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo).
 

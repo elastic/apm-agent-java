@@ -131,7 +131,7 @@ public class ElasticApmTracer {
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
-    private volatile boolean activeConfigOptionSet;
+    private volatile boolean recordingConfigOptionSet;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
@@ -142,11 +142,11 @@ public class ElasticApmTracer {
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
 
         TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);
-        activeConfigOptionSet = tracerConfiguration.getActiveConfig().get();
-        tracerConfiguration.getActiveConfig().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
+        recordingConfigOptionSet = tracerConfiguration.getRecordingConfig().get();
+        tracerConfiguration.getRecordingConfig().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
             @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Boolean wasActive, Boolean shouldBeActive) {
-                ElasticApmTracer.this.activeConfigChanged(wasActive, shouldBeActive);
+            public void onChange(ConfigurationOption<?> configurationOption, Boolean wasRecording, Boolean shouldBeRecording) {
+                ElasticApmTracer.this.recordingConfigChanged(wasRecording, shouldBeRecording);
             }
         });
 
@@ -458,8 +458,8 @@ public class ElasticApmTracer {
         return configurationRegistry;
     }
 
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> pluginClass) {
-        return configurationRegistry.getConfig(pluginClass);
+    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configProvider) {
+        return configurationRegistry.getConfig(configProvider);
     }
 
     public void endTransaction(Transaction transaction) {
@@ -610,7 +610,7 @@ public class ElasticApmTracer {
             }
         }
         tracerState = TracerState.RUNNING;
-        if (activeConfigOptionSet) {
+        if (recordingConfigOptionSet) {
             logger.info("Tracer switched to RUNNING state");
         } else {
             pause();
@@ -624,24 +624,24 @@ public class ElasticApmTracer {
 
     public synchronized void onStressRelieved() {
         currentlyUnderStress = false;
-        if (activeConfigOptionSet) {
+        if (recordingConfigOptionSet) {
             resume();
         }
     }
 
-    private synchronized void activeConfigChanged(boolean wasActive, boolean shouldBeActive) {
+    private synchronized void recordingConfigChanged(boolean wasRecording, boolean shouldBeRecording) {
         // if changed from true to false then:
         //      if current state is RUNNING - pause the agent
         //      otherwise - ignore
         // if changed from false to true then:
         //      if current state is RUNNING or STOPPED - no effect
         //      if current state is PAUSED and currentlyUnderStress==false - then resume
-        if (wasActive && !shouldBeActive && tracerState == TracerState.RUNNING) {
+        if (wasRecording && !shouldBeRecording && tracerState == TracerState.RUNNING) {
             pause();
-        } else if (!wasActive && shouldBeActive && tracerState == TracerState.PAUSED && !currentlyUnderStress) {
+        } else if (!wasRecording && shouldBeRecording && tracerState == TracerState.PAUSED && !currentlyUnderStress) {
             resume();
         }
-        activeConfigOptionSet = shouldBeActive;
+        recordingConfigOptionSet = shouldBeRecording;
     }
 
     synchronized void pause() {

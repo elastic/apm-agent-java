@@ -43,7 +43,7 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         .description("A boolean specifying whether the circuit breaker should be enabled or not. \n" +
             "When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. \n" +
             "If ANY of the monitors detects a stress indication, the agent will become inactive, as if the \n" +
-            "<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. \n" +
+            "<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. \n" +
             "When inactive, the agent continues polling the same monitors in order to detect whether the stress state \n" +
             "has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the \n" +
             "agent will resume and become fully functional.")

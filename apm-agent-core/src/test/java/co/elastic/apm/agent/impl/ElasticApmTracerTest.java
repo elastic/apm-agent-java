@@ -427,18 +427,6 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testOverrideServiceNameExplicitServiceName() {
-        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .withConfig("service_name", "explicit-service-name")
-            .reporter(reporter)
-            .build();
-
-        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
-        tracer.startRootTransaction(getClass().getClassLoader()).end();
-        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
-    }
-
-    @Test
     void testCaptureExceptionAndGetErrorId() {
         Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
         String errorId = transaction.captureExceptionAndGetErrorId(new Exception("test"));
