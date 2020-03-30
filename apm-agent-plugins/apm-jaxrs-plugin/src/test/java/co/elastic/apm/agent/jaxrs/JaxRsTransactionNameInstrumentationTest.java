@@ -63,9 +63,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @BeforeClass
     public static void beforeClass() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        reporter = mockInstrumentationSetup.reporter;
-        config = mockInstrumentationSetup.config;
-        tracer = mockInstrumentationSetup.tracer;
+        reporter = mockInstrumentationSetup.getReporter();
+        config = mockInstrumentationSetup.getConfig();
+        tracer = mockInstrumentationSetup.getTracer();
     }
 
     @After

@@ -64,9 +64,9 @@ class TraceMethodInstrumentationTest {
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        reporter = mockInstrumentationSetup.reporter;
-        objectPoolFactory = mockInstrumentationSetup.objectPoolFactory;
-        ConfigurationRegistry config = mockInstrumentationSetup.config;
+        reporter = mockInstrumentationSetup.getReporter();
+        objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
+        ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
@@ -85,7 +85,7 @@ class TraceMethodInstrumentationTest {
             when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
         }
 
-        tracer = mockInstrumentationSetup.tracer;
+        tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

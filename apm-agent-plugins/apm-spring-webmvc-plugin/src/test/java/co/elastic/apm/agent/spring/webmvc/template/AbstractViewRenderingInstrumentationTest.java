@@ -70,9 +70,9 @@ abstract class AbstractViewRenderingInstrumentationTest {
     @BeforeAll
     static void beforeAll() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        reporter = mockInstrumentationSetup.reporter;
-        config = mockInstrumentationSetup.config;
-        tracer = mockInstrumentationSetup.tracer;
+        reporter = mockInstrumentationSetup.getReporter();
+        config = mockInstrumentationSetup.getConfig();
+        tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new ServletInstrumentation(tracer), new ViewRenderInstrumentation()));
     }
 

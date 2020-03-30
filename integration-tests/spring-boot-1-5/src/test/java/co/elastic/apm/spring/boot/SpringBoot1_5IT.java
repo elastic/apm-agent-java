@@ -64,9 +64,9 @@ public class SpringBoot1_5IT {
     @Before
     public void setUp() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        config = mockInstrumentationSetup.config;
-        reporter = mockInstrumentationSetup.reporter;
-        ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.tracer, ByteBuddyAgent.install());
+        config = mockInstrumentationSetup.getConfig();
+        reporter = mockInstrumentationSetup.getReporter();
+        ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());
         restTemplate = new TestRestTemplate(new RestTemplateBuilder().setConnectTimeout(0).setReadTimeout(0));
     }
 

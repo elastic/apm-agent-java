@@ -148,16 +148,32 @@ public class MockTracer {
     }
 
     public static class MockInstrumentationSetup {
-        public final ElasticApmTracer tracer;
-        public final MockReporter reporter;
-        public final ConfigurationRegistry config;
-        public final TestObjectPoolFactory objectPoolFactory;
+        private final ElasticApmTracer tracer;
+        private final MockReporter reporter;
+        private final ConfigurationRegistry config;
+        private final TestObjectPoolFactory objectPoolFactory;
 
         public MockInstrumentationSetup(ElasticApmTracer tracer, MockReporter reporter, ConfigurationRegistry config, TestObjectPoolFactory objectPoolFactory) {
             this.tracer = tracer;
             this.reporter = reporter;
             this.config = config;
             this.objectPoolFactory = objectPoolFactory;
+        }
+
+        public ElasticApmTracer getTracer() {
+            return tracer;
+        }
+
+        public MockReporter getReporter() {
+            return reporter;
+        }
+
+        public ConfigurationRegistry getConfig() {
+            return config;
+        }
+
+        public TestObjectPoolFactory getObjectPoolFactory() {
+            return objectPoolFactory;
         }
     }
 }

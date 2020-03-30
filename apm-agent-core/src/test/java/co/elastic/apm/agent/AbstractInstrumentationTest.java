@@ -52,10 +52,10 @@ public abstract class AbstractInstrumentationTest {
     @BeforeClass
     public static synchronized void beforeAll() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        tracer = mockInstrumentationSetup.tracer;
-        config = mockInstrumentationSetup.config;
-        objectPoolFactory = mockInstrumentationSetup.objectPoolFactory;
-        reporter = mockInstrumentationSetup.reporter;
+        tracer = mockInstrumentationSetup.getTracer();
+        config = mockInstrumentationSetup.getConfig();
+        objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
+        reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

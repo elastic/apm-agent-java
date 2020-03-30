@@ -75,9 +75,9 @@ public abstract class AbstractSpringBootTest {
     @BeforeClass
     public static void beforeClass() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        config = mockInstrumentationSetup.config;
-        reporter = mockInstrumentationSetup.reporter;
-        ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.tracer, ByteBuddyAgent.install());
+        config = mockInstrumentationSetup.getConfig();
+        reporter = mockInstrumentationSetup.getReporter();
+        ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());
     }
 
     @Before

@@ -56,8 +56,8 @@ class AsyncTraceMethodInstrumentationTest {
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        reporter = mockInstrumentationSetup.reporter;
-        ConfigurationRegistry config = mockInstrumentationSetup.config;
+        reporter = mockInstrumentationSetup.getReporter();
+        ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
             MethodMatcher.of("private co.elastic.apm.agent.concurrent.AsyncTraceMethodInstrumentationTest$TestAsyncTraceMethodsClass#*"))
@@ -68,7 +68,7 @@ class AsyncTraceMethodInstrumentationTest {
             when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
         }
 
-        tracer = mockInstrumentationSetup.tracer;
+        tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

@@ -68,8 +68,8 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
     @BeforeAll
     public static void setUpAll() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
-        reporter = mockInstrumentationSetup.reporter;
-        tracer = mockInstrumentationSetup.tracer;
+        reporter = mockInstrumentationSetup.getReporter();
+        tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
             Arrays.asList(new ServletInstrumentation(tracer), new ExceptionHandlerInstrumentation()));
     }
