@@ -126,7 +126,8 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               script {
-                def isMajor = sh(script: 'git tag|tail -1|cut -f2-3 -d "."|{ read ver; test $ver == "0.0"; }', returnStatus: true)
+                def curVer = mvnVersion()
+                def isMajor = sh(script: "./scripts/jenkins/is_major.sh ${curVer}", returnStatus: true)
                 if (isMajor == 0) {
                   // We need to create a new branch. First get the name of the branch
                   def newBranchName = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
@@ -142,7 +143,7 @@ pipeline {
                   // 7. If this was a minor release, reset the current major branch (1.x, 2.x etc) to point to the current tag, e.g. git branch -f 1.x v1.1.0
                   // Determine current tag
                   def curTag = sh(script: "git tag|tail -1", returnStdout: true)
-                  def targetBranch = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d '.'|awk \'{print $1".x"}\'', returnStdout: true)
+                  def targetBranch = sh(script: './scripts/jenkins/target_branch.sh', returnStdout: true)
                   sh(script: "git branch -f $targetBranch $curTag")
                   gitPush()
                 }
