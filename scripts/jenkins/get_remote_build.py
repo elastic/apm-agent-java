@@ -38,10 +38,11 @@ if __name__ == '__main__':
     previous_hash = read_hash(tmp_file)
 
     interval = INITIAL_RETRY_INTERVAL
-    for i in range(3):
+    cur_hash = ''
+    for i in range(1):
         ## Exponential backoff of 5, 25, 625 seconds. ~11 minutes total.
         try:
-            cur_hash = getSCMInfoFromLatestGoodBuild("http://apm-ci.elastic.co", "apm-agent-go/opbeans-go-mbp/master")
+            cur_hash = getSCMInfoFromLatestGoodBuild("http://apm-ci.elastic.co", "apm-agent-java/apm-agent-java-mbp/master")
         except Exception:
             interval = exponential_sleep(interval)
             continue
@@ -49,6 +50,9 @@ if __name__ == '__main__':
             interval = exponential_sleep(interval)
             continue
         break
+
+    if not len(cur_hash):
+        raise Exception("Could not retreive latest good build from http://apm-ci.elastic.co/")
 
     write_last(tmp_file, cur_hash)
 
