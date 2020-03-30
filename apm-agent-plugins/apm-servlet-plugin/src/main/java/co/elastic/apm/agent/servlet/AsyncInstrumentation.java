@@ -64,9 +64,15 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
 
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void onExitStartAsync(@Advice.Origin Class<?> clazz, @Advice.Return AsyncContext asyncContext) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice#onExitStartAsync")
-                .invoke(asyncContext);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice#onExitStartAsync")
+                    .invoke(null, asyncContext);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice#onExitStartAsync")
+                    .invoke(asyncContext);
+            }
         }
 
         @Override
@@ -117,16 +123,28 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnterAsyncContextStart(@Advice.Origin Class<?> clazz, @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) throws Throwable {
-            runnable = (Runnable) MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice#onEnterAsyncContextStart")
-                .invoke(runnable);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                runnable = (Runnable) MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice#onEnterAsyncContextStart")
+                    .invoke(null, runnable);
+            } else {
+                runnable = (Runnable) MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice#onEnterAsyncContextStart")
+                    .invoke(runnable);
+            }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class)
         private static void onExitAsyncContextStart(@Advice.Origin Class<?> clazz) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice#onExitAsyncContextStart")
-                .invoke();
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice#onExitAsyncContextStart")
+                    .invoke(null);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice#onExitAsyncContextStart")
+                    .invoke();
+            }
         }
 
         @Override

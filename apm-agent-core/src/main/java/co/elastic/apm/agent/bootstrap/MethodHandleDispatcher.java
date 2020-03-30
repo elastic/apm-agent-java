@@ -31,6 +31,8 @@ import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -43,6 +45,12 @@ import java.util.concurrent.ConcurrentMap;
 @NonnullApi
 public class MethodHandleDispatcher {
 
+    /**
+     * Java 7 has poor support for method handles.
+     * There are bugs in Java 7 that lead to segfaults after a method handle has been compiled by C2.
+     * See also https://github.com/elastic/apm-agent-java/issues/458
+     */
+    public static final boolean USE_REFLECTION = System.getProperty("java.version").startsWith("1.7.");
     /**
      * If the value was not weakly referenced,
      * this would keep the {@link MethodHandle}s alive,
@@ -73,7 +81,9 @@ public class MethodHandleDispatcher {
      * </pre>
      */
     private static WeakConcurrentMap<ClassLoader, WeakReference<ConcurrentMap<String, MethodHandle>>> dispatcherByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private static WeakConcurrentMap<ClassLoader, WeakReference<ConcurrentMap<String, Method>>> reflectionDispatcherByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
     private static ConcurrentMap<String, MethodHandle> bootstrapDispatcher = new ConcurrentHashMap<>();
+    private static ConcurrentMap<String, Method> reflectionBootstrapDispatcher = new ConcurrentHashMap<>();
 
     /**
      * Calls {@link ConcurrentMap#clear()} on all injected {@link MethodHandleDispatcherHolder}s.
@@ -88,14 +98,17 @@ public class MethodHandleDispatcher {
      * </p>
      */
     public synchronized static void clear() {
-        for (Map.Entry<ClassLoader, WeakReference<ConcurrentMap<String, MethodHandle>>> entry : dispatcherByClassLoader) {
-            ConcurrentMap<String, MethodHandle> dispatcher = entry.getValue().get();
-            if (dispatcher != null) {
-                dispatcher.clear();
+        for (WeakConcurrentMap<ClassLoader, ? extends WeakReference<? extends ConcurrentMap<String, ?>>> map : Arrays.asList(dispatcherByClassLoader, reflectionDispatcherByClassLoader)) {
+            for (Map.Entry<ClassLoader, ? extends WeakReference<? extends ConcurrentMap<String, ?>>> entry : map) {
+                ConcurrentMap<String, ?> dispatcher = entry.getValue().get();
+                if (dispatcher != null) {
+                    dispatcher.clear();
+                }
             }
+            map.clear();
         }
-        dispatcherByClassLoader.clear();
         bootstrapDispatcher.clear();
+        reflectionBootstrapDispatcher.clear();
     }
 
     /**
@@ -118,6 +131,10 @@ public class MethodHandleDispatcher {
         return getMethodHandle(classOfTargetClassLoader.getClassLoader(), methodHandleName);
     }
 
+    public static Method getMethod(Class<?> classOfTargetClassLoader, String methodHandleName) {
+        return getMethod(classOfTargetClassLoader.getClassLoader(), methodHandleName);
+    }
+
     public static MethodHandle getMethodHandle(ClassLoader targetClassLoader, String methodHandleName) {
         ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = getDispatcherForClassLoader(targetClassLoader);
         if (dispatcherForClassLoader != null) {
@@ -129,8 +146,21 @@ public class MethodHandleDispatcher {
         throw new IllegalArgumentException("No method handle found for " + methodHandleName);
     }
 
-    public synchronized static void setDispatcherForClassLoader(ClassLoader classLoader, ConcurrentMap<String, MethodHandle> dispatcherMap) {
+
+    public static Method getMethod(ClassLoader targetClassLoader, String methodHandleName) {
+        ConcurrentMap<String, Method> dispatcherForClassLoader = getReflectionDispatcherForClassLoader(targetClassLoader);
+        if (dispatcherForClassLoader != null) {
+            Method methodHandle = dispatcherForClassLoader.get(methodHandleName);
+            if (methodHandle != null) {
+                return methodHandle;
+            }
+        }
+        throw new IllegalArgumentException("No method found for " + methodHandleName);
+    }
+
+    public synchronized static void setDispatcherForClassLoader(ClassLoader classLoader, ConcurrentMap<String, MethodHandle> dispatcherMap, ConcurrentMap<String, Method> reflectionDispatcherMap) {
         dispatcherByClassLoader.put(classLoader, new WeakReference<>(dispatcherMap));
+        reflectionDispatcherByClassLoader.put(classLoader, new WeakReference<>(reflectionDispatcherMap));
     }
 
     @Nullable
@@ -139,6 +169,18 @@ public class MethodHandleDispatcher {
             return bootstrapDispatcher;
         }
         WeakReference<ConcurrentMap<String, MethodHandle>> reference = dispatcherByClassLoader.get(classLoader);
+        if (reference != null) {
+            return reference.get();
+        }
+        return null;
+    }
+
+    @Nullable
+    public static ConcurrentMap<String, Method> getReflectionDispatcherForClassLoader(@Nullable ClassLoader classLoader) {
+        if (classLoader == null) {
+            return reflectionBootstrapDispatcher;
+        }
+        WeakReference<ConcurrentMap<String, Method>> reference = reflectionDispatcherByClassLoader.get(classLoader);
         if (reference != null) {
             return reference.get();
         }

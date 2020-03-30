@@ -35,6 +35,7 @@ import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -141,6 +142,10 @@ class HelperClassManagerTest {
             .getMethodHandle(HelperClassManagerTest.class, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelper#getParentClassLoader")
             .invoke())
             .isEqualTo(HelperClassManagerTest.class.getClassLoader());
+        assertThat(MethodHandleDispatcher
+            .getMethod(HelperClassManagerTest.class, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelper#getParentClassLoader")
+            .invoke(null))
+            .isEqualTo(HelperClassManagerTest.class.getClassLoader());
     }
 
     @Test
@@ -164,6 +169,38 @@ class HelperClassManagerTest {
         @RegisterMethodHandle
         public static ClassLoader getParentClassLoader() {
             return TestHelper.class.getClassLoader().getParent();
+        }
+    }
+
+    @Test
+    void testHelperClassLoaderThreadLocalLeak() throws Throwable {
+        HelperClassManager.ForDispatcher.inject(HelperClassManagerTest.class.getClassLoader(), HelperClassManagerTest.class.getProtectionDomain(),
+            List.of("co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelperThreadLocalLeak",
+                "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelperThreadLocalLeak$1"));
+        WeakReference<ClassLoader> helperClassLoader = new WeakReference<>((ClassLoader) MethodHandleDispatcher
+            .getMethodHandle(HelperClassManagerTest.class, "co.elastic.apm.agent.bci.HelperClassManagerTest$TestHelperThreadLocalLeak#getClassLoader")
+            .invoke());
+
+        MethodHandleDispatcher.clear();
+        System.gc();
+        Thread.sleep(100);
+        assertThat(helperClassLoader.get()).isNotNull();
+    }
+
+    public static class TestHelperThreadLocalLeak {
+        private static final ThreadLocal<Boolean> threadLocal = new ThreadLocal<Boolean>() {
+            // This creates a class loader leak as java.lang.Thread.threadLocals (loaded from bootstrap CL)
+            // now references a class from the helper CL (this anonymous inner class)
+            @Override
+            protected Boolean initialValue() {
+                return Boolean.TRUE;
+            }
+        };
+
+        @RegisterMethodHandle
+        public static ClassLoader getClassLoader() {
+            assertThat(threadLocal.get()).isTrue();
+            return TestHelper.class.getClassLoader();
         }
     }
 

@@ -27,6 +27,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -39,6 +40,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class MethodHandleDispatcherHolder {
     public static final ConcurrentMap<String, MethodHandle> registry = new ConcurrentHashMap<String, MethodHandle>();
+    public static final ConcurrentMap<String, Method> reflectionRegistry = new ConcurrentHashMap<String, Method>();
 
     // should never be instanciated
     private MethodHandleDispatcherHolder() {

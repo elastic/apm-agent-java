@@ -91,9 +91,15 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
         private static void onEnter(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable ServletConfig servletConfig) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServletConfig")
-                .invoke(servletConfig);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServletConfig")
+                    .invoke(null, servletConfig);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServletConfig")
+                    .invoke(servletConfig);
+            }
         }
     }
 
@@ -112,9 +118,15 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
         private static void onEnter(@Advice.Origin Class<?> clazz, @Advice.This Servlet servlet) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServlet")
-                .invoke(servlet);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServlet")
+                    .invoke(null, servlet);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.ServletVersionInstrumentation$ServletVersionHelper#warnIfVersionNotSupportedServlet")
+                    .invoke(servlet);
+            }
         }
     }
 

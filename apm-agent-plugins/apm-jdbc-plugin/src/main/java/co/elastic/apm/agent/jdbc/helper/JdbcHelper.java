@@ -106,9 +106,6 @@ public class JdbcHelper {
 
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Statement statement, boolean preparedStatement) {
-        if (tracer == null) {
-            return null;
-        }
         TraceContextHolder<?> parent = tracer.getActive();
         if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
             return null;

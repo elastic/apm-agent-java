@@ -103,9 +103,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                                             @Advice.This Statement statement,
                                             @Advice.Argument(0) String sql) throws Throwable {
 
-            return (Span) MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpan")
-                .invoke(sql, statement, false);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                return (Span) MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpan")
+                    .invoke(null, sql, statement, false);
+            } else {
+                return (Span) MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpan")
+                    .invoke(sql, statement, false);
+            }
         }
 
 
@@ -115,9 +121,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                                            @Advice.This Statement statement,
                                            @Advice.Enter @Nullable Span span,
                                            @Advice.Thrown @Nullable Throwable t) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterExecuteQuery")
-                .invoke(statement, span, t);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterExecuteQuery")
+                    .invoke(null, statement, span, t);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterExecuteQuery")
+                    .invoke(statement, span, t);
+            }
         }
     }
 
@@ -150,9 +162,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         private static Span onBeforeExecute(@Advice.Origin Class<?> clazz,
                                             @Advice.This Statement statement,
                                             @Advice.Argument(0) String sql) throws Throwable {
-            return (Span) MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpan")
-                .invoke(sql, statement, false);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                return (Span) MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpan")
+                    .invoke(null, sql, statement, false);
+            } else {
+                return (Span) MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpan")
+                    .invoke(sql, statement, false);
+            }
         }
 
         @VisibleForAdvice
@@ -161,9 +179,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                                            @Advice.Enter @Nullable Span span,
                                            @Advice.Thrown @Nullable Throwable t,
                                            @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfter")
-                .invoke(span, t, returnValue);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfter")
+                    .invoke(null, span, t, returnValue);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfter")
+                    .invoke(span, t, returnValue);
+            }
         }
 
     }
@@ -183,9 +207,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void storeSql(@Advice.Origin Class<?> clazz, @Advice.This Statement statement, @Advice.Argument(0) String sql) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#mapStatementToSql")
-                .invoke(statement, sql);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#mapStatementToSql")
+                    .invoke(null, statement, sql);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#mapStatementToSql")
+                    .invoke(statement, sql);
+            }
         }
     }
 
@@ -211,9 +241,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static Span onBeforeExecute(@Advice.Origin Class<?> clazz, @Advice.This Statement statement) throws Throwable {
-            return (Span) MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
-                .invoke(statement, false);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                return (Span) MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
+                    .invoke(null, statement, false);
+            } else {
+                return (Span) MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
+                    .invoke(statement, false);
+            }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
@@ -221,9 +257,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                                            @Advice.Enter @Nullable Span span,
                                            @Advice.Thrown Throwable t,
                                            @Advice.Return Object returnValue) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterExecuteBatch")
-                .invoke(span, t, returnValue);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterExecuteBatch")
+                    .invoke(null, span, t, returnValue);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterExecuteBatch")
+                    .invoke(span, t, returnValue);
+            }
         }
     }
 
@@ -246,9 +288,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static Span onBeforeExecute(@Advice.Origin Class<?> clazz, @Advice.This Statement statement) throws Throwable {
-            return (Span) MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
-                .invoke(statement, true);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                return (Span) MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
+                    .invoke(null, statement, true);
+            } else {
+                return (Span) MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
+                    .invoke(statement, true);
+            }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
@@ -256,9 +304,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                                            @Advice.Enter @Nullable Span span,
                                            @Advice.Thrown @Nullable Throwable t,
                                            @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfter")
-                .invoke(span, t, returnValue);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfter")
+                    .invoke(null, span, t, returnValue);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfter")
+                    .invoke(span, t, returnValue);
+            }
         }
 
     }
@@ -282,9 +336,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static Span onBeforeExecute(@Advice.Origin Class<?> clazz, @Advice.This Statement statement) throws Throwable {
-            return (Span) MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
-                .invoke(statement, true);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                return (Span) MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
+                    .invoke(null, statement, true);
+            } else {
+                return (Span) MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#createJdbcSpanLookupSql")
+                    .invoke(statement, true);
+            }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
@@ -292,9 +352,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                                            @Advice.This Statement statement,
                                            @Advice.Enter @Nullable Span span,
                                            @Advice.Thrown @Nullable Throwable t) throws Throwable {
-            MethodHandleDispatcher
-                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterPreparedStatementExecuteQuery")
-                .invoke(statement, span, t);
+            if (MethodHandleDispatcher.USE_REFLECTION) {
+                MethodHandleDispatcher
+                    .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterPreparedStatementExecuteQuery")
+                    .invoke(null, statement, span, t);
+            } else {
+                MethodHandleDispatcher
+                    .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#onAfterPreparedStatementExecuteQuery")
+                    .invoke(statement, span, t);
+            }
         }
     }
 

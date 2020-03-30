@@ -318,14 +318,12 @@ public abstract class HelperClassManager<T> {
             injectedClasses.add(classesToInject);
             logger.debug("Creating helper class loader for {} containing {}", targetClassLoader, classesToInject);
 
-            ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = getOrCreateDispatcherForClassLoader(targetClassLoader, protectionDomain);
-
             ClassLoader parent = getHelperClassLoaderParent(targetClassLoader);
             Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInject);
             // child first semantics are important here as the helper CL contains classes that are also present in the agent CL
             ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions);
 
-            registerMethodHandles(classesToInject, dispatcherForClassLoader, helperCL);
+            registerMethodHandles(classesToInject, helperCL, targetClassLoader, protectionDomain);
         }
 
         private static Set<Collection<String>> getOrCreateInjectedClasses(@Nullable ClassLoader targetClassLoader) {
@@ -337,14 +335,16 @@ public abstract class HelperClassManager<T> {
             return injectedClasses;
         }
 
-        private static ConcurrentMap<String, MethodHandle> getOrCreateDispatcherForClassLoader(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain) throws IOException, ClassNotFoundException, IllegalAccessException, NoSuchFieldException {
+        private static ConcurrentMap<String, MethodHandle> ensureDispatcherForClassLoaderCreated(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain) throws IOException, ClassNotFoundException, IllegalAccessException, NoSuchFieldException {
             ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = MethodHandleDispatcher.getDispatcherForClassLoader(targetClassLoader);
+            ConcurrentMap<String, Method> reflectionDispatcherForClassLoader = MethodHandleDispatcher.getReflectionDispatcherForClassLoader(targetClassLoader);
             if (dispatcherForClassLoader == null) {
                 // there's always a dispatcher for the bootstrap CL
                 assert targetClassLoader != null;
                 Class<?> dispatcher = injectClass(targetClassLoader, protectionDomain, MethodHandleDispatcherHolder.class.getName(), true);
                 dispatcherForClassLoader = (ConcurrentMap<String, MethodHandle>) dispatcher.getField("registry").get(null);
-                MethodHandleDispatcher.setDispatcherForClassLoader(targetClassLoader, dispatcherForClassLoader);
+                reflectionDispatcherForClassLoader = (ConcurrentMap<String, Method>) dispatcher.getField("reflectionRegistry").get(null);
+                MethodHandleDispatcher.setDispatcherForClassLoader(targetClassLoader, dispatcherForClassLoader, reflectionDispatcherForClassLoader);
             }
             return dispatcherForClassLoader;
         }
@@ -362,13 +362,12 @@ public abstract class HelperClassManager<T> {
 
         /**
          * Gets all {@link RegisterMethodHandle} annotated methods and registers them in {@link MethodHandleDispatcher}
-         *
-         * @param classesToInject
-         * @param dispatcherForClassLoader
-         * @param helperCL
-         * @throws ClassNotFoundException
          */
-        private static void registerMethodHandles(List<String> classesToInject, ConcurrentMap<String, MethodHandle> dispatcherForClassLoader, ClassLoader helperCL) throws Exception {
+        private static void registerMethodHandles(List<String> classesToInject, ClassLoader helperCL, @Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain) throws Exception {
+            ensureDispatcherForClassLoaderCreated(targetClassLoader, protectionDomain);
+            ConcurrentMap<String, MethodHandle> dispatcherForClassLoader = MethodHandleDispatcher.getDispatcherForClassLoader(targetClassLoader);
+            ConcurrentMap<String, Method> reflectionDispatcherForClassLoader = MethodHandleDispatcher.getReflectionDispatcherForClassLoader(targetClassLoader);
+
             Class<MethodHandleRegisterer> methodHandleRegistererClass = (Class<MethodHandleRegisterer>) Class.forName(MethodHandleRegisterer.class.getName(), true, helperCL);
             TypePool typePool = TypePool.Default.of(getAgentClassFileLocator());
             for (String name : classesToInject) {
@@ -387,8 +386,8 @@ public abstract class HelperClassManager<T> {
                     }
                     try {
                         // call in from the context of the created helper class loader so that helperClass.getMethods() doesn't throw NoClassDefFoundError
-                        Method registerStaticMethodHandles = methodHandleRegistererClass.getMethod("registerStaticMethodHandles", ConcurrentMap.class, Class.class);
-                        registerStaticMethodHandles.invoke(null, dispatcherForClassLoader, clazz);
+                        Method registerStaticMethodHandles = methodHandleRegistererClass.getMethod("registerStaticMethodHandles", ConcurrentMap.class, ConcurrentMap.class, Class.class);
+                        registerStaticMethodHandles.invoke(null, dispatcherForClassLoader, reflectionDispatcherForClassLoader, clazz);
                     } catch (Exception e) {
                         logger.error("Exception while trying to register method handles for {}", name);
                         if (e instanceof InvocationTargetException) {
@@ -410,13 +409,14 @@ public abstract class HelperClassManager<T> {
          */
         public static class MethodHandleRegisterer {
 
-            public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, Class<?> helperClass) throws ReflectiveOperationException {
+            public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, ConcurrentMap<String, Method> reflectionDispatcher, Class<?> helperClass) throws ReflectiveOperationException {
                 for (Method method : helperClass.getDeclaredMethods()) {
                     if (Modifier.isStatic(method.getModifiers()) && method.getAnnotation(RegisterMethodHandle.class) != null) {
                         MethodHandle methodHandle = MethodHandles.lookup().unreflect(method);
                         String key = helperClass.getName() + "#" + method.getName();
                         // intern() to speed up map lookups (short-circuits String::equals via reference equality check)
                         MethodHandle previousValue = dispatcher.put(key.intern(), methodHandle);
+                        reflectionDispatcher.put(key.intern(), method);
                         if (previousValue != null) {
                             throw new IllegalArgumentException("There is already a mapping for '" + key + "'");
                         }

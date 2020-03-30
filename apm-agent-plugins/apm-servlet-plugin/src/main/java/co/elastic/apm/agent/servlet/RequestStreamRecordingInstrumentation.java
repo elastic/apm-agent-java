@@ -51,16 +51,28 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onReadEnter(@Advice.Origin Class<?> clazz) throws Throwable {
-        MethodHandleDispatcher
-            .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice#onReadEnter")
-            .invoke();
+        if (MethodHandleDispatcher.USE_REFLECTION) {
+            MethodHandleDispatcher
+                .getMethod(clazz, "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice#onReadEnter")
+                .invoke(null);
+        } else {
+            MethodHandleDispatcher
+                .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice#onReadEnter")
+                .invoke();
+        }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class)
     private static void afterGetInputStream(@Advice.Origin Class<?> clazz, @Advice.Return(readOnly = false) ServletInputStream inputStream) throws Throwable {
-        inputStream = (ServletInputStream) MethodHandleDispatcher
+        if (MethodHandleDispatcher.USE_REFLECTION) {
+            inputStream = (ServletInputStream) MethodHandleDispatcher
+            .getMethod(clazz, "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice#afterGetInputStream")
+            .invoke(null, inputStream);
+        } else {
+            inputStream = (ServletInputStream) MethodHandleDispatcher
             .getMethodHandle(clazz, "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice#afterGetInputStream")
             .invoke(inputStream);
+        }
     }
 
     @Override

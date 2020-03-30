@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
 import co.elastic.apm.agent.util.CallDepth;
+import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
@@ -58,13 +59,13 @@ public class ServletApiAdvice {
     private static final ServletTransactionHelper servletTransactionHelper;
     private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
 
-    private static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
+    private static DetachedThreadLocal<Boolean> excluded = new DetachedThreadLocal<Boolean>(DetachedThreadLocal.Cleaner.INLINE) {
         @Override
-        protected Boolean initialValue() {
+        protected Boolean initialValue(Thread thread) {
             return Boolean.FALSE;
         }
     };
-    private static ThreadLocal<Scope> scopeThreadLocal = new ThreadLocal<Scope>();
+    private static DetachedThreadLocal<Scope> scopeThreadLocal = new DetachedThreadLocal<Scope>(DetachedThreadLocal.Cleaner.INLINE);
 
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
@@ -141,7 +142,7 @@ public class ServletApiAdvice {
         excluded.set(Boolean.FALSE);
         Scope scope = scopeThreadLocal.get();
         if (depth == 0 && scope != null) {
-            scopeThreadLocal.remove();
+            scopeThreadLocal.clear();
             scope.close();
         }
         if (thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {

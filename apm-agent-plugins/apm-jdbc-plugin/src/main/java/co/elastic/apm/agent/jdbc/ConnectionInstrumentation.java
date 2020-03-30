@@ -54,9 +54,15 @@ public class ConnectionInstrumentation extends JdbcInstrumentation {
     private static void storeSql(@Advice.Origin Class<?> clazz,
                                  @Advice.Return PreparedStatement statement,
                                  @Advice.Argument(0) String sql) throws Throwable {
-        MethodHandleDispatcher
-            .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#mapStatementToSql")
-            .invoke(statement, sql);
+        if (MethodHandleDispatcher.USE_REFLECTION) {
+            MethodHandleDispatcher
+                .getMethod(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#mapStatementToSql")
+                .invoke(null, statement, sql);
+        } else {
+            MethodHandleDispatcher
+                .getMethodHandle(clazz, "co.elastic.apm.agent.jdbc.helper.AdviceHelperAdapter#mapStatementToSql")
+                .invoke(statement, sql);
+        }
     }
 
     @Override
