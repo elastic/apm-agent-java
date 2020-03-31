@@ -32,6 +32,9 @@ endif::[]
 ===== Bug fixes
 * When Servlet-related Exceptions are handled through exception handlers that return a 200 status code, agent
 shouldn't override with 500 - {pull}1103[#1103]
+* Exclude Quartz 1 from instrumentation to avoid
+  `IncompatibleClassChangeError: Found class org.quartz.JobExecutionContext, but interface was expected` - {pull}1108[#1108]
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
