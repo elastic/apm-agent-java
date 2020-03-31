@@ -93,7 +93,9 @@ public class MockTracer {
     public static synchronized MockInstrumentationSetup getOrCreateInstrumentationTracer() {
 
         ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
-        if (tracer == null || tracer.getState() == ElasticApmTracer.TracerState.STOPPED) {
+        if (tracer == null || tracer.getState() == ElasticApmTracer.TracerState.STOPPED ||
+            !(tracer.getReporter() instanceof MockReporter) || !(tracer.getObjectPoolFactory() instanceof TestObjectPoolFactory)) {
+            
             // use an object pool that does bookkeeping to allow for extra usage checks
             TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
