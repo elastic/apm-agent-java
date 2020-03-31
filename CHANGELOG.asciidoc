@@ -46,6 +46,7 @@ Note that changing these values at runtime can slow down the application tempora
 * Fixed bug that prevented an APM Error from being created when calling `org.slf4j.Logger#error` - {pull}1049[#1049]
 * Wrong address in JDBC spans for Oracle, MySQL and MariaDB when multiple hosts are configured - {pull}1082[#1082]
 * Document and re-order configuration priorities {pull}1087[#1087]
+* Fix breakdown metrics span sub-types {pull}1113[#1113]
 
 [float]
 ===== Potentially breaking changes
