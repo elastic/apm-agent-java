@@ -141,15 +141,17 @@ public class ServletTransactionHelper {
         }
     }
 
-    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                        @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
-                        @Nullable String contentTypeHeader, boolean deactivate) {
+    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+                        boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
+                        String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
                 transaction.ignoreTransaction();
             } else {
-                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader);
+                doOnAfter(transaction, exception, committed, status, overrideStatusCodeOnThrowable, method,
+                    parameterMap, servletPath, pathInfo, contentTypeHeader)
+                ;
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -161,10 +163,11 @@ public class ServletTransactionHelper {
         transaction.end();
     }
 
-    void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
+    void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+                           boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
+                           String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
-        if (exception != null && status == 200) {
+        if (exception != null && status == 200 && overrideStatusCodeOnThrowable) {
             // Probably shouldn't be 200 but 5XX, but we are going to miss this...
             status = 500;
         }

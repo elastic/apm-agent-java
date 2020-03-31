@@ -25,10 +25,9 @@
 package co.elastic.apm.agent.spring.webmvc.template;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import co.elastic.apm.agent.spring.webmvc.ViewRenderInstrumentation;
@@ -70,12 +69,10 @@ abstract class AbstractViewRenderingInstrumentationTest {
 
     @BeforeAll
     static void beforeAll() {
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        reporter = mockInstrumentationSetup.getReporter();
+        config = mockInstrumentationSetup.getConfig();
+        tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new ServletInstrumentation(), new ViewRenderInstrumentation()));
     }
 

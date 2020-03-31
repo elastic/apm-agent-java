@@ -22,23 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.exception.testapp.exception_resolver;
+package co.elastic.apm.agent.spring.webmvc.exception.testapp.exception_handler;
 
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.DispatcherServlet;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
+public class ExceptionHandlerRuntimeException200 extends RuntimeException {
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-@Component
-public class RestResponseStatusExceptionResolver extends AbstractHandlerExceptionResolver {
-
-    @Override
-    protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception e) {
-        ModelAndView model = new ModelAndView("error-page");
-        model.addObject("message", "runtime exception occurred");
-        return model;
+    public ExceptionHandlerRuntimeException200(String msg) {
+        super(msg);
     }
 }

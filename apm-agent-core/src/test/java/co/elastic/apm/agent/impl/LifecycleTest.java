@@ -108,18 +108,18 @@ public class LifecycleTest {
         assertThat(tracerImpl.getState()).isEqualTo(RUNNING);
 
         // checking no effect changing to true when RUNNING
-        TracerInternalApiUtils.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(RUNNING);
         assertThat(TestLifecycleListener.pause.get()).isEqualTo(pauseBefore);
-        TracerInternalApiUtils.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(PAUSED);
         assertThat(TestLifecycleListener.pause.get()).isEqualTo(pauseBefore + 1);
 
         // checking no effect changing to false when PAUSED
-        TracerInternalApiUtils.setActiveConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(PAUSED);
         assertThat(TestLifecycleListener.resume.get()).isEqualTo(resumeBefore);
-        TracerInternalApiUtils.setActiveConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
         assertThat(tracerImpl.getState()).isEqualTo(RUNNING);
         assertThat(TestLifecycleListener.resume.get()).isEqualTo(resumeBefore + 1);
     }
@@ -128,7 +128,7 @@ public class LifecycleTest {
     void testStartInactive() throws IOException {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig(new SimpleSource(TEST_CONFIG_SOURCE_NAME));
         TracerConfiguration localTracerConfiguration = configRegistry.getConfig(TracerConfiguration.class);
-        localTracerConfiguration.getActiveConfig().update(Boolean.FALSE, TEST_CONFIG_SOURCE_NAME);
+        localTracerConfiguration.getRecordingConfig().update(Boolean.FALSE, TEST_CONFIG_SOURCE_NAME);
         ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configRegistry)
             .reporter(new MockReporter())

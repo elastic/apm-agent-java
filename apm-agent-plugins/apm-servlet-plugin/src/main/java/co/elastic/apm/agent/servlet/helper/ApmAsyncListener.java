@@ -172,8 +172,9 @@ public class ApmAsyncListener implements AsyncListener, Recyclable {
                 throwableToSend = throwable;
             }
             servletTransactionHelper.onAfter(transaction, throwableToSend,
-                response.isCommitted(), response.getStatus(), request.getMethod(), parameterMap,
-                request.getServletPath(), request.getPathInfo(), contentTypeHeader, false);
+                response.isCommitted(), response.getStatus(), true, request.getMethod(), parameterMap,
+                request.getServletPath(), request.getPathInfo(), contentTypeHeader, false
+            );
         } finally {
             asyncContextAdviceHelper.recycle(this);
         }

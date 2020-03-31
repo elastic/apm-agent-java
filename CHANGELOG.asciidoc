@@ -19,36 +19,33 @@ endif::[]
 ////
 
 === Unreleased
-[[release-notes-1.15.0]]
-==== 1.15.0 - YYYY/MM/DD
+[[release-notes-1.16.0]]
+==== 1.16.0 - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+* When Servlet-related Exceptions are handled through exception handlers that return a 200 status code, agent
+shouldn't override with 500 - {pull}1103[#1103]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.15.0]]
+==== 1.15.0 - 2020/03/27
+
+[float]
+===== Breaking changes
+
 * Ordering of configuration sources has slightly changed, please review <<configuration>>:
 ** `elasticapm.properties` file now has higher priority over java system properties and environment variables, +
 This change allows to change dynamic options values at runtime by editing file, previously values set in java properties
 or environment variables could not be overriden, even if they were dynamic.
-
-[float]
-===== Features
-* Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
-* Add support for <<supported-databases, Redis Redisson client>>
-* Makes <<config-instrument>>, <<config-trace-methods>>, and <<config-disable-instrumentations>> dynamic.
-Note that changing these values at runtime can slow down the application temporarily.
-* Do not instrument Servlet API before 3.0 {pull}1077[#1077]
-* Add support for API keys for apm backend authentication {pull}1083[#1083]
-* Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
-
-[float]
-===== Bug fixes
-
-* When JAX-RS-annotated method delegates to another JAX-RS-annotated method, transaction name should include method A - {pull}1062[#1062]
-* Fixed bug that prevented an APM Error from being created when calling `org.slf4j.Logger#error` - {pull}1049[#1049]
-* Wrong address in JDBC spans for Oracle, MySQL and MariaDB when multiple hosts are configured - {pull}1082[#1082]
-* Document and re-order configuration priorities {pull}1087[#1087]
-
-[float]
-===== Potentially breaking changes
 * Renamed some configuration options related to the experimental profiler-inferred spans feature ({pull}1084[#1084]):
 ** `profiling_spans_enabled` -> `profiling_inferred_spans_enabled`
 ** `profiling_sampling_interval` -> `profiling_inferred_spans_sampling_interval`
@@ -57,9 +54,28 @@ Note that changing these values at runtime can slow down the application tempora
 ** `profiling_excluded_classes` -> `profiling_inferred_spans_excluded_classes`
 ** Removed `profiling_interval` and `profiling_duration` (both are fixed to 5s now)
 
+[float]
+===== Features
 
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Gracefully abort agent init when running on a known Java 8 buggy JVM {pull}1075[#1075].
+* Add support for <<supported-databases, Redis Redisson client>>
+* Makes <<config-instrument>>, <<config-trace-methods>>, and <<config-disable-instrumentations>> dynamic.
+Note that changing these values at runtime can slow down the application temporarily.
+* Do not instrument Servlet API before 3.0 {pull}1077[#1077]
+* Add support for API keys for apm backend authentication {pull}1083[#1083]
+* Add support for <<supported-rpc-frameworks, gRPC>> client & server instrumentation {pull}1019[#1019]
+* Deprecating `active` configuration option in favor of `recording`.
+  Setting `active` still works as it's now an alias for `recording`.
+
+[float]
+===== Bug fixes
+
+* When JAX-RS-annotated method delegates to another JAX-RS-annotated method, transaction name should include method A - {pull}1062[#1062]
+* Fixed bug that prevented an APM Error from being created when calling `org.slf4j.Logger#error` - {pull}1049[#1049]
+* Wrong address in JDBC spans for Oracle, MySQL and MariaDB when multiple hosts are configured - {pull}1082[#1082]
+* Document and re-order configuration priorities {pull}1087[#1087]
+* Improve heuristic for `service_name` when not set through config {pull}1097[#1097]
+
 
 [[release-notes-1.14.0]]
 ==== 1.14.0 - 2020/03/04

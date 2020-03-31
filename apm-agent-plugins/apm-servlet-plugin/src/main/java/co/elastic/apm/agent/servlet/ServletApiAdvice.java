@@ -183,6 +183,7 @@ public class ServletApiAdvice {
                 }
 
                 Throwable t2 = null;
+                boolean overrideStatusCodeOnThrowable = true;
                 if (t == null) {
                     final int size = requestExceptionAttributes.size();
                     for (int i = 0; i < size; i++) {
@@ -190,13 +191,18 @@ public class ServletApiAdvice {
                         Object throwable = request.getAttribute(attributeName);
                         if (throwable instanceof Throwable) {
                             t2 = (Throwable) throwable;
+                            if (!attributeName.equals("javax.servlet.error.exception")) {
+                                overrideStatusCodeOnThrowable = false;
+                            }
                             break;
                         }
                     }
                 }
 
-                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, true);
+                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(),
+                    overrideStatusCodeOnThrowable, request.getMethod(), parameterMap, request.getServletPath(),
+                    request.getPathInfo(), contentTypeHeader, true
+                );
             }
         }
     }
