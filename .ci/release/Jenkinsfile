@@ -67,6 +67,19 @@ pipeline {
             }
           }
         }
+        // 1.2 Require confirmation that CHANGELOG.asciidoc has been updated
+        stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
+          steps {
+            input(message: """
+            Update CHANGELOG.asciidoc to reflect the new version release:
+            Go over PRs or git log and add bug fixes and features.
+            Move release notes from the Unreleased sub-heading to the correct [[release-notes-{major}.x]] sub-heading (Example PR for 1.13.0 release).
+
+            Click 'Proceed' to confirm that this step has been completed or Abort to stop the build in order to complete this step.
+            """
+            )
+          }
+        }
         // 2. Review project version.
         stage('Review project version') {
           steps {
