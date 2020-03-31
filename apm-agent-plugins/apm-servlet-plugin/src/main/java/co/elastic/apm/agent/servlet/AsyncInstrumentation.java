@@ -71,15 +71,12 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
 
     public AsyncInstrumentation(ElasticApmTracer tracer) {
         synchronized (AsyncInstrumentation.class) {
-            // adding a null-check before setting helper manager reference breaks test execution, which prevents having
-            // the same code construct we have for other HelperClassManager usages.
-            //
-            // This should probably be changed when upgrading this plugin to use HelperClassManager for all helper
-            // classes.
-            asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-                "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
-                "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
-                "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
+            if (asyncHelperManager == null) {
+                asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
+                    "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
+                    "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
+                    "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
+            }
 
         }
     }
