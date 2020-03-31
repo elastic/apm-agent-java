@@ -114,6 +114,7 @@ public class ElasticApmAgent {
      * @param instrumentation the instrumentation instance
      * @param agentJarFile    a reference to the agent jar on the file system
      */
+    @SuppressWarnings("unused") // called through reflection
     public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
@@ -369,11 +370,16 @@ public class ElasticApmAgent {
     /**
      * Reverts instrumentation of classes and re-transforms them to their state without the agent.
      * <p>
-     * This is only to be used for unit tests
+     * NOTE: THIS IS ONLY TO BE USED FOR UNIT TESTS
+     * NOTE2: THIS METHOD MUST BE CALLED AFTER AGENT WAS INITIALIZED
      * </p>
      */
     public static synchronized void reset() {
-        if (resettableClassFileTransformer == null || instrumentation == null) {
+        if (instrumentation == null) {
+            return;
+        }
+
+        if (resettableClassFileTransformer == null) {
             throw new IllegalStateException("Reset was called before init");
         }
         dynamicallyInstrumentedClasses.clear();

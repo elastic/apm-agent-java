@@ -5,27 +5,44 @@ Please only make changes in configuration.asciidoc.ftl
 ////
 [[configuration]]
 == Configuration
-To adapt the Elastic APM agent to your needs,
-you can configure it using different configuration sources,
-which have different naming conventions for the property key.
-In descending order of precedence:
+The Elastic APM agent can be configured through different configuration sources,
+with the following descending order of precedence:
+
+No prefix is required for the configuration keys unless stated otherwise.
 
 [arabic]
-. {apm-app-ref}/agent-configuration.html[Central configuration]
+. {apm-app-ref}/agent-configuration.html[Central configuration] +
+   Supports <<configuration-dynamic>>
+. `elasticapm.properties` file +
+  In same folder as agent jar or provided through <<config-config-file>> option. +
+  Supports <<configuration-dynamic>>
 . Java system properties +
-  All configuration keys are prefixed with `elastic.apm.`
+  All configuration keys are prefixed with `elastic.apm.` +
+  Supports <<configuration-dynamic>> when set from the application.
 . Environment variables +
   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. `elasticapm.properties` file +
-  You can place a `elasticapm.properties` in the same directory the agent jar resides in.
-  To customize the location, set the <<config-config-file>> option.
-  No prefix is required for the configuration keys.
+. runtime attach parameters, those are mutually exclusive +
+.. `--config` parameter (<<setup-attach-cli>>)
+.. arguments of  `ElasticApmAttacher.attach(...)` (<<setup-attach-api>>)
+.. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
+. default values
 
-Central configuration overrides all other settings. Java system properties override Environment variables. Environment variables override `elasticapm.properties`
+[float]
+[[configuration-dynamic]]
+=== Dynamic configuration
 
-Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
-{kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
-Java system properties can be dynamic as well by being set from within the application.
+Configuration options marked with Dynamic true can be changed at runtime when set from sources that support it:
+
+- {kibana-ref}/agent-configuration.html[Central configuration]
+- `elasticapm.properties` file
+- Java system properties when set from within the application.
+
+NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource +
+Only the external file can be used for dynamic configuration.
+
+[float]
+[[configuration-minimal]]
+=== Minimal configuration
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
@@ -71,7 +88,7 @@ Click on a key to get more information.
 ** <<config-stress-monitor-system-cpu-stress-threshold>>
 ** <<config-stress-monitor-system-cpu-relief-threshold>>
 * <<config-core>>
-** <<config-active>>
+** <<config-recording>>
 ** <<config-instrument>>
 ** <<config-service-name>>
 ** <<config-service-node-name>>
@@ -144,7 +161,7 @@ Click on a key to get more information.
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
@@ -313,16 +330,19 @@ monitor to decide that the CPU stress has been relieved.
 === Core configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-active]]
-==== `active`
+[[config-recording]]
+==== `recording`
 
-A boolean specifying if the agent should be active or not.
-When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
-When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+A boolean specifying if the agent should be recording or not.
+When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
+except for polling the central configuration endpoint.
 As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
 mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
+
+The key of this option used to be `active`. The old key still works but is now deprecated.
 
 
 [options="header"]
@@ -335,7 +355,7 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.active` | `active` | `ELASTIC_APM_ACTIVE`
+| `elastic.apm.recording` | `recording` | `ELASTIC_APM_RECORDING`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1975,7 +1995,7 @@ The default unit for this option is `ms`.
 # A boolean specifying whether the circuit breaker should be enabled or not. 
 # When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 # If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-# <<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 # When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 # has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 # agent will resume and become fully functional.
@@ -2056,19 +2076,22 @@ The default unit for this option is `ms`.
 # Core                                     #
 ############################################
 
-# A boolean specifying if the agent should be active or not.
-# When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
-# When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+# A boolean specifying if the agent should be recording or not.
+# When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+# When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
+# except for polling the central configuration endpoint.
 # As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
 # mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
+# 
+# The key of this option used to be `active`. The old key still works but is now deprecated.
 #
 # This setting can be changed at runtime
 # Type: Boolean
 # Default value: true
 #
-# active=true
+# recording=true
 
 # A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 # 
