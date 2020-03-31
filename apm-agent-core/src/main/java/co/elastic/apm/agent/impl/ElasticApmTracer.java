@@ -422,7 +422,7 @@ public class ElasticApmTracer {
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
         ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
         if (errorCapture != null) {
-            reporter.report(errorCapture);
+            errorCapture.end();
         }
     }
 
