@@ -11,6 +11,9 @@ pipeline {
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     NEXUS_SECRET = 'secret/apm-team/ci/nexus'
     MAVEN_CONFIG = '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=.m2'
+    HOME = "${env.WORKSPACE}"
+    JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+    PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
   }
   options {
     timeout(time: 3, unit: 'HOURS')
@@ -27,11 +30,6 @@ pipeline {
   stages {
     stage('Initializing'){
       options { skipDefaultCheckout() }
-      environment {
-        HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-      }
       stages {
         /**
          Checkout the code
