@@ -48,6 +48,25 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:oracle:thin:myhost:myinstance", "oracle", "myhost", 1521);
         testUrl("jdbc:oracle:thin:myhost:666", "oracle", "myhost", 666);
         testUrl("jdbc:oracle:thin:myhost", "oracle", "myhost", 1521);
+
+        // address list parsing
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=host1)(PORT=666))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666);
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION =(LOAD_BALANCE=on )( ADDRESS= (PROTOCOL=TCP) ( HOST= host1 ) (  PORT  = 666 ))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 666);
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=host1))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "host1", 1521);
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST= cluster_alias)(PORT=666))" +
+            "(CONNECT_DATA=(SERVICE_NAME=service_name)))", "oracle", "cluster_alias", 666);
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=host1))" +
+            "(ADDRESS=(PROTOCOL=TCP)(HOST=host2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=service_name)))",
+            "oracle", "host1", 1521);
+        testUrl("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=6203))(CONNECT_DATA=" +
+            "(SERVER=DEDICATED)(SERVICE_NAME=DB.FQDN.ORG.DE)))", "oracle", "localhost", 6203);
+        testUrl("jdbc:oracle:thin:@(description=(address=(protocol=tcp)(host=localhost)(port=6203))(connect_data=" +
+            "(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", "localhost", 6203);
+        testUrl("jdbc:oracle:thin:@(description=)(address=(protocol=tcp)(host=localhost)(port=6203))(connect_data=" +
+            "(server=dedicated)(service_name=db.fqdn.org.de)))", "oracle", null, -1);
     }
 
     @Test
@@ -71,6 +90,8 @@ class ConnectionMetaDataTest {
         // https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-jdbc-url-format.html
         // Single host:
         testUrl("jdbc:mysql://myhost:666/database", "mysql", "myhost", 666);
+        testUrl("jdbc:mysql://myhost:666/database?prop=val", "mysql", "myhost", 666);
+        testUrl("jdbc:mysql://myhost:666?prop=val", "mysql", "myhost", 666);
         testUrl("jdbc:mysql://myhost/database", "mysql", "myhost", 3306);
         testUrl("jdbc:mysql://myhost:666/", "mysql", "myhost", 666);
         testUrl("jdbc:mysql://myhost/", "mysql", "myhost", 3306);
@@ -78,10 +99,55 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mysql://::1/", "mysql", "::1", 3306);
         testUrl("jdbc:mysql://[::1]/", "mysql", "[::1]", 3306);
         testUrl("jdbc:mysql://[::1]:666/", "mysql", "[::1]", 666);
-
+        testUrl("jdbc:mysql://sandy:secret@myhost1:1111/db", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://myhost2:2222,sandy:secret@myhost1:1111/db", "mysql", "myhost2", 2222);
         testUrl("jdbc:mysql://myhost", "mysql", "myhost", 3306);
         testUrl("jdbc:mysql://myhost:666/database?prop1=val1&prop2=val2", "mysql", "myhost", 666);
         testUrl("jdbc:mysql://myhost:666?prop1=val1&prop2=val2", "mysql", "myhost", 666);
+
+        // multiple hosts
+        testUrl("jdbc:mysql://myhost1:1111,myhost2:2222/db", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://myhost1:1111,myhost2:2222/db?prop=val", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://myhost1:1111,myhost2:2222?prop=val", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:1111,myhost2:2222/db",
+            "mysql", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 1111);
+        testUrl("jdbc:mysql://myhost1,myhost2:2222/db", "mysql", "myhost1", 3306);
+        testUrl("jdbc:mysql://sandy:secret@[myhost1:1111,myhost2:2222]/db", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://sandy:secret@[ myhost1:1111 ,myhost2:2222]/db", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://address=(host=myhost1)(port=1111)(key1=value1),address=(host=myhost2)(port=2222)(key2=value2)/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://address=(key1=value1)(port=1111)(host=myhost1),address=(host=myhost2)(port=2222)(key2=value2)/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql:// address= ( host = myhost1 )( port = 1111 )( key1 = value1 ) ,address=(host=myhost2)(port=2222)(key2=value2)/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://(host=myhost1,port=1111,key1=value1),(host=myhost2,port=2222,key2=value2)/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://( host =  myhost1 , port  = 1111  ,key1=value1),(host=myhost2,port=2222,key2=value2)/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://(host=myhost1,port=1111),(host=myhost2,port=2222)/db?key1=value1&key2=value2&key3=value3",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://(port=1111,key1=value1,host=myhost1),(host=myhost2,port=2222,key2=value2)/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://myhost1:1111,(host=myhost2,port=2222,key2=value2)/db", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://sandy:secret@[myhost1:1111,myhost2:2222]/db", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://sandy:secret@[address=(host=myhost1)(port=1111)(key1=value1),address=(host=myhost2)(port=2222)(key2=value2)]/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://sandy:secret@[myhost1:1111,address=(host=myhost2)(port=2222)(key2=value2)]/db", "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://sandy:secret@[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mysql", "myhost2", 2222);
+        testUrl("jdbc:mysql://[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mysql", "myhost2", 2222);
+        testUrl("jdbc:mysql://[[2001:0660:7401:0200:0000:0000:0edf:bdd7]:666,myhost1:1111]/db",
+            "mysql", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 666);
+        testUrl("jdbc:mysql://[(host=myhost1,port=1111,user=sandy,password=secret),(host=myhost2,port=2222,user=finn,password=secret)]/db",
+            "mysql", "myhost1", 1111);
+        testUrl("jdbc:mysql://address=(host=myhost1)(port=1111)(user=sandy)(password=secret),address=(host=myhost2)(port=2222)(user=finn)(password=secret)/db",
+            "mysql", "myhost1", 1111);
+
+        // load balance format:
+        testUrl("jdbc:mysql:loadbalance://127.0.0.1:3309,localhost:3310/test?loadBalanceConnectionGroup=first&ha.enableJMX=true",
+            "mysql", "127.0.0.1", 3309);
+
+        // replication format:
+        testUrl("jdbc:mysql:replication://master,slave1,slave2,slave3/test", "mysql", "master", 3306);
     }
 
     @Test
@@ -109,6 +175,54 @@ class ConnectionMetaDataTest {
         testUrl("jdbc:mariadb:myhost:666?prop1=val1&prop2=val2", "mariadb", "myhost", 666);
         testUrl("jdbc:mariadb:myhost", "mariadb", "myhost", 3306);
         testUrl("jdbc:mariadb:myhost?prop1=val1&prop2=val2", "mariadb", "myhost", 3306);
+
+        // multiple hosts:
+        testUrl("jdbc:mariadb://myhost1:1111,myhost2:2222/db", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://myhost1:1111,myhost2:2222/db?prop=val", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://myhost1:1111,myhost2:2222?prop=val", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:1111,myhost2:2222/db",
+            "mariadb", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 1111);
+        testUrl("jdbc:mariadb://myhost1,myhost2:2222/db", "mariadb", "myhost1", 3306);
+        testUrl("jdbc:mariadb://sandy:secret@[myhost1:1111,myhost2:2222]/db", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://sandy:secret@[ myhost1:1111 ,myhost2:2222]/db", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://address=(host=myhost1)(port=1111)(key1=value1),address=(host=myhost2)(port=2222)(key2=value2)/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://address=(key1=value1)(port=1111)(host=myhost1),address=(host=myhost2)(port=2222)(key2=value2)/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb:// address= ( host = myhost1 )( port = 1111 )( key1 = value1 ) ,address=(host=myhost2)(port=2222)(key2=value2)/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://(host=myhost1,port=1111,key1=value1),(host=myhost2,port=2222,key2=value2)/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://( host =  myhost1 , port  = 1111  ,key1=value1),(host=myhost2,port=2222,key2=value2)/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://(host=myhost1,port=1111),(host=myhost2,port=2222)/db?key1=value1&key2=value2&key3=value3",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://(port=1111,key1=value1,host=myhost1),(host=myhost2,port=2222,key2=value2)/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://myhost1:1111,(host=myhost2,port=2222,key2=value2)/db", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://sandy:secret@[myhost1:1111,myhost2:2222]/db", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://sandy:secret@[address=(host=myhost1)(port=1111)(key1=value1),address=(host=myhost2)(port=2222)(key2=value2)]/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://sandy:secret@[myhost1:1111,address=(host=myhost2)(port=2222)(key2=value2)]/db", "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://sandy:secret@[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mariadb", "myhost2", 2222);
+        testUrl("jdbc:mariadb://[address=(host=myhost2)(port=2222)(key2=value2),myhost1:1111]/db", "mariadb", "myhost2", 2222);
+        testUrl("jdbc:mariadb://[[2001:0660:7401:0200:0000:0000:0edf:bdd7]:666,myhost1:1111]/db",
+            "mariadb", "[2001:0660:7401:0200:0000:0000:0edf:bdd7]", 666);
+        testUrl("jdbc:mariadb://[(host=myhost1,port=1111,user=sandy,password=secret),(host=myhost2,port=2222,user=finn,password=secret)]/db",
+            "mariadb", "myhost1", 1111);
+        testUrl("jdbc:mariadb://address=(host=myhost1)(port=1111)(user=sandy)(password=secret),address=(host=myhost2)(port=2222)(user=finn)(password=secret)/db",
+            "mariadb", "myhost1", 1111);
+
+        // Specialized formats: https://mariadb.com/kb/en/about-mariadb-connector-j/#failover-and-load-balancing-modes
+        // load balance format:
+        testUrl("jdbc:mariadb:loadbalance://127.0.0.1:3309,localhost:3310/test?loadBalanceConnectionGroup=first&ha.enableJMX=true",
+            "mariadb", "127.0.0.1", 3309);
+        testUrl("jdbc:mariadb:loadbalance:myhost1:3309,localhost:3310/test?loadBalanceConnectionGroup=first&ha.enableJMX=true",
+            "mariadb", "myhost1", 3309);
+
+        // replication format:
+        testUrl("jdbc:mariadb:replication://master,slave1,slave2,slave3/test", "mariadb", "master", 3306);
+        testUrl("jdbc:mariadb:replication:master,slave1,slave2,slave3/test", "mariadb", "master", 3306);
     }
 
     @Test

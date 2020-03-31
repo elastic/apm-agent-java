@@ -65,6 +65,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Constructor;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -113,6 +114,7 @@ public class ElasticApmAgent {
      * @param instrumentation the instrumentation instance
      * @param agentJarFile    a reference to the agent jar on the file system
      */
+    @SuppressWarnings("unused") // called through reflection
     public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
@@ -368,11 +370,16 @@ public class ElasticApmAgent {
     /**
      * Reverts instrumentation of classes and re-transforms them to their state without the agent.
      * <p>
-     * This is only to be used for unit tests
+     * NOTE: THIS IS ONLY TO BE USED FOR UNIT TESTS
+     * NOTE2: THIS METHOD MUST BE CALLED AFTER AGENT WAS INITIALIZED
      * </p>
      */
     public static synchronized void reset() {
-        if (resettableClassFileTransformer == null || instrumentation == null) {
+        if (instrumentation == null) {
+            return;
+        }
+
+        if (resettableClassFileTransformer == null) {
             throw new IllegalStateException("Reset was called before init");
         }
         dynamicallyInstrumentedClasses.clear();
@@ -560,16 +567,47 @@ public class ElasticApmAgent {
     }
 
     private static ElasticApmInstrumentation instantiate(Class<? extends ElasticApmInstrumentation> instrumentation) {
-        try {
-            if (instrumentation.getConstructor() != null) {
-                return instrumentation.getConstructor().newInstance();
-            } else if (instrumentation.getConstructor(ElasticApmTracer.class) != null) {
-                return instrumentation.getConstructor(ElasticApmTracer.class).newInstance(ElasticApmInstrumentation.tracer);
-            } else {
-                throw new IllegalArgumentException("No matching constructor found for " + instrumentation);
-            }
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalArgumentException(e.getMessage());
+
+        ElasticApmInstrumentation instance = tryInstantiate(instrumentation, false);
+        if (instance == null) {
+            instance = tryInstantiate(instrumentation, true);
         }
+
+        if (instance == null) {
+            throw new IllegalArgumentException("unable to find matching public constructor for instrumentation " + instrumentation);
+        }
+
+        return instance;
     }
+
+    @Nullable
+    private static ElasticApmInstrumentation tryInstantiate(Class<? extends ElasticApmInstrumentation> instrumentation, boolean withTracer) {
+
+        Constructor<? extends ElasticApmInstrumentation> constructor = null;
+        try {
+            if (withTracer) {
+                constructor = instrumentation.getConstructor(ElasticApmTracer.class);
+            } else {
+                constructor = instrumentation.getConstructor();
+            }
+        } catch (NoSuchMethodException e) {
+            // silently ignored
+        }
+
+        ElasticApmInstrumentation instance = null;
+        if (constructor != null) {
+            try {
+                if (withTracer) {
+                    instance = constructor.newInstance(ElasticApmInstrumentation.tracer);
+                } else {
+                    instance = constructor.newInstance();
+                }
+            } catch (ReflectiveOperationException e) {
+                // silently ignored
+            }
+        }
+
+        return instance;
+    }
+
 }

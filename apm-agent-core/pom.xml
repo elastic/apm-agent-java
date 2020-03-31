@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.14.1-SNAPSHOT</version>
+        <version>1.15.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -14,6 +14,7 @@
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+        <version.cucumber>5.4.0</version.cucumber>
     </properties>
 
     <dependencies>
@@ -116,6 +117,18 @@
             <version>4.5.6</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${version.cucumber}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>${version.cucumber}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -154,5 +167,33 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>update-gherkin-spec</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <configuration>
+                            <executable>${project.basedir}/../scripts/shared-specs/download_gherkins.sh</executable>
+                            <commandlineArgs>${project.basedir}/src/test/resources/specs master</commandlineArgs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <!-- make sure we update specs before executing tests-->
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

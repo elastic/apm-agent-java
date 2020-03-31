@@ -98,6 +98,7 @@ public class ElasticApmTracer {
     private final ObjectPool<ContextInScopeRunnableWrapper> runnableContextWrapperObjectPool;
     private final ObjectPool<ContextInScopeCallableWrapper<?>> callableContextWrapperObjectPool;
     private final Reporter reporter;
+    private final ObjectPoolFactory objectPoolFactory;
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
@@ -130,7 +131,7 @@ public class ElasticApmTracer {
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
-    private volatile boolean activeConfigOptionSet;
+    private volatile boolean recordingConfigOptionSet;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
@@ -141,14 +142,15 @@ public class ElasticApmTracer {
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
 
         TracerConfiguration tracerConfiguration = configurationRegistry.getConfig(TracerConfiguration.class);
-        activeConfigOptionSet = tracerConfiguration.getActiveConfig().get();
-        tracerConfiguration.getActiveConfig().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
+        recordingConfigOptionSet = tracerConfiguration.getRecordingConfig().get();
+        tracerConfiguration.getRecordingConfig().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
             @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Boolean wasActive, Boolean shouldBeActive) {
-                ElasticApmTracer.this.activeConfigChanged(wasActive, shouldBeActive);
+            public void onChange(ConfigurationOption<?> configurationOption, Boolean wasRecording, Boolean shouldBeRecording) {
+                ElasticApmTracer.this.recordingConfigChanged(wasRecording, shouldBeRecording);
             }
         });
 
+        this.objectPoolFactory = poolFactory;
         transactionPool = poolFactory.createTransactionPool(maxPooledElements, this);
         spanPool = poolFactory.createSpanPool(maxPooledElements, this);
 
@@ -469,8 +471,8 @@ public class ElasticApmTracer {
         return configurationRegistry;
     }
 
-    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> pluginClass) {
-        return configurationRegistry.getConfig(pluginClass);
+    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> configProvider) {
+        return configurationRegistry.getConfig(configProvider);
     }
 
     public void endTransaction(Transaction transaction) {
@@ -594,6 +596,10 @@ public class ElasticApmTracer {
         return sampler;
     }
 
+    public ObjectPoolFactory getObjectPoolFactory() {
+        return objectPoolFactory;
+    }
+
     @Nullable
     public TraceContextHolder<?> getActive() {
         return activeStack.get().peek();
@@ -621,7 +627,7 @@ public class ElasticApmTracer {
             }
         }
         tracerState = TracerState.RUNNING;
-        if (activeConfigOptionSet) {
+        if (recordingConfigOptionSet) {
             logger.info("Tracer switched to RUNNING state");
         } else {
             pause();
@@ -635,24 +641,24 @@ public class ElasticApmTracer {
 
     public synchronized void onStressRelieved() {
         currentlyUnderStress = false;
-        if (activeConfigOptionSet) {
+        if (recordingConfigOptionSet) {
             resume();
         }
     }
 
-    private synchronized void activeConfigChanged(boolean wasActive, boolean shouldBeActive) {
+    private synchronized void recordingConfigChanged(boolean wasRecording, boolean shouldBeRecording) {
         // if changed from true to false then:
         //      if current state is RUNNING - pause the agent
         //      otherwise - ignore
         // if changed from false to true then:
         //      if current state is RUNNING or STOPPED - no effect
         //      if current state is PAUSED and currentlyUnderStress==false - then resume
-        if (wasActive && !shouldBeActive && tracerState == TracerState.RUNNING) {
+        if (wasRecording && !shouldBeRecording && tracerState == TracerState.RUNNING) {
             pause();
-        } else if (!wasActive && shouldBeActive && tracerState == TracerState.PAUSED && !currentlyUnderStress) {
+        } else if (!wasRecording && shouldBeRecording && tracerState == TracerState.PAUSED && !currentlyUnderStress) {
             resume();
         }
-        activeConfigOptionSet = shouldBeActive;
+        recordingConfigOptionSet = shouldBeRecording;
     }
 
     synchronized void pause() {
@@ -724,13 +730,13 @@ public class ElasticApmTracer {
         }
     }
 
-    private void assertIsActive(Object span, @Nullable Object currentlyActive) {
+    private void assertIsActive(TraceContextHolder<?> span, @Nullable TraceContextHolder<?> currentlyActive) {
         if (span != currentlyActive) {
             logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
                 "This can happen when not properly deactivating a previous span.", span, currentlyActive);
 
             if (assertionsEnabled) {
-                throw new AssertionError();
+                throw new AssertionError("Deactivating a span that is not the active one");
             }
         }
     }

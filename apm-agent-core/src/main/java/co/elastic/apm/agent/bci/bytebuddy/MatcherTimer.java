@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -55,19 +55,18 @@ public class MatcherTimer implements Comparable<MatcherTimer> {
     }
 
     public static String getTableHeader() {
-        return String.format("| %-40s | %-15s | %-15s |", "Advice name", "Type ns", "Method ns");
+        return String.format("| %-50s | %-15s | %-15s |", "Advice name", "Type ns", "Method ns");
     }
 
     @Override
     public String toString() {
-        return String.format("| %-40s | %,15d | %,15d |", getSimpleClassName(adviceClass),
+        return String.format("| %-50s | %,15d | %,15d |", getSimpleClassName(adviceClass),
             totalTypeMatchingDuration.get(), totalMethodMatchingDuration.get());
     }
 
     @Nonnull
-    private String getSimpleClassName(String className) {
-        final String simpleClassName = className.substring(adviceClass.lastIndexOf('$') + 1);
-        return simpleClassName.substring(simpleClassName.lastIndexOf('.') + 1);
+    private static String getSimpleClassName(String className) {
+        return className.substring(className.lastIndexOf('.') + 1);
     }
 
 }

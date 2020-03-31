@@ -27,6 +27,7 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import com.squareup.okhttp.Request;
 
+@SuppressWarnings("unused")
 public class OkHttpRequestHeaderSetter implements TextHeaderSetter<Request.Builder> {
 
     @Override
