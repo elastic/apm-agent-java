@@ -11,8 +11,6 @@ pipeline {
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     NEXUS_SECRET = 'secret/apm-team/ci/nexus'
     MAVEN_CONFIG = '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=.m2'
-    OPBEANS_REPO = 'opbeans-java'
-
   }
   options {
     timeout(time: 3, unit: 'HOURS')
