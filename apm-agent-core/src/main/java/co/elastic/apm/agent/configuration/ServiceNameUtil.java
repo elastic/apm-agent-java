@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,20 +31,28 @@ public class ServiceNameUtil {
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
 
     static String getDefaultServiceName() {
-        String serviceName = null;
-        String sunJavaCommand = System.getProperty("sun.java.command");
-        if (sunJavaCommand != null) {
-            serviceName = parseSunJavaCommand(sunJavaCommand);
+        return getDefaultServiceName(System.getProperty("sun.java.command"));
+    }
+
+    static String getDefaultServiceName(@Nullable String sunJavaCommand) {
+        String serviceName = parseSunJavaCommand(sunJavaCommand);
+        if (serviceName != null) {
+            serviceName = replaceDisallowedChars(serviceName);
+            serviceName = serviceName.trim();
         }
-        if (serviceName == null) {
+        if (serviceName == null || serviceName.isEmpty()) {
             serviceName = "my-service";
         }
         return serviceName;
     }
 
     @Nullable
-    static String parseSunJavaCommand(String command) {
-        String serviceName = getSpecialServiceName(command);
+    private static String parseSunJavaCommand(@Nullable String command) {
+        if (command == null) {
+            return null;
+        }
+        command = command.trim();
+        String serviceName = getContainerServiceName(command);
         if (serviceName != null) {
             return serviceName;
         }
@@ -53,14 +61,11 @@ public class ServiceNameUtil {
         } else {
             serviceName = parseMainClass(command);
         }
-        if (serviceName != null) {
-            return replaceDisallowedChars(serviceName);
-        }
-        return null;
+        return serviceName;
     }
 
     @Nullable
-    private static String getSpecialServiceName(String command) {
+    private static String getContainerServiceName(String command) {
         if (command.startsWith("org.apache.catalina.startup.Bootstrap")) {
             return "tomcat-application";
         } else if (command.startsWith("org.eclipse.jetty")) {
@@ -84,12 +89,14 @@ public class ServiceNameUtil {
     @Nullable
     private static String parseJarCommand(String command) {
         final String[] commandParts = command.split(" ");
+        String result = null;
         for (String commandPart : commandParts) {
             if (commandPart.endsWith(".jar")) {
-                return removeVersionFromJar(removePath(removeJarExtension(commandPart)));
+                result = removeVersionFromJar(removePath(removeJarExtension(commandPart)));
+                break;
             }
         }
-        return null;
+        return result;
     }
 
     @Nonnull
