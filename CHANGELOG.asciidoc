@@ -27,6 +27,7 @@ endif::[]
 
 [float]
 ===== Features
+* The log correlation feature now adds `error.id` to the MDC. See <<supported-logging-frameworks>> for details. - {pull}1050[#1050]
 
 [float]
 ===== Bug fixes

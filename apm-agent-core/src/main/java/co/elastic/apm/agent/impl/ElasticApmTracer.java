@@ -421,17 +421,31 @@ public class ElasticApmTracer {
      * @param e                     the exception to capture
      * @param initiatingClassLoader the class
      */
-    public void captureException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
-        captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
+    public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
+        ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
+        if (errorCapture != null) {
+            errorCapture.end();
+        }
     }
 
     @Nullable
-    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
-        return captureException(epochMicros, e, parent, null);
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
+        String id = null;
+        ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
+        if (errorCapture != null) {
+            id = errorCapture.getTraceContext().getId().toString();
+            errorCapture.end();
+        }
+        return id;
     }
 
     @Nullable
-    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
+    }
+
+    @Nullable
+    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
@@ -448,7 +462,6 @@ public class ElasticApmTracer {
                 error.getTraceContext().getId().setToRandomValue();
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
             }
-            reporter.report(error);
             return error;
         }
         return null;
@@ -490,6 +503,10 @@ public class ElasticApmTracer {
         } else {
             span.decrementReferences();
         }
+    }
+
+    public void endError(ErrorCapture error) {
+        reporter.report(error);
     }
 
     public void recycle(Transaction transaction) {

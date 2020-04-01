@@ -353,8 +353,10 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
  the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
  See the <<config-enable-log-correlation>> configuration option for more details.
 
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0)
-|1.0.0
+ Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+
+|1.0.0, 1.10.0 (error capturing)
 
 |log4j2
 |2.0+
@@ -362,8 +364,7 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
 
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-|1.11.0 (error capturing), 1.13.0 (log correlation via `ThreadContext`)
+|1.13.0 (log correlation via `ThreadContext`)
 
 
 |log4j
@@ -371,7 +372,10 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
-|1.13.0
+
+Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+|1.11.0 (error capturing), 1.13.0 (log correlation via log4j's MDC)
 
 |===
 
