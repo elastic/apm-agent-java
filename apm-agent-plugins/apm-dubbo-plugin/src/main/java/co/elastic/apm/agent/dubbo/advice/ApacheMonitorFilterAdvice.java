@@ -28,7 +28,6 @@ import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreator;
-import co.elastic.apm.agent.dubbo.helper.DubboApiInfo;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -39,7 +38,6 @@ import net.bytebuddy.asm.Advice;
 import org.apache.dubbo.rpc.AppResponse;
 import org.apache.dubbo.rpc.AsyncRpcResult;
 import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 
@@ -72,12 +70,7 @@ public class ApacheMonitorFilterAdvice {
                                            @Advice.Local("transaction") Transaction transaction,
                                            @Advice.Local("scope") Scope scope) {
         RpcContext context = RpcContext.getContext();
-        String version = context.getUrl().getParameter("version");
-        Invoker<?> invoker = invocation.getInvoker();
-        apiClazz = invoker.getInterface();
-        DubboApiInfo dubboApiInfo = new DubboApiInfo(
-            apiClazz, invocation.getMethodName(),
-            invocation.getParameterTypes(), version);
+        apiClazz = invocation.getInvoker().getInterface();
         ApacheDubboAttachmentHelper helper = attachmentHelperClassManager.getForClassLoaderOfClass(Invocation.class);
         if (helper == null) {
             return;
@@ -88,7 +81,8 @@ public class ApacheMonitorFilterAdvice {
                 return;
             }
 
-            span = DubboTraceHelper.createConsumerSpan(dubboApiInfo, context.getRemoteAddress());
+            span = DubboTraceHelper.createConsumerSpan(apiClazz, invocation.getMethodName(), invocation.getParameterTypes(),
+                context.getUrl().getParameter("version"), context.getRemoteAddress());
             if (span != null) {
                 span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
             }
@@ -100,7 +94,9 @@ public class ApacheMonitorFilterAdvice {
         transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
         if (transaction != null) {
             scope = transaction.activateInScope();
-            DubboTraceHelper.fillTransaction(transaction, dubboApiInfo);
+            DubboTraceHelper.fillTransaction(transaction, apiClazz, invocation.getMethodName(),
+                invocation.getParameterTypes(),
+                context.getUrl().getParameter("version"));
         }
     }
 

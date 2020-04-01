@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -54,28 +55,8 @@ public class DubboTraceHelper {
     }
 
     @VisibleForAdvice
-    public static String buildDubboRequestName(DubboApiInfo apiInfo) {
-        Class<?>[] paramClasses = apiInfo.getParamClasses();
-        String paramsSign = "";
-        if (paramClasses != null && paramClasses.length > 0) {
-            StringBuilder paramSignBuilder = new StringBuilder(paramClasses[0].getSimpleName());
-            for (int i = 1; i < paramClasses.length; i++) {
-                paramSignBuilder.append(",").append(paramClasses[i].getSimpleName());
-            }
-            paramsSign = paramSignBuilder.toString();
-        }
-
-        String requestName = apiInfo.getApiClass().getName() + "." + apiInfo.getMethodName() + "(" + paramsSign + ")";
-        String version = apiInfo.getVersion();
-        if (version != null && version.length() > 0) {
-            requestName += " version=" + version;
-        }
-
-        return requestName;
-    }
-
-    @VisibleForAdvice
-    public static Span createConsumerSpan(DubboApiInfo apiInfo, InetSocketAddress remoteAddress) {
+    public static Span createConsumerSpan(Class<?> apiClass, String methodName, Class<?>[] paramClasses,
+                                          String version, InetSocketAddress remoteAddress) {
         TraceContextHolder<?> traceContext = DubboTraceHelper.tracer.getActive();
         if (traceContext == null) {
             return null;
@@ -86,8 +67,9 @@ public class DubboTraceHelper {
         }
 
         span.withType(EXTERNAL_TYPE)
-            .withSubtype(DUBBO_SUBTYPE)
-            .withName(buildDubboRequestName(apiInfo));
+            .withSubtype(DUBBO_SUBTYPE);
+        fillName(span, apiClass, methodName, paramClasses, version);
+
         Destination destination = span.getContext().getDestination();
         destination.withAddress(remoteAddress.getHostName()).withPort(remoteAddress.getPort());
 
@@ -97,9 +79,31 @@ public class DubboTraceHelper {
         return span.activate();
     }
 
+    private static void fillName(AbstractSpan<?> span, Class<?> apiClass, String methodName,
+                                 Class<?>[] paramClasses, String version) {
+        span.appendToName(apiClass.getName())
+            .appendToName(".")
+            .appendToName(methodName)
+            .appendToName("(");
+        if (paramClasses != null) {
+            int length = paramClasses.length;
+            for (int i = 0; i < paramClasses.length; i++) {
+                span.appendToName(paramClasses[i].getSimpleName());
+                if (i < length - 1) {
+                    span.appendToName(",");
+                }
+            }
+        }
+        span.appendToName(")");
+        if (version != null && version.length() > 0) {
+            span.appendToName("version=").appendToName(version);
+        }
+    }
+
     @VisibleForAdvice
-    public static void fillTransaction(Transaction transaction, DubboApiInfo dubboApiInfo) {
-        transaction.withName(buildDubboRequestName(dubboApiInfo));
+    public static void fillTransaction(Transaction transaction, Class<?> apiClass, String methodName,
+                                       Class<?>[] paramClasses, String version) {
+        fillName(transaction, apiClass, methodName, paramClasses, version);
         transaction.withType("dubbo");
         transaction.activate();
     }
