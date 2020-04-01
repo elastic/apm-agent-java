@@ -27,6 +27,7 @@ package co.elastic.apm.agent.dubbo.advice;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelper;
+import co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreator;
 import co.elastic.apm.agent.dubbo.helper.DubboApiInfo;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
@@ -35,6 +36,8 @@ import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
+import org.apache.dubbo.rpc.AppResponse;
+import org.apache.dubbo.rpc.AsyncRpcResult;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
@@ -47,14 +50,19 @@ public class ApacheMonitorFilterAdvice {
     public static ElasticApmTracer tracer;
 
     @VisibleForAdvice
-    public static HelperClassManager<ApacheDubboAttachmentHelper> helperClassManager;
+    public static HelperClassManager<ApacheDubboAttachmentHelper> attachmentHelperClassManager;
+
+    @VisibleForAdvice
+    public static HelperClassManager<AsyncCallbackCreator> asyncCallbackCreatorClassManager;
 
     public static void init(ElasticApmTracer tracer) {
         ApacheMonitorFilterAdvice.tracer = tracer;
         DubboTraceHelper.init(tracer);
         IgnoreExceptionHelper.init(tracer);
-        helperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+        attachmentHelperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelperImpl");
+        asyncCallbackCreatorClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+            "co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreatorImpl");
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -70,7 +78,7 @@ public class ApacheMonitorFilterAdvice {
         DubboApiInfo dubboApiInfo = new DubboApiInfo(
             apiClazz, invocation.getMethodName(),
             invocation.getParameterTypes(), version);
-        ApacheDubboAttachmentHelper helper = helperClassManager.getForClassLoaderOfClass(Invocation.class);
+        ApacheDubboAttachmentHelper helper = attachmentHelperClassManager.getForClassLoaderOfClass(Invocation.class);
         if (helper == null) {
             return;
         }
@@ -99,7 +107,7 @@ public class ApacheMonitorFilterAdvice {
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                           @Advice.Return Result result,
-                                          @Advice.Local("span") Span span,
+                                          @Advice.Local("span") final Span span,
                                           @Advice.Local("apiClazz") Class<?> apiClazz,
                                           @Advice.Thrown Throwable t,
                                           @Advice.Local("transaction") Transaction transaction,
@@ -118,8 +126,15 @@ public class ApacheMonitorFilterAdvice {
                     }
                 }
                 //for consumer side, no need to capture exception, let upper application handle it or capture it
+                if (result instanceof AsyncRpcResult) {
+                    AsyncRpcResult asyncResult = (AsyncRpcResult) result;
+                    AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(AppResponse.class);
+                    if (callbackCreator != null) {
+                        asyncResult.getResponseFuture().whenComplete(callbackCreator.create(span));
+                    }
+                }
             } finally {
-                span.deactivate().end();
+                span.deactivate();
             }
             return;
         }

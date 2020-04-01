@@ -26,11 +26,23 @@ package co.elastic.apm.agent.dubbo;
 
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.dubbo.config.ApplicationConfig;
+import org.apache.dubbo.config.MethodConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
+import org.apache.dubbo.rpc.RpcContext;
+import org.junit.jupiter.api.Test;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
@@ -67,11 +79,80 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         referenceConfig.setUrl("dubbo://localhost:" + getPort());
         referenceConfig.setTimeout(1000);
 
+        List<MethodConfig> methodConfigList = new LinkedList<>();
+        referenceConfig.setMethods(methodConfigList);
+
+        MethodConfig asyncConfig = new MethodConfig();
+        asyncConfig.setName("async");
+        asyncConfig.setAsync(true);
+        methodConfigList.add(asyncConfig);
+
+        MethodConfig asyncNoReturnConfig = new MethodConfig();
+        asyncNoReturnConfig.setName("asyncNoReturn");
+        asyncNoReturnConfig.setAsync(true);
+        asyncNoReturnConfig.setReturn(false);
+        methodConfigList.add(asyncNoReturnConfig);
+
         return referenceConfig.get();
     }
 
     @Override
     int getPort() {
         return 20881;
+    }
+
+    @Test
+    public void testAsync() throws Exception {
+        String arg = "hello";
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String ret = dubboTestApi.async(arg);
+        assertThat(ret).isNull();
+        Future<Object> future = RpcContext.getContext().getFuture();
+        assertThat(future).isNotNull();
+        ret = (String) future.get();
+        assertThat(ret).isEqualTo(arg);
+
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions.size()).isEqualTo(1);
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "async", new Class[]{String.class});
+
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void testAsyncByFuture() throws Exception {
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String arg = "hello";
+        CompletableFuture<String> future = dubboTestApi.asyncByFuture(arg);
+        assertThat(future).isNotNull();
+        assertThat(future.get()).isEqualTo(arg);
+
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions.size()).isEqualTo(1);
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByFuture", new Class[]{String.class});
+
+        Thread.sleep(5000);// wait
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans.size()).isEqualTo(2);
+    }
+
+    @Test
+    public void testAsyncByAsyncContext() throws Exception {
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String arg = "hello";
+        String ret = dubboTestApi.asyncByAsyncContext(arg);
+        assertThat(ret).isEqualTo(arg);
+
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions.size()).isEqualTo(1);
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByAsyncContext", new Class[]{String.class});
+
+        Thread.sleep(5000);// wait
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans.size()).isEqualTo(2);
     }
 }

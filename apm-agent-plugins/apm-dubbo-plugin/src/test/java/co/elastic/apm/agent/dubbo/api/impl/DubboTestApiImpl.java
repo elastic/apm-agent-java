@@ -24,12 +24,12 @@
  */
 package co.elastic.apm.agent.dubbo.api.impl;
 
+import co.elastic.apm.agent.dubbo.ExecutorServiceWrapper;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.apache.dubbo.rpc.AsyncContext;
@@ -37,12 +37,11 @@ import org.apache.dubbo.rpc.RpcContext;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 public class DubboTestApiImpl implements DubboTestApi {
@@ -61,11 +60,11 @@ public class DubboTestApiImpl implements DubboTestApi {
 
     private OkHttpClient client;
 
-    private ExecutorService executorService;
+    private Executor executorService;
 
     public DubboTestApiImpl() {
         client = new OkHttpClient();
-        executorService = Executors.newSingleThreadExecutor();
+        executorService = new ExecutorServiceWrapper(Executors.newSingleThreadExecutor());
     }
 
     @Override
@@ -101,7 +100,7 @@ public class DubboTestApiImpl implements DubboTestApi {
             //e.printStackTrace();
         }
         if ("error".equals(arg1)) {
-            throw new RuntimeException();
+            throw new BizException("error");
         }
         return arg1;
     }
@@ -109,23 +108,33 @@ public class DubboTestApiImpl implements DubboTestApi {
     @Override
     public void asyncNoReturn(String arg1) {
         doSomething();
+        if ("error".equals(arg1)) {
+            throw new BizException("error");
+        }
     }
 
     @Override
     public CompletableFuture<String> asyncByFuture(final String arg1) {
         return CompletableFuture.supplyAsync(() -> {
             doSomething();
+            if ("error".equals(arg1)) {
+                throw new BizException("error");
+            }
             return arg1;
-        });
+        }, executorService);
     }
 
     @Override
     public String asyncByAsyncContext(String arg1) {
-        AsyncContext asyncContext = RpcContext.startAsync();
+        final AsyncContext asyncContext = RpcContext.startAsync();
         executorService.execute(new Runnable() {
             @Override
             public void run() {
                 doSomething();
+                if ("error".equals(arg1)) {
+                    asyncContext.write(new BizException("error"));
+                    return;
+                }
                 asyncContext.write(arg1);
             }
         });

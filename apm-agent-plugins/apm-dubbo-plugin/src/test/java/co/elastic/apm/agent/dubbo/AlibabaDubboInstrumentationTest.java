@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.dubbo;
 
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
+import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -118,5 +119,16 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void testAsyncException() {
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String arg = "error";
+        try {
+            dubboTestApi.async(arg);
+        } catch (Exception e) {
+            assertThat(e instanceof BizException).isTrue();
+        }
     }
 }
