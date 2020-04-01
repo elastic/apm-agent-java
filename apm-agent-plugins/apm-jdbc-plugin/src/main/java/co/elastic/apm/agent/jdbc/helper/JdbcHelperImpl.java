@@ -80,9 +80,13 @@ public class JdbcHelperImpl extends JdbcHelper {
         }
 
         Span span = parent.createSpan().activate();
-        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
-        if (spanName != null) {
-            SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+        if (sql.isEmpty()) {
+            span.withName("empty query");
+        } else {
+            StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+            if (spanName != null) {
+                SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+            }
         }
         // setting the type here is important
         // getting the meta data can result in another jdbc call
@@ -92,7 +96,7 @@ public class JdbcHelperImpl extends JdbcHelper {
 
         // write fields that do not rely on metadata
         span.getContext().getDb()
-            .withStatement(sql)
+            .withStatement(sql.isEmpty() ? "(empty query)" : sql)
             .withType("sql");
 
         Connection connection = safeGetConnection((Statement) statement);
