@@ -31,43 +31,20 @@ import javax.annotation.Nullable;
 
 public class AlibabaDubboAttachmentHelperImpl implements AlibabaDubboAttachmentHelper {
 
-    private static final String SEPARATOR = ",";
-
-    void doSetHeader(String headerName, String headerValue, Invocation invocation) {
-        RpcContext context = RpcContext.getContext();
-        context.setAttachment(headerName, headerValue);
-    }
-
-    String doGetHeader(String headerName, Invocation invocation) {
-        return invocation.getAttachment(headerName);
-    }
-
-
     @Nullable
     @Override
     public String getFirstHeader(String headerName, Invocation invocation) {
-        return doGetHeader(headerName, invocation);
+        return invocation.getAttachment(headerName);
     }
 
     @Override
     public <S> void forEach(String headerName, Invocation invocation, S state, HeaderConsumer<String, S> consumer) {
-        String headerValueStr = doGetHeader(headerName, invocation);
-        if (headerValueStr == null) {
-            return;
-        }
-        String[] headerValues = headerValueStr.split(SEPARATOR);
-        for (String headerValue : headerValues) {
-            consumer.accept(headerValue, state);
-        }
+        consumer.accept(invocation.getAttachment(headerName), state);
     }
 
     @Override
     public void setHeader(String headerName, String headerValue, Invocation invocation) {
-        String oldHeader = getFirstHeader(headerName, invocation);
-        String newHeader = headerValue;
-        if (oldHeader != null) {
-            newHeader = oldHeader + SEPARATOR + headerValue;
-        }
-        doSetHeader(headerName, newHeader, invocation);
+        RpcContext context = RpcContext.getContext();
+        context.setAttachment(headerName, headerValue);
     }
 }
