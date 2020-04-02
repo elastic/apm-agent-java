@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.profiler;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -143,7 +142,6 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     static final int RING_BUFFER_SIZE = 4 * 1024;
 
     private final ProfilingConfiguration config;
-    private final CoreConfiguration coreConfig;
     private final ScheduledExecutorService scheduler;
     private final Long2ObjectHashMap<CallTree.Root> profiledThreads = new Long2ObjectHashMap<>();
     private final RingBuffer<ActivationEvent> eventBuffer;
@@ -179,7 +177,6 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     public SamplingProfiler(final ElasticApmTracer tracer, ScheduledExecutorService scheduler, NanoClock nanoClock, File activationEventsFile, File jfrFile) throws IOException {
         this.tracer = tracer;
         this.config = tracer.getConfig(ProfilingConfiguration.class);
-        this.coreConfig = tracer.getConfig(CoreConfiguration.class);
         this.scheduler = scheduler;
         this.nanoClock = nanoClock;
         this.eventBuffer = createRingBuffer();
@@ -449,6 +446,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 logger.debug("Processing traces took {}µs", (System.nanoTime() - start) / 1000);
             }
             jfrParser.resetState();
+            resetActivationEventBuffer();
         }
     }
 
@@ -518,7 +516,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         }
     }
 
-    private void resetActivationEventBuffer() throws IOException {
+    public void resetActivationEventBuffer() throws IOException {
         ((Buffer) activationEventsBuffer).clear();
         activationEventsFileChannel.position(0L);
     }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
@@ -34,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,7 +64,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected volatile boolean finished = true;
     private int namePriority = PRIO_DEFAULT;
     @Nullable
-    private List<byte[]> successors;
+    private LongList successors;
 
     public int getReferenceCount() {
         return references.get();
@@ -340,11 +340,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     private boolean isSuccessor(AbstractSpan<?> parent) {
         if (parent.successors != null) {
-            for (byte[] successor : parent.successors) {
-                if (traceContext.getId().dataEquals(successor, 0)) {
-                    return true;
-                }
-            }
+            long id = traceContext.getId().readLong(0);
+            return parent.successors.contains(id);
         }
         return false;
     }
@@ -450,7 +447,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     protected abstract void recycle();
 
-    public T withSuccessors(@Nullable List<byte[]> successors) {
+    public T withSuccessors(@Nullable LongList successors) {
         this.successors = successors;
         return thiz();
     }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
@@ -79,7 +80,7 @@ public class CallTree implements Recyclable {
     private long deactivationTimestamp = -1;
     private boolean isSpan;
     @Nullable
-    private List<byte[]> successors;
+    private LongList successors;
 
     public CallTree() {
     }
@@ -410,9 +411,9 @@ public class CallTree implements Recyclable {
         }
     }
 
-    public void addSuccessor(byte[] id) {
+    public void addSuccessor(long id) {
         if (successors == null) {
-            successors = new ArrayList<>(2);
+            successors = new LongList(4);
         }
         successors.add(id);
     }

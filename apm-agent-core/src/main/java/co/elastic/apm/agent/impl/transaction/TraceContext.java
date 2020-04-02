@@ -751,10 +751,8 @@ public class TraceContext extends TraceContextHolder<TraceContext> {
         id.fromBytes(buffer, 16);
     }
 
-    public static byte[] getSpanId(byte[] serializedTraceContext) {
-        byte[] spanId = new byte[8];
-        System.arraycopy(serializedTraceContext, 16, spanId, 0, 8);
-        return spanId;
+    public static long getSpanId(byte[] serializedTraceContext) {
+        return ByteUtils.getLong(serializedTraceContext, 16);
     }
 
     public boolean traceIdAndIdEquals(byte[] serialized) {
