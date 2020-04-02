@@ -25,8 +25,12 @@
 package co.elastic.apm.agent.impl.circuitbreaker;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TestStressMonitor extends StressMonitor {
+
+    private static final Logger logger = LoggerFactory.getLogger(TestStressMonitor.class);
 
     private volatile boolean stressIndicator;
     private volatile int pollCounter;
@@ -55,6 +59,7 @@ class TestStressMonitor extends StressMonitor {
      * @return the poll counter at the time indicator had changed state
      */
     synchronized int simulateStress() {
+        logger.debug("simulate stress");
         stressIndicator = true;
         return pollCounter;
     }
@@ -65,12 +70,14 @@ class TestStressMonitor extends StressMonitor {
      * @return the poll counter at the time indicator had changed state
      */
     synchronized int simulateStressRelieved() {
+        logger.debug("simulate stress relief");
         stressIndicator = false;
         return pollCounter;
     }
 
     @Override
     synchronized boolean isUnderStress() {
+        logger.debug("is under stress = {}", stressIndicator);
         pollCounter++;
         return stressIndicator;
     }
