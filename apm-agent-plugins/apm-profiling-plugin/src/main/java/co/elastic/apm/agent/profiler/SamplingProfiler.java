@@ -485,7 +485,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 readActivationEventsToBuffer(activationEventsFileChannel, eof, buf);
             }
             long eventTimestamp = peekLong(buf);
-            if (eventTimestamp < previousTimestamp) {
+            if (eventTimestamp < previousTimestamp && logger.isDebugEnabled()) {
                 logger.debug("Timestamp of current activation event ({}) is lower than the one from the previous event ({})", eventTimestamp, previousTimestamp);
             }
             previousTimestamp = eventTimestamp;

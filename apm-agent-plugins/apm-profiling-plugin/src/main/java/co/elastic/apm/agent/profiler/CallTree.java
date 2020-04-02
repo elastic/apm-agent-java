@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -40,7 +39,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Converts a sequence of stack traces into a tree structure of method calls.
@@ -81,7 +79,7 @@ public class CallTree implements Recyclable {
     private long deactivationTimestamp = -1;
     private boolean isSpan;
     @Nullable
-    private List<Id> successors;
+    private List<byte[]> successors;
 
     public CallTree() {
     }
@@ -98,7 +96,7 @@ public class CallTree implements Recyclable {
     }
 
     protected void handleDeactivation(TraceContext deactivatedSpan, long activationTimestamp, long deactivationTimestamp) {
-        if (deactivatedSpan.equals(activeContextOfDirectParent)) {
+        if (deactivatedSpan.idEquals(activeContextOfDirectParent)) {
             this.deactivationTimestamp = deactivationTimestamp;
 
         } else {
@@ -144,7 +142,7 @@ public class CallTree implements Recyclable {
      * @param callTreePool
      * @param minDurationNs
      */
-    protected void addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
+    protected CallTree addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
         count++;
         lastSeen = nanoTime;
         //     c ee   <- traceContext not set - they are not a child of the active span but the frame below them
@@ -156,7 +154,7 @@ public class CallTree implements Recyclable {
 
         // this branch is already aware of the activation
         // this means the provided activeSpan is not a direct parent of new child nodes
-        if (Objects.equals(this.activeContextOfDirectParent, activeSpan)) {
+        if (activeSpan != null && this.activeContextOfDirectParent != null && this.activeContextOfDirectParent.idEquals(activeSpan)) {
             activeSpan = null;
         }
 
@@ -164,26 +162,28 @@ public class CallTree implements Recyclable {
         CallTree lastChild = getLastChild();
         // if the frame corresponding to the last child is not in the stack trace
         // it's assumed to have ended one tick ago
+        CallTree topOfStack = this;
         boolean endChild = true;
         if (index >= 1) {
             final StackFrame frame = stackFrames.get(--index);
             if (lastChild != null) {
                 if (!lastChild.isEnded() && frame.equals(lastChild.frame)) {
-                    lastChild.addFrame(stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
+                    topOfStack = lastChild.addFrame(stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
                     endChild = false;
                 } else {
-                    addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
+                    topOfStack = addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
                 }
             } else {
-                addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
+                topOfStack = addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
             }
         }
         if (lastChild != null && !lastChild.isEnded() && endChild) {
             lastChild.end(callTreePool, minDurationNs);
         }
+        return topOfStack;
     }
 
-    private void addChild(StackFrame frame, List<StackFrame> stackFrames, int index, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
+    private CallTree addChild(StackFrame frame, List<StackFrame> stackFrames, int index, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
         CallTree callTree = callTreePool.createInstance();
         callTree.set(this, frame, nanoTime);
         if (traceContext != null) {
@@ -191,6 +191,7 @@ public class CallTree implements Recyclable {
         }
         children.add(callTree);
         callTree.addFrame(stackFrames, index, null, activationTimestamp, nanoTime, callTreePool, minDurationNs);
+        return callTree;
     }
 
     long getDurationUs() {
@@ -223,7 +224,7 @@ public class CallTree implements Recyclable {
         // └[a(inferred)]   │  [b(inferred)]
         //  [b(infer.) ]    └► [c        ]
         //  └─[d(i.)]          └──[d(i.)]
-        // see also CallTreeTest::testDectivationBeforeEnd
+        // see also CallTreeTest::testDeactivationBeforeEnd
         if (deactivationHappenedBeforeEnd()) {
             start = Math.min(activationTimestamp, start);
             if (parent != null) {
@@ -357,7 +358,7 @@ public class CallTree implements Recyclable {
         span.appendToName(frame.getMethodName());
 
         // we're not interested in the very bottom of the stack which contains things like accepting and handling connections
-        if (!root.rootContext.equals(parentContext)) {
+        if (!root.rootContext.idEquals(parentContext)) {
             // we're never spanifying the root
             assert this.parent != null;
             List<StackFrame> stackTrace = new ArrayList<>();
@@ -409,20 +410,7 @@ public class CallTree implements Recyclable {
         }
     }
 
-    @Nullable
-    public CallTree getTopOfStack() {
-        if (isEnded()) {
-            return null;
-        }
-        CallTree lastChild = getLastChild();
-        if (lastChild == null || lastChild.isEnded()) {
-            return this;
-        } else {
-            return lastChild.getTopOfStack();
-        }
-    }
-
-    public void addSuccessor(Id id) {
+    public void addSuccessor(byte[] id) {
         if (successors == null) {
             successors = new ArrayList<>(2);
         }
@@ -470,6 +458,8 @@ public class CallTree implements Recyclable {
          * in its {@linkplain TraceContext#serialize serialized} form.
          */
         private byte[] activeSpanSerialized = new byte[TraceContext.SERIALIZED_LENGTH];
+        @Nullable
+        private CallTree topOfStack;
 
         public Root(ElasticApmTracer tracer) {
             this.rootContext = TraceContext.with64BitId(tracer);
@@ -490,11 +480,8 @@ public class CallTree implements Recyclable {
         public void onActivation(byte[] active, long timestamp) {
             setActiveSpan(active, timestamp);
             if (!getChildren().isEmpty()) {
-                CallTree topOfStack = getTopOfStack();
                 if (topOfStack != null) {
-                    Id activeSpanId = Id.new64BitId();
-                    TraceContext.deserializeSpanId(activeSpanId, active);
-                    topOfStack.addSuccessor(activeSpanId);
+                    topOfStack.addSuccessor(TraceContext.getSpanId(active));
                 }
             }
         }
@@ -517,7 +504,7 @@ public class CallTree implements Recyclable {
                 activeSpan = TraceContext.with64BitId(tracer);
                 activeSpan.deserialize(activeSpanSerialized, rootContext.getServiceName());
             }
-            addFrame(stackTrace, stackTrace.size(), activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
+            topOfStack = addFrame(stackTrace, stackTrace.size(), activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
         }
 
         /**
@@ -560,6 +547,7 @@ public class CallTree implements Recyclable {
             super.resetState();
             activeSpan = null;
             activationTimestamp = -1;
+            topOfStack = null;
         }
     }
 }

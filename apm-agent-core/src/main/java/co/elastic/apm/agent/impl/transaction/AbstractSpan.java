@@ -64,7 +64,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected volatile boolean finished = true;
     private int namePriority = PRIO_DEFAULT;
     @Nullable
-    private List<Id> successors;
+    private List<byte[]> successors;
 
     public int getReferenceCount() {
         return references.get();
@@ -340,7 +340,11 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     private boolean isSuccessor(AbstractSpan<?> parent) {
         if (parent.successors != null) {
-            return parent.successors.contains(traceContext.getId());
+            for (byte[] successor : parent.successors) {
+                if (traceContext.getId().dataEquals(successor, 0)) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -446,7 +450,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     protected abstract void recycle();
 
-    public T withSuccessors(@Nullable List<Id> successors) {
+    public T withSuccessors(@Nullable List<byte[]> successors) {
         this.successors = successors;
         return thiz();
     }

@@ -671,6 +671,12 @@ public class TraceContext extends TraceContextHolder<TraceContext> {
             traceId.equals(that.traceId);
     }
 
+    public boolean idEquals(@Nullable TraceContext o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        return id.equals(o.id);
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(traceId, id, parentId, flags);
@@ -743,6 +749,12 @@ public class TraceContext extends TraceContextHolder<TraceContext> {
 
     public static void deserializeSpanId(Id id, byte[] buffer) {
         id.fromBytes(buffer, 16);
+    }
+
+    public static byte[] getSpanId(byte[] serializedTraceContext) {
+        byte[] spanId = new byte[8];
+        System.arraycopy(serializedTraceContext, 16, spanId, 0, 8);
+        return spanId;
     }
 
     public boolean traceIdAndIdEquals(byte[] serialized) {

@@ -243,7 +243,7 @@ class CallTreeTest {
      *    []             []
      */
     @Test
-    void testDectivationBeforeEnd() throws Exception {
+    void testDeactivationBeforeEnd() throws Exception {
         assertCallTree(new String[]{
             "   dd      ",
             "   cccc c  ",
