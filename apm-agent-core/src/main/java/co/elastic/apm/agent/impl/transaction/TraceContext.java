@@ -75,8 +75,7 @@ import java.util.concurrent.Callable;
  *                      2, 1]
  * </pre>
  */
-@SuppressWarnings({"rawtypes"})
-public class TraceContext extends TraceContextHolder {
+public class TraceContext extends TraceContextHolder<TraceContext> {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
@@ -599,7 +598,7 @@ public class TraceContext extends TraceContextHolder {
     }
 
     @Override
-    public boolean isChildOf(TraceContextHolder parent) {
+    public boolean isChildOf(TraceContextHolder<?> parent) {
         return parent.getTraceContext().getTraceId().equals(traceId) && parent.getTraceContext().getId().equals(parentId);
     }
 
@@ -740,6 +739,10 @@ public class TraceContext extends TraceContextHolder {
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
         onMutation();
+    }
+
+    public static void deserializeSpanId(Id id, byte[] buffer) {
+        id.fromBytes(buffer, 16);
     }
 
     public boolean traceIdAndIdEquals(byte[] serialized) {

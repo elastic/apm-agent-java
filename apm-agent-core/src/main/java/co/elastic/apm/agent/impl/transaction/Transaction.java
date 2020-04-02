@@ -283,6 +283,11 @@ public class Transaction extends AbstractSpan<Transaction> {
         tracer.recycle(this);
     }
 
+    @Override
+    protected Transaction thiz() {
+        return this;
+    }
+
     void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {
         long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
         try {

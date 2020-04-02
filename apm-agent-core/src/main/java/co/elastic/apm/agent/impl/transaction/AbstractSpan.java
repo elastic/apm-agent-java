@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,6 +63,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
     private int namePriority = PRIO_DEFAULT;
+    @Nullable
+    private List<Id> successors;
 
     public int getReferenceCount() {
         return references.get();
@@ -220,7 +223,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
             this.name.append(cs);
             this.namePriority = priority;
         }
-        return (T) this;
+        return thiz();
     }
 
     public T withName(@Nullable String name) {
@@ -238,7 +241,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
             this.name.append(name);
             this.namePriority = priority;
         }
-        return (T) this;
+        return thiz();
     }
 
     /**
@@ -264,10 +267,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         childDurations.resetState();
         references.set(0);
         namePriority = PRIO_DEFAULT;
-    }
-
-    public boolean isChildOf(AbstractSpan<?> parent) {
-        return traceContext.isChildOf(parent.traceContext);
+        successors = null;
     }
 
     @Override
@@ -334,8 +334,19 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     protected abstract void afterEnd();
 
+    public boolean isChildOf(AbstractSpan<?> parent) {
+        return isChildOf(parent.traceContext) || isSuccessor(parent);
+    }
+
+    private boolean isSuccessor(AbstractSpan<?> parent) {
+        if (parent.successors != null) {
+            return parent.successors.contains(traceContext.getId());
+        }
+        return false;
+    }
+
     @Override
-    public boolean isChildOf(TraceContextHolder other) {
+    public boolean isChildOf(TraceContextHolder<?> other) {
         return getTraceContext().isChildOf(other);
     }
 
@@ -435,4 +446,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     protected abstract void recycle();
 
+    public T withSuccessors(@Nullable List<Id> successors) {
+        this.successors = successors;
+        return thiz();
+    }
+
+    protected abstract T thiz();
 }

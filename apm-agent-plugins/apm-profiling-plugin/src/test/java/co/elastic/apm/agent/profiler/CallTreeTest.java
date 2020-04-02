@@ -27,6 +27,7 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -63,13 +64,15 @@ class CallTreeTest {
 
     private MockReporter reporter;
     private ElasticApmTracer tracer;
+    private ProfilingConfiguration profilerConfig;
 
     @BeforeEach
     void setUp() {
         reporter = new MockReporter();
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         // disable scheduled profiling to not interfere with this test
-        when(config.getConfig(ProfilingConfiguration.class).isProfilingEnabled()).thenReturn(false);
+        profilerConfig = config.getConfig(ProfilingConfiguration.class);
+        when(profilerConfig.isProfilingEnabled()).thenReturn(false);
         tracer = MockTracer.createRealTracer(reporter, config);
     }
 
@@ -263,6 +266,30 @@ class CallTreeTest {
     }
 
     /*
+     * [1            ]    [1            ]
+     *  [a          ]      [a          ]
+     *   [2   ]  [3]        [b    ] [3]   <- b is supposed to stealSuccessorsFom(a)
+     *    [b   ]            [2   ]           however, it should only steal 2, not 3
+     */
+    @Test
+    void testDectivationBeforeEnd2() throws Exception {
+        assertCallTree(new String[]{
+            "   bbbb b      ",
+            " a aaaa aa a a ",
+            "1 2    2  3 3 1"
+        }, new Object[][] {
+            {"a",       9},
+            {"  b",     5},
+        }, new Object[][] {
+            {"1",       14},
+            {"  a",     12},
+            {"    b",    6},
+            {"      2",  5},
+            {"    3",    2},
+        });
+    }
+
+    /*
      * [1        ]    [1        ]
      *  [a      ]      [a      ]
      *   [b   ]    ->   [b    ]
@@ -290,6 +317,87 @@ class CallTreeTest {
             {"      c",     5},
             {"        2",   4},
             {"          d", 1},
+        });
+    }
+
+    @Test
+    void testCallTreeActivationAsParentOfFastSpan() throws Exception {
+        assertCallTree(new String[]{
+            "    b    ",
+            " aa a aa ",
+            "1  2 2  1"
+        }, new Object[][]{
+            {"a",     5}
+        }, new Object[][]{
+            {"1",     8},
+            {"  a",   6},
+            {"    2", 2},
+        });
+    }
+
+    @Test
+    void testCallTreeActivationAsLeaf() throws Exception {
+        assertCallTree(new String[]{
+            " aa  aa ",
+            "1  22  1"
+        }, new Object[][]{
+            {"a",     4}
+        }, new Object[][]{
+            {"1",     7},
+            {"  a",   5},
+            {"    2", 1},
+        });
+    }
+
+
+    @Test
+    void testCallTreeMultipleActivationsAsLeaf() throws Exception {
+        assertCallTree(new String[]{
+            " aa  aaa  aa ",
+            "1  22   33  1"
+        }, new Object[][]{
+            {"a",     7}
+        }, new Object[][]{
+            {"1",    12},
+            {"  a",  10},
+            {"    2", 1},
+            {"    3", 1},
+        });
+    }
+
+    @Test
+    void testCallTreeMultipleActivationsAsLeafWithExcludedParent() throws Exception {
+        when(profilerConfig.getInferredSpansMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        // min duration 4
+        assertCallTree(new String[]{
+            "  b  b c  c  ",
+            " aa  aaa  aa ",
+            "1  22   33  1"
+        }, new Object[][]{
+            {"a",     7}
+        }, new Object[][]{
+            {"1",    12},
+            {"  a",  10},
+            {"    2", 1},
+            {"    3", 1},
+        });
+    }
+
+    @Test
+    void testCallTreeMultipleActivationsWithOneChild() throws Exception {
+        assertCallTree(new String[]{
+            "         bb    ",
+            " aa  aaa aa aa ",
+            "1  22   3  3  1"
+        }, new Object[][]{
+            {"a",     9},
+            {"  b",   2}
+        }, new Object[][]{
+            {"1",     14},
+            {"  a",   12},
+            {"    2",  1},
+            {"    3",  3},
+            {"      b",1},
         });
     }
 
@@ -339,14 +447,10 @@ class CallTreeTest {
                 assertThat(spans).containsKey(spanName);
                 assertThat(spans).containsKey(parentName);
                 AbstractSpan<?> span = spans.get(spanName);
-                // span names denoted by digits are actual spans, not profiler-inferred spans
-                // currently, the parent of an actual span can't be an inferred span
-                if (!Character.isDigit(spanName.charAt(0))) {
-                    assertThat(span.getTraceContext().isChildOf(spans.get(parentName)))
-                        .withFailMessage("Expected %s (%s) to be a child of %s (%s) but was %s", spanName, span.getTraceContext().getId(),
-                            parentName, spans.get(parentName).getTraceContext().getId(), span.getTraceContext().getParentId())
-                        .isTrue();
-                }
+                assertThat(span.isChildOf(spans.get(parentName)))
+                    .withFailMessage("Expected %s (%s) to be a child of %s (%s) but was %s", spanName, span.getTraceContext().getId(),
+                        parentName, spans.get(parentName).getTraceContext().getId(), span.getTraceContext().getParentId())
+                    .isTrue();
                 assertThat(span.getDuration())
                     .describedAs("Unexpected duration for span %s", span)
                     .isEqualTo(durationMs * 1000);
@@ -417,7 +521,8 @@ class CallTreeTest {
                 root = profiler.getRoot();
                 assertThat(root).isNotNull();
             }
-            root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime, callTreePool, 0);
+            long millis = tracer.getConfig(ProfilingConfiguration.class).getInferredSpansMinDuration().getMillis();
+            root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime, callTreePool, TimeUnit.MILLISECONDS.toNanos(millis));
         }
         transaction.deactivate().end(nanoClock.nanoTime() / 1000);
         assertThat(root).isNotNull();

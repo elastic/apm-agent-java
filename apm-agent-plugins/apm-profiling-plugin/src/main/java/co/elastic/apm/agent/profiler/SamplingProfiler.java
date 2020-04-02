@@ -486,7 +486,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             }
             long eventTimestamp = peekLong(buf);
             if (eventTimestamp < previousTimestamp) {
-                logger.warn("Timestamp of current activation event ({}) is lower than the one from the previous event ({})", eventTimestamp, previousTimestamp);
+                logger.debug("Timestamp of current activation event ({}) is lower than the one from the previous event ({})", eventTimestamp, previousTimestamp);
             }
             previousTimestamp = eventTimestamp;
             if (eventTimestamp <= timestamp) {

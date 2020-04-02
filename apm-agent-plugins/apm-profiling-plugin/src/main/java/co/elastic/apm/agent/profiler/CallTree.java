@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -46,7 +47,7 @@ import java.util.Objects;
  * <pre>
  *             count
  *  b b     a      4
- * aaaa --o ├─b    1
+ * aaaa ──► ├─b    1
  *          └─b    1
  * </pre>
  * <p>
@@ -73,12 +74,14 @@ public class CallTree implements Recyclable {
     private long activationTimestamp = -1;
     /**
      * The context of the transaction or span which is the direct parent of this call tree node.
-     * Used in {@link #spanify(Root, TraceContext)} to override the parent.
+     * Used in {@link #spanify} to override the parent.
      */
     @Nullable
     private TraceContext activeContextOfDirectParent;
     private long deactivationTimestamp = -1;
     private boolean isSpan;
+    @Nullable
+    private List<Id> successors;
 
     public CallTree() {
     }
@@ -223,6 +226,10 @@ public class CallTree implements Recyclable {
         // see also CallTreeTest::testDectivationBeforeEnd
         if (deactivationHappenedBeforeEnd()) {
             start = Math.min(activationTimestamp, start);
+            if (parent != null) {
+                stealSuccessorsFrom(parent);
+            }
+
             List<CallTree> callTrees = getChildren();
             for (int i = 0, size = callTrees.size(); i < size; i++) {
                 CallTree child = callTrees.get(i);
@@ -235,15 +242,24 @@ public class CallTree implements Recyclable {
             activationTimestamp = -1;
             deactivationTimestamp = -1;
         }
-        if (parent != null && (count == 1 || isFasterThan(minDurationNs))) {
-            parent.children.remove(this);
-            recycle(pool);
+        if (parent != null && isTooFast(minDurationNs)) {
+            parent.removeChild(pool, this);
         } else {
             CallTree lastChild = getLastChild();
             if (lastChild != null && !lastChild.isEnded()) {
                 lastChild.end(pool, minDurationNs);
             }
         }
+    }
+
+    private boolean isTooFast(long minDurationNs) {
+        return count == 1 || isFasterThan(minDurationNs);
+    }
+
+    private void removeChild(ObjectPool<CallTree> pool, CallTree child) {
+        children.remove(child);
+        stealSuccessorsFrom(child);
+        child.recycle(pool);
     }
 
     private boolean isFasterThan(long minDurationNs) {
@@ -333,7 +349,8 @@ public class CallTree implements Recyclable {
     protected Span asSpan(Root root, TraceContext parentContext) {
         Span span = parentContext.createSpan(root.getEpochMicros(this.start))
             .withType("app")
-            .withSubtype("inferred");
+            .withSubtype("inferred")
+            .withSuccessors(successors);
 
         frame.appendSimpleClassName(span.getNameForSerialization());
         span.appendToName("#");
@@ -382,6 +399,7 @@ public class CallTree implements Recyclable {
         activeContextOfDirectParent = null;
         deactivationTimestamp = -1;
         isSpan = false;
+        successors = null;
         if (children.size() > INITIAL_CHILD_SIZE) {
             // the overwhelming majority of call tree nodes has either one or two children
             // don't let outliers grow all lists in the pool over time
@@ -389,6 +407,38 @@ public class CallTree implements Recyclable {
         } else {
             children.clear();
         }
+    }
+
+    @Nullable
+    public CallTree getTopOfStack() {
+        if (isEnded()) {
+            return null;
+        }
+        CallTree lastChild = getLastChild();
+        if (lastChild == null || lastChild.isEnded()) {
+            return this;
+        } else {
+            return lastChild.getTopOfStack();
+        }
+    }
+
+    public void addSuccessor(Id id) {
+        if (successors == null) {
+            successors = new ArrayList<>(2);
+        }
+        successors.add(id);
+    }
+
+    public void stealSuccessorsFrom(CallTree other) {
+        if (other.successors == null) {
+            return;
+        }
+        if (this.successors == null) {
+            this.successors = other.successors;
+        } else {
+            this.successors.addAll(other.successors);
+        }
+        other.successors = null;
     }
 
     /**
@@ -439,6 +489,14 @@ public class CallTree implements Recyclable {
 
         public void onActivation(byte[] active, long timestamp) {
             setActiveSpan(active, timestamp);
+            if (!getChildren().isEmpty()) {
+                CallTree topOfStack = getTopOfStack();
+                if (topOfStack != null) {
+                    Id activeSpanId = Id.new64BitId();
+                    TraceContext.deserializeSpanId(activeSpanId, active);
+                    topOfStack.addSuccessor(activeSpanId);
+                }
+            }
         }
 
         public void onDeactivation(byte[] deactivated, byte[] active, long timestamp) {
