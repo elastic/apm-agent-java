@@ -43,16 +43,6 @@ class TestStressMonitor extends StressMonitor {
         return pollCounter;
     }
 
-    void waitUntilPollCounterIsGreaterThan(int value) {
-        while (pollCounter <= value) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     /**
      * Simulates current stress in the system
      *

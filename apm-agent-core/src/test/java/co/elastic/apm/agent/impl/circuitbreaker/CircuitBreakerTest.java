@@ -108,7 +108,7 @@ public class CircuitBreakerTest {
     }
 
     @Test
-    void testTwoMonitors() {
+    void testTwoMonitors() throws InterruptedException {
         circuitBreakerConfiguration.circuitBreakerEnabled.set(true);
 
         TestStressMonitor secondMonitor = new TestStressMonitor(tracer);
@@ -125,28 +125,22 @@ public class CircuitBreakerTest {
         secondMonitor.simulateStress();
 
         // tracer should still be in PAUSED mode
-        assertPaused();
+        assertSteadyState(this::assertPaused, monitor, secondMonitor);
 
-        simulateReliefAndWaitPoll(monitor);
+        monitor.simulateStressRelieved();
 
         // tracer should still be in PAUSED mode, until ALL monitors allow resuming
-        assertPaused();
+        assertSteadyState(this::assertPaused, monitor, secondMonitor);
 
-        simulateReliefAndWaitPoll(secondMonitor);
-
-        assertRunning();
+        secondMonitor.simulateStressRelieved();
+        awaitRunning();
 
         circuitBreaker.unregisterStressMonitor(secondMonitor);
-    }
-
-    private static void simulateReliefAndWaitPoll(TestStressMonitor monitor){
-        awaitHasBeenPolled(monitor, monitor.simulateStressRelieved());
     }
 
     private static void awaitHasBeenPolled(TestStressMonitor monitor, final int pollCount) {
         awaitAssert(() -> assertThat(monitor.getPollCount()).isGreaterThan(pollCount + 1));
     }
-
 
     @Test
     void testPauseThroughConfigUnderStressThenResumeThroughConfig() throws IOException, InterruptedException {
@@ -166,16 +160,16 @@ public class CircuitBreakerTest {
 
         // 3 recording = false under stress should not change state
         TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
-        assertState(this::assertPaused);
+        assertSteadyState(this::assertPaused, monitor);
 
         // 4 stress ends, should still be paused due to recording = false
         monitor.simulateStressRelieved();
-        assertState(this::assertPaused);
+        assertSteadyState(this::assertPaused, monitor);
 
         // 5
         // configuration recording = true should make it run again
         TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
-        awaitRunning();
+        assertRunning();
     }
 
     @Test
@@ -196,11 +190,11 @@ public class CircuitBreakerTest {
 
         // 3 stress should keep it paused
         monitor.simulateStress();
-        assertState(this::assertPaused);
+        assertSteadyState(this::assertPaused, monitor);
 
         // 4 should not resume tracer as we are under stress
         TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
-        assertState(this::assertPaused);
+        assertSteadyState(this::assertPaused, monitor);
 
         // 5 stress relief now resumes tracer
         monitor.simulateStressRelieved();
@@ -215,7 +209,7 @@ public class CircuitBreakerTest {
         assertRunning();
 
         monitor.simulateStress();
-        assertState(this::assertRunning);
+        assertSteadyState(this::assertRunning, monitor);
 
         TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
         assertPaused();
@@ -252,10 +246,23 @@ public class CircuitBreakerTest {
         assertThat(tracer.getState()).isEqualTo(PAUSED);
     }
 
-    private void assertState(Runnable assertion) throws InterruptedException {
-        for (long i = 0; i < 10; i++) {
+    private static void assertSteadyState(Runnable assertion, TestStressMonitor... monitors) throws InterruptedException {
+        int[] monitorPolls = new int[monitors.length];
+        for (int i = 0; i < monitorPolls.length; i++) {
+            monitorPolls[i] = monitors[i].getPollCount();
+        }
+        boolean allPolled = false;
+        int retryCount = 50;
+        while (!allPolled && (retryCount-- > 0)) {
             assertion.run();
-            Thread.sleep(1);
+            Thread.sleep(1L);
+            int polledCount = 0;
+            for (int i = 0; i < monitorPolls.length; i++) {
+                if (monitorPolls[i] < monitors[i].getPollCount()) {
+                    polledCount++;
+                }
+            }
+            allPolled = polledCount == monitorPolls.length;
         }
         assertion.run();
     }
