@@ -15,6 +15,9 @@
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
         <version.spring>5.0.15.RELEASE</version.spring>
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
