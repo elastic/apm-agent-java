@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,10 +54,13 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         app = GrpcTest.getApp(getAppProvider());
         app.start();
 
-        tracer.startRootTransaction(AbstractGrpcClientInstrumentationTest.class.getClassLoader())
-            .withName("Test gRPC client")
-            .withType("test")
-            .activate();
+        Transaction transaction = tracer.startRootTransaction(AbstractGrpcClientInstrumentationTest.class.getClassLoader());
+
+        if (transaction != null) {
+            transaction.withName("Test gRPC client")
+                .withType("test")
+                .activate();
+        }
     }
 
     @AfterEach
