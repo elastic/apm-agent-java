@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,12 +24,12 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import org.apache.dubbo.rpc.AppResponse;
 
 import java.util.function.BiConsumer;
 
 public interface AsyncCallbackCreator {
 
-    BiConsumer<AppResponse, Throwable> create(Span span);
+    BiConsumer<AppResponse, Throwable> create(AbstractSpan<?> span, Object[] args);
 }

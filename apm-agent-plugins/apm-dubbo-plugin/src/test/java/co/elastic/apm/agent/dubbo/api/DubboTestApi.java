@@ -32,8 +32,6 @@ public interface DubboTestApi {
 
     String throwBizException(String arg1);
 
-    String throwUnexpectedException(String arg1);
-
     String timeout(String arg);
 
     String async(String arg1);

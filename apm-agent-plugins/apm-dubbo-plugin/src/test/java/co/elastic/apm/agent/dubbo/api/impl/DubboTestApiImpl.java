@@ -78,11 +78,6 @@ public class DubboTestApiImpl implements DubboTestApi {
     }
 
     @Override
-    public String throwUnexpectedException(String arg1) {
-        throw new RuntimeException("test unexpected exception");
-    }
-
-    @Override
     public String timeout(String arg) {
         try {
             Thread.sleep(1100);
@@ -154,7 +149,7 @@ public class DubboTestApiImpl implements DubboTestApi {
 
     private void doSomething() {
         try {
-            Thread.sleep(100);
+            Thread.sleep(10);
             invokeHttp();
         } catch (InterruptedException e) {
         }

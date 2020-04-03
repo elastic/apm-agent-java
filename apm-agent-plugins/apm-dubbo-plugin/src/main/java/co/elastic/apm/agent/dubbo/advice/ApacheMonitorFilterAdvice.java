@@ -29,9 +29,9 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -56,7 +56,6 @@ public class ApacheMonitorFilterAdvice {
     public static void init(ElasticApmTracer tracer) {
         ApacheMonitorFilterAdvice.tracer = tracer;
         DubboTraceHelper.init(tracer);
-        IgnoreExceptionHelper.init(tracer);
         attachmentHelperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelperImpl");
         asyncCallbackCreatorClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
@@ -66,11 +65,9 @@ public class ApacheMonitorFilterAdvice {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnterFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                            @Advice.Local("span") Span span,
-                                           @Advice.Local("apiClazz") Class<?> apiClazz,
                                            @Advice.Local("transaction") Transaction transaction,
                                            @Advice.Local("scope") Scope scope) {
         RpcContext context = RpcContext.getContext();
-        apiClazz = invocation.getInvoker().getInterface();
         ApacheDubboAttachmentHelper helper = attachmentHelperClassManager.getForClassLoaderOfClass(Invocation.class);
         if (helper == null) {
             return;
@@ -81,7 +78,7 @@ public class ApacheMonitorFilterAdvice {
                 return;
             }
 
-            span = DubboTraceHelper.createConsumerSpan(apiClazz, invocation.getMethodName(), invocation.getParameterTypes(),
+            span = DubboTraceHelper.createConsumerSpan(invocation.getInvoker().getInterface(), invocation.getMethodName(), invocation.getParameterTypes(),
                 context.getUrl().getParameter("version"), context.getRemoteAddress());
             if (span != null) {
                 span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
@@ -94,7 +91,8 @@ public class ApacheMonitorFilterAdvice {
         transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
         if (transaction != null) {
             scope = transaction.activateInScope();
-            DubboTraceHelper.fillTransaction(transaction, apiClazz, invocation.getMethodName(),
+            DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(),
+                invocation.getMethodName(),
                 invocation.getParameterTypes(),
                 context.getUrl().getParameter("version"));
         }
@@ -104,53 +102,27 @@ public class ApacheMonitorFilterAdvice {
     public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                           @Advice.Return Result result,
                                           @Advice.Local("span") final Span span,
-                                          @Advice.Local("apiClazz") Class<?> apiClazz,
                                           @Advice.Thrown Throwable t,
                                           @Advice.Local("transaction") Transaction transaction,
                                           @Advice.Local("scope") Scope scope) {
 
-        Throwable actualExp = t != null ? t : result.getException();
         RpcContext context = RpcContext.getContext();
-        if (context.isConsumerSide()) {
-            if (span == null) {
-                return;
-            }
-            try {
-                if (actualExp != null) {
-                    if (DubboTraceHelper.isBizException(apiClazz, actualExp.getClass())) {
-                        IgnoreExceptionHelper.addIgnoreException(actualExp);
-                    }
-                }
-                //for consumer side, no need to capture exception, let upper application handle it or capture it
-                if (result instanceof AsyncRpcResult) {
-                    AsyncRpcResult asyncResult = (AsyncRpcResult) result;
-                    AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(AppResponse.class);
-                    if (callbackCreator != null) {
-                        asyncResult.getResponseFuture().whenComplete(callbackCreator.create(span));
-                    }
-                }
-            } finally {
-                span.deactivate();
-            }
+        AbstractSpan<?> actualSpan = context.isConsumerSide() ? span : transaction;
+        AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(AppResponse.class);
+        if (actualSpan == null || callbackCreator == null) {
             return;
         }
 
-        // provider side
-        if (scope != null) {
-            scope.close();
-        }
-        if (transaction != null) {
-            try {
-                boolean hasError = actualExp != null
-                    && !DubboTraceHelper.isBizException(invocation.getInvoker().getInterface(), actualExp.getClass());
-                if (hasError) {
-                    transaction.captureException(actualExp);
-                }
-                Object ret = result != null ? result.getValue() : null;
-                DubboTraceHelper.doCapture(invocation.getArguments(), actualExp, ret);
-            } finally {
-                transaction.deactivate().end();
+        try {
+            if (scope != null) {
+                scope.close();
             }
+            if (result instanceof AsyncRpcResult) {
+                AsyncRpcResult asyncResult = (AsyncRpcResult) result;
+                asyncResult.getResponseFuture().whenComplete(callbackCreator.create(actualSpan, invocation.getArguments()));
+            }
+        } finally {
+            actualSpan.deactivate();
         }
     }
 }

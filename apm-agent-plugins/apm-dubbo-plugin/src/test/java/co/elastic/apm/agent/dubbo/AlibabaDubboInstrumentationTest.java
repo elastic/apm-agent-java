@@ -24,9 +24,11 @@
  */
 package co.elastic.apm.agent.dubbo;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.alibaba.dubbo.config.ApplicationConfig;
@@ -40,10 +42,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
@@ -78,7 +80,7 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         referenceConfig.setApplication(consumerApp);
         referenceConfig.setInterface(DubboTestApi.class);
         referenceConfig.setUrl("dubbo://localhost:" + getPort());
-        referenceConfig.setTimeout(1000);
+        referenceConfig.setTimeout(3000);
 
         List<MethodConfig> methodConfigList = new LinkedList<>();
         referenceConfig.setMethods(methodConfigList);
@@ -122,13 +124,87 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
     }
 
     @Test
-    public void testAsyncException() {
+    public void testAsyncException() throws Exception {
         DubboTestApi dubboTestApi = getDubboTestApi();
         String arg = "error";
         try {
             dubboTestApi.async(arg);
+            Future<Object> future = RpcContext.getContext().getFuture();
+            assertThat(future).isNotNull();
+            future.get();
         } catch (Exception e) {
-            assertThat(e instanceof BizException).isTrue();
+            // exception from Future will be wrapped as RpcException by dubbo implementation
+            assertThat(e.getCause() instanceof BizException).isTrue();
+            List<Transaction> transactions = reporter.getTransactions();
+            assertThat(transactions.size()).isEqualTo(1);
+            assertThat(reporter.getFirstSpan(500)).isNotNull();
+            List<Span> spans = reporter.getSpans();
+            assertThat(spans.size()).isEqualTo(1);
+
+            List<ErrorCapture> errors = reporter.getErrors();
+            assertThat(errors.size()).isEqualTo(2);
+            for (ErrorCapture error : errors) {
+                Throwable t = error.getException();
+                assertThat(t instanceof BizException).isTrue();
+            }
+            return;
+        }
+        throw new RuntimeException("not ok");
+    }
+
+    @Test
+    public void testAsyncCaptureTransaction() throws Exception {
+        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
+        String arg = "hello";
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        dubboTestApi.async(arg);
+        Future<Object> future = RpcContext.getContext().getFuture();
+        future.get();
+        Transaction transaction = reporter.getFirstTransaction(5000);
+        validateNormalReturnCapture(transaction, new Object[]{arg}, arg);
+    }
+
+    @Test
+    public void testAsyncCaptureError() throws Exception {
+        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
+        String arg = "hello";
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        dubboTestApi.async(arg);
+        Future<Object> future = RpcContext.getContext().getFuture();
+        future.get();
+        Transaction transaction = reporter.getFirstTransaction(5000);
+        noCaptureBody(transaction);
+    }
+
+    @Test
+    public void testAsyncExceptionCaptureTransaction() {
+        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String arg = "error";
+        try {
+            dubboTestApi.async(arg);
+            Future<Object> future = RpcContext.getContext().getFuture();
+            assertThat(future).isNotNull();
+            future.get();
+        } catch (Exception e) {
+            Transaction transaction = reporter.getFirstTransaction(5000);
+            validateBizExceptionCapture(transaction, new Object[]{arg}, e.getCause());
+        }
+    }
+
+    @Test
+    public void testAsyncExceptionCaptureError() {
+        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        String arg = "error";
+        try {
+            dubboTestApi.async(arg);
+            Future<Object> future = RpcContext.getContext().getFuture();
+            assertThat(future).isNotNull();
+            future.get();
+        } catch (Exception e) {
+            Transaction transaction = reporter.getFirstTransaction(5000);
+            validateBizExceptionCapture(transaction, new Object[]{arg}, e.getCause());
         }
     }
 }

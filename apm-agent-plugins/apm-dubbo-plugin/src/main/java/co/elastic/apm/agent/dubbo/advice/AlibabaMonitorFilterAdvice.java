@@ -28,13 +28,11 @@ import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.alibaba.dubbo.rpc.Invocation;
-import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcContext;
 import net.bytebuddy.asm.Advice;
@@ -51,7 +49,6 @@ public class AlibabaMonitorFilterAdvice {
     public static void init(ElasticApmTracer tracer) {
         AlibabaMonitorFilterAdvice.tracer = tracer;
         DubboTraceHelper.init(tracer);
-        IgnoreExceptionHelper.init(tracer);
         helperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelperImpl");
     }
@@ -63,7 +60,6 @@ public class AlibabaMonitorFilterAdvice {
                                            @Advice.Local("transaction") Transaction transaction,
                                            @Advice.Local("scope") Scope scope) {
         RpcContext context = RpcContext.getContext();
-        apiClazz = invocation.getInvoker().getInterface();
         AlibabaDubboAttachmentHelper helper = helperManager.getForClassLoaderOfClass(Invocation.class);
         if (helper == null) {
             return;
@@ -73,7 +69,8 @@ public class AlibabaMonitorFilterAdvice {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
-            span = DubboTraceHelper.createConsumerSpan(apiClazz, invocation.getMethodName(), invocation.getParameterTypes(),
+            span = DubboTraceHelper.createConsumerSpan(invocation.getInvoker().getInterface(),
+                invocation.getMethodName(), invocation.getParameterTypes(),
                 context.getUrl().getParameter("version"), context.getRemoteAddress());
             if (span != null) {
                 span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
@@ -86,7 +83,8 @@ public class AlibabaMonitorFilterAdvice {
         transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
         if (transaction != null) {
             scope = transaction.activateInScope();
-            DubboTraceHelper.fillTransaction(transaction, apiClazz, invocation.getMethodName(), invocation.getParameterTypes(),
+            DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(),
+                invocation.getMethodName(), invocation.getParameterTypes(),
                 context.getUrl().getParameter("version"));
         }
     }
@@ -95,7 +93,6 @@ public class AlibabaMonitorFilterAdvice {
     public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                           @Advice.Return Result result,
                                           @Advice.Local("span") Span span,
-                                          @Advice.Local("apiClazz") Class<?> apiClazz,
                                           @Advice.Thrown Throwable t,
                                           @Advice.Local("transaction") Transaction transaction,
                                           @Advice.Local("scope") Scope scope) {
@@ -107,11 +104,9 @@ public class AlibabaMonitorFilterAdvice {
             }
             try {
                 if (actualExp != null) {
-                    if (DubboTraceHelper.isBizException(apiClazz, actualExp.getClass())) {
-                        IgnoreExceptionHelper.addIgnoreException(actualExp);
-                    }
+                    span.captureException(actualExp);
                 }
-                //for consumer side, no need to capture exception, let upper application handle it or capture it
+
             } finally {
                 span.deactivate();
                 if (context.getFuture() == null) {
@@ -130,13 +125,12 @@ public class AlibabaMonitorFilterAdvice {
 
         if (transaction != null) {
             try {
-                boolean hasError = actualExp != null
-                    && !DubboTraceHelper.isBizException(invocation.getInvoker().getInterface(), actualExp.getClass());
-                if (hasError) {
+                if (actualExp != null) {
                     transaction.captureException(actualExp);
                 }
+
                 Object ret = result != null ? result.getValue() : null;
-                DubboTraceHelper.doCapture(invocation.getArguments(), actualExp, ret);
+                DubboTraceHelper.doCapture(transaction, invocation.getArguments(), actualExp, ret);
             } finally {
                 transaction.deactivate().end();
             }

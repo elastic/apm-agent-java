@@ -24,7 +24,8 @@
  */
 package co.elastic.apm.agent.dubbo.helper;
 
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.dubbo.rpc.AppResponse;
 
 import java.util.function.BiConsumer;
@@ -32,21 +33,38 @@ import java.util.function.BiConsumer;
 public class AsyncCallbackCreatorImpl implements AsyncCallbackCreator {
 
     @Override
-    public BiConsumer<AppResponse, Throwable> create(Span span) {
-        return new AsyncCallback(span);
+    public BiConsumer<AppResponse, Throwable> create(AbstractSpan<?> span, Object[] args) {
+        return new AsyncCallback(span, args);
     }
 
     public static class AsyncCallback implements BiConsumer<AppResponse, Throwable> {
 
-        private Span span;
+        private AbstractSpan<?> span;
 
-        public AsyncCallback(Span span) {
+        private Object[] args;
+
+        public AsyncCallback(AbstractSpan<?> span, Object[] args) {
             this.span = span;
+            this.args = args;
         }
 
         @Override
-        public void accept(AppResponse appResponse, Throwable throwable) {
-            span.end();
+        public void accept(AppResponse appResponse, Throwable t) {
+            try {
+                Throwable actualExp = t != null ? t : appResponse.getException();
+                if (actualExp != null) {
+                    span.captureException(actualExp);
+                }
+
+                //only provider transaction capture args and return value or exception
+                if (span instanceof Transaction) {
+                    DubboTraceHelper.doCapture(
+                        (Transaction) span, args, actualExp,
+                        appResponse != null ? appResponse.getValue() : null);
+                }
+            } finally {
+                span.end();
+            }
         }
     }
 }

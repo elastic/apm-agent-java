@@ -27,11 +27,11 @@ package co.elastic.apm.agent.dubbo.advice;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
-import co.elastic.apm.agent.dubbo.helper.IgnoreExceptionHelper;
 import co.elastic.apm.agent.dubbo.helper.WrapperCreator;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcContext;
 import net.bytebuddy.asm.Advice;
 
@@ -45,7 +45,6 @@ public class AlibabaResponseFutureAdvice {
     public static void init(ElasticApmTracer tracer) {
         AlibabaResponseFutureAdvice.tracer = tracer;
         DubboTraceHelper.init(tracer);
-        IgnoreExceptionHelper.init(tracer);
         helperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             AlibabaResponseFutureAdvice.class.getName() + "$CallbackWrapperCreator",
             AlibabaResponseFutureAdvice.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
@@ -63,8 +62,6 @@ public class AlibabaResponseFutureAdvice {
 
         Span span = (Span) context.get(DubboTraceHelper.SPAN_KEY);
         if (span == null) {
-            System.out.println(context);
-            System.out.println("async consumer, but no async span");
             return;
         }
         callback = wrapperCreator.wrap(callback, span);
@@ -92,6 +89,12 @@ public class AlibabaResponseFutureAdvice {
             @Override
             public void done(Object response) {
                 try {
+                    if (response instanceof Result) {
+                        Result result = (Result) response;
+                        if (result.hasException()) {
+                            span.captureException(result.getException());
+                        }
+                    }
                     delegate.done(response);
                 } finally {
                     if (span != null) {
@@ -103,6 +106,7 @@ public class AlibabaResponseFutureAdvice {
             @Override
             public void caught(Throwable exception) {
                 try {
+                    span.captureException(exception);
                     delegate.caught(exception);
                 } finally {
                     if (span != null) {

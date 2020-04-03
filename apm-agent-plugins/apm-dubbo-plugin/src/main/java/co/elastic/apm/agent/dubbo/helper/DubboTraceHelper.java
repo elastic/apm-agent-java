@@ -34,9 +34,6 @@ import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import java.net.InetSocketAddress;
-import java.net.URL;
-import java.security.CodeSource;
-import java.security.ProtectionDomain;
 
 @VisibleForAdvice
 public class DubboTraceHelper {
@@ -108,35 +105,7 @@ public class DubboTraceHelper {
         transaction.activate();
     }
 
-    public static boolean isBizException(Class<?> interfaceClass, Class<?> exp) {
-        String apiJarFile = getJarFile(interfaceClass);
-        if (apiJarFile == null) {
-            return false;
-        }
-        return apiJarFile.equals(getJarFile(exp));
-    }
-
-    public static String getJarFile(Class<?> clazz) {
-        if (clazz == null) {
-            return null;
-        }
-        ProtectionDomain domain = clazz.getProtectionDomain();
-        if (domain == null) {
-            return null;
-        }
-        CodeSource source = domain.getCodeSource();
-        if (source == null) {
-            return null;
-        }
-        URL location = source.getLocation();
-        if (location == null) {
-            return null;
-        }
-        return location.getFile();
-    }
-
-    public static void doCapture(Object[] args, Throwable t, Object returnValue) {
-        Transaction transaction = tracer.currentTransaction();
+    public static void doCapture(Transaction transaction, Object[] args, Throwable t, Object returnValue) {
         if (transaction == null) {
             return;
         }

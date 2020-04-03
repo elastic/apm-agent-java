@@ -28,7 +28,6 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
-import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -48,7 +47,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
     private DubboTestApi dubboTestApi;
 
-    private static CoreConfiguration coreConfig;
+    static CoreConfiguration coreConfig;
 
     @BeforeAll
     static void initInstrumentation() {
@@ -98,26 +97,6 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     }
 
     @Test
-    public void testUnexpectedException() {
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        try {
-            dubboTestApi.throwUnexpectedException("unexpectedException-arg1");
-        } catch (Exception e) {
-            // do nothing
-        }
-
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions.size()).isEqualTo(1);
-        Transaction transaction = transactions.get(0);
-        noCaptureBody(transaction);
-
-        List<ErrorCapture> errors = reporter.getErrors();
-        assertThat(errors.size()).isEqualTo(1);
-        ErrorCapture error = errors.get(0);
-        assertThat(error.getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
-    }
-
-    @Test
     public void testBizException() {
         DubboTestApi dubboTestApi = getDubboTestApi();
         try {
@@ -129,7 +108,11 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
         noCaptureBody(reporter.getTransactions().get(0));
         List<ErrorCapture> errors = reporter.getErrors();
-        assertThat(errors.size()).isEqualTo(0);
+        assertThat(errors.size()).isEqualTo(2);
+        for (ErrorCapture error : errors) {
+            Throwable t = error.getException();
+            assertThat(t instanceof BizException).isTrue();
+        }
     }
 
     @Test
@@ -159,7 +142,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         DubboTestApi dubboTestApi = getDubboTestApi();
         try {
             dubboTestApi.throwBizException(arg);
-        } catch (Exception e) {
+        } catch (BizException e) {
             List<Transaction> transactions = reporter.getTransactions();
             assertThat(transactions.size()).isEqualTo(1);
             validateBizExceptionCapture(transactions.get(0), new Object[]{arg}, e);
@@ -175,42 +158,10 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         DubboTestApi dubboTestApi = getDubboTestApi();
         try {
             dubboTestApi.throwBizException(arg);
-        } catch (Exception e) {
+        } catch (BizException e) {
             List<Transaction> transactions = reporter.getTransactions();
             assertThat(transactions.size()).isEqualTo(1);
             validateBizExceptionCapture(transactions.get(0), new Object[]{arg}, e);
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
-    public void testUnexpectedExceptionAndCaptureError() {
-        String arg = "unexpectedException";
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        try {
-            dubboTestApi.throwUnexpectedException(arg);
-        } catch (Exception e) {
-            List<Transaction> transactions = reporter.getTransactions();
-            assertThat(transactions.size()).isEqualTo(1);
-            validateUnexpectedExceptionCapture(transactions.get(0), new Object[]{arg}, e);
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
-    public void testUnexpectedExceptionAndCaptureTransaction() {
-        String arg = "unexpectedException";
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        try {
-            dubboTestApi.throwUnexpectedException(arg);
-        } catch (Exception e) {
-            List<Transaction> transactions = reporter.getTransactions();
-            assertThat(transactions.size()).isEqualTo(1);
-            validateUnexpectedExceptionCapture(transactions.get(0), new Object[]{arg}, e);
             return;
         }
         throw new RuntimeException("not ok");
@@ -227,25 +178,34 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getSpans()).hasSize(2);
     }
 
+    @Test
+    public void testAsyncNoReturnException() throws Exception {
+        DubboTestApi dubboTestApi = getDubboTestApi();
+        dubboTestApi.asyncNoReturn("error");
 
-    private void noCaptureBody(Transaction transaction) {
+        assertThat(reporter.getFirstTransaction(5000)).isNotNull();
+        assertThat(reporter.getFirstSpan(5000)).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(2);
+        List<ErrorCapture> errors = reporter.getErrors();
+        assertThat(errors).hasSize(1);
+        assertThat(errors.get(0).getException() instanceof BizException).isTrue();
+    }
+
+    void noCaptureBody(Transaction transaction) {
         assertThat(transaction.getContext().hasCustom()).isFalse();
     }
 
-    private void validateNormalReturnCapture(Transaction transaction, Object[] args, Object returnValue) {
+    void validateNormalReturnCapture(Transaction transaction, Object[] args, Object returnValue) {
         TransactionContext context = transaction.getContext();
         validateArgs(args, context);
         assertThat(context.getCustom("return")).isEqualTo(returnValue != null ? returnValue.toString() : "null");
     }
 
-    private void validateBizExceptionCapture(Transaction transaction, Object[] args, Throwable t) {
+    void validateBizExceptionCapture(Transaction transaction, Object[] args, Throwable t) {
         TransactionContext context = transaction.getContext();
         validateArgs(args, context);
         assertThat(context.getCustom("throw")).isEqualTo(t.toString());
-    }
-
-    private void validateUnexpectedExceptionCapture(Transaction transaction, Object[] args, Throwable t) {
-        validateBizExceptionCapture(transaction, args, t);
     }
 
     private void validateArgs(Object[] args, TransactionContext context) {
