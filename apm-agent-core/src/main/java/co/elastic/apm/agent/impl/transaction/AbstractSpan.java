@@ -63,6 +63,30 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
     private int namePriority = PRIO_DEFAULT;
+    /**
+     * <p>
+     * This use case for successors is modifying parent/child relationships for profiler-inferred spans.
+     * Inferred spans are sent after a profiling session ends (5s by default) and after stack traces have been processed into inferred spans.
+     * Regular spans are sent right after the event (for example a DB call) has occurred.
+     * The effect is that a regular span cannot have a {@link TraceContext#parentId} pointing to an inferred span.
+     * That is because the latter did not exist at the time the regular span has been created.
+     * </p>
+     * <p>
+     * To work around this problem, inferred spans can point to their children (aka successors).
+     * The UI does an operation known as "transitive reduction".
+     * What this does in this scenario is that it ignores the parent ID of a regular span if there's an inferred span
+     * with a {@code successor_id} for this span.
+     * </p>
+     * <pre>
+     * ██████████████████████████████  transaction
+     * ↑ ↑ parent_id
+     * ╷ └──████████████████████       inferred span
+     * ╷         ↓ successor_id
+     * └╶╶╶╶╶╶╶╶╶██████████            DB span
+     *  parent_id
+     *  (removed via transitive reduction)
+     * </pre>
+     */
     @Nullable
     private LongList successors;
 

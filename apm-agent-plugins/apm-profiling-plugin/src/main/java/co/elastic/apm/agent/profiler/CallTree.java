@@ -79,6 +79,9 @@ public class CallTree implements Recyclable {
     private TraceContext activeContextOfDirectParent;
     private long deactivationTimestamp = -1;
     private boolean isSpan;
+    /**
+     * @see co.elastic.apm.agent.impl.transaction.AbstractSpan#successors
+     */
     @Nullable
     private LongList successors;
 
