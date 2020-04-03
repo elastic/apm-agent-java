@@ -65,13 +65,15 @@ public abstract class AbstractInstrumentationTest {
         ElasticApmAgent.reset();
     }
 
-    public static void staticReset() {
+    public static synchronized void staticReset() {
         SpyConfiguration.reset(config);
         reporter.reset();
 
         // resume tracer in case it has been paused
         // otherwise the 1st test that pauses tracer will have side effects on others
-        TracerInternalApiUtils.resumeTracer(tracer);
+        if (!tracer.isRunning()) {
+            TracerInternalApiUtils.resumeTracer(tracer);
+        }
     }
 
     public static ElasticApmTracer getTracer() {
