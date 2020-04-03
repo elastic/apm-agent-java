@@ -42,9 +42,10 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.IOUtils;
@@ -60,8 +61,8 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -387,14 +388,17 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanSuccessorSerialization() {
+        Id id1 = Id.new64BitId();
+        id1.setToRandomValue();
+        Id id2 = Id.new64BitId();
+        id2.setToRandomValue();
         Span span = new Span(MockTracer.create());
-        span.withSuccessors(LongList.of(1, 2, 3));
+        span.withSuccessors(LongList.of(id1.getLeastSignificantBits(), id2.getLeastSignificantBits()));
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode successor_ids = spanJson.get("successor_ids");
-        assertThat(successor_ids.get(0).longValue()).isEqualTo(1);
-        assertThat(successor_ids.get(1).longValue()).isEqualTo(2);
-        assertThat(successor_ids.get(2).longValue()).isEqualTo(3);
+        assertThat(successor_ids.get(0).textValue()).isEqualTo(id1.toString());
+        assertThat(successor_ids.get(1).textValue()).isEqualTo(id2.toString());
     }
 
     @Test
@@ -592,11 +596,13 @@ class DslJsonSerializerTest {
     @Test
     void testTransactionSuccessorSerialization() {
         Transaction span = new Transaction(MockTracer.create());
-        span.withSuccessors(LongList.of(1));
+        Id id = Id.new64BitId();
+        id.setToRandomValue();
+        span.withSuccessors(LongList.of(id.getLeastSignificantBits()));
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode successorIds = spanJson.get("successor_ids");
-        assertThat(successorIds.get(0).longValue()).isEqualTo(1);
+        assertThat(successorIds.get(0).textValue()).isEqualTo(id.toString());
     }
 
     @Test

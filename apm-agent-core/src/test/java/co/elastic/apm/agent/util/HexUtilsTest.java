@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.util;
 
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -60,5 +62,15 @@ class HexUtilsTest {
         // reads the first two chars and converts "0a" to (byte) 10
         HexUtils.nextBytes("0a0", 0, bytes);
         assertThat(bytes).isEqualTo(new byte[]{10});
+    }
+
+    @Test
+    void testLongToHex() {
+        byte[] bytes = new byte[8];
+        HexUtils.nextBytes("09c2572177fdae24", 0, bytes);
+        long l = ByteUtils.getLong(bytes, 0);
+        JsonWriter jw = new DslJson<>().newWriter();
+        HexUtils.writeAsHex(l, jw);
+        assertThat(jw.toString()).isEqualTo("09c2572177fdae24");
     }
 }
