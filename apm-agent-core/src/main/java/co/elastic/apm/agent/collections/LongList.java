@@ -3,8 +3,13 @@ package co.elastic.apm.agent.collections;
 import java.util.Arrays;
 
 public class LongList {
+    private static final int DEFAULT_CAPACITY = 16;
     private long[] longs;
     private int size;
+
+    public LongList() {
+        this(DEFAULT_CAPACITY);
+    }
 
     public LongList(int initialCapacity) {
         longs = new long[initialCapacity];
@@ -32,7 +37,10 @@ public class LongList {
         return size;
     }
 
-    public long getAt(int i) {
+    public long get(int i) {
+        if (i >= size) {
+            throw new IndexOutOfBoundsException();
+        }
         return longs[i];
     }
 

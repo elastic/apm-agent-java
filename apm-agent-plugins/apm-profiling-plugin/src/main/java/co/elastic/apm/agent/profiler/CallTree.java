@@ -413,7 +413,7 @@ public class CallTree implements Recyclable {
 
     public void addSuccessor(long id) {
         if (successors == null) {
-            successors = new LongList(4);
+            successors = new LongList();
         }
         successors.add(id);
     }
