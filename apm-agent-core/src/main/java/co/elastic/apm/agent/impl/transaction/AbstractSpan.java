@@ -452,5 +452,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         return thiz();
     }
 
+    @Nullable
+    public LongList getSuccessors() {
+        return successors;
+    }
+
     protected abstract T thiz();
 }

@@ -26,6 +26,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -385,6 +386,18 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testSpanSuccessorSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.withSuccessors(LongList.of(1, 2, 3));
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode successor_ids = spanJson.get("successor_ids");
+        assertThat(successor_ids.get(0).longValue()).isEqualTo(1);
+        assertThat(successor_ids.get(1).longValue()).isEqualTo(2);
+        assertThat(successor_ids.get(2).longValue()).isEqualTo(3);
+    }
+
+    @Test
     void testInlineReplacement() {
         StringBuilder sb = new StringBuilder("this.is.a.string");
         DslJsonSerializer.replace(sb, ".", "_DOT_", 6);
@@ -574,6 +587,16 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(0);
+    }
+
+    @Test
+    void testTransactionSuccessorSerialization() {
+        Transaction span = new Transaction(MockTracer.create());
+        span.withSuccessors(LongList.of(1));
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode successorIds = spanJson.get("successor_ids");
+        assertThat(successorIds.get(0).longValue()).isEqualTo(1);
     }
 
     @Test

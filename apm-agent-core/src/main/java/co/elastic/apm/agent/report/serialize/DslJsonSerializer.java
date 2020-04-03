@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Headers;
@@ -493,6 +494,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeField("result", transaction.getResult());
         serializeContext(transaction.getContext(), transaction.getTraceContext());
         serializeSpanCount(transaction.getSpanCount());
+        writeField("successor_ids", transaction.getSuccessors());
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
     }
@@ -537,6 +539,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             serializeStackTrace(span.getStackFrames());
         }
         serializeSpanContext(span.getContext(), span.getTraceContext());
+        writeField("successor_ids", span.getSuccessors());
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
@@ -1257,5 +1260,20 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeFieldName("timestamp");
         NumberConverter.serialize(epochMicros, jw);
         jw.writeByte(COMMA);
+    }
+
+    private void writeField(String fieldName, @Nullable LongList longList) {
+        if (longList != null && longList.getSize() > 0) {
+            writeFieldName(fieldName);
+            jw.writeByte(ARRAY_START);
+            for (int i = 0, size = longList.getSize(); i < size; i++) {
+                if (i > 0) {
+                    jw.writeByte(COMMA);
+                }
+                NumberConverter.serialize(longList.get(i), jw);
+            }
+            jw.writeByte(ARRAY_END);
+            jw.writeByte(COMMA);
+        }
     }
 }

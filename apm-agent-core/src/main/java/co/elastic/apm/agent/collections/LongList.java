@@ -15,6 +15,14 @@ public class LongList {
         longs = new long[initialCapacity];
     }
 
+    public static LongList of(long... values) {
+        LongList list = new LongList(values.length);
+        for (long value : values) {
+            list.add(value);
+        }
+        return list;
+    }
+
     public void add(long l) {
         ensureCapacity(size + 1);
         longs[size++] = l;
