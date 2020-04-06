@@ -29,18 +29,26 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import org.awaitility.core.ConditionFactory;
+import org.awaitility.core.ThrowingRunnable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.SimpleSource;
+import wiremock.com.google.common.util.concurrent.AtomicDouble;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.PAUSED;
 import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.RUNNING;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class CircuitBreakerTest {
 
@@ -50,17 +58,32 @@ public class CircuitBreakerTest {
     private CircuitBreaker circuitBreaker;
     private TestStressMonitor monitor;
     private ConfigurationRegistry config;
-    private CircuitBreakerConfiguration circuitBreakerConfiguration;
+    private ConfigThreadSafeWrapper circuitBreakerConfiguration;
 
     @BeforeEach
     public void setup() {
-        config = SpyConfiguration.createSpyConfig(new SimpleSource(TEST_CONFIG_SOURCE_NAME));
-        circuitBreakerConfiguration = config.getConfig(CircuitBreakerConfiguration.class);
-        doReturn(1L).when(circuitBreakerConfiguration).getStressMonitoringPollingIntervalMillis();
+
+        ConfigurationRegistry defaultConfig = SpyConfiguration.createSpyConfig(new SimpleSource(TEST_CONFIG_SOURCE_NAME));
+        circuitBreakerConfiguration = new ConfigThreadSafeWrapper(defaultConfig.getConfig(CircuitBreakerConfiguration.class));
+
+        // fast polling for testing
+        circuitBreakerConfiguration.stressMonitoringPollingIntervalMillis.set(1L);
+
+        // disable gc stress monitor
+        circuitBreakerConfiguration.gcStressThreshold.set(1D);
+        circuitBreakerConfiguration.gcReliefThreshold.set(0D);
+        // disable cpu stress monitor
+        circuitBreakerConfiguration.systemCpuStressThreshold.set(1D);
+        circuitBreakerConfiguration.systemCpuReliefThreshold.set(0D);
+
+        config = spy(defaultConfig);
+        doReturn(circuitBreakerConfiguration).when(config).getConfig(CircuitBreakerConfiguration.class);
+
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(new MockReporter())
             .build();
+
         circuitBreaker = tracer.getLifecycleListener(CircuitBreaker.class);
         monitor = new TestStressMonitor(tracer);
         circuitBreaker.registerStressMonitor(monitor);
@@ -74,104 +97,244 @@ public class CircuitBreakerTest {
 
     @Test
     void testStressSimulation() {
-        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
-        int pollCount = monitor.simulateStress();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
-        // see that the tracer remains inactive for another couple of polls
-        pollCount = monitor.getPollCount();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
-        pollCount = monitor.simulateStressRelieved();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        circuitBreakerConfiguration.circuitBreakerEnabled.set(true);
+        assertRunning();
+
+        monitor.simulateStress();
+        awaitPaused();
+
+        monitor.simulateStressRelieved();
+        awaitRunning();
     }
 
     @Test
-    void testTwoMonitors() {
-        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
+    void testTwoMonitors() throws InterruptedException {
+        circuitBreakerConfiguration.circuitBreakerEnabled.set(true);
 
         TestStressMonitor secondMonitor = new TestStressMonitor(tracer);
         circuitBreaker.registerStressMonitor(secondMonitor);
 
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
-        int pollCount = monitor.simulateStress();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        assertRunning();
 
-        pollCount = secondMonitor.simulateStress();
-        secondMonitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+        // adding stress from a single monitor should pause tracer
+
+        monitor.simulateStress();
+        awaitPaused();
+
+        // adding stress from a second monitor should not resume tracer
+        secondMonitor.simulateStress();
+
         // tracer should still be in PAUSED mode
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        assertSteadyState(this::assertPaused, monitor, secondMonitor);
 
-        pollCount = monitor.simulateStressRelieved();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+        monitor.simulateStressRelieved();
+
         // tracer should still be in PAUSED mode, until ALL monitors allow resuming
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        assertSteadyState(this::assertPaused, monitor, secondMonitor);
 
-        pollCount = secondMonitor.simulateStressRelieved();
-        secondMonitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        secondMonitor.simulateStressRelieved();
+        awaitRunning();
 
         circuitBreaker.unregisterStressMonitor(secondMonitor);
     }
 
-    @Test
-    void testStressReliefThenReactivate() throws IOException {
-        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
-        int pollCount = monitor.simulateStress();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
-        TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
-        pollCount = monitor.simulateStressRelieved();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        // should still be PAUSED as the state is inactive
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
-        TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+    private static void awaitHasBeenPolled(TestStressMonitor monitor, final int pollCount) {
+        awaitAssert(() -> assertThat(monitor.getPollCount()).isGreaterThan(pollCount + 1));
     }
 
     @Test
-    void testReactivateThenStressRelief() throws IOException {
-        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
-        TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
+    void testPauseThroughConfigUnderStressThenResumeThroughConfig() throws IOException, InterruptedException {
+        // stress pauses when recording enabled
+        // timeline   1  2  3  4  5
+        // stress     ---sssssss-----
+        // recording  xxxxxx------xxx
+        // state      rrr---------rrr
+
+        // 1
+        circuitBreakerConfiguration.circuitBreakerEnabled.set(true);
+        assertRunning();
+
+        // 2
         monitor.simulateStress();
+        awaitPaused();
+
+        // 3 recording = false under stress should not change state
+        TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        assertSteadyState(this::assertPaused, monitor);
+
+        // 4 stress ends, should still be paused due to recording = false
+        monitor.simulateStressRelieved();
+        assertSteadyState(this::assertPaused, monitor);
+
+        // 5
+        // configuration recording = true should make it run again
         TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
-        // check that reactivation now has no effect even after waiting for the next resume poll
-        int pollCount = monitor.getPollCount();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
-        // check that stress relief now reactivates
-        pollCount = monitor.simulateStressRelieved();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        assertRunning();
     }
+
+    @Test
+    void testPauseThroughConfigThenResumeOnlyWhenStressRelieved() throws IOException, InterruptedException {
+        // enable recording while under stress does not trigger runnable state
+        // timeline   1  2  3  4  5
+        // stress     ------ssssss----
+        // recording  xxx------xxxxxx
+        // state      rrr---------rrr
+
+        // 1
+        circuitBreakerConfiguration.circuitBreakerEnabled.set(true);
+        assertRunning();
+
+        // 2 recording = false should pause
+        TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
+        awaitPaused();
+
+        // 3 stress should keep it paused
+        monitor.simulateStress();
+        assertSteadyState(this::assertPaused, monitor);
+
+        // 4 should not resume tracer as we are under stress
+        TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+        assertSteadyState(this::assertPaused, monitor);
+
+        // 5 stress relief now resumes tracer
+        monitor.simulateStressRelieved();
+        awaitRunning();
+    }
+
 
     @Test
     void testCircuitBreakerDisabled() throws IOException, InterruptedException {
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        assertThat(circuitBreakerConfiguration.isCircuitBreakerEnabled()).isFalse();
+
+        assertRunning();
+
         monitor.simulateStress();
-        Thread.sleep(50);
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        assertSteadyState(this::assertRunning, monitor);
+
         TracerInternalApiUtils.setRecordingConfig(config, false, TEST_CONFIG_SOURCE_NAME);
-        assertThat(tracer.getState()).isEqualTo(PAUSED);
+        assertPaused();
         TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+        assertRunning();
     }
 
     @Test
-    void testResumeWhenDisabledUnderStress() throws InterruptedException {
-        doReturn(true).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
+    void testResumeWhenDisabledUnderStress() {
+
+        circuitBreakerConfiguration.circuitBreakerEnabled.set(true);
+        assertRunning();
+
+        monitor.simulateStress();
+        awaitPaused();
+
+        circuitBreakerConfiguration.circuitBreakerEnabled.set(false);
+        awaitRunning();
+    }
+
+    private void awaitPaused() {
+        awaitAssert(this::assertPaused);
+    }
+
+    private void assertRunning() {
         assertThat(tracer.getState()).isEqualTo(RUNNING);
-        int pollCount = monitor.simulateStress();
-        monitor.waitUntilPollCounterIsGreaterThan(pollCount + 1);
+    }
+
+    private void awaitRunning() {
+        awaitAssert(this::assertRunning);
+    }
+
+    private void assertPaused() {
         assertThat(tracer.getState()).isEqualTo(PAUSED);
-        doReturn(false).when(circuitBreakerConfiguration).isCircuitBreakerEnabled();
-        Thread.sleep(50);
-        assertThat(tracer.getState()).isEqualTo(RUNNING);
+    }
+
+    private static void assertSteadyState(Runnable assertion, TestStressMonitor... monitors) throws InterruptedException {
+        int[] monitorPolls = new int[monitors.length];
+        for (int i = 0; i < monitorPolls.length; i++) {
+            monitorPolls[i] = monitors[i].getPollCount();
+        }
+        boolean allPolled = false;
+        int retryCount = 50;
+        while (!allPolled && (retryCount-- > 0)) {
+            assertion.run();
+            Thread.sleep(1L);
+            int polledCount = 0;
+            for (int i = 0; i < monitorPolls.length; i++) {
+                if (monitorPolls[i] < monitors[i].getPollCount()) {
+                    polledCount++;
+                }
+            }
+            allPolled = polledCount == monitorPolls.length;
+        }
+        assertion.run();
+    }
+
+    private static void awaitAssert(ThrowingRunnable assertion) {
+        doAwait().untilAsserted(assertion);
+    }
+
+    private static ConditionFactory doAwait() {
+        return await()
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(50, TimeUnit.MILLISECONDS);
+
+    }
+
+
+    /**
+     * We have to use a thread-safe wrapper because sharing mocked/stubbed classes
+     */
+    private static class ConfigThreadSafeWrapper extends CircuitBreakerConfiguration {
+
+        final AtomicBoolean circuitBreakerEnabled;
+        final AtomicLong stressMonitoringPollingIntervalMillis;
+        final AtomicDouble gcStressThreshold;
+        final AtomicDouble gcReliefThreshold;
+        final AtomicLong cpuStressDurationThresholdMillis;
+        final AtomicDouble systemCpuStressThreshold;
+        final AtomicDouble systemCpuReliefThreshold;
+
+        public ConfigThreadSafeWrapper(CircuitBreakerConfiguration defaultConfig) {
+            this.circuitBreakerEnabled = new AtomicBoolean(defaultConfig.isCircuitBreakerEnabled());
+            this.stressMonitoringPollingIntervalMillis = new AtomicLong(defaultConfig.getStressMonitoringPollingIntervalMillis());
+            this.gcStressThreshold = new AtomicDouble(defaultConfig.getGcStressThreshold());
+            this.gcReliefThreshold = new AtomicDouble(defaultConfig.getGcReliefThreshold());
+            this.cpuStressDurationThresholdMillis = new AtomicLong(defaultConfig.getCpuStressDurationThresholdMillis());
+            this.systemCpuStressThreshold = new AtomicDouble(defaultConfig.getSystemCpuStressThreshold());
+            this.systemCpuReliefThreshold = new AtomicDouble(defaultConfig.getSystemCpuReliefThreshold());
+        }
+
+        @Override
+        public boolean isCircuitBreakerEnabled() {
+            return circuitBreakerEnabled.get();
+        }
+
+        @Override
+        public long getStressMonitoringPollingIntervalMillis() {
+            return stressMonitoringPollingIntervalMillis.get();
+        }
+
+        @Override
+        public double getGcStressThreshold() {
+            return gcStressThreshold.get();
+        }
+
+        @Override
+        public double getGcReliefThreshold() {
+            return gcReliefThreshold.get();
+        }
+
+        @Override
+        public long getCpuStressDurationThresholdMillis() {
+            return cpuStressDurationThresholdMillis.get();
+        }
+
+        @Override
+        public double getSystemCpuStressThreshold() {
+            return systemCpuStressThreshold.get();
+        }
+
+        @Override
+        public double getSystemCpuReliefThreshold() {
+            return systemCpuReliefThreshold.get();
+        }
     }
 }

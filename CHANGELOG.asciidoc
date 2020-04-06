@@ -27,11 +27,17 @@ endif::[]
 
 [float]
 ===== Features
+* The log correlation feature now adds `error.id` to the MDC. See <<supported-logging-frameworks>> for details. - {pull}1050[#1050]
 
 [float]
 ===== Bug fixes
 * When Servlet-related Exceptions are handled through exception handlers that return a 200 status code, agent
 shouldn't override with 500 - {pull}1103[#1103]
+* Exclude Quartz 1 from instrumentation to avoid
+  `IncompatibleClassChangeError: Found class org.quartz.JobExecutionContext, but interface was expected` - {pull}1108[#1108]
+* Fix breakdown metrics span sub-types {pull}1113[#1113]
+* Fix flaky gRPC server instrumentation {pull}1122[#1122]
+
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

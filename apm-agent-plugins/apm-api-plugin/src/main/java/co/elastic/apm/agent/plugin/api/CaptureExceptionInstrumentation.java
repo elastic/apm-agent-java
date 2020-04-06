@@ -37,7 +37,7 @@ public class CaptureExceptionInstrumentation extends ApiInstrumentation {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) Throwable t) {
         if (tracer != null) {
-            tracer.captureException(t, clazz.getClassLoader());
+            tracer.captureAndReportException(t, clazz.getClassLoader());
         }
     }
 

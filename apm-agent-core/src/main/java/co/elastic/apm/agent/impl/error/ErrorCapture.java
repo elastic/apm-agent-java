@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -37,12 +37,13 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.concurrent.Callable;
 
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class ErrorCapture implements Recyclable {
+public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Recyclable {
 
     private final TraceContext traceContext;
 
@@ -68,11 +69,10 @@ public class ErrorCapture implements Recyclable {
      */
     private TransactionInfo transactionInfo = new TransactionInfo();
 
-    private ElasticApmTracer tracer;
     private final StringBuilder culprit = new StringBuilder();
 
     public ErrorCapture(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+        super(tracer);
         traceContext = TraceContext.with128BitId(this.tracer);
     }
 
@@ -123,8 +123,8 @@ public class ErrorCapture implements Recyclable {
     /**
      * Creates a reference to a {@link TraceContext}
      *
-     * @return {@code this}, for chaining
      * @param parent parent trace context
+     * @return {@code this}, for chaining
      */
     public ErrorCapture asChildOf(TraceContextHolder<?> parent) {
         this.traceContext.asChildOf(parent.getTraceContext());
@@ -144,6 +144,32 @@ public class ErrorCapture implements Recyclable {
 
     public TraceContext getTraceContext() {
         return traceContext;
+    }
+
+    @Override
+    public Span createSpan() {
+        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
+    }
+
+    @Override
+    @Nullable
+    public Span createSpan(long epochMicros) {
+        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
+    }
+
+    @Override
+    public boolean isChildOf(TraceContextHolder other) {
+        return getTraceContext().isChildOf(other);
+    }
+
+    @Override
+    public Runnable withActive(Runnable runnable) {
+        throw new UnsupportedOperationException("Wrapping of provided Runnable of an error is not possible");
+    }
+
+    @Override
+    public <V> Callable<V> withActive(Callable<V> callable) {
+        throw new UnsupportedOperationException("Wrapping of provided Callable of an error is not possible");
     }
 
     public void setException(Throwable e) {
@@ -235,5 +261,9 @@ public class ErrorCapture implements Recyclable {
 
     public void setTransactionType(@Nullable String type) {
         transactionInfo.type = type;
+    }
+
+    public void end() {
+        tracer.endError(this);
     }
 }

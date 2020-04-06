@@ -26,8 +26,8 @@ package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.grpc.helper.GrpcHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.grpc.ServerCall;
-import io.grpc.Status;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -42,15 +42,17 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Instruments implementations of {@link io.grpc.ServerCall.Listener} to detect runtime exceptions
+ * Instruments implementations of {@link io.grpc.ServerCall.Listener} for runtime exceptions & transaction activation
+ * <br/>
+ * Implementation is split in two classes {@link FinalMethodCall} and {@link NonFinalMethodCall}
  * <ul>
- *     <li>{@link io.grpc.ServerCall.Listener#onMessage(Object)}</li>
- *     <li>{@link io.grpc.ServerCall.Listener#onHalfClose()}</li>
- *     <li>{@link io.grpc.ServerCall.Listener#onCancel()}</li>
- *     <li>{@link io.grpc.ServerCall.Listener#onComplete()}</li>
+ *     <li>{@link io.grpc.ServerCall.Listener#onMessage(Object)} ({@link NonFinalMethodCall})</li>
+ *     <li>{@link io.grpc.ServerCall.Listener#onHalfClose()} ({@link NonFinalMethodCall})</li>
+ *     <li>{@link io.grpc.ServerCall.Listener#onCancel()} ({@link FinalMethodCall})</li>
+ *     <li>{@link io.grpc.ServerCall.Listener#onComplete()} ({@link FinalMethodCall})</li>
  * </ul>
  */
-public class ServerCallListenerInstrumentation extends BaseInstrumentation {
+public abstract class ServerCallListenerInstrumentation extends BaseInstrumentation {
 
     public ServerCallListenerInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
@@ -68,39 +70,121 @@ public class ServerCallListenerInstrumentation extends BaseInstrumentation {
         return hasSuperType(named("io.grpc.ServerCall$Listener"));
     }
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        // message received --> indicates RPC start for unary call
-        // actual method invocation is delayed until 'half close'
-        return named("onMessage")
-            //
-            // client completed all message sending, but can still cancel the call
-            // --> for unary calls, actual method invocation is done here (but it's an impl. detail)
-            .or(named("onHalfClose"))
-            //
-            // call cancelled by client (or network issue)
-            // --> end of unary call (error)
-            .or(named("onCancel"))
-            //
-            // call complete (but client not guaranteed to get all messages)
-            // --> end of unary call (success)
-            .or(named("onComplete"));
-    }
+    /**
+     * Instruments implementations of {@link io.grpc.ServerCall.Listener}
+     * <ul>
+     *     <li>{@link io.grpc.ServerCall.Listener#onMessage(Object)}</li>
+     *     <li>{@link io.grpc.ServerCall.Listener#onHalfClose()}</li>
+     * </ul>
+     */
+    public static class NonFinalMethodCall extends ServerCallListenerInstrumentation {
 
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Thrown @Nullable Throwable thrown) {
-        if (null == tracer || grpcHelperManager == null) {
-            return;
+        public NonFinalMethodCall(ElasticApmTracer tracer) {
+            super(tracer);
         }
 
-        // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
-        // and set 'unknown' status, we just replicate this behavior as we don't instrument the part that does this
-        if (thrown != null) {
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
-            if (helper != null) {
-                helper.endTransaction(Status.UNKNOWN, thrown, tracer.currentTransaction());
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            // message received --> indicates RPC start for unary call
+            // actual method invocation is delayed until 'half close'
+            return named("onMessage")
+                //
+                // client completed all message sending, but can still cancel the call
+                // --> for unary calls, actual method invocation is done here (but it's an impl. detail)
+                .or(named("onHalfClose"));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onEnter(@Advice.This ServerCall.Listener<?> listener,
+                                    @Advice.Local("transaction") Transaction transaction) {
+
+            if (null == tracer || grpcHelperManager == null) {
+                return;
             }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
+            if (helper == null) {
+                return;
+            }
+
+            transaction = helper.enterServerListenerMethod(listener);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                   @Advice.This ServerCall.Listener<?> listener,
+                                   @Advice.Local("transaction") @Nullable Transaction transaction) {
+
+            if (null == tracer || grpcHelperManager == null || transaction == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
+            if (helper == null) {
+                return;
+            }
+
+            helper.exitServerListenerMethod(thrown, listener, transaction, false);
+        }
+    }
+
+    /**
+     * Instruments implementations of {@link io.grpc.ServerCall.Listener}
+     * <ul>
+     *     <li>{@link io.grpc.ServerCall.Listener#onCancel()}</li>
+     *     <li>{@link io.grpc.ServerCall.Listener#onComplete()}</li>
+     * </ul>
+     * <p>
+     * If one of those methods is called, the other one is guaranteed to not be called, hence the 'final'.
+     */
+    public static class FinalMethodCall extends ServerCallListenerInstrumentation {
+
+        public FinalMethodCall(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            // call cancelled by client (or network issue)
+            // --> end of unary call (error)
+            return named("onCancel")
+                //
+                // call complete (but client not guaranteed to get all messages)
+                // --> end of unary call (success)
+                .or(named("onComplete"));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onEnter(@Advice.This ServerCall.Listener<?> listener,
+                                    @Advice.Local("transaction") Transaction transaction) {
+
+            if (null == tracer || grpcHelperManager == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
+            if (helper == null) {
+                return;
+            }
+
+            transaction = helper.enterServerListenerMethod(listener);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                   @Advice.This ServerCall.Listener<?> listener,
+                                   @Advice.Local("transaction") @Nullable Transaction transaction) {
+
+            if (null == tracer || grpcHelperManager == null || transaction == null) {
+                return;
+            }
+
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
+            if (helper == null) {
+                return;
+            }
+
+            helper.exitServerListenerMethod(thrown, listener, transaction, true);
         }
     }
 
