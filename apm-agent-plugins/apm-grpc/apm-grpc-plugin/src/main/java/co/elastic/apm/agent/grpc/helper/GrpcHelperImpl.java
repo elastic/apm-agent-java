@@ -37,8 +37,6 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
 import io.grpc.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -51,8 +49,6 @@ import javax.annotation.Nullable;
  */
 @SuppressWarnings("unused")
 public class GrpcHelperImpl implements GrpcHelper {
-
-    private static final Logger logger = LoggerFactory.getLogger(GrpcHelperImpl.class);
 
     /**
      * Map of all in-flight spans, is only used by client part.
@@ -112,8 +108,6 @@ public class GrpcHelperImpl implements GrpcHelper {
             return null;
         }
 
-        logger.debug("startTransaction ---- {} ", transaction);
-
         transaction.withName(methodDescriptor.getFullMethodName())
             .withType("request")
             .activate();
@@ -126,8 +120,6 @@ public class GrpcHelperImpl implements GrpcHelper {
         if (null == transaction) {
             return;
         }
-
-        logger.debug("registerTransactionAndDeactivate ---- {}", transaction);
 
         inFlightTransactions.put(serverCall, transaction);
         inFlightServerListeners.put(listener, serverCall);
