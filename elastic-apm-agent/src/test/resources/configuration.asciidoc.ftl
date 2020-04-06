@@ -8,12 +8,12 @@ you can configure it using one of the methods below, listed in descending order 
 
 [horizontal]
 1) {apm-app-ref}/agent-configuration.html[Central configuration]::
-Configure the Agent in the Kibana APM app. +
+Configure the Agent in the Kibana APM app.
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 2) Properties file::
 The `elasticapm.properties` file is located in the same folder as the agent jar,
-or provided through the <<config-config-file,`config_file`>> option. +
+or provided through the <<config-config-file,`config_file`>> option.
 image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
 
 3) Java system properties::
@@ -21,12 +21,15 @@ All configuration keys are prefixed with `elastic.apm.` +
 image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
 
 4) Environment variables::
-All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
+All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`.
 
 5) Runtime attach parameters::
-. `--config` parameter. See <<setup-attach-cli>>.
-. Arguments of `ElasticApmAttacher.attach(...)`. See <<setup-attach-api>>.
-. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()`. See <<setup-attach-api>>.
+. `--config` parameter. +
+See <<setup-attach-cli>>.
+. Arguments of `ElasticApmAttacher.attach(...)`. +
+See <<setup-attach-api>>.
+. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()`. +
+See <<setup-attach-api>>.
 
 6) Default values::
 Defined for each configuration.
