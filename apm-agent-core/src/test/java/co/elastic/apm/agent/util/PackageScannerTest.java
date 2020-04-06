@@ -47,6 +47,7 @@ public class PackageScannerTest {
     public void testScanJar() throws Exception {
         assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName()))
             .contains(ByteBuddy.class.getName());
+        // scan again to see verify there's no FileSystemAlreadyExistsException
         assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName()))
             .contains(ByteBuddy.class.getName());
     }

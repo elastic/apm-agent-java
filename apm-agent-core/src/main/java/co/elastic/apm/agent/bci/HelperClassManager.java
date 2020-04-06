@@ -27,6 +27,8 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bootstrap.MethodHandleDispatcher;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.method.MethodList;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
@@ -59,7 +61,9 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * This class helps to overcome the fact that the agent classes can't access the classes they want to instrument.
@@ -373,12 +377,12 @@ public abstract class HelperClassManager<T> {
             for (String name : classesToInject) {
                 // check with Byte Buddy matchers, acting on the byte code as opposed to reflection first
                 // to avoid NoClassDefFoundErrors when the classes refer to optional types
-                boolean isHelperClass = !typePool.describe(name)
+                MethodList<MethodDescription.InDefinedShape> helperMethods = typePool.describe(name)
                     .resolve()
                     .getDeclaredMethods()
-                    .filter(isAnnotatedWith(named(RegisterMethodHandle.class.getName())))
-                    .isEmpty();
-                if (isHelperClass) {
+                    .filter(isAnnotatedWith(named(RegisterMethodHandle.class.getName())));
+                if (!helperMethods.isEmpty()) {
+                    assertPublic(helperMethods);
 
                     Class<?> clazz = Class.forName(name, true, helperCL);
                     if (clazz.getClassLoader() != helperCL) {
@@ -402,6 +406,12 @@ public abstract class HelperClassManager<T> {
             }
         }
 
+        private static void assertPublic(MethodList<MethodDescription.InDefinedShape> methods) throws IllegalAccessException {
+            for (MethodDescription.InDefinedShape privateHelperMethod : methods.filter(not(isPublic()))) {
+                throw new IllegalAccessException("Helper method is not public: " + privateHelperMethod);
+            }
+        }
+
         /**
          * This class is loaded form the helper class loader so that {@link Class#getDeclaredMethods()} doesn't throw a
          * {@link NoClassDefFoundError}.
@@ -410,7 +420,7 @@ public abstract class HelperClassManager<T> {
         public static class MethodHandleRegisterer {
 
             public static void registerStaticMethodHandles(ConcurrentMap<String, MethodHandle> dispatcher, ConcurrentMap<String, Method> reflectionDispatcher, Class<?> helperClass) throws ReflectiveOperationException {
-                for (Method method : helperClass.getDeclaredMethods()) {
+                for (Method method : helperClass.getMethods()) {
                     if (Modifier.isStatic(method.getModifiers()) && method.getAnnotation(RegisterMethodHandle.class) != null) {
                         MethodHandle methodHandle = MethodHandles.lookup().unreflect(method);
                         String key = helperClass.getName() + "#" + method.getName();

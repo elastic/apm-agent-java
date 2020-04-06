@@ -28,10 +28,20 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-// TODO docs
+/**
+ * A utility that makes it easy to detect nested method calls.
+ */
 public class CallDepth {
     private static final ThreadLocal<Map<Class<?>, AtomicInteger>> callDepthPerThread = new ThreadLocal<Map<Class<?>, AtomicInteger>>();
 
+    /**
+     * Gets and increments the call depth counter.
+     * Returns {@code 0} if this is the outer-most (non-nested) invocation.
+     *
+     * @param clazz the class for which the call depth should be counted.
+     *              Used as a key to distinguish multiple counters for a thread.
+     * @return the call depth before it has been incremented
+     */
     public static int increment(Class<?> clazz) {
         Map<Class<?>, AtomicInteger> callDepthForCurrentThread = callDepthPerThread.get();
         if (callDepthForCurrentThread == null) {
@@ -46,6 +56,14 @@ public class CallDepth {
         return depth.getAndIncrement();
     }
 
+    /**
+     * Decrements and gets the call depth counter.
+     * Returns {@code 0} if this is the outer-most (non-nested) invocation.
+     *
+     * @param clazz the class for which the call depth should be counted.
+     *              Used as a key to distinguish multiple counters for a thread.
+     * @return the call depth after it has been incremented
+     */
     public static int decrement(Class<?> clazz) {
         int depth = callDepthPerThread.get().get(clazz).decrementAndGet();
         assert depth >= 0;
