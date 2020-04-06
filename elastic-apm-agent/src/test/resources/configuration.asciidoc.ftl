@@ -99,6 +99,10 @@ Click on a key to get more information.
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
 ==== `${option.key}`${option.tags?has_content?then(" (${option.tags?join(' ')})", '')}
 
+<#if option.tags?seq_contains("experimental")>
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+</#if>
 ${option.description}
 
 <#if option.valueType?matches("TimeDuration")>
