@@ -5,40 +5,47 @@ Please only make changes in configuration.asciidoc.ftl
 ////
 [[configuration]]
 == Configuration
-The Elastic APM agent can be configured through different configuration sources,
-with the following descending order of precedence:
 
-No prefix is required for the configuration keys unless stated otherwise.
+To adapt the Elastic APM Java agent to your needs,
+you can configure it using one of the methods below, listed in descending order of precedence:
 
-[arabic]
-. {apm-app-ref}/agent-configuration.html[Central configuration] +
-   Supports <<configuration-dynamic>>
-. `elasticapm.properties` file +
-  In same folder as agent jar or provided through <<config-config-file>> option. +
-  Supports <<configuration-dynamic>>
-. Java system properties +
-  All configuration keys are prefixed with `elastic.apm.` +
-  Supports <<configuration-dynamic>> when set from the application.
-. Environment variables +
-  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. runtime attach parameters, those are mutually exclusive +
-.. `--config` parameter (<<setup-attach-cli>>)
-.. arguments of  `ElasticApmAttacher.attach(...)` (<<setup-attach-api>>)
-.. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
-. default values
+[horizontal]
+1) {apm-app-ref}/agent-configuration.html[Central configuration]::
+Configure the Agent in the Kibana APM app. +
+// image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+2) Properties file::
+The `elasticapm.properties` file is located in the same folder as the agent jar,
+or provided through the <<config-config-file,`config_file`>> option. +
+image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+
+3) Java system properties::
+All configuration keys are prefixed with `elastic.apm.` +
+image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+
+4) Environment variables::
+All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
+
+5) Runtime attach parameters::
+. `--config` parameter. See <<setup-attach-cli>>.
+. Arguments of `ElasticApmAttacher.attach(...)`. See <<setup-attach-api>>.
+. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()`. See <<setup-attach-api>>.
+
+6) Default values::
+Defined for each configuration.
 
 [float]
 [[configuration-dynamic]]
-=== Dynamic configuration
+=== Dynamic configuration image:./images/dynamic-config.svg[]
 
 Configuration options marked with Dynamic true can be changed at runtime when set from sources that support it:
 
 - {kibana-ref}/agent-configuration.html[Central configuration]
 - `elasticapm.properties` file
-- Java system properties when set from within the application.
+- Java system properties, only when set from within the application
 
-NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource +
-Only the external file can be used for dynamic configuration.
+NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource. Only the external file can be used for dynamic configuration.
 
 [float]
 [[configuration-minimal]]
@@ -158,12 +165,12 @@ Click on a key to get more information.
 [[config-circuit-breaker-enabled]]
 ==== `circuit_breaker_enabled` (performance)
 
-A boolean specifying whether the circuit breaker should be enabled or not. 
-When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
-If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
-When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
-has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+A boolean specifying whether the circuit breaker should be enabled or not.
+When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state.
+If ANY of the monitors detects a stress indication, the agent will become inactive, as if the
+<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
+When inactive, the agent continues polling the same monitors in order to detect whether the stress state
+has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the
 agent will resume and become fully functional.
 
 
@@ -210,8 +217,8 @@ The default unit for this option is `s`.
 ==== `stress_monitor_gc_stress_threshold` (performance)
 
 The threshold used by the GC monitor to rely on for identifying heap stress.
-The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
-the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it,
+the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured
 after a recent GC.
 
 
@@ -234,8 +241,8 @@ after a recent GC.
 ==== `stress_monitor_gc_relief_threshold` (performance)
 
 The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
-If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
-In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state.
+In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should
 be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
 
 
@@ -257,9 +264,9 @@ be lower than this threshold. The GC monitor relies only on memory consumption m
 [[config-stress-monitor-cpu-duration-threshold]]
 ==== `stress_monitor_cpu_duration_threshold` (performance)
 
-The minimal time required in order to determine whether the system is 
-either currently under stress, or that the stress detected previously has been relieved. 
-All measurements during this time must be consistent in comparison to the relevant threshold in 
+The minimal time required in order to determine whether the system is
+either currently under stress, or that the stress detected previously has been relieved.
+All measurements during this time must be consistent in comparison to the relevant threshold in
 order to detect a change of stress state. Must be at least `1m`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
@@ -284,8 +291,8 @@ The default unit for this option is `m`.
 [[config-stress-monitor-system-cpu-stress-threshold]]
 ==== `stress_monitor_system_cpu_stress_threshold` (performance)
 
-The threshold used by the system CPU monitor to detect system CPU stress. 
-If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+The threshold used by the system CPU monitor to detect system CPU stress.
+If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`,
 the monitor considers this as a stress state.
 
 
@@ -307,9 +314,9 @@ the monitor considers this as a stress state.
 [[config-stress-monitor-system-cpu-relief-threshold]]
 ==== `stress_monitor_system_cpu_relief_threshold` (performance)
 
-The threshold used by the system CPU monitor to determine that the system is 
-not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
-this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
+The threshold used by the system CPU monitor to determine that the system is
+not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below
+this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the
 monitor to decide that the CPU stress has been relieved.
 
 
@@ -337,7 +344,7 @@ A boolean specifying if the agent should be recording or not.
 When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
 except for polling the central configuration endpoint.
-As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+As this is a reversible switch, agent threads are not being killed when inactivated, but they will be
 mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
@@ -432,13 +439,13 @@ If the service name is set explicitly, it overrides all of the above.
 [[config-service-node-name]]
 ==== `service_node_name` (added[1.11.0])
 
-If set, this name is used to distinguish between different nodes of a service, 
-therefore it should be unique for each JVM within a service. 
-If not set, data aggregations will be done based on a container ID (where valid) or on the reported 
-hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>). 
+If set, this name is used to distinguish between different nodes of a service,
+therefore it should be unique for each JVM within a service.
+If not set, data aggregations will be done based on a container ID (where valid) or on the reported
+hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>).
 
-NOTE: JVM metrics views rely on aggregations that are based on the service node name. 
-If you have multiple JVMs installed on the same host reporting data for the same service name, 
+NOTE: JVM metrics views rely on aggregations that are based on the service node name.
+If you have multiple JVMs installed on the same host reporting data for the same service name,
 you must set a unique node name for each in order to view metrics at the JVM level.
 
 NOTE: Metrics views can utilize this configuration since APM Server 7.5
@@ -707,9 +714,9 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 [[config-capture-body]]
 ==== `capture_body` (performance)
 
-For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-variables). For transactions that are initiated by receiving a message from a message broker, the agent can 
-capture the textual message body.
+For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST
+variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the
+textual message body.
 
 If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
 
@@ -743,7 +750,7 @@ Valid options: `off`, `errors`, `transactions`, `all`
 [[config-capture-headers]]
 ==== `capture_headers` (performance)
 
-If set to `true`, the agent will capture HTTP request and response headers (including cookies), 
+If set to `true`, the agent will capture HTTP request and response headers (including cookies),
 as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.
 
 NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
@@ -873,7 +880,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 [[config-trace-methods-duration-threshold]]
 ==== `trace_methods_duration_threshold` (added[1.7.0])
 
-If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on
 duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 Such methods will be traced and reported if one of the following applies:
  - This method's duration crossed the configured threshold.
@@ -911,7 +918,7 @@ The default unit for this option is `ms`.
 [[config-boot-delegation-packages]]
 ==== `boot_delegation_packages` (added[1.7.0])
 
-A comma-separated list of packages to be appended to the boot delegation system property. 
+A comma-separated list of packages to be appended to the boot delegation system property.
 If set with an empty string, nothing will be appended to the boot delegation system property.
 Values to set in known environments:
 
@@ -1315,7 +1322,7 @@ The resulting documents in Elasticsearch look similar to these (metadata omitted
 The agent also supports composite values for the attribute value.
 In this example, `HeapMemoryUsage` is a composite value, consisting of `committed`, `init`, `used` and `max`.
 ----
-object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap] 
+object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]
 ----
 
 The resulting documents in Elasticsearch look similar to this:
@@ -1443,7 +1450,7 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 [[config-ignore-message-queues]]
 ==== `ignore_message_queues`
 
-Used to filter out specific messaging queues/topics from being traced. 
+Used to filter out specific messaging queues/topics from being traced.
 
 This property should be set to an array containing one or more strings.
 When set, sends-to and receives-from the specified queues/topic will be ignored.
@@ -1960,7 +1967,7 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 ==== `span_frames_min_duration` (performance)
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
-While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
+While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead.
 When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to `0ms`.
@@ -1994,12 +2001,12 @@ The default unit for this option is `ms`.
 # Circuit-Breaker                          #
 ############################################
 
-# A boolean specifying whether the circuit breaker should be enabled or not. 
-# When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
-# If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
-# When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
-# has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
+# A boolean specifying whether the circuit breaker should be enabled or not.
+# When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state.
+# If ANY of the monitors detects a stress indication, the agent will become inactive, as if the
+# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
+# When inactive, the agent continues polling the same monitors in order to detect whether the stress state
+# has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the
 # agent will resume and become fully functional.
 #
 # This setting can be changed at runtime
@@ -2019,8 +2026,8 @@ The default unit for this option is `ms`.
 # stress_monitoring_interval=5s
 
 # The threshold used by the GC monitor to rely on for identifying heap stress.
-# The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it, 
-# the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
+# The same threshold will be used for all heap pools, so that if ANY has a usage percentage that crosses it,
+# the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured
 # after a recent GC.
 #
 # This setting can be changed at runtime
@@ -2030,8 +2037,8 @@ The default unit for this option is `ms`.
 # stress_monitor_gc_stress_threshold=0.95
 
 # The threshold used by the GC monitor to rely on for identifying when the heap is not under stress .
-# If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state. 
-# In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
+# If `stress_monitor_gc_stress_threshold` has been crossed, the agent will consider it a heap-stress state.
+# In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should
 # be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
 #
 # This setting can be changed at runtime
@@ -2040,9 +2047,9 @@ The default unit for this option is `ms`.
 #
 # stress_monitor_gc_relief_threshold=0.75
 
-# The minimal time required in order to determine whether the system is 
-# either currently under stress, or that the stress detected previously has been relieved. 
-# All measurements during this time must be consistent in comparison to the relevant threshold in 
+# The minimal time required in order to determine whether the system is
+# either currently under stress, or that the stress detected previously has been relieved.
+# All measurements during this time must be consistent in comparison to the relevant threshold in
 # order to detect a change of stress state. Must be at least `1m`.
 #
 # This setting can be changed at runtime
@@ -2053,8 +2060,8 @@ The default unit for this option is `ms`.
 #
 # stress_monitor_cpu_duration_threshold=1m
 
-# The threshold used by the system CPU monitor to detect system CPU stress. 
-# If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
+# The threshold used by the system CPU monitor to detect system CPU stress.
+# If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`,
 # the monitor considers this as a stress state.
 #
 # This setting can be changed at runtime
@@ -2063,9 +2070,9 @@ The default unit for this option is `ms`.
 #
 # stress_monitor_system_cpu_stress_threshold=0.95
 
-# The threshold used by the system CPU monitor to determine that the system is 
-# not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
-# this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
+# The threshold used by the system CPU monitor to determine that the system is
+# not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below
+# this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the
 # monitor to decide that the CPU stress has been relieved.
 #
 # This setting can be changed at runtime
@@ -2082,11 +2089,11 @@ The default unit for this option is `ms`.
 # When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 # When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
 # except for polling the central configuration endpoint.
-# As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+# As this is a reversible switch, agent threads are not being killed when inactivated, but they will be
 # mostly idle in this state, so the overhead should be negligible.
-# 
+#
 # You can use this setting to dynamically disable Elastic APM at runtime.
-# 
+#
 # The key of this option used to be `active`. The old key still works but is now deprecated.
 #
 # This setting can be changed at runtime
@@ -2096,9 +2103,9 @@ The default unit for this option is `ms`.
 # recording=true
 
 # A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
-# 
+#
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
-# 
+#
 # NOTE: Changing this value at runtime can slow down the application temporarily.
 #
 # This setting can be changed at runtime
@@ -2111,11 +2118,11 @@ The default unit for this option is `ms`.
 #
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
-# 
+#
 # The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.
 # In less regexy terms:
 # Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
-# 
+#
 # NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),
 # there is currently a caveat related to metrics.
 # The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.
@@ -2126,7 +2133,7 @@ The default unit for this option is `ms`.
 # Future versions of the Elastic APM stack will have better support for that scenario.
 # A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
 # or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
-# 
+#
 # NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -2136,26 +2143,26 @@ The default unit for this option is `ms`.
 # Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
 # Falls back to the name of the main class or jar file.
 # If the service name is set explicitly, it overrides all of the above.
-# 
+#
 #
 # service_name=
 
 # A unique name for the service node
 #
-# If set, this name is used to distinguish between different nodes of a service, 
-# therefore it should be unique for each JVM within a service. 
-# If not set, data aggregations will be done based on a container ID (where valid) or on the reported 
-# hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>). 
-# 
-# NOTE: JVM metrics views rely on aggregations that are based on the service node name. 
-# If you have multiple JVMs installed on the same host reporting data for the same service name, 
+# If set, this name is used to distinguish between different nodes of a service,
+# therefore it should be unique for each JVM within a service.
+# If not set, data aggregations will be done based on a container ID (where valid) or on the reported
+# hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>).
+#
+# NOTE: JVM metrics views rely on aggregations that are based on the service node name.
+# If you have multiple JVMs installed on the same host reporting data for the same service name,
 # you must set a unique node name for each in order to view metrics at the JVM level.
-# 
+#
 # NOTE: Metrics views can utilize this configuration since APM Server 7.5
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value:
 #
 # service_node_name=
 
@@ -2163,7 +2170,7 @@ The default unit for this option is `ms`.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value:
 #
 # service_version=
 
@@ -2171,22 +2178,22 @@ The default unit for this option is `ms`.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value:
 #
 # hostname=
 
 # The name of the environment this service is deployed in, e.g. "production" or "staging".
-# 
+#
 # Environments allow you to easily filter data on a global level in the APM app.
 # It's important to be consistent when naming environments across agents.
 # See {apm-app-ref}/filters.html#environment-selector[environment selector] in the APM app for more information.
-# 
+#
 # NOTE: This feature is fully supported in the APM app in Kibana versions >= 7.2.
 # You must use the query bar to filter for a specific environment in versions prior to 7.2.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value:
 #
 # environment=
 
@@ -2199,11 +2206,11 @@ The default unit for this option is `ms`.
 # transaction_sample_rate=1.0
 
 # Limits the amount of spans that are recorded per transaction.
-# 
+#
 # This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).
-# 
+#
 # Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.
-# 
+#
 # A message will be logged when the max number of spans has been exceeded but only at a rate of once every 5 minutes to ensure performance is not impacted.
 #
 # This setting can be changed at runtime
@@ -2214,19 +2221,19 @@ The default unit for this option is `ms`.
 
 # Sometimes it is necessary to sanitize the data sent to Elastic APM,
 # e.g. remove sensitive data.
-# 
+#
 # Configure a list of wildcard patterns of field names which should be sanitized.
 # These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
-# 
+#
 # NOTE: Data in the query string is considered non-sensitive,
 # as sensitive information should not be sent in the query string.
 # See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information
-# 
+#
 # NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.
 # If you do find sensitive data in the Elasticsearch index,
 # you should add an additional entry to this list (make sure to also include the default entries).
@@ -2240,7 +2247,7 @@ The default unit for this option is `ms`.
 # A list of instrumentations which should be disabled.
 # Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 # If you want to try out incubating features, set the value to an empty string.
-# 
+#
 # NOTE: Changing this value at runtime can slow down the application temporarily.
 #
 # This setting can be changed at runtime
@@ -2253,7 +2260,7 @@ The default unit for this option is `ms`.
 # un-nests the exceptions matching the wildcard pattern.
 # This can come in handy for Spring's `org.springframework.web.util.NestedServletException`,
 # for example.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2267,37 +2274,37 @@ The default unit for this option is `ms`.
 
 # A list of exceptions that should be ignored and not reported as errors.
 # This allows to ignore exceptions thrown in regular control flow that are not actual errors
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
-# 
+#
 # Examples:
-# 
+#
 #  - `com.mycompany.ExceptionToIgnore`: using fully qualified name
 #  - `*ExceptionToIgnore`: using wildcard to avoid package name
 #  - `*exceptiontoignore`: case-insensitive by default
-# 
+#
 # NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # ignore_exceptions=
 
-# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-# variables). For transactions that are initiated by receiving a message from a message broker, the agent can 
-# capture the textual message body.
-# 
-# If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
-# 
+# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST
+# variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the
+# textual message body.
+#
+# If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
+#
 # This option is case-insensitive.
-# 
+#
 # NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.
 # The option <<config-capture-body-content-types>> determines which content types are captured.
-# 
+#
 # WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
 # If your service handles data like this, we advise to only enable this feature with care.
 # Turning on body capturing can also significantly increase the overhead in terms of heap usage,
@@ -2310,9 +2317,8 @@ The default unit for this option is `ms`.
 #
 # capture_body=OFF
 
-# If set to `true`, the agent will capture HTTP request and response headers (including cookies), 
-# as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.
-# 
+# If set to `true`, the agent will capture request and response headers, including cookies.
+#
 # NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 #
 # This setting can be changed at runtime
@@ -2323,26 +2329,26 @@ The default unit for this option is `ms`.
 
 # Labels added to all events, with the format `key=value[,key=value[,...]]`.
 # Any labels set by application via the API will override global labels with the same keys.
-# 
+#
 # NOTE: This feature requires APM Server 7.2+
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Map
-# Default value: 
+# Default value:
 #
 # global_labels=
 
 # A list of methods for which to create a transaction or span.
-# 
+#
 # If you want to monitor a large number of methods,
 # use  <<config-profiling-inferred-spans-enabled, `profiling_inferred_spans_enabled`>> instead.
-# 
+#
 # This works by instrumenting each matching method to include code that creates a span for the method.
 # While creating a span is quite cheap in terms of performance,
 # instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
-# 
+#
 # Using a pointcut-like syntax, you can match based on
-# 
+#
 #  - Method modifier (optional) +
 #    Example: `public`, `protected`, `private` or `*`
 #  - Package and class name (wildcards include sub-packages) +
@@ -2355,11 +2361,11 @@ The default unit for this option is `ms`.
 #    Example: `@*ApplicationScoped`
 #  - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +
 #    Example: `@@javax.enterpr*se.context.NormalScope`
-# 
+#
 # The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.
-# 
+#
 # A few examples:
-# 
+#
 #  - `org.example.*` added[1.4.0,Omitting the method is possible since 1.4.0]
 #  - `org.example.*#*` (before 1.4.0, you need to specify a method matcher)
 #  - `org.example.MyClass#myMethod`
@@ -2372,36 +2378,36 @@ The default unit for this option is `ms`.
 #  - `public @java.inject.ApplicationScoped org.example.*`
 #  - `public @java.inject.* org.example.*`
 #  - `public @@javax.enterprise.context.NormalScope org.example.*`
-# 
+#
 # NOTE: Only use wildcards if necessary.
 # The more methods you match the more overhead will be caused by the agent.
 # Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
-# 
+#
 # NOTE: The agent will create stack traces for spans which took longer than
 # <<config-span-frames-min-duration, `span_frames_min_duration`>>.
 # When tracing a large number of methods (for example by using wildcards),
 # this may lead to high overhead.
 # Consider increasing the threshold or disabling stack trace collection altogether.
-# 
+#
 # Common configurations:
-# 
+#
 # Trace all public methods in CDI-Annotated beans:
-# 
+#
 # ----
 # public @@javax.enterprise.context.NormalScope your.application.package.*
 # public @@javax.inject.Scope your.application.package.*
 # ----
 # NOTE: This method is only available in the Elastic APM Java Agent.
-# 
+#
 # NOTE: Changing this value at runtime can slow down the application temporarily.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # trace_methods=
 
-# If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+# If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on
 # duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 # Such methods will be traced and reported if one of the following applies:
 #  - This method's duration crossed the configured threshold.
@@ -2409,13 +2415,13 @@ The default unit for this option is `ms`.
 #  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
 # Set to 0 to disable.
-# 
+#
 # NOTE: Transactions are never discarded, regardless of their duration.
 # This configuration affects only spans.
 # In order not to break span references,
 # all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 # regardless of their duration.
-# 
+#
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
@@ -2425,22 +2431,22 @@ The default unit for this option is `ms`.
 #
 # trace_methods_duration_threshold=0ms
 
-# A comma-separated list of packages to be appended to the boot delegation system property. 
+# A comma-separated list of packages to be appended to the boot delegation system property.
 # If set with an empty string, nothing will be appended to the boot delegation system property.
 # Values to set in known environments:
-# 
+#
 # Nexus:
-# 
+#
 # ----
 # boot_delegation_packages=com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, sun.*,co.elastic.apm.agent.*
 # ----
-# 
+#
 # Pentaho and RedHat JBoss Fuse:
-# 
+#
 # ----
 # boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.principal, org.apache.karaf.management.boot, sun.*, com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, org.apache.xerces.jaxp.datatype, org.apache.xerces.stax, org.apache.xerces.parsers, org.apache.xerces.jaxp, org.apache.xerces.jaxp.validation, org.apache.xerces.dom, co.elastic.apm.agent.*
 # ----
-# 
+#
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -2468,7 +2474,7 @@ The default unit for this option is `ms`.
 # The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in.
 # The file has to be on the file system.
 # You can not refer to classpath locations.
-# 
+#
 # NOTE: this option can only be set via system properties, environment variables or the attacher options.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -2481,7 +2487,7 @@ The default unit for this option is `ms`.
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 # These headers (`traceparent` and `tracestate`) are defined in the
 # https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
-# 
+#
 # When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`
 # for backwards compatibility with older versions of Elastic APM agents.
 #
@@ -2496,9 +2502,9 @@ The default unit for this option is `ms`.
 ############################################
 
 # Configures which content types should be recorded.
-# 
+#
 # The defaults end with a wildcard so that content types like `text/plain; charset=utf-8` are captured as well.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2511,15 +2517,15 @@ The default unit for this option is `ms`.
 # capture_body_content_types=application/x-www-form-urlencoded*,text/*,application/json*,application/xml*
 
 # Used to restrict requests to certain URLs from being instrumented.
-# 
+#
 # This property should be set to an array containing one or more strings.
 # When an incoming HTTP request is detected, its URL will be tested against each element in this list.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
-# 
+#
 # NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 #
 # This setting can be changed at runtime
@@ -2529,27 +2535,27 @@ The default unit for this option is `ms`.
 # ignore_urls=/VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
 
 # Used to restrict requests from certain User-Agents from being instrumented.
-# 
+#
 # When an incoming HTTP request is detected,
 # the User-Agent from the request headers will be tested against each element in this list.
 # Example: `curl/*`, `*pingdom*`
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
-# 
+#
 # NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # ignore_user_agents=
 
 # If set to `true`,
 # transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
-# 
+#
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,
 # as it can lead to an explosion of transaction groups.
@@ -2562,9 +2568,9 @@ The default unit for this option is `ms`.
 # use_path_as_transaction_name=false
 
 # This option is only considered, when `use_path_as_transaction_name` is active.
-# 
+#
 # With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2572,7 +2578,7 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # url_groups=
 
@@ -2582,7 +2588,7 @@ The default unit for this option is `ms`.
 
 # By default, the agent will scan for @Path annotations on the whole class hierarchy, recognizing a class as a JAX-RS resource if the class or any of its superclasses/interfaces has a class level @Path annotation.
 # If your application does not use @Path annotation inheritance, set this property to 'false' to only scan for direct @Path annotations. This can improve the startup time of the agent.
-# 
+#
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean
@@ -2604,13 +2610,13 @@ The default unit for this option is `ms`.
 ############################################
 
 # Report metrics from JMX to the APM Server
-# 
+#
 # Can contain multiple comma separated JMX metric definitions:
-# 
+#
 # ----
 # object_name[<JMX object name pattern>] attribute[<JMX attribute>:metric_name=<optional metric name>]
 # ----
-# 
+#
 # * `object_name`:
 # +
 # For more information about the JMX object name pattern syntax,
@@ -2629,18 +2635,18 @@ The default unit for this option is `ms`.
 # This is the name under which the metric will be stored.
 # Setting this is optional and will be the same as the `attribute` if not set.
 # Note that all JMX metric names will be prefixed with `jvm.jmx.` by the agent.
-# 
+#
 # The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.
-# 
+#
 # The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards.
 # In this example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
-# 
+#
 # ----
 # object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]
 # ----
-# 
+#
 # The resulting documents in Elasticsearch look similar to these (metadata omitted for brevity):
-# 
+#
 # [source,json]
 # ----
 # {
@@ -2657,7 +2663,7 @@ The default unit for this option is `ms`.
 #   }
 # }
 # ----
-# 
+#
 # [source,json]
 # ----
 # {
@@ -2674,16 +2680,16 @@ The default unit for this option is `ms`.
 #   }
 # }
 # ----
-# 
-# 
+#
+#
 # The agent also supports composite values for the attribute value.
 # In this example, `HeapMemoryUsage` is a composite value, consisting of `committed`, `init`, `used` and `max`.
 # ----
-# object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap] 
+# object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]
 # ----
-# 
+#
 # The resulting documents in Elasticsearch look similar to this:
-# 
+#
 # [source,json]
 # ----
 # {
@@ -2703,11 +2709,11 @@ The default unit for this option is `ms`.
 #   }
 # }
 # ----
-# 
+#
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # capture_jmx_metrics=
 
@@ -2716,7 +2722,7 @@ The default unit for this option is `ms`.
 ############################################
 
 # Sets the logging level for the agent.
-# 
+#
 # This option is case-insensitive.
 #
 # Valid options: ERROR, WARN, INFO, DEBUG, TRACE
@@ -2729,10 +2735,10 @@ The default unit for this option is `ms`.
 # Sets the path of the agent logs.
 # The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
 # Example: `_AGENT_HOME_/logs/elastic-apm.log`
-# 
+#
 # When set to the special value 'System.out',
 # the logs are sent to standard out.
-# 
+#
 # NOTE: When logging to a file,
 # it's content is deleted when the application starts.
 #
@@ -2746,7 +2752,7 @@ The default unit for this option is `ms`.
 # If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
 # Since version 1.16.0, the agent also adds `error.id` of captured error to the MDC just before the error message is logged.
 # See <<log-correlation>> for more details.
-# 
+#
 # NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
 #
 # This setting can be changed at runtime
@@ -2759,11 +2765,11 @@ The default unit for this option is `ms`.
 # Messaging                                #
 ############################################
 
-# Used to filter out specific messaging queues/topics from being traced. 
-# 
+# Used to filter out specific messaging queues/topics from being traced.
+#
 # This property should be set to an array containing one or more strings.
 # When set, sends-to and receives-from the specified queues/topic will be ignored.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2771,7 +2777,7 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # ignore_message_queues=
 
@@ -2781,14 +2787,14 @@ The default unit for this option is `ms`.
 
 # Set to `true` to make the agent create spans for method executions based on
 # https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
-# 
+#
 # Due to the nature of how sampling profilers work,
 # the duration of the inferred spans are not exact, but only estimations.
 # The <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spans_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
-# 
+#
 # The inferred spans are created after a profiling session has ended.
 # This means there is a delay between the regular and the inferred spans being visible in the UI.
-# 
+#
 # NOTE: This feature is not available on Windows
 #
 # This setting can be changed at runtime
@@ -2825,7 +2831,7 @@ The default unit for this option is `ms`.
 # If set, the agent will only create inferred spans for methods which match this list.
 # Setting a value may slightly reduce overhead and can reduce clutter by only creating spans for the classes you are interested in.
 # Example: `org.example.myapp.*`
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2838,7 +2844,7 @@ The default unit for this option is `ms`.
 # profiling_inferred_spans_included_classes=*
 
 # Excludes classes for which no profiler-inferred spans should be created.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2855,39 +2861,39 @@ The default unit for this option is `ms`.
 ############################################
 
 # This string is used to ensure that only your agents can send data to your APM server.
-# 
+#
 # Both the agents and the APM server have to be configured with the same secret token.
 # Use if APM Server requires a token.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value:
 #
 # secret_token=
 
 # This string is used to ensure that only your agents can send data to your APM server.
-# 
+#
 # Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.
 # When both secret token and API key are used, API key has priority and secret token is ignored.
 # Use if APM Server requires an API key.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value:
 #
 # api_key=
 
 # The URLs for your APM Servers
 #
 # The URLs must be fully qualified, including protocol (http or https) and port.
-# 
+#
 # Fails over to the next APM Server URL in the event of connection errors.
 # Achieves load-balancing by shuffling the list of configured URLs.
 # When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
-# 
+#
 # If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 # See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
-# 
+#
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #
 # This setting can be changed at runtime
@@ -2901,7 +2907,7 @@ The default unit for this option is `ms`.
 # If a request to the APM server takes longer than the configured timeout,
 # the request is cancelled and the event (exception or transaction) is discarded.
 # Set to 0 to disable timeouts.
-# 
+#
 # WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 #
 # This setting can be changed at runtime
@@ -2913,7 +2919,7 @@ The default unit for this option is `ms`.
 # server_timeout=5s
 
 # By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.
-# 
+#
 # Verification can be disabled by changing this setting to false.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -2923,12 +2929,12 @@ The default unit for this option is `ms`.
 # verify_server_cert=true
 
 # The maximum size of buffered events.
-# 
+#
 # Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server or if the APM server is down.
-# 
+#
 # If the queue is full, events are rejected which means you will lose transactions and spans in that case.
 # This guards the application from crashing in case the APM server is unavailable for a longer period of time.
-# 
+#
 # A lower value will decrease the heap overhead of the agent,
 # while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 #
@@ -2948,7 +2954,7 @@ The default unit for this option is `ms`.
 # include_process_args=false
 
 # Maximum time to keep an HTTP request to the APM Server open for.
-# 
+#
 # NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 #
 # This setting can be changed at runtime
@@ -2961,7 +2967,7 @@ The default unit for this option is `ms`.
 
 # The maximum total compressed size of the request body which is sent to the APM server intake api via a chunked encoding (HTTP streaming).
 # Note that a small overshoot is possible.
-# 
+#
 # Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 #
 # This setting can be changed at runtime
@@ -2985,7 +2991,7 @@ The default unit for this option is `ms`.
 # Disables the collection of certain metrics.
 # If the name of a metric matches any of the wildcard expressions, it will not be collected.
 # Example: `foo.*,bar.*`
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2993,7 +2999,7 @@ The default unit for this option is `ms`.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # disable_metrics=
 
@@ -3008,20 +3014,20 @@ The default unit for this option is `ms`.
 # there's no need to configure sub-packages.
 # Because this setting helps determine which classes to scan on startup,
 # setting this option can also improve startup time.
-# 
+#
 # You must set this option in order to use the API annotations `@CaptureTransaction` and `@CaptureSpan`.
-# 
+#
 # **Example**
-# 
+#
 # Most Java projects have a root package, e.g. `com.myproject`. You can set the application package using Java system properties:
 # `-Delastic.apm.application_packages=com.myproject`
-# 
+#
 # If you are only interested in specific subpackages, you can separate them with commas:
 # `-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # application_packages=
 
@@ -3034,9 +3040,9 @@ The default unit for this option is `ms`.
 # stack_trace_limit=50
 
 # In its default settings, the APM agent will collect a stack trace with every recorded span.
-# While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
+# While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead.
 # When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
-# 
+#
 # To disable stack trace collection for spans completely, set the value to `0ms`.
 #
 # This setting can be changed at runtime
