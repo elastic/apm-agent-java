@@ -718,8 +718,8 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 ==== `capture_body` (performance)
 
 For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
-textual message body.
+variables). For transactions that are initiated by receiving a message from a message broker, the agent can 
+capture the textual message body.
 
 If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
 
@@ -753,7 +753,7 @@ Valid options: `off`, `errors`, `transactions`, `all`
 [[config-capture-headers]]
 ==== `capture_headers` (performance)
 
-If set to `true`, the agent will capture HTTP request and response headers (including cookies),
+If set to `true`, the agent will capture HTTP request and response headers (including cookies), 
 as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.
 
 NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
@@ -2298,10 +2298,10 @@ The default unit for this option is `ms`.
 # ignore_exceptions=
 
 # For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-# variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
-# textual message body.
+# variables). For transactions that are initiated by receiving a message from a message broker, the agent can 
+# capture the textual message body.
 # 
-# If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
+# If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
 # 
 # This option is case-insensitive.
 # 
@@ -2320,7 +2320,8 @@ The default unit for this option is `ms`.
 #
 # capture_body=OFF
 
-# If set to `true`, the agent will capture request and response headers, including cookies.
+# If set to `true`, the agent will capture HTTP request and response headers (including cookies), 
+# as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.
 # 
 # NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 #
