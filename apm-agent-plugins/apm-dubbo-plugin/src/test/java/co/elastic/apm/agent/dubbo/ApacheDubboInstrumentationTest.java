@@ -57,7 +57,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
     @Override
     protected DubboTestApi buildDubboTestApi() {
         ApplicationConfig providerAppConfig = new ApplicationConfig();
-        providerAppConfig.setName("dubbo-provider");
+        providerAppConfig.setName("dubbo-demo");
 
         ProtocolConfig protocolConfig = new ProtocolConfig();
         protocolConfig.setName("dubbo");
@@ -75,10 +75,8 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         serviceConfig.setRegistry(registryConfig);
         serviceConfig.export();
 
-        ApplicationConfig consumerApp = new ApplicationConfig();
-        consumerApp.setName("dubbo-consumer");
         referenceConfig = new ReferenceConfig<>();
-        referenceConfig.setApplication(consumerApp);
+        referenceConfig.setApplication(providerAppConfig);
         referenceConfig.setInterface(DubboTestApi.class);
         referenceConfig.setUrl("dubbo://localhost:" + getPort());
         referenceConfig.setTimeout(3000);

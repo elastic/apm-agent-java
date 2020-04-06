@@ -16,8 +16,6 @@
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
         <version.spring>5.0.15.RELEASE</version.spring>
         <animal.sniffer.skip>true</animal.sniffer.skip>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -30,7 +28,7 @@
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo</artifactId>
-            <version>2.7.5</version>
+            <version>2.7.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
