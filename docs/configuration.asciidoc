@@ -165,6 +165,7 @@ Click on a key to get more information.
 === Circuit-Breaker configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-circuit-breaker-enabled]]
 ==== `circuit_breaker_enabled` (performance)
 
@@ -176,6 +177,12 @@ When inactive, the agent continues polling the same monitors in order to detect 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `circuit_breaker_enabled`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -189,17 +196,25 @@ agent will resume and become fully functional.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.circuit_breaker_enabled` | `circuit_breaker_enabled` | `ELASTIC_APM_CIRCUIT_BREAKER_ENABLED`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-stress-monitoring-interval]]
 ==== `stress_monitoring_interval` (performance)
 
 The interval at which the agent polls the stress monitors. Must be at least `1s`.
 
+
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
 The default unit for this option is `s`.
+
+.Properties of `stress_monitoring_interval`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -213,9 +228,11 @@ The default unit for this option is `s`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitoring_interval` | `stress_monitoring_interval` | `ELASTIC_APM_STRESS_MONITORING_INTERVAL`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-stress-monitor-gc-stress-threshold]]
 ==== `stress_monitor_gc_stress_threshold` (performance)
 
@@ -224,6 +241,12 @@ The same threshold will be used for all heap pools, so that if ANY has a usage p
 the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
 after a recent GC.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `stress_monitor_gc_stress_threshold`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -237,9 +260,11 @@ after a recent GC.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitor_gc_stress_threshold` | `stress_monitor_gc_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_STRESS_THRESHOLD`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-stress-monitor-gc-relief-threshold]]
 ==== `stress_monitor_gc_relief_threshold` (performance)
 
@@ -248,6 +273,12 @@ If `stress_monitor_gc_stress_threshold` has been crossed, the agent will conside
 In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
 be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `stress_monitor_gc_relief_threshold`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -261,9 +292,11 @@ be lower than this threshold. The GC monitor relies only on memory consumption m
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitor_gc_relief_threshold` | `stress_monitor_gc_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_GC_RELIEF_THRESHOLD`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-stress-monitor-cpu-duration-threshold]]
 ==== `stress_monitor_cpu_duration_threshold` (performance)
 
@@ -272,9 +305,15 @@ either currently under stress, or that the stress detected previously has been r
 All measurements during this time must be consistent in comparison to the relevant threshold in 
 order to detect a change of stress state. Must be at least `1m`.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `1m`.
 The default unit for this option is `m`.
+
+.Properties of `stress_monitor_cpu_duration_threshold`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -288,9 +327,11 @@ The default unit for this option is `m`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitor_cpu_duration_threshold` | `stress_monitor_cpu_duration_threshold` | `ELASTIC_APM_STRESS_MONITOR_CPU_DURATION_THRESHOLD`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-stress-monitor-system-cpu-stress-threshold]]
 ==== `stress_monitor_system_cpu_stress_threshold` (performance)
 
@@ -298,6 +339,12 @@ The threshold used by the system CPU monitor to detect system CPU stress.
 If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
 the monitor considers this as a stress state.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `stress_monitor_system_cpu_stress_threshold`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -311,9 +358,11 @@ the monitor considers this as a stress state.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitor_system_cpu_stress_threshold` | `stress_monitor_system_cpu_stress_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_STRESS_THRESHOLD`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-stress-monitor-system-cpu-relief-threshold]]
 ==== `stress_monitor_system_cpu_relief_threshold` (performance)
 
@@ -322,6 +371,12 @@ not under CPU stress. If the monitor detected a CPU stress, the measured system 
 this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
 monitor to decide that the CPU stress has been relieved.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `stress_monitor_system_cpu_relief_threshold`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -335,11 +390,13 @@ monitor to decide that the CPU stress has been relieved.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stress_monitor_system_cpu_relief_threshold` | `stress_monitor_system_cpu_relief_threshold` | `ELASTIC_APM_STRESS_MONITOR_SYSTEM_CPU_RELIEF_THRESHOLD`
 |============
+=====
 
 [[config-core]]
 === Core configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-recording]]
 ==== `recording`
 
@@ -354,6 +411,12 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 
 The key of this option used to be `active`. The old key still works but is now deprecated.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `recording`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -367,9 +430,11 @@ The key of this option used to be `active`. The old key still works but is now d
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.recording` | `recording` | `ELASTIC_APM_RECORDING`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-instrument]]
 ==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -379,6 +444,12 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `instrument`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -392,9 +463,11 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.instrument` | `instrument` | `ELASTIC_APM_INSTRUMENT`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-service-name]]
 ==== `service_name`
 
@@ -419,6 +492,12 @@ or to disable the corresponding `*-service-name` detecting instrumentations via 
 NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 
 
+
+
+.Properties of `service_name`
+[%collapsible%open]
+=====
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -436,9 +515,11 @@ If the service name is set explicitly, it overrides all of the above.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.service_name` | `service_name` | `ELASTIC_APM_SERVICE_NAME`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-service-node-name]]
 ==== `service_node_name` (added[1.11.0])
 
@@ -454,6 +535,12 @@ you must set a unique node name for each in order to view metrics at the JVM lev
 NOTE: Metrics views can utilize this configuration since APM Server 7.5
 
 
+
+
+.Properties of `service_node_name`
+[%collapsible%open]
+=====
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -466,14 +553,22 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.service_node_name` | `service_node_name` | `ELASTIC_APM_SERVICE_NODE_NAME`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-service-version]]
 ==== `service_version`
 
 A version string for the currently deployed version of the service. If you donâ€™t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 
+
+
+
+.Properties of `service_version`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -487,14 +582,22 @@ A version string for the currently deployed version of the service. If you donâ€
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.service_version` | `service_version` | `ELASTIC_APM_SERVICE_VERSION`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-hostname]]
 ==== `hostname` (added[1.10.0])
 
 Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.
 
+
+
+
+.Properties of `hostname`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -508,9 +611,11 @@ Allows for the reported hostname to be manually specified. If unset the hostname
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.hostname` | `hostname` | `ELASTIC_APM_HOSTNAME`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-environment]]
 ==== `environment`
 
@@ -524,6 +629,12 @@ NOTE: This feature is fully supported in the APM app in Kibana versions >= 7.2.
 You must use the query bar to filter for a specific environment in versions prior to 7.2.
 
 
+
+
+.Properties of `environment`
+[%collapsible%open]
+=====
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -536,14 +647,22 @@ You must use the query bar to filter for a specific environment in versions prio
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.environment` | `environment` | `ELASTIC_APM_ENVIRONMENT`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-transaction-sample-rate]]
 ==== `transaction_sample_rate` (performance)
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `transaction_sample_rate`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -557,9 +676,11 @@ By default, the agent will sample every transaction (e.g. request to your servic
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.transaction_sample_rate` | `transaction_sample_rate` | `ELASTIC_APM_TRANSACTION_SAMPLE_RATE`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-transaction-max-spans]]
 ==== `transaction_max_spans` (performance)
 
@@ -571,6 +692,12 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 
 A message will be logged when the max number of spans has been exceeded but only at a rate of once every 5 minutes to ensure performance is not impacted.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `transaction_max_spans`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -584,9 +711,11 @@ A message will be logged when the max number of spans has been exceeded but only
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.transaction_max_spans` | `transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-sanitize-field-names]]
 ==== `sanitize_field_names` (security)
 
@@ -609,6 +738,12 @@ NOTE: Review the data captured by Elastic APM carefully to make sure it does not
 If you do find sensitive data in the Elasticsearch index,
 you should add an additional entry to this list (make sure to also include the default entries).
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `sanitize_field_names`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -622,9 +757,11 @@ you should add an additional entry to this list (make sure to also include the d
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.sanitize_field_names` | `sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-disable-instrumentations]]
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -634,6 +771,12 @@ If you want to try out incubating features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `disable_instrumentations`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -647,9 +790,11 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-unnest-exceptions]]
 ==== `unnest_exceptions`
 
@@ -663,6 +808,12 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `unnest_exceptions`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -676,9 +827,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-ignore-exceptions]]
 ==== `ignore_exceptions` (added[1.11.0])
 
@@ -698,6 +851,12 @@ Examples:
 
 NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `ignore_exceptions`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -711,9 +870,11 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_exceptions` | `ignore_exceptions` | `ELASTIC_APM_IGNORE_EXCEPTIONS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-capture-body]]
 ==== `capture_body` (performance)
 
@@ -733,7 +894,13 @@ If your service handles data like this, we advise to only enable this feature wi
 Turning on body capturing can also significantly increase the overhead in terms of heap usage,
 network utilisation and Elasticsearch index size.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Valid options: `off`, `errors`, `transactions`, `all`
+
+.Properties of `capture_body`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -747,9 +914,11 @@ Valid options: `off`, `errors`, `transactions`, `all`
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-capture-headers]]
 ==== `capture_headers` (performance)
 
@@ -758,6 +927,12 @@ as well as messages' headers/properties when using messaging frameworks like Kaf
 
 NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `capture_headers`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -771,9 +946,11 @@ NOTE: Setting this to `false` reduces network bandwidth, disk space and object a
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-global-labels]]
 ==== `global_labels` (added[1.7.0, Requires APM Server 7.2+])
 
@@ -782,6 +959,12 @@ Any labels set by application via the API will override global labels with the s
 
 NOTE: This feature requires APM Server 7.2+
 
+
+
+
+.Properties of `global_labels`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -795,9 +978,11 @@ NOTE: This feature requires APM Server 7.2+
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.global_labels` | `global_labels` | `ELASTIC_APM_GLOBAL_LABELS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-trace-methods]]
 ==== `trace_methods` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -864,6 +1049,12 @@ NOTE: This method is only available in the Elastic APM Java Agent.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `trace_methods`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -877,9 +1068,11 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.trace_methods` | `trace_methods` | `ELASTIC_APM_TRACE_METHODS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-trace-methods-duration-threshold]]
 ==== `trace_methods_duration_threshold` (added[1.7.0])
 
@@ -899,9 +1092,15 @@ all spans leading to an async operation or an exit span (such as a HTTP request 
 regardless of their duration.
 
 
+
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
 The default unit for this option is `ms`.
+
+.Properties of `trace_methods_duration_threshold`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -915,9 +1114,11 @@ The default unit for this option is `ms`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-boot-delegation-packages]]
 ==== `boot_delegation_packages` (added[1.7.0])
 
@@ -939,6 +1140,12 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 
 
 
+
+
+.Properties of `boot_delegation_packages`
+[%collapsible%open]
+=====
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -951,14 +1158,22 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-central-config]]
 ==== `central_config` (added[1.8.0])
 
 When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `central_config`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -972,14 +1187,22 @@ When enabled, the agent will make periodic requests to the APM Server to fetch u
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.central_config` | `central_config` | `ELASTIC_APM_CENTRAL_CONFIG`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-breakdown-metrics]]
 ==== `breakdown_metrics` (added[1.8.0])
 
 Disables the collection of breakdown metrics (`span.self_time`)
 
+
+
+
+.Properties of `breakdown_metrics`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -993,9 +1216,11 @@ Disables the collection of breakdown metrics (`span.self_time`)
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.breakdown_metrics` | `breakdown_metrics` | `ELASTIC_APM_BREAKDOWN_METRICS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-config-file]]
 ==== `config_file` (added[1.8.0])
 
@@ -1006,6 +1231,12 @@ You can not refer to classpath locations.
 
 NOTE: this option can only be set via system properties, environment variables or the attacher options.
 
+
+
+
+.Properties of `config_file`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1019,9 +1250,11 @@ NOTE: this option can only be set via system properties, environment variables o
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.config_file` | `config_file` | `ELASTIC_APM_CONFIG_FILE`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.14.0])
 
@@ -1033,6 +1266,12 @@ https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
 When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`
 for backwards compatibility with older versions of Elastic APM agents.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `use_elastic_traceparent_header`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1046,11 +1285,13 @@ for backwards compatibility with older versions of Elastic APM agents.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_elastic_traceparent_header` | `use_elastic_traceparent_header` | `ELASTIC_APM_USE_ELASTIC_TRACEPARENT_HEADER`
 |============
+=====
 
 [[config-http]]
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-capture-body-content-types]]
 ==== `capture_body_content_types` (added[1.5.0] performance)
 
@@ -1063,6 +1304,12 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `capture_body_content_types`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1076,9 +1323,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.capture_body_content_types` | `capture_body_content_types` | `ELASTIC_APM_CAPTURE_BODY_CONTENT_TYPES`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-ignore-urls]]
 ==== `ignore_urls`
 
@@ -1094,6 +1343,12 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `ignore_urls`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1107,9 +1362,11 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_urls` | `ignore_urls` | `ELASTIC_APM_IGNORE_URLS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-ignore-user-agents]]
 ==== `ignore_user_agents`
 
@@ -1126,6 +1383,12 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `ignore_user_agents`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1139,9 +1402,11 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-use-path-as-transaction-name]]
 ==== `use_path_as_transaction_name` (experimental)
 
@@ -1153,6 +1418,12 @@ you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
 Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
 
+
+
+
+.Properties of `use_path_as_transaction_name`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1166,9 +1437,11 @@ Take a look at the `url_groups` option on how to mitigate this problem by groupi
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_path_as_transaction_name` | `use_path_as_transaction_name` | `ELASTIC_APM_USE_PATH_AS_TRANSACTION_NAME`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-url-groups]]
 ==== `url_groups`
 
@@ -1181,6 +1454,12 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `url_groups`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1194,11 +1473,13 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS`
 |============
+=====
 
 [[config-jax-rs]]
 === JAX-RS configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-enable-jaxrs-annotation-inheritance]]
 ==== `enable_jaxrs_annotation_inheritance` (performance)
 
@@ -1206,6 +1487,12 @@ By default, the agent will scan for @Path annotations on the whole class hierarc
 If your application does not use @Path annotation inheritance, set this property to 'false' to only scan for direct @Path annotations. This can improve the startup time of the agent.
 
 
+
+
+
+.Properties of `enable_jaxrs_annotation_inheritance`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1219,15 +1506,23 @@ If your application does not use @Path annotation inheritance, set this property
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_jaxrs_annotation_inheritance` | `enable_jaxrs_annotation_inheritance` | `ELASTIC_APM_ENABLE_JAXRS_ANNOTATION_INHERITANCE`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-use-jaxrs-path-as-transaction-name]]
 ==== `use_jaxrs_path_as_transaction_name` (added[1.8.0])
 
 By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.
 If you want to use the URI template from the `@Path` annotation, set the value to `true`.
 
+
+
+
+.Properties of `use_jaxrs_path_as_transaction_name`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1241,11 +1536,13 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_jaxrs_path_as_transaction_name` | `use_jaxrs_path_as_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_AS_TRANSACTION_NAME`
 |============
+=====
 
 [[config-jmx]]
 === JMX configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-capture-jmx-metrics]]
 ==== `capture_jmx_metrics` (added[1.11.0])
 
@@ -1351,6 +1648,12 @@ The resulting documents in Elasticsearch look similar to this:
 ----
 
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `capture_jmx_metrics`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1364,11 +1667,13 @@ The resulting documents in Elasticsearch look similar to this:
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.capture_jmx_metrics` | `capture_jmx_metrics` | `ELASTIC_APM_CAPTURE_JMX_METRICS`
 |============
+=====
 
 [[config-logging]]
 === Logging configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-log-level]]
 ==== `log_level`
 
@@ -1376,7 +1681,13 @@ Sets the logging level for the agent.
 
 This option is case-insensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+
+.Properties of `log_level`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1390,9 +1701,11 @@ Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_level` | `log_level` | `ELASTIC_APM_LOG_LEVEL`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-log-file]]
 ==== `log_file`
 
@@ -1407,6 +1720,12 @@ NOTE: When logging to a file,
 it's content is deleted when the application starts.
 
 
+
+
+.Properties of `log_file`
+[%collapsible%open]
+=====
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1419,9 +1738,11 @@ it's content is deleted when the application starts.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-enable-log-correlation]]
 ==== `enable_log_correlation`
 
@@ -1432,6 +1753,12 @@ See <<log-correlation>> for more details.
 
 NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `enable_log_correlation`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1445,11 +1772,13 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
 |============
+=====
 
 [[config-messaging]]
 === Messaging configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-ignore-message-queues]]
 ==== `ignore_message_queues`
 
@@ -1463,6 +1792,12 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `ignore_message_queues`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1476,11 +1811,13 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
 |============
+=====
 
 [[config-profiling]]
 === Profiling configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-profiling-inferred-spans-enabled]]
 ==== `profiling_inferred_spans_enabled` (added[1.15.0] experimental)
 
@@ -1496,6 +1833,12 @@ This means there is a delay between the regular and the inferred spans being vis
 
 NOTE: This feature is not available on Windows
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `profiling_inferred_spans_enabled`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1509,9 +1852,11 @@ NOTE: This feature is not available on Windows
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.profiling_inferred_spans_enabled` | `profiling_inferred_spans_enabled` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_ENABLED`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-profiling-inferred-spans-sampling-interval]]
 ==== `profiling_inferred_spans_sampling_interval` (added[1.15.0])
 
@@ -1520,9 +1865,15 @@ The lower you set it, the more accurate the durations will be.
 This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
 The minimal duration of a profiling-inferred span is the same as the value of this setting.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `50ms`.
 The default unit for this option is `ms`.
+
+.Properties of `profiling_inferred_spans_sampling_interval`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1536,9 +1887,11 @@ The default unit for this option is `ms`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.profiling_inferred_spans_sampling_interval` | `profiling_inferred_spans_sampling_interval` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_SAMPLING_INTERVAL`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-profiling-inferred-spans-min-duration]]
 ==== `profiling_inferred_spans_min_duration` (added[1.15.0])
 
@@ -1546,9 +1899,15 @@ The minimum duration of an inferred span.
 Note that the min duration is also implicitly set by the sampling interval.
 However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
 The default unit for this option is `ms`.
+
+.Properties of `profiling_inferred_spans_min_duration`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1562,9 +1921,11 @@ The default unit for this option is `ms`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.profiling_inferred_spans_min_duration` | `profiling_inferred_spans_min_duration` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_MIN_DURATION`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-profiling-inferred-spans-included-classes]]
 ==== `profiling_inferred_spans_included_classes` (added[1.15.0])
 
@@ -1577,6 +1938,12 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `profiling_inferred_spans_included_classes`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1590,9 +1957,11 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.profiling_inferred_spans_included_classes` | `profiling_inferred_spans_included_classes` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_INCLUDED_CLASSES`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-profiling-inferred-spans-excluded-classes]]
 ==== `profiling_inferred_spans_excluded_classes` (added[1.15.0])
 
@@ -1603,6 +1972,12 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `profiling_inferred_spans_excluded_classes`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1616,11 +1991,13 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.profiling_inferred_spans_excluded_classes` | `profiling_inferred_spans_excluded_classes` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_EXCLUDED_CLASSES`
 |============
+=====
 
 [[config-reporter]]
 === Reporter configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-secret-token]]
 ==== `secret_token`
 
@@ -1629,6 +2006,12 @@ This string is used to ensure that only your agents can send data to your APM se
 Both the agents and the APM server have to be configured with the same secret token.
 Use if APM Server requires a token.
 
+
+
+
+.Properties of `secret_token`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1642,9 +2025,11 @@ Use if APM Server requires a token.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.secret_token` | `secret_token` | `ELASTIC_APM_SECRET_TOKEN`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-api-key]]
 ==== `api_key`
 
@@ -1654,6 +2039,12 @@ Agents can use API keys as a replacement of secret token, APM server can have mu
 When both secret token and API key are used, API key has priority and secret token is ignored.
 Use if APM Server requires an API key.
 
+
+
+
+.Properties of `api_key`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1667,9 +2058,11 @@ Use if APM Server requires an API key.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.api_key` | `api_key` | `ELASTIC_APM_API_KEY`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-server-urls]]
 ==== `server_urls`
 
@@ -1684,6 +2077,12 @@ See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/tech
 
 NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `server_urls`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1697,9 +2096,11 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.server_urls` | `server_urls` | `ELASTIC_APM_SERVER_URLS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-server-timeout]]
 ==== `server_timeout`
 
@@ -1709,9 +2110,15 @@ Set to 0 to disable timeouts.
 
 WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
 The default unit for this option is `s`.
+
+.Properties of `server_timeout`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1725,9 +2132,11 @@ The default unit for this option is `s`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.server_timeout` | `server_timeout` | `ELASTIC_APM_SERVER_TIMEOUT`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-verify-server-cert]]
 ==== `verify_server_cert`
 
@@ -1735,6 +2144,12 @@ By default, the agent verifies the SSL certificate if you use an HTTPS connectio
 
 Verification can be disabled by changing this setting to false.
 
+
+
+
+.Properties of `verify_server_cert`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1748,9 +2163,11 @@ Verification can be disabled by changing this setting to false.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.verify_server_cert` | `verify_server_cert` | `ELASTIC_APM_VERIFY_SERVER_CERT`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-max-queue-size]]
 ==== `max_queue_size`
 
@@ -1764,6 +2181,12 @@ This guards the application from crashing in case the APM server is unavailable 
 A lower value will decrease the heap overhead of the agent,
 while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `max_queue_size`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1777,15 +2200,23 @@ while a higher value makes it less likely to lose events in case of a temporary 
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.max_queue_size` | `max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-include-process-args]]
 ==== `include_process_args`
 
 Whether each transaction should have the process arguments attached.
 Disabled by default to save disk space.
 
+
+
+
+.Properties of `include_process_args`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1799,9 +2230,11 @@ Disabled by default to save disk space.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.include_process_args` | `include_process_args` | `ELASTIC_APM_INCLUDE_PROCESS_ARGS`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-api-request-time]]
 ==== `api_request_time`
 
@@ -1809,9 +2242,15 @@ Maximum time to keep an HTTP request to the APM Server open for.
 
 NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
 The default unit for this option is `s`.
+
+.Properties of `api_request_time`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1825,9 +2264,11 @@ The default unit for this option is `s`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.api_request_time` | `api_request_time` | `ELASTIC_APM_API_REQUEST_TIME`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-api-request-size]]
 ==== `api_request_size`
 
@@ -1836,6 +2277,12 @@ Note that a small overshoot is possible.
 
 Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `api_request_size`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1849,9 +2296,11 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.api_request_size` | `api_request_size` | `ELASTIC_APM_API_REQUEST_SIZE`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-metrics-interval]]
 ==== `metrics_interval` (added[1.3.0])
 
@@ -1859,9 +2308,15 @@ The interval at which the agent sends metrics to the APM Server.
 Must be at least `1s`.
 Set to `0s` to deactivate.
 
+
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `30s`.
 The default unit for this option is `s`.
+
+.Properties of `metrics_interval`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1875,9 +2330,11 @@ The default unit for this option is `s`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.metrics_interval` | `metrics_interval` | `ELASTIC_APM_METRICS_INTERVAL`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-disable-metrics]]
 ==== `disable_metrics` (added[1.3.0])
 
@@ -1891,6 +2348,12 @@ Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
 
+
+
+.Properties of `disable_metrics`
+[%collapsible%open]
+=====
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1903,11 +2366,13 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.disable_metrics` | `disable_metrics` | `ELASTIC_APM_DISABLE_METRICS`
 |============
+=====
 
 [[config-stacktrace]]
 === Stacktrace configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-application-packages]]
 ==== `application_packages`
 
@@ -1929,6 +2394,12 @@ Most Java projects have a root package, e.g. `com.myproject`. You can set the ap
 If you are only interested in specific subpackages, you can separate them with commas:
 `-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `application_packages`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1942,14 +2413,22 @@ If you are only interested in specific subpackages, you can separate them with c
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.application_packages` | `application_packages` | `ELASTIC_APM_APPLICATION_PACKAGES`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-stack-trace-limit]]
 ==== `stack_trace_limit` (performance)
 
 Setting it to 0 will disable stack trace collection. Any positive integer value will be used as the maximum number of frames to collect. Setting it -1 means that all frames will be collected.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+.Properties of `stack_trace_limit`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1963,9 +2442,11 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.stack_trace_limit` | `stack_trace_limit` | `ELASTIC_APM_STACK_TRACE_LIMIT`
 |============
+=====
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-span-frames-min-duration]]
 ==== `span_frames_min_duration` (performance)
 
@@ -1975,9 +2456,15 @@ When setting this option to a negative value, like `-1ms`, stack traces will be 
 
 To disable stack trace collection for spans completely, set the value to `0ms`.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5ms`.
 The default unit for this option is `ms`.
+
+.Properties of `span_frames_min_duration`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -1991,6 +2478,7 @@ The default unit for this option is `ms`.
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.span_frames_min_duration` | `span_frames_min_duration` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION`
 |============
+=====
 
 
 

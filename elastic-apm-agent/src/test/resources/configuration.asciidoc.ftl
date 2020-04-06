@@ -106,10 +106,13 @@ Click on a key to get more information.
     <#list options as option>
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[role="child_attributes"]
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
 ==== `${option.key}`${option.tags?has_content?then(" (${option.tags?join(' ')})", '')}
 
 ${option.description}
+
+<#if option.dynamic><<configuration-dynamic, image:./images/dynamic-config.svg[] >></#if>
 
 <#if option.valueType?matches("TimeDuration")>
 Supports the duration suffixes `ms`, `s` and `m`.
@@ -119,6 +122,10 @@ The default unit for this option is `${option.valueConverter.defaultDurationSuff
 <#if option.validOptions?has_content>
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
 </#if>
+
+.Properties of `${option.key}`
+[%collapsible%open]
+=====
 
 [options="header"]
 |============
@@ -132,6 +139,7 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.${option.key}` | `${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
 |============
+=====
 
     </#list>
 </#list>
