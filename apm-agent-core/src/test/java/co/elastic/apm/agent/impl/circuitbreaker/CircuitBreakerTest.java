@@ -190,10 +190,13 @@ public class CircuitBreakerTest {
 
         // 3 stress should keep it paused
         monitor.simulateStress();
+        // needs to poll all monitors otherwise tracer state might not be up-to-date within tracer (only updated once polling is over)
+        assertAllMonitorsPolled(()->{}, monitor);
         assertSteadyState(this::assertPaused, monitor);
 
         // 4 should not resume tracer as we are under stress
         TracerInternalApiUtils.setRecordingConfig(config, true, TEST_CONFIG_SOURCE_NAME);
+
         assertSteadyState(this::assertPaused, monitor);
 
         // 5 stress relief now resumes tracer
@@ -247,6 +250,10 @@ public class CircuitBreakerTest {
     }
 
     private static void assertSteadyState(Runnable assertion, TestStressMonitor... monitors) throws InterruptedException {
+        assertAllMonitorsPolled(assertion, monitors);
+    }
+
+    private static void assertAllMonitorsPolled(Runnable assertion, TestStressMonitor... monitors) throws InterruptedException {
         int[] monitorPolls = new int[monitors.length];
         for (int i = 0; i < monitorPolls.length; i++) {
             monitorPolls[i] = monitors[i].getPollCount();
