@@ -29,20 +29,6 @@ You can then use the APM app in Kibana to gain insight into latency issues and e
 More detailed information on how the Agent works can be found in the <<faq-how-does-it-work,FAQ>>.
 
 [float]
-[[experimental]]
-=== Experimental features
-
-Some agent features or <<supported-technologies-details,plugins>> are marked as `experimental`, which means:
-
-* They are opt-in (disabled by default).
-* There are no guarantees regarding changes in such features in future releases.
-* In some cases they have special caveats or unknowns that come with them.
-In such cases, the specific feature/plugin documentation should indicate that.
-
-There are cases where we decide to release a feature as `experimental` to be on the safe side and only make it an official feature after we get some feedback about it.
-Any such feedback will be highly appreciated, through a related GitHub issue or through the https://discuss.elastic.co/c/apm[APM discuss forum].
-
-[float]
 [[additional-components]]
 === Additional components
 
