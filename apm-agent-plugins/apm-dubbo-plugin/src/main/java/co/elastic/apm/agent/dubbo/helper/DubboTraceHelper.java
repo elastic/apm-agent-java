@@ -79,7 +79,7 @@ public class DubboTraceHelper {
     private static void fillName(AbstractSpan<?> span, Class<?> apiClass, String methodName,
                                  Class<?>[] paramClasses, String version) {
         span.appendToName(apiClass.getName())
-            .appendToName(".")
+            .appendToName("#")
             .appendToName(methodName)
             .appendToName("(");
         if (paramClasses != null) {
