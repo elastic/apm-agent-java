@@ -281,7 +281,7 @@ public class CircuitBreakerTest {
     private static ConditionFactory doAwait() {
         return await()
             .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(50, TimeUnit.MILLISECONDS);
+            .timeout(200, TimeUnit.MILLISECONDS);
 
     }
 
