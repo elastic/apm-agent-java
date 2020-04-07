@@ -20,15 +20,16 @@ public class MonitoredFile {
         int readLines = 0;
         while (readLines < maxLines) {
             FileChannel currentFile = getFileChannel();
-            if (currentFile == null) {
+            if (currentFile == null || isFullyRead()) {
                 return readLines;
             }
-            readLines += readFile(buffer, listener, maxLines, readLines, currentFile);
+            readLines += readFile(buffer, listener, maxLines - readLines, currentFile);
         }
         return readLines;
     }
 
-    private int readFile(ByteBuffer buffer, FileChangeListener listener, int maxLines, int readLines, FileChannel currentFile) throws IOException {
+    private int readFile(ByteBuffer buffer, FileChangeListener listener, int maxLines, FileChannel currentFile) throws IOException {
+        int readLines = 0;
         while (readLines < maxLines) {
             buffer.clear();
             int read = currentFile.read(buffer);
@@ -73,7 +74,7 @@ public class MonitoredFile {
         this.fileChannel = newFileChannel;
     }
 
-    static int readLines(File file, byte[] buffer, int bufferLimit, int maxLines, FileChangeListener listener) throws IOException {
+    static int readLines(File file, byte[] buffer, int bufferLimit, int maxLines, FileChangeListener listener) {
         int lines = 0;
         int currentLineStartOffset = 0;
         while (lines < maxLines) {

@@ -17,12 +17,14 @@ public class FileTailer implements LifecycleListener, Runnable {
     private final ByteBuffer buffer;
     private final int maxLinesPerCycle;
     private volatile boolean stopRequested = false;
+    private final long idleTimeMs;
 
-    public FileTailer(List<MonitoredFile> monitoredFiles, FileChangeListener fileChangeListener, int bufferSize, int maxLinesPerCycle) {
+    public FileTailer(List<MonitoredFile> monitoredFiles, FileChangeListener fileChangeListener, int bufferSize, int maxLinesPerCycle, long idleTimeMs) {
         this.monitoredFiles = monitoredFiles;
         this.fileChangeListener = fileChangeListener;
         this.buffer = ByteBuffer.allocate(bufferSize);
         this.maxLinesPerCycle = maxLinesPerCycle;
+        this.idleTimeMs = idleTimeMs;
     }
 
     @Override
@@ -48,19 +50,29 @@ public class FileTailer implements LifecycleListener, Runnable {
     @Override
     public void run() {
         while (!stopRequested) {
-            pollAll();
+            int readLines = pollAll();
+            if (readLines == 0) {
+                try {
+                    fileChangeListener.onIdle();
+                    Thread.sleep(idleTimeMs);
+                } catch (InterruptedException e) {
+                    stopRequested = true;
+                }
+            }
         }
         pollAll();
     }
 
-    private void pollAll() {
+    private int pollAll() {
+        int lines = 0;
         for (MonitoredFile monitoredFile : monitoredFiles) {
             try {
-                monitoredFile.poll(buffer, fileChangeListener, maxLinesPerCycle);
+                lines += monitoredFile.poll(buffer, fileChangeListener, maxLinesPerCycle);
             } catch (IOException e) {
                 logger.error(e.getMessage(), e);
             }
         }
+        return lines;
     }
 
 }

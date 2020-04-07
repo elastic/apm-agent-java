@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,7 +26,6 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
@@ -144,7 +143,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportSpan();
         reportError();
         assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
         assertThat(reportingEventHandler.getBufferSize()).isEqualTo(0);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
@@ -166,7 +165,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         sendShutdownEvent();
         reportSpan();
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
         assertThat(ndJsonNodes).hasSize(2);
@@ -179,7 +178,7 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(serviceUnavailable()));
 
         reportTransaction(reportingEventHandler);
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
         mockApmServer1.verify(postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
         mockApmServer2.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
 
@@ -187,7 +186,7 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer2.resetRequests();
 
         reportTransaction(reportingEventHandler);
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
         mockApmServer1.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
         mockApmServer2.verify(postRequestedFor(urlEqualTo(APM_SERVER_PATH + INTAKE_V2_URL)));
     }

@@ -32,7 +32,7 @@ public class MonitoredFileTest {
 
     @Test
     void testReadLog() throws IOException {
-        monitoredFile.poll(ByteBuffer.allocate(1024), logListener, 4);
+        monitoredFile.poll(ByteBuffer.allocate(1024), logListener, 5);
         assertThat(logListener.lines).hasSize(4);
         assertThat(logListener.lines.get(0)).isEqualTo("foo".getBytes());
         assertThat(logListener.lines.get(1)).isEqualTo("bar".getBytes());
@@ -59,7 +59,7 @@ public class MonitoredFileTest {
     @Test
     void testReadTwoLines() throws IOException {
         byte[] bytes = {'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'};
-        MonitoredFile.readLines(new File("foo.log"), bytes, bytes.length, 2, logListener);
+        MonitoredFile.readLines(new File("foo.log"), bytes, bytes.length, 4, logListener);
         assertThat(logListener.lines).hasSize(2);
         assertThat(logListener.lines.get(0)).isEqualTo(new byte[]{'c', 'a', 'f', 'e'});
         assertThat(logListener.lines.get(1)).isEqualTo(new byte[]{'b', 'a', 'b', 'e'});
@@ -69,8 +69,13 @@ public class MonitoredFileTest {
         private final List<byte[]> lines = new ArrayList<>();
 
         @Override
-        public void onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) throws IOException {
+        public void onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) {
             lines.add(Arrays.copyOfRange(line, offset, offset + length));
+        }
+
+        @Override
+        public void onIdle() {
+
         }
     }
 }
