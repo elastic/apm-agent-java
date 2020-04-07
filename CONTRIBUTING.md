@@ -224,7 +224,7 @@ we should think about whether they bring us closer to or further away from those
   Create a configuration option for this new feature and disable it by default.
   One advantage is that less time will be spent rebasing long lasting feature branches.
   Another advantage is that users can try out cutting-edge features by activating a configuration option.
-  Instrumentations can be tagged with `incubating` which makes them being disabled by default.
+  Instrumentations can be tagged with `experimental` which makes them being disabled by default.
 
 ### Architecture overview
 

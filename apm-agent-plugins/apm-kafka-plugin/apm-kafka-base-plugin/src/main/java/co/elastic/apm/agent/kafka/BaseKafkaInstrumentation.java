@@ -72,7 +72,6 @@ public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        // Incubating until we implement traceparent binary format
         return Collections.singletonList("kafka");
     }
 
