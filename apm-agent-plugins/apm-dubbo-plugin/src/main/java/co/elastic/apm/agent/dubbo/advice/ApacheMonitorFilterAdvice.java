@@ -35,7 +35,6 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
-import org.apache.dubbo.rpc.AppResponse;
 import org.apache.dubbo.rpc.AsyncRpcResult;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Result;
@@ -59,7 +58,8 @@ public class ApacheMonitorFilterAdvice {
         attachmentHelperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelperImpl");
         asyncCallbackCreatorClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-            "co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreatorImpl");
+            "co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreatorImpl",
+            "co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreatorImpl$AsyncCallback");
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -108,7 +108,7 @@ public class ApacheMonitorFilterAdvice {
 
         RpcContext context = RpcContext.getContext();
         AbstractSpan<?> actualSpan = context.isConsumerSide() ? span : transaction;
-        AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(AppResponse.class);
+        AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(Result.class);
         if (actualSpan == null || callbackCreator == null) {
             return;
         }
