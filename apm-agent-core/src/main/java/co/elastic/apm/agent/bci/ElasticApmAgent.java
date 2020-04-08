@@ -193,7 +193,7 @@ public class ElasticApmAgent {
         logger.info("Re initializing instrumentation");
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
 
-        resettableClassFileTransformer = agentBuilder.patchOnByteBuddyAgent(resettableClassFileTransformer);
+        resettableClassFileTransformer = agentBuilder.patchOn(instrumentation, resettableClassFileTransformer);
     }
 
     private static AgentBuilder initAgentBuilder(ElasticApmTracer tracer, Instrumentation instrumentation,
