@@ -183,7 +183,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |5.x (on by default), 6.x (off by default)
 |The agent automatically creates Hibernate Search spans for queries done through the Hibernate Search API.
 
- *Note:* this feature is marked as incubating for version 6.x, which means it is off by default. In order to enable,
+ *Note:* this feature is marked as experimental for version 6.x, which means it is off by default. In order to enable,
  set the <<config-disable-instrumentations>> config option to an empty string
 |1.9.0
 
@@ -300,7 +300,7 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|Enabled by default since 1.13.0, added as an incubating plugin in 1.7.0
+|Enabled by default since 1.13.0, added as an experimental plugin in 1.7.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support

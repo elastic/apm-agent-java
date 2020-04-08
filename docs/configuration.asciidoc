@@ -156,7 +156,9 @@ Click on a key to get more information.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-circuit-breaker-enabled]]
-==== `circuit_breaker_enabled` (performance)
+==== `circuit_breaker_enabled` (added[1.14.0] performance experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
@@ -619,8 +621,8 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
-If you want to try out incubating features, set the value to an empty string.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
 
@@ -628,7 +630,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `incubating` | Collection | true
+| `experimental` | Collection | true
 |============
 
 
@@ -1135,6 +1137,8 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 [[config-use-path-as-transaction-name]]
 ==== `use_path_as_transaction_name` (experimental)
 
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
 If set to `true`,
 transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
 
@@ -1473,6 +1477,8 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [float]
 [[config-profiling-inferred-spans-enabled]]
 ==== `profiling_inferred_spans_enabled` (added[1.15.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 Set to `true` to make the agent create spans for method executions based on
 https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
@@ -2238,16 +2244,16 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
-# If you want to try out incubating features, set the value to an empty string.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: incubating
+# Default value: experimental
 #
-# disable_instrumentations=incubating
+# disable_instrumentations=experimental
 
 # When reporting exceptions,
 # un-nests the exceptions matching the wildcard pattern.

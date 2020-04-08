@@ -110,7 +110,7 @@ Disabling <<config-capture-headers>> can save allocations, network bandwidth, an
 
 [float]
 [[circuit-breaker]]
-=== Circuit Breaker
+=== Circuit Breaker (experimental)
 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state.
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the
