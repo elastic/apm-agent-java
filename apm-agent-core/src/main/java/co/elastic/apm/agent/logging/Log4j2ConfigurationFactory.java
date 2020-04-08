@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -141,10 +143,13 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                     .newLayout("PatternLayout")
                     .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg%n"));
         } else {
+            String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceNameUtil.getDefaultServiceName());
             return builder.newAppender("rolling", "RollingFile")
                 .addAttribute("fileName", logFile)
                 .addAttribute("filePattern", logFile + "%i")
-                .add(builder.newLayout("EcsLayout"))
+                .add(builder.newLayout("EcsLayout")
+                    .addAttribute("serviceName", serviceName)
+                    .addAttribute("eventDataset", serviceName + ".apm"))
                 .addComponent(builder.newComponent("Policies")
                     .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", "100M")))
                 .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 5));
