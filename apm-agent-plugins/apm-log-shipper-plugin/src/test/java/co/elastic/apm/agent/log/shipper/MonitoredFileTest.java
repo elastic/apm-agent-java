@@ -1,4 +1,28 @@
-package co.elastic.apm.log.shipper;
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2020 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
+package co.elastic.apm.agent.log.shipper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,11 +33,12 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class MonitoredFileTest {
+class MonitoredFileTest {
 
     private ListFileChangeListener logListener = new ListFileChangeListener();
     private MonitoredFile monitoredFile;
@@ -57,6 +82,23 @@ public class MonitoredFileTest {
     }
 
     @Test
+    void testRetry() throws IOException {
+        byte[] bytes = {'c', 'a', 'f', 'e', '\n'};
+        List<byte[]> readBytes = new ArrayList<>();
+        AtomicBoolean processingSuccessful = new AtomicBoolean(false);
+        MonitoredFile.readLines(new File("foo.log"), bytes, bytes.length, 1, new FileChangeListenerAdapter() {
+            @Override
+            public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) {
+                readBytes.add(Arrays.copyOfRange(line, offset, offset + length));
+                return processingSuccessful.getAndSet(true);
+            }
+        });
+        assertThat(readBytes).hasSize(2);
+        assertThat(readBytes.get(0)).isEqualTo(new byte[]{'c', 'a', 'f', 'e'});
+        assertThat(readBytes.get(1)).isEqualTo(new byte[]{'c', 'a', 'f', 'e'});
+    }
+
+    @Test
     void testReadTwoLines() throws IOException {
         byte[] bytes = {'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'};
         MonitoredFile.readLines(new File("foo.log"), bytes, bytes.length, 4, logListener);
@@ -65,17 +107,13 @@ public class MonitoredFileTest {
         assertThat(logListener.lines.get(1)).isEqualTo(new byte[]{'b', 'a', 'b', 'e'});
     }
 
-    private static class ListFileChangeListener implements FileChangeListener {
+    private static class ListFileChangeListener extends FileChangeListenerAdapter {
         private final List<byte[]> lines = new ArrayList<>();
 
         @Override
-        public void onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) {
+        public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) {
             lines.add(Arrays.copyOfRange(line, offset, offset + length));
-        }
-
-        @Override
-        public void onIdle() {
-
+            return true;
         }
     }
 }

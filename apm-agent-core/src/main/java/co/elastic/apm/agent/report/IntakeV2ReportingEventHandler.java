@@ -160,6 +160,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     @Override
     public void close() {
         super.close();
+        logger.info("Reported events: {}", reported);
+        logger.info("Dropped events: {}", dropped);
         timeoutTimer.cancel();
     }
 

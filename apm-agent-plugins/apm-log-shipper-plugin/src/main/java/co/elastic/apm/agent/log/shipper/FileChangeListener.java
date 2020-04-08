@@ -22,25 +22,33 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.context;
+package co.elastic.apm.agent.log.shipper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import java.io.File;
+import java.io.IOException;
 
-public abstract class AbstractLifecycleListener implements LifecycleListener {
+public interface FileChangeListener {
 
-    @Override
-    public void start(ElasticApmTracer tracer) throws Exception {
-    }
+    /**
+     * Retried until success. Implementations are responsible for doing a backoff.
+     *
+     * @param file
+     * @param line
+     * @param offset
+     * @param length
+     * @param eol
+     * @return
+     * @throws IOException If there is an exception while processing the line.
+     *                     Throwing an exception stops tailing the file.
+     */
+    boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) throws IOException;
 
-    @Override
-    public void pause() throws Exception {
-    }
+    void onIdle();
 
-    @Override
-    public void resume() throws Exception {
-    }
+    /**
+     * May be called from a different thread than the one owned by {@link FileTailer}
+     */
+    void onShutdownInitiated();
 
-    @Override
-    public void stop() throws Exception {
-    }
+    void onShutdownComplete();
 }

@@ -1,3 +1,27 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2020 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.impl.MetaData;
@@ -29,13 +53,13 @@ public class AbstractIntakeApiHandler {
     protected Deflater deflater;
     protected long currentlyTransmitting = 0;
     protected long reported = 0;
+    protected long dropped = 0;
     @Nullable
     protected HttpURLConnection connection;
     @Nullable
     protected OutputStream os;
     protected int errorCount;
     protected volatile boolean shutDown;
-    private long dropped = 0;
 
     public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, MetaData metaData, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
@@ -154,14 +178,14 @@ public class AbstractIntakeApiHandler {
                 "Please use APM Server 6.5.0 or newer.");
         }
 
-        long backoffTimeSeconds = AbstractIntakeApiHandler.getBackoffTimeSeconds(errorCount++);
+        long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
         logger.info("Backing off for {} seconds (+/-10%)", backoffTimeSeconds);
         final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
         if (backoffTimeMillis > 0) {
             // back off because there are connection issues with the apm server
             try {
                 synchronized (WAIT_LOCK) {
-                    WAIT_LOCK.wait(backoffTimeMillis + AbstractIntakeApiHandler.getRandomJitter(backoffTimeMillis));
+                    WAIT_LOCK.wait(backoffTimeMillis + getRandomJitter(backoffTimeMillis));
                 }
             } catch (InterruptedException e) {
                 logger.info("APM Agent ReportingEventHandler had been interrupted", e);
@@ -178,10 +202,7 @@ public class AbstractIntakeApiHandler {
     }
 
     public void close() {
-        logger.info("Reported events: {}", reported);
-        logger.info("Dropped events: {}", dropped);
         shutDown = true;
-
         synchronized (WAIT_LOCK) {
             WAIT_LOCK.notifyAll();
         }

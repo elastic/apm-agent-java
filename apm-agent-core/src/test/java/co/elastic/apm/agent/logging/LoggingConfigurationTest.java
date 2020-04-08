@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,41 +24,38 @@
  */
 package co.elastic.apm.agent.logging;
 
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.impl.SimpleLogger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.source.SimpleSource;
 
-import java.io.File;
-import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LoggingConfigurationTest {
 
+    @AfterEach
+    void tearDown() {
+        ConfigurationFactory.resetConfigurationFactory();
+        Configurator.reconfigure();
+    }
+
     @Test
     void testSetLogLevel() {
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_level", "DEBUG")));
-        assertThat(System.getProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm")).isEqualTo("DEBUG");
+        LoggingConfiguration.init(List.of(new SimpleSource().add("log_level", "warn")));
+        assertThat(LoggerFactory.getLogger(LoggingConfigurationTest.class).isDebugEnabled()).isFalse();
+        assertThat(LoggerFactory.getLogger(LoggingConfigurationTest.class).isInfoEnabled()).isFalse();
+        assertThat(LoggerFactory.getLogger(LoggingConfigurationTest.class).isWarnEnabled()).isTrue();
     }
 
     @Test
     void testSetLogFileInvalid() {
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_file", "/this/does/not/exist")));
-        assertThat(System.getProperty(SimpleLogger.LOG_FILE_KEY)).isEqualTo("System.out");
+        LoggingConfiguration.init(List.of(new SimpleSource().add("log_file", "/this/does/not/exist")));
+        assertThat(LoggerContext.getContext(false).getRootLogger().getAppenders()).containsKey("Console");
     }
 
-    @Test
-    void testSetLogFile() {
-        final String logFile = "apm.log";
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_file", logFile)));
-        assertThat(System.getProperty(SimpleLogger.LOG_FILE_KEY)).isEqualTo(new File(logFile).getAbsolutePath());
-    }
-
-    @Test
-    void testSetLogFileAgentHomeCantBeResolvedInTests() {
-        // re-configuring the log file does not actually work,
-        // so we can't verify the content of the log file
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_file", "_AGENT_HOME_/logs/apm.log")));
-        assertThat(System.getProperty(SimpleLogger.LOG_FILE_KEY)).isEqualTo("System.out");
-    }
 }

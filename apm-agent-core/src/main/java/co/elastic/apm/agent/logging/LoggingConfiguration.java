@@ -24,16 +24,13 @@
  */
 package co.elastic.apm.agent.logging;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.slf4j.event.Level;
-import org.slf4j.impl.SimpleLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
 import java.util.List;
 
 /**
@@ -53,15 +50,15 @@ import java.util.List;
  */
 public class LoggingConfiguration extends ConfigurationOptionProvider {
 
-    private static final String SYSTEM_OUT = "System.out";
-    private static final String LOG_LEVEL_KEY = "log_level";
-    private static final String LOG_FILE_KEY = "log_file";
-    private static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
+    public static final String SYSTEM_OUT = "System.out";
+    static final String LOG_LEVEL_KEY = "log_level";
+    static final String LOG_FILE_KEY = "log_file";
+    static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
 
     private static final String LOGGING_CATEGORY = "Logging";
     public static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
-    private static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
-    private static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
+    static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
+    static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
 
     @SuppressWarnings("unused")
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
@@ -75,7 +72,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .addChangeListener(new ConfigurationOption.ChangeListener<Level>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, Level oldValue, Level newValue) {
-                setLogLevel(newValue.toString());
+                setLogLevel(newValue);
             }
         })
         .buildWithDefault(Level.INFO);
@@ -119,62 +116,18 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(false);
 
     public static void init(List<ConfigurationSource> sources) {
-        setLogLevel(getValue(LOG_LEVEL_KEY, sources,
-            getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
-        setLogFileLocation(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources,
-            getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
+        Configurator.initialize(new Log4j2ConfigurationFactory(sources).getConfiguration());
     }
 
-    /**
-     * The ConfigurationRegistry uses and thereby initializes a logger,
-     * so we can't use it here initialize the {@link ConfigurationOption}s in this class.
-     */
-    private static String getValue(String key, List<ConfigurationSource> sources, String defaultValue) {
-        for (ConfigurationSource source : sources) {
-            final String value = source.getValue(key);
-            if (value != null) {
-                return value;
-            }
-        }
-        return defaultValue;
+    public String getLogFile() {
+        return logFile.get();
     }
 
-    private static void setLogLevel(@Nullable String level) {
-        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm", level != null ? level : Level.INFO.toString());
-        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.agent.shaded", Level.WARN.toString());
-        System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, Boolean.TRUE.toString());
-        System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "yyyy-MM-dd HH:mm:ss.SSS");
-    }
-
-    private static void setLogFileLocation(@Nullable String agentHome, String logFile) {
-        if (SYSTEM_OUT.equalsIgnoreCase(logFile)) {
-            System.setProperty(SimpleLogger.LOG_FILE_KEY, SYSTEM_OUT);
-        } else {
-            System.setProperty(SimpleLogger.LOG_FILE_KEY, getActualLogFile(agentHome, logFile));
+    private static void setLogLevel(@Nullable Level level) {
+        if (level == null) {
+            level = Level.INFO;
         }
-    }
-
-    @Nonnull
-    static String getActualLogFile(@Nullable String agentHome, String logFile) {
-        if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
-            if (agentHome == null) {
-                System.err.println("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
-                return SYSTEM_OUT;
-            } else {
-                logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
-            }
-        }
-        logFile = new File(logFile).getAbsolutePath();
-        final File logDir = new File(logFile).getParentFile();
-        if (!logDir.exists()) {
-            logDir.mkdir();
-        }
-        if (!logDir.canWrite()) {
-            System.err.println("Log file " + logFile + " is not writable. Falling back to System.out.");
-            return SYSTEM_OUT;
-        }
-        System.out.println("Writing Elastic APM logs to " + logFile);
-        return logFile;
+        Configurator.setRootLevel(org.apache.logging.log4j.Level.toLevel(level.toString(), org.apache.logging.log4j.Level.INFO));
     }
 
     public boolean isLogCorrelationEnabled() {

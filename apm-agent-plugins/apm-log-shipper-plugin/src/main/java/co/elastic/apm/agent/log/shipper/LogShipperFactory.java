@@ -1,0 +1,71 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2020 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
+package co.elastic.apm.agent.log.shipper;
+
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.ThreadUtils;
+
+import java.io.File;
+
+public class LogShipperFactory extends AbstractLifecycleListener {
+
+    private static final int SHUTDOWN_TIMEOUT = 5000;
+    private static final int BUFFER_SIZE = 1024 * 4;
+    private static final int MAX_LINES_PER_CYCLE = 100;
+    private static final int IDLE_TIME_MS = 250;
+
+    private final FileTailer fileTailer;
+
+    public LogShipperFactory(ElasticApmTracer tracer) {
+        ApmServerClient apmServerClient = tracer.getApmServerClient();
+        DslJsonSerializer serializer = new DslJsonSerializer(tracer.getConfig(StacktraceConfiguration.class), apmServerClient);
+        MetaData metaData = MetaData.create(tracer.getConfigurationRegistry(), null, null);
+        ApmServerLogShipper logShipper = new ApmServerLogShipper(apmServerClient, tracer.getConfig(ReporterConfiguration.class), metaData, serializer);
+        ExecutorUtils.NamedThreadFactory threadFactory = new ExecutorUtils.NamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix("log-shipper"));
+        fileTailer = new FileTailer(logShipper, BUFFER_SIZE, MAX_LINES_PER_CYCLE, IDLE_TIME_MS, threadFactory);
+    }
+
+    @Override
+    public void start(ElasticApmTracer tracer) {
+        String logFile = tracer.getConfig(LoggingConfiguration.class).getLogFile();
+        if (!logFile.equals(LoggingConfiguration.SYSTEM_OUT)) {
+            fileTailer.tailFile(new File(logFile));
+            fileTailer.start();
+        }
+    }
+
+    @Override
+    public void stop() throws Exception {
+        fileTailer.stop(SHUTDOWN_TIMEOUT);
+    }
+}

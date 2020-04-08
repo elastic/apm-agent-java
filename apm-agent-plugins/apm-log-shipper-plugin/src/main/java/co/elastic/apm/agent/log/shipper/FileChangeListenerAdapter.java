@@ -22,25 +22,28 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.context;
+package co.elastic.apm.agent.log.shipper;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import java.io.File;
 
-public abstract class AbstractLifecycleListener implements LifecycleListener {
-
+public class FileChangeListenerAdapter implements FileChangeListener {
     @Override
-    public void start(ElasticApmTracer tracer) throws Exception {
+    public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) {
+        return true;
     }
 
     @Override
-    public void pause() throws Exception {
+    public void onIdle() {
+
     }
 
     @Override
-    public void resume() throws Exception {
+    public void onShutdownInitiated() {
+
     }
 
     @Override
-    public void stop() throws Exception {
+    public void onShutdownComplete() {
+
     }
 }

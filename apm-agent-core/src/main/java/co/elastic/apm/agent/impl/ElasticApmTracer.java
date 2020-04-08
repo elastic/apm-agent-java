@@ -47,6 +47,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -89,6 +90,7 @@ public class ElasticApmTracer {
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
+    private final ApmServerClient apmServerClient;
     private final List<LifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
@@ -133,11 +135,12 @@ public class ElasticApmTracer {
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean recordingConfigOptionSet;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory, ApmServerClient apmServerClient) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
+        this.apmServerClient = apmServerClient;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
 
@@ -779,6 +782,10 @@ public class ElasticApmTracer {
 
     public void resetServiceNameOverrides() {
         serviceNameByClassLoader.clear();
+    }
+
+    public ApmServerClient getApmServerClient() {
+        return apmServerClient;
     }
 
     /**

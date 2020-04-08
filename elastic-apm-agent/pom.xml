@@ -176,6 +176,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log-shipper-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-resttemplate-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -274,6 +279,12 @@
                                     </excludes>
                                 </filter>
                                 <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>**/Log4j2Plugins.dat</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
                                     <artifact>org.hdrhistogram:HdrHistogram</artifact>
                                     <!--
                                     Currently, we only need this single class.
@@ -302,6 +313,20 @@
                                     <pattern>org.slf4j</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>co.elastic.logging</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.logging</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.logging</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.apache.logging</shadedPattern>
+                                </relocation>
+
+                                <relocation>
+                                    <pattern>log4j2</pattern>
+                                    <shadedPattern>apmlog4j2</shadedPattern>
+                                </relocation>
+
                                 <relocation>
                                     <pattern>org.stagemonitor</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
@@ -350,10 +375,18 @@
                                     <resource>META-INF/LICENSE</resource>
                                     <file>${apm-agent-parent.base.dir}/LICENSE</file>
                                 </transformer>
+                                <transformer implementation="com.github.edwgiz.maven_shade_plugin.log4j2_cache_transformer.PluginsCacheFileTransformer"/>
                             </transformers>
                         </configuration>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.github.edwgiz</groupId>
+                        <artifactId>maven-shade-plugin.log4j2-cachefile-transformer</artifactId>
+                        <version>2.13.0</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
