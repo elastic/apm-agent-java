@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -80,6 +80,10 @@ public class RemoteAttacher {
             }
         } else if (arguments.getPid() != null) {
             log("INFO", "Attaching the Elastic APM agent to %s", arguments.getPid());
+
+            // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
+            ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
+
             ElasticApmAttacher.attach(arguments.getPid(), arguments.getConfig());
             log("INFO", "Done");
         } else {
@@ -186,8 +190,9 @@ public class RemoteAttacher {
         private final boolean help;
         private final boolean list;
         private final boolean continuous;
+        private final boolean useEmulatedAttach;
 
-        private Arguments(String pid, List<String> includes, List<String> excludes, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean continuous) {
+        private Arguments(String pid, List<String> includes, List<String> excludes, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean continuous, boolean useEmulatedAttach) {
             this.help = help;
             this.list = list;
             this.continuous = continuous;
@@ -202,6 +207,7 @@ public class RemoteAttacher {
             this.excludes = excludes;
             this.config = config;
             this.argsProvider = argsProvider;
+            this.useEmulatedAttach = useEmulatedAttach;
         }
 
         static Arguments parse(String... args) {
@@ -213,6 +219,7 @@ public class RemoteAttacher {
             boolean help = args.length == 0;
             boolean list = false;
             boolean continuous = false;
+            boolean useEmulatedAttach = true;
             String currentArg = "";
             for (String arg : normalize(args)) {
                 if (arg.startsWith("-")) {
@@ -229,6 +236,10 @@ public class RemoteAttacher {
                         case "-c":
                         case "--continuous":
                             continuous = true;
+                            break;
+                        case "-w":
+                        case "--without-emulated-attach":
+                            useEmulatedAttach = false;
                             break;
                         case "-p":
                         case "--pid":
@@ -280,7 +291,7 @@ public class RemoteAttacher {
                     }
                 }
             }
-            return new Arguments(pid, includes, excludes, config, argsProvider, help, list, continuous);
+            return new Arguments(pid, includes, excludes, config, argsProvider, help, list, continuous, useEmulatedAttach);
         }
 
         // -ab -> -a -b
@@ -300,8 +311,8 @@ public class RemoteAttacher {
 
         void printHelp(PrintStream out) {
             out.println("SYNOPSIS");
-            out.println("    java -jar apm-agent-attach.jar -p <pid> [--args <agent_arguments>]");
-            out.println("    java -jar apm-agent-attach.jar [-i <include_pattern>...] [-e <exclude_pattern>...] [--continuous]");
+            out.println("    java -jar apm-agent-attach.jar -p <pid> [--args <agent_arguments>] [--without-emulated-attach]");
+            out.println("    java -jar apm-agent-attach.jar [-i <include_pattern>...] [-e <exclude_pattern>...] [--continuous] [--without-emulated-attach]");
             out.println("                                   [--config <key=value>... | --args-provider <args_provider_script>]");
             out.println("    java -jar apm-agent-attach.jar (--list | --help)");
             out.println();
@@ -344,6 +355,9 @@ public class RemoteAttacher {
             out.println("        When returning a non-zero status code from this program, the agent will not be attached to the starting JVM.");
             out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
             out.println("        Note: this option can not be used in conjunction with --pid and --args.");
+            out.println();
+            out.println("    -w, --without-emulated-attach");
+            out.println("        Disables using emulated attach, might be required for some JRE/JDKs as a workaround");
         }
 
         String getPid() {
@@ -376,6 +390,10 @@ public class RemoteAttacher {
 
         boolean isContinuous() {
             return continuous;
+        }
+
+        boolean useEmulatedAttach() {
+            return useEmulatedAttach;
         }
     }
 
