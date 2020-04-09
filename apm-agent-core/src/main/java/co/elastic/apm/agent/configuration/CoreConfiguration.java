@@ -219,12 +219,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out incubating features, set the value to an empty string.\n" +
+            "If you want to try out experimental features, set the value to an empty string.\n" +
             "\n" +
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
         .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
-        .buildWithDefault(Collections.<String>singleton("incubating"));
+        .buildWithDefault(Collections.<String>singleton("experimental"));
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)

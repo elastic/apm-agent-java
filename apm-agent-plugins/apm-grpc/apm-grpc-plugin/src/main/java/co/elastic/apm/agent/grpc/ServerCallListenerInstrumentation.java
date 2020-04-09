@@ -43,7 +43,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
  * Instruments implementations of {@link io.grpc.ServerCall.Listener} for runtime exceptions and transaction activation
- * <br/>
+ * <br>
  * Implementation is split in two classes {@link FinalMethodCall} and {@link NonFinalMethodCall}
  * <ul>
  *     <li>{@link io.grpc.ServerCall.Listener#onMessage(Object)} ({@link NonFinalMethodCall})</li>
