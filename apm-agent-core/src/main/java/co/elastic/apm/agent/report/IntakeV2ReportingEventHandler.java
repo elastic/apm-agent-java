@@ -28,6 +28,8 @@ import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.util.ThreadUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -166,6 +168,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     }
 
     private static class FlushOnTimeoutTimerTask extends TimerTask {
+        private static final Logger logger = LoggerFactory.getLogger(FlushOnTimeoutTimerTask.class);
         private final ApmServerReporter reporter;
         @Nullable
         private volatile Future<Void> flush;
