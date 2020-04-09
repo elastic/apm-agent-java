@@ -36,6 +36,7 @@ import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
 
 import java.io.File;
+import java.io.IOException;
 
 public class LogShipperFactory extends AbstractLifecycleListener {
 
@@ -56,7 +57,7 @@ public class LogShipperFactory extends AbstractLifecycleListener {
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start(ElasticApmTracer tracer) throws IOException {
         String logFile = tracer.getConfig(LoggingConfiguration.class).getLogFile();
         if (!logFile.equals(LoggingConfiguration.SYSTEM_OUT)) {
             fileTailer.tailFile(new File(logFile));

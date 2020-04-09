@@ -51,12 +51,17 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
 
     @Override
     public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) throws IOException {
-        System.out.print(new String(line, offset, length, UTF_8));
-        if (eol) {
-            System.out.println();
+        if (logger.isDebugEnabled()) {
+            System.out.print(new String(line, offset, length, UTF_8));
+            if (eol) {
+                System.out.println();
+            }
         }
         try {
             if (connection == null) {
+                if (logger.isDebugEnabled()) {
+                    System.out.println(new String(metaData, UTF_8));
+                }
                 connection = startRequest(LOGS_ENDPOINT);
             }
             if (os != null) {

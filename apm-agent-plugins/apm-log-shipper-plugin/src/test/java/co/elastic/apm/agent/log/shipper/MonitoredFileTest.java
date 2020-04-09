@@ -24,40 +24,105 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
 class MonitoredFileTest {
 
+    private final ByteBuffer buffy = ByteBuffer.allocate(1024);
+    private File logFile;
     private ListFileChangeListener logListener = new ListFileChangeListener();
     private MonitoredFile monitoredFile;
 
     @BeforeEach
     void setUp() throws Exception {
-        monitoredFile = new MonitoredFile(new File(getClass().getResource("/log.log").toURI()));
+        logFile = new File(getClass().getResource("/log.log").toURI());
+        monitoredFile = new MonitoredFile(logFile);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        monitoredFile.close();
+        monitoredFile.deleteState();
     }
 
     @Test
     void testReadLogOneLine() throws IOException {
-        monitoredFile.poll(ByteBuffer.allocate(1024), logListener, 1);
+        monitoredFile.poll(buffy, logListener, 1);
         assertThat(logListener.lines).hasSize(1);
         assertThat(logListener.lines.get(0)).isEqualTo("foo".getBytes());
     }
 
     @Test
+    void testReadLogTwoTimesOneLine() throws IOException {
+        monitoredFile.poll(buffy, logListener, 1);
+        assertThat(logListener.lines).hasSize(1);
+        assertThat(logListener.lines.get(0)).isEqualTo("foo".getBytes());
+
+        monitoredFile.poll(buffy, logListener, 1);
+        assertThat(logListener.lines).hasSize(2);
+        assertThat(logListener.lines.get(1)).isEqualTo("bar".getBytes());
+    }
+
+    @Test
+    void testRestoreState() throws Exception {
+        monitoredFile.poll(buffy, logListener, 1);
+        assertThat(logListener.lines).hasSize(1);
+        assertThat(logListener.lines.get(0)).isEqualTo("foo".getBytes());
+        monitoredFile.close();
+
+        setUp();
+        monitoredFile.poll(buffy, logListener, 1);
+        assertThat(logListener.lines).hasSize(2);
+        assertThat(logListener.lines.get(1)).isEqualTo("bar".getBytes());
+    }
+
+    @Test
+    void testRestoreStateOfRotatedFile() throws Exception {
+        monitoredFile.poll(buffy, logListener, 1);
+        assertThat(logListener.lines).hasSize(1);
+        assertThat(logListener.lines.get(0)).isEqualTo("foo".getBytes());
+        monitoredFile.close();
+
+        Path rotatedLog = logFile.toPath().resolveSibling("log-1.log");
+        Files.move(logFile.toPath(), rotatedLog);
+        try {
+            Files.write(logFile.toPath(), List.of("quux", "corge"), CREATE_NEW);
+
+            setUp();
+            monitoredFile.poll(buffy, logListener, 10);
+            assertThat(logListener.lines).hasSize(6);
+            // continue reading form old rotated log
+            assertThat(logListener.lines.get(1)).isEqualTo("bar".getBytes());
+            assertThat(logListener.lines.get(2)).isEqualTo("baz".getBytes());
+            assertThat(logListener.lines.get(3)).isEqualTo("qux".getBytes());
+            // resume with new log
+            assertThat(logListener.lines.get(4)).isEqualTo("quux".getBytes());
+            assertThat(logListener.lines.get(5)).isEqualTo("corge".getBytes());
+        } finally {
+            Files.move(rotatedLog, logFile.toPath(), REPLACE_EXISTING);
+        }
+    }
+
+    @Test
     void testReadLog() throws IOException {
-        monitoredFile.poll(ByteBuffer.allocate(1024), logListener, 5);
+        monitoredFile.poll(buffy, logListener, 5);
         assertThat(logListener.lines).hasSize(4);
         assertThat(logListener.lines.get(0)).isEqualTo("foo".getBytes());
         assertThat(logListener.lines.get(1)).isEqualTo("bar".getBytes());
@@ -67,26 +132,28 @@ class MonitoredFileTest {
 
     @Test
     void testIndexOfNewLine() {
-        byte[] bytes = {'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'};
-        assertThat(MonitoredFile.indexOf(bytes, (byte) '\n', 0, bytes.length)).isEqualTo(4);
-        assertThat(MonitoredFile.indexOf(bytes, (byte) '\n', 4, bytes.length)).isEqualTo(4);
-        assertThat(MonitoredFile.indexOf(bytes, (byte) '\n', 5, bytes.length)).isEqualTo(10);
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[]{'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'});
+        assertThat(MonitoredFile.skipUntil(buffer, (byte) '\n')).isTrue();
+        assertThat(buffer.position()).isEqualTo(5);
+        assertThat(MonitoredFile.skipUntil(buffer, (byte) '\n')).isTrue();
+        assertThat(buffer.position()).isEqualTo(11);
+        assertThat(MonitoredFile.skipUntil(buffer, (byte) '\n')).isFalse();
     }
 
     @Test
     void testReadOneLine() throws IOException {
-        byte[] bytes = {'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'};
-        MonitoredFile.readLines(new File("foo.log"), bytes, bytes.length, 1, logListener);
+        ByteBuffer bytes = ByteBuffer.wrap(new byte[]{'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'});
+        MonitoredFile.readLines(new File("foo.log"), bytes, 1, logListener);
         assertThat(logListener.lines).hasSize(1);
         assertThat(logListener.lines.get(0)).isEqualTo(new byte[]{'c', 'a', 'f', 'e'});
     }
 
     @Test
     void testRetry() throws IOException {
-        byte[] bytes = {'c', 'a', 'f', 'e', '\n'};
+        ByteBuffer bytes = ByteBuffer.wrap(new byte[]{'c', 'a', 'f', 'e', '\n'});
         List<byte[]> readBytes = new ArrayList<>();
         AtomicBoolean processingSuccessful = new AtomicBoolean(false);
-        MonitoredFile.readLines(new File("foo.log"), bytes, bytes.length, 1, new FileChangeListenerAdapter() {
+        MonitoredFile.readLines(new File("foo.log"), bytes, 1, new FileChangeListenerAdapter() {
             @Override
             public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) {
                 readBytes.add(Arrays.copyOfRange(line, offset, offset + length));
@@ -100,8 +167,8 @@ class MonitoredFileTest {
 
     @Test
     void testReadTwoLines() throws IOException {
-        byte[] bytes = {'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'};
-        MonitoredFile.readLines(new File("foo.log"), bytes, bytes.length, 4, logListener);
+        ByteBuffer bytes = ByteBuffer.wrap(new byte[]{'c', 'a', 'f', 'e', '\n', 'b', 'a', 'b', 'e', '\r', '\n'});
+        MonitoredFile.readLines(new File("foo.log"), bytes, 4, logListener);
         assertThat(logListener.lines).hasSize(2);
         assertThat(logListener.lines.get(0)).isEqualTo(new byte[]{'c', 'a', 'f', 'e'});
         assertThat(logListener.lines.get(1)).isEqualTo(new byte[]{'b', 'a', 'b', 'e'});

@@ -54,7 +54,7 @@ public class FileTailer implements Runnable {
         this.processingThread = processingThreadFactory.newThread(this);
     }
 
-    public void tailFile(File file) {
+    public void tailFile(File file) throws IOException {
         monitoredFiles.add(new MonitoredFile(file));
     }
 

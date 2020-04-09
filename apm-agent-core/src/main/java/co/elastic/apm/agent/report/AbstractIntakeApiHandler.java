@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -42,14 +42,14 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 public class AbstractIntakeApiHandler {
-    protected static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected static final int GZIP_COMPRESSION_LEVEL = 1;
     private static final Object WAIT_LOCK = new Object();
 
     protected final ReporterConfiguration reporterConfiguration;
     protected final PayloadSerializer payloadSerializer;
     protected final ApmServerClient apmServerClient;
-    private final byte[] metaData;
+    protected final byte[] metaData;
     protected Deflater deflater;
     protected long currentlyTransmitting = 0;
     protected long reported = 0;
