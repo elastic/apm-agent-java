@@ -184,7 +184,7 @@ NOTE: This option cannot be used in conjunction with `--pid` and `--config`
 *-w, --without-emulated-attach*::
 +
 --
-Disables using emulated attach feature provided by byte-buddy, this should be used as a workaround on some JDK/JREs
+Disables using emulated attach feature provided by Byte Buddy, this should be used as a workaround on some JDK/JREs
 when runtime attachment fails.
 --
 
