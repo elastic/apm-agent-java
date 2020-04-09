@@ -151,8 +151,8 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                     .addAttribute("serviceName", serviceName)
                     .addAttribute("eventDataset", serviceName + ".apm"))
                 .addComponent(builder.newComponent("Policies")
-                    .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", "100M")))
-                .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 5));
+                    .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", "50M")))
+                .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 2));
         }
     }
 }
