@@ -113,8 +113,6 @@ public class AbstractIntakeApiHandler {
         connection.connect();
         os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
         os.write(metaData);
-        payloadSerializer.setOutputStream(os);
-
         return connection;
     }
 

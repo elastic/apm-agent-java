@@ -6,7 +6,8 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Root level="error">
+        <Logger name="co.elastic.apm" level="debug"/>
+        <Root level="warn">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>

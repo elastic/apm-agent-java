@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -29,7 +29,9 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import com.dslplatform.json.JsonWriter;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -66,4 +68,8 @@ public interface PayloadSerializer {
     int getBufferSize();
 
     void serializeMetrics(MetricRegistry metricRegistry);
+
+    void serializeFileMetaData(File file);
+
+    JsonWriter getJsonWriter();
 }

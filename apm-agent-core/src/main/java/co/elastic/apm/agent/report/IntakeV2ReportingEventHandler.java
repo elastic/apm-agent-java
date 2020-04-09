@@ -143,6 +143,9 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     @Override
     protected HttpURLConnection startRequest(String endpoint) throws IOException {
         HttpURLConnection connection = super.startRequest(endpoint);
+        if (os != null) {
+            payloadSerializer.setOutputStream(os);
+        }
         if (reporter != null) {
             timeoutTask = new IntakeV2ReportingEventHandler.FlushOnTimeoutTimerTask(reporter);
             if (logger.isDebugEnabled()) {

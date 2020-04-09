@@ -29,9 +29,11 @@ import co.elastic.apm.agent.report.AbstractIntakeApiHandler;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import com.dslplatform.json.JsonWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,6 +46,8 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
     public static final String LOGS_ENDPOINT = "/intake/v2/logs";
     private static final Logger logger = LoggerFactory.getLogger(ApmServerLogShipper.class);
     private long httpRequestClosingThreshold;
+    @Nullable
+    private File currentFile;
 
     public ApmServerLogShipper(ApmServerClient apmServerClient, ReporterConfiguration reporterConfiguration, MetaData metaData, PayloadSerializer payloadSerializer) {
         super(reporterConfiguration, metaData, payloadSerializer, apmServerClient);
@@ -51,20 +55,22 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
 
     @Override
     public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) throws IOException {
-        if (logger.isDebugEnabled()) {
-            System.out.print(new String(line, offset, length, UTF_8));
-            if (eol) {
-                System.out.println();
-            }
-        }
         try {
             if (connection == null) {
-                if (logger.isDebugEnabled()) {
-                    System.out.println(new String(metaData, UTF_8));
-                }
                 connection = startRequest(LOGS_ENDPOINT);
+                if (logger.isDebugEnabled()) {
+                    System.out.print(new String(metaData, UTF_8));
+                }
+                if (os != null) {
+                    currentFile = file;
+                    writeFileMetadata(os, file);
+                }
             }
             if (os != null) {
+                if (!file.equals(currentFile)) {
+                    currentFile = file;
+                    writeFileMetadata(os, file);
+                }
                 write(os, line, offset, length, eol);
                 return true;
             }
@@ -80,7 +86,23 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
         return false;
     }
 
+    private void writeFileMetadata(OutputStream os, File file) throws IOException {
+        JsonWriter jw = payloadSerializer.getJsonWriter();
+        jw.reset();
+        payloadSerializer.serializeFileMetaData(file);
+        if (logger.isDebugEnabled()) {
+            System.out.print(new String(jw.getByteBuffer(), 0, jw.size(), UTF_8));
+        }
+        os.write(jw.getByteBuffer(), 0, jw.size());
+    }
+
     private void write(OutputStream os, byte[] line, int offset, int length, boolean eol) throws IOException {
+        if (logger.isDebugEnabled()) {
+            System.out.print(new String(line, offset, length, UTF_8));
+            if (eol) {
+                System.out.println();
+            }
+        }
         os.write(line, offset, length);
         if (eol) {
             currentlyTransmitting++;

@@ -30,6 +30,8 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.After;
@@ -93,8 +95,11 @@ public class ApmServerLogShipperTest {
         logShipper.endRequest();
         List<String> events = getEvents();
         mockApmServer.verify(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)));
-        assertThat(events).hasSize(2);
-        assertThat(events.get(1)).isEqualTo("foo");
+        assertThat(events).hasSize(3);
+        JsonNode fileMetadata = new ObjectMapper().readTree(events.get(1)).get("metadata").get("file");
+        assertThat(fileMetadata.get("name").textValue()).isEqualTo(logFile.getName());
+        assertThat(fileMetadata.get("path").textValue()).isEqualTo(logFile.getAbsolutePath());
+        assertThat(events.get(2)).isEqualTo("foo");
     }
 
     private List<String> getEvents() {

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,9 +26,9 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Headers;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
@@ -69,6 +69,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.CharBuffer;
@@ -228,6 +229,26 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     @Override
     public void serializeMetrics(MetricRegistry metricRegistry) {
         metricRegistry.report(this);
+    }
+
+    @Override
+    public void serializeFileMetaData(File file) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("metadata");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("file");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeField("path", file.getAbsolutePath());
+        writeLastField("name", file.getName());
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public JsonWriter getJsonWriter() {
+        return jw;
     }
 
     private void serializeErrors(List<ErrorCapture> errors) {
