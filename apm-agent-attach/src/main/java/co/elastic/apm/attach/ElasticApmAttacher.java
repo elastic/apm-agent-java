@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -36,6 +36,7 @@ import java.math.BigInteger;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -53,14 +54,6 @@ public class ElasticApmAttacher {
      * this can even lead to segfaults.
      */
     private static final String TEMP_PROPERTIES_FILE_KEY = "c";
-    private static final ByteBuddyAgent.AttachmentProvider ATTACHMENT_PROVIDER = new ByteBuddyAgent.AttachmentProvider.Compound(
-        ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE,
-        ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
-        ByteBuddyAgent.AttachmentProvider.ForJ9Vm.INSTANCE,
-        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JVM_ROOT),
-        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JDK_ROOT),
-        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.MACINTOSH),
-        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForUserDefinedToolsJar.INSTANCE));
 
     /**
      * Attaches the Elastic Apm agent to the current JVM.
@@ -163,7 +156,7 @@ public class ElasticApmAttacher {
         File tempFile = createTempProperties(configuration);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ATTACHMENT_PROVIDER);
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
         if (tempFile != null) {
             if (!tempFile.delete()) {
                 tempFile.deleteOnExit();
@@ -180,7 +173,7 @@ public class ElasticApmAttacher {
      */
     @Deprecated
     public static void attach(String pid, String agentArgs) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ATTACHMENT_PROVIDER);
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
     }
 
     private enum AgentJarFileHolder {
