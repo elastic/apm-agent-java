@@ -148,7 +148,7 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    private void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
+    protected void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
         // TODO read accepted, dropped and invalid
         onConnectionError(responseCode, currentlyTransmitting, 0);
         if (e != null) {
@@ -206,7 +206,7 @@ public class AbstractIntakeApiHandler {
         }
     }
 
-    private void onRequestSuccess() {
+    protected void onRequestSuccess() {
         errorCount = 0;
         reported += currentlyTransmitting;
     }

@@ -62,7 +62,7 @@ public class ApmServerLogShipperTest {
 
     @Rule
     public WireMockRule mockApmServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
-    private MonitoredFile monitoredFile;
+    private TailableFile tailableFile;
     private ApmServerLogShipper logShipper;
     private File logFile;
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
@@ -78,7 +78,7 @@ public class ApmServerLogShipperTest {
         DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient);
         logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), MetaData.create(config, null, null), serializer);
         logFile = File.createTempFile("test", ".log");
-        monitoredFile = new MonitoredFile(logFile);
+        tailableFile = new TailableFile(logFile);
     }
 
     @After
@@ -91,7 +91,7 @@ public class ApmServerLogShipperTest {
     @Test
     public void testSendLogs() throws Exception {
         Files.write(logFile.toPath(), List.of("foo"));
-        assertThat(monitoredFile.poll(buffer, logShipper, 100)).isEqualTo(1);
+        assertThat(tailableFile.tail(buffer, logShipper, 100)).isEqualTo(1);
         logShipper.endRequest();
         List<String> events = getEvents();
         mockApmServer.verify(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)));

@@ -24,26 +24,21 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
-import java.io.File;
-
 public class FileChangeListenerAdapter implements FileChangeListener {
     @Override
-    public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) {
+    public boolean onLineAvailable(TailableFile file, byte[] line, int offset, int length, boolean eol) {
         return true;
     }
 
     @Override
     public void onIdle() {
-
     }
 
     @Override
     public void onShutdownInitiated() {
-
     }
 
     @Override
     public void onShutdownComplete() {
-
     }
 }

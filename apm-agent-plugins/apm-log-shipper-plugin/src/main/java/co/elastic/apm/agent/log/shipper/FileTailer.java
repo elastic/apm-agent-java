@@ -37,7 +37,7 @@ import java.util.concurrent.ThreadFactory;
 public class FileTailer implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(FileTailer.class);
-    private final List<MonitoredFile> monitoredFiles;
+    private final List<TailableFile> tailableFiles;
     private final FileChangeListener fileChangeListener;
     private final ByteBuffer buffer;
     private final int maxLinesPerCycle;
@@ -46,7 +46,7 @@ public class FileTailer implements Runnable {
     private final Thread processingThread;
 
     public FileTailer(FileChangeListener fileChangeListener, int bufferSize, int maxLinesPerCycle, long idleTimeMs, ThreadFactory processingThreadFactory) {
-        this.monitoredFiles = new CopyOnWriteArrayList<>();
+        this.tailableFiles = new CopyOnWriteArrayList<>();
         this.fileChangeListener = fileChangeListener;
         this.buffer = ByteBuffer.allocate(bufferSize);
         this.maxLinesPerCycle = maxLinesPerCycle;
@@ -55,7 +55,7 @@ public class FileTailer implements Runnable {
     }
 
     public void tailFile(File file) throws IOException {
-        monitoredFiles.add(new MonitoredFile(file));
+        tailableFiles.add(new TailableFile(file));
     }
 
     public void start() {
@@ -87,9 +87,9 @@ public class FileTailer implements Runnable {
 
     private int pollAll() {
         int lines = 0;
-        for (MonitoredFile monitoredFile : monitoredFiles) {
+        for (TailableFile tailableFile : tailableFiles) {
             try {
-                lines += monitoredFile.poll(buffer, fileChangeListener, maxLinesPerCycle);
+                lines += tailableFile.tail(buffer, fileChangeListener, maxLinesPerCycle);
             } catch (IOException e) {
                 logger.error(e.getMessage(), e);
             }

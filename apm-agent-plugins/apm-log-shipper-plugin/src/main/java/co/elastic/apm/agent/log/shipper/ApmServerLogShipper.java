@@ -36,8 +36,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.util.HashSet;
+import java.util.Set;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -48,25 +51,24 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
     private long httpRequestClosingThreshold;
     @Nullable
     private File currentFile;
+    private Set<TailableFile> tailableFiles = new HashSet<>();
 
     public ApmServerLogShipper(ApmServerClient apmServerClient, ReporterConfiguration reporterConfiguration, MetaData metaData, PayloadSerializer payloadSerializer) {
         super(reporterConfiguration, metaData, payloadSerializer, apmServerClient);
     }
 
     @Override
-    public boolean onLineAvailable(File file, byte[] line, int offset, int length, boolean eol) throws IOException {
+    public boolean onLineAvailable(TailableFile tailableFile, byte[] line, int offset, int length, boolean eol) throws IOException {
+        tailableFiles.add(tailableFile);
         try {
             if (connection == null) {
                 connection = startRequest(LOGS_ENDPOINT);
                 if (logger.isDebugEnabled()) {
                     System.out.print(new String(metaData, UTF_8));
                 }
-                if (os != null) {
-                    currentFile = file;
-                    writeFileMetadata(os, file);
-                }
             }
             if (os != null) {
+                File file = tailableFile.getFile();
                 if (!file.equals(currentFile)) {
                     currentFile = file;
                     writeFileMetadata(os, file);
@@ -84,6 +86,22 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
             onConnectionError(null, currentlyTransmitting, 0);
         }
         return false;
+    }
+
+    @Override
+    protected void onRequestSuccess() {
+        super.onRequestSuccess();
+        for (TailableFile tailableFile : tailableFiles) {
+            tailableFile.ack();
+        }
+    }
+
+    @Override
+    protected void onRequestError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
+        super.onRequestError(responseCode, inputStream, e);
+        for (TailableFile tailableFile : tailableFiles) {
+            tailableFile.nak();
+        }
     }
 
     private void writeFileMetadata(OutputStream os, File file) throws IOException {
@@ -117,6 +135,7 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
     protected HttpURLConnection startRequest(String endpoint) throws IOException {
         HttpURLConnection connection = super.startRequest(endpoint);
         httpRequestClosingThreshold = System.currentTimeMillis() + reporterConfiguration.getApiRequestTime().getMillis();
+        currentFile = null;
         return connection;
     }
 

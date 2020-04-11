@@ -24,6 +24,9 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
@@ -36,6 +39,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -46,7 +50,8 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
-public class MonitoredFile implements Closeable {
+public class TailableFile implements Closeable {
+    private static final Logger logger = LoggerFactory.getLogger(TailableFile.class);
     private static final byte NEW_LINE = (byte) '\n';
     private static final int EOF = -1;
     private final File file;
@@ -62,34 +67,42 @@ public class MonitoredFile implements Closeable {
      */
     private long fileCreationTime;
 
-    public MonitoredFile(File file) throws IOException {
+    public TailableFile(File file) throws IOException {
         this.file = file;
         stateFile = new File(file + ".state");
         stateFileChannel = FileChannel.open(stateFile.toPath(), CREATE, READ, WRITE);
-        stateFileLock = stateFileChannel.tryLock();
-        if (stateFileLock == null) {
-            throw new IllegalStateException("This file is currently locked by another process: " + stateFile);
+        try {
+            stateFileLock = stateFileChannel.tryLock();
+            if (stateFileLock == null) {
+                throw new IllegalStateException("This file is currently locked by another process: " + stateFile);
+            }
+        } catch (OverlappingFileLockException e) {
+            throw new IllegalStateException("This file is currently locked by this process: " + stateFile, e);
         }
-        readState();
+        Properties state = readState();
+        if (!state.isEmpty()) {
+            restoreState(state);
+        } else {
+            tryOpenFile();
+        }
     }
 
-    public void readState() throws IOException {
+    private Properties readState() throws IOException {
         Properties properties = new Properties();
         try (InputStream input = new FileInputStream(stateFile)) {
             properties.load(input);
-            restoreState(properties);
-        } catch (FileNotFoundException e) {
-            openFile();
+        } catch (FileNotFoundException ignore) {
         }
+        return properties;
     }
 
-    public void deleteState() {
+    void deleteState() {
         new File(file + ".state").delete();
     }
 
     private void restoreState(Properties state) throws IOException {
         long position = Long.parseLong(state.getProperty("position", "0"));
-        long creationTime = Long.parseLong(state.getProperty("creationTime", "0"));
+        long creationTime = Long.parseLong(state.getProperty("creationTime", Long.toString(getCreationTime(file.toPath()))));
         if (getCreationTime(file.toPath()) == creationTime) {
             openExistingFile(position, file.toPath());
         } else {
@@ -102,15 +115,34 @@ public class MonitoredFile implements Closeable {
         }
     }
 
-    private void saveState() throws IOException {
-        if (fileChannel == null) {
-            return;
-        }
+    private void saveState(FileChannel fileChannel, long fileCreationTime) throws IOException {
         Properties properties = new Properties();
         properties.put("position", Long.toString(fileChannel.position()));
         properties.put("creationTime", Long.toString(fileCreationTime));
         try (FileOutputStream os = new FileOutputStream(stateFile)) {
             properties.store(os, null);
+        }
+    }
+
+    public void ack() {
+        if (fileChannel == null) {
+            throw new IllegalStateException("Can't acknowledge the state if the file has not been opened yet");
+        }
+        try {
+            saveState(fileChannel, fileCreationTime);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    public void nak() {
+        try {
+            Properties state = readState();
+            if (!state.isEmpty()) {
+                restoreState(state);
+            }
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
         }
     }
 
@@ -138,7 +170,7 @@ public class MonitoredFile implements Closeable {
         return attr.creationTime().to(TimeUnit.MILLISECONDS);
     }
 
-    public int poll(ByteBuffer buffer, FileChangeListener listener, int maxLines) throws IOException {
+    public int tail(ByteBuffer buffer, FileChangeListener listener, int maxLines) throws IOException {
         int readLines = 0;
         while (readLines < maxLines) {
             FileChannel currentFile = getFileChannel();
@@ -146,7 +178,6 @@ public class MonitoredFile implements Closeable {
                 return readLines;
             }
             readLines += readFile(buffer, listener, maxLines - readLines, currentFile);
-            saveState();
         }
         return readLines;
     }
@@ -158,7 +189,7 @@ public class MonitoredFile implements Closeable {
             int read = currentFile.read(buffer);
             if (read != EOF) {
                 buffer.flip();
-                readLines += readLines(file, buffer, maxLines - readLines, listener);
+                readLines += readLines(this, buffer, maxLines - readLines, listener);
                 currentFile.position(currentFile.position() - buffer.remaining());
             } else {
                 // assumes EOF equals EOL
@@ -173,7 +204,7 @@ public class MonitoredFile implements Closeable {
     @Nullable
     private FileChannel getFileChannel() throws IOException {
         if (fileChannel == null || (isFullyRead() && hasRotated())) {
-            openFile();
+            tryOpenFile();
         }
         return fileChannel;
     }
@@ -186,7 +217,7 @@ public class MonitoredFile implements Closeable {
         return fileChannel != null && fileChannel.position() == fileChannel.size();
     }
 
-    private void openFile() throws IOException {
+    private void tryOpenFile() throws IOException {
         if (!file.exists()) {
             return;
         }
@@ -197,12 +228,16 @@ public class MonitoredFile implements Closeable {
         if (this.fileChannel != null) {
             this.fileChannel.close();
         }
-        fileChannel = FileChannel.open(path);
+        FileChannel fileChannel = FileChannel.open(path);
         fileChannel.position(position);
         fileCreationTime = getCreationTime(file.toPath());
+        if (this.fileChannel == null) {
+            saveState(fileChannel, fileCreationTime);
+        }
+        this.fileChannel = fileChannel;
     }
 
-    static int readLines(File file, ByteBuffer buffer, int maxLines, FileChangeListener listener) throws IOException {
+    static int readLines(TailableFile file, ByteBuffer buffer, int maxLines, FileChangeListener listener) throws IOException {
         int lines = 0;
         while (buffer.hasRemaining() && lines < maxLines) {
             int startPos = buffer.position();
@@ -261,5 +296,9 @@ public class MonitoredFile implements Closeable {
         if (exception != null) {
             throw exception;
         }
+    }
+
+    public File getFile() {
+        return file;
     }
 }
