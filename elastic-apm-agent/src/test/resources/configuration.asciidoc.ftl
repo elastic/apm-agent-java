@@ -106,7 +106,6 @@ Click on a key to get more information.
     <#list options as option>
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
 ==== `${option.key}`${option.tags?has_content?then(" (${option.tags?join(' ')})", '')}
 

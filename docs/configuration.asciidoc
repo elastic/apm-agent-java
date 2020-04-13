@@ -165,7 +165,6 @@ Click on a key to get more information.
 === Circuit-Breaker configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-circuit-breaker-enabled]]
 ==== `circuit_breaker_enabled` (performance)
 
@@ -195,7 +194,6 @@ agent will resume and become fully functional.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-stress-monitoring-interval]]
 ==== `stress_monitoring_interval` (performance)
 
@@ -222,7 +220,6 @@ The default unit for this option is `s`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-stress-monitor-gc-stress-threshold]]
 ==== `stress_monitor_gc_stress_threshold` (performance)
 
@@ -249,7 +246,6 @@ after a recent GC.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-stress-monitor-gc-relief-threshold]]
 ==== `stress_monitor_gc_relief_threshold` (performance)
 
@@ -276,7 +272,6 @@ be lower than this threshold. The GC monitor relies only on memory consumption m
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-stress-monitor-cpu-duration-threshold]]
 ==== `stress_monitor_cpu_duration_threshold` (performance)
 
@@ -306,7 +301,6 @@ The default unit for this option is `m`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-stress-monitor-system-cpu-stress-threshold]]
 ==== `stress_monitor_system_cpu_stress_threshold` (performance)
 
@@ -332,7 +326,6 @@ the monitor considers this as a stress state.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-stress-monitor-system-cpu-relief-threshold]]
 ==== `stress_monitor_system_cpu_relief_threshold` (performance)
 
@@ -361,7 +354,6 @@ monitor to decide that the CPU stress has been relieved.
 === Core configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-recording]]
 ==== `recording`
 
@@ -394,7 +386,6 @@ The key of this option used to be `active`. The old key still works but is now d
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-instrument]]
 ==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -422,7 +413,6 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-service-name]]
 ==== `service_name`
 
@@ -469,7 +459,6 @@ If the service name is set explicitly, it overrides all of the above.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-service-node-name]]
 ==== `service_node_name` (added[1.11.0])
 
@@ -502,7 +491,6 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-service-version]]
 ==== `service_version`
 
@@ -526,7 +514,6 @@ A version string for the currently deployed version of the service. If you donâ€
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-hostname]]
 ==== `hostname` (added[1.10.0])
 
@@ -550,7 +537,6 @@ Allows for the reported hostname to be manually specified. If unset the hostname
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-environment]]
 ==== `environment`
 
@@ -581,7 +567,6 @@ You must use the query bar to filter for a specific environment in versions prio
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-transaction-sample-rate]]
 ==== `transaction_sample_rate` (performance)
 
@@ -605,7 +590,6 @@ By default, the agent will sample every transaction (e.g. request to your servic
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-transaction-max-spans]]
 ==== `transaction_max_spans` (performance)
 
@@ -635,7 +619,6 @@ A message will be logged when the max number of spans has been exceeded but only
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-sanitize-field-names]]
 ==== `sanitize_field_names` (security)
 
@@ -676,7 +659,6 @@ you should add an additional entry to this list (make sure to also include the d
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-disable-instrumentations]]
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -704,7 +686,6 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-unnest-exceptions]]
 ==== `unnest_exceptions`
 
@@ -736,7 +717,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-ignore-exceptions]]
 ==== `ignore_exceptions` (added[1.11.0])
 
@@ -774,7 +754,6 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-capture-body]]
 ==== `capture_body` (performance)
 
@@ -813,7 +792,6 @@ Valid options: `off`, `errors`, `transactions`, `all`
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-capture-headers]]
 ==== `capture_headers` (performance)
 
@@ -840,7 +818,6 @@ NOTE: Setting this to `false` reduces network bandwidth, disk space and object a
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-global-labels]]
 ==== `global_labels` (added[1.7.0, Requires APM Server 7.2+])
 
@@ -867,7 +844,6 @@ NOTE: This feature requires APM Server 7.2+
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-trace-methods]]
 ==== `trace_methods` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -952,7 +928,6 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-trace-methods-duration-threshold]]
 ==== `trace_methods_duration_threshold` (added[1.7.0])
 
@@ -993,7 +968,6 @@ The default unit for this option is `ms`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-boot-delegation-packages]]
 ==== `boot_delegation_packages` (added[1.7.0])
 
@@ -1032,7 +1006,6 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-central-config]]
 ==== `central_config` (added[1.8.0])
 
@@ -1056,7 +1029,6 @@ When enabled, the agent will make periodic requests to the APM Server to fetch u
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-breakdown-metrics]]
 ==== `breakdown_metrics` (added[1.8.0])
 
@@ -1080,7 +1052,6 @@ Disables the collection of breakdown metrics (`span.self_time`)
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-config-file]]
 ==== `config_file` (added[1.8.0])
 
@@ -1109,7 +1080,6 @@ NOTE: this option can only be set via system properties, environment variables o
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.14.0])
 
@@ -1141,7 +1111,6 @@ for backwards compatibility with older versions of Elastic APM agents.
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-capture-body-content-types]]
 ==== `capture_body_content_types` (added[1.5.0] performance)
 
@@ -1172,7 +1141,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-ignore-urls]]
 ==== `ignore_urls`
 
@@ -1206,7 +1174,6 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-ignore-user-agents]]
 ==== `ignore_user_agents`
 
@@ -1241,7 +1208,6 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-use-path-as-transaction-name]]
 ==== `use_path_as_transaction_name` (experimental)
 
@@ -1271,7 +1237,6 @@ Take a look at the `url_groups` option on how to mitigate this problem by groupi
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-url-groups]]
 ==== `url_groups`
 
@@ -1304,7 +1269,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 === JAX-RS configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-enable-jaxrs-annotation-inheritance]]
 ==== `enable_jaxrs_annotation_inheritance` (performance)
 
@@ -1330,7 +1294,6 @@ If your application does not use @Path annotation inheritance, set this property
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-use-jaxrs-path-as-transaction-name]]
 ==== `use_jaxrs_path_as_transaction_name` (added[1.8.0])
 
@@ -1357,7 +1320,6 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 === JMX configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-capture-jmx-metrics]]
 ==== `capture_jmx_metrics` (added[1.11.0])
 
@@ -1483,7 +1445,6 @@ The resulting documents in Elasticsearch look similar to this:
 === Logging configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-log-level]]
 ==== `log_level`
 
@@ -1510,7 +1471,6 @@ Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-log-file]]
 ==== `log_file`
 
@@ -1542,7 +1502,6 @@ it's content is deleted when the application starts.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-enable-log-correlation]]
 ==== `enable_log_correlation`
 
@@ -1573,7 +1532,6 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 === Messaging configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-ignore-message-queues]]
 ==== `ignore_message_queues`
 
@@ -1607,7 +1565,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 === Profiling configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-profiling-inferred-spans-enabled]]
 ==== `profiling_inferred_spans_enabled` (added[1.15.0] experimental)
 
@@ -1641,7 +1598,6 @@ NOTE: This feature is not available on Windows
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-profiling-inferred-spans-sampling-interval]]
 ==== `profiling_inferred_spans_sampling_interval` (added[1.15.0])
 
@@ -1671,7 +1627,6 @@ The default unit for this option is `ms`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-profiling-inferred-spans-min-duration]]
 ==== `profiling_inferred_spans_min_duration` (added[1.15.0])
 
@@ -1700,7 +1655,6 @@ The default unit for this option is `ms`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-profiling-inferred-spans-included-classes]]
 ==== `profiling_inferred_spans_included_classes` (added[1.15.0])
 
@@ -1731,7 +1685,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-profiling-inferred-spans-excluded-classes]]
 ==== `profiling_inferred_spans_excluded_classes` (added[1.15.0])
 
@@ -1762,7 +1715,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 === Reporter configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-secret-token]]
 ==== `secret_token`
 
@@ -1789,7 +1741,6 @@ Use if APM Server requires a token.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-api-key]]
 ==== `api_key`
 
@@ -1817,7 +1768,6 @@ Use if APM Server requires an API key.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-server-urls]]
 ==== `server_urls`
 
@@ -1850,7 +1800,6 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-server-timeout]]
 ==== `server_timeout`
 
@@ -1881,7 +1830,6 @@ The default unit for this option is `s`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-verify-server-cert]]
 ==== `verify_server_cert`
 
@@ -1907,7 +1855,6 @@ Verification can be disabled by changing this setting to false.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-max-queue-size]]
 ==== `max_queue_size`
 
@@ -1939,7 +1886,6 @@ while a higher value makes it less likely to lose events in case of a temporary 
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-include-process-args]]
 ==== `include_process_args`
 
@@ -1964,7 +1910,6 @@ Disabled by default to save disk space.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-api-request-time]]
 ==== `api_request_time`
 
@@ -1993,7 +1938,6 @@ The default unit for this option is `s`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-api-request-size]]
 ==== `api_request_size`
 
@@ -2020,7 +1964,6 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-metrics-interval]]
 ==== `metrics_interval` (added[1.3.0])
 
@@ -2049,7 +1992,6 @@ The default unit for this option is `s`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-disable-metrics]]
 ==== `disable_metrics` (added[1.3.0])
 
@@ -2082,7 +2024,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 === Stacktrace configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-application-packages]]
 ==== `application_packages`
 
@@ -2122,7 +2063,6 @@ If you are only interested in specific subpackages, you can separate them with c
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-stack-trace-limit]]
 ==== `stack_trace_limit` (performance)
 
@@ -2146,7 +2086,6 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[role="child_attributes"]
 [[config-span-frames-min-duration]]
 ==== `span_frames_min_duration` (performance)
 
