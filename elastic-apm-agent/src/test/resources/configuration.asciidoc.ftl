@@ -123,10 +123,6 @@ The default unit for this option is `${option.valueConverter.defaultDurationSuff
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
 </#if>
 
-.Properties of `${option.key}`
-[%collapsible%open]
-=====
-
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -139,7 +135,6 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.${option.key}` | `${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
 |============
-=====
 
     </#list>
 </#list>
