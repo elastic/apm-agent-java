@@ -56,6 +56,9 @@ public class JdbcHelperImpl extends JdbcHelper {
     private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
     private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
 
+    // keeps track of non-idempotent implementations of getUpdateCount
+    private final WeakConcurrentMap<Class<?>, Boolean> idempotentGetUpdateCount = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
+
     // stores statements update count to avoid side-effects of calling Statement.getUpdateCount()
     private final WeakConcurrentMap<Object, Integer> statementsUpdateCount = new WeakConcurrentMap.WithInlinedExpunction<>();
 
@@ -206,8 +209,20 @@ public class JdbcHelperImpl extends JdbcHelper {
                 markSupported(updateCountSupported, type);
             }
 
-            // save the value to be restored for the next call to getUpdateCount()
-            statementsUpdateCount.put(statement, result);
+            // in order to minimize allocation, we keep track of implementation classes that are not idempotent,
+            // that allows avoiding extra work for the most common idempotent case.
+            Boolean isIdempotent = isSupported(idempotentGetUpdateCount, type);
+            if (isIdempotent == null) {
+                int secondResult = ((Statement) statement).getUpdateCount();
+                isIdempotent = (secondResult == result) ? Boolean.TRUE : Boolean.FALSE;
+                idempotentGetUpdateCount.put(type, isIdempotent);
+            }
+
+            if (isIdempotent != Boolean.TRUE) {
+                // save the value to be restored for the next call to getUpdateCount()
+                statementsUpdateCount.put(statement, result);
+            }
+
         } catch (SQLException e) {
             markNotSupported(updateCountSupported, type, e);
         }
@@ -216,7 +231,10 @@ public class JdbcHelperImpl extends JdbcHelper {
 
     @Override
     public int getAndClearStoredUpdateCount(Object statement) {
-        Integer value = statementsUpdateCount.remove(statement);
+        Integer value = null;
+        if (Boolean.FALSE == idempotentGetUpdateCount.get(statement.getClass())) {
+            value = statementsUpdateCount.remove(statement);
+        }
         return value != null ? value : Integer.MIN_VALUE;
     }
 
@@ -235,6 +253,5 @@ public class JdbcHelperImpl extends JdbcHelper {
             logger.warn("JDBC feature not supported on class " + type, e);
         }
     }
-
 
 }
