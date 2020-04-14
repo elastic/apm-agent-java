@@ -176,14 +176,26 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
     private void testStatement() throws SQLException {
         final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=1";
-        ResultSet resultSet = connection.createStatement().executeQuery(sql);
-        assertQuerySucceededAndSpanRecorded(resultSet, sql, false);
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+
+        checkUpdateCount(statement, -1);
+
+        assertThat(resultSet.next()).isTrue();
+        assertThat(resultSet.getInt("foo")).isEqualTo(1);
+        assertThat(resultSet.getString("BAR")).isEqualTo("APM");
+
+        assertSpanRecorded(sql, false, -1);
     }
 
     private void testUpdateStatement() throws SQLException {
         final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
-        boolean isResultSet = connection.createStatement().execute(sql);
+        Statement statement = connection.createStatement();
+        boolean isResultSet = statement.execute(sql);
         assertThat(isResultSet).isFalse();
+
+        checkUpdateCount(statement, 1);
+
         assertSpanRecorded(sql, false, 1);
     }
 
@@ -503,5 +515,19 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             }
         }
         return true;
+    }
+
+    /**
+     * Calls and asserts returned value of {@link Statement#getUpdateCount()}.
+     *
+     * @param statement     statement
+     * @param expectedValue expected value
+     * @throws SQLException if something bad happens
+     */
+    private static void checkUpdateCount(Statement statement, int expectedValue) throws SQLException {
+        int updateCount = statement.getUpdateCount();
+        assertThat(updateCount)
+            .describedAs("unexpected update count value")
+            .isEqualTo(expectedValue);
     }
 }
