@@ -8,7 +8,7 @@ endif::[]
 
 :toclevels: 4
 :y: image:./images/green-check.svg[]
-:x: image:./images/red-x.svg[]
+:n: image:./images/red-x.svg[]
 
 = APM Java Agent Reference
 
