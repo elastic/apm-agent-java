@@ -59,7 +59,7 @@ Note that if the APM Server can't handle all the events,
 the agent will drop data to not crash your application.
 It will then also not serialize and gzip the events.
 
-Sample rate can be changed by altering the <<config-transaction-sample-rate>> configuration.
+Sample rate can be changed by altering the <<config-transaction-sample-rate>> configuration. 
 
 [float]
 [[recommended-ram]]

@@ -1,7 +1,0 @@
-[[apm-java-how-to]]
-== How-to guides
-
-Learn how to perform common APM Java Agent tasks.
-
-include::./log-correlation.asciidoc[Log correlation]
-include::./method-monitoring.asciidoc[Java method monitoring]
