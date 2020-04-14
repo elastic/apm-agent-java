@@ -41,6 +41,7 @@ This is not a breaking change, so former
   `IncompatibleClassChangeError: Found class org.quartz.JobExecutionContext, but interface was expected` - {pull}1108[#1108]
 * Fix breakdown metrics span sub-types {pull}1113[#1113]
 * Fix flaky gRPC server instrumentation {pull}1122[#1122]
+* Fix side effect of calling `Statement.getUpdateCount` more than once {pull}1139[#1139]
 
 
 [[release-notes-1.x]]
