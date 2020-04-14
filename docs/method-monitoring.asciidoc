@@ -130,9 +130,9 @@ By default, the classes from the JDK and from most application servers are exclu
 ----
 profiling_inferred_spans_enabled=true
 profiling_inferred_spans_sampling_interval=50ms
-profiling_inferred_spans_min_duration=25ms
+profiling_inferred_spans_min_duration=250ms
 profiling_inferred_spans_included_classes=org.example.myapp.*
-profiling_inferred_spans_excluded_classes=(?-i)java.*
+profiling_inferred_spans_excluded_classes=org.example.myapp.ignoreme.*
 ----
 
 [float]
@@ -172,7 +172,7 @@ import co.elastic.apm.api.Span;
 
 Span parent = ElasticApm.currentSpan(); <1>
 Span span = parent.startSpan(); <2>
-try {
+try (Scope scope = span.activate()) {
     span.setName("SELECT FROM customer"); <3>
     span.addLabel("foo", "bar"); <4>
     // do your thing...
@@ -229,23 +229,15 @@ Just get the current span on an annotated method and customize the span to your 
 
 [source,java]
 ----
-@CaptureSpan(value = "spanName", type = "ext", subtype = "http") <1>
-private static void spanWithAnnotation() {
-    Span parent = ElasticApm.currentSpan(); <2>
-    Span span = parent.startSpan(); <3>
-    try {
-        // do your thing...
-    } catch (Exception e) {
-        span.captureException(e);
-        throw e;
-    } finally {
-        span.end();
-    }
+@CaptureSpan <1>
+private static void spanWithAnnotation(String foo) {
+    Span span = ElasticApm.currentSpan(); <2>
+    span.setTag("foo", foo); <3>
 }
 ----
 <1> Use `@CaptureSpan` annotation to create a span
-<2> Get the current span
-<3> Start a child span
+<2> Get the current span (the one created via the `@CaptureSpan` annotation)
+<3> Customize the span
 // end::combine-api-annotations[]
 
 //********************************************
