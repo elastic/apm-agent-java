@@ -81,7 +81,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw clean install -DskipTests=true
+                ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
                 ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
                 """
               }
@@ -260,7 +260,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.doc_ci }
+            expression { return env.ONLY_DOCS == "false" }
           }
           steps {
             withGithubNotify(context: 'Javadoc') {
