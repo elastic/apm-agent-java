@@ -1,5 +1,9 @@
 [[java-method-monitoring]]
-== How to find slow methods
+=== How to find slow methods
+
+++++
+<titleabbrev>Find slow methods</titleabbrev>
+++++
 
 Identifying a problematic service is only half of the battle when diagnosing application slowdowns.
 Luckily, the Elastic APM Java Agent provides multiple ways to get method-level insights into your code.
@@ -59,7 +63,7 @@ Use a configuration option to specify additional methods to instrument.
 
 //********************************************
 [[method-sampling-based]]
-=== Sampling-based profiler
+==== Sampling-based profiler
 
 experimental::[]
 added::[1.14.0]
@@ -148,7 +152,7 @@ https://github.com/elastic/apm-agent-java/tree/master/apm-agent-plugins/apm-prof
 
 //********************************************
 [[method-api]]
-=== API/Code
+==== API/Code
 
 Use the <<api-span,span API>> to manually create spans for methods of interest.
 The API is extremely flexible, and offers the ability to customize your spans,
@@ -198,7 +202,7 @@ include::method-monitoring.asciidoc[tag=combine-api-annotations]
 
 //********************************************
 [[method-annotations]]
-=== Annotations
+==== Annotations
 
 The <<api-annotation,annotation API>> allows you to place annotations on top of methods to automatically create spans for them.
 This method of creating spans is easier, more robust, and typically more performant than using the API;
@@ -244,7 +248,7 @@ private static void spanWithAnnotation(String foo) {
 
 //********************************************
 [[method-config-based]]
-=== Configuration-based
+==== Configuration-based
 
 Use the <<config-trace-methods,`trace_methods`>> configuration option to specify additional methods to instrument.
 You can match methods via wildcards in the package, class or method name, by their modifier (like public),
