@@ -1,24 +1,49 @@
-package co.elastic.apm.agent.concurrent
+package co.elastic.apm.agent.scala.concurrent
 
 import java.util.concurrent.Executors
 
+import co.elastic.apm.agent.MockReporter
+import co.elastic.apm.agent.bci.ElasticApmAgent
+import co.elastic.apm.agent.configuration.{CoreConfiguration, SpyConfiguration}
+import co.elastic.apm.agent.impl.transaction.Transaction
+import co.elastic.apm.agent.impl.{ElasticApmTracer, ElasticApmTracerBuilder}
+import net.bytebuddy.agent.ByteBuddyAgent
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.stagemonitor.configuration.ConfigurationRegistry
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 
-class FutureInstrumentationSpec extends AnyFlatSpec {
+class FutureInstrumentationSpec extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
-  "test" should "test" in {
-    assert(true == true)
+  implicit def executionContext: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
+
+  private var reporter: MockReporter = _
+  private var tracer: ElasticApmTracer = _
+  private var coreConfiguration: CoreConfiguration = _
+  private var transaction: Transaction = _
+
+  override def beforeEach: Unit = {
+    reporter = new MockReporter
+    val config: ConfigurationRegistry = SpyConfiguration.createSpyConfig
+    coreConfiguration = config.getConfig(classOf[CoreConfiguration])
+    tracer = new ElasticApmTracerBuilder().configurationRegistry(config).reporter(reporter).build
+    ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install)
+    transaction = tracer.startRootTransaction(null).withName("Transaction").activate()
   }
 
-//  @Test
-//  def testWithDefaultConfig(): Unit = {
-//    new TestFutureTraceMethods().invokeAsync()
-//    assertThat(AbstractInstrumentationTest.reporter.getTransactions().toArray).hasSize(1)
-//    assertThat(AbstractInstrumentationTest.reporter.getSpans().toArray).hasSize(4)
-//  }
+  override def afterEach: Unit = {
+    transaction.deactivate().end()
+    ElasticApmAgent.reset()
+  }
+
+  "test" should "test" in {
+    new TestFutureTraceMethods().invokeAsync()
+    reporter.getTransactions should have size 1
+  }
 
   private class TestFutureTraceMethods {
 
@@ -49,7 +74,7 @@ class FutureInstrumentationSpec extends AnyFlatSpec {
     }
 
     private def nonBlockingMethodOnMainThread(): Future[Unit] =
-      Future(methodOnWorkerThread())(ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1)))
+      Future(methodOnWorkerThread())
 
     private def methodOnWorkerThread(): Unit = longMethod()
 

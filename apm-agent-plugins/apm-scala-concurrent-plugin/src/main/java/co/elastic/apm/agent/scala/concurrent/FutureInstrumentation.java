@@ -22,9 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.concurrent;
+package co.elastic.apm.agent.scala.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -34,7 +36,7 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
+public class FutureInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -49,12 +51,16 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
         return named("onComplete").and(returns(void.class))
             .or(named("transform").and(returns(named("scala.concurrent.Future"))))
             .or(named("transformWith").and(returns(named("scala.concurrent.Future"))))
-            .and(not(isTypeInitializer()));
+            .or(named("result"));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("concurrent", "future");
     }
+
+    @VisibleForAdvice
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    public static void test() {}
 
 }
