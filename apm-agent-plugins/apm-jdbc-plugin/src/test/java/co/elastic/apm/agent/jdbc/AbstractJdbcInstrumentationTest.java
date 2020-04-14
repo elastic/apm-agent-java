@@ -76,7 +76,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         this.connection = connection;
         this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))");
-        connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO);");
+        connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
         transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("transaction");
         transaction.withType("request");
