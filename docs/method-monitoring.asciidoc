@@ -41,7 +41,7 @@ image:./images/red-x.svg[] Incorrect API usage may lead to invalid traces (scope
 Annotations can be placed on top of methods to automatically create spans for them.
 
 image:./images/green-check.svg[]Easier and more robust than the API. +
-image:./images/red-x.svg[]Less flexible on its own, but can be combined with the API
+image:./images/red-x.svg[]Less flexible on its own, but can be combined with the API.
 
 <<method-annotations,Learn more>>
 
@@ -51,8 +51,8 @@ image:./images/red-x.svg[]Less flexible on its own, but can be combined with the
 Use a configuration option to specify additional methods to instrument.
 
 image:./images/green-check.svg[]  No need to modify source code. +
-image:./images/green-check.svg[] Possible to monitor code in third-party libraries +
-image:./images/green-check.svg[] Match methods via wildcards +
+image:./images/green-check.svg[] Possible to monitor code in third-party libraries. +
+image:./images/green-check.svg[] Match methods via wildcards. +
 image:./images/red-x.svg[] Easy to overuse which hurts runtime and startup performance.
 
 <<method-config-based,Learn more>>
@@ -172,9 +172,9 @@ import co.elastic.apm.api.Span;
 
 Span parent = ElasticApm.currentSpan(); <1>
 Span span = parent.startSpan(); <2>
-try (Scope scope = span.activate()) {
-    span.setName("SELECT FROM customer"); <3>
-    span.addLabel("foo", "bar"); <4>
+try (Scope scope = span.activate()) { <3>
+    span.setName("SELECT FROM customer"); <4>
+    span.addLabel("foo", "bar"); <5>
     // do your thing...
 } catch (Exception e) {
     span.captureException(e);
@@ -185,8 +185,9 @@ try (Scope scope = span.activate()) {
 ----
 <1> Get current span
 <2> Create a child span
-<3> Override the default span name
-<4> Add labels to the span
+<3> Make this span the active span on the current thread
+<4> Override the default span name
+<5> Add labels to the span
 
 [float]
 ==== Combine with annotations
@@ -253,22 +254,4 @@ Be careful, it's easy to overuse `trace_methods` by matching too many methods--h
 Use in conjunction with <<config-trace-methods-duration-threshold,`trace_methods_duration_threshold`>> when setting for entire packages
 in order to reduce overhead and avoid having too many spans in the APM app.
 
-[float]
-==== How-to create spans with `trace_methods`
-
-// I don't really understand this.
-// Just gonna put some dance emojis here for now 💃🕺💃🕺💃🕺
-// Move from configuration to here?
-
- - `org.example.*` added[1.4.0,Omitting the method is possible since 1.4.0]
- - `org.example.*#*` (before 1.4.0, you need to specify a method matcher)
- - `org.example.MyClass#myMethod`
- - `org.example.MyClass#myMethod()`
- - `org.example.MyClass#myMethod(java.lang.String)`
- - `org.example.MyClass#myMe*od(java.lang.String, int)`
- - `private org.example.MyClass#myMe*od(java.lang.String, *)`
- - `* org.example.MyClas*#myMe*od(*.String, int[])`
- - `public org.example.services.*Service#*`
- - `public @java.inject.ApplicationScoped org.example.*`
- - `public @java.inject.* org.example.*`
- - `public @@javax.enterprise.context.NormalScope org.example.*`
+For more information, and examples, see the <<config-trace-methods,`trace_methods`>> configuration reference.
