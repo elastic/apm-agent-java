@@ -237,7 +237,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             sb.append(")");
             paramSign = sb.toString();
         }
-        return apiClass.getName() + "." + methodName + paramSign;
+        return apiClass.getName() + "#" + methodName + paramSign;
     }
 
     public void validateDubboSpan(Span span,
