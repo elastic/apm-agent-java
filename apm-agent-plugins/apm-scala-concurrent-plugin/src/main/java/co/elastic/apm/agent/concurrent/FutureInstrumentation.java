@@ -29,8 +29,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
@@ -54,18 +54,7 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return List.of("concurrent", "future");
+        return Arrays.asList("concurrent", "future");
     }
-
-    
-//    @Advice.OnMethodEnter(suppress = classOf[Throwable])
-//    def onComplete(@Advice.Argument(value = 0, readOnly = true) callback: Try[_] => _): Unit = {
-//        val active = ElasticApmInstrumentation.getActive
-//        val tracer = ElasticApmInstrumentation.tracer
-//        if (active != null && tracer != null && tracer.isWrappingAllowedOnThread) {
-//            active.setDiscard(false)
-//            tracer.avoidWrappingOnThread()
-//        }
-//    }
 
 }
