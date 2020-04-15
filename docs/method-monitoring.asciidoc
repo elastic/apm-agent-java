@@ -253,6 +253,6 @@ Because you don’t need to modify your source code, this makes it possible to m
 
 Be careful, it's easy to overuse `trace_methods` by matching too many methods--hurting both runtime and startup performance.
 Use in conjunction with <<config-trace-methods-duration-threshold,`trace_methods_duration_threshold`>> when setting for entire packages
-in order to reduce overhead and avoid having too many spans in the APM app.
+in order to avoid having too many spans in the APM app.
 
 For more information, and examples, see the <<config-trace-methods,`trace_methods`>> configuration reference.
