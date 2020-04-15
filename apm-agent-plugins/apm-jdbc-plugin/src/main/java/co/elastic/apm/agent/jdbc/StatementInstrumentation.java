@@ -429,24 +429,21 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             );
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static int onEnter(@Advice.This Statement statement) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.This Statement statement,
+                                   @Advice.Thrown @Nullable Throwable thrown,
+                                   @Advice.Return(readOnly = false) int returnValue) {
+
             if (tracer == null || jdbcHelperManager == null) {
-                return Integer.MIN_VALUE;
+                return;
             }
 
             JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
             if (helperImpl == null) {
-                return Integer.MIN_VALUE;
+                return;
             }
 
-            return helperImpl.getAndClearStoredUpdateCount(statement);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Return(readOnly = false) int returnValue,
-                                   @Advice.Enter int storedValue) {
+            int storedValue = helperImpl.getAndClearStoredUpdateCount(statement);
 
             if (thrown == null && storedValue != Integer.MIN_VALUE) {
                 returnValue = storedValue;
