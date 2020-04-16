@@ -155,7 +155,11 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
                         boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
-                        String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
+                        @Nullable String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
+        if (servletPath == null) {
+            // the servlet path is specified as non-null but WebLogic does return null...
+            servletPath = "";
+        }
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
