@@ -32,6 +32,7 @@ endif::[]
 * Deprecating the `incubating` tag in favour of the `experimental` tag.
 This is not a breaking change, so former
 <<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
+* Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
 
 [float]
 ===== Bug fixes

@@ -145,8 +145,8 @@ public class ElasticApmTracer {
         recordingConfigOptionSet = tracerConfiguration.getRecordingConfig().get();
         tracerConfiguration.getRecordingConfig().addChangeListener(new ConfigurationOption.ChangeListener<Boolean>() {
             @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Boolean wasRecording, Boolean shouldBeRecording) {
-                ElasticApmTracer.this.recordingConfigChanged(wasRecording, shouldBeRecording);
+            public void onChange(ConfigurationOption<?> configurationOption, Boolean oldValue, Boolean newValue) {
+                ElasticApmTracer.this.recordingConfigChanged(oldValue, newValue);
             }
         });
 
@@ -636,29 +636,31 @@ public class ElasticApmTracer {
 
     public synchronized void onStressDetected() {
         currentlyUnderStress = true;
-        pause();
+        if (tracerState == TracerState.RUNNING) {
+            pause();
+        }
     }
 
     public synchronized void onStressRelieved() {
         currentlyUnderStress = false;
-        if (recordingConfigOptionSet) {
+        if (tracerState == TracerState.PAUSED && recordingConfigOptionSet) {
             resume();
         }
     }
 
-    private synchronized void recordingConfigChanged(boolean wasRecording, boolean shouldBeRecording) {
+    private synchronized void recordingConfigChanged(boolean oldValue, boolean newValue) {
         // if changed from true to false then:
         //      if current state is RUNNING - pause the agent
         //      otherwise - ignore
         // if changed from false to true then:
         //      if current state is RUNNING or STOPPED - no effect
         //      if current state is PAUSED and currentlyUnderStress==false - then resume
-        if (wasRecording && !shouldBeRecording && tracerState == TracerState.RUNNING) {
+        if (oldValue && !newValue && tracerState == TracerState.RUNNING) {
             pause();
-        } else if (!wasRecording && shouldBeRecording && tracerState == TracerState.PAUSED && !currentlyUnderStress) {
+        } else if (!oldValue && newValue && tracerState == TracerState.PAUSED && !currentlyUnderStress) {
             resume();
         }
-        recordingConfigOptionSet = shouldBeRecording;
+        recordingConfigOptionSet = newValue;
     }
 
     synchronized void pause() {
