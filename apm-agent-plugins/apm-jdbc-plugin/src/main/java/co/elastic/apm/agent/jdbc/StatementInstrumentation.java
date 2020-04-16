@@ -129,8 +129,8 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             if (t == null && jdbcHelperManager != null) {
                 JdbcHelper helper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
                 if (helper != null) {
-                    long count = helper.safeGetUpdateCount(statement);
-                    if (count != Long.MIN_VALUE) {
+                    int count = helper.getAndStoreUpdateCount(statement);
+                    if (count != Integer.MIN_VALUE) {
                         span.getContext()
                             .getDb()
                             .withAffectedRowsCount(count);
@@ -401,9 +401,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 if (jdbcHelper != null) {
                     span.getContext()
                         .getDb()
-                        // getUpdateCount javadoc indicates that this method should be called only once
-                        // however in practice adding this extra call seem to not have noticeable side effects
-                        .withAffectedRowsCount(jdbcHelper.safeGetUpdateCount(statement));
+                        .withAffectedRowsCount(jdbcHelper.getAndStoreUpdateCount(statement));
                 }
             }
 
@@ -412,5 +410,45 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 .end();
         }
 
+    }
+
+
+    /**
+     * Instruments:
+     * <ul>
+     *     <li>{@link Statement#getUpdateCount()}</li>
+     * </ul>
+     */
+    public static class GetUpdateCountInstrumentation extends StatementInstrumentation {
+
+        public GetUpdateCountInstrumentation(ElasticApmTracer tracer) {
+            super(tracer,
+                named("getUpdateCount")
+                    .and(takesArguments(0))
+                    .and(isPublic())
+            );
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.This Statement statement,
+                                   @Advice.Thrown @Nullable Throwable thrown,
+                                   @Advice.Return(readOnly = false) int returnValue) {
+
+            if (tracer == null || jdbcHelperManager == null) {
+                return;
+            }
+
+            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helperImpl == null) {
+                return;
+            }
+
+            int storedValue = helperImpl.getAndClearStoredUpdateCount(statement);
+
+            if (thrown == null && storedValue != Integer.MIN_VALUE) {
+                returnValue = storedValue;
+            }
+
+        }
     }
 }
