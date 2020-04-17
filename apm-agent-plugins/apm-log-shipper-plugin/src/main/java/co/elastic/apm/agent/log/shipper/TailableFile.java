@@ -66,6 +66,7 @@ public class TailableFile implements Closeable {
      * The file creation time can help to identify which file to read from when restoring the state.
      */
     private long fileCreationTime;
+    private long inode;
 
     public TailableFile(File file) throws IOException {
         this.file = file;
@@ -103,15 +104,33 @@ public class TailableFile implements Closeable {
     private void restoreState(Properties state) throws IOException {
         long position = Long.parseLong(state.getProperty("position", "0"));
         long creationTime = Long.parseLong(state.getProperty("creationTime", Long.toString(getCreationTime(file.toPath()))));
-        if (getCreationTime(file.toPath()) == creationTime) {
-            openExistingFile(position, file.toPath());
+        long inode = Long.parseLong(state.getProperty("inode", Long.toString(getInode(file.toPath()))));
+        if (hasRotated(creationTime, inode)) {
+            openRotatedFile(position, creationTime, inode);
         } else {
-            // the file has rotated and is now named differently, maybe something like file-0.log
-            // let's search in the same directory for a file with the creation time from the state file
-            File rotatedFile = findFileWithCreationDate(file.getParentFile(), creationTime);
-            if (rotatedFile != null && rotatedFile.length() > position) {
-                openExistingFile(position, rotatedFile.toPath());
-            }
+            openExistingFile(position, file.toPath());
+        }
+    }
+
+    private boolean hasRotated(long creationTime, long inode) throws IOException {
+        if (inode != -1) {
+            return getInode(file.toPath()) != inode;
+        } else {
+            return getCreationTime(file.toPath()) != creationTime;
+        }
+    }
+
+    private void openRotatedFile(long position, long creationTime, long inode) throws IOException {
+        // the file has rotated and is now named differently, maybe something like file-0.log
+        // let's search in the same directory for a file with the creation time from the state file
+        File rotatedFile;
+        if (inode == -1) {
+            rotatedFile = findFileWithCreationDate(file.getParentFile(), creationTime);
+        } else {
+            rotatedFile = findFileWithInode(file.getParentFile(), inode);
+        }
+        if (rotatedFile != null && rotatedFile.length() > position) {
+            openExistingFile(position, rotatedFile.toPath());
         }
     }
 
@@ -119,6 +138,7 @@ public class TailableFile implements Closeable {
         Properties properties = new Properties();
         properties.put("position", Long.toString(fileChannel.position()));
         properties.put("creationTime", Long.toString(fileCreationTime));
+        properties.put("inode", Long.toString(inode));
         try (FileOutputStream os = new FileOutputStream(stateFile)) {
             properties.store(os, null);
         }
@@ -152,7 +172,7 @@ public class TailableFile implements Closeable {
             @Override
             public boolean accept(File file) {
                 try {
-                    return getCreationTime(file.toPath()) == creationTime;
+                    return !file.getName().endsWith(".state") && getCreationTime(file.toPath()) == creationTime;
                 } catch (IOException e) {
                     return false;
                 }
@@ -165,9 +185,32 @@ public class TailableFile implements Closeable {
         }
     }
 
+    @Nullable
+    private File findFileWithInode(File dir, final long inode) {
+        File[] files = dir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File file) {
+                return getInode(file.toPath()) == inode;
+            }
+        });
+        if (files != null && files.length == 1) {
+            return files[0];
+        } else {
+            return null;
+        }
+    }
+
     private long getCreationTime(Path path) throws IOException {
         BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
         return attr.creationTime().to(TimeUnit.MILLISECONDS);
+    }
+
+    private long getInode(Path path) {
+        try {
+            return (Long) Files.getAttribute(path, "unix:ino");
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public int tail(ByteBuffer buffer, FileChangeListener listener, int maxLines) throws IOException {
@@ -231,6 +274,7 @@ public class TailableFile implements Closeable {
         FileChannel fileChannel = FileChannel.open(path);
         fileChannel.position(position);
         fileCreationTime = getCreationTime(file.toPath());
+        inode = getInode(file.toPath());
         if (this.fileChannel == null) {
             saveState(fileChannel, fileCreationTime);
         }
