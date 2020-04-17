@@ -27,6 +27,7 @@ package co.elastic.apm.agent.logging;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.logging.log4j2.EcsLayout;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -144,6 +145,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                     .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg%n"));
         } else {
             String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceNameUtil.getDefaultServiceName());
+            ByteValue size = ByteValue.of(getValue("log_file_max_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
             return builder.newAppender("rolling", "RollingFile")
                 .addAttribute("fileName", logFile)
                 .addAttribute("filePattern", logFile + "%i")
@@ -151,8 +153,14 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                     .addAttribute("serviceName", serviceName)
                     .addAttribute("eventDataset", serviceName + ".apm"))
                 .addComponent(builder.newComponent("Policies")
-                    .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", "50M")))
-                .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 2));
+                    .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", size.getBytes() + "B")))
+                // Always keep exactly one history file.
+                // This is needed to ensure that the rest of the file can be sent when its rotated.
+                // Storing multiple history files would give the false impression that, for example,
+                // when currently reading from apm.log2, the reading would continue from apm.log1.
+                // This is not the case, when apm.log2 is fully read, the reading will continue from apm.log.
+                // That is because we don't want to require the reader having to know the file name pattern of the rotated file.
+                .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 1));
         }
     }
 }

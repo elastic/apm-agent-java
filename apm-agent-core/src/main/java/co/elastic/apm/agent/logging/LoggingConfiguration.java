@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.logging;
 
+import co.elastic.apm.agent.configuration.converter.ByteValue;
+import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.slf4j.event.Level;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -53,12 +55,14 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public static final String SYSTEM_OUT = "System.out";
     static final String LOG_LEVEL_KEY = "log_level";
     static final String LOG_FILE_KEY = "log_file";
+    static final String LOG_FILE_MAX_SIZE_KEY = "log_file_max_size";
     static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
 
     private static final String LOGGING_CATEGORY = "Logging";
     public static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
     static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
+    static final String DEFAULT_MAX_SIZE = "50mb";
 
     @SuppressWarnings("unused")
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
@@ -93,6 +97,16 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "it's content is deleted when the application starts.")
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
+
+    @SuppressWarnings("unused")
+    public ConfigurationOption<ByteValue> logFileMaxSize = ByteValueConverter.byteOption()
+        .key(LOG_FILE_MAX_SIZE_KEY)
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("The max size of the log file.\n" +
+            "To support sending up the log file to APM Server,\n" +
+            "the agent always keeps one history file so that the max total log file size is twice this setting.")
+        .dynamic(false)
+        .buildWithDefault(ByteValue.of(DEFAULT_MAX_SIZE));
 
     private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
         .key("enable_log_correlation")

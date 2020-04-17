@@ -125,6 +125,7 @@ Click on a key to get more information.
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
+** <<config-log-file-max-size>>
 ** <<config-enable-log-correlation>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
@@ -1412,6 +1413,29 @@ it's content is deleted when the application starts.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-file-max-size]]
+==== `log_file_max_size`
+
+The max size of the log file.
+To support sending up the log file to APM Server,
+the agent always keeps one history file so that the max total log file size is twice this setting.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `50mb` | ByteValue | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_file_max_size` | `log_file_max_size` | `ELASTIC_APM_LOG_FILE_MAX_SIZE`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2747,6 +2771,16 @@ The default unit for this option is `ms`.
 # Default value: System.out
 #
 # log_file=System.out
+
+# The max size of the log file.
+# To support sending up the log file to APM Server,
+# the agent always keeps one history file so that the max total log file size is twice this setting.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: ByteValue
+# Default value: 50mb
+#
+# log_file_max_size=50mb
 
 # A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 # If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
