@@ -82,15 +82,13 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions.size()).isEqualTo(1);
         validateDubboTransaction(
-            transactions.get(0), DubboTestApi.class,
-            "normalReturn", new Class<?>[]{String.class, Integer.class});
+            transactions.get(0), DubboTestApi.class, "normalReturn");
         noCaptureBody(transactions.get(0));
 
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(1);
-        validateDubboSpan(spans.get(0), DubboTestApi.class,
-            "normalReturn", new Class<?>[]{String.class, Integer.class});
+        validateDubboSpan(spans.get(0), DubboTestApi.class, "normalReturn");
 
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors.size()).isEqualTo(0);
@@ -217,34 +215,17 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         }
     }
 
-    public void validateDubboTransaction(Transaction transaction,
-                                         Class<?> apiClass,
-                                         String methodName,
-                                         Class<?>[] paramClasses) {
-        assertThat(transaction.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName, paramClasses));
+    public void validateDubboTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
+        assertThat(transaction.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName));
         assertThat(transaction.getType()).isEqualTo("dubbo");
     }
 
-    protected String getDubboName(Class<?> apiClass,
-                                  String methodName,
-                                  Class<?>[] paramClasses) {
-        String paramSign = "()";
-        if (paramClasses != null && paramClasses.length > 0) {
-            StringBuilder sb = new StringBuilder("(" + paramClasses[0].getSimpleName());
-            for (int i = 1; i < paramClasses.length; i++) {
-                sb.append(",").append(paramClasses[i].getSimpleName());
-            }
-            sb.append(")");
-            paramSign = sb.toString();
-        }
-        return apiClass.getName() + "#" + methodName + paramSign;
+    protected String getDubboName(Class<?> apiClass, String methodName) {
+        return apiClass.getName() + "#" + methodName;
     }
 
-    public void validateDubboSpan(Span span,
-                                  Class<?> apiClass,
-                                  String methodName,
-                                  Class<?>[] paramClasses) {
-        assertThat(span.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName, paramClasses));
+    public void validateDubboSpan(Span span, Class<?> apiClass, String methodName) {
+        assertThat(span.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName));
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("dubbo");
         Destination destination = span.getContext().getDestination();

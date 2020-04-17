@@ -116,7 +116,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
 
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions.size()).isEqualTo(1);
-        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "async", new Class[]{String.class});
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "async");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
@@ -222,7 +222,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
 
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions.size()).isEqualTo(1);
-        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByFuture", new Class[]{String.class});
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByFuture");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         Thread.sleep(1000); // wait 1s
@@ -262,7 +262,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         } catch (Exception e) {
             List<Transaction> transactions = reporter.getTransactions();
             assertThat(transactions.size()).isEqualTo(1);
-            validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByFuture", new Class[]{String.class});
+            validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByFuture");
 
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             Thread.sleep(1000); // wait reporter data 1s
@@ -320,7 +320,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
 
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions.size()).isEqualTo(1);
-        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByAsyncContext", new Class[]{String.class});
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByAsyncContext");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
@@ -357,7 +357,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         } catch (BizException e) {
             List<Transaction> transactions = reporter.getTransactions();
             assertThat(transactions.size()).isEqualTo(1);
-            validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByAsyncContext", new Class[]{String.class});
+            validateDubboTransaction(transactions.get(0), DubboTestApi.class, "asyncByAsyncContext");
 
             assertThat(reporter.getFirstSpan(5000)).isNotNull();
             List<Span> spans = reporter.getSpans();

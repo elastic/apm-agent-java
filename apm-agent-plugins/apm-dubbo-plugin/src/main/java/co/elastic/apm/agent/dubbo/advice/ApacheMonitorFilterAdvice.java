@@ -78,8 +78,8 @@ public class ApacheMonitorFilterAdvice {
                 return;
             }
 
-            span = DubboTraceHelper.createConsumerSpan(invocation.getInvoker().getInterface(), invocation.getMethodName(), invocation.getParameterTypes(),
-                context.getUrl().getParameter("version"), context.getRemoteAddress());
+            span = DubboTraceHelper.createConsumerSpan(invocation.getInvoker().getInterface(),
+                invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
                 span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
             }
@@ -91,10 +91,7 @@ public class ApacheMonitorFilterAdvice {
         transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
         if (transaction != null) {
             scope = transaction.activateInScope();
-            DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(),
-                invocation.getMethodName(),
-                invocation.getParameterTypes(),
-                context.getUrl().getParameter("version"));
+            DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());
         }
     }
 

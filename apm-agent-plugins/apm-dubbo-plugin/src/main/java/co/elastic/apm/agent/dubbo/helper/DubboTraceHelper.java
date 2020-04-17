@@ -52,8 +52,7 @@ public class DubboTraceHelper {
     }
 
     @VisibleForAdvice
-    public static Span createConsumerSpan(Class<?> apiClass, String methodName, Class<?>[] paramClasses,
-                                          String version, InetSocketAddress remoteAddress) {
+    public static Span createConsumerSpan(Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
         TraceContextHolder<?> traceContext = DubboTraceHelper.tracer.getActive();
         if (traceContext == null) {
             return null;
@@ -65,7 +64,7 @@ public class DubboTraceHelper {
 
         span.withType(EXTERNAL_TYPE)
             .withSubtype(DUBBO_SUBTYPE);
-        fillName(span, apiClass, methodName, paramClasses, version);
+        fillName(span, apiClass, methodName);
 
         Destination destination = span.getContext().getDestination();
         destination.withAddress(remoteAddress.getHostName()).withPort(remoteAddress.getPort());
@@ -76,31 +75,22 @@ public class DubboTraceHelper {
         return span.activate();
     }
 
-    private static void fillName(AbstractSpan<?> span, Class<?> apiClass, String methodName,
-                                 Class<?>[] paramClasses, String version) {
-        span.appendToName(apiClass.getName())
+    private static void fillName(AbstractSpan<?> span, Class<?> apiClass, String methodName) {
+        span.appendToName(getSimpleName(apiClass.getName()))
             .appendToName("#")
-            .appendToName(methodName)
-            .appendToName("(");
-        if (paramClasses != null) {
-            int length = paramClasses.length;
-            for (int i = 0; i < paramClasses.length; i++) {
-                span.appendToName(paramClasses[i].getSimpleName());
-                if (i < length - 1) {
-                    span.appendToName(",");
-                }
-            }
+            .appendToName(methodName);
+    }
+
+    private static String getSimpleName(String className) {
+        if (className == null) {
+            return null;
         }
-        span.appendToName(")");
-        if (version != null && version.length() > 0) {
-            span.appendToName("version=").appendToName(version);
-        }
+        return className.substring(className.lastIndexOf(".") + 1);
     }
 
     @VisibleForAdvice
-    public static void fillTransaction(Transaction transaction, Class<?> apiClass, String methodName,
-                                       Class<?>[] paramClasses, String version) {
-        fillName(transaction, apiClass, methodName, paramClasses, version);
+    public static void fillTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
+        fillName(transaction, apiClass, methodName);
         transaction.withType("dubbo");
         transaction.activate();
     }
