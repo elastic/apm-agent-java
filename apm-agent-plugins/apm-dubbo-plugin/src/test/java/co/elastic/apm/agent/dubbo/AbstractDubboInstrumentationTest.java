@@ -221,7 +221,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     }
 
     protected String getDubboName(Class<?> apiClass, String methodName) {
-        return apiClass.getName() + "#" + methodName;
+        return apiClass.getSimpleName() + "#" + methodName;
     }
 
     public void validateDubboSpan(Span span, Class<?> apiClass, String methodName) {
