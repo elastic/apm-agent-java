@@ -150,7 +150,6 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
                 .addAttribute("fileName", logFile)
                 .addAttribute("filePattern", logFile + "%i")
                 .add(builder.newLayout("EcsLayout")
-                    .addAttribute("serviceName", serviceName)
                     .addAttribute("eventDataset", serviceName + ".apm"))
                 .addComponent(builder.newComponent("Policies")
                     .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", size.getBytes() + "B")))
