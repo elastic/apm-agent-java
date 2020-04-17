@@ -82,14 +82,14 @@ public class JdbcHelperImpl extends JdbcHelper {
     @Override
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
-        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
+        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null) {
             return null;
         }
 
         Span span = parent.createSpan().activate();
         if (sql.isEmpty()) {
             span.withName("empty query");
-        } else {
+        } else if (span.isSampled()) {
             StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
             if (spanName != null) {
                 SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
