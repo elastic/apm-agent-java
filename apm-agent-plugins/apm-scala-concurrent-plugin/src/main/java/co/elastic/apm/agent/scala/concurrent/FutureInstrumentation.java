@@ -26,11 +26,13 @@ package co.elastic.apm.agent.scala.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -54,6 +56,7 @@ public class FutureInstrumentation extends ElasticApmInstrumentation {
             .or(named("result"));
     }
 
+    @Nonnull
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("concurrent", "future");
@@ -61,6 +64,15 @@ public class FutureInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void test() {}
+    public static void onEnter() {
+        System.out.println("DEBUG2");
+        final TraceContextHolder<?> active = getActive();
+        System.out.println(tracer.isWrappingAllowedOnThread());
+        if (active != null && tracer != null && tracer.isWrappingAllowedOnThread()) {
+            // Do no discard branches leading to async operations so not to break span references
+            active.setDiscard(false);
+            tracer.avoidWrappingOnThread();
+        }
+    }
 
 }
