@@ -2,39 +2,49 @@
 <#-- @ftlvariable name="keys" type="java.util.Collection<java.lang.String>" -->
 [[configuration]]
 == Configuration
-The Elastic APM agent can be configured through different configuration sources,
-with the following descending order of precedence:
 
-No prefix is required for the configuration keys unless stated otherwise.
+To adapt the Elastic APM Java agent to your needs,
+you can configure it using one of the methods below, listed in descending order of precedence:
 
-[arabic]
-. {apm-app-ref}/agent-configuration.html[Central configuration] +
-   Supports <<configuration-dynamic>>
-. `elasticapm.properties` file +
-  In same folder as agent jar or provided through <<config-config-file>> option. +
-  Supports <<configuration-dynamic>>
-. Java system properties +
-  All configuration keys are prefixed with `elastic.apm.` +
-  Supports <<configuration-dynamic>> when set from the application.
-. Environment variables +
-  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. runtime attach parameters, those are mutually exclusive +
-.. `--config` parameter (<<setup-attach-cli>>)
-.. arguments of  `ElasticApmAttacher.attach(...)` (<<setup-attach-api>>)
-.. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
-. default values
+[horizontal]
+1) {apm-app-ref}/agent-configuration.html[Central configuration]::
+Configure the Agent in the Kibana APM app.
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+2) Properties file::
+The `elasticapm.properties` file is located in the same folder as the agent jar,
+or provided through the <<config-config-file,`config_file`>> option.
+image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+
+3) Java system properties::
+All configuration keys are prefixed with `elastic.apm.` +
+image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+
+4) Environment variables::
+All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`.
+
+5) Runtime attach parameters::
+. `--config` parameter. +
+See <<setup-attach-cli>>.
+. Arguments of `ElasticApmAttacher.attach(...)`. +
+See <<setup-attach-api>>.
+. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()`. +
+See <<setup-attach-api>>.
+
+6) Default values::
+Defined for each configuration.
 
 [float]
 [[configuration-dynamic]]
-=== Dynamic configuration
+=== Dynamic configuration image:./images/dynamic-config.svg[]
 
-Configuration options marked with Dynamic true can be changed at runtime when set from sources that support it:
+Configuration options marked with Dynamic true can be changed at runtime when set from supported sources:
 
-- {kibana-ref}/agent-configuration.html[Central configuration]
+- {apm-app-ref}/agent-configuration.html[Central configuration]
 - `elasticapm.properties` file
-- Java system properties when set from within the application.
+- Java system properties, but only when set from within the application
 
-NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource +
+NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource. +
 Only the external file can be used for dynamic configuration.
 
 [float]
@@ -104,6 +114,8 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 
 </#if>
 ${option.description}
+
+<#if option.dynamic><<configuration-dynamic, image:./images/dynamic-config.svg[] >></#if>
 
 <#if option.valueType?matches("TimeDuration")>
 Supports the duration suffixes `ms`, `s` and `m`.

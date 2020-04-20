@@ -32,6 +32,7 @@ endif::[]
 * Deprecating the `incubating` tag in favour of the `experimental` tag.
 This is not a breaking change, so former
 <<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
+* Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
 
 [float]
 ===== Bug fixes
@@ -41,6 +42,7 @@ This is not a breaking change, so former
   `IncompatibleClassChangeError: Found class org.quartz.JobExecutionContext, but interface was expected` - {pull}1108[#1108]
 * Fix breakdown metrics span sub-types {pull}1113[#1113]
 * Fix flaky gRPC server instrumentation {pull}1122[#1122]
+* Fix side effect of calling `Statement.getUpdateCount` more than once {pull}1139[#1139]
 
 
 [[release-notes-1.x]]
