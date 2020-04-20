@@ -13,8 +13,9 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <maven.compiler.target>9</maven.compiler.target>
-        <maven.compiler.testTarget>9</maven.compiler.testTarget>
+        <maven.compiler.source>1.9</maven.compiler.source>
+        <maven.compiler.target>1.9</maven.compiler.target>
+        <maven.compiler.testTarget>1.9</maven.compiler.testTarget>
     </properties>
 
     <dependencies>
@@ -32,9 +33,9 @@
 <!--            <scope>test</scope>-->
 <!--        </dependency>-->
         <dependency>
-            <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_2.13</artifactId>
-            <version>3.1.1</version>
+            <groupId>org.scalameta</groupId>
+            <artifactId>munit_2.13</artifactId>
+            <version>0.7.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -55,33 +56,6 @@
                         <phase>process-test-resources</phase>
                         <goals>
                             <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- disable surefire -->
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-surefire-plugin</artifactId>
-              <version>2.22.2</version>
-              <configuration>
-                <skipTests>true</skipTests>
-              </configuration>
-            </plugin>
-            <!-- enable scalatest -->
-            <plugin>
-                <groupId>org.scalatest</groupId>
-                <artifactId>scalatest-maven-plugin</artifactId>
-                <version>2.0.0</version>
-                <configuration>
-                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                    <stdout>W</stdout>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>scala-test</id>
-                        <goals>
-                            <goal>test</goal>
                         </goals>
                     </execution>
                 </executions>
