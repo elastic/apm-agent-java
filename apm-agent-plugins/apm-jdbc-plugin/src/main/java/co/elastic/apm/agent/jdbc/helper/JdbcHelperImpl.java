@@ -192,6 +192,8 @@ public class JdbcHelperImpl extends JdbcHelper {
 
     @Override
     public int getAndStoreUpdateCount(Object statement) {
+        return Integer.MIN_VALUE;
+        /*
         int result = Integer.MIN_VALUE;
         if (!(statement instanceof Statement)) {
             return result;
@@ -227,15 +229,20 @@ public class JdbcHelperImpl extends JdbcHelper {
             markNotSupported(updateCountSupported, type, e);
         }
         return result;
+
+         */
     }
 
     @Override
     public int getAndClearStoredUpdateCount(Object statement) {
+        return Integer.MIN_VALUE;
+        /*
         Integer value = null;
         if (Boolean.FALSE == idempotentGetUpdateCount.get(statement.getClass())) {
             value = statementsUpdateCount.remove(statement);
         }
         return value != null ? value : Integer.MIN_VALUE;
+         */
     }
 
     @Nullable
