@@ -76,7 +76,7 @@ public class ApmServerLogShipperTest {
         ApmServerClient apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
 
         DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient);
-        logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), MetaData.create(config, null, null), serializer);
+        logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), MetaData.create(config, null), serializer);
         logFile = File.createTempFile("test", ".log");
         tailableFile = new TailableFile(logFile);
     }

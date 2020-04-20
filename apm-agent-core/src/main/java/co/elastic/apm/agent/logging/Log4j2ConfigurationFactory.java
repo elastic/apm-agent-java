@@ -37,14 +37,18 @@ import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.builder.api.AppenderComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
+import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.RootLoggerComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.converter.EnumValueConverter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
@@ -52,7 +56,10 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.DEFAULT_LOG_FILE
 import static co.elastic.apm.agent.logging.LoggingConfiguration.DEPRECATED_LOG_FILE_KEY;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.DEPRECATED_LOG_LEVEL_KEY;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FILE_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FORMAT_FILE_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_FORMAT_SOUT_KEY;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.LOG_LEVEL_KEY;
+import static co.elastic.apm.agent.logging.LoggingConfiguration.SHIP_AGENT_LOGS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
 
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
@@ -63,9 +70,11 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     }
 
     private final List<org.stagemonitor.configuration.source.ConfigurationSource> sources;
+    private final String ephemeralId;
 
-    public Log4j2ConfigurationFactory(List<org.stagemonitor.configuration.source.ConfigurationSource> sources) {
+    public Log4j2ConfigurationFactory(List<org.stagemonitor.configuration.source.ConfigurationSource> sources, String ephemeralId) {
         this.sources = sources;
+        this.ephemeralId = ephemeralId;
     }
 
     /**
@@ -125,41 +134,84 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
     public Configuration getConfiguration() {
         ConfigurationBuilder<BuiltConfiguration> builder = newConfigurationBuilder();
-        String logFile = getActualLogFile(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources, getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
-        Level level = Level.valueOf(getValue(LOG_LEVEL_KEY, sources, getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
-        AppenderComponentBuilder appender = getAppender(builder, logFile);
         builder.setStatusLevel(Level.ERROR)
-            .setConfigurationName("ElasticAPM")
-            .add(appender)
-            .add(builder.newRootLogger(level)
-                .add(builder.newAppenderRef(appender.getName())));
+            .setConfigurationName("ElasticAPM");
+        List<AppenderComponentBuilder> appenders = createAppenders(builder);
+
+        Level level = Level.valueOf(getValue(LOG_LEVEL_KEY, sources, getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
+        RootLoggerComponentBuilder rootLogger = builder.newRootLogger(level);
+        for (AppenderComponentBuilder appender : appenders) {
+            rootLogger.add(builder.newAppenderRef(appender.getName()));
+        }
+        builder.add(rootLogger);
         return builder.build();
     }
 
-    private AppenderComponentBuilder getAppender(ConfigurationBuilder<BuiltConfiguration> builder, String logFile) {
+    private List<AppenderComponentBuilder> createAppenders(ConfigurationBuilder<BuiltConfiguration> builder) {
+        List<AppenderComponentBuilder> appenders = new ArrayList<>();
+        String logFile = getActualLogFile(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources, getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
         if (logFile.equals(SYSTEM_OUT)) {
-            return builder.newAppender("Stdout", "CONSOLE")
-                .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
-                .add(builder
+            appenders.add(createConsoleAppender(builder));
+            if (Boolean.parseBoolean(getValue(SHIP_AGENT_LOGS, sources, Boolean.TRUE.toString()))) {
+                File tempLog = getTempLogFile(ephemeralId);
+                tempLog.deleteOnExit();
+                File rotatedTempLog = new File(tempLog + "1");
+                rotatedTempLog.deleteOnExit();
+                appenders.add(createFileAppender(builder, tempLog.getAbsolutePath(), createLayout(builder, LogFormat.JSON)));
+            }
+        } else {
+            appenders.add(createFileAppender(builder, logFile, createLayout(builder, getFileLogFormat())));
+        }
+        for (AppenderComponentBuilder appender : appenders) {
+            builder.add(appender);
+        }
+        return appenders;
+    }
+
+    public static File getTempLogFile(String ephemeralId) {
+        return new File(System.getProperty("java.io.tmpdir") + "/elasticapm-java-" + ephemeralId + ".log.json");
+    }
+
+    private AppenderComponentBuilder createConsoleAppender(ConfigurationBuilder<BuiltConfiguration> builder) {
+        return builder.newAppender("Stdout", "CONSOLE")
+            .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
+            .add(createLayout(builder, getSoutLogFormat()));
+    }
+
+    private LayoutComponentBuilder createLayout(ConfigurationBuilder<BuiltConfiguration> builder, LogFormat logFormat) {
+        if (logFormat == LogFormat.PLAIN_TEXT) {
+            return builder
                     .newLayout("PatternLayout")
-                    .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg%n"));
+                    .addAttribute("pattern", "%d [%thread] %-5level %logger{36} - %msg%n");
         } else {
             String serviceName = getValue(CoreConfiguration.SERVICE_NAME, sources, ServiceNameUtil.getDefaultServiceName());
-            ByteValue size = ByteValue.of(getValue("log_file_max_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
-            return builder.newAppender("rolling", "RollingFile")
-                .addAttribute("fileName", logFile)
-                .addAttribute("filePattern", logFile + "%i")
-                .add(builder.newLayout("EcsLayout")
-                    .addAttribute("eventDataset", serviceName + ".apm"))
-                .addComponent(builder.newComponent("Policies")
-                    .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", size.getBytes() + "B")))
-                // Always keep exactly one history file.
-                // This is needed to ensure that the rest of the file can be sent when its rotated.
-                // Storing multiple history files would give the false impression that, for example,
-                // when currently reading from apm.log2, the reading would continue from apm.log1.
-                // This is not the case, when apm.log2 is fully read, the reading will continue from apm.log.
-                // That is because we don't want to require the reader having to know the file name pattern of the rotated file.
-                .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 1));
+            return builder.newLayout("EcsLayout")
+                .addAttribute("eventDataset", serviceName + ".apm");
         }
+    }
+
+    private LogFormat getSoutLogFormat() {
+        return new EnumValueConverter<>(LogFormat.class).convert(getValue(LOG_FORMAT_SOUT_KEY, sources, LogFormat.PLAIN_TEXT.toString()));
+    }
+
+    private LogFormat getFileLogFormat() {
+        return new EnumValueConverter<>(LogFormat.class).convert(getValue(LOG_FORMAT_FILE_KEY, sources, LogFormat.JSON.toString()));
+    }
+
+    private AppenderComponentBuilder createFileAppender(ConfigurationBuilder<BuiltConfiguration> builder, String logFile, LayoutComponentBuilder layout) {
+        ByteValue size = ByteValue.of(getValue("log_file_max_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
+        return builder.newAppender("rolling", "RollingFile")
+            .addAttribute("fileName", logFile)
+            .addAttribute("filePattern", logFile + "%i")
+            .add(layout)
+            .addComponent(builder.newComponent("Policies")
+                .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", size.getBytes() + "B")))
+            // Always keep exactly one history file.
+            // This is needed to ensure that the rest of the file can be sent when its rotated.
+            // Storing multiple history files would give the false impression that, for example,
+            // when currently reading from apm.log2, the reading would continue from apm.log1.
+            // This is not the case, when apm.log2 is fully read, the reading will continue from apm.log.
+            // That is because we don't want to require the reader having to know the file name pattern of the rotated file.
+            .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 1));
     }
 }

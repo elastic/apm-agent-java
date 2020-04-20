@@ -59,7 +59,7 @@ class TailableFileTest {
     @AfterEach
     void tearDown() throws IOException {
         tailableFile.close();
-        tailableFile.deleteState();
+        tailableFile.deleteStateFile();
     }
 
     @Test
@@ -170,7 +170,7 @@ class TailableFileTest {
             file.tail(buffy, logListener, 5);
             assertThat(logListener.lines).isEmpty();
         } finally {
-            file.deleteState();
+            file.deleteStateFile();
         }
     }
 
@@ -186,7 +186,7 @@ class TailableFileTest {
             assertThat(logListener.lines).containsExactly("foo", "bar");
             assertThat(new File(file.getFile() + ".state").length()).isGreaterThan(0);
         } finally {
-            file.deleteState();
+            file.deleteStateFile();
             file.getFile().delete();
         }
     }

@@ -68,6 +68,7 @@ public class ApmServerClient {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
     private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
     private static final Version VERSION_6_7 = Version.of("6.7.0");
+    private static final Version VERSION_7_8 = Version.of("7.8.0");
     private final ReporterConfiguration reporterConfiguration;
     private volatile List<URL> serverUrls;
     private volatile Future<Version> apmServerVersion;
@@ -298,6 +299,10 @@ public class ApmServerClient {
 
     public boolean supportsNonStringLabels() {
         return isAtLeast(VERSION_6_7);
+    }
+
+    public boolean supportsLogsEndpoint() {
+        return isAtLeast(VERSION_7_8);
     }
 
     public boolean isAtLeast(Version apmServerVersion) {

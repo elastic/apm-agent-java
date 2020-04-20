@@ -54,8 +54,10 @@ public class FileTailer implements Runnable {
         this.processingThread = processingThreadFactory.newThread(this);
     }
 
-    public void tailFile(File file) throws IOException {
-        tailableFiles.add(new TailableFile(file));
+    public TailableFile tailFile(File file) throws IOException {
+        TailableFile tailableFile = new TailableFile(file);
+        tailableFiles.add(tailableFile);
+        return tailableFile;
     }
 
     public void start() {

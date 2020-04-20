@@ -51,7 +51,7 @@ class StartupInfoTest {
 
     @BeforeEach
     void setUp() {
-        LoggingConfiguration.init(List.of());
+        LoggingConfiguration.init(List.of(), "");
 
         config = new TestConfig();
         this.configurationRegistry = ConfigurationRegistry.builder()

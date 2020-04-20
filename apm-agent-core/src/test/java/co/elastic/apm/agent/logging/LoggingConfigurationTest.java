@@ -46,7 +46,7 @@ class LoggingConfigurationTest {
 
     @Test
     void testSetLogLevel() {
-        LoggingConfiguration.init(List.of(new SimpleSource().add("log_level", "warn")));
+        LoggingConfiguration.init(List.of(new SimpleSource().add("log_level", "warn")), "");
         assertThat(LoggerFactory.getLogger(LoggingConfigurationTest.class).isDebugEnabled()).isFalse();
         assertThat(LoggerFactory.getLogger(LoggingConfigurationTest.class).isInfoEnabled()).isFalse();
         assertThat(LoggerFactory.getLogger(LoggingConfigurationTest.class).isWarnEnabled()).isTrue();
@@ -54,7 +54,7 @@ class LoggingConfigurationTest {
 
     @Test
     void testSetLogFileInvalid() {
-        LoggingConfiguration.init(List.of(new SimpleSource().add("log_file", "/this/does/not/exist")));
+        LoggingConfiguration.init(List.of(new SimpleSource().add("log_file", "/this/does/not/exist")), "");
         assertThat(LoggerContext.getContext(false).getRootLogger().getAppenders()).containsKey("Console");
     }
 

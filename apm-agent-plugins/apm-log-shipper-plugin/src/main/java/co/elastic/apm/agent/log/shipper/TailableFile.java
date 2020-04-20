@@ -97,8 +97,12 @@ public class TailableFile implements Closeable {
         return properties;
     }
 
-    void deleteState() {
+    void deleteStateFile() {
         new File(file + ".state").delete();
+    }
+
+    public void deleteStateFileOnExit() {
+        new File(file + ".state").deleteOnExit();
     }
 
     private void restoreState(Properties state) throws IOException {
@@ -344,5 +348,10 @@ public class TailableFile implements Closeable {
 
     public File getFile() {
         return file;
+    }
+
+    @Override
+    public String toString() {
+        return file.toString();
     }
 }

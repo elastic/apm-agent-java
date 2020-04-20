@@ -42,8 +42,8 @@ import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.IOUtils;
@@ -59,8 +59,8 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -472,7 +472,7 @@ class DslJsonSerializerTest {
     void testConfiguredServiceNodeName() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
         when(configRegistry.getConfig(CoreConfiguration.class).getServiceNodeName()).thenReturn("Custom-Node-Name");
-        MetaData metaData = MetaData.create(configRegistry, null, null);
+        MetaData metaData = MetaData.create(configRegistry, null);
         serializer.serializeMetaDataNdJson(metaData);
         JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
         JsonNode serviceJson = metaDataJson.get("service");

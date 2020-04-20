@@ -134,13 +134,15 @@ public class ElasticApmTracer {
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean recordingConfigOptionSet;
+    private final MetaData metaData;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory, ApmServerClient apmServerClient) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory, ApmServerClient apmServerClient, MetaData metaData) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.apmServerClient = apmServerClient;
+        this.metaData = metaData;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
 
@@ -786,6 +788,10 @@ public class ElasticApmTracer {
 
     public ApmServerClient getApmServerClient() {
         return apmServerClient;
+    }
+
+    public MetaData getMetaData() {
+        return metaData;
     }
 
     /**

@@ -43,7 +43,7 @@ import java.util.List;
  * {@link org.slf4j.LoggerFactory#getLogger(Class)}.
  * That's why we don't read the values from the {@link ConfigurationOption} fields but
  * iterate over the {@link ConfigurationSource}s manually to read the values
- * (see {@link #getValue(String, List, String)}).
+ * (see {@link Log4j2ConfigurationFactory#getValue}).
  * </p>
  * <p>
  * It still makes sense to extend {@link ConfigurationOptionProvider} and register this class as a service,
@@ -63,6 +63,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
     static final String DEFAULT_MAX_SIZE = "50mb";
+    static final String SHIP_AGENT_LOGS = "ship_agent_logs";
+    static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
+    public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
 
     @SuppressWarnings("unused")
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
@@ -94,19 +97,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "the logs are sent to standard out.\n" +
             "\n" +
             "NOTE: When logging to a file,\n" +
-            "it's content is deleted when the application starts.")
+            "the log will be formatted in new-line-delimited JSON.\n" +
+            "When logging to std out, the log will be formatted as plain-text.")
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
-
-    @SuppressWarnings("unused")
-    public ConfigurationOption<ByteValue> logFileMaxSize = ByteValueConverter.byteOption()
-        .key(LOG_FILE_MAX_SIZE_KEY)
-        .configurationCategory(LOGGING_CATEGORY)
-        .description("The max size of the log file.\n" +
-            "To support sending up the log file to APM Server,\n" +
-            "the agent always keeps one history file so that the max total log file size is twice this setting.")
-        .dynamic(false)
-        .buildWithDefault(ByteValue.of(DEFAULT_MAX_SIZE));
 
     private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
         .key("enable_log_correlation")
@@ -129,8 +123,71 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         })
         .buildWithDefault(false);
 
-    public static void init(List<ConfigurationSource> sources) {
-        Configurator.initialize(new Log4j2ConfigurationFactory(sources).getConfiguration());
+    @SuppressWarnings("unused")
+    public ConfigurationOption<ByteValue> logFileMaxSize = ByteValueConverter.byteOption()
+        .key(LOG_FILE_MAX_SIZE_KEY)
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("The max size of the log file.\n" +
+            "\n" +
+            "To support <<config-ship-agent-logs,shipping the logs>> to APM Server,\n" +
+            "the agent always keeps one history file so that the max total log file size is twice the value of this setting.\n")
+        .dynamic(false)
+        .tags("added[1.16.0]")
+        .buildWithDefault(ByteValue.of(DEFAULT_MAX_SIZE));
+
+    private final ConfigurationOption<Boolean> shipAgentLogs = ConfigurationOption.booleanOption()
+        .key(SHIP_AGENT_LOGS)
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.8+).\n" +
+            "Use the Kibana Logs App to see the logs from all of your agents.\n" +
+            "\n" +
+            "If <<config-log-file,`log_file`>> is set to a real file location (as opposed to `System.out`),\n" +
+            "this file will be shipped to the APM Server by the agent.\n" +
+            "Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.\n" +
+            "\n" +
+            "If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.\n" +
+            "The amount of logs that can be buffered is at least <<config-log-file-max-size,`log_file_max_size`>>.\n" +
+            "If the application crashes or APM Server is not available when shutting down,\n" +
+            "the agent will resume shipping the log file when the application restarts.\n" +
+            "\n" +
+            "Resume on restart does not work when the log is inside an ephemeral container.\n" +
+            "Consider mounting the log file to the host or use Filebeat if you need the extra reliability in this case.\n" +
+            "\n" +
+            "If <<config-log-file,`log_file`>> is set to `System.out`,\n" +
+            "the agent will additionally log into a temp file which is then sent to APM Server.\n" +
+            "This log's size is determined by <<config-log-file-max-size,`log_file_max_size`>> and will be deleted on shutdown.\n" +
+            "This means that logs that could not be sent before the application terminates are lost.")
+        .dynamic(false)
+        .tags("added[1.16.0]")
+        .buildWithDefault(true);
+
+    @SuppressWarnings("unused")
+    public ConfigurationOption<LogFormat> logFormatSout = ConfigurationOption.enumOption(LogFormat.class)
+        .key(LOG_FORMAT_SOUT_KEY)
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Defines the log format when logging to `System.out`.\n" +
+            "\n" +
+            "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
+            "where each log event is serialized as a single line.")
+        .tags("added[1.16.0]")
+        .buildWithDefault(LogFormat.PLAIN_TEXT);
+
+    @SuppressWarnings("unused")
+    public ConfigurationOption<LogFormat> logFormatFile = ConfigurationOption.enumOption(LogFormat.class)
+        .key(LOG_FORMAT_FILE_KEY)
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Defines the log format when logging to a file.\n" +
+            "\n" +
+            "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
+            "where each log event is serialized as a single line.\n" +
+            "\n" +
+            "If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,\n" +
+            "the value has to be `JSON`.")
+        .tags("added[1.16.0]")
+        .buildWithDefault(LogFormat.JSON);
+
+    public static void init(List<ConfigurationSource> sources, String ephemeralId) {
+        Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
     }
 
     public String getLogFile() {
@@ -148,4 +205,11 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logCorrelationEnabled.get();
     }
 
+    public boolean isShipAgentLogs() {
+        return shipAgentLogs.get();
+    }
+
+    public LogFormat getLogFormatFile() {
+        return logFormatFile.get();
+    }
 }
