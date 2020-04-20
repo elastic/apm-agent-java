@@ -43,6 +43,7 @@ This is not a breaking change, so former
 * Fix breakdown metrics span sub-types {pull}1113[#1113]
 * Fix flaky gRPC server instrumentation {pull}1122[#1122]
 * Fix side effect of calling `Statement.getUpdateCount` more than once {pull}1139[#1139]
+* Stop capturing JDBC affected rows count using `Statement.getUpdateCount` to prevent unreliable side-effects {pull}1147[#1147]
 
 
 [[release-notes-1.x]]
