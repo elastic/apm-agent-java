@@ -126,19 +126,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 return;
             }
 
-            if (t == null && jdbcHelperManager != null) {
-                JdbcHelper helper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helper != null) {
-                    int count = helper.getAndStoreUpdateCount(statement);
-                    if (count != Integer.MIN_VALUE) {
-                        span.getContext()
-                            .getDb()
-                            .withAffectedRowsCount(count);
-                    }
-                }
-
-            }
-
             span.captureException(t)
                 .deactivate()
                 .end();
@@ -237,10 +224,10 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     /**
      * Instruments:
-     *  <ul>
-     *      <li>{@link Statement#executeBatch()} </li>
-     *      <li>{@link Statement#executeLargeBatch()} (java8)</li>
-     *  </ul>
+     * <ul>
+     *     <li>{@link Statement#executeBatch()} </li>
+     *     <li>{@link Statement#executeLargeBatch()} (java8)</li>
+     * </ul>
      */
     public static class ExecuteBatchInstrumentation extends StatementInstrumentation {
         public ExecuteBatchInstrumentation(ElasticApmTracer tracer) {
@@ -306,10 +293,10 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     /**
      * Instruments:
-     *  <ul>
-     *      <li>{@link PreparedStatement#executeUpdate()} </li>
-     *      <li>{@link PreparedStatement#executeLargeUpdate()} ()} (java8)</li>
-     *  </ul>
+     * <ul>
+     *     <li>{@link PreparedStatement#executeUpdate()} </li>
+     *     <li>{@link PreparedStatement#executeLargeUpdate()} ()} (java8)</li>
+     * </ul>
      */
     public static class ExecuteUpdateNoQueryInstrumentation extends StatementInstrumentation {
         public ExecuteUpdateNoQueryInstrumentation(ElasticApmTracer tracer) {
@@ -396,15 +383,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 return;
             }
 
-            if (t == null && jdbcHelperManager != null) {
-                JdbcHelper jdbcHelper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (jdbcHelper != null) {
-                    span.getContext()
-                        .getDb()
-                        .withAffectedRowsCount(jdbcHelper.getAndStoreUpdateCount(statement));
-                }
-            }
-
             span.captureException(t)
                 .deactivate()
                 .end();
@@ -412,43 +390,4 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     }
 
-
-    /**
-     * Instruments:
-     * <ul>
-     *     <li>{@link Statement#getUpdateCount()}</li>
-     * </ul>
-     */
-    public static class GetUpdateCountInstrumentation extends StatementInstrumentation {
-
-        public GetUpdateCountInstrumentation(ElasticApmTracer tracer) {
-            super(tracer,
-                named("getUpdateCount")
-                    .and(takesArguments(0))
-                    .and(isPublic())
-            );
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.This Statement statement,
-                                   @Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Return(readOnly = false) int returnValue) {
-
-            if (tracer == null || jdbcHelperManager == null) {
-                return;
-            }
-
-            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-            if (helperImpl == null) {
-                return;
-            }
-
-            int storedValue = helperImpl.getAndClearStoredUpdateCount(statement);
-
-            if (thrown == null && storedValue != Integer.MIN_VALUE) {
-                returnValue = storedValue;
-            }
-
-        }
-    }
 }

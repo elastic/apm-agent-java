@@ -114,8 +114,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     @Test
     public void test() throws SQLException {
         executeTest(this::testStatement);
-        executeTest(this::testUpdateStatement);
-//        executeTest(this::testStatementNotSupportingUpdateCount);
+        executeTest(() -> testUpdateStatement(false));
+        executeTest(() -> testUpdateStatement(true));
         executeTest(this::testStatementNotSupportingConnection);
         executeTest(this::testStatementWithoutConnectionMetadata);
 
@@ -179,8 +179,6 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery(sql);
 
-        checkUpdateCount(statement, -1);
-
         assertThat(resultSet.next()).isTrue();
         assertThat(resultSet.getInt("foo")).isEqualTo(1);
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
@@ -188,34 +186,21 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertSpanRecorded(sql, false, -1);
     }
 
-    private void testUpdateStatement() throws SQLException {
+    private void testUpdateStatement(boolean executeUpdate) throws SQLException {
         final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
         Statement statement = connection.createStatement();
-        boolean isResultSet = statement.execute(sql);
-        assertThat(isResultSet).isFalse();
+        int expectedAffectedRows;
+        if (executeUpdate) {
+            statement.executeUpdate(sql);
+            // executeUpdate allows to capture affected rows without side-effects
+            expectedAffectedRows = 1;
+        } else {
+            boolean isResultSet = statement.execute(sql);
+            assertThat(isResultSet).isFalse();
+            expectedAffectedRows = -1;
+        }
 
-        checkUpdateCount(statement, 1);
-
-        assertSpanRecorded(sql, false, 1);
-    }
-
-    private void testStatementNotSupportingUpdateCount() throws SQLException {
-        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
-        TestStatement statement = new TestStatement(connection.createStatement());
-        statement.setGetUpdateCountSupported(false);
-        assertThat(statement.getUnsupportedThrownCount()).isZero();
-
-        boolean isResultSet = statement.execute(sql);
-        assertThat(statement.getUnsupportedThrownCount()).isEqualTo(1);
-        assertThat(isResultSet).isFalse();
-
-        assertSpanRecorded(sql, false, -1);
-
-        // try to execute statement again, should not throw any exception
-        statement.execute(sql);
-        assertThat(statement.getUnsupportedThrownCount())
-            .describedAs("unsupported exception should only be thrown once")
-            .isEqualTo(1);
+        assertSpanRecorded(sql, false, expectedAffectedRows);
     }
 
     private void testStatementNotSupportingConnection() throws SQLException {
@@ -235,7 +220,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         checkWithoutConnectionMetadata(statement, testConnection::getUnsupportedThrownCount);
     }
 
-    private interface ThrownCountCheck{
+    private interface ThrownCountCheck {
         int getThrownCount();
     }
 
@@ -349,7 +334,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         if (updatePreparedStatement != null) {
             updatePreparedStatement.setString(1, "UPDATED1");
             updatePreparedStatement.execute();
-            assertSpanRecorded(UPDATE_PREPARED_STATEMENT_SQL, true, 1);
+            assertSpanRecorded(UPDATE_PREPARED_STATEMENT_SQL, true, -1);
         }
     }
 
@@ -399,12 +384,6 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(reporter.getSpans()).hasSize(1);
         Db db = reporter.getFirstSpan().getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(insert);
-//        // TODO : looks suspicious, why do we have oracle DB excluded here ?
-//        if (!isKnownDatabase("Oracle", "")) {
-//            assertThat(db.getAffectedRowsCount())
-//                .isEqualTo(statement.getUpdateCount())
-//                .isEqualTo(1);
-//        }
     }
 
     private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {
@@ -434,9 +413,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
-//        assertThat(db.getAffectedRowsCount())
-//            .describedAs("unexpected affected rows count for statement %s", rawSql)
-//            .isEqualTo(expectedAffectedRows);
+        assertThat(db.getAffectedRowsCount())
+            .describedAs("unexpected affected rows count for statement %s", rawSql)
+            .isEqualTo(expectedAffectedRows);
 
         Destination destination = jdbcSpan.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo("localhost");
@@ -469,9 +448,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(db.getUser()).isNull();
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
-//        assertThat(db.getAffectedRowsCount())
-//            .describedAs("unexpected affected rows count for statement %s", rawSql)
-//            .isEqualTo(expectedAffectedRows);
+        assertThat(db.getAffectedRowsCount())
+            .describedAs("unexpected affected rows count for statement %s", rawSql)
+            .isEqualTo(expectedAffectedRows);
 
         Destination destination = jdbcSpan.getContext().getDestination();
         assertThat(destination.getAddress()).isNullOrEmpty();
@@ -518,17 +497,4 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         return true;
     }
 
-    /**
-     * Calls and asserts returned value of {@link Statement#getUpdateCount()}.
-     *
-     * @param statement     statement
-     * @param expectedValue expected value
-     * @throws SQLException if something bad happens
-     */
-    private static void checkUpdateCount(Statement statement, int expectedValue) throws SQLException {
-        int updateCount = statement.getUpdateCount();
-        assertThat(updateCount)
-            .describedAs("unexpected update count value")
-            .isEqualTo(expectedValue);
-    }
 }
