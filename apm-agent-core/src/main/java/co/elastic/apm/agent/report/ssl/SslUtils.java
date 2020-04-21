@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.report;
+package co.elastic.apm.agent.report.ssl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +39,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 
 // based on https://gist.github.com/mefarazath/c9b588044d6bffd26aac3c520660bf40
-class SslUtils {
+public class SslUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(SslUtils.class);
 
@@ -48,10 +48,8 @@ class SslUtils {
     @Nullable
     private static final SSLSocketFactory socketFactory;
 
-    private static X509TrustManager trustAllTrustManager;
-
     static {
-        trustAllTrustManager = createTrustAllTrustManager();
+        X509TrustManager trustAllTrustManager = createTrustAllTrustManager();
         socketFactory = createTrustAllSocketFactory(trustAllTrustManager);
         hostnameVerifier = new HostnameVerifier() {
             @Override
@@ -61,17 +59,13 @@ class SslUtils {
         };
     }
 
-    static HostnameVerifier getTrustAllHostnameVerifyer() {
+    public static HostnameVerifier getTrustAllHostnameVerifyer() {
         return hostnameVerifier;
     }
 
     @Nullable
-    static SSLSocketFactory getTrustAllSocketFactory() {
+    public static SSLSocketFactory getTrustAllSocketFactory() {
         return socketFactory;
-    }
-
-    static X509TrustManager getTrustAllTrustManager() {
-        return trustAllTrustManager;
     }
 
     @Nullable
@@ -106,5 +100,9 @@ class SslUtils {
                 return new X509Certificate[0];
             }
         };
+    }
+
+    public static SSLSocketFactory getTLSFallbackSocketFactory(SSLSocketFactory factory) {
+        return new TLSFallbackSSLSocketFactory(factory);
     }
 }

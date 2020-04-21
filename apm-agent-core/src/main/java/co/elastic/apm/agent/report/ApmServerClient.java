@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
@@ -121,6 +122,11 @@ public class ApmServerClient {
         return copy;
     }
 
+    private static void tlsFallback(HttpsURLConnection connection) {
+        SSLSocketFactory newFactory = SslUtils.getTLSFallbackSocketFactory(connection.getSSLSocketFactory());
+        connection.setSSLSocketFactory(newFactory);
+    }
+
     private static void trustAll(HttpsURLConnection connection) {
         final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
         if (sf != null) {
@@ -140,6 +146,7 @@ public class ApmServerClient {
         if (!reporterConfiguration.isVerifyServerCert()) {
             if (connection instanceof HttpsURLConnection) {
                 trustAll((HttpsURLConnection) connection);
+                tlsFallback((HttpsURLConnection) connection);
             }
         }
         String secretToken = reporterConfiguration.getSecretToken();
