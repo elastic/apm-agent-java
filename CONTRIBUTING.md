@@ -40,6 +40,17 @@ For small changes you don't have to execute them locally.
 When creating a pull requests,
 they will be executed by a CI server.
 
+#### Performance testing
+
+We have some JMH Tests that allow to track the following performance metrics deltas when agent is activated.
+- memory allocation rate (GC pressure)
+- cpu time
+
+In order to run them, you can use the `ElasticApmActiveContinuousBenchmark` from IDE or command line.
+
+Metrics reported by this test are just data, in order to make good use of them, you have to
+compare them against `master` branch values as a baseline to know if a given code change has any impact.
+
 ### Configuring IDEs
 
 #### IntelliJ
