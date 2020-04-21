@@ -191,7 +191,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     if (abstractSpan instanceof Transaction) {
                         Transaction transaction = (Transaction) abstractSpan;
                         if (discard) {
-                            transaction.ignoreTransaction();
+                            transaction.requestDiscarding();
                         } else if (helper != null) {
                             helper.makeChildOf(transaction, message);
                             transaction.withType(MESSAGING_TYPE);
@@ -200,14 +200,14 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 } else if (abstractSpan instanceof Transaction) {
                     // Do not report polling transactions if not yielding messages
-                    ((Transaction) abstractSpan).ignoreTransaction();
+                    abstractSpan.requestDiscarding();
                     addDetails = false;
                 }
 
                 if (abstractSpan != null) {
                     try {
                         if (discard) {
-                            abstractSpan.setDiscard(true);
+                            abstractSpan.requestDiscarding();
                         } else if (addDetails) {
                             if (message != null && helper != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");

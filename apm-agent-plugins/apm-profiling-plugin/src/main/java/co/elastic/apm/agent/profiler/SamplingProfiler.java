@@ -424,7 +424,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             List<StackFrame> stackFrames = new ArrayList<>();
             ElasticApmTracer tracer = this.tracer;
             ActivationEvent event = new ActivationEvent();
-            long inferredSpansMinDuration = config.getInferredSpansMinDuration().getMillis() * 1_000_000;
+            long inferredSpansMinDuration = coreConfig.getSpanMinDuration().getMillis() * 1_000_000;
             for (StackTraceEvent stackTrace : stackTraceEvents) {
                 processActivationEventsUpTo(stackTrace.nanoTime, event, eof);
                 CallTree.Root root = profiledThreads.get(stackTrace.threadId);
@@ -733,7 +733,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                     logger.debug("End call tree ({}) for thread {}", deserialize(samplingProfiler, traceContextBuffer), threadId);
                 }
                 samplingProfiler.profiledThreads.remove(threadId);
-                callTree.end(samplingProfiler.callTreePool, samplingProfiler.config.getInferredSpansMinDuration().getMillis() * 1_000_000);
+                callTree.end(samplingProfiler.callTreePool, samplingProfiler.coreConfig.getSpanMinDuration().getMillis() * 1_000_000);
                 int createdSpans = callTree.spanify();
                 if (logger.isDebugEnabled()) {
                     if (createdSpans > 0) {

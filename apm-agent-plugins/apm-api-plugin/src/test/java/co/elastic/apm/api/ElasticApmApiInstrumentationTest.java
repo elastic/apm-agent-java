@@ -263,7 +263,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
         Map<String, String> headerMap = new HashMap<>();
-        parent.getTraceContext().setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
+        parent.setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(headerMap::get).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
     }
@@ -273,7 +273,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
         Map<String, String> headerMap = new HashMap<>();
-        parent.getTraceContext().setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
+        parent.setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(headerMap::get, key -> Collections.singletonList(headerMap.get(key))).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
     }
@@ -283,7 +283,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
         Map<String, String> headerMap = new HashMap<>();
-        parent.getTraceContext().setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
+        parent.setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(headerMap.get(key))).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
     }

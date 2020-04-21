@@ -28,7 +28,9 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.BinaryHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -160,6 +162,17 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
     @Override
     public boolean isChildOf(TraceContextHolder other) {
         return getTraceContext().isChildOf(other);
+    }
+
+    @Override
+    public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
+        throw new UnsupportedOperationException("Injecting context of an error is not possible");
+
+    }
+
+    @Override
+    public <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
+        throw new UnsupportedOperationException("Injecting context of an error is not possible");
     }
 
     @Override

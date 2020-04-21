@@ -321,10 +321,6 @@ public class ElasticApmTracer {
         return allowWrappingOnThread.get() == Boolean.TRUE;
     }
 
-    public Transaction noopTransaction() {
-        return createTransaction().startNoop();
-    }
-
     private Transaction createTransaction() {
         Transaction transaction = transactionPool.createInstance();
         while (transaction.getReferenceCount() != 0) {
@@ -458,6 +454,8 @@ public class ElasticApmTracer {
             }
             if (parent != null) {
                 error.asChildOf(parent);
+                // don't discard spans leading up to an error, otherwise they'd point to an invalid parent
+                parent.setNonDiscardable();
             } else {
                 error.getTraceContext().getId().setToRandomValue();
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
@@ -483,7 +481,7 @@ public class ElasticApmTracer {
                     new RuntimeException("this exception is just used to record where the transaction has been ended from"));
             }
         }
-        if (!transaction.isNoop()) {
+        if (!transaction.isDiscard()) {
             // we do report non-sampled transactions (without the context)
             reporter.report(transaction);
         } else {
@@ -492,7 +490,12 @@ public class ElasticApmTracer {
     }
 
     public void endSpan(Span span) {
+        if (span.isSampled() && span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis() * 1000) {
+            span.requestDiscarding();
+        }
         if (span.isSampled() && !span.isDiscard()) {
+            // makes sure that parents are also non-discardable
+            span.setNonDiscardable();
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
             if (spanFramesMinDurationMs != 0 && span.isSampled() && span.getStackFrames() == null) {
                 if (span.getDurationMs() >= spanFramesMinDurationMs) {
@@ -726,10 +729,6 @@ public class ElasticApmTracer {
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
-        if (!stack.isEmpty() && !holder.isDiscard()) {
-            //noinspection ConstantConditions
-            stack.peek().setDiscard(false);
-        }
     }
 
     private void assertIsActive(TraceContextHolder<?> span, @Nullable TraceContextHolder<?> currentlyActive) {

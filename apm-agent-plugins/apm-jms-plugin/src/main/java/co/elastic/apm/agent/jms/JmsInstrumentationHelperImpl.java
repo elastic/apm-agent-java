@@ -99,7 +99,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
-            span.getTraceContext().setOutgoingTraceContextHeaders(message, JmsMessagePropertyAccessor.instance());
+            span.setOutgoingTraceContextHeaders(message, JmsMessagePropertyAccessor.instance());
             if (span.isSampled()) {
                 span.getContext().getDestination().getService()
                     .withName("jms")

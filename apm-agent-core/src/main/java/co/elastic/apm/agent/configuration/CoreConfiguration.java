@@ -432,7 +432,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
         .key("trace_methods_duration_threshold")
-        .tags("added[1.7.0]")
+        .tags("added[1.7.0]", "deprecated")
         .configurationCategory(CORE_CATEGORY)
         .description("If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on \n" +
             "duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded " +
@@ -448,7 +448,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "This configuration affects only spans.\n" +
             "In order not to break span references,\n" +
             "all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,\n" +
-            "regardless of their duration.\n")
+            "regardless of their duration.\n" +
+            "\n" +
+            "NOTE: This option is deprecated in favor of <<config-span-min-duration,`span_min_duration`>>.")
         .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
@@ -524,6 +526,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .tags("internal")
         .buildWithDefault(4096);
+
+    private final ConfigurationOption<TimeDuration> spanMinDuration = TimeDurationValueConverter.durationOption("ms")
+        .key("span_min_duration")
+        .tags("added[1.16.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Sets the minimum duration of spans.\n" +
+            "Spans that execute faster than this threshold are attempted to be discarded.\n" +
+            "\n" +
+            "The attempt fails if they lead up to a span that can't be discarded.\n" +
+            "Spans that propagate the trace context to downstream services,\n" +
+            "such as outgoing HTTP requests,\n" +
+            "can't be discarded.\n" +
+            "Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.\n" +
+            "\n" +
+            "However, external calls that don't propagate context,\n" +
+            "such as calls to a database, can be discarded using this threshold.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.of("0ms"));
 
     public boolean isInstrument() {
         return instrument.get();
@@ -651,6 +671,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public int getTracestateSizeLimit() {
         return tracestateHeaderSizeLimit.get();
+    }
+
+    public TimeDuration getSpanMinDuration() {
+        return spanMinDuration.get();
     }
 
     /*

@@ -113,7 +113,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
                 if (headerSetterHelperManager != null) {
                     TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(HttpRequest.class);
                     if (headerSetter != null) {
-                        span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                        span.setOutgoingTraceContextHeaders(request, headerSetter);
                     }
                 }
             }

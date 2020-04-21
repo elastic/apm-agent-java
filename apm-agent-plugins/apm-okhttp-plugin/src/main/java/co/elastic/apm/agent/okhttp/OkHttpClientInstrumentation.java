@@ -24,13 +24,11 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
@@ -41,8 +39,6 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
@@ -85,7 +81,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
                         TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
                         if (headerSetter != null) {
                             Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
-                            span.getTraceContext().setOutgoingTraceContextHeaders(builder, headerSetter);
+                            span.setOutgoingTraceContextHeaders(builder, headerSetter);
                             originalRequest = builder.build();
                         }
                     }

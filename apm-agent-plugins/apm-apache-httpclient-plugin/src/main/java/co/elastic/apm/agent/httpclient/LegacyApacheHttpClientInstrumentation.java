@@ -75,12 +75,12 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 if (span != null) {
                     span.activate();
                     if (headerSetter != null) {
-                        span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                        span.setOutgoingTraceContextHeaders(request, headerSetter);
                     }
                 } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter)
                     && headerSetter != null && parent != null) {
                     // re-adds the header on redirects
-                    parent.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                    parent.setOutgoingTraceContextHeaders(request, headerSetter);
                 }
 
             }

@@ -24,6 +24,7 @@ endif::[]
 
 [float]
 ===== Breaking changes
+* Removes the experimental `profiling_inferred_spans_min_duration` flag in favor of <<config-span-min-duration,`span_min_duration`>>.
 
 [float]
 ===== Features
@@ -33,6 +34,8 @@ endif::[]
 This is not a breaking change, so former
 <<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
 * Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
+* Adds <<config-span-min-duration,`span_min_duration`>> option to exclude fast executing spans.
+  This deprecates `trace_methods_duration_threshold` and removes `profiling_inferred_spans_min_duration`.
 
 [float]
 ===== Bug fixes

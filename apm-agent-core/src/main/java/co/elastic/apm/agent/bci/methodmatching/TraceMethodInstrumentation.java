@@ -82,9 +82,6 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
                 span = parent.createSpan()
                     .withName(signature)
                     .activate();
-
-                // by default discard such spans
-                span.setDiscard(true);
             }
         }
     }
@@ -97,8 +94,8 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
             final long endTime = span.getTraceContext().getClock().getEpochMicros();
             if (span instanceof Span) {
                 long durationMicros = endTime - span.getTimestamp();
-                if (traceMethodThresholdMicros <= 0 || durationMicros >= traceMethodThresholdMicros || t != null) {
-                    span.setDiscard(false);
+                if (traceMethodThresholdMicros > 0 && durationMicros < traceMethodThresholdMicros && t == null) {
+                    span.requestDiscarding();
                 }
             }
             span.deactivate().end(endTime);

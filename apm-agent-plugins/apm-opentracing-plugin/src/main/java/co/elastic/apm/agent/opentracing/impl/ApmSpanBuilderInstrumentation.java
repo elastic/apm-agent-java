@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -106,7 +107,11 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
             if ("client".equals(tags.get("span.kind"))) {
                 logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
                     "Consider creating a span for the whole request.", operationName);
-                return tracer.noopTransaction();
+                Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(false), -1, classLoader);
+                if (transaction != null) {
+                    transaction.requestDiscarding();
+                }
+                return transaction;
             } else {
                 final Sampler sampler;
                 final Object samplingPriority = tags.get("sampling.priority");

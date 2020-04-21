@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -117,7 +117,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                 //noinspection UnusedAssignment
                 original = runnable;
                 // Do no discard branches leading to async operations so not to break span references
-                active.setDiscard(false);
+                active.setNonDiscardable();
                 runnable = active.withActive(runnable);
                 tracer.avoidWrappingOnThread();
             }
@@ -169,7 +169,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             if (active != null && callable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
                 original = callable;
                 // Do no discard branches leading to async operations so not to break span references
-                active.setDiscard(false);
+                active.setNonDiscardable();
                 callable = active.withActive(callable);
                 tracer.avoidWrappingOnThread();
             }

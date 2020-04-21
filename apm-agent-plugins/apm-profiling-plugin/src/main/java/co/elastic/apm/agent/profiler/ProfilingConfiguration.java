@@ -72,17 +72,6 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.15.0]")
         .buildWithDefault(TimeDuration.of("50ms"));
 
-    private final ConfigurationOption<TimeDuration> inferredSpansMinDuration = TimeDurationValueConverter.durationOption("ms")
-        .key("profiling_inferred_spans_min_duration")
-        .configurationCategory(PROFILING_CATEGORY)
-        .dynamic(true)
-        .description("The minimum duration of an inferred span.\n" +
-            "Note that the min duration is also implicitly set by the sampling interval.\n" +
-            "However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.")
-        .tags("added[1.15.0]")
-        .addValidator(min(TimeDuration.of("0ms")))
-        .buildWithDefault(TimeDuration.of("0ms"));
-
     private final ConfigurationOption<List<WildcardMatcher>> includedClasses = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("profiling_inferred_spans_included_classes")
@@ -156,10 +145,6 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getSamplingInterval() {
         return samplingInterval.get();
-    }
-
-    public TimeDuration getInferredSpansMinDuration() {
-        return inferredSpansMinDuration.get();
     }
 
     public List<WildcardMatcher> getIncludedClasses() {

@@ -234,7 +234,7 @@ public class GrpcHelperImpl implements GrpcHelper {
         }
 
         inFlightClientListeners.put(responseListener, clientCall);
-        span.getTraceContext().setOutgoingTraceContextHeaders(headers, headerSetter);
+        span.setOutgoingTraceContextHeaders(headers, headerSetter);
     }
 
     @Override

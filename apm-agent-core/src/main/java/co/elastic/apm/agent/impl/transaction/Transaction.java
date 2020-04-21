@@ -80,11 +80,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     private String result;
 
     /**
-     * Noop transactions won't be reported at all, in contrast to non-sampled transactions.
-     */
-    private boolean noop;
-
-    /**
      * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
      * (Required)
      */
@@ -121,13 +116,6 @@ public class Transaction extends AbstractSpan<Transaction> {
             setStartTimestampNow();
         }
         onAfterStart();
-    }
-
-    public Transaction startNoop() {
-        this.name.append("noop");
-        this.noop = true;
-        onAfterStart();
-        return this;
     }
 
     /**
@@ -229,20 +217,8 @@ public class Transaction extends AbstractSpan<Transaction> {
         context.resetState();
         result = null;
         spanCount.resetState();
-        noop = false;
         type = null;
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
-    }
-
-    public boolean isNoop() {
-        return noop;
-    }
-
-    /**
-     * Ignores this transaction, which makes it a noop so that it will not be reported to the APM Server.
-     */
-    public void ignoreTransaction() {
-        noop = true;
     }
 
     @Nullable

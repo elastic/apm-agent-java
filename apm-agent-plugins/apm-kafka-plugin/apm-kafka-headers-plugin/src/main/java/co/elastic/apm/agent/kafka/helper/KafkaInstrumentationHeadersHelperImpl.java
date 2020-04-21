@@ -78,7 +78,7 @@ public class KafkaInstrumentationHeadersHelperImpl implements KafkaInstrumentati
 
     @Override
     public void setOutgoingTraceContextHeaders(Span span, ProducerRecord producerRecord) {
-        span.getTraceContext().setOutgoingTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
+        span.setOutgoingTraceContextHeaders(producerRecord, KafkaRecordHeaderAccessor.instance());
     }
 
     @Override

@@ -71,6 +71,19 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     private List<StackFrame> stackFrames;
 
+    /**
+     * If a span is non-discardable, all the spans leading up to it are non-discardable as well
+     */
+    @Override
+    public void setNonDiscardable() {
+        if (isDiscardable()) {
+            getTraceContext().setNonDiscardable();
+            if (parent != null) {
+                parent.setNonDiscardable();
+            }
+        }
+    }
+
     public Span(ElasticApmTracer tracer) {
         super(tracer);
     }

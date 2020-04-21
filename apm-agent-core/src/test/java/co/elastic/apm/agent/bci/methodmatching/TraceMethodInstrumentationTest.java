@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -47,6 +48,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.lang.annotation.Retention;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -82,7 +84,7 @@ class TraceMethodInstrumentationTest {
 
         Set<String> tags = testInfo.getTags();
         if (!tags.isEmpty()) {
-            when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
+            when(coreConfiguration.getSpanMinDuration()).thenReturn(TimeDuration.of(tags.iterator().next()));
         }
 
         tracer = mockInstrumentationSetup.getTracer();
@@ -218,7 +220,7 @@ class TraceMethodInstrumentationTest {
     void testErrorCapture_TraceErrorBranch() {
         new TestErrorCapture().root();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(2);
+        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("TestErrorCapture#throwException", "TestErrorCapture#catchException");
         assertThat(reporter.getErrors()).hasSize(1);
     }
 
@@ -340,10 +342,9 @@ class TraceMethodInstrumentationTest {
         private void manuallyTraced() {
             TraceContextHolder<?> active = tracer.getActive();
             if (active != null) {
-                active.createSpan()
-                    .activate()
-                    .deactivate()
-                    .end();
+                Span span = active.createSpan();
+                span.setOutgoingTraceContextHeaders(new HashMap<>(), (k, v, m) -> m.put(k, v));
+                span.end();
             }
         }
 

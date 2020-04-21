@@ -62,9 +62,33 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
     private int namePriority = PRIO_DEFAULT;
+    private boolean discardRequested = false;
 
     public int getReferenceCount() {
         return references.get();
+    }
+
+    /**
+     * Requests this span to be discarded, even if it's sampled.
+     * <p>
+     * Whether the span can actually be discarded is determined by {@link #isDiscard()}
+     * </p>
+     */
+    public void requestDiscarding() {
+        this.discardRequested = true;
+    }
+
+    /**
+     * Determines whether to discard the span.
+     * Only spans that return {@code false} are reported.
+     * <p>
+     * A span is discarded if it {@linkplain #isDiscardable() is discardable} and {@linkplain #requestDiscarding() requested to be discarded}.
+     * </p>
+     *
+     * @return {@code true}, if the span should be discarded, {@code false} otherwise.
+     */
+    public boolean isDiscard() {
+        return discardRequested && isDiscardable();
     }
 
     private static class ChildDurationTimer implements Recyclable {
@@ -264,6 +288,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         childDurations.resetState();
         references.set(0);
         namePriority = PRIO_DEFAULT;
+        discardRequested = false;
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {
@@ -434,5 +459,32 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     }
 
     protected abstract void recycle();
+
+    /**
+     * Sets Trace context text headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the text headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - an HTTP request
+     */
+    public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
+        // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
+        setNonDiscardable();
+        getTraceContext().setOutgoingTraceContextHeaders(carrier, headerSetter);
+    }
+
+    /**
+     * Sets Trace context binary headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the binary headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - a Kafka record
+     * @return true if Trace Context headers were set; false otherwise
+     */
+    public <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
+        // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
+        setNonDiscardable();
+        return getTraceContext().setOutgoingTraceContextHeaders(carrier, headerSetter);
+    }
 
 }

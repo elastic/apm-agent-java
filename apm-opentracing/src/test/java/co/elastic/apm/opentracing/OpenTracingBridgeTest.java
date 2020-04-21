@@ -340,10 +340,16 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
                 Span nestedSpan = apmTracer.buildSpan("nestedSpan").start();
                 try (ApmScope nestedSpanScope = (ApmScope) apmTracer.activateSpan(nestedSpan)) {
                     assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(nestedSpan);
+                } finally {
+                    nestedSpan.finish();
                 }
                 assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(span);
+            } finally {
+                span.finish();
             }
             assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(transaction);
+        } finally {
+            transaction.finish();
         }
         assertThat(apmTracer.scopeManager().activeSpan()).isNull();
         assertThat(reporter.getSpans()).isEmpty();

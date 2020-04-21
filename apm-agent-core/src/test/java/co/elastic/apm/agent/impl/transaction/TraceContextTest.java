@@ -168,7 +168,7 @@ class TraceContextTest {
         assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, textHeaderMap, TextHeaderMapAccessor.INSTANCE)).isTrue();
         Map<String, String> outgoingHeaders = new HashMap<>();
         when(config.getConfig(CoreConfiguration.class).isElasticTraceparentHeaderEnabled()).thenReturn(false);
-        child.getTraceContext().setOutgoingTraceContextHeaders(outgoingHeaders, TextHeaderMapAccessor.INSTANCE);
+        child.setOutgoingTraceContextHeaders(outgoingHeaders, TextHeaderMapAccessor.INSTANCE);
         assertThat(outgoingHeaders.get(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNotNull();
         assertThat(outgoingHeaders.get(TraceContext.ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNull();
     }
@@ -219,7 +219,7 @@ class TraceContextTest {
         assertThat(child.getTraceContext().getId()).isNotEqualTo(child.getTraceContext().getParentId());
         assertThat(child.isSampled()).isTrue();
         PotentiallyMultiValuedMap outgoingHeaders = new PotentiallyMultiValuedMap();
-        child.getTraceContext().setOutgoingTraceContextHeaders(outgoingHeaders, MultiValueMapAccessor.INSTANCE);
+        child.setOutgoingTraceContextHeaders(outgoingHeaders, MultiValueMapAccessor.INSTANCE);
         assertThat(outgoingHeaders.size()).isEqualTo(3);
         assertThat(outgoingHeaders.getFirst(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNotNull();
         assertThat(outgoingHeaders.getAll(TraceContext.TRACESTATE_HEADER_NAME)).hasSize(1);
@@ -236,7 +236,7 @@ class TraceContextTest {
         final TraceContext child = TraceContext.with64BitId(tracer);
         assertThat(TraceContext.<PotentiallyMultiValuedMap>getFromTraceContextTextHeaders().asChildOf(child, incomingHeaders, MultiValueMapAccessor.INSTANCE)).isTrue();
         PotentiallyMultiValuedMap outgoingHeaders = new PotentiallyMultiValuedMap();
-        child.getTraceContext().setOutgoingTraceContextHeaders(outgoingHeaders, MultiValueMapAccessor.INSTANCE);
+        child.setOutgoingTraceContextHeaders(outgoingHeaders, MultiValueMapAccessor.INSTANCE);
         assertThat(outgoingHeaders.size()).isEqualTo(3);
         assertThat(outgoingHeaders.getFirst(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME)).isNotNull();
         assertThat(outgoingHeaders.getAll(TraceContext.TRACESTATE_HEADER_NAME)).hasSize(1);
@@ -253,7 +253,7 @@ class TraceContextTest {
         final TraceContext child = TraceContext.with64BitId(tracer);
         assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, textHeaderMap, TextHeaderMapAccessor.INSTANCE)).isFalse();
         Map<String, String> outgoingHeaders = new HashMap<>();
-        child.getTraceContext().setOutgoingTraceContextHeaders(outgoingHeaders, TextHeaderMapAccessor.INSTANCE);
+        child.setOutgoingTraceContextHeaders(outgoingHeaders, TextHeaderMapAccessor.INSTANCE);
         assertThat(outgoingHeaders.get(TraceContext.TRACESTATE_HEADER_NAME)).isNull();
     }
 
@@ -623,7 +623,7 @@ class TraceContextTest {
         assertThat(deserialized.getTransactionId()).isEqualTo(traceContext.getTransactionId());
         assertThat(deserialized.getId()).isEqualTo(traceContext.getId());
         assertThat(deserialized.isSampled()).isEqualTo(traceContext.isSampled());
-        assertThat(deserialized.isDiscard()).isEqualTo(traceContext.isDiscard());
+        assertThat(deserialized.isDiscardable()).isEqualTo(traceContext.isDiscardable());
         assertThat(deserialized.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
     }
 

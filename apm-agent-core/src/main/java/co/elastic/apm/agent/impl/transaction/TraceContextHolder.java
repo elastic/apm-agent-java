@@ -27,7 +27,6 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,13 +146,42 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         return isExit;
     }
 
-    public void setDiscard(boolean discard) {
-        getTraceContext().setDiscard(discard);
+    /**
+     * Sets this context as non-discardable,
+     * meaning that {@link AbstractSpan#isDiscard()} will return {@code false},
+     * even if {@link AbstractSpan#requestDiscarding()} has been called.
+     */
+    public void setNonDiscardable() {
+        getTraceContext().setNonDiscardable();
     }
 
-    public boolean isDiscard() {
-        return getTraceContext().isDiscard();
+    /**
+     * Returns whether it's possible to discard this span.
+     *
+     * @return {@code true}, if it's safe to discard the span, {@code false} otherwise.
+     */
+    public boolean isDiscardable() {
+        return getTraceContext().isDiscardable();
     }
+
+    /**
+     * Sets Trace context text headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the text headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - an HTTP request
+     */
+    public abstract <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter);
+
+    /**
+     * Sets Trace context binary headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the binary headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - a Kafka record
+     * @return true if Trace Context headers were set; false otherwise
+     */
+    public abstract <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter);
 
     public void captureException(long epochMicros, Throwable t) {
         tracer.captureAndReportException(epochMicros, t, this);

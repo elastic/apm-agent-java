@@ -76,7 +76,7 @@ import java.util.concurrent.Callable;
  * </pre>
  */
 @SuppressWarnings({"rawtypes"})
-public class TraceContext extends TraceContextHolder {
+public class TraceContext extends TraceContextHolder<TraceContext> {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
     public static final String W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME = "traceparent";
@@ -217,7 +217,7 @@ public class TraceContext extends TraceContextHolder {
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingTextHeader = new StringBuilder(TEXT_HEADER_EXPECTED_LENGTH);
     private byte flags;
-    private boolean discard;
+    private boolean discardable = true;
     // weakly referencing to avoid CL leaks in case of leaked spans
     @Nullable
     private WeakReference<ClassLoader> applicationClassLoader;
@@ -428,7 +428,7 @@ public class TraceContext extends TraceContextHolder {
         transactionId.resetState();
         outgoingTextHeader.setLength(0);
         flags = 0;
-        discard = false;
+        discardable = true;
         clock.resetState();
         serviceName = null;
         applicationClassLoader = null;
@@ -491,12 +491,12 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
-    public void setDiscard(boolean discard) {
-        this.discard = discard;
+    public void setNonDiscardable() {
+        this.discardable = false;
     }
 
-    public boolean isDiscard() {
-        return discard;
+    public boolean isDiscardable() {
+        return discardable;
     }
 
     /**
@@ -516,6 +516,7 @@ public class TraceContext extends TraceContextHolder {
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
      * @param <C>          the header carrier type, for example - an HTTP request
      */
+    @Override
     public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
         headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
         if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
@@ -613,7 +614,7 @@ public class TraceContext extends TraceContextHolder {
         parentId.copyFrom(other.parentId);
         transactionId.copyFrom(other.transactionId);
         flags = other.flags;
-        discard = other.discard;
+        discardable = other.discardable;
         clock.init(other.clock);
         serviceName = other.serviceName;
         applicationClassLoader = other.applicationClassLoader;
@@ -713,7 +714,7 @@ public class TraceContext extends TraceContextHolder {
         offset = id.toBytes(buffer, offset);
         offset = transactionId.toBytes(buffer, offset);
         buffer[offset++] = flags;
-        buffer[offset++] = (byte) (discard ? 1 : 0);
+        buffer[offset++] = (byte) (discardable ? 1 : 0);
         ByteUtils.putLong(buffer, offset, clock.getOffset());
     }
 
@@ -724,7 +725,7 @@ public class TraceContext extends TraceContextHolder {
         offset += transactionId.fromBytes(buffer, offset);
         id.setToRandomValue();
         flags = buffer[offset++];
-        discard = buffer[offset++] == (byte) 1;
+        discardable = buffer[offset++] == (byte) 1;
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
         onMutation();
@@ -736,7 +737,7 @@ public class TraceContext extends TraceContextHolder {
         offset += id.fromBytes(buffer, offset);
         offset += transactionId.fromBytes(buffer, offset);
         flags = buffer[offset++];
-        discard = buffer[offset++] == (byte) 1;
+        discardable = buffer[offset++] == (byte) 1;
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
         onMutation();

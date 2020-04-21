@@ -106,7 +106,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                     TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
                     if (headerSetter != null) {
                         Request.Builder builder = originalRequest.newBuilder();
-                        span.getTraceContext().setOutgoingTraceContextHeaders(builder, headerSetter);
+                        span.setOutgoingTraceContextHeaders(builder, headerSetter);
                         originalRequest = builder.build();
                     }
                 }
