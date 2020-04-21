@@ -56,11 +56,6 @@ class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(Socket s, InputStream consumed, boolean autoClose) throws IOException {
-        return checkAndModifySocket(factory.createSocket(s, consumed, autoClose));
-    }
-
-    @Override
     public Socket createSocket() throws IOException {
         return checkAndModifySocket(factory.createSocket());
     }
