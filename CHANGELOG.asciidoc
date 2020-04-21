@@ -33,6 +33,7 @@ endif::[]
 This is not a breaking change, so former
 <<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
 * Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
+* Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
 
 [float]
 ===== Bug fixes
