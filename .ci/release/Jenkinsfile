@@ -53,7 +53,7 @@ pipeline {
             // If this fails, an exception should be thrown and execution will halt
             dir("${BASE_DIR}") {
               script {
-                def r = sh(name: "Check Maven status", script: "scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
+                def r = sh(label: "Check Maven status", script: "scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
                 if (r == 1):
                   error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
               }
