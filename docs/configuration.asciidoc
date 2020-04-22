@@ -1549,6 +1549,8 @@ the agent always keeps one history file so that the max total log file size is t
 
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1588,6 +1590,8 @@ This log's size is determined by <<config-log-file-max-size,`log_file_max_size`>
 This means that logs that could not be sent before the application terminates are lost.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1610,6 +1614,8 @@ Defines the log format when logging to `System.out`.
 
 When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 where each log event is serialized as a single line.
+
+
 
 Valid options: `PLAIN_TEXT`, `JSON`
 
@@ -1638,6 +1644,8 @@ where each log event is serialized as a single line.
 
 If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,
 the value has to be `JSON`.
+
+
 
 Valid options: `PLAIN_TEXT`, `JSON`
 
