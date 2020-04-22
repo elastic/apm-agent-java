@@ -27,10 +27,12 @@ package co.elastic.apm.agent.scala.concurrent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import scala.concurrent.Promise;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;
@@ -38,23 +40,12 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public class FutureInstrumentation extends ElasticApmInstrumentation {
+public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("scala.concurrent.Future"))
-            .or(hasSuperType(named("scala.concurrent.impl.Promise")))
-            .or(hasSuperType(named("scala.concurrent.impl.Promise$Transformation")))
-            .or(hasSuperType(named("scala.concurrent.Future$")));
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("onComplete").and(returns(void.class))
-            .or(named("transform").and(returns(named("scala.concurrent.Future"))))
-            .or(named("transformWith").and(returns(named("scala.concurrent.Future"))))
-            .or(named("result"));
-    }
+    @VisibleForAdvice
+    @SuppressWarnings("WeakerAccess")
+    public static final WeakConcurrentMap<Promise<?>, TraceContextHolder<?>> promisesToContext =
+        new WeakConcurrentMap.WithInlinedExpunction<>();
 
     @Nonnull
     @Override
@@ -62,17 +53,49 @@ public class FutureInstrumentation extends ElasticApmInstrumentation {
         return Arrays.asList("concurrent", "future");
     }
 
-    @VisibleForAdvice
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onEnter() {
-        System.out.println("DEBUG2");
-        final TraceContextHolder<?> active = getActive();
-        System.out.println(tracer.isWrappingAllowedOnThread());
-        if (active != null && tracer != null && tracer.isWrappingAllowedOnThread()) {
-            // Do no discard branches leading to async operations so not to break span references
-            active.setDiscard(false);
-            tracer.avoidWrappingOnThread();
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return hasSuperType(named("scala.concurrent.impl.Promise$Transformation"));
+    }
+
+    public static class ConstructorInstrumentation extends FutureInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return isConstructor();
         }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void onExit(@Advice.This Promise<?> thiz) {
+            final TraceContextHolder<?> active = getActive();
+            if (active != null) {
+                promisesToContext.put(thiz, active);
+            }
+        }
+
+    }
+
+    public static class RunInstrumentation extends FutureInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("run").and(returns(void.class));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onEnter(@Advice.This Promise<?> thiz) {
+            final TraceContextHolder<?> context = promisesToContext.getIfPresent(thiz);
+            if (tracer != null && context != null) {
+                tracer.activate(context);
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void onExit(@Advice.This Promise<?> thiz) {
+            promisesToContext.remove(thiz);
+        }
+
     }
 
 }
