@@ -44,12 +44,13 @@ import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class TLSFallbackSSLSocket extends SSLSocket {
 
     private static final Logger logger = LoggerFactory.getLogger(TLSFallbackSSLSocket.class);
 
-    private static final String TLS_v_1_3 = "TLSv1.3";
+    static final String TLS_v_1_3 = "TLSv1.3";
 
     private final TLSFallbackSSLSocketFactory socketFactory;
 
@@ -65,14 +66,26 @@ class TLSFallbackSSLSocket extends SSLSocket {
 
         // known JDK bug: JDK-8236039
         // automatically fallback to another protocol when triggered
+
+        Set<String> enabledProtocols = new HashSet<>(Arrays.asList(socket.getEnabledProtocols()));
+        boolean hasTLS13 = enabledProtocols.contains(TLS_v_1_3);
+        AtomicBoolean skipTLS13 = socketFactory.skipTLS13();
+        if (hasTLS13 && skipTLS13.get()) {
+            enabledProtocols.remove(TLS_v_1_3);
+            socket.setEnabledProtocols(enabledProtocols.toArray(new String[0]));
+            hasTLS13 = false;
+        }
         try {
             socket.startHandshake();
         } catch (SSLHandshakeException e) {
 
-            Set<String> enabledProtocols = new HashSet<>(Arrays.asList(socket.getEnabledProtocols()));
-            if (enabledProtocols.contains(TLS_v_1_3) && e.getMessage().contains("should not be presented in")) {
+            if (hasTLS13 && e.getMessage().contains("should not be presented in")) {
 
-                logger.warn("Workaround for JDK Bug JDK-8236039 applied, will connect without TLS v1.3");
+                boolean hasBeenWarned = skipTLS13.getAndSet(true);
+                if (!hasBeenWarned) {
+                    logger.warn("Workaround for JDK Bug JDK-8236039 applied, will connect without TLS v1.3. Update JRE/JDK to fix this, or disable TLS v1.3 on apm-server as a workaround");
+                }
+
                 InetAddress socketAddress = socket.getInetAddress();
                 int socketPort = socket.getPort();
 
@@ -80,7 +93,7 @@ class TLSFallbackSSLSocket extends SSLSocket {
                     socket.close();
                 }
 
-                socket = (SSLSocket) socketFactory.createSocket(socketAddress, socketPort);
+                socket = (SSLSocket) socketFactory.getOriginalFactory().createSocket(socketAddress, socketPort);
 
                 enabledProtocols.remove(TLS_v_1_3);
                 socket.setEnabledProtocols(enabledProtocols.toArray(new String[0]));
@@ -394,10 +407,6 @@ class TLSFallbackSSLSocket extends SSLSocket {
     @Override
     public boolean isOutputShutdown() {
         return socket.isOutputShutdown();
-    }
-
-    public static void setSocketImplFactory(SocketImplFactory fac) throws IOException {
-        Socket.setSocketImplFactory(fac);
     }
 
     @Override

@@ -27,17 +27,28 @@ package co.elastic.apm.agent.report.ssl;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
 
     private final SSLSocketFactory factory;
 
+    private final AtomicBoolean skipTLS13;
+
     TLSFallbackSSLSocketFactory(SSLSocketFactory factory) {
         this.factory = factory;
+        this.skipTLS13 = new AtomicBoolean(false);
+    }
+
+    AtomicBoolean skipTLS13() {
+        return skipTLS13;
+    }
+
+    SSLSocketFactory getOriginalFactory(){
+        return factory;
     }
 
     @Override
@@ -52,35 +63,35 @@ class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
 
     @Override
     public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-        return checkAndModifySocket(factory.createSocket(s, host, port, autoClose));
+        return wrapSocket(factory.createSocket(s, host, port, autoClose));
     }
 
     @Override
     public Socket createSocket() throws IOException {
-        return checkAndModifySocket(factory.createSocket());
+        return wrapSocket(factory.createSocket());
     }
 
     @Override
     public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-        return checkAndModifySocket(factory.createSocket(host, port));
+        return wrapSocket(factory.createSocket(host, port));
     }
 
     @Override
     public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
-        return checkAndModifySocket(factory.createSocket(host, port, localHost, localPort));
+        return wrapSocket(factory.createSocket(host, port, localHost, localPort));
     }
 
     @Override
     public Socket createSocket(InetAddress host, int port) throws IOException {
-        return checkAndModifySocket(factory.createSocket(host, port));
+        return wrapSocket(factory.createSocket(host, port));
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-        return checkAndModifySocket(factory.createSocket(address, port, localAddress, localPort));
+        return wrapSocket(factory.createSocket(address, port, localAddress, localPort));
     }
 
-    private Socket checkAndModifySocket(Socket socket) {
+    private Socket wrapSocket(Socket socket) {
         return new TLSFallbackSSLSocket((SSLSocket) socket, this);
     }
 
