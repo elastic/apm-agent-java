@@ -16,9 +16,6 @@ import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Futu
 
 class FutureInstrumentationSpec extends FunSuite {
 
-  implicit def executionContext: ExecutionContextExecutor =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
-
   private var reporter: MockReporter = _
   private var tracer: ElasticApmTracer = _
   private var coreConfiguration: CoreConfiguration = _
@@ -36,44 +33,79 @@ class FutureInstrumentationSpec extends FunSuite {
   override def afterEach(context: AfterEach): Unit = ElasticApmAgent.reset()
 
   test("Scala Future should propagate the tracing-context correctly across different threads") {
-    println(tracer.currentTransaction())
+    implicit val executionContext: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
 
     Future("Test")
-      .map { x =>
-        println("DEBUG1")
-        println(tracer.currentTransaction())
-        x
-      }
       .map(_.length)
-      .map { x =>
-        println("DEBUG1")
-        println(tracer.currentTransaction())
-        x
-      }
       .flatMap(l => Future(l * 2))
-      .map { x =>
-        println("DEBUG1")
-        println(tracer.currentTransaction())
-        x
-      }
       .map(_.toString)
-      .map { x =>
-        println("DEBUG1")
-        println(tracer.currentTransaction())
-        x
-      }
       .flatMap(s => Future(s"$s-$s"))
-      //        .map(_ => tracer.currentTransaction().addCustomContext("future", true))
-        .map { _ =>
-//          transaction.deactivate().end()
-
-          assert(true)
-//          assertEquals(
-//            reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
-//            true
-//          )
-        }
+      .map(_ => tracer.currentTransaction().addCustomContext("future", true))
+      .map { _ =>
+        transaction.deactivate().end()
+        assertEquals(
+          reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
+          true
+        )
+      }
   }
+
+  test("Worker thread should correctly set context on the current transaction") {
+    implicit val executionContext: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
+
+    new TestFutureTraceMethods().invokeAsync(tracer)
+    transaction.deactivate().end()
+    assertEquals(reporter.getTransactions.size(), 1)
+    assertEquals(reporter.getSpans.size(), 0)
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
+      true
+    )
+  }
+
+  test("Multiple async operations should be able to set context on the current transaction") {
+
+    implicit val multiPoolEc: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
+
+    Future
+      .traverse(1 to 100) { _ =>
+        Future.sequence(List(
+          Future {
+            Thread.sleep(25)
+            tracer.currentTransaction().addCustomContext("future1", true)
+          },
+          Future {
+            Thread.sleep(50)
+            tracer.currentTransaction().addCustomContext("future2", true)
+          },
+          Future {
+            Thread.sleep(10)
+            tracer.currentTransaction().addCustomContext("future3", true)
+          }
+        ))
+      }
+      .map { _ =>
+        transaction.deactivate().end()
+        assertEquals(
+          reporter.getTransactions.get(0).getContext.getCustom("future1").asInstanceOf[Boolean],
+          true
+        )
+        assertEquals(
+          reporter.getTransactions.get(0).getContext.getCustom("future2").asInstanceOf[Boolean],
+          true
+        )
+        assertEquals(
+          reporter.getTransactions.get(0).getContext.getCustom("future3").asInstanceOf[Boolean],
+          true
+        )
+      }
+
+  }
+
+}
 
   private class TestFutureTraceMethods {
 
@@ -93,29 +125,28 @@ class FutureInstrumentationSpec extends FunSuite {
      *                                                          |                --- longMethod
      *                                                          |
      */
-    def invokeAsync(): Unit = blockingMethodOnMainThread()
+    def invokeAsync(tracer: ElasticApmTracer)(implicit ec: ExecutionContext): Unit = blockingMethodOnMainThread(tracer)
 
-    private def blockingMethodOnMainThread(): Unit = {
+    private def blockingMethodOnMainThread(tracer: ElasticApmTracer)(implicit ec: ExecutionContext): Unit = {
       try {
-        Await.result(nonBlockingMethodOnMainThread(), 10.seconds)
+        Await.result(nonBlockingMethodOnMainThread(tracer), 10.seconds)
       } catch {
         case e: Exception => e.printStackTrace()
       }
     }
 
-    private def nonBlockingMethodOnMainThread(): Future[Unit] =
-      Future(methodOnWorkerThread())
+    private def nonBlockingMethodOnMainThread(tracer: ElasticApmTracer)(implicit ec: ExecutionContext): Future[Unit] =
+      Future(methodOnWorkerThread(tracer))
 
-    private def methodOnWorkerThread(): Unit = longMethod()
+    private def methodOnWorkerThread(tracer: ElasticApmTracer): Unit = longMethod(tracer)
 
-    private def longMethod(): Unit = {
+    private def longMethod(tracer: ElasticApmTracer): Unit = {
       try {
         Thread.sleep(100)
+        tracer.currentTransaction().addCustomContext("future", true)
       } catch {
         case e: InterruptedException => e.printStackTrace()
       }
     }
-
-  }
 
 }
