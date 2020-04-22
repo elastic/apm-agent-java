@@ -51,7 +51,13 @@ pipeline {
         stage('Check oss.sonatype.org') {
           steps {
             // If this fails, an exception should be thrown and execution will halt
-            httpRequest(url: "https://oss.sonatype.org/#welcome")
+            dir("${BASE_DIR}") {
+              script {
+                def r = sh(name: "Check Maven status", script: "scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
+                if (r == 1):
+                  error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
+              }
+            }
           }
         }
         // 1.1 Check to ensure the build is green. Require confirmation if it is not.
