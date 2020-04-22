@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report.ssl;
 
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,8 @@ import java.security.cert.X509Certificate;
 
 // based on https://gist.github.com/mefarazath/c9b588044d6bffd26aac3c520660bf40
 public class SslUtils {
+
+    private static final WeakConcurrentMap<SSLSocketFactory, TLSFallbackSSLSocketFactory> sslFactories = new WeakConcurrentMap.WithInlinedExpunction<>();
 
     private static final Logger logger = LoggerFactory.getLogger(SslUtils.class);
 
@@ -103,6 +106,10 @@ public class SslUtils {
     }
 
     public static SSLSocketFactory getTLSFallbackSocketFactory(SSLSocketFactory factory) {
-        return new TLSFallbackSSLSocketFactory(factory);
+        // because we have some state in TLS fallback factory, we need to reuse the instance as much as long as the
+        // wrapped factory is the same
+        TLSFallbackSSLSocketFactory newFactory = new TLSFallbackSSLSocketFactory(factory);
+        TLSFallbackSSLSocketFactory previous = sslFactories.putIfAbsent(factory, newFactory);
+        return previous != null ? previous : newFactory;
     }
 }
