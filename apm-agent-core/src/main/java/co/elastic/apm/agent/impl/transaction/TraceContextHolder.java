@@ -148,7 +148,7 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
 
     /**
      * Sets this context as non-discardable,
-     * meaning that {@link AbstractSpan#isDiscard()} will return {@code false},
+     * meaning that {@link AbstractSpan#isDiscarded()} will return {@code false},
      * even if {@link AbstractSpan#requestDiscarding()} has been called.
      */
     public void setNonDiscardable() {

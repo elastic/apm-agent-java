@@ -71,11 +71,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     /**
      * Requests this span to be discarded, even if it's sampled.
      * <p>
-     * Whether the span can actually be discarded is determined by {@link #isDiscard()}
+     * Whether the span can actually be discarded is determined by {@link #isDiscarded()}
      * </p>
      */
-    public void requestDiscarding() {
+    public T requestDiscarding() {
         this.discardRequested = true;
+        return (T) this;
     }
 
     /**
@@ -87,7 +88,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      *
      * @return {@code true}, if the span should be discarded, {@code false} otherwise.
      */
-    public boolean isDiscard() {
+    public boolean isDiscarded() {
         return discardRequested && isDiscardable();
     }
 

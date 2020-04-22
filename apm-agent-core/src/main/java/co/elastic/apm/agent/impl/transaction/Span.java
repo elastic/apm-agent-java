@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -32,10 +33,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
+    public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
+    private static long lastSpanMaxWarningTimestamp;
 
     /**
      * General type describing this span (eg: 'db', 'ext', 'template', etc)
@@ -88,7 +92,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super(tracer);
     }
 
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
         childContextCreator.asChildOf(traceContext, parentContext);
         if (parentContext instanceof Transaction) {
             this.transaction = (Transaction) parentContext;
@@ -98,12 +102,17 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             this.parent = parentSpan;
             this.transaction = parentSpan.transaction;
         }
-        return start(epochMicros, dropped);
+        return start(epochMicros);
     }
 
-    private Span start(long epochMicros, boolean dropped) {
-        if (dropped) {
-            traceContext.setRecorded(false);
+    private Span start(long epochMicros) {
+        if (transaction != null) {
+            SpanCount spanCount = transaction.getSpanCount();
+            if (isDropped(epochMicros, transaction)) {
+                traceContext.setRecorded(false);
+                spanCount.getDropped().incrementAndGet();
+            }
+            spanCount.getStarted().incrementAndGet();
         }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
@@ -119,6 +128,19 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
         onAfterStart();
         return this;
+    }
+
+    private boolean isDropped(long epochMicros, Transaction transaction) {
+        if (transaction.isSpanLimitReached()) {
+            if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
+                lastSpanMaxWarningTimestamp = epochMicros;
+                logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.",
+                    tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans(), transaction);
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -289,5 +311,15 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     public List<StackFrame> getStackFrames() {
         return stackFrames;
+    }
+
+    @Nullable
+    public Transaction getTransaction() {
+        return transaction;
+    }
+
+    @Nullable
+    public AbstractSpan<?> getParent() {
+        return parent;
     }
 }

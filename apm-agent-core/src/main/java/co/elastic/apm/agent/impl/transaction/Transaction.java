@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -80,11 +81,19 @@ public class Transaction extends AbstractSpan<Transaction> {
     private String result;
 
     /**
+     * Noop transactions won't be reported at all, in contrast to non-sampled transactions.
+     */
+    private boolean noop;
+
+    /**
      * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
      * (Required)
      */
     @Nullable
     private volatile String type;
+
+
+    private int maxSpans;
 
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
@@ -93,6 +102,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
                                  Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
         traceContext.setApplicationClassLoader(initiatingClassLoader);
+        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
         boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
@@ -116,6 +126,13 @@ public class Transaction extends AbstractSpan<Transaction> {
             setStartTimestampNow();
         }
         onAfterStart();
+    }
+
+    public Transaction startNoop() {
+        this.name.append("noop");
+        this.noop = true;
+        onAfterStart();
+        return this;
     }
 
     /**
@@ -207,6 +224,11 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
+    boolean isSpanLimitReached() {
+        SpanCount spanCount = getSpanCount();
+        return maxSpans <= spanCount.getStarted().get() - spanCount.getDropped().get() - spanCount.getDroppedMinDuration().get();
+    }
+
     public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getTimerBySpanTypeAndSubtype() {
         return timerBySpanTypeAndSubtype;
     }
@@ -218,7 +240,13 @@ public class Transaction extends AbstractSpan<Transaction> {
         result = null;
         spanCount.resetState();
         type = null;
+        noop = false;
+        maxSpans = 0;
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
+    }
+
+    public boolean isNoop() {
+        return noop;
     }
 
     @Nullable

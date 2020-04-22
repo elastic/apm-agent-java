@@ -64,7 +64,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -84,8 +83,6 @@ public class ElasticApmTracer {
     private static final int MAX_POOLED_RUNNABLES = 256;
 
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
-
-    public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -121,7 +118,6 @@ public class ElasticApmTracer {
     private final MetricRegistry metricRegistry;
     private Sampler sampler;
     boolean assertionsEnabled = false;
-    private long lastSpanMaxWarningTimestamp;
 
     /**
      * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
@@ -321,6 +317,10 @@ public class ElasticApmTracer {
         return allowWrappingOnThread.get() == Boolean.TRUE;
     }
 
+    public Transaction noopTransaction() {
+        return createTransaction().startNoop();
+    }
+
     private Transaction createTransaction() {
         Transaction transaction = transactionPool.createInstance();
         while (transaction.getReferenceCount() != 0) {
@@ -371,31 +371,7 @@ public class ElasticApmTracer {
      * @see #startSpan(TraceContext.ChildContextCreator, Object)
      */
     public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        Span span = createSpan();
-        final boolean dropped = isDropped(epochMicros);
-        span.start(childContextCreator, parentContext, epochMicros, dropped);
-        return span;
-    }
-
-    private boolean isDropped(long epochMicros) {
-        final boolean dropped;
-        Transaction transaction = currentTransaction();
-        if (transaction != null) {
-            if (isTransactionSpanLimitReached(transaction)) {
-                if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
-                    lastSpanMaxWarningTimestamp = epochMicros;
-                    logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.", coreConfiguration.getTransactionMaxSpans(), transaction);
-                }
-                dropped = true;
-                transaction.getSpanCount().getDropped().incrementAndGet();
-            } else {
-                dropped = false;
-                transaction.getSpanCount().getStarted().incrementAndGet();
-            }
-        } else {
-            dropped = false;
-        }
-        return dropped;
+        return createSpan().start(childContextCreator, parentContext, epochMicros);
     }
 
     private Span createSpan() {
@@ -405,10 +381,6 @@ public class ElasticApmTracer {
             span = spanPool.createInstance();
         }
         return span;
-    }
-
-    private boolean isTransactionSpanLimitReached(Transaction transaction) {
-        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getStarted().get();
     }
 
     /**
@@ -481,7 +453,7 @@ public class ElasticApmTracer {
                     new RuntimeException("this exception is just used to record where the transaction has been ended from"));
             }
         }
-        if (!transaction.isDiscard()) {
+        if (!transaction.isNoop()) {
             // we do report non-sampled transactions (without the context)
             reporter.report(transaction);
         } else {
@@ -490,22 +462,38 @@ public class ElasticApmTracer {
     }
 
     public void endSpan(Span span) {
-        if (span.isSampled() && span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis() * 1000) {
+        if (!span.isSampled()) {
+            span.decrementReferences();
+            return;
+        }
+        Transaction transaction = span.getTransaction();
+        if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis() * 1000) {
             span.requestDiscarding();
         }
-        if (span.isSampled() && !span.isDiscard()) {
-            // makes sure that parents are also non-discardable
-            span.setNonDiscardable();
-            long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
-            if (spanFramesMinDurationMs != 0 && span.isSampled() && span.getStackFrames() == null) {
-                if (span.getDurationMs() >= spanFramesMinDurationMs) {
-                    span.withStacktrace(new Throwable());
-                }
+        if (span.isDiscarded()) {
+            if (transaction != null) {
+                transaction.getSpanCount().getDropped().incrementAndGet();
             }
-            reporter.report(span);
-        } else {
             span.decrementReferences();
+            return;
         }
+        reportSpan(span);
+    }
+
+    private void reportSpan(Span span) {
+        AbstractSpan<?> parent = span.getParent();
+        if (parent != null && parent.isDiscarded()) {
+            logger.warn("Reporting a child of an discarded span. The current span '{}' will not be shown in the UI. Consider deactivating span_min_duration.", span);
+        }
+        // makes sure that parents are also non-discardable
+        span.setNonDiscardable();
+        long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
+        if (spanFramesMinDurationMs != 0 && span.isSampled() && span.getStackFrames() == null) {
+            if (span.getDurationMs() >= spanFramesMinDurationMs) {
+                span.withStacktrace(new Throwable());
+            }
+        }
+        reporter.report(span);
     }
 
     public void endError(ErrorCapture error) {
