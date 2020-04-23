@@ -190,7 +190,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     if (abstractSpan instanceof Transaction) {
                         Transaction transaction = (Transaction) abstractSpan;
                         if (discard) {
-                            transaction.requestDiscarding();
+                            transaction.ignoreTransaction();
                         } else if (helper != null) {
                             helper.makeChildOf(transaction, message);
                             transaction.withType(MESSAGING_TYPE);
@@ -199,7 +199,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 } else if (abstractSpan instanceof Transaction) {
                     // Do not report polling transactions if not yielding messages
-                    abstractSpan.requestDiscarding();
+                    ((Transaction) abstractSpan).ignoreTransaction();
                     addDetails = false;
                 }
 
