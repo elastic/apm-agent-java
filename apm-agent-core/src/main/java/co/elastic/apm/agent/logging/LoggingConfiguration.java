@@ -212,4 +212,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public LogFormat getLogFormatFile() {
         return logFormatFile.get();
     }
+
+    public long getLogFileMaxSize() {
+        return logFileMaxSize.get().getBytes();
+    }
 }
