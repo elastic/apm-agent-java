@@ -46,13 +46,17 @@ public class SslUtils {
     private static final HostnameVerifier hostnameVerifier;
 
     @Nullable
-    private static final SSLSocketFactory socketFactory;
+    private static final SSLSocketFactory validateSocketFactory;
 
-    public static final TLSFallbackSSLSocketFactory FACTORY = TLSFallbackSSLSocketFactory.wrapDefaultSSLFactory();
+    @Nullable
+    private static final SSLSocketFactory trustAllSocketFactory;
 
     static {
         X509TrustManager trustAllTrustManager = createTrustAllTrustManager();
-        socketFactory = createTrustAllSocketFactory(trustAllTrustManager);
+        // default factory with certificate validation
+        validateSocketFactory = TLSFallbackSSLSocketFactory.wrapFactory(createSocketFactory(null));
+        // without certificate validation
+        trustAllSocketFactory = TLSFallbackSSLSocketFactory.wrapFactory(createSocketFactory(new TrustManager[]{trustAllTrustManager}));
         hostnameVerifier = new HostnameVerifier() {
             @Override
             public boolean verify(String hostname, SSLSession session) {
@@ -66,20 +70,22 @@ public class SslUtils {
     }
 
     @Nullable
-    public static SSLSocketFactory getTrustAllSocketFactory() {
-        return socketFactory;
+    public static SSLSocketFactory getSSLSocketFactory(boolean validateCertificates) {
+        return validateCertificates ? validateSocketFactory : trustAllSocketFactory;
     }
 
     @Nullable
     private static SSLSocketFactory createTrustAllSocketFactory(X509TrustManager trustAllTrustManager) {
         // Create a trust manager that does not validate certificate chains
-        final TrustManager[] trustAllCerts = new TrustManager[]{trustAllTrustManager};
 
+        return createSocketFactory(new TrustManager[]{trustAllTrustManager});
+    }
+
+    @Nullable
+    private static SSLSocketFactory createSocketFactory(TrustManager[] trustAllCerts) {
         try {
-            // Install the all-trusting trust manager
-            final SSLContext sslContext = SSLContext.getInstance("SSL");
+            SSLContext sslContext = SSLContext.getInstance("SSL");
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            // Create an ssl socket factory with our all-trusting manager
             return sslContext.getSocketFactory();
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
             logger.warn(e.getMessage(), e);
@@ -104,7 +110,4 @@ public class SslUtils {
         };
     }
 
-    public static SSLSocketFactory getTLSFallbackSocketFactory() {
-        return FACTORY;
-    }
 }

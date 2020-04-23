@@ -24,14 +24,13 @@
  */
 package co.elastic.apm.agent.report.ssl;
 
-import javax.net.ssl.SSLContext;
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.security.GeneralSecurityException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
@@ -46,31 +45,16 @@ class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
     }
 
     /**
-     * Returns a SSL factory that relies on provided SSL factory
-     * <br>
-     * Should only be used for testing
+     * Wraps an existing SSL socket factory to add TLS fallback
      *
      * @param factory SSL factory to wrap
      * @return SSL factory with TLS fallback
      */
-    static TLSFallbackSSLSocketFactory wrapFactory(SSLSocketFactory factory) {
-        return new TLSFallbackSSLSocketFactory(factory);
-    }
-
-    /**
-     * Returns SSL factory that wraps default SSL implementation
-     *
-     * @return SSL factory with TLS fallback
-     */
-    static TLSFallbackSSLSocketFactory wrapDefaultSSLFactory(){
-        SSLContext context;
-        try {
-            context = SSLContext.getInstance("TLS");
-            context.init(null, null, null);
-        } catch (GeneralSecurityException e) {
-            throw new IllegalStateException(e);
+    @Nullable
+    static TLSFallbackSSLSocketFactory wrapFactory(@Nullable SSLSocketFactory factory) {
+        if (factory == null) {
+            return null;
         }
-        SSLSocketFactory factory = context.getSocketFactory();
         return new TLSFallbackSSLSocketFactory(factory);
     }
 
