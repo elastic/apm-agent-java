@@ -52,7 +52,6 @@ public class JdbcHelperImpl extends JdbcHelper {
     // have the expected behavior, thus, any direct reference to `JdbcHelperImpl` should only be obtained from the
     // HelperClassManager<JdbcHelper> instance.
     private final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
-    private final WeakConcurrentMap<Class<?>, Boolean> updateCountSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
     private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
     private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
 
@@ -67,7 +66,6 @@ public class JdbcHelperImpl extends JdbcHelper {
     @Override
     public void clearInternalStorage() {
         metaDataMap.clear();
-        updateCountSupported.clear();
         metadataSupported.clear();
         connectionSupported.clear();
     }
@@ -75,14 +73,18 @@ public class JdbcHelperImpl extends JdbcHelper {
     @Override
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
-        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
+        if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null) {
             return null;
         }
 
         Span span = parent.createSpan().activate();
-        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
-        if (spanName != null) {
-            SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+        if (sql.isEmpty()) {
+            span.withName("empty query");
+        } else if (span.isSampled()) {
+            StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+            if (spanName != null) {
+                SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+            }
         }
         // setting the type here is important
         // getting the meta data can result in another jdbc call
@@ -92,7 +94,7 @@ public class JdbcHelperImpl extends JdbcHelper {
 
         // write fields that do not rely on metadata
         span.getContext().getDb()
-            .withStatement(sql)
+            .withStatement(sql.isEmpty() ? "(empty query)" : sql)
             .withType("sql");
 
         Connection connection = safeGetConnection((Statement) statement);
@@ -178,32 +180,6 @@ public class JdbcHelperImpl extends JdbcHelper {
         return connection;
     }
 
-
-    @Override
-    public long safeGetUpdateCount(Object statement) {
-        long result = Long.MIN_VALUE;
-        if (!(statement instanceof Statement)) {
-            return result;
-        }
-
-        Class<?> type = statement.getClass();
-        Boolean supported = isSupported(updateCountSupported, type);
-        if (supported == Boolean.FALSE) {
-            return result;
-        }
-
-        try {
-            result = ((Statement) statement).getUpdateCount();
-            if (supported == null) {
-                markSupported(updateCountSupported, type);
-            }
-        } catch (SQLException e) {
-            markNotSupported(updateCountSupported, type, e);
-        }
-
-        return result;
-    }
-
     @Nullable
     private static Boolean isSupported(WeakConcurrentMap<Class<?>, Boolean> featureMap, Class<?> type) {
         return featureMap.get(type);
@@ -219,6 +195,5 @@ public class JdbcHelperImpl extends JdbcHelper {
             logger.warn("JDBC feature not supported on class " + type, e);
         }
     }
-
 
 }

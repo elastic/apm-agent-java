@@ -1,5 +1,6 @@
 # gRPC server part
-co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation
+co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$FinalMethodCall
+co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation$NonFinalMethodCall
 co.elastic.apm.agent.grpc.ServerCallHandlerInstrumentation
 co.elastic.apm.agent.grpc.ServerCallInstrumentation
 

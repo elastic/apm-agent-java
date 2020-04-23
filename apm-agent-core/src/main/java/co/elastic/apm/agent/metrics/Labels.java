@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -116,6 +116,7 @@ public interface Labels {
             if (!(o instanceof Labels)) return false;
             AbstractBase labels = (AbstractBase) o;
             return Objects.equals(getSpanType(), labels.getSpanType()) &&
+                Objects.equals(getSpanSubType(), labels.getSpanSubType()) &&
                 Objects.equals(getTransactionType(), labels.getTransactionType()) &&
                 contentEquals(getTransactionName(), labels.getTransactionName()) &&
                 keys.equals(labels.keys) &&
@@ -131,6 +132,7 @@ public interface Labels {
             h = 31 * h + hash(getTransactionName());
             h = 31 * h + (getTransactionType() != null ? getTransactionType().hashCode() : 0);
             h = 31 * h + (getSpanType() != null ? getSpanType().hashCode() : 0);
+            h = 31 * h + (getSpanSubType() != null ? getSpanSubType().hashCode() : 0);
             return h;
         }
 
@@ -290,6 +292,7 @@ public interface Labels {
             transactionName = null;
             transactionType = null;
             spanType = null;
+            spanSubType = null;
         }
     }
 

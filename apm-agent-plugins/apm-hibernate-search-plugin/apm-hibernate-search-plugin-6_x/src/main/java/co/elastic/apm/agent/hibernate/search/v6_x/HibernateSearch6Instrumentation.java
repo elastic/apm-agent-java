@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -79,7 +79,7 @@ public class HibernateSearch6Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, "incubating");
+        return Arrays.asList(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, "experimental");
     }
 
     public static class Hibernate6ExecuteAdvice {

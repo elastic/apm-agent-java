@@ -183,7 +183,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |5.x (on by default), 6.x (off by default)
 |The agent automatically creates Hibernate Search spans for queries done through the Hibernate Search API.
 
- *Note:* this feature is marked as incubating for version 6.x, which means it is off by default. In order to enable,
+ *Note:* this feature is marked as experimental for version 6.x, which means it is off by default. In order to enable,
  set the <<config-disable-instrumentations>> config option to an empty string
 |1.9.0
 
@@ -300,7 +300,7 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|Enabled by default since 1.13.0, added as an incubating plugin in 1.7.0
+|Enabled by default since 1.13.0, added as an experimental plugin in 1.7.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support
@@ -325,16 +325,16 @@ When using a scheduling framework a transaction for every execution will be crea
 
 |Scheduling Annotation
 |
-|The agent instruments any method defined in a package configured in <<config-application-packages>> and annotated with one of the following:  
-`org.springframework.scheduling.annotation.Scheduled`  
-`org.springframework.scheduling.annotation.Schedules`  
-`javax.ejb.Schedule`  
+|The agent instruments any method defined in a package configured in <<config-application-packages>> and annotated with one of the following:
+`org.springframework.scheduling.annotation.Scheduled`
+`org.springframework.scheduling.annotation.Schedules`
+`javax.ejb.Schedule`
 `javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
 |1.6.0
 
 |Quartz
-|
-|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution 
+|2.0+
+|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution
 
 NOTE: only classes from packages configured in <<config-application-packages>>  will be instrumented.
 |1.8.0
@@ -353,8 +353,10 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
  the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
  See the <<config-enable-log-correlation>> configuration option for more details.
 
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0)
-|1.0.0
+ Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+
+|1.0.0, 1.10.0 (error capturing)
 
 |log4j2
 |2.0+
@@ -362,8 +364,7 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
 
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-|1.11.0 (error capturing), 1.13.0 (log correlation via `ThreadContext`)
+|1.13.0 (log correlation via `ThreadContext`)
 
 
 |log4j
@@ -371,7 +372,10 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
-|1.13.0
+
+Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+|1.11.0 (error capturing), 1.13.0 (log correlation via log4j's MDC)
 
 |===
 
@@ -412,47 +416,7 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 [[supported-java-methods]]
 === Java method monitoring
 
-If you are seeing gaps in the span timeline and want to include certain methods, there are several options:
-
-|===
-|Style |Description | Advantages | Disadvantages
-
-|API/Code
-|Get the <<api-current-span, current span>> (possibly created by auto instrumentation) and <<api-span-start-span, create a child>> span.
- You can also use the <<opentracing-bridge, OpenTracing API>> instead of the Elastic specific API.
-|This is the most flexible way: you can add labels to the span and customize the span type, name, and timestamp.
-|Wrong usage of the API may lead to invalid traces (scope leaks).
-
-|Annotations
-|Annotate any method with <<api-capture-span, `@CaptureSpan`>>, <<api-capture-transaction, `@CaptureTransaction`>> or <<api-traced, `@Traced`>>.
-|Easier and more robust as there's nothing you can do wrong like forgetting to end a span or close a scope.
- It's also a bit more performant than the programmatic way.
-|Less flexible on it's own but can be combined with the API.
- Just get the <<api-current-span, current span>> on an annotated method and customize the span to your liking.
-
-|Sampling-based profiler (experimental) added[1.14.0]
-|Leverages https://github.com/jvm-profiling-tools/async-profiler[async-profiler]
- to periodically record which methods are running (stack traces).
- Enable by setting <<config-profiling-inferred-spans-enabled, `profiling_inferred_spans_enabled`>> to `true`.
-|Very low overhead, no code changes required.
- Great to find out which parts of the code make your application slow,
- without having to apply application-specific configuration.
-|Does not work on Windows.
- The duration of profiler-inferred spans are not exact measurements, only estimates.
- The accuracy depends on <<config-profiling-inferred-spans-sampling-interval, `profiling_inferred_spans_sampling_interval`>>.
-
-|Configuration-based method instrumentation
-|Use the <<config-trace-methods, `trace_methods`>> configuration option to specify additional methods to instrument.
-|You don't need to modify the source code.
- That makes it possible to monitor code in 3rd party libraries.
- You can match  methods via wildcards in the package, class or method name,
- by their modifier (like `public`), by a particular annotation, and more.
-|Easy to overuse by matching too many methods which hurts both runtime and startup performance.
- Use together with <<config-trace-methods-duration-threshold, `trace_methods_duration_threshold`>>
- if setting for entire packages instead of specific methods in order to reduce overhead and avoid having too many spans in the APM app.
-
-
-|===
+If you are seeing gaps in the span timeline and want to include additional methods, there are several options. See <<java-method-monitoring>> for more information.
 
 [float]
 [[supported-metrics]]

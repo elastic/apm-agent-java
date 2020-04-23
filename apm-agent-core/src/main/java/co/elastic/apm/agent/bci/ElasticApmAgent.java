@@ -193,7 +193,7 @@ public class ElasticApmAgent {
         logger.info("Re initializing instrumentation");
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
 
-        resettableClassFileTransformer = agentBuilder.patchOnByteBuddyAgent(resettableClassFileTransformer);
+        resettableClassFileTransformer = agentBuilder.patchOn(instrumentation, resettableClassFileTransformer);
     }
 
     private static AgentBuilder initAgentBuilder(ElasticApmTracer tracer, Instrumentation instrumentation,
@@ -217,7 +217,11 @@ public class ElasticApmAgent {
     }
 
     private static boolean isIncluded(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
-        final Collection<String> disabledInstrumentations = coreConfiguration.getDisabledInstrumentations();
+        ArrayList<String> disabledInstrumentations = new ArrayList<>(coreConfiguration.getDisabledInstrumentations());
+        // Supporting the deprecated `incubating` tag for backward compatibility
+        if (disabledInstrumentations.contains("incubating")) {
+            disabledInstrumentations.add("experimental");
+        }
         return !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupNames()) && isInstrumentationEnabled(advice, coreConfiguration);
     }
 
@@ -370,11 +374,16 @@ public class ElasticApmAgent {
     /**
      * Reverts instrumentation of classes and re-transforms them to their state without the agent.
      * <p>
-     * This is only to be used for unit tests
+     * NOTE: THIS IS ONLY TO BE USED FOR UNIT TESTS
+     * NOTE2: THIS METHOD MUST BE CALLED AFTER AGENT WAS INITIALIZED
      * </p>
      */
     public static synchronized void reset() {
-        if (resettableClassFileTransformer == null || instrumentation == null) {
+        if (instrumentation == null) {
+            return;
+        }
+
+        if (resettableClassFileTransformer == null) {
             throw new IllegalStateException("Reset was called before init");
         }
         dynamicallyInstrumentedClasses.clear();

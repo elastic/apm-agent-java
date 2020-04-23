@@ -26,9 +26,7 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -52,39 +50,30 @@ public abstract class AbstractInstrumentationTest {
 
     @BeforeAll
     @BeforeClass
-    public static void beforeAll() {
-        objectPoolFactory = new TestObjectPoolFactory();
-
-
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(ClosableLifecycleListenerAdapter.of(() -> {
-                reporter.assertRecycledAfterDecrementingReferences();
-                // after recycling, there should be nothing left in use in object pools
-                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-            }))
-            .build();
+    public static synchronized void beforeAll() {
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        tracer = mockInstrumentationSetup.getTracer();
+        config = mockInstrumentationSetup.getConfig();
+        objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
+        reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
     @AfterAll
     @AfterClass
-    public static void afterAll() {
+    public static synchronized void afterAll() {
         ElasticApmAgent.reset();
     }
 
-    public static void reset() {
+    public static synchronized void staticReset() {
         SpyConfiguration.reset(config);
         reporter.reset();
 
         // resume tracer in case it has been paused
         // otherwise the 1st test that pauses tracer will have side effects on others
-        TracerInternalApiUtils.resumeTracer(tracer);
+        if (!tracer.isRunning()) {
+            TracerInternalApiUtils.resumeTracer(tracer);
+        }
     }
 
     public static ElasticApmTracer getTracer() {
@@ -101,8 +90,8 @@ public abstract class AbstractInstrumentationTest {
 
     @Before
     @BeforeEach
-    public final void resetReporter() {
-        reset();
+    public final void reset() {
+        staticReset();
     }
 
     @After

@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -81,8 +80,8 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
             .isEqualTo("nested(1)->hello(bob)");
 
         await()
-            .pollDelay(1, TimeUnit.MILLISECONDS)
-            .timeout(100, TimeUnit.MILLISECONDS)
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(200, TimeUnit.MILLISECONDS)
             .untilAsserted(() -> {
                 List<Transaction> transactions = getReporter().getTransactions();
                 assertThat(transactions).hasSize(2);
@@ -133,7 +132,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
     }
 
     @Test
-    void serverStreamingBasicSupport() {
+    void serverStreamingShouldBeIgnored() {
         String s = app.sayHelloServerStreaming("joe", 4);
         assertThat(s)
             .describedAs("we should not break expected app behavior")

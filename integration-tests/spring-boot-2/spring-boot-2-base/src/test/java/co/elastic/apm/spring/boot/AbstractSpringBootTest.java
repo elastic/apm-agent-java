@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,10 +25,8 @@
 package co.elastic.apm.spring.boot;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
@@ -76,13 +74,10 @@ public abstract class AbstractSpringBootTest {
 
     @BeforeClass
     public static void beforeClass() {
-        config = SpyConfiguration.createSpyConfig();
-        reporter = new MockReporter();
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        config = mockInstrumentationSetup.getConfig();
+        reporter = mockInstrumentationSetup.getReporter();
+        ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());
     }
 
     @Before

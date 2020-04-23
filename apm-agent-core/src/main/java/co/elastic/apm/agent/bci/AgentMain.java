@@ -106,7 +106,7 @@ public class AgentMain {
 
     /**
      * Checks if a given version of the JVM is likely supported by this agent.
-     * <br/>
+     * <br>
      * Supports values provided before and after https://openjdk.java.net/jeps/223, in case parsing fails due to an
      * unknown version format, we assume it's supported, thus this method might return false positives, but never false
      * negatives.

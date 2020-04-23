@@ -140,7 +140,7 @@ class DslJsonSerializerTest {
     void testErrorSerializationOutsideTrace() {
         MockReporter reporter = new MockReporter();
         ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
-        tracer.captureException(new Exception("test"), getClass().getClassLoader());
+        tracer.captureAndReportException(new Exception("test"), getClass().getClassLoader());
 
         String errorJson = serializer.toJsonString(reporter.getFirstError());
         JsonNode errorTree = readJsonString(errorJson);
@@ -166,7 +166,7 @@ class DslJsonSerializerTest {
         Exception cause1 = new RuntimeException("first cause", cause2);
         Exception mainException = new Exception("main exception", cause1);
 
-        tracer.captureException(mainException, getClass().getClassLoader());
+        tracer.captureAndReportException(mainException, getClass().getClassLoader());
 
         JsonNode errorTree = readJsonString(serializer.toJsonString(reporter.getFirstError()));
 

@@ -99,24 +99,18 @@ public class SystemMetrics extends AbstractLifecycleListener {
     }
 
     void bindTo(MetricRegistry metricRegistry) {
-        metricRegistry.addUnlessNegative("system.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
+        // J9 always returns -1 on the first call
+        metricRegistry.addUnlessNan("system.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(systemCpuUsage);
             }
         });
 
-        metricRegistry.addUnlessNegative("system.process.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
+        metricRegistry.addUnlessNan("system.process.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(processCpuUsage);
-            }
-        });
-
-        metricRegistry.addUnlessNan("system.memory.total", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return invoke(totalMemory);
             }
         });
 
@@ -150,11 +144,34 @@ public class SystemMetrics extends AbstractLifecycleListener {
                     }
                 }
             });
+
+            metricRegistry.addUnlessNan("system.memory.total", Labels.EMPTY, new DoubleSupplier() {
+                @Override
+                public double get() {
+                    try (BufferedReader fileReader = new BufferedReader(new FileReader(memInfoFile))) {
+                        for (String memInfoLine = fileReader.readLine(); memInfoLine != null && !memInfoLine.isEmpty(); memInfoLine = fileReader.readLine()) {
+                            if (memInfoLine.startsWith("MemTotal:")) {
+                                final String[] memInfoSplit = StringUtils.split(memInfoLine, ' ');
+                                return Long.parseLong(memInfoSplit[1]) * 1024;
+                            }
+                        }
+                        return Double.NaN;
+                    } catch (Exception e) {
+                        return Double.NaN;
+                    }
+                }
+            });
         } else {
             metricRegistry.addUnlessNan("system.memory.actual.free", Labels.EMPTY, new DoubleSupplier() {
                 @Override
                 public double get() {
                     return invoke(freeMemory);
+                }
+            });
+            metricRegistry.addUnlessNan("system.memory.total", Labels.EMPTY, new DoubleSupplier() {
+                @Override
+                public double get() {
+                    return invoke(totalMemory);
                 }
             });
         }
