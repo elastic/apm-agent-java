@@ -83,7 +83,7 @@ class TLSFallbackSSLSocket extends SSLSocket {
 
                 boolean hasBeenWarned = skipTLS13.getAndSet(true);
                 if (!hasBeenWarned) {
-                    logger.warn("Workaround for JDK Bug JDK-8236039 applied, will connect without TLS v1.3. Update JRE/JDK to fix this, or disable TLS v1.3 on apm-server as a workaround");
+                    logger.warn("Workaround for JDK Bug JDK-8236039 applied, will connect without TLS v1.3. Update JRE/JDK to fix this, or disable TLS v1.3 on APM Server as a workaround (apm-server.ssl.supported_protocols)");
                 }
 
                 InetAddress socketAddress = socket.getInetAddress();
