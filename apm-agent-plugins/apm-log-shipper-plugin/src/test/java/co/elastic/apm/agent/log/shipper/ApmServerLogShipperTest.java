@@ -96,7 +96,7 @@ public class ApmServerLogShipperTest {
         List<String> events = getEvents();
         mockApmServer.verify(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)));
         assertThat(events).hasSize(3);
-        JsonNode fileMetadata = new ObjectMapper().readTree(events.get(1)).get("metadata").get("file");
+        JsonNode fileMetadata = new ObjectMapper().readTree(events.get(1)).get("metadata").get("log").get("file");
         assertThat(fileMetadata.get("name").textValue()).isEqualTo(logFile.getName());
         assertThat(fileMetadata.get("path").textValue()).isEqualTo(logFile.getAbsolutePath());
         assertThat(events.get(2)).isEqualTo("foo");

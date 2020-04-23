@@ -236,10 +236,13 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("metadata");
         jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("log");
+        jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("file");
         jw.writeByte(JsonWriter.OBJECT_START);
         writeField("path", file.getAbsolutePath());
         writeLastField("name", file.getName());
+        jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(JsonWriter.OBJECT_END);
