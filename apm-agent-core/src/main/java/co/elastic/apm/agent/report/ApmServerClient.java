@@ -123,8 +123,7 @@ public class ApmServerClient {
     }
 
     private static void tlsFallback(HttpsURLConnection connection) {
-        SSLSocketFactory newFactory = SslUtils.getTLSFallbackSocketFactory(connection.getSSLSocketFactory());
-        connection.setSSLSocketFactory(newFactory);
+        connection.setSSLSocketFactory(SslUtils.getTLSFallbackSocketFactory());
     }
 
     private static void trustAll(HttpsURLConnection connection) {

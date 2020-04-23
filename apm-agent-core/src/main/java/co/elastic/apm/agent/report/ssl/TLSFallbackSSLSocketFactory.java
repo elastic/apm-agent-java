@@ -24,12 +24,14 @@
  */
 package co.elastic.apm.agent.report.ssl;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.GeneralSecurityException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
@@ -38,8 +40,15 @@ class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
 
     private final AtomicBoolean skipTLS13;
 
-    TLSFallbackSSLSocketFactory(SSLSocketFactory factory) {
-        this.factory = factory;
+    TLSFallbackSSLSocketFactory() {
+        SSLContext context;
+        try {
+            context = SSLContext.getInstance("TLS");
+            context.init(null, null, null);
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException(e);
+        }
+        this.factory = context.getSocketFactory();
         this.skipTLS13 = new AtomicBoolean(false);
     }
 
