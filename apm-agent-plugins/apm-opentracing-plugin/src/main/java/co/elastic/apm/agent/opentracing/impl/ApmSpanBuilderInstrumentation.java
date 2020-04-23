@@ -99,6 +99,14 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 }
             }
             if (result != null) {
+                // This reference count never gets decremented, which means it will be handled by GC rather than being recycled.
+                // The OpenTracing API allows interactions with the span, such as span.getTraceContext even after the span has finished
+                // This makes it hard to recycle the span as the life cycle is unclear.
+                // See also https://github.com/opentracing/opentracing-java/issues/312
+                // Previously, we kept a permanent copy of the trace context around and recycled the span on finish.
+                // But that meant lots of complexity in the internal API,
+                // as it had to deal with the fact that a TraceContext might be returned by ElasticApmTracer.getActive.
+                // The complexity doesn't seem worth the OT specific optimization that a bit less memory gets allocated.
                 result.incrementReferences();
             }
             return result;
