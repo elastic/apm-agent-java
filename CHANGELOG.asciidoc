@@ -34,6 +34,7 @@ endif::[]
 This is not a breaking change, so former
 <<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
 * Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
+* Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
 * Adds <<config-span-min-duration,`span_min_duration`>> option to exclude fast executing spans.
   This deprecates `trace_methods_duration_threshold` and removes `profiling_inferred_spans_min_duration`.
 
@@ -46,6 +47,7 @@ This is not a breaking change, so former
 * Fix breakdown metrics span sub-types {pull}1113[#1113]
 * Fix flaky gRPC server instrumentation {pull}1122[#1122]
 * Fix side effect of calling `Statement.getUpdateCount` more than once {pull}1139[#1139]
+* Stop capturing JDBC affected rows count using `Statement.getUpdateCount` to prevent unreliable side-effects {pull}1147[#1147]
 
 
 [[release-notes-1.x]]

@@ -69,24 +69,4 @@ public abstract class JdbcHelper {
     @Nullable
     public abstract Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement);
 
-    /**
-     * Safely wraps calls to {@link java.sql.Statement#getUpdateCount()} and stores last result.
-     * <p>
-     * getUpdateCount javadoc indicates that this method should be called only once.
-     * In practice, adding this extra call seem to not have noticeable side effects on most databases but Oracle.
-     * </p>
-     *
-     * @param statement {@code java.sql.Statement} instance
-     * @return {@link Integer#MIN_VALUE} if statement does not support this feature, returned value otherwise
-     */
-    public abstract int getAndStoreUpdateCount(Object statement);
-
-    /**
-     * Get and clears stored update count (if any) for a given statement.
-     *
-     * @param statement {@code java.sql.Statement} instance
-     * @return {@link Integer#MIN_VALUE} if there is no stored value for this statement
-     */
-    public abstract int getAndClearStoredUpdateCount(Object statement);
-
 }
