@@ -34,6 +34,9 @@ import org.stagemonitor.configuration.source.ConfigurationSource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -169,11 +172,17 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         if (!logDir.exists()) {
             logDir.mkdir();
         }
-        if (!logDir.canWrite()) {
+
+        final Path logFilePath = Paths.get(logFile);
+        if (Files.exists(logFilePath) && !Files.isWritable(logFilePath) || !Files.exists(logFilePath) && !logDir.canWrite()) {
             System.err.println("Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
-        System.out.println("Writing Elastic APM logs to " + logFile);
+
+        if(!logFile.equalsIgnoreCase("/dev/null")) {
+            System.out.println("Writing Elastic APM logs to " + logFile);
+        }
+
         return logFile;
     }
 
