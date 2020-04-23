@@ -30,7 +30,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -72,7 +71,7 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
                                      @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
                                      @Advice.Local("span") AbstractSpan<?> span) {
         if (tracer != null) {
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 span = tracer.startRootTransaction(clazz.getClassLoader());
                 if (span != null) {

@@ -39,7 +39,6 @@ import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -376,7 +375,7 @@ public class ElasticApmTracer {
     }
 
     /**
-     * Captures an exception without providing an explicit reference to a parent {@link TraceContextHolder}
+     * Captures an exception without providing an explicit reference to a parent {@link AbstractSpan}
      *
      * @param e                     the exception to capture
      * @param initiatingClassLoader the class
@@ -389,7 +388,7 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
         String id = null;
         ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
         if (errorCapture != null) {
@@ -400,12 +399,12 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
     }
 
     @Nullable
-    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();

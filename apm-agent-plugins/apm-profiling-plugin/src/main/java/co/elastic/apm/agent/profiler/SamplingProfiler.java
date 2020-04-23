@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
@@ -125,17 +124,17 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private static final int PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB = 10;
     private static final int MAX_ACTIVATION_EVENTS_FILE_SIZE = ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE;
     private static final int ACTIVATION_EVENTS_BUFFER_SIZE = ActivationEvent.SERIALIZED_SIZE * 4 * 1024;
-    private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
-        new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
+    private final EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext> ACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext>() {
             @Override
-            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder<?> active, TraceContextHolder<?> previouslyActive) {
+            public void translateTo(ActivationEvent event, long sequence, TraceContext active, TraceContext previouslyActive) {
                 event.activation(active, Thread.currentThread().getId(), previouslyActive, nanoClock.nanoTime());
             }
         };
-    private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> DEACTIVATION_EVENT_TRANSLATOR =
-        new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
+    private final EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext> DEACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext>() {
             @Override
-            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder active, TraceContextHolder previouslyActive) {
+            public void translateTo(ActivationEvent event, long sequence, TraceContext active, TraceContext previouslyActive) {
                 event.deactivation(active, Thread.currentThread().getId(), previouslyActive, nanoClock.nanoTime());
             }
         };
@@ -242,7 +241,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     /**
      * Called whenever a span is activated.
      * <p>
-     * This and {@link #onDeactivation(TraceContextHolder, TraceContextHolder)} are the only methods which are executed in a multi-threaded
+     * This and {@link #onDeactivation} are the only methods which are executed in a multi-threaded
      * context.
      * </p>
      *
@@ -250,7 +249,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param previouslyActive the span which has previously been activated
      * @return {@code true}, if the event could be processed, {@code false} if the internal event queue is full which means the event has been discarded
      */
-    public boolean onActivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+    public boolean onActivation(TraceContext activeSpan, @Nullable TraceContext previouslyActive) {
         if (profilingSessionOngoing) {
             if (previouslyActive == null) {
                 AsyncProfiler.getInstance().enableProfilingCurrentThread();
@@ -267,7 +266,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     /**
      * Called whenever a span is deactivated.
      * <p>
-     * This and {@link #onActivation(TraceContextHolder, TraceContextHolder)} are the only methods which are executed in a multi-threaded
+     * This and {@link #onActivation} are the only methods which are executed in a multi-threaded
      * context.
      * </p>
      *
@@ -275,7 +274,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param previouslyActive the span which has previously been activated
      * @return {@code true}, if the event could be processed, {@code false} if the internal event queue is full which means the event has been discarded
      */
-    public boolean onDeactivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+    public boolean onDeactivation(TraceContext activeSpan, @Nullable TraceContext previouslyActive) {
         if (profilingSessionOngoing) {
             if (previouslyActive == null) {
                 AsyncProfiler.getInstance().disableProfilingCurrentThread();
@@ -640,12 +639,12 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         private long threadId;
         private boolean activation;
 
-        public void activation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext, long nanoTime) {
-            set(context.getTraceContext(), threadId, true, previousContext != null ? previousContext.getTraceContext() : null, nanoTime);
+        public void activation(TraceContext context, long threadId, @Nullable TraceContext previousContext, long nanoTime) {
+            set(context, threadId, true, previousContext != null ? previousContext : null, nanoTime);
         }
 
-        public void deactivation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext, long nanoTime) {
-            set(context.getTraceContext(), threadId, false, previousContext != null ? previousContext.getTraceContext() : null, nanoTime);
+        public void deactivation(TraceContext context, long threadId, @Nullable TraceContext previousContext, long nanoTime) {
+            set(context, threadId, false, previousContext != null ? previousContext : null, nanoTime);
         }
 
         private void set(TraceContext traceContext, long threadId, boolean activation, @Nullable TraceContext previousContext, long nanoTime) {

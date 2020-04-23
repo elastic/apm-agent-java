@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceContextHolder<T> {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable {
     public static final int PRIO_USER_SUPPLIED = 1000;
     public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
     public static final int PRIO_METHOD_SIGNATURE = 100;
@@ -57,6 +57,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      */
     protected final StringBuilder name = new StringBuilder();
     protected final boolean collectBreakdownMetrics;
+    protected final ElasticApmTracer tracer;
     private long timestamp;
 
     // in microseconds
@@ -66,6 +67,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected volatile boolean finished = true;
     private int namePriority = PRIO_DEFAULT;
     private boolean discardRequested = false;
+    /**
+     * Flag to mark a span as representing an exit event
+     */
+    private boolean isExit;
 
     public int getReferenceCount() {
         return references.get();
@@ -92,7 +97,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      * @return {@code true}, if the span should be discarded, {@code false} otherwise.
      */
     public boolean isDiscarded() {
-        return discardRequested && isDiscardable();
+        return discardRequested && getTraceContext().isDiscardable();
     }
 
     private static class ChildDurationTimer implements Recyclable {
@@ -151,7 +156,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     }
 
     public AbstractSpan(ElasticApmTracer tracer) {
-        super(tracer);
+        this.tracer = tracer;
         traceContext = TraceContext.with64BitId(this.tracer);
         boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
         boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
@@ -276,14 +281,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         return timestamp;
     }
 
-    @Override
     public TraceContext getTraceContext() {
         return traceContext;
     }
 
     @Override
     public void resetState() {
-        super.resetState();
         finished = true;
         name.setLength(0);
         timestamp = 0;
@@ -293,20 +296,60 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         references.set(0);
         namePriority = PRIO_DEFAULT;
         discardRequested = false;
+        isExit = false;
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {
         return traceContext.isChildOf(parent.traceContext);
     }
 
-    @Override
     public Span createSpan() {
         return createSpan(traceContext.getClock().getEpochMicros());
     }
 
-    @Override
     public Span createSpan(long epochMicros) {
         return tracer.startSpan(this, epochMicros);
+    }
+
+    /**
+     * Creates a child Span representing a remote call event, unless this TraceContextHolder already represents an exit event.
+     * If current TraceContextHolder is representing an Exit- returns null
+     *
+     * @return an Exit span if this TraceContextHolder is not an exit span, null otherwise
+     */
+    @Nullable
+    public Span createExitSpan() {
+        if (isExit()) {
+            return null;
+        }
+        return createSpan().asExit();
+    }
+
+
+    public T asExit() {
+        isExit = true;
+        return (T) this;
+    }
+
+    public boolean isExit() {
+        return isExit;
+    }
+
+
+    public void captureException(long epochMicros, Throwable t) {
+        tracer.captureAndReportException(epochMicros, t, this);
+    }
+
+    public T captureException(@Nullable Throwable t) {
+        if (t != null) {
+            captureException(getTraceContext().getClock().getEpochMicros(), t);
+        }
+        return (T) this;
+    }
+
+    @Nullable
+    public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
+        return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
     }
 
     public void addLabel(String key, String value) {
@@ -362,11 +405,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected abstract void beforeEnd(long epochMicros);
 
     protected abstract void afterEnd();
-
-    @Override
-    public boolean isChildOf(TraceContextHolder other) {
-        return getTraceContext().isChildOf(other);
-    }
 
     public T activate() {
         incrementReferences();
@@ -522,6 +560,28 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
         setNonDiscardable();
         return getTraceContext().setOutgoingTraceContextHeaders(carrier, headerSetter);
+    }
+
+    /**
+     * Sets this context as non-discardable,
+     * meaning that {@link AbstractSpan#isDiscarded()} will return {@code false},
+     * even if {@link AbstractSpan#requestDiscarding()} has been called.
+     */
+    public void setNonDiscardable() {
+        getTraceContext().setNonDiscardable();
+    }
+
+    /**
+     * Returns whether it's possible to discard this span.
+     *
+     * @return {@code true}, if it's safe to discard the span, {@code false} otherwise.
+     */
+    public boolean isDiscardable() {
+        return getTraceContext().isDiscardable();
+    }
+
+    public boolean isSampled() {
+        return getTraceContext().isSampled();
     }
 
 }

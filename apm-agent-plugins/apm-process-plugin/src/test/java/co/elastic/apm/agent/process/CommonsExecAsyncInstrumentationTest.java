@@ -25,13 +25,12 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
-
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -64,8 +63,8 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
             .contains("Executor");
     }
 
-    private static TraceContextHolder<?> asyncProcessHasTransactionContext(boolean expectedInTransaction) throws IOException, InterruptedException {
-        AtomicReference<TraceContextHolder<?>> activeTransaction = new AtomicReference<>();
+    private static AbstractSpan<?> asyncProcessHasTransactionContext(boolean expectedInTransaction) throws IOException, InterruptedException {
+        AtomicReference<AbstractSpan<?>> activeTransaction = new AtomicReference<>();
 
         DefaultExecutor executor = new MyExecutor(activeTransaction);
 
@@ -138,9 +137,9 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
      */
     private static class MyExecutor extends DefaultExecutor {
 
-        private AtomicReference<TraceContextHolder<?>> activeTransaction;
+        private AtomicReference<AbstractSpan<?>> activeTransaction;
 
-        private MyExecutor(AtomicReference<TraceContextHolder<?>> activeTransaction) {
+        private MyExecutor(AtomicReference<AbstractSpan<?>> activeTransaction) {
             this.activeTransaction = activeTransaction;
         }
 

@@ -28,9 +28,9 @@ import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.Request;
@@ -92,7 +92,7 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                 return;
             }
 
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
 
             Request request = originalRequest;
             URL url = request.url();

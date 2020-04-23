@@ -33,8 +33,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -340,7 +340,7 @@ class TraceMethodInstrumentationTest {
         }
 
         private void manuallyTraced() {
-            TraceContextHolder<?> active = tracer.getActive();
+            AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
                 Span span = active.createSpan();
                 span.setOutgoingTraceContextHeaders(new HashMap<>(), (k, v, m) -> m.put(k, v));

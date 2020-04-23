@@ -251,7 +251,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         Map<String, String> headerMap = new HashMap<>();
         parent.setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(headerMap::get).end();
-        assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
+        assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
     }
 
     @Test
@@ -261,7 +261,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         Map<String, String> headerMap = new HashMap<>();
         parent.setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(headerMap::get, key -> Collections.singletonList(headerMap.get(key))).end();
-        assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
+        assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
     }
 
     @Test
@@ -271,7 +271,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         Map<String, String> headerMap = new HashMap<>();
         parent.setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(headerMap.get(key))).end();
-        assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
+        assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
     }
 
     @Test

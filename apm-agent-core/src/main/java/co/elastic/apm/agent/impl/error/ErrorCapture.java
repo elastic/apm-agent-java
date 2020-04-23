@@ -29,9 +29,9 @@ import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -46,7 +46,7 @@ import java.util.List;
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Recyclable {
+public class ErrorCapture implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(ErrorCapture.class);
 
@@ -58,6 +58,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
     private final TransactionContext context = new TransactionContext();
+    private final ElasticApmTracer tracer;
     /**
      * Information about the originally thrown error.
      */
@@ -77,7 +78,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
     private final StringBuilder culprit = new StringBuilder();
 
     public ErrorCapture(ElasticApmTracer tracer) {
-        super(tracer);
+        this.tracer = tracer;
         traceContext = TraceContext.with128BitId(this.tracer);
     }
 
@@ -131,7 +132,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
      * @param parent parent trace context
      * @return {@code this}, for chaining
      */
-    public ErrorCapture asChildOf(TraceContextHolder<?> parent) {
+    public ErrorCapture asChildOf(AbstractSpan<?> parent) {
         this.traceContext.asChildOf(parent.getTraceContext());
         if (parent instanceof Transaction) {
             Transaction transaction = (Transaction) parent;
@@ -149,22 +150,6 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
 
     public TraceContext getTraceContext() {
         return traceContext;
-    }
-
-    @Override
-    public Span createSpan() {
-        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
-    }
-
-    @Override
-    @Nullable
-    public Span createSpan(long epochMicros) {
-        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
-    }
-
-    @Override
-    public boolean isChildOf(TraceContextHolder other) {
-        return getTraceContext().isChildOf(other);
     }
 
     public void setException(Throwable e) {

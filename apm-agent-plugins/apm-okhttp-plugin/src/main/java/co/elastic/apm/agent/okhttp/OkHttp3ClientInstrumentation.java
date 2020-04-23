@@ -27,9 +27,9 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -69,7 +69,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
                 return;
             }
 
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
 
             if (originalRequest instanceof okhttp3.Request) {
                 okhttp3.Request request = (okhttp3.Request) originalRequest;
