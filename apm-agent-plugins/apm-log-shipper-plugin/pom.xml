@@ -15,25 +15,5 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <version.ecs.logging>0.3.0</version.ecs.logging>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>co.elastic.logging</groupId>
-            <artifactId>logback-ecs-encoder</artifactId>
-            <version>${version.ecs.logging}</version>
-        </dependency>
-        <dependency>
-            <groupId>co.elastic.logging</groupId>
-            <artifactId>log4j-ecs-layout</artifactId>
-            <version>${version.ecs.logging}</version>
-        </dependency>
-    </dependencies>
 </project>

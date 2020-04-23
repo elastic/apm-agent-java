@@ -176,6 +176,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log-shader-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-log-shipper-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -271,6 +276,13 @@
                             <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
+<!--
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>co.elastic.apm:apm-log-shader-plugin</exclude>
+                                </excludes>
+                            </artifactSet>
+-->
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -312,9 +324,6 @@
                                 <relocation>
                                     <pattern>org.slf4j</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
-                                    <excludes>
-                                        <exclude>org.slf4j.Marker</exclude>
-                                    </excludes>
                                 </relocation>
                                 <relocation>
                                     <pattern>co.elastic.logging</pattern>
@@ -358,6 +367,13 @@
                                 <relocation>
                                     <pattern>org.HdrHistogram</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
+                                </relocation>
+
+                                <!-- This reverts logging frameworks temporary packages given during the execution of the package
+                                phase of the apm-log-shader-plugin to their original packages -->
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.logshading.shaded</pattern>
+                                    <shadedPattern>org</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>
