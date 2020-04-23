@@ -48,7 +48,7 @@ public class SslUtils {
     @Nullable
     private static final SSLSocketFactory socketFactory;
 
-    public static final TLSFallbackSSLSocketFactory FACTORY = new TLSFallbackSSLSocketFactory();
+    public static final TLSFallbackSSLSocketFactory FACTORY = TLSFallbackSSLSocketFactory.wrapDefaultSSLFactory();
 
     static {
         X509TrustManager trustAllTrustManager = createTrustAllTrustManager();

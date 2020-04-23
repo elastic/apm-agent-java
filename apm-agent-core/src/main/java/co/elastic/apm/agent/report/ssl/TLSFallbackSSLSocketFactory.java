@@ -40,7 +40,29 @@ class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
 
     private final AtomicBoolean skipTLS13;
 
-    TLSFallbackSSLSocketFactory() {
+    private TLSFallbackSSLSocketFactory(SSLSocketFactory factory) {
+        this.factory = factory;
+        this.skipTLS13 = new AtomicBoolean(false);
+    }
+
+    /**
+     * Returns a SSL factory that relies on provided SSL factory
+     * <br>
+     * Should only be used for testing
+     *
+     * @param factory SSL factory to wrap
+     * @return SSL factory with TLS fallback
+     */
+    static TLSFallbackSSLSocketFactory wrapFactory(SSLSocketFactory factory) {
+        return new TLSFallbackSSLSocketFactory(factory);
+    }
+
+    /**
+     * Returns SSL factory that wraps default SSL implementation
+     *
+     * @return SSL factory with TLS fallback
+     */
+    static TLSFallbackSSLSocketFactory wrapDefaultSSLFactory(){
         SSLContext context;
         try {
             context = SSLContext.getInstance("TLS");
@@ -48,8 +70,8 @@ class TLSFallbackSSLSocketFactory extends SSLSocketFactory {
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);
         }
-        this.factory = context.getSocketFactory();
-        this.skipTLS13 = new AtomicBoolean(false);
+        SSLSocketFactory factory = context.getSocketFactory();
+        return new TLSFallbackSSLSocketFactory(factory);
     }
 
     AtomicBoolean skipTLS13() {

@@ -50,7 +50,7 @@ class TLSFallbackSSLSocketTest {
         SSLSocket sslSocket = mockSocket();
         SSLSocketFactory sslFactory = mock(SSLSocketFactory.class);
 
-        TLSFallbackSSLSocketFactory factory = new TLSFallbackSSLSocketFactory();
+        TLSFallbackSSLSocketFactory factory = TLSFallbackSSLSocketFactory.wrapFactory(sslFactory);
         TLSFallbackSSLSocket socket = new TLSFallbackSSLSocket(sslSocket, factory);
 
         socket.startHandshake();
@@ -63,7 +63,7 @@ class TLSFallbackSSLSocketTest {
         SSLSocket sslSocket = mockSocket(TLSFallbackSSLSocket.TLS_v_1_3);
         SSLSocketFactory sslFactory = mock(SSLSocketFactory.class);
 
-        TLSFallbackSSLSocketFactory factory = new TLSFallbackSSLSocketFactory();
+        TLSFallbackSSLSocketFactory factory = TLSFallbackSSLSocketFactory.wrapFactory(sslFactory);
         TLSFallbackSSLSocket socket = new TLSFallbackSSLSocket(sslSocket, factory);
 
         socket.startHandshake();
@@ -99,7 +99,7 @@ class TLSFallbackSSLSocketTest {
         when(sslFactory.createSocket(same(address), same(port)))
             .thenReturn(fallbackSocket);
 
-        TLSFallbackSSLSocketFactory factory = new TLSFallbackSSLSocketFactory();
+        TLSFallbackSSLSocketFactory factory = TLSFallbackSSLSocketFactory.wrapFactory(sslFactory);
         TLSFallbackSSLSocket socket = new TLSFallbackSSLSocket(initialSocket, factory);
 
         socket.startHandshake();
@@ -135,7 +135,7 @@ class TLSFallbackSSLSocketTest {
 
         SSLSocketFactory sslFactory = mock(SSLSocketFactory.class);
 
-        TLSFallbackSSLSocketFactory factory = new TLSFallbackSSLSocketFactory();
+        TLSFallbackSSLSocketFactory factory = TLSFallbackSSLSocketFactory.wrapFactory(sslFactory);
         TLSFallbackSSLSocket socket = new TLSFallbackSSLSocket(sslSocket, factory);
 
         Throwable thrown = null;
