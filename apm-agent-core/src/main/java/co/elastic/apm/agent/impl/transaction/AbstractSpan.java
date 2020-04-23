@@ -25,7 +25,9 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -365,19 +368,54 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         return getTraceContext().isChildOf(other);
     }
 
-    @Override
     public T activate() {
         incrementReferences();
-        return super.activate();
+        List<ActivationListener> activationListeners = tracer.getActivationListeners();
+        for (int i = 0; i < activationListeners.size(); i++) {
+            try {
+                activationListeners.get(i).beforeActivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
+        tracer.activate(this);
+        return (T) this;
     }
 
-    @Override
     public T deactivate() {
         try {
-            return super.deactivate();
+            tracer.deactivate(this);
+            List<ActivationListener> activationListeners = tracer.getActivationListeners();
+            for (int i = 0; i < activationListeners.size(); i++) {
+                try {
+                    // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
+                    activationListeners.get(i).afterDeactivate(this);
+                } catch (Error e) {
+                    throw e;
+                } catch (Throwable t) {
+                    logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                }
+            }
+            return (T) this;
         } finally {
             decrementReferences();
         }
+    }
+
+    public Scope activateInScope() {
+        // already in scope
+        if (tracer.getActive() == this) {
+            return Scope.NoopScope.INSTANCE;
+        }
+        activate();
+        return new Scope() {
+            @Override
+            public void close() {
+                deactivate();
+            }
+        };
     }
 
     /**
@@ -388,7 +426,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
      * </p>
      */
-    @Override
     public Runnable withActive(Runnable runnable) {
         return tracer.wrapRunnable(runnable, this);
     }
@@ -401,7 +438,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
      * </p>
      */
-    @Override
     public <V> Callable<V> withActive(Callable<V> callable) {
         return tracer.wrapCallable(callable, this);
     }

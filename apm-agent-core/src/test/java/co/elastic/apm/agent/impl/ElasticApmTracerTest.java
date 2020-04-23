@@ -287,7 +287,7 @@ class ElasticApmTracerTest {
         }
         assertThat(reporter.getFirstTransaction().isSampled()).isTrue();
         assertThat(reporter.getFirstTransaction().getSpanCount().getDropped().get()).isEqualTo(1);
-        assertThat(reporter.getFirstTransaction().getSpanCount().getStarted().get()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getSpanCount().getStarted().get()).isEqualTo(2);
         assertThat(reporter.getSpans()).hasSize(1);
     }
 
@@ -376,26 +376,26 @@ class ElasticApmTracerTest {
     @Test
     void testStartSpanAfterTransactionHasEnded() {
         final Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
-        final TraceContext transactionTraceContext = transaction.getTraceContext().copy();
+        assertThat(transaction).isNotNull();
+        transaction.incrementReferences();
         transaction.end();
 
-        reporter.assertRecycledAfterDecrementingReferences();
 
-        tracerImpl.activate(transactionTraceContext);
-        try {
-            assertThat(tracerImpl.getActive()).isEqualTo(transactionTraceContext);
+
+        try (Scope transactionScope = transaction.activateInScope()) {
+            assertThat(tracerImpl.getActive()).isEqualTo(transaction);
             final Span span = tracerImpl.startSpan(TraceContext.fromActive(), tracerImpl);
             assertThat(span).isNotNull();
             try (Scope scope = span.activateInScope()) {
-                assertThat(tracerImpl.currentTransaction()).isNull();
+                assertThat(tracerImpl.currentTransaction()).isNotNull();
                 assertThat(tracerImpl.getActive()).isSameAs(span);
             } finally {
                 span.end();
             }
-        } finally {
-            tracerImpl.deactivate(transactionTraceContext);
         }
         assertThat(tracerImpl.getActive()).isNull();
+        transaction.decrementReferences();
+        reporter.assertRecycledAfterDecrementingReferences();
     }
 
     @Test

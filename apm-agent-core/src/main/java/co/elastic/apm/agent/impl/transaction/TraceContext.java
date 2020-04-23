@@ -39,7 +39,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 
 /**
  * This is an implementation of the
@@ -516,8 +515,7 @@ public class TraceContext extends TraceContextHolder<TraceContext> {
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
      * @param <C>          the header carrier type, for example - an HTTP request
      */
-    @Override
-    public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
+    <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
         headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
         if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
             headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
@@ -538,7 +536,7 @@ public class TraceContext extends TraceContextHolder<TraceContext> {
      * @param <C>          the header carrier type, for example - a Kafka record
      * @return true if Trace Context headers were set; false otherwise
      */
-    public <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
+    <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
         byte[] buffer = headerSetter.getFixedLengthByteArray(TRACE_PARENT_BINARY_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
         if (buffer == null || buffer.length != BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Header setter {} failed to provide a byte buffer with the proper length. Allocating a buffer for each header.",
@@ -769,30 +767,4 @@ public class TraceContext extends TraceContextHolder<TraceContext> {
         return copy;
     }
 
-    /**
-     * Wraps the provided {@link Runnable} and makes this {@link TraceContext} active in the {@link Runnable#run()} method.
-     *
-     * <p>
-     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
-     * This is useful if this span is closed in a different thread than the provided {@link Runnable} is executed in.
-     * </p>
-     */
-    @Override
-    public Runnable withActive(Runnable runnable) {
-        return tracer.wrapRunnable(runnable, this);
-    }
-
-    /**
-     * Wraps the provided {@link Callable} and makes this {@link TraceContext} active in the {@link Callable#call()} method.
-     *
-     * <p>
-     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
-     * This is useful if this span is closed in a different thread than the provided {@link java.util.concurrent.Callable} is executed in.
-     * </p>
-     */
-    @Override
-    public Callable withActive(Callable callable) {
-        //noinspection unchecked
-        return tracer.wrapCallable(callable, this);
-    }
 }

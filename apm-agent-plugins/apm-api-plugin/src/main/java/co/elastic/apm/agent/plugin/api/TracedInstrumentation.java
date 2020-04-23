@@ -98,7 +98,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("span") AbstractSpan span,
+    public static void onMethodExit(@Nullable @Advice.Local("span") AbstractSpan<?> span,
                                     @Advice.Thrown Throwable t) {
         if (span != null) {
             span.captureException(t)

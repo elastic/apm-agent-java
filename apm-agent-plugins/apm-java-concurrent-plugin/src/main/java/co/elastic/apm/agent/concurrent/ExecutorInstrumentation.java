@@ -26,7 +26,7 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 import net.bytebuddy.asm.Advice;
@@ -112,7 +112,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         public static void onExecute(@Advice.This Executor thiz,
                                      @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable,
                                      @Advice.Local("original") Runnable original) {
-            final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
+            final AbstractSpan<?> active = ExecutorInstrumentation.getActive();
             if (active != null && runnable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
                 //noinspection UnusedAssignment
                 original = runnable;
@@ -165,7 +165,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         public static void onSubmit(@Advice.This Executor thiz,
                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable,
                                     @Advice.Local("original") Callable original) {
-            final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
+            final AbstractSpan<?> active = ExecutorInstrumentation.getActive();
             if (active != null && callable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
                 original = callable;
                 // Do no discard branches leading to async operations so not to break span references

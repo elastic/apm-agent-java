@@ -102,7 +102,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
                                  Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
         traceContext.setApplicationClassLoader(initiatingClassLoader);
-        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
         boolean startedAsChild = parent != null && childContextCreator.asChildOf(traceContext, parent);
         onTransactionStart(startedAsChild, epochMicros, sampler);
         return this;
@@ -117,6 +116,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
+        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }

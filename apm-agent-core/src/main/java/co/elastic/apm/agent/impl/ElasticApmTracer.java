@@ -27,8 +27,6 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.LifecycleListener;
-import co.elastic.apm.agent.impl.async.ContextInScopeCallableWrapper;
-import co.elastic.apm.agent.impl.async.ContextInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper;
 import co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -92,17 +90,15 @@ public class ElasticApmTracer {
     private final ObjectPool<ErrorCapture> errorPool;
     private final ObjectPool<SpanInScopeRunnableWrapper> runnableSpanWrapperObjectPool;
     private final ObjectPool<SpanInScopeCallableWrapper<?>> callableSpanWrapperObjectPool;
-    private final ObjectPool<ContextInScopeRunnableWrapper> runnableContextWrapperObjectPool;
-    private final ObjectPool<ContextInScopeCallableWrapper<?>> callableContextWrapperObjectPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    private final ThreadLocal<Deque<TraceContextHolder<?>>> activeStack = new ThreadLocal<Deque<TraceContextHolder<?>>>() {
+    private final ThreadLocal<Deque<AbstractSpan<?>>> activeStack = new ThreadLocal<Deque<AbstractSpan<?>>>() {
         @Override
-        protected Deque<TraceContextHolder<?>> initialValue() {
-            return new ArrayDeque<TraceContextHolder<?>>();
+        protected Deque<AbstractSpan<?>> initialValue() {
+            return new ArrayDeque<AbstractSpan<?>>();
         }
     };
 
@@ -155,10 +151,6 @@ public class ElasticApmTracer {
 
         runnableSpanWrapperObjectPool = poolFactory.createRunnableWrapperPool(MAX_POOLED_RUNNABLES, this);
         callableSpanWrapperObjectPool = poolFactory.createCallableWrapperPool(MAX_POOLED_RUNNABLES, this);
-
-        runnableContextWrapperObjectPool = poolFactory.createRunnableContextPool(MAX_POOLED_RUNNABLES, this);
-        callableContextWrapperObjectPool = poolFactory.createCallableContextPool(MAX_POOLED_RUNNABLES, this);
-
 
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
@@ -332,13 +324,13 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        Deque<TraceContextHolder<?>> stack = activeStack.get();
-        final TraceContextHolder<?> bottomOfStack = stack.peekLast();
+        Deque<AbstractSpan<?>> stack = activeStack.get();
+        final AbstractSpan<?> bottomOfStack = stack.peekLast();
         if (bottomOfStack instanceof Transaction) {
             return (Transaction) bottomOfStack;
         } else if (bottomOfStack != null) {
-            for (Iterator<TraceContextHolder<?>> it = stack.descendingIterator(); it.hasNext(); ) {
-                TraceContextHolder<?> context = it.next();
+            for (Iterator<AbstractSpan<?>> it = stack.descendingIterator(); it.hasNext(); ) {
+                AbstractSpan<?> context = it.next();
                 if (context instanceof Transaction) {
                     return (Transaction) context;
                 }
@@ -534,28 +526,6 @@ public class ElasticApmTracer {
         callableSpanWrapperObjectPool.recycle(wrapper);
     }
 
-    public Runnable wrapRunnable(Runnable delegate, TraceContext traceContext) {
-        if (delegate instanceof ContextInScopeRunnableWrapper || delegate instanceof SpanInScopeRunnableWrapper) {
-            return delegate;
-        }
-        return runnableContextWrapperObjectPool.createInstance().wrap(delegate, traceContext);
-    }
-
-    public void recycle(ContextInScopeRunnableWrapper wrapper) {
-        runnableContextWrapperObjectPool.recycle(wrapper);
-    }
-
-    public <V> Callable<V> wrapCallable(Callable<V> delegate, TraceContext traceContext) {
-        if (delegate instanceof ContextInScopeCallableWrapper || delegate instanceof SpanInScopeCallableWrapper) {
-            return delegate;
-        }
-        return ((ContextInScopeCallableWrapper<V>) callableContextWrapperObjectPool.createInstance()).wrap(delegate, traceContext);
-    }
-
-    public void recycle(ContextInScopeCallableWrapper<?> callableWrapper) {
-        callableContextWrapperObjectPool.recycle(callableWrapper);
-    }
-
     /**
      * Called when the container shuts down.
      * Cleans up thread pools and other resources.
@@ -592,7 +562,7 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public TraceContextHolder<?> getActive() {
+    public AbstractSpan<?> getActive() {
         return activeStack.get().peek();
     }
 
@@ -704,22 +674,22 @@ public class ElasticApmTracer {
         return null;
     }
 
-    public void activate(TraceContextHolder<?> holder) {
+    public void activate(AbstractSpan<?> holder) {
         if (logger.isDebugEnabled()) {
             logger.debug("Activating {} on thread {}", holder, Thread.currentThread().getId());
         }
         activeStack.get().push(holder);
     }
 
-    public void deactivate(TraceContextHolder<?> holder) {
+    public void deactivate(AbstractSpan<?> holder) {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", holder, Thread.currentThread().getId());
         }
-        final Deque<TraceContextHolder<?>> stack = activeStack.get();
+        final Deque<AbstractSpan<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
     }
 
-    private void assertIsActive(TraceContextHolder<?> span, @Nullable TraceContextHolder<?> currentlyActive) {
+    private void assertIsActive(AbstractSpan<?> span, @Nullable AbstractSpan<?> currentlyActive) {
         if (span != currentlyActive) {
             logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
                 "This can happen when not properly deactivating a previous span.", span, currentlyActive);

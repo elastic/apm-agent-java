@@ -241,7 +241,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
                 assertMdcIsSet(child);
                 executorService.submit(() -> {
                     assertMdcIsEmpty();
-                    try (Scope otherThreadScope = child.getTraceContext().activateInScope()) {
+                    try (Scope otherThreadScope = child.activateInScope()) {
                         assertMdcIsSet(child);
                     }
                     assertMdcIsEmpty();

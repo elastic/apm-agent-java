@@ -24,16 +24,12 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.concurrent.Callable;
 
 /**
  * An abstraction of both {@link TraceContext} and {@link AbstractSpan}.
@@ -66,9 +62,9 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         this.tracer = tracer;
     }
 
-    public TraceContextHolder<T> asExit() {
+    public T asExit() {
         isExit = true;
-        return this;
+        return (T) this;
     }
 
     public abstract TraceContext getTraceContext();
@@ -92,51 +88,6 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     }
 
     public abstract boolean isChildOf(TraceContextHolder other);
-
-    public T activate() {
-        List<ActivationListener> activationListeners = tracer.getActivationListeners();
-        for (int i = 0; i < activationListeners.size(); i++) {
-            try {
-                activationListeners.get(i).beforeActivate(this);
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
-        tracer.activate(this);
-        return (T) this;
-    }
-
-    public T deactivate() {
-        tracer.deactivate(this);
-        List<ActivationListener> activationListeners = tracer.getActivationListeners();
-        for (int i = 0; i < activationListeners.size(); i++) {
-            try {
-                // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
-                activationListeners.get(i).afterDeactivate(this);
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
-        return (T) this;
-    }
-
-    public Scope activateInScope() {
-        // already in scope
-        if (tracer.getActive() == this) {
-            return Scope.NoopScope.INSTANCE;
-        }
-        activate();
-        return new Scope() {
-            @Override
-            public void close() {
-                deactivate();
-            }
-        };
-    }
 
     public boolean isSampled() {
         return getTraceContext().isSampled();
@@ -164,25 +115,6 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         return getTraceContext().isDiscardable();
     }
 
-    /**
-     * Sets Trace context text headers, using this context as parent, on the provided carrier using the provided setter
-     *
-     * @param carrier      the text headers carrier
-     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
-     * @param <C>          the header carrier type, for example - an HTTP request
-     */
-    public abstract <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter);
-
-    /**
-     * Sets Trace context binary headers, using this context as parent, on the provided carrier using the provided setter
-     *
-     * @param carrier      the binary headers carrier
-     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
-     * @param <C>          the header carrier type, for example - a Kafka record
-     * @return true if Trace Context headers were set; false otherwise
-     */
-    public abstract <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter);
-
     public void captureException(long epochMicros, Throwable t) {
         tracer.captureAndReportException(epochMicros, t, this);
     }
@@ -198,16 +130,6 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
         return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
     }
-
-    /**
-     * Wraps the provided {@link Runnable} and makes this {@link TraceContextHolder} active in the {@link Runnable#run()} method.
-     */
-    public abstract Runnable withActive(Runnable runnable);
-
-    /**
-     * Wraps the provided {@link Callable} and makes this {@link TraceContext} active in the {@link Callable#call()} method.
-     */
-    public abstract <V> Callable<V> withActive(Callable<V> callable);
 
     @Override
     public void resetState() {

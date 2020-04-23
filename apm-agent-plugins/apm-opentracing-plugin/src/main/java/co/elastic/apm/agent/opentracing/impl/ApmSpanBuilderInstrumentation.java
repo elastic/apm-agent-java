@@ -70,7 +70,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext parentContext,
+        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> parentContext,
                                       @Advice.Origin Class<?> spanBuilderClass,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
@@ -82,22 +82,26 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
 
         @Nullable
         @VisibleForAdvice
-        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable TraceContext parentContext,
+        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable AbstractSpan<?> parentContext,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,
                                                                 @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
+            AbstractSpan<?> result = null;
             if (tracer != null) {
                 if (parentContext == null) {
-                    return createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
+                    result = createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
                 } else {
                     if (microseconds >= 0) {
-                        return tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
+                        result = tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
                     } else {
-                        return tracer.startSpan(TraceContext.fromParent(), parentContext);
+                        result = tracer.startSpan(TraceContext.fromParent(), parentContext);
                     }
                 }
             }
-            return null;
+            if (result != null) {
+                result.incrementReferences();
+            }
+            return result;
         }
 
         @Nullable
