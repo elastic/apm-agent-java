@@ -340,14 +340,12 @@ public class MockReporter implements Reporter {
      */
     public synchronized void assertRecycledAfterDecrementingReferences() {
 
-        Predicate<AbstractSpan<?>> hasEmptyTraceContext = as -> as.getTraceContext().getId().isEmpty();
-
         List<Transaction> transactionsToFlush = transactions.stream()
-            .filter(hasEmptyTraceContext.negate())
+            .filter(t -> !hasEmptyTraceContext(t))
             .collect(Collectors.toList());
 
         List<Span> spansToFlush = spans.stream()
-            .filter(hasEmptyTraceContext.negate())
+            .filter(s-> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
         transactionsToFlush.forEach(Transaction::decrementReferences);
@@ -355,7 +353,7 @@ public class MockReporter implements Reporter {
 
         // after decrement, all transactions and spans should have been recycled
         transactions.forEach(t -> {
-            assertThat(hasEmptyTraceContext.test(t))
+            assertThat(hasEmptyTraceContext(t))
                 .describedAs("should have empty trace context : %s", t)
                 .isTrue();
             assertThat(t.isReferenced())
@@ -363,7 +361,7 @@ public class MockReporter implements Reporter {
                 .isFalse();
         });
         spans.forEach(s -> {
-            assertThat(hasEmptyTraceContext.test(s))
+            assertThat(hasEmptyTraceContext(s))
                 .describedAs("should have empty trace context : %s", s)
                 .isTrue();
             assertThat(s.isReferenced())
@@ -373,5 +371,9 @@ public class MockReporter implements Reporter {
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
+    }
+
+    private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
+        return item.getTraceContext().getId().isEmpty();
     }
 }

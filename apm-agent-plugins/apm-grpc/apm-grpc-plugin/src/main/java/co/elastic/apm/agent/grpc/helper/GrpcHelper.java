@@ -53,7 +53,7 @@ public interface GrpcHelper {
     @Nullable
     Transaction enterServerListenerMethod(ServerCall.Listener<?> listener);
 
-    void exitServerListenerMethod(Throwable thrown, ServerCall.Listener<?> listener, Transaction transaction, boolean isLastMethod);
+    void exitServerListenerMethod(@Nullable Throwable thrown, ServerCall.Listener<?> listener, Transaction transaction, boolean isLastMethod);
 
     // client part
 

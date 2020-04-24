@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.ObjectPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +41,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @param <T> pooled object type
  */
 public class BookkeeperObjectPool<T> implements ObjectPool<T> {
+
+    private static final Logger logger = LoggerFactory.getLogger(BookkeeperObjectPool.class);
 
     private final ObjectPool<T> pool;
     private final Set<T> toReturn = Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>());
@@ -65,13 +69,16 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
         T instance = pool.createInstance();
         toReturn.add(instance);
         objectCounter.incrementAndGet();
+        logger.debug("creating pooled object: " + instance);
         return instance;
     }
 
     @Override
     public void recycle(T obj) {
+        logger.debug("recycling pooled object: " + obj);
+
         if (!toReturn.contains(obj)) {
-            throw new IllegalStateException("trying to recycle object that has not been taken from this pool or has already been returned");
+            throw new IllegalStateException("trying to recycle object that has not been taken from this pool or has already been returned " + obj);
         }
         pool.recycle(obj);
         toReturn.remove(obj);
