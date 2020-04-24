@@ -22,12 +22,12 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc.v1_27_1.testapp;
+package co.elastic.apm.agent.grpc.v1_29_0.testapp;
 
 import co.elastic.apm.agent.grpc.testapp.HelloClient;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloGrpc;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloReply;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloRequest;
+import co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloGrpc;
+import co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply;
+import co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
