@@ -93,6 +93,30 @@ class InstrumentationTest {
     }
 
     @Test
+    void testDefaultDisabledInstrumentation() {
+        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+
+        init(config, List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEqualTo("intercepted");
+
+        when(config.getConfig(CoreConfiguration.class).getDisabledInstrumentations()).thenReturn(Collections.singletonList("experimental"));
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
+    void testLegacyDefaultDisabledInstrumentation() {
+        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+
+        init(config, List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEqualTo("intercepted");
+
+        when(config.getConfig(CoreConfiguration.class).getDisabledInstrumentations()).thenReturn(Collections.singletonList("incubating"));
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
     void testReInitDisableAllInstrumentations() {
         final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         init(config, List.of(new TestInstrumentation()));
@@ -176,7 +200,7 @@ class InstrumentationTest {
 
         @Override
         public Collection<String> getInstrumentationGroupNames() {
-            return Collections.singleton("test");
+            return List.of("test", "experimental");
         }
     }
 

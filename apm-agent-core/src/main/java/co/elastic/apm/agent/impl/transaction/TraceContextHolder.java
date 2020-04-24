@@ -156,7 +156,7 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     }
 
     public void captureException(long epochMicros, Throwable t) {
-        tracer.captureException(epochMicros, t, this);
+        tracer.captureAndReportException(epochMicros, t, this);
     }
 
     public T captureException(@Nullable Throwable t) {
@@ -168,8 +168,7 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
 
     @Nullable
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
-        ErrorCapture errorCapture = tracer.captureException(getTraceContext().getClock().getEpochMicros(), t, this);
-        return errorCapture != null ? errorCapture.getTraceContext().getId().toString() : null;
+        return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
     }
 
     /**

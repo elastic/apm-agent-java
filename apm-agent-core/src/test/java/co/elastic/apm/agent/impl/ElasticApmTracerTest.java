@@ -180,7 +180,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testRecordException() {
-        tracerImpl.captureException(new Exception("test"), getClass().getClassLoader());
+        tracerImpl.captureAndReportException(new Exception("test"), getClass().getClassLoader());
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException()).isNotNull();
@@ -200,8 +200,8 @@ class ElasticApmTracerTest {
         when(config.getConfig(CoreConfiguration.class).getIgnoreExceptions())
             .thenReturn(wildcardList);
 
-        tracerImpl.captureException(new DummyException1(), getClass().getClassLoader());
-        tracerImpl.captureException(new DummyException2(), getClass().getClassLoader());
+        tracerImpl.captureAndReportException(new DummyException1(), getClass().getClassLoader());
+        tracerImpl.captureAndReportException(new DummyException2(), getClass().getClassLoader());
         assertThat(reporter.getErrors()).isEmpty();
     }
 

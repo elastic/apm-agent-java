@@ -26,6 +26,7 @@ package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.grpc.helper.GrpcHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import net.bytebuddy.asm.Advice;
@@ -33,6 +34,8 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -69,7 +72,8 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onEnter(@Advice.Origin Class<?> clazz,
                                 @Advice.Argument(0) ServerCall<?, ?> serverCall,
-                                @Advice.Argument(1) Metadata headers) {
+                                @Advice.Argument(1) Metadata headers,
+                                @Advice.Local("transaction") Transaction transaction) {
 
         if (tracer == null || grpcHelperManager == null) {
             return;
@@ -77,8 +81,25 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
 
         GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
         if (helper != null) {
-            helper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
+            transaction = helper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
         }
+    }
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    private static void onExit(@Advice.Thrown Throwable thrown,
+                               @Advice.Argument(0) ServerCall<?, ?> serverCall,
+                               @Advice.Return ServerCall.Listener<?> listener,
+                               @Advice.Local("transaction") @Nullable Transaction transaction) {
+
+        if (tracer == null || grpcHelperManager == null || transaction == null) {
+            return;
+        }
+
+        GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
+        if (helper != null) {
+            helper.registerTransactionAndDeactivate(transaction, serverCall, listener);
+        }
+
     }
 
 }

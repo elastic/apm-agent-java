@@ -88,7 +88,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .key("profiling_inferred_spans_included_classes")
         .configurationCategory(PROFILING_CATEGORY)
         .description("If set, the agent will only create inferred spans for methods which match this list.\n" +
-            "Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.\n" +
+            "Setting a value may slightly reduce overhead and can reduce clutter by only creating spans for the classes you are interested in.\n" +
             "Example: `org.example.myapp.*`\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)

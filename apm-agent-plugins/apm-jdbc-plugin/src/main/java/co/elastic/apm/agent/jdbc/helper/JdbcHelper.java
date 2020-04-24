@@ -69,13 +69,4 @@ public abstract class JdbcHelper {
     @Nullable
     public abstract Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
 
-    /**
-     * Safely wraps calls to {@link java.sql.Statement#getUpdateCount()}
-     *
-     * @param statement {@code java.sql.Statement} instance
-     * @return {@link Long#MIN_VALUE} if statement does not support this feature, returned value otherwise
-     */
-    public abstract long safeGetUpdateCount(Object statement);
-
-
 }

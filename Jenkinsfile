@@ -260,7 +260,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.doc_ci }
+            expression { return env.ONLY_DOCS == "false" }
           }
           steps {
             withGithubNotify(context: 'Javadoc') {

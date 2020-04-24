@@ -28,12 +28,23 @@ endif::[]
 [float]
 ===== Features
 
+* The log correlation feature now adds `error.id` to the MDC. See <<supported-logging-frameworks>> for details. - {pull}1050[#1050]
+* Deprecating the `incubating` tag in favour of the `experimental` tag.
+This is not a breaking change, so former
+<<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
+* Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
+* Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
+
 [float]
 ===== Bug fixes
-* When Servlet-related Exceptions are handled through exception handlers that return a 200 status code, agent
-shouldn't override with 500 - {pull}1103[#1103]
+
+* When Servlet-related Exceptions are handled through exception handlers that return a 200 status code, agent shouldn't override with 500 - {pull}1103[#1103]
 * Exclude Quartz 1 from instrumentation to avoid
   `IncompatibleClassChangeError: Found class org.quartz.JobExecutionContext, but interface was expected` - {pull}1108[#1108]
+* Fix breakdown metrics span sub-types {pull}1113[#1113]
+* Fix flaky gRPC server instrumentation {pull}1122[#1122]
+* Fix side effect of calling `Statement.getUpdateCount` more than once {pull}1139[#1139]
+* Stop capturing JDBC affected rows count using `Statement.getUpdateCount` to prevent unreliable side-effects {pull}1147[#1147]
 
 
 [[release-notes-1.x]]
@@ -290,7 +301,7 @@ This requires APM Server 7.2+.
 * Added basic support for JMS- distributed tracing for basic scenarios of `send`, `receive`, `receiveNoWait` and `onMessage`.
 Both Queues and Topics are supported.
 Async `send` APIs are not supported in this version. 
-NOTE: This feature is currently marked as "Incubating" and is disabled by default. In order to enable,
+NOTE: This feature is currently marked as "experimental" and is disabled by default. In order to enable,
 it is required to set the
 https://www.elastic.co/guide/en/apm/agent/java/1.x/config-core.html#config-disable-instrumentations[`disable_instrumentations`] 
 configuration property to an empty string.

@@ -70,7 +70,9 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Thrown @Nullable Throwable thrown, @Advice.Argument(0) Status status) {
+    private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                               @Advice.This ServerCall<?,?> serverCall,
+                               @Advice.Argument(0) Status status) {
 
         if (tracer == null || grpcHelperManager == null) {
             return;
@@ -78,7 +80,7 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
 
         GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
         if (helper != null) {
-            helper.endTransaction(status, thrown, tracer.currentTransaction());
+            helper.endTransaction(status, thrown, serverCall);
         }
     }
 }

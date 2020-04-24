@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -38,13 +38,13 @@ import java.io.File;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-@DisabledOnOs(OS.MAC)
 class SystemMetricsTest {
 
     private MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
     private SystemMetrics systemMetrics = new SystemMetrics();
 
     @Test
+    @DisabledOnOs(OS.MAC)
     void testSystemMetrics() throws InterruptedException {
         systemMetrics.bindTo(metricRegistry);
         // makes sure system.cpu.total.norm.pct does not return NaN
@@ -66,6 +66,7 @@ class SystemMetricsTest {
         SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()));
         systemMetrics.bindTo(metricRegistry);
         assertThat(metricRegistry.getGaugeValue("system.memory.actual.free", Labels.EMPTY)).isEqualTo(value);
+        assertThat(metricRegistry.getGaugeValue("system.memory.total", Labels.EMPTY)).isEqualTo(7964778496L);
     }
 
     private void consumeCpu() {
