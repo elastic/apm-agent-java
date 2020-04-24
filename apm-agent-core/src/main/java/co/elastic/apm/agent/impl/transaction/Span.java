@@ -107,11 +107,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private Span start(long epochMicros) {
         if (transaction != null) {
             SpanCount spanCount = transaction.getSpanCount();
+            spanCount.getTotal().incrementAndGet();
             if (isDropped(epochMicros, transaction)) {
                 traceContext.setRecorded(false);
                 spanCount.getDropped().incrementAndGet();
             }
-            spanCount.getStarted().incrementAndGet();
         }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);

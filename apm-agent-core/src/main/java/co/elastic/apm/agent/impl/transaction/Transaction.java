@@ -225,8 +225,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     boolean isSpanLimitReached() {
-        SpanCount spanCount = getSpanCount();
-        return maxSpans <= spanCount.getStarted().get() - spanCount.getDropped().get() - spanCount.getDroppedMinDuration().get();
+        return getSpanCount().isSpanLimitReached(maxSpans);
     }
 
     public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getTimerBySpanTypeAndSubtype() {

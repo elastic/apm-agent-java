@@ -457,11 +457,11 @@ public class ElasticApmTracer {
             span.decrementReferences();
             return;
         }
-        Transaction transaction = span.getTransaction();
         if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis() * 1000) {
             span.requestDiscarding();
         }
         if (span.isDiscarded()) {
+            Transaction transaction = span.getTransaction();
             if (transaction != null) {
                 transaction.getSpanCount().getDropped().incrementAndGet();
             }
@@ -475,6 +475,10 @@ public class ElasticApmTracer {
         AbstractSpan<?> parent = span.getParent();
         if (parent != null && parent.isDiscarded()) {
             logger.warn("Reporting a child of an discarded span. The current span '{}' will not be shown in the UI. Consider deactivating span_min_duration.", span);
+        }
+        Transaction transaction = span.getTransaction();
+        if (transaction != null) {
+            transaction.getSpanCount().getReported().incrementAndGet();
         }
         // makes sure that parents are also non-discardable
         span.setNonDiscardable();

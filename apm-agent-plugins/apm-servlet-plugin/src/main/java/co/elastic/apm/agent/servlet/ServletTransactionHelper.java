@@ -163,7 +163,7 @@ public class ServletTransactionHelper {
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
-                transaction.requestDiscarding();
+                transaction.ignoreTransaction();
             } else {
                 doOnAfter(transaction, exception, committed, status, overrideStatusCodeOnThrowable, method,
                     parameterMap, servletPath, pathInfo, contentTypeHeader)

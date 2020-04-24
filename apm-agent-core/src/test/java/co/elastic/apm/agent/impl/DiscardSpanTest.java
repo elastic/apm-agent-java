@@ -61,7 +61,7 @@ public class DiscardSpanTest {
         try {
             Span span = transaction.createSpan();
             try {
-                span.setOutgoingTraceContextHeaders(new HashMap<>(), (k, v, map) -> map.put(k, v));
+                span.setOutgoingTraceContextHeaders(new HashMap<>(), TextHeaderMapAccessor.INSTANCE);
                 assertThat(span.isDiscardable()).isFalse();
             } finally {
                 span.end();
@@ -69,6 +69,10 @@ public class DiscardSpanTest {
         } finally {
             transaction.end();
         }
+
+        assertThat(transaction.getSpanCount().getTotal()).hasValue(1);
+        assertThat(transaction.getSpanCount().getDropped()).hasValue(0);
+        assertThat(transaction.getSpanCount().getReported()).hasValue(1);
     }
 
     @Test
@@ -88,6 +92,10 @@ public class DiscardSpanTest {
             transaction.end();
         }
         assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("non-discardable");
+
+        assertThat(transaction.getSpanCount().getTotal()).hasValue(1);
+        assertThat(transaction.getSpanCount().getDropped()).hasValue(0);
+        assertThat(transaction.getSpanCount().getReported()).hasValue(1);
     }
 
     @Test
@@ -111,6 +119,10 @@ public class DiscardSpanTest {
         } finally {
             transaction.end();
         }
+
+        assertThat(transaction.getSpanCount().getTotal()).hasValue(2);
+        assertThat(transaction.getSpanCount().getDropped()).hasValue(0);
+        assertThat(transaction.getSpanCount().getReported()).hasValue(2);
     }
 
     @Test
@@ -127,6 +139,9 @@ public class DiscardSpanTest {
             transaction.end();
         }
         assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("1st", "2nd");
+        assertThat(transaction.getSpanCount().getTotal()).hasValue(4);
+        assertThat(transaction.getSpanCount().getDropped()).hasValue(2);
+        assertThat(transaction.getSpanCount().getReported()).hasValue(2);
     }
 
     @Test
@@ -150,6 +165,9 @@ public class DiscardSpanTest {
             transaction.end();
         }
         assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("2nd", "1st");
+        assertThat(transaction.getSpanCount().getTotal()).hasValue(3);
+        assertThat(transaction.getSpanCount().getDropped()).hasValue(1);
+        assertThat(transaction.getSpanCount().getReported()).hasValue(2);
     }
 
     @Test
@@ -181,5 +199,8 @@ public class DiscardSpanTest {
             transaction.end();
         }
         assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("1st", "2nd");
+        assertThat(transaction.getSpanCount().getTotal()).hasValue(5);
+        assertThat(transaction.getSpanCount().getDropped()).hasValue(3);
+        assertThat(transaction.getSpanCount().getReported()).hasValue(2);
     }
 }
