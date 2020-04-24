@@ -268,7 +268,7 @@ class CallTreeTest {
     /*
      * [1            ]    [1            ]
      *  [a          ]      [a          ]
-     *   [2   ]  [3]        [b    ] [3]   <- b is supposed to stealSuccessorsFom(a)
+     *   [2   ]  [3]        [b    ] [3]   <- b is supposed to stealChildIdsFom(a)
      *    [b   ]            [2   ]           however, it should only steal 2, not 3
      */
     @Test

@@ -65,30 +65,30 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     private int namePriority = PRIO_DEFAULT;
     /**
      * <p>
-     * This use case for successors is modifying parent/child relationships for profiler-inferred spans.
+     * This use case for child ids is modifying parent/child relationships for profiler-inferred spans.
      * Inferred spans are sent after a profiling session ends (5s by default) and after stack traces have been processed into inferred spans.
      * Regular spans are sent right after the event (for example a DB call) has occurred.
      * The effect is that a regular span cannot have a {@link TraceContext#parentId} pointing to an inferred span.
      * That is because the latter did not exist at the time the regular span has been created.
      * </p>
      * <p>
-     * To work around this problem, inferred spans can point to their children (aka successors).
+     * To work around this problem, inferred spans can point to their children.
      * The UI does an operation known as "transitive reduction".
      * What this does in this scenario is that it ignores the parent ID of a regular span if there's an inferred span
-     * with a {@code successor_id} for this span.
+     * with a {@code child_id} for this span.
      * </p>
      * <pre>
      * ██████████████████████████████  transaction
      * ↑ ↑ parent_id
      * ╷ └──████████████████████       inferred span
-     * ╷         ↓ successor_id
+     * ╷         ↓ child_id
      * └╶╶╶╶╶╶╶╶╶██████████            DB span
      *  parent_id
      *  (removed via transitive reduction)
      * </pre>
      */
     @Nullable
-    private LongList successors;
+    private LongList childIds;
 
     public int getReferenceCount() {
         return references.get();
@@ -291,7 +291,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         childDurations.resetState();
         references.set(0);
         namePriority = PRIO_DEFAULT;
-        successors = null;
+        childIds = null;
     }
 
     @Override
@@ -359,13 +359,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected abstract void afterEnd();
 
     public boolean isChildOf(AbstractSpan<?> parent) {
-        return isChildOf(parent.traceContext) || isSuccessor(parent);
+        return isChildOf(parent.traceContext) || parent.hasChildId(traceContext.getId());
     }
 
-    private boolean isSuccessor(AbstractSpan<?> parent) {
-        if (parent.successors != null) {
-            long id = traceContext.getId().readLong(0);
-            return parent.successors.contains(id);
+    private boolean hasChildId(Id spanId) {
+        if (childIds != null) {
+            return childIds.contains(spanId.readLong(0));
         }
         return false;
     }
@@ -471,14 +470,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     protected abstract void recycle();
 
-    public T withSuccessors(@Nullable LongList successors) {
-        this.successors = successors;
+    public T withChildIds(@Nullable LongList childIds) {
+        this.childIds = childIds;
         return thiz();
     }
 
     @Nullable
-    public LongList getSuccessors() {
-        return successors;
+    public LongList getChildIds() {
+        return childIds;
     }
 
     protected abstract T thiz();

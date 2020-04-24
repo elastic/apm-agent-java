@@ -387,18 +387,18 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testSpanSuccessorSerialization() {
+    void testSpanChildIdSerialization() {
         Id id1 = Id.new64BitId();
         id1.setToRandomValue();
         Id id2 = Id.new64BitId();
         id2.setToRandomValue();
         Span span = new Span(MockTracer.create());
-        span.withSuccessors(LongList.of(id1.getLeastSignificantBits(), id2.getLeastSignificantBits()));
+        span.withChildIds(LongList.of(id1.getLeastSignificantBits(), id2.getLeastSignificantBits()));
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
-        JsonNode successor_ids = spanJson.get("successor_ids");
-        assertThat(successor_ids.get(0).textValue()).isEqualTo(id1.toString());
-        assertThat(successor_ids.get(1).textValue()).isEqualTo(id2.toString());
+        JsonNode child_ids = spanJson.get("child_ids");
+        assertThat(child_ids.get(0).textValue()).isEqualTo(id1.toString());
+        assertThat(child_ids.get(1).textValue()).isEqualTo(id2.toString());
     }
 
     @Test
@@ -591,18 +591,6 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(0);
-    }
-
-    @Test
-    void testTransactionSuccessorSerialization() {
-        Transaction span = new Transaction(MockTracer.create());
-        Id id = Id.new64BitId();
-        id.setToRandomValue();
-        span.withSuccessors(LongList.of(id.getLeastSignificantBits()));
-
-        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
-        JsonNode successorIds = spanJson.get("successor_ids");
-        assertThat(successorIds.get(0).textValue()).isEqualTo(id.toString());
     }
 
     @Test

@@ -496,7 +496,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeField("result", transaction.getResult());
         serializeContext(transaction.getContext(), transaction.getTraceContext());
         serializeSpanCount(transaction.getSpanCount());
-        writeHexArray("successor_ids", transaction.getSuccessors());
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
     }
@@ -541,7 +540,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             serializeStackTrace(span.getStackFrames());
         }
         serializeSpanContext(span.getContext(), span.getTraceContext());
-        writeHexArray("successor_ids", span.getSuccessors());
+        writeHexArray("child_ids", span.getChildIds());
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
