@@ -1458,12 +1458,12 @@ This option is case-insensitive.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `INFO` | Level | true
+| `INFO` | LogLevel | true
 |============
 
 
@@ -2857,9 +2857,9 @@ The default unit for this option is `ms`.
 # 
 # This option is case-insensitive.
 #
-# Valid options: ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
-# Type: Level
+# Type: LogLevel
 # Default value: INFO
 #
 # log_level=INFO
