@@ -17,33 +17,9 @@
         <!-- test module, thus reusing same java version as other tests -->
         <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
 
-        <grpc.version>1.29.0</grpc.version>
+        <grpc.version>[1.29.0,)</grpc.version>
         <protobuf.version>3.11.0</protobuf.version>
     </properties>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>versions-maven-plugin</artifactId>
-                <version>2.7</version>
-                <executions>
-                    <execution>
-                        <phase>initialize</phase>
-                        <goals>
-                            <!-- because grpc version is set using a shared property -->
-                            <goal>update-properties</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>io.grpc:*</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 
     <dependencies>
         <dependency>
