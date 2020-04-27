@@ -107,11 +107,17 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private Span start(long epochMicros) {
         if (transaction != null) {
             SpanCount spanCount = transaction.getSpanCount();
-            spanCount.getTotal().incrementAndGet();
-            if (isDropped(epochMicros, transaction)) {
+            if (transaction.isSpanLimitReached()) {
+                if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
+                    lastSpanMaxWarningTimestamp = epochMicros;
+                    logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.",
+                        tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans(), transaction);
+                }
+                logger.debug("Span exceeds transaction_max_spans {}", this);
                 traceContext.setRecorded(false);
                 spanCount.getDropped().incrementAndGet();
             }
+            spanCount.getTotal().incrementAndGet();
         }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
@@ -127,19 +133,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
         onAfterStart();
         return this;
-    }
-
-    private boolean isDropped(long epochMicros, Transaction transaction) {
-        if (transaction.isSpanLimitReached()) {
-            if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
-                lastSpanMaxWarningTimestamp = epochMicros;
-                logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.",
-                    tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans(), transaction);
-            }
-            return true;
-        } else {
-            return false;
-        }
     }
 
     @Override

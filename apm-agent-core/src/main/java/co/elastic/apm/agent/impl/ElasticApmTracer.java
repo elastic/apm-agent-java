@@ -458,9 +458,11 @@ public class ElasticApmTracer {
             return;
         }
         if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis() * 1000) {
+            logger.debug("Span faster than span_min_duration. Request discarding {}", span);
             span.requestDiscarding();
         }
         if (span.isDiscarded()) {
+            logger.debug("Discarding span {}", span);
             Transaction transaction = span.getTransaction();
             if (transaction != null) {
                 transaction.getSpanCount().getDropped().incrementAndGet();
