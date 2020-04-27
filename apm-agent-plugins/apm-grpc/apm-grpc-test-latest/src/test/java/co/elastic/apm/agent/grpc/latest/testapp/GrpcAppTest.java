@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc.v1_29_0.testapp;
+package co.elastic.apm.agent.grpc.latest.testapp;
 
 import co.elastic.apm.agent.grpc.GrpcTestNameGenerator;
 import co.elastic.apm.agent.grpc.testapp.AbstractGrpcAppTest;

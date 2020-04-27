@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc.v1_29_0.testapp.generated;
+package co.elastic.apm.agent.grpc.latest.testapp.generated;
 
 import static io.grpc.MethodDescriptor.generateFullMethodName;
 import static io.grpc.stub.ClientCalls.asyncBidiStreamingCall;
@@ -51,29 +51,29 @@ public final class HelloGrpc {
   public static final String SERVICE_NAME = "helloworld.Hello";
 
   // Static method descriptors that strictly reflect the proto.
-  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloMethod;
+  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "SayHello",
-      requestType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.class,
-      responseType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.class,
+      requestType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.class,
+      responseType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloMethod() {
-    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloMethod;
+  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloMethod() {
+    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloMethod;
     if ((getSayHelloMethod = HelloGrpc.getSayHelloMethod) == null) {
       synchronized (HelloGrpc.class) {
         if ((getSayHelloMethod = HelloGrpc.getSayHelloMethod) == null) {
           HelloGrpc.getSayHelloMethod = getSayHelloMethod =
-              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>newBuilder()
+              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SayHello"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.getDefaultInstance()))
               .setSchemaDescriptor(new HelloMethodDescriptorSupplier("SayHello"))
               .build();
         }
@@ -82,29 +82,29 @@ public final class HelloGrpc {
     return getSayHelloMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayManyHelloMethod;
+  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayManyHelloMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "SayManyHello",
-      requestType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.class,
-      responseType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.class,
+      requestType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.class,
+      responseType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.class,
       methodType = io.grpc.MethodDescriptor.MethodType.CLIENT_STREAMING)
-  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayManyHelloMethod() {
-    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayManyHelloMethod;
+  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayManyHelloMethod() {
+    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayManyHelloMethod;
     if ((getSayManyHelloMethod = HelloGrpc.getSayManyHelloMethod) == null) {
       synchronized (HelloGrpc.class) {
         if ((getSayManyHelloMethod = HelloGrpc.getSayManyHelloMethod) == null) {
           HelloGrpc.getSayManyHelloMethod = getSayManyHelloMethod =
-              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>newBuilder()
+              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.CLIENT_STREAMING)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SayManyHello"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.getDefaultInstance()))
               .setSchemaDescriptor(new HelloMethodDescriptorSupplier("SayManyHello"))
               .build();
         }
@@ -113,29 +113,29 @@ public final class HelloGrpc {
     return getSayManyHelloMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloManyMethod;
+  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloManyMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "SayHelloMany",
-      requestType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.class,
-      responseType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.class,
+      requestType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.class,
+      responseType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.class,
       methodType = io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
-  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloManyMethod() {
-    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloManyMethod;
+  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloManyMethod() {
+    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloManyMethod;
     if ((getSayHelloManyMethod = HelloGrpc.getSayHelloManyMethod) == null) {
       synchronized (HelloGrpc.class) {
         if ((getSayHelloManyMethod = HelloGrpc.getSayHelloManyMethod) == null) {
           HelloGrpc.getSayHelloManyMethod = getSayHelloManyMethod =
-              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>newBuilder()
+              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SayHelloMany"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.getDefaultInstance()))
               .setSchemaDescriptor(new HelloMethodDescriptorSupplier("SayHelloMany"))
               .build();
         }
@@ -144,29 +144,29 @@ public final class HelloGrpc {
     return getSayHelloManyMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloStreamMethod;
+  private static volatile io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloStreamMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "SayHelloStream",
-      requestType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.class,
-      responseType = co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.class,
+      requestType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.class,
+      responseType = co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.class,
       methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
-  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-      co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloStreamMethod() {
-    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> getSayHelloStreamMethod;
+  public static io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+      co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloStreamMethod() {
+    io.grpc.MethodDescriptor<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> getSayHelloStreamMethod;
     if ((getSayHelloStreamMethod = HelloGrpc.getSayHelloStreamMethod) == null) {
       synchronized (HelloGrpc.class) {
         if ((getSayHelloStreamMethod = HelloGrpc.getSayHelloStreamMethod) == null) {
           HelloGrpc.getSayHelloStreamMethod = getSayHelloStreamMethod =
-              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>newBuilder()
+              io.grpc.MethodDescriptor.<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest, co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SayHelloStream"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply.getDefaultInstance()))
+                  co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply.getDefaultInstance()))
               .setSchemaDescriptor(new HelloMethodDescriptorSupplier("SayHelloStream"))
               .build();
         }
@@ -228,8 +228,8 @@ public final class HelloGrpc {
      * unary method call
      * </pre>
      */
-    public void sayHello(co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest request,
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public void sayHello(co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest request,
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       asyncUnimplementedUnaryCall(getSayHelloMethod(), responseObserver);
     }
 
@@ -238,8 +238,8 @@ public final class HelloGrpc {
      * client streaming
      * </pre>
      */
-    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest> sayManyHello(
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest> sayManyHello(
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       return asyncUnimplementedStreamingCall(getSayManyHelloMethod(), responseObserver);
     }
 
@@ -248,8 +248,8 @@ public final class HelloGrpc {
      * server streaming
      * </pre>
      */
-    public void sayHelloMany(co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest request,
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public void sayHelloMany(co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest request,
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       asyncUnimplementedUnaryCall(getSayHelloManyMethod(), responseObserver);
     }
 
@@ -258,8 +258,8 @@ public final class HelloGrpc {
      * bidi streaming
      * </pre>
      */
-    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest> sayHelloStream(
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest> sayHelloStream(
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       return asyncUnimplementedStreamingCall(getSayHelloStreamMethod(), responseObserver);
     }
 
@@ -269,29 +269,29 @@ public final class HelloGrpc {
             getSayHelloMethod(),
             asyncUnaryCall(
               new MethodHandlers<
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>(
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>(
                   this, METHODID_SAY_HELLO)))
           .addMethod(
             getSayManyHelloMethod(),
             asyncClientStreamingCall(
               new MethodHandlers<
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>(
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>(
                   this, METHODID_SAY_MANY_HELLO)))
           .addMethod(
             getSayHelloManyMethod(),
             asyncServerStreamingCall(
               new MethodHandlers<
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>(
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>(
                   this, METHODID_SAY_HELLO_MANY)))
           .addMethod(
             getSayHelloStreamMethod(),
             asyncBidiStreamingCall(
               new MethodHandlers<
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest,
-                co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>(
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest,
+                co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>(
                   this, METHODID_SAY_HELLO_STREAM)))
           .build();
     }
@@ -316,8 +316,8 @@ public final class HelloGrpc {
      * unary method call
      * </pre>
      */
-    public void sayHello(co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest request,
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public void sayHello(co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest request,
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       asyncUnaryCall(
           getChannel().newCall(getSayHelloMethod(), getCallOptions()), request, responseObserver);
     }
@@ -327,8 +327,8 @@ public final class HelloGrpc {
      * client streaming
      * </pre>
      */
-    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest> sayManyHello(
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest> sayManyHello(
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       return asyncClientStreamingCall(
           getChannel().newCall(getSayManyHelloMethod(), getCallOptions()), responseObserver);
     }
@@ -338,8 +338,8 @@ public final class HelloGrpc {
      * server streaming
      * </pre>
      */
-    public void sayHelloMany(co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest request,
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public void sayHelloMany(co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest request,
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       asyncServerStreamingCall(
           getChannel().newCall(getSayHelloManyMethod(), getCallOptions()), request, responseObserver);
     }
@@ -349,8 +349,8 @@ public final class HelloGrpc {
      * bidi streaming
      * </pre>
      */
-    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest> sayHelloStream(
-        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> responseObserver) {
+    public io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest> sayHelloStream(
+        io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> responseObserver) {
       return asyncBidiStreamingCall(
           getChannel().newCall(getSayHelloStreamMethod(), getCallOptions()), responseObserver);
     }
@@ -375,7 +375,7 @@ public final class HelloGrpc {
      * unary method call
      * </pre>
      */
-    public co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply sayHello(co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest request) {
+    public co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply sayHello(co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest request) {
       return blockingUnaryCall(
           getChannel(), getSayHelloMethod(), getCallOptions(), request);
     }
@@ -385,8 +385,8 @@ public final class HelloGrpc {
      * server streaming
      * </pre>
      */
-    public java.util.Iterator<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> sayHelloMany(
-        co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest request) {
+    public java.util.Iterator<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> sayHelloMany(
+        co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest request) {
       return blockingServerStreamingCall(
           getChannel(), getSayHelloManyMethod(), getCallOptions(), request);
     }
@@ -411,8 +411,8 @@ public final class HelloGrpc {
      * unary method call
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply> sayHello(
-        co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply> sayHello(
+        co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest request) {
       return futureUnaryCall(
           getChannel().newCall(getSayHelloMethod(), getCallOptions()), request);
     }
@@ -441,12 +441,12 @@ public final class HelloGrpc {
     public void invoke(Req request, io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
         case METHODID_SAY_HELLO:
-          serviceImpl.sayHello((co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest) request,
-              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>) responseObserver);
+          serviceImpl.sayHello((co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest) request,
+              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>) responseObserver);
           break;
         case METHODID_SAY_HELLO_MANY:
-          serviceImpl.sayHelloMany((co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloRequest) request,
-              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>) responseObserver);
+          serviceImpl.sayHelloMany((co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest) request,
+              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -460,10 +460,10 @@ public final class HelloGrpc {
       switch (methodId) {
         case METHODID_SAY_MANY_HELLO:
           return (io.grpc.stub.StreamObserver<Req>) serviceImpl.sayManyHello(
-              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>) responseObserver);
+              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>) responseObserver);
         case METHODID_SAY_HELLO_STREAM:
           return (io.grpc.stub.StreamObserver<Req>) serviceImpl.sayHelloStream(
-              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.HelloReply>) responseObserver);
+              (io.grpc.stub.StreamObserver<co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply>) responseObserver);
         default:
           throw new AssertionError();
       }
@@ -476,7 +476,7 @@ public final class HelloGrpc {
 
     @java.lang.Override
     public com.google.protobuf.Descriptors.FileDescriptor getFileDescriptor() {
-      return co.elastic.apm.agent.grpc.v1_29_0.testapp.generated.Rpc.getDescriptor();
+      return co.elastic.apm.agent.grpc.latest.testapp.generated.Rpc.getDescriptor();
     }
 
     @java.lang.Override
