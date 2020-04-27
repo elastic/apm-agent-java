@@ -79,8 +79,9 @@ public class CallTree implements Recyclable {
     private TraceContext activeContextOfDirectParent;
     private long deactivationTimestamp = -1;
     private boolean isSpan;
+    private int depth;
     /**
-     * @see co.elastic.apm.agent.impl.transaction.Span#childIds
+     * @see co.elastic.apm.agent.impl.transaction.AbstractSpan#childIds
      */
     @Nullable
     private LongList childIds;
@@ -92,6 +93,29 @@ public class CallTree implements Recyclable {
         this.parent = parent;
         this.frame = frame;
         this.start = nanoTime;
+        if (parent != null) {
+            this.depth = parent.depth + 1;
+        }
+    }
+
+    public boolean isSuccessor(CallTree parent) {
+        if (depth > parent.depth) {
+            return getNthParent(depth - parent.depth) == parent;
+        }
+        return false;
+    }
+
+    @Nullable
+    public CallTree getNthParent(int n) {
+        CallTree parent = this;
+        for (int i = 0; i < n; i++) {
+            if (parent != null) {
+                parent = parent.parent;
+            } else {
+                return null;
+            }
+        }
+        return parent;
     }
 
     public void activation(TraceContext traceContext, long activationTimestamp) {
@@ -194,8 +218,7 @@ public class CallTree implements Recyclable {
             callTree.activation(traceContext, activationTimestamp);
         }
         children.add(callTree);
-        callTree.addFrame(stackFrames, index, null, activationTimestamp, nanoTime, callTreePool, minDurationNs);
-        return callTree;
+        return callTree.addFrame(stackFrames, index, null, activationTimestamp, nanoTime, callTreePool, minDurationNs);
     }
 
     long getDurationUs() {
@@ -405,6 +428,7 @@ public class CallTree implements Recyclable {
         deactivationTimestamp = -1;
         isSpan = false;
         childIds = null;
+        depth = 0;
         if (children.size() > INITIAL_CHILD_SIZE) {
             // the overwhelming majority of call tree nodes has either one or two children
             // don't let outliers grow all lists in the pool over time
@@ -431,6 +455,10 @@ public class CallTree implements Recyclable {
             this.childIds.addAll(other.childIds);
         }
         other.childIds = null;
+    }
+
+    public int getDepth() {
+        return depth;
     }
 
     /**
@@ -465,6 +493,8 @@ public class CallTree implements Recyclable {
         @Nullable
         private CallTree topOfStack;
 
+        private LongList activationStack = new LongList();
+
         public Root(ElasticApmTracer tracer) {
             this.rootContext = TraceContext.with64BitId(tracer);
         }
@@ -483,10 +513,10 @@ public class CallTree implements Recyclable {
 
         public void onActivation(byte[] active, long timestamp) {
             setActiveSpan(active, timestamp);
-            if (!getChildren().isEmpty()) {
-                if (topOfStack != null) {
-                    topOfStack.addChildId(TraceContext.getSpanId(active));
-                }
+            if (topOfStack != null) {
+                long spanId = TraceContext.getSpanId(active);
+                activationStack.add(spanId);
+                topOfStack.addChildId(spanId);
             }
         }
 
@@ -499,16 +529,42 @@ public class CallTree implements Recyclable {
             }
             // else: activeSpan has not been materialized because no stack traces were added during this activation
             setActiveSpan(active, timestamp);
+            if (topOfStack != null) {
+                activationStack.remove(TraceContext.getSpanId(deactivated));
+            }
         }
 
         public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
             // only "materialize" trace context if there's actually an associated stack trace to the activation
             // avoids allocating a TraceContext for very short activations which have no effect on the CallTree anyway
+            boolean firstFrameAfterActivation = false;
             if (activeSpan == null) {
+                firstFrameAfterActivation = true;
                 activeSpan = TraceContext.with64BitId(tracer);
                 activeSpan.deserialize(activeSpanSerialized, rootContext.getServiceName());
             }
+            CallTree previousTopOfStack = this.topOfStack;
             topOfStack = addFrame(stackTrace, stackTrace.size(), activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs);
+
+            // After adding the first frame after an activation, we can check if we added the child ids to the correct CallTree
+            // If the new top of stack is not a successor (a different branch vs just added nodes on the same branch)
+            // we have to transfer the child ids of not yet deactivated spans to the new top of the stack.
+            // See also CallTreeTest.testActivationAfterMethodEnds and following tests.
+            if (firstFrameAfterActivation && previousTopOfStack != topOfStack && previousTopOfStack != null && previousTopOfStack.childIds != null) {
+                if (!topOfStack.isSuccessor(previousTopOfStack)) {
+                    stealActiveChildIds(previousTopOfStack.childIds, topOfStack, activationStack);
+                }
+            }
+        }
+
+        private static void stealActiveChildIds(LongList stealFrom, CallTree giveTo, LongList activeSpanIds) {
+            for (int i = activeSpanIds.getSize() - 1; i >= 0; i--) {
+                if (stealFrom.remove(activeSpanIds.get(i))) {
+                    giveTo.addChildId(activeSpanIds.get(i));
+                } else {
+                    return;
+                }
+            }
         }
 
         /**
@@ -552,6 +608,7 @@ public class CallTree implements Recyclable {
             activeSpan = null;
             activationTimestamp = -1;
             topOfStack = null;
+            activationStack.clear();
         }
     }
 }

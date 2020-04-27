@@ -95,6 +95,7 @@ class CallTreeTest {
         System.out.println(root);
 
         assertThat(root.getCount()).isEqualTo(4);
+        assertThat(root.getDepth()).isEqualTo(0);
         assertThat(root.getChildren()).hasSize(1);
 
         CallTree a = root.getLastChild();
@@ -102,12 +103,17 @@ class CallTreeTest {
         assertThat(a.getFrame().getMethodName()).isEqualTo("a");
         assertThat(a.getCount()).isEqualTo(4);
         assertThat(a.getChildren()).hasSize(1);
+        assertThat(a.getDepth()).isEqualTo(1);
+        assertThat(a.isSuccessor(root)).isTrue();
 
         CallTree b = a.getLastChild();
         assertThat(b).isNotNull();
         assertThat(b.getFrame().getMethodName()).isEqualTo("b");
         assertThat(b.getCount()).isEqualTo(2);
         assertThat(b.getChildren()).isEmpty();
+        assertThat(b.getDepth()).isEqualTo(2);
+        assertThat(b.isSuccessor(a)).isTrue();
+        assertThat(b.isSuccessor(root)).isTrue();
     }
 
     @Test
@@ -266,26 +272,178 @@ class CallTreeTest {
     }
 
     /*
-     * [1            ]    [1            ]
-     *  [a          ]      [a          ]
-     *   [2   ]  [3]        [b    ] [3]   <- b is supposed to stealChildIdsFom(a)
-     *    [b   ]            [2   ]           however, it should only steal 2, not 3
+     * [1           ]    [1           ]
+     *  [a         ]      [a         ]
+     *   [2   ] [3]        [b    ][3]   <- b is supposed to stealChildIdsFom(a)
+     *    [b   ]           [2   ]          however, it should only steal 2, not 3
      */
     @Test
     void testDectivationBeforeEnd2() throws Exception {
         assertCallTree(new String[]{
-            "   bbbb b      ",
-            " a aaaa aa a a ",
-            "1 2    2  3 3 1"
+            "   bbbb b     ",
+            " a aaaa a a a ",
+            "1 2    2 3 3 1"
         }, new Object[][] {
-            {"a",       9},
+            {"a",       8},
             {"  b",     5},
         }, new Object[][] {
-            {"1",       14},
-            {"  a",     12},
+            {"1",       13},
+            {"  a",     11},
             {"    b",    6},
             {"      2",  5},
             {"    3",    2},
+        });
+    }
+
+    /*
+     * [1       ]
+     *  [a     ]
+     *   [b][2]
+     */
+    @Test
+    void testActivationAfterMethodEnds() throws Exception {
+        assertCallTree(new String[]{
+            " bbb      ",
+            " aaa aa a ",
+            "1   2  2 1"
+        }, new Object[][] {
+            {"a",       6},
+            {"  b",     3},
+        }, new Object[][] {
+            {"1",       9},
+            {"  a",     7},
+            {"    b",   2},
+            {"    2",   3}
+        });
+    }
+
+    /*
+     * [1         ]
+     *  [a][2    ]
+     *  [b] [3  ]
+     *       [c]
+     */
+    @Test
+    void testNestedActivationAfterMethodEnds() throws Exception {
+        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+            " bbb        ",
+            " aaa  ccc   ",
+            "1   23   321"
+        }, new Object[][] {
+            {"a",        3},
+            {"  b",      3},
+            {"c",        3},
+        }, new Object[][] {
+            {"1",       11},
+            {"  b",      2, List.of("a")},
+            {"  2",      6},
+            {"    3",    4},
+            {"      c",  2}
+        });
+        assertThat(spans.get("b").getChildIds().getSize()).isEqualTo(0);
+    }
+
+    /*
+     * [1           ]
+     *  [a  ][3    ]
+     *  [b  ] [4  ]
+     *   [2]   [c]
+     */
+    @Test
+    void testRegularActivationFollowedByNestedActivationAfterMethodEnds() throws Exception {
+        assertCallTree(new String[]{
+            "   d          ",
+            " b b b        ",
+            " a a a  ccc   ",
+            "1 2 2 34   431"
+        }, new Object[][] {
+            {"a",        3},
+            {"  b",      3},
+            {"c",        3},
+        }, new Object[][] {
+            {"1",       13},
+            {"  b",      4, List.of("a")},
+            {"    2",    2},
+            {"  3",      6},
+            {"    4",    4},
+            {"      c",  2}
+        });
+    }
+
+    /*
+     * [1           ]
+     *  [a         ]
+     *   [b][2    ]
+     *       [3  ]
+     *        [c]
+     */
+    @Test
+    void testNestedActivationAfterMethodEnds2() throws Exception {
+        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+            "  bbb  ccc    ",
+            " aaaa  aaa  a ",
+            "1    23   32 1"
+        }, new Object[][]{
+            {"a", 8},
+            {"  b", 3},
+            {"  c", 3},
+        }, new Object[][]{
+            {"1", 13},
+            {"  a", 11},
+            {"    b", 2},
+            {"  2", 6},
+            {"    3", 4},
+            {"      c", 2}
+        });
+
+        assertThat(spans.get("b").getChildIds().getSize()).isEqualTo(0);
+    }
+
+    /*
+     * [1       ]
+     *  [a]
+     *     [2  ]
+     *      [b]
+     *      [c]
+     */
+    @Test
+    void testActivationAfterMethodEnds2() throws Exception {
+        assertCallTree(new String[]{
+            "     ccc  ",
+            " aaa bbb  ",
+            "1   2   21"
+        }, new Object[][] {
+            {"a",     3},
+            {"b",     3},
+            {"  c",   3},
+        }, new Object[][] {
+            {"1",     9},
+            {"  a",   2},
+            {"  2",   4},
+            {"    c", 2, List.of("b")}
+        });
+    }
+
+    /*
+     * [1     ]
+     *  [a   ]
+     *   [2 ]
+     *    [b]
+     */
+    @Test
+    void testActivationBeforeMethodStarts() throws Exception {
+        assertCallTree(new String[]{
+            "   bbb   ",
+            " a aaa a ",
+            "1 2   2 1"
+        }, new Object[][] {
+            {"a",       5},
+            {"  b",     3},
+        }, new Object[][] {
+            {"1",       8},
+            {"  a",     6},
+            {"    2",   4},
+            {"      b", 2}
         });
     }
 
@@ -405,7 +563,7 @@ class CallTreeTest {
         assertCallTree(stackTraces, expectedTree, null);
     }
 
-    private void assertCallTree(String[] stackTraces, Object[][] expectedTree, @Nullable Object[][] expectedSpans) throws Exception {
+    private Map<String, AbstractSpan<?>> assertCallTree(String[] stackTraces, Object[][] expectedTree, @Nullable Object[][] expectedSpans) throws Exception {
         CallTree.Root root = getCallTree(tracer, stackTraces);
         StringBuilder expectedResult = new StringBuilder();
         for (int i = 0; i < expectedTree.length; i++) {
@@ -448,8 +606,15 @@ class CallTreeTest {
                 assertThat(spans).containsKey(parentName);
                 AbstractSpan<?> span = spans.get(spanName);
                 assertThat(span.isChildOf(spans.get(parentName)))
-                    .withFailMessage("Expected %s (%s) to be a child of %s (%s) but was %s", spanName, span.getTraceContext().getId(),
-                        parentName, spans.get(parentName).getTraceContext().getId(), span.getTraceContext().getParentId())
+                    .withFailMessage("Expected %s (%s) to be a child of %s (%s) but was %s (%s)",
+                        spanName, span.getTraceContext().getId(),
+                        parentName, spans.get(parentName).getTraceContext().getId(),
+                        reporter.getSpans()
+                            .stream()
+                            .filter(s -> s.getTraceContext().getId().equals(span.getTraceContext().getParentId())).findAny()
+                            .map(Span::getNameAsString)
+                            .orElse(null),
+                        span.getTraceContext().getParentId())
                     .isTrue();
                 assertThat(span.getDuration())
                     .describedAs("Unexpected duration for span %s", span)
@@ -460,7 +625,9 @@ class CallTreeTest {
                     .collect(Collectors.toList()))
                     .isEqualTo(stackTrace);
             }
+            return spans;
         }
+        return null;
     }
 
     @Nullable

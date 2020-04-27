@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -83,5 +83,44 @@ public class LongList {
             }
         }
         return false;
+    }
+
+    public boolean remove(long l) {
+        for (int i = size - 1; i >= 0; i--) {
+            if (longs[i] == l) {
+                remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public long remove(int i) {
+        long previousValue = get(i);
+        size--;
+        if (size > i) {
+            System.arraycopy(longs, i + 1 , longs, i, size - i);
+        }
+        longs[size] = 0;
+        return previousValue;
+    }
+
+    public void clear() {
+        Arrays.fill(longs, 0);
+        size = 0;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append(longs[i]);
+        }
+        sb.append(']');
+        return sb.toString();
     }
 }

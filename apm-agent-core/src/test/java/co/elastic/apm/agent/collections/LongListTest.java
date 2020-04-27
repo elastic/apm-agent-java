@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -83,5 +83,56 @@ class LongListTest {
         for (int i = 0; i < 42; i++) {
             assertThat(longList.contains(i)).isTrue();
         }
+    }
+
+    @Test
+    void testRemoveIndex() {
+        longList.add(42);
+        longList.add(43);
+        longList.add(44);
+        assertThat(longList.remove(1)).isEqualTo(43);
+
+        assertThat(longList.getSize()).isEqualTo(2);
+        assertThat(this.longList.get(0)).isEqualTo(42);
+        assertThat(this.longList.get(1)).isEqualTo(44);
+    }
+
+    @Test
+    void testRemoveIndexOutOfBounds() {
+        longList.add(42);
+        assertThatThrownBy(() -> longList.remove(1)).isInstanceOf(IndexOutOfBoundsException.class);
+    }
+
+    @Test
+    void testRemoveLongLast() {
+        longList.add(42);
+        longList.add(43);
+        longList.add(44);
+        assertThat(longList.remove(44L)).isTrue();
+
+        assertThat(longList.getSize()).isEqualTo(2);
+        assertThat(this.longList.get(0)).isEqualTo(42);
+        assertThat(this.longList.get(1)).isEqualTo(43);
+    }
+
+    @Test
+    void testRemoveNotInList() {
+        longList.add(42);
+        assertThat(longList.remove(44L)).isFalse();
+
+        assertThat(longList.getSize()).isEqualTo(1);
+        assertThat(this.longList.get(0)).isEqualTo(42);
+    }
+
+    @Test
+    void testRemoveLong() {
+        longList.add(42);
+        longList.add(43);
+        longList.add(44);
+        longList.remove(42L);
+
+        assertThat(longList.getSize()).isEqualTo(2);
+        assertThat(this.longList.get(0)).isEqualTo(43);
+        assertThat(this.longList.get(1)).isEqualTo(44);
     }
 }
