@@ -139,39 +139,16 @@ pipeline {
         stage('Branch creation') {
           steps {
             dir("${BASE_DIR}") {
+              githubEnv()
               script {
                 def curVer = mvnVersion()
+                sh(script: "./scripts/jenkins/branch_creation.sh ${curVer}")
                 def isMajor = sh(script: "./scripts/jenkins/is_major.sh ${curVer}", returnStatus: true)
                 if (isMajor == 0) {
-                  // We need to create a new branch. First get the name of the branch
-                  def newBranchName = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
-                  echo "This appears to be a major version. We are creating a new branch for $newBranchName in the apm-agent-java repo on GitHub."
-                  // Now we need to branch
-                  sh(script: "git checkout -b $newBranchName")
-                  // And push
-                  githubEnv()
-                  gitPush() 
-                  // 6.1 Add the new branch to the conf.yaml in the docs repo
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
-                } else {  // This was a minor release
-                  // 7. If this was a minor release, reset the current major branch (1.x, 2.x etc) to point to the current tag, e.g. git branch -f 1.x v1.1.0
-                  // Determine current tag
-                  def curTag = sh(script: "git tag|tail -1", returnStdout: true)
-                  def targetBranch = sh(script: './scripts/jenkins/target_branch.sh', returnStdout: true)
-                  sh(script: "git branch -f $targetBranch $curTag")
-                  gitPush()
                 }
               }
-              // Checkout the tag again!
-              sh("git checkout ${BUILD_TAG}")
             }
-          }
-        }
-        // 8. Update CHANGELOG.asciidoc to reflect version release. Go over PRs or git log and add bug fixes and features. 
-        stage('Generate a proposed CHANGELOG') {
-          steps {
-            githubEnv()
-            generateChangelog(repo: 'apm-agent-java')
           }
         }
         // 9. Go to elastic/apm-agent-java/releases and draft a new release. Provide a link to release notes in documentation as release description.
