@@ -204,9 +204,9 @@ pipeline {
             // wait until we can get the release notes
             waitUntil(initialRecurrencePeriod: 60000) {
               script {
-                def ret = sh(script: 'curl -fs $RELEASE_NOTES_URL >/dev/null 2>&1', returnStatus: true)
                 echo "Waiting for the release notes to be available"
-                    return ret == 0
+                def ret = sh(script: "scripts/jenkins/docs_check.sh $TAG_VER")
+                return ret == 0
               }
             }
             githubReleasePublish(id: ${env.RELEASE_ID})
