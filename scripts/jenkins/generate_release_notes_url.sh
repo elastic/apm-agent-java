@@ -10,5 +10,4 @@ RELEASE_VERSION=$1
 
 readonly BASE_URL="https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-"
 
-dotX=`echo $RELEASE_VERSION|cut -f1 -d "."|awk '{print \$1".x"}'`
-echo $BASE_URL$dotX.html#release-notes-$RELEASE_VERSION
+echo $BASE_URL$TAG_DOT_X.html#release-notes-$RELEASE_VERSION

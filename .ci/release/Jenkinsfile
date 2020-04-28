@@ -39,7 +39,7 @@ pipeline {
             dir("${BASE_DIR}") {
               // This is required to ensure that Maven is working with a real branch
               sh(script: "git checkout -f ${branch_specifier}")
-            }
+              sh(script: "source scripts/jenkins/release_env.sh")
           }
         }
       }
