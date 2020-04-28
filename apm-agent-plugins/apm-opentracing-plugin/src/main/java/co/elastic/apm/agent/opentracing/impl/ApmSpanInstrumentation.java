@@ -205,7 +205,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 transaction.withResult(value.toString());
                 return true;
             } else if ("error".equals(key)) {
-                if (Boolean.FALSE.equals(value)) {
+                if (Boolean.TRUE.equals(value)) {
                     transaction.withResultIfUnset("error");
                 }
                 return true;

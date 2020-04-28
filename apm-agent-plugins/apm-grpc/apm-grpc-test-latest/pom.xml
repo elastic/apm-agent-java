@@ -8,7 +8,7 @@
         <version>1.15.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-grpc-test-1.27.1</artifactId>
+    <artifactId>apm-grpc-test-latest</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
@@ -17,7 +17,7 @@
         <!-- test module, thus reusing same java version as other tests -->
         <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
 
-        <grpc.version>1.27.1</grpc.version>
+        <grpc.version>[1.29.0,)</grpc.version>
         <protobuf.version>3.11.0</protobuf.version>
     </properties>
 
@@ -35,7 +35,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-api</artifactId>

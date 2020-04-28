@@ -139,7 +139,7 @@ public class GrpcHelperImpl implements GrpcHelper {
 
     @Override
     public void endTransaction(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
-        Transaction transaction = inFlightTransactions.get(serverCall);
+        Transaction transaction = inFlightTransactions.remove(serverCall);
         if (transaction == null) {
             return;
         }

@@ -10,8 +10,9 @@ This plugin provides instrumentation for [gRPC](https://grpc.io/) Remote Procedu
 
 Only unary method calls are instrumented, streaming (both ways) is not.
 
-Implementation have been tested against versions between 1.6.1 and 1.27.1.
+Implementation have been tested against versions between 1.6.1 and latest.
 Versions 1.5.0 and below are not supported yet.
+Latest 1.x version is checked at every build
 
 ## Implementation notes
 
@@ -32,5 +33,5 @@ as a result, we have the following folder structure:
 ```
 apm-grpc                   -> agent plugin itself + common test infrastructure
  |--apm-grpc-test-1.6.1    -> test app for gRPC 1.6.1 with generated code
- \--apm-grpc-test-1.27.1   -> test app for gRPC 1.27.1 with generated code
+ \--apm-grpc-test-latest   -> test app for gRPC latest with generated code
 ```

@@ -22,13 +22,13 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc.v1_27_1.testapp;
+package co.elastic.apm.agent.grpc.latest.testapp;
 
 import co.elastic.apm.agent.grpc.testapp.HelloClient;
 import co.elastic.apm.agent.grpc.testapp.HelloServer;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloGrpc;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloReply;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.generated.HelloRequest;
+import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloGrpc;
+import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply;
+import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest;
 import io.grpc.BindableService;
 import io.grpc.stub.StreamObserver;
 
