@@ -138,7 +138,6 @@ pipeline {
         stage('Branch creation') {
           steps {
             dir("${BASE_DIR}") {
-              githubEnv()
               script {
                 def curVer = mvnVersion()
                 sh(script: "./scripts/jenkins/branch_creation.sh ${curVer}")
@@ -146,12 +145,16 @@ pipeline {
                 if (isMajor == 0) {
                   input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
                 }
+                git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba', url: "git@github.com:elastic/${REPO}.git"
+                gitPush()
               }
             }
           }
         }
         stage('Create GitHub release draft') {
           steps {
+            deleteDir()
+            unstash 'source'
             dir("${BASE_DIR}"){
               script {
                 def curVer = mvnVersion(showQualifiers: false)
@@ -184,7 +187,13 @@ pipeline {
         }
         stage('Update Cloudfoundry') {
           steps {
-            sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
+            deleteDir()
+            unstash 'source'
+             dir("${BASE_DIR}"){
+              sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
+              git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba', url: "git@github.com:elastic/${REPO}.git"
+              gitPush()
+             }
           }
         }
         stage('Publish release on GitHub') {
