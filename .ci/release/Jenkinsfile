@@ -179,7 +179,6 @@ pipeline {
           steps {
             dir("${BASE_DIR}"){
               script {
-                // def curTag = sh(script: "git tag|tail -1", returnStdout: true)
                 def curVer = mvnVersion(showQualifiers: false)
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
