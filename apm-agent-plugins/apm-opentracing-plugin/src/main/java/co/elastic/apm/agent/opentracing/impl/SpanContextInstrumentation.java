@@ -82,7 +82,7 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
         @VisibleForAdvice
         public static Iterable<Map.Entry<String, String>> doGetBaggage(AbstractSpan<?> traceContext) {
             Map<String, String> baggage = new HashMap<String, String>();
-            traceContext.setOutgoingTraceContextHeaders(baggage, OpenTracingTextMapBridge.instance());
+            traceContext.propagateTraceContext(baggage, OpenTracingTextMapBridge.instance());
             return baggage.entrySet();
         }
     }

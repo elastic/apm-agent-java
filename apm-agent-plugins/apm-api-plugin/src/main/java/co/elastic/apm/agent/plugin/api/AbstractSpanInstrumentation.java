@@ -307,7 +307,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                               @Advice.Argument(0) MethodHandle addHeaderMethodHandle,
                                               @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
             if (headerInjector != null) {
-                context.setOutgoingTraceContextHeaders(headerInjector, HeaderInjectorBridge.get(addHeaderMethodHandle));
+                context.propagateTraceContext(headerInjector, HeaderInjectorBridge.get(addHeaderMethodHandle));
             }
         }
     }

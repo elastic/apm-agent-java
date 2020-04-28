@@ -82,7 +82,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
                         TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
                         if (headerSetter != null) {
                             Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
-                            span.setOutgoingTraceContextHeaders(builder, headerSetter);
+                            span.propagateTraceContext(builder, headerSetter);
                             originalRequest = builder.build();
                         }
                     }

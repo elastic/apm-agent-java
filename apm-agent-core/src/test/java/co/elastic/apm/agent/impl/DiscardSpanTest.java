@@ -59,9 +59,9 @@ public class DiscardSpanTest {
         Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
-            Span span = transaction.createSpan();
+            Span span = transaction.createSpan().requestDiscarding();
             try {
-                span.setOutgoingTraceContextHeaders(new HashMap<>(), TextHeaderMapAccessor.INSTANCE);
+                span.propagateTraceContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE);
                 assertThat(span.isDiscardable()).isFalse();
             } finally {
                 span.end();
@@ -77,7 +77,6 @@ public class DiscardSpanTest {
 
     @Test
     void testErrorCapturingMakesSpansNonDiscardable() {
-        when(tracer.getConfigurationRegistry().getConfig(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(2);
         Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
@@ -103,11 +102,11 @@ public class DiscardSpanTest {
         Transaction transaction = tracer.startRootTransaction(null);
         assertThat(transaction).isNotNull();
         try {
-            Span parentSpan = transaction.createSpan();
+            Span parentSpan = transaction.createSpan().requestDiscarding();
             try {
                 Span contextPropagatingSpan = parentSpan.createSpan();
                 try {
-                    contextPropagatingSpan.setOutgoingTraceContextHeaders(new HashMap<>(), TextHeaderMapAccessor.INSTANCE);
+                    contextPropagatingSpan.propagateTraceContext(new HashMap<>(), TextHeaderMapAccessor.INSTANCE);
                     assertThat(contextPropagatingSpan.isDiscardable()).isFalse();
                     assertThat(parentSpan.isDiscardable()).isFalse();
                 } finally {

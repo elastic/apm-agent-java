@@ -343,7 +343,7 @@ class TraceMethodInstrumentationTest {
             AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
                 Span span = active.createSpan();
-                span.setOutgoingTraceContextHeaders(new HashMap<>(), (k, v, m) -> m.put(k, v));
+                span.propagateTraceContext(new HashMap<>(), (k, v, m) -> m.put(k, v));
                 span.end();
             }
         }

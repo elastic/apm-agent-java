@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.AbstractContext;
@@ -36,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -407,39 +405,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     protected abstract void afterEnd();
 
     public T activate() {
-        incrementReferences();
-        List<ActivationListener> activationListeners = tracer.getActivationListeners();
-        for (int i = 0; i < activationListeners.size(); i++) {
-            try {
-                activationListeners.get(i).beforeActivate(this);
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
         tracer.activate(this);
         return (T) this;
     }
 
     public T deactivate() {
-        try {
-            tracer.deactivate(this);
-            List<ActivationListener> activationListeners = tracer.getActivationListeners();
-            for (int i = 0; i < activationListeners.size(); i++) {
-                try {
-                    // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
-                    activationListeners.get(i).afterDeactivate(this);
-                } catch (Error e) {
-                    throw e;
-                } catch (Throwable t) {
-                    logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
-                }
-            }
-            return (T) this;
-        } finally {
-            decrementReferences();
-        }
+        tracer.deactivate(this);
+        return (T) this;
     }
 
     public Scope activateInScope() {
@@ -542,10 +514,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
      * @param <C>          the header carrier type, for example - an HTTP request
      */
-    public <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
+    public <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
         // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
         setNonDiscardable();
-        getTraceContext().setOutgoingTraceContextHeaders(carrier, headerSetter);
+        getTraceContext().propagateTraceContext(carrier, headerSetter);
     }
 
     /**
@@ -556,10 +528,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param <C>          the header carrier type, for example - a Kafka record
      * @return true if Trace Context headers were set; false otherwise
      */
-    public <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
+    public <C> boolean propagateTraceContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
         // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
         setNonDiscardable();
-        return getTraceContext().setOutgoingTraceContextHeaders(carrier, headerSetter);
+        return getTraceContext().propagateTraceContext(carrier, headerSetter);
     }
 
     /**

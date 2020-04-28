@@ -527,7 +527,7 @@ public class TraceContext implements Recyclable {
      * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
      * @param <C>          the header carrier type, for example - an HTTP request
      */
-    <C> void setOutgoingTraceContextHeaders(C carrier, TextHeaderSetter<C> headerSetter) {
+    <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
         headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
         if (coreConfiguration.isElasticTraceparentHeaderEnabled()) {
             headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
@@ -548,7 +548,7 @@ public class TraceContext implements Recyclable {
      * @param <C>          the header carrier type, for example - a Kafka record
      * @return true if Trace Context headers were set; false otherwise
      */
-    <C> boolean setOutgoingTraceContextHeaders(C carrier, BinaryHeaderSetter<C> headerSetter) {
+    <C> boolean propagateTraceContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
         byte[] buffer = headerSetter.getFixedLengthByteArray(TRACE_PARENT_BINARY_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
         if (buffer == null || buffer.length != BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Header setter {} failed to provide a byte buffer with the proper length. Allocating a buffer for each header.",

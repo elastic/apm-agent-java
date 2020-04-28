@@ -679,19 +679,45 @@ public class ElasticApmTracer {
         return null;
     }
 
-    public void activate(AbstractSpan<?> holder) {
+    public void activate(AbstractSpan<?> span) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating {} on thread {}", holder, Thread.currentThread().getId());
+            logger.debug("Activating {} on thread {}", span, Thread.currentThread().getId());
         }
-        activeStack.get().push(holder);
+        span.incrementReferences();
+        List<ActivationListener> activationListeners = getActivationListeners();
+        for (int i = 0, size = activationListeners.size(); i < size; i++) {
+            try {
+                activationListeners.get(i).beforeActivate(span);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
+        activeStack.get().push(span);
     }
 
-    public void deactivate(AbstractSpan<?> holder) {
+    public void deactivate(AbstractSpan<?> span) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating {} on thread {}", holder, Thread.currentThread().getId());
+            logger.debug("Deactivating {} on thread {}", span, Thread.currentThread().getId());
         }
-        final Deque<AbstractSpan<?>> stack = activeStack.get();
-        assertIsActive(holder, stack.poll());
+        try {
+            final Deque<AbstractSpan<?>> stack = activeStack.get();
+            assertIsActive(span, stack.poll());
+            List<ActivationListener> activationListeners = getActivationListeners();
+            for (int i = 0, size = activationListeners.size(); i < size; i++) {
+                    try {
+                    // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
+                    activationListeners.get(i).afterDeactivate(span);
+                } catch (Error e) {
+                    throw e;
+                } catch (Throwable t) {
+                    logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                }
+            }
+        } finally {
+            span.decrementReferences();
+        }
     }
 
     private void assertIsActive(AbstractSpan<?> span, @Nullable AbstractSpan<?> currentlyActive) {

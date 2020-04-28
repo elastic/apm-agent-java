@@ -81,7 +81,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
                         TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
                         if (headerSetter != null) {
                             Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
-                            span.setOutgoingTraceContextHeaders(builder, headerSetter);
+                            span.propagateTraceContext(builder, headerSetter);
                             originalRequest = builder.build();
                         }
                     }

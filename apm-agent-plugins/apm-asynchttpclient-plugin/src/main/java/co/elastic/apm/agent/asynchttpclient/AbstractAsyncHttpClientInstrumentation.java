@@ -116,7 +116,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
                     headerSetter = headerSetterManager.getForClassLoaderOfClass(Request.class);
                 }
                 if (headerSetter != null) {
-                    span.setOutgoingTraceContextHeaders(request, headerSetter);
+                    span.propagateTraceContext(request, headerSetter);
                 }
                 handlerSpanMap.put(asyncHandler, span);
             }

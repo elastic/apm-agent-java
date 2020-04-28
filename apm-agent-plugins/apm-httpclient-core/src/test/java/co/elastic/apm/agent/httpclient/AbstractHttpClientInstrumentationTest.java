@@ -142,7 +142,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     private void verifyTraceContextHeaders(Span span, String path) {
         Map<String, String> headerMap = new HashMap<>();
-        span.setOutgoingTraceContextHeaders(headerMap, TextHeaderMapAccessor.INSTANCE);
+        span.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap).isNotEmpty();
         List<LoggedRequest> loggedRequests = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
         assertThat(loggedRequests).isNotEmpty();
