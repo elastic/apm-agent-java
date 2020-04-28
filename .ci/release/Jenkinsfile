@@ -58,7 +58,6 @@ pipeline {
     stage('Release') {
       options { skipDefaultCheckout () }
       stages{
-        // 1. Check to see if oss.sonatype.org is up. We throw an exception and fail the job if there is no response.
         stage('Check oss.sonatype.org') {
           steps {
             // If this fails, an exception should be thrown and execution will halt
@@ -69,7 +68,6 @@ pipeline {
             }
           }
         }
-        // 1.1 Check to ensure the build is green. Require confirmation if it is not.
         stage('Check master build status') {
           steps {
             script {
@@ -80,7 +78,6 @@ pipeline {
             }
           }
         }
-        // 1.2 Require confirmation that CHANGELOG.asciidoc has been updated
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
           steps {
             input(message: """
@@ -93,7 +90,6 @@ pipeline {
             )
           }
         }
-        // 2. Review project version.
         stage('Review project version') {
           steps {
             script {
@@ -125,9 +121,6 @@ pipeline {
             }
           }
         }
-        // 3. Execute the release Jenkins job on the internal ci server.
-            // For now we assume that the release has been pushed to staging already on the internal CI
-        // 4. Login to oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
         stage('Nexus release') {
           steps {
             script {
@@ -142,9 +135,6 @@ pipeline {
             }
           }
         }
-        // 5. Fetch and checkout the latest tag e.g. git fetch origin
-          // We already have this :)
-        // 6. If this was a major release, create a new branch for the major.
         stage('Branch creation') {
           steps {
             dir("${BASE_DIR}") {
@@ -160,7 +150,6 @@ pipeline {
             }
           }
         }
-        // 9. Go to elastic/apm-agent-java/releases and draft a new release. Provide a link to release notes in documentation as release description.
         stage('Create GitHub release draft') {
           steps {
             dir("${BASE_DIR}"){
@@ -177,7 +166,6 @@ pipeline {
 
           }
         }
-        // 11. Wait for released package to be available in maven central
         stage('Wait for artifact to be available in Maven Central') {
           steps {
             script {
@@ -194,15 +182,11 @@ pipeline {
             }
           }
         }
-        // 12. Update cloudfoundry/index.yml
-        // Needs to append a line such as the following:
-        // 1.13.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.13.0/elastic-apm-agent-1.13.0.jar
         stage('Update Cloudfoundry') {
           steps {
             sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
           }
         }
-        // 13. Publish release on Github. This will notify users watching repository.
         stage('Publish release on GitHub') {
           steps {
             // wait until we can get the release notes
@@ -216,7 +200,6 @@ pipeline {
             githubReleasePublish(id: ${env.RELEASE_ID})
           }
         }
-        // 14. Publish Docker images
         stage('Build and push Docker images') {
           steps {
             sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
