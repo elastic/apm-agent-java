@@ -222,13 +222,7 @@ pipeline {
         stage('Update Cloudfoundry') {
           steps {
             dir("${basedir}") {
-              script {
-                sh("git checkout master")
-                def bareTag = sh(script: 'git tag|tail -1|sed s/v//', returnStdout: true)
-                def baseUrl = "https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent"
-                def lineToAppend = sh(script: "echo '$baseUrl: $baseUrl/$bareTag/elastic-apm-agent-$bareTag\.jar' >> cloudfoundry/index.yml ")
-                gitPush()
-              }
+              sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
             }
           }
         }
