@@ -32,6 +32,10 @@ def parse_args():
     parser.add_argument("--release",
                         help="Release to search for. e.g. 1.15.0",
                         required=True)
+    parser.add_argument("--verbose",
+                        action="store_true",
+                        help="Versbose debugging",
+                        required=False)
     return parser.parse_args()
 
 
@@ -105,7 +109,7 @@ def sub_releases(page):
     versions = list()
     soup = BeautifulSoup(page, "html.parser")
     release_candidates = soup.find_all(
-        "a", id=re.compile(r"release-notes-+[0-9]\.+[0-9]\.+[0-9]"))
+        "a", id=re.compile(r"release-notes-\d+\.\d+\.\d+"))
     for candidate in release_candidates:
         versions.append(candidate["id"].split("-").pop())
     return versions
@@ -155,6 +159,9 @@ def entrypoint():
     for release in track(releases, description="Analyzing releases"):
         sub_page = fetch(release_site_dir + release["href"])
         found_versions.extend(sub_releases(sub_page))
+    if args.verbose:
+        import pprint
+        pprint.pprint(found_versions)
     if args.release in found_versions:
         console.print(":thumbs_up: Release found")
         sys.exit(0)
