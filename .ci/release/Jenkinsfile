@@ -64,8 +64,9 @@ pipeline {
             // If this fails, an exception should be thrown and execution will halt
             script {
               def r = sh(label: "Check Maven status", script: "scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
-              if (r == 1):
+              if (r == 1) {
                 error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
+              }
             }
           }
         }
@@ -195,16 +196,16 @@ pipeline {
           steps {
             deleteDir()
             unstash 'source'
-            setupAPMGitEmail()
-            script {
-              env.BRANCH_NAME = "master"
-            }
-             dir("${BASE_DIR}"){
-               withGitRelease() {
+            dir("${BASE_DIR}"){
+              script {
+                env.BRANCH_NAME = "master"
+              }
+              withGitRelease() {
+                setupAPMGitEmail()
                 sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
                 gitPush()
-               }
-             }
+              }
+            }
           }
         }
         stage('Publish release on GitHub') {
