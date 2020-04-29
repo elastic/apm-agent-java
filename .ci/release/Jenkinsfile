@@ -142,7 +142,6 @@ pipeline {
         stage('Branch creation') {
           steps {
             dir("${BASE_DIR}") {
-              setupAPMGitEmail()
               withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
                 withGitRelease() {
                   script {
