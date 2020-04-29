@@ -116,6 +116,7 @@ pipeline {
                 sh(name: "mavenVersionUpdate", script: "mvn --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
                 withGitRelease() {
                   sh(script: "git commit -a -m 'Version bump'")
+                  gitPush()
                 }
               } else {
                 echo "Skipping version update"
@@ -158,7 +159,6 @@ pipeline {
                   gitPush()
                 }
               }
-              
             }
           }
         }
