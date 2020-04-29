@@ -193,11 +193,7 @@ pipeline {
             deleteDir()
             unstash 'source'
             dir("${BASE_DIR}"){
-              script {
-                env.BRANCH_NAME = "master"
-              }
               withGitRelease() {
-                setupAPMGitEmail()
                 sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
                 gitPush()
               }
