@@ -113,7 +113,7 @@ pipeline {
                     ]
                   ]
                 )
-                sh(name: "mavenVersionUpdate", script: "mvn versions:set -DnewVersion=${new_version}")
+                sh(name: "mavenVersionUpdate", script: "mvn --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
               } else {
                 echo "Skipping version update"
               }
