@@ -118,6 +118,11 @@ pipeline {
             }
           }
         }
+        stage('Wait on internal CI') {
+          steps {
+            input(message: "Start the release job on the internal CI. Click 'Proceed' once the job has succeeded or click 'Abort' if the release has failed and then manually undo the release.")
+          }
+        }
         stage('Nexus release') {
           steps {
             script {
