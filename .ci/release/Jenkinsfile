@@ -136,20 +136,20 @@ pipeline {
           steps {
             dir("${BASE_DIR}") {
               setupAPMGitEmail()
-              script {
-                env.BRANCH_NAME = "tags/${env.TAG_BARE}"
-              }
-              withGitRelease() {
-                script {
-                  def curVer = mvnVersion()
-                  sh(script: "./scripts/jenkins/branch_creation.sh ${curVer}")
-                  def isMajor = sh(script: "./scripts/jenkins/is_major.sh ${curVer}", returnStatus: true)
-                  if (isMajor == 0) {
-                    input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
+              withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
+                withGitRelease() {
+                  script {
+                    def curVer = mvnVersion()
+                    sh(script: "./scripts/jenkins/branch_creation.sh ${curVer}")
+                    def isMajor = sh(script: "./scripts/jenkins/is_major.sh ${curVer}", returnStatus: true)
+                    if (isMajor == 0) {
+                      input message: "This was a major version release. Please update the conf.yml in the docs repo before continuing", ok "Continue"
+                    }
                   }
+                  gitPush()
                 }
-                gitPush()
-              } 
+              }
+              
             }
           }
         }
