@@ -98,7 +98,7 @@ pipeline {
               def should_continue = input(message: "Current version is ${ver}", parameters: [
                 [
                   $class: 'ChoiceParameterDefinition',
-                  name: "Do you wish to update the version?",
+                  name: "You are about to release version ${ver - '-SNAPSHOT'}. Do you wish to update the version?",
                   "choices": ["Yes", "No"],
                   description: "Selecting 'Yes' will allow you to select the new version in the next step."
                 ]
