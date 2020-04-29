@@ -109,7 +109,7 @@ pipeline {
                     [
                       $class: 'StringParameterDefinition',
                       defaultValue: "${ver}",
-                      description: 'We will run mvn versions:set -DnewVersion=<NEW_VERSION>', name: 'New Version'
+                      description: 'We will update the project version in all pom.xml files. Set this to your desired <release-version>-SNAPSHOT (for example 1.2.3-SNAPSHOT if you want to release version 1.2.3).', name: 'New Version'
                     ]
                   ]
                 )
