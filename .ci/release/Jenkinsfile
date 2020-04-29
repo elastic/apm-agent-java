@@ -218,7 +218,7 @@ pipeline {
                 return ret == 0
               }
             }
-            githubReleasePublish(id: ${env.RELEASE_ID})
+            githubReleasePublish(id: "${env.RELEASE_ID}")
           }
         }
         stage('Build and push Docker images') {
