@@ -21,6 +21,35 @@
         <protobuf.version>3.11.0</protobuf.version>
     </properties>
 
+    <build>
+        <plugins>
+            <!-- provide a standalone test app to use for testing -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <finalName>testapp-grpc</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <archive>
+                        <manifest>
+                            <mainClass>co.elastic.apm.agent.grpc.latest.testapp.MainImpl</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptors>
+                        <descriptor>${project.basedir}/../assembly-testapp.xml</descriptor>
+                    </descriptors>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>co.elastic.apm</groupId>
