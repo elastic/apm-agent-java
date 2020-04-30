@@ -30,4 +30,4 @@ set -x
 
 # Deploy the snapshot
 # Sensitive data may be logged to stderr. Remove for debugging.
-$BASE_DIR/mvnw -s .ci/settings.xml -Pgpg clean deploy --batch-mode 2>/dev/null
+$BASE_DIR/mvnw -s .ci/settings.xml -Pgpg clean deploy -DskipTests --batch-mode 2>/dev/null
