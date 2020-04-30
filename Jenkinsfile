@@ -298,6 +298,20 @@ pipeline {
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
     }
+    stage('Snapshots') {
+      when {
+        allOf {
+          expression { return env.ONLY_DOCS == "false" }
+          anyOf {
+            branch 'master'
+            expression { return params.Run_As_Master_Branch }
+          }
+        }
+      }
+      steps {
+        doSnapshot()
+      }
+    }
     stage('AfterRelease') {
       options { skipDefaultCheckout() }
       when {
@@ -350,3 +364,23 @@ def reportTestResults(){
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
   codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
 }
+
+def doSnapshot() {
+   try {
+      sh(script: "chmod 0700 ${WORKSPACE}@tmp")
+      writeFile(file: "${WORKSPACE}@tmp/private.key", text: getVaultSecret(secret: 'secret/release/signing')?.data.key)
+      sh(script: "chmod 0600 ${WORKSPACE}@tmp/private.key")
+      withSecretVault(secret: 'secret/release/nexus', user_var_name: 'SERVER_USERNAME', pass_var_name: 'SERVER_PASSWORD', user_key: 'username') {
+         script {
+            def keypass = getVaultSecret(secret: 'secret/release/signing')?.data.passphrase
+            withEnvMask(vars: [[var: "KEYPASS", password: keypass]]) {
+               sh(script: "scripts/jenkins/snap.sh")
+            }
+         }
+      }
+   } catch (e) {
+      // NOOP
+   } finally {
+      sh "rm ${WORKSPACE}@tmp/private.key  || true"
+   }
+} 
