@@ -669,7 +669,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -1462,12 +1462,12 @@ This option is case-insensitive.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `INFO` | Level | true
+| `INFO` | LogLevel | true
 |============
 
 
@@ -2506,7 +2506,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2987,9 +2987,9 @@ The default unit for this option is `ms`.
 # 
 # This option is case-insensitive.
 #
-# Valid options: ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
-# Type: Level
+# Type: LogLevel
 # Default value: INFO
 #
 # log_level=INFO

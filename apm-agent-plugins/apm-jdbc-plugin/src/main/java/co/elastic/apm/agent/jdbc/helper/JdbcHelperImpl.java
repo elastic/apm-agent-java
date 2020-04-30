@@ -52,15 +52,8 @@ public class JdbcHelperImpl extends JdbcHelper {
     // have the expected behavior, thus, any direct reference to `JdbcHelperImpl` should only be obtained from the
     // HelperClassManager<JdbcHelper> instance.
     private final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
-    private final WeakConcurrentMap<Class<?>, Boolean> updateCountSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
     private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
     private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
-
-    // keeps track of non-idempotent implementations of getUpdateCount
-    private final WeakConcurrentMap<Class<?>, Boolean> idempotentGetUpdateCount = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
-
-    // stores statements update count to avoid side-effects of calling Statement.getUpdateCount()
-    private final WeakConcurrentMap<Object, Integer> statementsUpdateCount = new WeakConcurrentMap.WithInlinedExpunction<>();
 
     @VisibleForAdvice
     public final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
@@ -73,10 +66,8 @@ public class JdbcHelperImpl extends JdbcHelper {
     @Override
     public void clearInternalStorage() {
         metaDataMap.clear();
-        updateCountSupported.clear();
         metadataSupported.clear();
         connectionSupported.clear();
-        statementsUpdateCount.clear();
     }
 
     @Override
@@ -187,55 +178,6 @@ public class JdbcHelperImpl extends JdbcHelper {
         }
 
         return connection;
-    }
-
-
-    @Override
-    public int getAndStoreUpdateCount(Object statement) {
-        int result = Integer.MIN_VALUE;
-        if (!(statement instanceof Statement)) {
-            return result;
-        }
-
-        Class<?> type = statement.getClass();
-        Boolean supported = isSupported(updateCountSupported, type);
-        if (supported == Boolean.FALSE) {
-            return result;
-        }
-
-        try {
-            result = ((Statement) statement).getUpdateCount();
-            if (supported == null) {
-                markSupported(updateCountSupported, type);
-            }
-
-            // in order to minimize allocation, we keep track of implementation classes that are not idempotent,
-            // that allows avoiding extra work for the most common idempotent case.
-            Boolean isIdempotent = isSupported(idempotentGetUpdateCount, type);
-            if (isIdempotent == null) {
-                int secondResult = ((Statement) statement).getUpdateCount();
-                isIdempotent = (secondResult == result) ? Boolean.TRUE : Boolean.FALSE;
-                idempotentGetUpdateCount.put(type, isIdempotent);
-            }
-
-            if (isIdempotent != Boolean.TRUE) {
-                // save the value to be restored for the next call to getUpdateCount()
-                statementsUpdateCount.put(statement, result);
-            }
-
-        } catch (SQLException e) {
-            markNotSupported(updateCountSupported, type, e);
-        }
-        return result;
-    }
-
-    @Override
-    public int getAndClearStoredUpdateCount(Object statement) {
-        Integer value = null;
-        if (Boolean.FALSE == idempotentGetUpdateCount.get(statement.getClass())) {
-            value = statementsUpdateCount.remove(statement);
-        }
-        return value != null ? value : Integer.MIN_VALUE;
     }
 
     @Nullable

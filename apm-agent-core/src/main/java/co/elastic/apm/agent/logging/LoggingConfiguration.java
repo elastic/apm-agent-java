@@ -68,7 +68,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
 
     @SuppressWarnings("unused")
-    public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
+    public ConfigurationOption<LogLevel> logLevel = ConfigurationOption.enumOption(LogLevel.class)
         .key(LOG_LEVEL_KEY)
         .aliasKeys(DEPRECATED_LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
@@ -76,13 +76,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This option is case-insensitive.")
         .dynamic(true)
-        .addChangeListener(new ConfigurationOption.ChangeListener<Level>() {
+        .addChangeListener(new ConfigurationOption.ChangeListener<LogLevel>() {
             @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Level oldValue, Level newValue) {
+            public void onChange(ConfigurationOption<?> configurationOption, LogLevel oldValue, LogLevel newValue) {
                 setLogLevel(newValue);
             }
         })
-        .buildWithDefault(Level.INFO);
+        .buildWithDefault(LogLevel.INFO);
 
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
