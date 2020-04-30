@@ -432,7 +432,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
         .key("trace_methods_duration_threshold")
-        .tags("added[1.7.0]", "deprecated")
+        .tags("added[1.7.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on \n" +
             "duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded " +
