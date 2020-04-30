@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import org.slf4j.event.Level;
 import org.slf4j.impl.SimpleLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -64,7 +63,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     private static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
 
     @SuppressWarnings("unused")
-    public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
+    public ConfigurationOption<LogLevel> logLevel = ConfigurationOption.enumOption(LogLevel.class)
         .key(LOG_LEVEL_KEY)
         .aliasKeys(DEPRECATED_LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
@@ -72,13 +71,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This option is case-insensitive.")
         .dynamic(true)
-        .addChangeListener(new ConfigurationOption.ChangeListener<Level>() {
+        .addChangeListener(new ConfigurationOption.ChangeListener<LogLevel>() {
             @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Level oldValue, Level newValue) {
+            public void onChange(ConfigurationOption<?> configurationOption, LogLevel oldValue, LogLevel newValue) {
                 setLogLevel(newValue.toString());
             }
         })
-        .buildWithDefault(Level.INFO);
+        .buildWithDefault(LogLevel.INFO);
 
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
@@ -120,7 +119,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public static void init(List<ConfigurationSource> sources) {
         setLogLevel(getValue(LOG_LEVEL_KEY, sources,
-            getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
+            getValue(DEPRECATED_LOG_LEVEL_KEY, sources, LogLevel.INFO.toString())));
         setLogFileLocation(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources,
             getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
     }
@@ -140,8 +139,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     }
 
     private static void setLogLevel(@Nullable String level) {
-        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm", level != null ? level : Level.INFO.toString());
-        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.agent.shaded", Level.WARN.toString());
+        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm", level != null ? level : LogLevel.INFO.toString());
+        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.agent.shaded", LogLevel.OFF.toString().equals(level) ? level : LogLevel.WARN.toString());
         System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, Boolean.TRUE.toString());
         System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "yyyy-MM-dd HH:mm:ss.SSS");
     }
