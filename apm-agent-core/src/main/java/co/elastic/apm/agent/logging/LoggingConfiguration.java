@@ -194,9 +194,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logFile.get();
     }
 
-    private static void setLogLevel(@Nullable Level level) {
+    private static void setLogLevel(@Nullable LogLevel level) {
         if (level == null) {
-            level = Level.INFO;
+            level = LogLevel.INFO;
         }
         Configurator.setRootLevel(org.apache.logging.log4j.Level.toLevel(level.toString(), org.apache.logging.log4j.Level.INFO));
     }

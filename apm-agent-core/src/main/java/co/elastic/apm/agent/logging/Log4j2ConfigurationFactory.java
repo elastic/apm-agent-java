@@ -113,7 +113,6 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             System.err.println("Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
-        System.out.println("Writing Elastic APM logs to " + logFile);
         return logFile;
     }
 
@@ -136,10 +135,10 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         ConfigurationBuilder<BuiltConfiguration> builder = newConfigurationBuilder();
         builder.setStatusLevel(Level.ERROR)
             .setConfigurationName("ElasticAPM");
-        List<AppenderComponentBuilder> appenders = createAppenders(builder);
 
         Level level = Level.valueOf(getValue(LOG_LEVEL_KEY, sources, getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
         RootLoggerComponentBuilder rootLogger = builder.newRootLogger(level);
+        List<AppenderComponentBuilder> appenders = createAppenders(builder);
         for (AppenderComponentBuilder appender : appenders) {
             rootLogger.add(builder.newAppenderRef(appender.getName()));
         }

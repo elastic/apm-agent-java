@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.logging;
 
 import co.elastic.logging.log4j2.EcsLayout;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
@@ -130,6 +131,12 @@ class Log4j2ConfigurationFactoryTest {
             .findAny();
         assertThat(fileAppender).isNotEmpty();
         assertThat(fileAppender.get().getLayout()).isInstanceOf(EcsLayout.class);
+    }
+
+    @Test
+    void testLevelOff() {
+        Configuration configuration = getLogConfig(Map.of("log_level", "off"));
+        assertThat(configuration.getRootLogger().getLevel()).isEqualTo(Level.OFF);
     }
 
     private Configuration getLogConfig(Map<String, String> config) {
