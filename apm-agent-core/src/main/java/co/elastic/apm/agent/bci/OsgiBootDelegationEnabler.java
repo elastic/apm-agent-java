@@ -51,11 +51,16 @@ public class OsgiBootDelegationEnabler extends AbstractLifecycleListener {
     @Override
     public void start(ElasticApmTracer tracer) {
         // may be problematic as it could override the defaults in a properties file
-        String packagesToAppendToBootdelegationProperty = tracer.getConfig(CoreConfiguration.class).getPackagesToAppendToBootdelegationProperty();
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        String packagesToAppendToBootdelegationProperty = coreConfig.getPackagesToAppendToBootdelegationProperty();
         if (packagesToAppendToBootdelegationProperty != null) {
             appendToSystemProperty("org.osgi.framework.bootdelegation", packagesToAppendToBootdelegationProperty);
         }
-        appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation", ATLASSIAN_BOOTDELEGATION_DEFAULTS, APM_BASE_PACKAGE);
+        if (coreConfig.useAtlassianNewBootDelegationConfig()) {
+            appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation.extra", APM_BASE_PACKAGE);
+        } else {
+            appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation", ATLASSIAN_BOOTDELEGATION_DEFAULTS, APM_BASE_PACKAGE);
+        }
     }
 
     private static void appendToSystemProperty(String propertyName, String append) {
