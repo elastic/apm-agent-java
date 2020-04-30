@@ -48,6 +48,7 @@
         <module>apm-kafka-plugin</module>
         <module>apm-profiling-plugin</module>
         <module>apm-grpc</module>
+        <module>apm-spring-webflux</module>
     </modules>
 
     <dependencies>
