@@ -26,6 +26,7 @@ package co.elastic.apm.opentracing;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -236,6 +237,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     void testCreateActiveTransactionAndSpans() {
         Span otTransaction = apmTracer.buildSpan("transaction").start();
         try (Scope transactionScope = apmTracer.activateSpan(otTransaction)) {
+            assertThat(apmTracer.activeSpan()).isEqualTo(otTransaction);
+            assertThat(tracer.getActive()).isEqualTo(((ApmSpan) otTransaction).getSpan());
             Span otSpan = apmTracer.buildSpan("span").start();
             try (Scope spanScope = apmTracer.activateSpan(otSpan)) {
                 Span otNestedSpan = apmTracer.buildSpan("nestedSpan").start();
@@ -258,6 +261,33 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(span.isChildOf(transaction)).isTrue();
         assertThat(nestedSpan.getNameAsString()).isEqualTo("nestedSpan");
         assertThat(nestedSpan.isChildOf(span)).isTrue();
+    }
+
+    @Test
+    public void testAgentPaused() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        Span otTransaction = apmTracer.buildSpan("transaction").start();
+        try (Scope transactionScope = apmTracer.activateSpan(otTransaction)) {
+            assertThat(apmTracer.activeSpan()).isNull();
+            assertThat(tracer.getActive()).isNull();
+            Span otSpan = apmTracer.buildSpan("span").start();
+            try (Scope spanScope = apmTracer.activateSpan(otSpan)) {
+                Span otNestedSpan = apmTracer.buildSpan("nestedSpan").start();
+                try (Scope nestedSpanScope = apmTracer.activateSpan(otNestedSpan)) {
+                }
+                otNestedSpan.finish();
+            }
+            otSpan.finish();
+        }
+        otTransaction.finish();
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test
@@ -332,6 +362,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             span.finish();
         }
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("error");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");

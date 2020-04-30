@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -52,11 +52,11 @@ public class DataSourceIT extends AbstractJdbcInstrumentationTest {
     public static Iterable<Supplier<DataSource>> dataSourceSuppliers() {
         return asList(
             labelledSupplier(DataSourceIT::getTomcatDataSource, "tomcat"),
-            labelledSupplier(DataSourceIT::getHikariDataSource,"hikari"),
-            labelledSupplier(DataSourceIT::getViburDataSource,"vibur"),
-            labelledSupplier(DataSourceIT::getDruidDataSource,"druid"),
+            labelledSupplier(DataSourceIT::getHikariDataSource, "hikari"),
+            labelledSupplier(DataSourceIT::getViburDataSource, "vibur"),
+            labelledSupplier(DataSourceIT::getDruidDataSource, "druid"),
             labelledSupplier(DataSourceIT::getDbcpDataSource, "dbcp"),
-            labelledSupplier(DataSourceIT::getDbcp2DataSource,"dbcp2"),
+            labelledSupplier(DataSourceIT::getDbcp2DataSource, "dbcp2"),
             labelledSupplier(DataSourceIT::getC3p0DataSource, "c3p0")
         );
     }

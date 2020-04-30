@@ -28,6 +28,7 @@ import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -48,6 +49,7 @@ public class MdcActivationListener implements ActivationListener {
 
     private static final String TRACE_ID = "trace.id";
     private static final String TRANSACTION_ID = "transaction.id";
+    private static final String ERROR_ID = "error.id";
     private static final Logger logger = LoggerFactory.getLogger(MdcActivationListener.class);
 
     // Never invoked- only used for caching ClassLoaders that can't load the MDC/ThreadContext class
@@ -148,13 +150,14 @@ public class MdcActivationListener implements ActivationListener {
 
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
-        if (loggingConfiguration.isLogCorrelationEnabled() && coreConfiguration.isActive()) {
-
+        if (loggingConfiguration.isLogCorrelationEnabled() && tracer.isRunning()) {
             for (WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache : mdcPutMethodHandleCaches) {
                 MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(context));
                 if (put != null && put != NOOP) {
                     TraceContext traceContext = context.getTraceContext();
-                    if (tracer.getActive() == null) {
+                    if (context instanceof ErrorCapture) {
+                        put.invoke(ERROR_ID, traceContext.getId().toString());
+                    } else if (tracer.getActive() == null) {
                         put.invoke(TRACE_ID, traceContext.getTraceId().toString());
                         put.invoke(TRANSACTION_ID, traceContext.getTransactionId().toString());
                     }
@@ -170,7 +173,9 @@ public class MdcActivationListener implements ActivationListener {
             for (WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcRemoveMethodHandleCache : mdcRemoveMethodHandleCaches) {
                 MethodHandle remove = mdcRemoveMethodHandleCache.get(getApplicationClassLoader(deactivatedContext));
                 if (remove != null && remove != NOOP) {
-                    if (tracer.getActive() == null) {
+                    if (deactivatedContext instanceof ErrorCapture) {
+                        remove.invokeExact(ERROR_ID);
+                    } else if (tracer.getActive() == null) {
                         remove.invokeExact(TRACE_ID);
                         remove.invokeExact(TRANSACTION_ID);
                     }

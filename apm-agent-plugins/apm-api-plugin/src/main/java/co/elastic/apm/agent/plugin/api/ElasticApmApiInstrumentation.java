@@ -77,6 +77,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doStartTransactionWithRemoteParentFunction"));
         }
 
+        @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doStartTransaction(@Advice.Origin Class<?> clazz,
@@ -136,7 +137,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
             if (tracer != null) {
-                tracer.captureException(e, clazz.getClassLoader());
+                tracer.captureAndReportException(e, clazz.getClassLoader());
             }
         }
     }

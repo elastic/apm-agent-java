@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
@@ -121,15 +122,6 @@ public class ApmServerClient {
         return copy;
     }
 
-    private static void trustAll(HttpsURLConnection connection) {
-        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
-        if (sf != null) {
-            // using the same instances is important for TCP connection reuse
-            connection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
-            connection.setSSLSocketFactory(sf);
-        }
-    }
-
     HttpURLConnection startRequest(String relativePath) throws IOException {
         return startRequestToUrl(appendPathToCurrentUrl(relativePath));
     }
@@ -137,14 +129,35 @@ public class ApmServerClient {
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
         final URLConnection connection = url.openConnection();
-        if (!reporterConfiguration.isVerifyServerCert()) {
-            if (connection instanceof HttpsURLConnection) {
-                trustAll((HttpsURLConnection) connection);
+
+        // change SSL socket factory to support both TLS fallback and disabling certificate validation
+        if (connection instanceof HttpsURLConnection) {
+            HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
+            boolean verifyServerCert = reporterConfiguration.isVerifyServerCert();
+
+            if (!verifyServerCert) {
+                httpsConnection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
+            }
+            SSLSocketFactory sslSocketFactory = SslUtils.getSSLSocketFactory(verifyServerCert);
+            if (sslSocketFactory != null) {
+                httpsConnection.setSSLSocketFactory(sslSocketFactory);
             }
         }
-        if (reporterConfiguration.getSecretToken() != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
+
+        String secretToken = reporterConfiguration.getSecretToken();
+        String apiKey = reporterConfiguration.getApiKey();
+        String authHeaderValue = null;
+
+        if (apiKey != null) {
+            authHeaderValue = String.format("ApiKey %s", apiKey);
+        } else if (secretToken != null) {
+            authHeaderValue = String.format("Bearer %s", secretToken);
         }
+
+        if (authHeaderValue != null) {
+            connection.setRequestProperty("Authorization", authHeaderValue);
+        }
+
         connection.setRequestProperty("User-Agent", USER_AGENT);
         connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());

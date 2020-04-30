@@ -53,27 +53,13 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACE
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
-    public static final String ACTIVE = "active";
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
-    private static final String CORE_CATEGORY = "Core";
+    public static final String CORE_CATEGORY = "Core";
     private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
-
-    private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
-        .key(ACTIVE)
-        .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should be active or not.\n" +
-            "When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
-            "When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.\n" +
-            "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
-            "mostly idle in this state, so the overhead should be negligible.\n" +
-            "\n" +
-            "You can use this setting to dynamically disable Elastic APM at runtime.")
-        .dynamic(true)
-        .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
         .key(INSTRUMENT)
@@ -81,7 +67,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A boolean specifying if the agent should instrument the application to collect performance metrics for the app. " +
             "When set to false, Elastic APM will not affect your application at all.\n" +
             "\n" +
-            "NOTE: Both active and instrument needs to be true for instrumentation to be running.")
+            "NOTE: Both active and instrument needs to be true for instrumentation to be running.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
+        .dynamic(true)
+        .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
@@ -229,8 +219,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out incubating features, set the value to an empty string.")
-        .buildWithDefault(Collections.<String>singleton("incubating"));
+            "If you want to try out experimental features, set the value to an empty string.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
+        .dynamic(true)
+        .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
+        .buildWithDefault(Collections.<String>singleton("experimental"));
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -271,10 +265,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
         .description("For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST \n" +
-            "variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the \n" +
-            "textual message body.\n" +
+            "variables). For transactions that are initiated by receiving a message from a message broker, the agent can \n" +
+            "capture the textual message body.\n" +
             "\n" +
-            "If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
+            "If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
             "\n" +
             "This option is case-insensitive.\n" +
             "\n" +
@@ -292,7 +286,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("capture_headers")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("If set to `true`, the agent will capture request and response headers, including cookies.\n" +
+        .description("If set to `true`, the agent will capture HTTP request and response headers (including cookies), \n" +
+            "as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.\n" +
             "\n" +
             "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
         .dynamic(true)
@@ -375,7 +370,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A list of methods for which to create a transaction or span.\n" +
             "\n" +
             "If you want to monitor a large number of methods,\n" +
-            "use  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.\n" +
+            "use  <<config-profiling-inferred-spans-enabled, `profiling_inferred_spans_enabled`>> instead.\n" +
             "\n" +
             "This works by instrumenting each matching method to include code that creates a span for the method.\n" +
             "While creating a span is quite cheap in terms of performance,\n" +
@@ -428,7 +423,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
             "----\n" +
-            "NOTE: This method is only available in the Elastic APM Java Agent.")
+            "NOTE: This method is only available in the Elastic APM Java Agent.\n" +
+            "\n" +
+            "NOTE: Changing this value at runtime can slow down the application temporarily.")
+        .dynamic(true)
+        .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
@@ -526,12 +525,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("internal")
         .buildWithDefault(4096);
 
-    public boolean isActive() {
-        return active.get();
-    }
-
     public boolean isInstrument() {
         return instrument.get();
+    }
+
+    public List<ConfigurationOption<?>> getInstrumentationOptions() {
+        return Arrays.asList(instrument, traceMethods, disabledInstrumentations);
     }
 
     public String getServiceName() {

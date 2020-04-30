@@ -26,11 +26,13 @@ package co.elastic.apm.agent.error.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -57,19 +59,26 @@ public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumen
     public static class LoggingAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void logEnter(@Advice.Argument(1) Throwable exception, @Advice.Local("nested") boolean nested) {
-            if (tracer == null || tracer.getActive() == null) {
+        public static void logEnter(@Advice.Argument(1) Throwable exception,
+                                    @Advice.Local("nested") boolean nested,
+                                    @Advice.Origin Class<?> clazz,
+                                    @Advice.Local("error") @Nullable ErrorCapture error) {
+            if (tracer == null) {
                 return;
             }
             nested = nestedThreadLocal.get();
             if (!nested) {
-                tracer.getActive().captureException(exception);
+                error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader()).activate();
                 nestedThreadLocal.set(Boolean.TRUE);
             }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void logExit(@Advice.Local("nested") boolean nested) {
+        public static void logExit(@Advice.Local("nested") boolean nested,
+                                   @Advice.Local("error") @Nullable ErrorCapture error) {
+            if (error != null) {
+                error.deactivate().end();
+            }
             if (!nested) {
                 nestedThreadLocal.set(Boolean.FALSE);
             }

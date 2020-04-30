@@ -69,7 +69,7 @@ public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecor
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void wrapRecordList(@Nullable @Advice.Return(readOnly = false) List<ConsumerRecord> list) {
-            if (tracer == null || tracer.currentTransaction() != null) {
+            if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {
                 return;
             }
 

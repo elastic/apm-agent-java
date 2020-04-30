@@ -48,8 +48,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
 /**
  * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
@@ -62,9 +62,11 @@ public class ServletApiAdvice {
     @Nullable
     @VisibleForAdvice
     public static ServletTransactionHelper servletTransactionHelper;
+
     @Nullable
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
+
     @VisibleForAdvice
     public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
         @Override
@@ -81,7 +83,6 @@ public class ServletApiAdvice {
         servletTransactionHelper = new ServletTransactionHelper(tracer);
     }
 
-    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                              @Advice.Local("transaction") Transaction transaction,
@@ -94,7 +95,8 @@ public class ServletApiAdvice {
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             scope = transactionAttr.activateInScope();
         }
-        if (servletTransactionHelper != null &&
+        if (tracer.isRunning() &&
+            servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(excluded.get())) {
@@ -126,10 +128,10 @@ public class ServletApiAdvice {
                         req.addCookie(cookie.getName(), cookie.getValue());
                     }
                 }
-                final Enumeration headerNames = request.getHeaderNames();
+                final Enumeration<String> headerNames = request.getHeaderNames();
                 if (headerNames != null) {
                     while (headerNames.hasMoreElements()) {
-                        final String headerName = (String) headerNames.nextElement();
+                        final String headerName = headerNames.nextElement();
                         req.addHeader(headerName, request.getHeaders(headerName));
                     }
                 }
@@ -194,6 +196,7 @@ public class ServletApiAdvice {
                 }
 
                 Throwable t2 = null;
+                boolean overrideStatusCodeOnThrowable = true;
                 if (t == null) {
                     final int size = requestExceptionAttributes.size();
                     for (int i = 0; i < size; i++) {
@@ -201,13 +204,18 @@ public class ServletApiAdvice {
                         Object throwable = request.getAttribute(attributeName);
                         if (throwable instanceof Throwable) {
                             t2 = (Throwable) throwable;
+                            if (!attributeName.equals("javax.servlet.error.exception")) {
+                                overrideStatusCodeOnThrowable = false;
+                            }
                             break;
                         }
                     }
                 }
 
-                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, true);
+                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(),
+                    overrideStatusCodeOnThrowable, request.getMethod(), parameterMap, request.getServletPath(),
+                    request.getPathInfo(), contentTypeHeader, true
+                );
             }
         }
     }

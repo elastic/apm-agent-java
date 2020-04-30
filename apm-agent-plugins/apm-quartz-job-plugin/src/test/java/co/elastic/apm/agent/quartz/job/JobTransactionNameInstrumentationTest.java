@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,7 +25,12 @@
 package co.elastic.apm.agent.quartz.job;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,42 +47,39 @@ import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 
 class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static Scheduler scheduler;
-    private static CompletableFuture<Boolean> responseFuture;
-
-    @BeforeAll
-    private static void setup() throws SchedulerException {
-        scheduler = new StdSchedulerFactory().getScheduler();
-    }
-
-    @AfterAll
-    private static void cleanup() throws SchedulerException {
-        scheduler.shutdown();
-    }
+    private Scheduler scheduler;
 
     @BeforeEach
     private void prepare() throws SchedulerException {
-        responseFuture = new CompletableFuture<>();
+        scheduler = new StdSchedulerFactory().getScheduler();
+        scheduler.start();
     }
 
-    void verifyJobDetails(JobDetail job) throws InterruptedException {
-        reporter.getFirstTransaction(150);
-        assertThat(reporter.getTransactions().size()).isEqualTo(1);
+    @AfterEach
+    private void cleanup() throws SchedulerException {
+        scheduler.shutdown();
+        reporter.assertRecycledAfterDecrementingReferences();
+    }
+
+    void verifyJobDetails(JobDetail job) {
+        await().untilAsserted(() -> assertThat(reporter.getTransactions().size()).isEqualTo(1));
         assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("scheduled");
         assertThat(reporter.getTransactions().get(0).getNameAsString())
             .isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
     }
 
     @Test
-    void testJobWithGroup() throws SchedulerException, InterruptedException, ExecutionException {
+    void testJobWithGroup() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestJob.class)
             .withIdentity("dummyJobName", "group1").build();
         Trigger trigger = TriggerBuilder
@@ -87,14 +89,11 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
                 SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
             .build();
         scheduler.scheduleJob(job, trigger);
-        scheduler.start();
-        responseFuture.get();
-        scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
     }
 
     @Test
-    void testJobWithoutGroup() throws SchedulerException, InterruptedException, ExecutionException {
+    void testJobWithoutGroup() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestJob.class)
             .withIdentity("dummyJobName").build();
         Trigger trigger = TriggerBuilder
@@ -104,22 +103,35 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
                 SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
             .build();
         scheduler.scheduleJob(job, trigger);
-        scheduler.start();
-        responseFuture.get();
-        scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
     }
 
     @Test
     void testJobManualCall() throws SchedulerException, InterruptedException {
-        TestJob job = new TestJob();
-        job.execute(null);
+        new TestJobCreatingSpan(tracer, true).execute(null);
         assertThat(reporter.getTransactions().size()).isEqualTo(1);
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualToIgnoringCase("TestJob#execute");
+        Transaction transaction = reporter.getTransactions().get(0);
+        assertThat(transaction.getNameAsString()).isEqualToIgnoringCase("TestJobCreatingSpan#execute");
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertThat(reporter.getSpans().get(0).getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
     }
 
     @Test
-    void testSpringJob() throws SchedulerException, InterruptedException, ExecutionException {
+    public void testAgentPaused() throws SchedulerException {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        new TestJobCreatingSpan(tracer, false).execute(null);
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
+    }
+
+    @Test
+    void testSpringJob() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestSpringJob.class)
             .withIdentity("dummyJobName", "group1").build();
         Trigger trigger = TriggerBuilder
@@ -129,14 +141,11 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
                 SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
             .build();
         scheduler.scheduleJob(job, trigger);
-        scheduler.start();
-        responseFuture.get();
-        scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
     }
 
     @Test
-    void testJobWithResult() throws SchedulerException, InterruptedException, ExecutionException {
+    void testJobWithResult() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestJobWithResult.class)
             .withIdentity("dummyJobName").build();
         Trigger trigger = TriggerBuilder
@@ -146,9 +155,6 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
                 SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
             .build();
         scheduler.scheduleJob(job, trigger);
-        scheduler.start();
-        responseFuture.get();
-        scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
     }
@@ -156,7 +162,28 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
     public static class TestJob implements Job {
         @Override
         public void execute(JobExecutionContext context) throws JobExecutionException {
-            responseFuture.complete(Boolean.TRUE);
+        }
+    }
+
+    public static class TestJobCreatingSpan implements Job {
+        private final ElasticApmTracer tracer;
+        private final boolean traced;
+
+        public TestJobCreatingSpan(ElasticApmTracer tracer, boolean traced) {
+            this.tracer = tracer;
+            this.traced = traced;
+        }
+
+        @Override
+        public void execute(JobExecutionContext context) throws JobExecutionException {
+            Transaction transaction = tracer.currentTransaction();
+            if (traced) {
+                assertThat(transaction).isNotNull();
+                transaction.createSpan().end();
+            } else {
+                assertThat(transaction).isNull();
+                assertThat(tracer.getActive()).isNull();
+            }
         }
     }
 
@@ -164,7 +191,6 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         @Override
         public void execute(JobExecutionContext context) throws JobExecutionException {
             context.setResult("this is the result");
-            responseFuture.complete(Boolean.TRUE);
         }
     }
 
@@ -172,7 +198,6 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
 
         @Override
         protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-            responseFuture.complete(Boolean.TRUE);
         }
 
     }

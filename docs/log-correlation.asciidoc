@@ -34,6 +34,7 @@ the agent will inject the following IDs in your https://www.slf4j.org/api/org/sl
 
 * {ecs-ref}/ecs-tracing.html[`transaction.id`]
 * {ecs-ref}/ecs-tracing.html[`trace.id`]
+* {ecs-ref}/ecs-error.html[`error.id`]
 
 [float]
 [[log-correlation-extract-ids]]
@@ -45,4 +46,5 @@ The IDs in the MDC are automatically added to the right fields.
 For plain text logs, use the pattern layout of your logging implementation to write the MDC values to your log file.
 If you are using Logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
 With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
-you can parse out the IDs from the logs and put them in the {ecs-ref}/ecs-tracing.html[`transaction.id`] and the {ecs-ref}/ecs-tracing.html[`trace.id`] fields.
+you can parse out the IDs from the logs and put them in the {ecs-ref}/ecs-tracing.html[`transaction.id`], {ecs-ref}/ecs-tracing.html[`trace.id`]
+and {ecs-ref}/ecs-error.html[`error.id`] fields.

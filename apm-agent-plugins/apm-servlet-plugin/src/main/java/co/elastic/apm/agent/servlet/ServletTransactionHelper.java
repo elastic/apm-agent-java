@@ -32,10 +32,10 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,26 +60,28 @@ public class ServletTransactionHelper {
 
     @VisibleForAdvice
     public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
+
     @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
+
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
-    public static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
-    @VisibleForAdvice
-    public static Set<String> nameInitialized = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
+    private static final Set<String> nameInitialized = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
     private final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
-    private final ElasticApmTracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
 
     @VisibleForAdvice
     public ServletTransactionHelper(ElasticApmTracer tracer) {
-        this.tracer = tracer;
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
-        // clear when unit tests re-init the instrumentation
+    }
+
+    // visible for testing as clearing cache is required between tests execution
+    static void clearServiceNameCache() {
         nameInitialized.clear();
     }
 
@@ -151,15 +153,21 @@ public class ServletTransactionHelper {
     }
 
     @VisibleForAdvice
-    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                        @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
-                        @Nullable String contentTypeHeader, boolean deactivate) {
+    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+                        boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
+                        @Nullable String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
+        if (servletPath == null) {
+            // the servlet path is specified as non-null but WebLogic does return null...
+            servletPath = "";
+        }
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
                 transaction.ignoreTransaction();
             } else {
-                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader);
+                doOnAfter(transaction, exception, committed, status, overrideStatusCodeOnThrowable, method,
+                    parameterMap, servletPath, pathInfo, contentTypeHeader)
+                ;
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -171,10 +179,11 @@ public class ServletTransactionHelper {
         transaction.end();
     }
 
-    private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
+    private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+                           boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
+                           String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
-        if (exception != null && status == 200) {
+        if (exception != null && status == 200 && overrideStatusCodeOnThrowable) {
             // Probably shouldn't be 200 but 5XX, but we are going to miss this...
             status = 500;
         }

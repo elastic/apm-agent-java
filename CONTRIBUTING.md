@@ -40,6 +40,17 @@ For small changes you don't have to execute them locally.
 When creating a pull requests,
 they will be executed by a CI server.
 
+#### Performance testing
+
+We have some JMH Tests that allow to track the following performance metrics deltas when agent is activated.
+- memory allocation rate (GC pressure)
+- cpu time
+
+In order to run them, you can use the `ElasticApmActiveContinuousBenchmark` from IDE or command line.
+
+Metrics reported by this test are just data, in order to make good use of them, you have to
+compare them against `master` branch values as a baseline to know if a given code change has any impact.
+
 ### Configuring IDEs
 
 #### IntelliJ
@@ -224,7 +235,7 @@ we should think about whether they bring us closer to or further away from those
   Create a configuration option for this new feature and disable it by default.
   One advantage is that less time will be spent rebasing long lasting feature branches.
   Another advantage is that users can try out cutting-edge features by activating a configuration option.
-  Instrumentations can be tagged with `incubating` which makes them being disabled by default.
+  Instrumentations can be tagged with `experimental` which makes them being disabled by default.
 
 ### Architecture overview
 
@@ -243,6 +254,8 @@ all the other asciidoc text files are written manually.
 A preview of the documentation is generated for each pull-request.
 Click on the build `Details` of the `elasticsearch-ci/docs` job and go to the bottom of the `Console Output` to see the link.
 
+This step is part of Elasticsearch CI, and the build job is [the following](https://elasticsearch-ci.elastic.co/view/Docs/job/elastic+docs+apm-agent-java+pull-request/).
+
 In order to generate a local copy of agent documentation, you will need to clone [docs](https://github.com/elastic/docs) repository
 and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo).
 
@@ -256,6 +269,7 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
 1. Update [`CHANGELOG.asciidoc`](CHANGELOG.asciidoc) to reflect the new version release:
    1. Go over PRs or git log and add bug fixes and features.
    1. Move release notes from the `Unreleased` sub-heading to the correct `[[release-notes-{major}.x]]` sub-heading ([Example PR](https://github.com/elastic/apm-agent-java/pull/1027/files) for 1.13.0 release).
+1. For major releases, update the EOL table in [`upgrading.asciidoc`](docs/upgrading.asciidoc).
 1. Review Maven project version, you must have `${project.version}` equal to `1.2.3-SNAPSHOT`, `-SNAPSHOT` suffix will be removed during release process.
    1. If needed, use following command to set version `mvn versions:set -DnewVersion=1.2.3-SNAPSHOT`, then commit and push changes.
 1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:

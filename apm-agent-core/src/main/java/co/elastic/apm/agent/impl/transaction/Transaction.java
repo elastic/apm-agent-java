@@ -118,7 +118,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {
-            setStartTimestamp(traceContext.getClock().getEpochMicros());
+            setStartTimestampNow();
         }
         onAfterStart();
     }
@@ -350,7 +350,10 @@ public class Transaction extends AbstractSpan<Transaction> {
                             String subtype = subtypes.get(j);
                             final Timer timer = timerBySubtype.get(subtype);
                             if (timer.getCount() > 0) {
-                                labels.spanType(spanType).spanSubType(!subtype.equals("") ? subtype : null);
+                                if (subtype.equals("")) {
+                                    subtype = null;
+                                }
+                                labels.spanType(spanType).spanSubType(subtype);
                                 metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
                                 timer.resetState();
                             }

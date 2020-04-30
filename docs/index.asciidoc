@@ -6,6 +6,9 @@ NOTE: For the best reading experience,
 please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
 endif::[]
 
+:y: image:./images/green-check.svg[]
+:n: image:./images/red-x.svg[]
+
 = APM Java Agent Reference
 
 ifndef::env-github[]
@@ -17,8 +20,10 @@ include::./public-api.asciidoc[API documentation]
 include::./metrics.asciidoc[Metrics]
 include::./opentracing.asciidoc[OpenTracing API documentation]
 include::./log-correlation.asciidoc[Log correlation]
+include::./method-monitoring.asciidoc[Java method monitoring]
 include::./tuning-and-overhead.asciidoc[Tuning and Overhead considerations]
 include::./troubleshooting.asciidoc[Trouble shooting]
 include::./faq.asciidoc[Frequently Asked Questions]
+include::./upgrading.asciidoc[Upgrading]
 include::./release-notes.asciidoc[Release notes]
 endif::[]
