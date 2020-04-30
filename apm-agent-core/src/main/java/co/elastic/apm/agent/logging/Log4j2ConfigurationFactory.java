@@ -154,7 +154,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
             if (Boolean.parseBoolean(getValue(SHIP_AGENT_LOGS, sources, Boolean.TRUE.toString()))) {
                 File tempLog = getTempLogFile(ephemeralId);
                 tempLog.deleteOnExit();
-                File rotatedTempLog = new File(tempLog + "1");
+                File rotatedTempLog = new File(tempLog + ".1");
                 rotatedTempLog.deleteOnExit();
                 appenders.add(createFileAppender(builder, tempLog.getAbsolutePath(), createLayout(builder, LogFormat.JSON)));
             }
@@ -201,7 +201,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         ByteValue size = ByteValue.of(getValue("log_file_max_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
         return builder.newAppender("rolling", "RollingFile")
             .addAttribute("fileName", logFile)
-            .addAttribute("filePattern", logFile + "%i")
+            .addAttribute("filePattern", logFile + ".%i")
             .add(layout)
             .addComponent(builder.newComponent("Policies")
                 .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", size.getBytes() + "B")))

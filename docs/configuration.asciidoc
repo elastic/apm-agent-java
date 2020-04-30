@@ -137,7 +137,6 @@ Click on a key to get more information.
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
 ** <<config-log-file-max-size>>
-** <<config-ship-agent-logs>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
 * <<config-messaging>>
@@ -1544,8 +1543,7 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 
 The max size of the log file.
 
-To support <<config-ship-agent-logs,shipping the logs>> to APM Server,
-the agent always keeps one history file so that the max total log file size is twice the value of this setting.
+The agent always keeps one history file so that the max total log file size is twice the value of this setting.
 
 
 
@@ -1562,47 +1560,6 @@ the agent always keeps one history file so that the max total log file size is t
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.log_file_max_size` | `log_file_max_size` | `ELASTIC_APM_LOG_FILE_MAX_SIZE`
-|============
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
-[[config-ship-agent-logs]]
-==== `ship_agent_logs` (added[1.16.0])
-
-This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.8+).
-Use the Kibana Logs App to see the logs from all of your agents.
-
-If <<config-log-file,`log_file`>> is set to a real file location (as opposed to `System.out`),
-this file will be shipped to the APM Server by the agent.
-Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.
-
-If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.
-The amount of logs that can be buffered is at least <<config-log-file-max-size,`log_file_max_size`>>.
-If the application crashes or APM Server is not available when shutting down,
-the agent will resume shipping the log file when the application restarts.
-
-Resume on restart does not work when the log is inside an ephemeral container.
-Consider mounting the log file to the host or use Filebeat if you need the extra reliability in this case.
-
-If <<config-log-file,`log_file`>> is set to `System.out`,
-the agent will additionally log into a temp file which is then sent to APM Server.
-This log's size is determined by <<config-log-file-max-size,`log_file_max_size`>> and will be deleted on shutdown.
-This means that logs that could not be sent before the application terminates are lost.
-
-
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `true` | Boolean | false
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.ship_agent_logs` | `ship_agent_logs` | `ELASTIC_APM_SHIP_AGENT_LOGS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1642,8 +1599,6 @@ Defines the log format when logging to a file.
 When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 where each log event is serialized as a single line.
 
-If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,
-the value has to be `JSON`.
 
 
 
@@ -1652,7 +1607,7 @@ Valid options: `PLAIN_TEXT`, `JSON`
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `JSON` | LogFormat | false
+| `PLAIN_TEXT` | LogFormat | false
 |============
 
 
@@ -3026,8 +2981,7 @@ The default unit for this option is `ms`.
 
 # The max size of the log file.
 # 
-# To support <<config-ship-agent-logs,shipping the logs>> to APM Server,
-# the agent always keeps one history file so that the max total log file size is twice the value of this setting.
+# The agent always keeps one history file so that the max total log file size is twice the value of this setting.
 # 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -3035,32 +2989,6 @@ The default unit for this option is `ms`.
 # Default value: 50mb
 #
 # log_file_max_size=50mb
-
-# This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.8+).
-# Use the Kibana Logs App to see the logs from all of your agents.
-# 
-# If <<config-log-file,`log_file`>> is set to a real file location (as opposed to `System.out`),
-# this file will be shipped to the APM Server by the agent.
-# Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.
-# 
-# If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.
-# The amount of logs that can be buffered is at least <<config-log-file-max-size,`log_file_max_size`>>.
-# If the application crashes or APM Server is not available when shutting down,
-# the agent will resume shipping the log file when the application restarts.
-# 
-# Resume on restart does not work when the log is inside an ephemeral container.
-# Consider mounting the log file to the host or use Filebeat if you need the extra reliability in this case.
-# 
-# If <<config-log-file,`log_file`>> is set to `System.out`,
-# the agent will additionally log into a temp file which is then sent to APM Server.
-# This log's size is determined by <<config-log-file-max-size,`log_file_max_size`>> and will be deleted on shutdown.
-# This means that logs that could not be sent before the application terminates are lost.
-#
-# This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Boolean
-# Default value: true
-#
-# ship_agent_logs=true
 
 # Defines the log format when logging to `System.out`.
 # 
@@ -3079,15 +3007,13 @@ The default unit for this option is `ms`.
 # When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
 # 
-# If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,
-# the value has to be `JSON`.
 #
 # Valid options: PLAIN_TEXT, JSON
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: LogFormat
-# Default value: JSON
+# Default value: PLAIN_TEXT
 #
-# log_format_file=JSON
+# log_format_file=PLAIN_TEXT
 
 ############################################
 # Messaging                                #

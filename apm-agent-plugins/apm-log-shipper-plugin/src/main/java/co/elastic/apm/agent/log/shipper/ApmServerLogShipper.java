@@ -42,8 +42,6 @@ import java.net.HttpURLConnection;
 import java.util.HashSet;
 import java.util.Set;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 public class ApmServerLogShipper extends AbstractIntakeApiHandler implements FileChangeListener {
 
     public static final String LOGS_ENDPOINT = "/intake/v2/logs";
@@ -63,7 +61,6 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
         try {
             if (connection == null) {
                 connection = startRequest(LOGS_ENDPOINT);
-                System.err.print(new String(metaData, UTF_8));
             }
             if (os != null) {
                 File file = tailableFile.getFile();
@@ -106,15 +103,10 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
         JsonWriter jw = payloadSerializer.getJsonWriter();
         jw.reset();
         payloadSerializer.serializeFileMetaData(file);
-        System.err.print(new String(jw.getByteBuffer(), 0, jw.size(), UTF_8));
         os.write(jw.getByteBuffer(), 0, jw.size());
     }
 
     private void write(OutputStream os, byte[] line, int offset, int length, boolean eol) throws IOException {
-        System.err.print(new String(line, offset, length, UTF_8));
-        if (eol) {
-            System.err.println();
-        }
         os.write(line, offset, length);
         if (eol) {
             currentlyTransmitting++;

@@ -65,11 +65,10 @@ public class LogShipperFactory extends AbstractLifecycleListener {
         LoggingConfiguration config = tracer.getConfig(LoggingConfiguration.class);
         String logFile = config.getLogFile();
         if (!config.isShipAgentLogs()) {
-            logger.debug("Not shipping agent logs");
             return;
         }
         if (!tracer.getApmServerClient().supportsLogsEndpoint()) {
-            logger.warn("This version of APM Server does not support the logs endpoint. Consider updating to version 7.8+.");
+            logger.warn("This version of APM Server does not support the logs endpoint. Consider updating to version 7.9+.");
             return;
         }
         if (logFile.equals(LoggingConfiguration.SYSTEM_OUT)) {
