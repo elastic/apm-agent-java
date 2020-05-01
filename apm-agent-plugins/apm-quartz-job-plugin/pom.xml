@@ -29,6 +29,13 @@
             <version>${version.spring}</version>
             <scope>provided</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.quartz-scheduler</groupId>
+            <artifactId>quartz-jobs</artifactId>
+            <version>${version.quartz}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
