@@ -407,8 +407,9 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 
 | gRPC
 | 1.6.1+
-| Client (synchronous & asynchronous) & Server instrumentation
-| 1.14.0
+| Client (synchronous & asynchronous) & Server instrumentation.
+  Streaming calls are currently not instrumented.
+| 1.16.0
 
 |===
 

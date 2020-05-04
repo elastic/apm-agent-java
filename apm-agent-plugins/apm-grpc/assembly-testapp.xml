@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+
+    <id>executable-test-jar</id>
+    <formats>
+        <format>jar</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>/</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>true</unpack>
+            <scope>test</scope>
+            <excludes>
+                <!-- needs to be explicitly excluded otherwise we have grpc plugin in app classpath -->
+                <exclude>co.elastic.apm:apm-grpc-plugin:jar:</exclude>
+                <!-- agent and its dependencies -->
+                <exclude>co.elastic.apm:apm-agent-core</exclude>
+                <exclude>com.lmax</exclude>
+                <exclude>org.jctools</exclude>
+                <exclude>com.blogspot.mydailyjava</exclude>
+                <exclude>org.stagemonitor</exclude>
+                <exclude>net.bytebuddy</exclude>
+                <exclude>org.hdrhistogram</exclude>
+                <exclude>com.dslplatform</exclude>
+            </excludes>
+        </dependencySet>
+    </dependencySets>
+    <fileSets>
+        <fileSet>
+            <directory>${project.build.directory}/test-classes</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>**/*.class</include>
+            </includes>
+            <useDefaultExcludes>true</useDefaultExcludes>
+        </fileSet>
+    </fileSets>
+</assembly>

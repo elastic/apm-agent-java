@@ -35,3 +35,14 @@ apm-grpc                   -> agent plugin itself + common test infrastructure
  |--apm-grpc-test-1.6.1    -> test app for gRPC 1.6.1 with generated code
  \--apm-grpc-test-latest   -> test app for gRPC latest with generated code
 ```
+
+## Test applications
+
+Standalone gRPC test applications are available for testing as executable jars.
+It allows testing application behavior with/without agent outside of unit/integration tests.
+
+There is one version per test submodule
+```
+java -jar apm-grpc-test-1.6.1/target/testapp.jar
+java -jar apm-grpc-test-latest/target/testapp.jar
+```
