@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,10 +25,7 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import org.asynchttpclient.AsyncCompletionHandlerBase;
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.Dsl;
-import org.asynchttpclient.RequestBuilder;
+import org.asynchttpclient.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -49,11 +46,32 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
         this.requestExecutor = requestExecutor;
     }
 
+    public static AsyncHandler<Response> customAsyncHandler = new AsyncCompletionHandler<Response>() {
+        @Override
+        public State onStatusReceived(HttpResponseStatus responseStatus) {
+            assert(tracer.currentTransaction() != null);
+            return State.CONTINUE;
+        }
+
+        @Override
+        public void onThrowable(Throwable t) {
+            assert(tracer.currentTransaction() != null);
+        }
+
+        @Override
+        public Response onCompleted(Response response) {
+            assert(tracer.currentTransaction() != null);
+            return response;
+        }
+
+    };
+
     @Parameterized.Parameters()
     public static Iterable<RequestExecutor> data() {
         return Arrays.asList(
             (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build()).get(),
             (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), new AsyncCompletionHandlerBase()).get(),
+            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), customAsyncHandler).get(),
             (client, path) -> client.prepareGet(path).execute(new AsyncCompletionHandlerBase()).get(),
             (client, path) -> client.prepareGet(path).execute().get()
         );
