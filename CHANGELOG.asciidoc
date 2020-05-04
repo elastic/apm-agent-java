@@ -24,7 +24,6 @@ endif::[]
 
 [float]
 ===== Breaking changes
-* Removes the experimental `profiling_inferred_spans_min_duration` flag in favor of <<config-span-min-duration,`span_min_duration`>>.
 
 [float]
 ===== Features
@@ -37,7 +36,8 @@ This is not a breaking change, so former
 * Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
 * Add log level `OFF` to silence agent logging
 * Adds <<config-span-min-duration,`span_min_duration`>> option to exclude fast executing spans.
-  This deprecates `trace_methods_duration_threshold` and removes `profiling_inferred_spans_min_duration`.
+  When set together with one of the more specific thresholds - `trace_methods_duration_threshold` or `profiling_inferred_spans_min_duration`,
+  the higher threshold will determine spans will be discarded.
 
 [float]
 ===== Bug fixes

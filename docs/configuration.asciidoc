@@ -949,7 +949,8 @@ In order not to break span references,
 all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 regardless of their duration.
 
-NOTE: This option is deprecated in favor of <<config-span-min-duration,`span_min_duration`>>.
+NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+the higher of both thresholds will determine which spans will be discarded.
 
 
 
@@ -2592,7 +2593,8 @@ The default unit for this option is `ms`.
 # all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 # regardless of their duration.
 # 
-# NOTE: This option is deprecated in favor of <<config-span-min-duration,`span_min_duration`>>.
+# NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+# the higher of both thresholds will determine which spans will be discarded.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration

@@ -450,7 +450,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,\n" +
             "regardless of their duration.\n" +
             "\n" +
-            "NOTE: This option is deprecated in favor of <<config-span-min-duration,`span_min_duration`>>.")
+            "NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,\n" +
+            "the higher of both thresholds will determine which spans will be discarded.")
         .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
