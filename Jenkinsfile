@@ -309,7 +309,9 @@ pipeline {
         }
       }
       steps {
-        doSnapshot()
+        dir("${BASE_DIR}") {
+          doSnapshot()
+        }
       }
     }
     stage('AfterRelease') {
