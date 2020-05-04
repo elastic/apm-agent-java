@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.webflux.testapp;
+package hello;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +43,7 @@ public class GreetingRouterTest {
 	private WebTestClient webTestClient;
 
 	@Test
-	public void testHello() {
+	void testHello() {
 		webTestClient
 			// Create a GET request to test an endpoint
 			.get().uri("/hello")

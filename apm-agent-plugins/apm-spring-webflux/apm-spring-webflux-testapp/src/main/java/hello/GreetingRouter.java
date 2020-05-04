@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.webflux.testapp;
+package hello;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

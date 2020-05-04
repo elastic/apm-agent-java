@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-spring-webflux</artifactId>
         <version>1.15.1-SNAPSHOT</version>
     </parent>
 
@@ -12,28 +13,61 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <springboot.version>2.2.4.RELEASE</springboot.version>
+        <!-- for licence header plugin -->
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+
+        <!-- this module is a test dependency, thus use same java version as tests -->
+        <maven.compiler.source>${maven.compiler.testTarget}</maven.compiler.source>
+        <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
+
+        <!-- disable signature check as it's a test application -->
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+
+        <version.spring-boot>2.2.4.RELEASE</version.spring-boot>
     </properties>
 
-    <dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <!-- using spring bom dependency to resolve dependencies -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${version.spring-boot}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <version>${springboot.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-test</artifactId>
-            <version>3.3.5.RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-            <version>${springboot.version}</version>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+            <exclusions>
+                <!-- we have to exclude junit from spring-boot to use the same as other agent modules
+                otherwise having multiple versions makes intellij issue a 'No test found' error -->
+                <exclusion>
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.junit.vintage</groupId>
+                    <artifactId>junit-vintage-engine</artifactId>
+                </exclusion>
+            </exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
     </dependencies>
 
     <build>
@@ -41,11 +75,8 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.2.6.RELEASE</version>
-                <configuration>
-                    <useTestClasspath>true</useTestClasspath>
-                    <mainClass>co.elastic.apm.webflux.testapp.Application</mainClass>
-                </configuration>
+                <!-- explicit version required as bom will not cover plugins, only dependencies -->
+                <version>${version.spring-boot}</version>
             </plugin>
         </plugins>
     </build>

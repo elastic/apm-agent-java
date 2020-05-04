@@ -22,11 +22,12 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.webflux.testapp;
+package hello;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+
 import reactor.core.publisher.Mono;
 
 public class GreetingWebClient {
