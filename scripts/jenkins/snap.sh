@@ -24,7 +24,7 @@ trap clean_up EXIT
 set +x
 
 # Import the key into the keyring
-echo $KEYPASS | gpg --batch --import keyfile > /dev/null 2>&1
+echo $KEYPASS | gpg --batch --import $KEY_FILE > /dev/null 2>&1
 
 set -x
 
