@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,20 +25,22 @@
 package hello;
 
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import reactor.core.publisher.Mono;
-
 public class GreetingWebClient {
-	private WebClient client = WebClient.create("http://localhost:8080");
 
-	private Mono<ClientResponse> result = client.get()
-			.uri("/hello")
-			.accept(MediaType.TEXT_PLAIN)
-			.exchange();
+	private final WebClient client;
 
-	public String getResult() {
-		return ">> result = " + result.flatMap(res -> res.bodyToMono(String.class)).block();
-	}
+    public GreetingWebClient(String url){
+        client = WebClient.create(url);
+    }
+
+    public String getHelloMono() {
+        return client.get()
+            .uri("/hello")
+            .accept(MediaType.TEXT_PLAIN)
+            .exchange()
+            .flatMap(res -> res.bodyToMono(String.class))
+            .block();
+    }
 }
