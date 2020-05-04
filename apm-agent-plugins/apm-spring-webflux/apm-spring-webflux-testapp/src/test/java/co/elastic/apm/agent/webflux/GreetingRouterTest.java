@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package hello;
+package co.elastic.apm.agent.webflux;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -22,23 +22,22 @@
  * under the License.
  * #L%
  */
-package hello;
+package co.elastic.apm.agent.webflux;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
-@SpringBootApplication
-public class Application {
+import reactor.core.publisher.Mono;
 
-	public static void main(String[] args) {
-        ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
-        try {
-            GreetingWebClient gwc = new GreetingWebClient("http://localhost:8080");
-            System.out.println(gwc.getHelloMono());
-        } finally {
-            context.close();
-        }
+@Component
+public class GreetingHandler {
 
+	public Mono<ServerResponse> helloMono(ServerRequest request) {
+		return ServerResponse.ok()
+            .contentType(MediaType.TEXT_PLAIN)
+			.body(BodyInserters.fromValue("Hello, Spring!"));
 	}
 }

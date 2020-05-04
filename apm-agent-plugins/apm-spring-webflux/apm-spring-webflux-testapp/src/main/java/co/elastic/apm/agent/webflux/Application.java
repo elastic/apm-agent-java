@@ -22,25 +22,20 @@
  * under the License.
  * #L%
  */
-package hello;
+package co.elastic.apm.agent.webflux;
 
-import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
-public class GreetingWebClient {
+@SpringBootApplication
+public class Application {
 
-	private final WebClient client;
+	public static void main(String[] args) {
+        try (ConfigurableApplicationContext context = SpringApplication.run(Application.class, args)) {
+            GreetingWebClient gwc = new GreetingWebClient("http://localhost:8080");
+            System.out.println(gwc.getHelloMono());
+        }
 
-    public GreetingWebClient(String url){
-        client = WebClient.create(url);
-    }
-
-    public String getHelloMono() {
-        return client.get()
-            .uri("/hello")
-            .accept(MediaType.TEXT_PLAIN)
-            .exchange()
-            .flatMap(res -> res.bodyToMono(String.class))
-            .block();
-    }
+	}
 }
