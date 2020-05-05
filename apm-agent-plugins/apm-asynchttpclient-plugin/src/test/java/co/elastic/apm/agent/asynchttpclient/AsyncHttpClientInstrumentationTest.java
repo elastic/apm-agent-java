@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
 public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
@@ -49,18 +50,18 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
     public static AsyncHandler<Response> customAsyncHandler = new AsyncCompletionHandler<Response>() {
         @Override
         public State onStatusReceived(HttpResponseStatus responseStatus) {
-            assert(tracer.currentTransaction() != null);
+            assertThat(tracer.currentTransaction()).isNotNull();
             return State.CONTINUE;
         }
 
         @Override
         public void onThrowable(Throwable t) {
-            assert(tracer.currentTransaction() != null);
+            assertThat(tracer.currentTransaction()).isNotNull();
         }
 
         @Override
         public Response onCompleted(Response response) {
-            assert(tracer.currentTransaction() != null);
+            assertThat(tracer.currentTransaction()).isNotNull();
             return response;
         }
 
