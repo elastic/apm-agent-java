@@ -223,7 +223,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
-            span = handlerSpanMap.remove(asyncHandler);
+            span = handlerSpanMap.get(asyncHandler);
             if (span != null) {
                 span.activate();
             }
