@@ -4,21 +4,16 @@
 
     <parent>
         <groupId>co.elastic.apm</groupId>
-        <artifactId>apm-agent-plugins</artifactId>
+        <artifactId>apm-spring-webflux</artifactId>
         <version>1.15.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-spring-webflux</artifactId>
+    <artifactId>apm-spring-webflux-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <packaging>pom</packaging>
 
     <properties>
         <!-- for licence header plugin -->
-        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
-    <modules>
-        <module>apm-spring-webflux-plugin</module>
-        <module>apm-spring-webflux-testapp</module>
-    </modules>
 </project>
