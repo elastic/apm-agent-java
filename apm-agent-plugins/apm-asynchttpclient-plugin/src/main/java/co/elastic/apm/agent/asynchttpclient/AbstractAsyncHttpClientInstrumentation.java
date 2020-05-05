@@ -189,6 +189,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span) {
             if (span != null) {
                 span.end();
+                span.deactivate();
             }
         }
     }
@@ -211,6 +212,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span, @Advice.Argument(0) Throwable t) {
             if (span != null) {
                 span.captureException(t).end();
+                span.deactivate();
             }
         }
     }
@@ -233,6 +235,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
             if (span != null) {
                 span.getContext().getHttp().withStatusCode(status.getStatusCode());
+                span.deactivate();
             }
         }
     }
