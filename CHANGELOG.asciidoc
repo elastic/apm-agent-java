@@ -48,6 +48,7 @@ This is not a breaking change, so former
 * Stop capturing JDBC affected rows count using `Statement.getUpdateCount` to prevent unreliable side-effects {pull}1147[#1147]
 * Fix OpenTracing error tag handling (set transaction error result when tag value is `true`) {pull}1159[#1159]
 * Due to a bug in the build we didn't include the gRPC plugin in the build so far
+* Make sure spans are kept active during `AsyncHandler` methods in the `AsyncHttpClient`
 
 
 [[release-notes-1.x]]
