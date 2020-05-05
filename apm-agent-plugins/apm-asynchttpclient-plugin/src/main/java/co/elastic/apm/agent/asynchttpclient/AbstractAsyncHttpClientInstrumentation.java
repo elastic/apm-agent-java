@@ -178,16 +178,15 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            final Span span = handlerSpanMap.getIfPresent(asyncHandler);
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span) {
+            span = handlerSpanMap.remove(asyncHandler);
             if (span != null) {
                 span.activate();
             }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler) {
-            final Span span = handlerSpanMap.remove(asyncHandler);
+        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span) {
             if (span != null) {
                 span.end();
             }
@@ -201,16 +200,15 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            final Span span = handlerSpanMap.getIfPresent(asyncHandler);
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span) {
+            span = handlerSpanMap.remove(asyncHandler);
             if (span != null) {
                 span.activate();
             }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) Throwable t) {
-            final Span span = handlerSpanMap.remove(asyncHandler);
+        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span, @Advice.Argument(0) Throwable t) {
             if (span != null) {
                 span.captureException(t).end();
             }
@@ -224,16 +222,15 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) HttpResponseStatus status) {
-            final Span span = handlerSpanMap.getIfPresent(asyncHandler);
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
+            span = handlerSpanMap.remove(asyncHandler);
             if (span != null) {
                 span.activate();
             }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) HttpResponseStatus status) {
-            final Span span = handlerSpanMap.getIfPresent(asyncHandler);
+        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
             if (span != null) {
                 span.getContext().getHttp().withStatusCode(status.getStatusCode());
             }
