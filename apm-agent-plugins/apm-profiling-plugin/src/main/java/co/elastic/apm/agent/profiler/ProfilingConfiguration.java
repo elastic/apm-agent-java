@@ -60,6 +60,13 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.15.0]", "experimental")
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Integer> recoverMode = ConfigurationOption.<Integer>integerOption()
+        .key("recover_mode")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(false)
+        .tags("internal")
+        .buildWithDefault(0);
+
     private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
         .key("profiling_inferred_spans_sampling_interval")
         .configurationCategory(PROFILING_CATEGORY)
@@ -148,6 +155,10 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isProfilingEnabled() {
         return profilingEnabled.get();
+    }
+
+    public int getRecoverMode() {
+        return recoverMode.get();
     }
 
     public boolean isProfilingDisabled() {
