@@ -29,11 +29,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication
-public class Application {
+public class GreetingApplication {
 
 	public static void main(String[] args) {
-        try (ConfigurableApplicationContext context = SpringApplication.run(Application.class, args)) {
-            GreetingWebClient gwc = new GreetingWebClient("http://localhost:8080");
+        try (ConfigurableApplicationContext context = SpringApplication.run(GreetingApplication.class, args)) {
+            String port = context.getEnvironment().getProperty("local.server.port", "8080");
+            GreetingWebClient gwc = new GreetingWebClient("http://localhost:" + port);
             System.out.println(gwc.getHelloMono());
         }
 

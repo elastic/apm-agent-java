@@ -21,6 +21,6 @@ In order to run it, you can:
     ```
 - package it as an executable jar and run it
     ```
-    mvn spring-boot:repackage
-    java -jar
+    mvn package
+    java -jar ./target/apm-spring-webflux-testapp.jar
     ```
