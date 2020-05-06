@@ -552,9 +552,27 @@ public class CallTree implements Recyclable {
             // See also CallTreeTest.testActivationAfterMethodEnds and following tests.
             if (firstFrameAfterActivation && previousTopOfStack != topOfStack && previousTopOfStack != null && previousTopOfStack.childIds != null) {
                 if (!topOfStack.isSuccessor(previousTopOfStack)) {
-                    stealActiveChildIds(previousTopOfStack.childIds, topOfStack, activationStack);
+                    CallTree commonAncestor = findCommonAncestor(previousTopOfStack, topOfStack);
+                    stealActiveChildIds(previousTopOfStack.childIds, commonAncestor != null ? commonAncestor : topOfStack, activationStack);
                 }
             }
+        }
+
+        @Nullable
+        private CallTree findCommonAncestor(CallTree previousTopOfStack, CallTree topOfStack) {
+            int maxDepthOfCommonAncestor = Math.min(previousTopOfStack.getDepth(), topOfStack.getDepth()) - 1;
+            CallTree commonAncestor = null;
+            // i = 1 avoids considering the CallTree.Root node which is always the same
+            for (int i = 1; i <= maxDepthOfCommonAncestor; i++) {
+                CallTree ancestor1 = previousTopOfStack.getNthParent(previousTopOfStack.getDepth() - i);
+                CallTree ancestor2 = topOfStack.getNthParent(topOfStack.getDepth() - i);
+                if (ancestor1 == ancestor2) {
+                    commonAncestor = ancestor1;
+                } else {
+                    break;
+                }
+            }
+            return commonAncestor;
         }
 
         private static void stealActiveChildIds(LongList stealFrom, CallTree giveTo, LongList activeSpanIds) {

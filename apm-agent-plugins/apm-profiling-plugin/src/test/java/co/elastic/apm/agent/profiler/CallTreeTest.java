@@ -324,7 +324,7 @@ class CallTreeTest {
      *       [c]
      */
     @Test
-    void testNestedActivationAfterMethodEnds() throws Exception {
+    void testNestedActivationAfterMethodEnds_RootChangesToC() throws Exception {
         Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
             " bbb        ",
             " aaa  ccc   ",
@@ -378,25 +378,29 @@ class CallTreeTest {
      *        [c]
      */
     @Test
-    void testNestedActivationAfterMethodEnds2() throws Exception {
+    void testNestedActivationAfterMethodEnds_CommonAncestorA() throws Exception {
         Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
             "  bbb  ccc    ",
             " aaaa  aaa  a ",
             "1    23   32 1"
         }, new Object[][]{
-            {"a", 8},
+            {"a",   8},
             {"  b", 3},
             {"  c", 3},
         }, new Object[][]{
-            {"1", 13},
-            {"  a", 11},
-            {"    b", 2},
-            {"  2", 6},
-            {"    3", 4},
-            {"      c", 2}
+            {"1",        13},
+            {"  a",      11},
+            {"    b",     2},
+            {"    2",     6},
+            {"      3",   4},
+            {"        c", 2}
         });
 
+        // this is empty but not null because a has stolen the child ids from b
         assertThat(spans.get("b").getChildIds().getSize()).isEqualTo(0);
+        assertThat(spans.get("c").getChildIds()).isNull();
+        // has both 2 and 3 as child_ids, even though only 2 is a direct child
+        assertThat(spans.get("a").getChildIds().getSize()).isEqualTo(2);
     }
 
     /*
@@ -407,7 +411,7 @@ class CallTreeTest {
      *      [c]
      */
     @Test
-    void testActivationAfterMethodEnds2() throws Exception {
+    void testActivationAfterMethodEnds_RootChangesToB() throws Exception {
         assertCallTree(new String[]{
             "     ccc  ",
             " aaa bbb  ",
@@ -421,6 +425,30 @@ class CallTreeTest {
             {"  a",   2},
             {"  2",   4},
             {"    c", 2, List.of("b")}
+        });
+    }
+
+    /*
+     * [1       ]
+     *  [a     ]
+     *     [2  ]
+     *      [b]
+     *      [c]
+     */
+    @Test
+    void testActivationAfterMethodEnds_SameRootDeeperStack() throws Exception {
+        assertCallTree(new String[]{
+            "     ccc  ",
+            " aaa aaa  ",
+            "1   2   21"
+        }, new Object[][] {
+            {"a",     6},
+            {"  c",   3},
+        }, new Object[][] {
+            {"1",       9},
+            {"  a",     6},
+            {"    2",   4},
+            {"      c", 2}
         });
     }
 
