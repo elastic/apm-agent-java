@@ -66,6 +66,14 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
 
+    /**
+     * We don't directly access most logging configuration values through the ConfigurationOption instance variables.
+     * That would require the configuration registry to be initialized already.
+     * However, the registry initializes logging by declaring a static final logger variable.
+     * In order to break up the cyclic dependency and to not accidentally initialize logging before we had the chance to configure the logging,
+     * we manually resolve these options.
+     * See {@link Log4j2ConfigurationFactory#getValue}
+     */
     @SuppressWarnings("unused")
     public ConfigurationOption<LogLevel> logLevel = ConfigurationOption.enumOption(LogLevel.class)
         .key(LOG_LEVEL_KEY)

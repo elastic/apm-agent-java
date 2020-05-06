@@ -65,6 +65,8 @@ import static co.elastic.apm.agent.logging.LoggingConfiguration.SYSTEM_OUT;
 public class Log4j2ConfigurationFactory extends ConfigurationFactory {
 
     static {
+        // We have to add this so that log4j can both load its internal plugins and the ECS plugin
+        // That's because we have to omit the plugin descriptor file Log4j2Plugins.dat because there's no good way to shade the binary content
         PluginManager.addPackage(EcsLayout.class.getPackage().getName());
         PluginManager.addPackage(LoggerContext.class.getPackage().getName());
     }
@@ -81,7 +83,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
      * The ConfigurationRegistry uses and thereby initializes a logger,
      * so we can't use it here initialize the {@link ConfigurationOption}s in this class.
      */
-    private static String getValue(String key, List<org.stagemonitor.configuration.source.ConfigurationSource> sources, String defaultValue) {
+    static String getValue(String key, List<org.stagemonitor.configuration.source.ConfigurationSource> sources, String defaultValue) {
         for (org.stagemonitor.configuration.source.ConfigurationSource source : sources) {
             final String value = source.getValue(key);
             if (value != null) {
@@ -98,7 +100,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         }
         if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
             if (agentHome == null) {
-                System.err.println("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
+                System.err.println("[elastic-apm-agent] WARN - Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
                 return SYSTEM_OUT;
             } else {
                 logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
@@ -107,10 +109,10 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         logFile = new File(logFile).getAbsolutePath();
         final File logDir = new File(logFile).getParentFile();
         if (!logDir.exists()) {
-            logDir.mkdir();
+            logDir.mkdirs();
         }
         if (!logDir.canWrite()) {
-            System.err.println("Log file " + logFile + " is not writable. Falling back to System.out.");
+            System.err.println("[elastic-apm-agent] WARN - Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
         return logFile;
@@ -168,7 +170,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     }
 
     public static File getTempLogFile(String ephemeralId) {
-        return new File(System.getProperty("java.io.tmpdir") + "/elasticapm-java-" + ephemeralId + ".log.json");
+        return new File(System.getProperty("java.io.tmpdir"), "elasticapm-java-" + ephemeralId + ".log.json");
     }
 
     private AppenderComponentBuilder createConsoleAppender(ConfigurationBuilder<BuiltConfiguration> builder) {

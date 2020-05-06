@@ -286,6 +286,10 @@
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
+                                        <!--
+                                        We have to exclude the log4j plugin descriptor file because we can't shade its contents
+                                        Therefore, we have to manually specify the plugin packages via PluginManager.addPackage
+                                        -->
                                         <exclude>**/Log4j2Plugins.dat</exclude>
                                     </excludes>
                                 </filter>
@@ -328,6 +332,7 @@
                                 </relocation>
 
                                 <relocation>
+                                    <!-- makes sure we don't load log4j2.{properties|xml|yml|json} files-->
                                     <pattern>log4j2</pattern>
                                     <shadedPattern>apmlog4j2</shadedPattern>
                                 </relocation>
@@ -380,18 +385,10 @@
                                     <resource>META-INF/LICENSE</resource>
                                     <file>${apm-agent-parent.base.dir}/LICENSE</file>
                                 </transformer>
-                                <transformer implementation="com.github.edwgiz.maven_shade_plugin.log4j2_cache_transformer.PluginsCacheFileTransformer"/>
                             </transformers>
                         </configuration>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.github.edwgiz</groupId>
-                        <artifactId>maven-shade-plugin.log4j2-cachefile-transformer</artifactId>
-                        <version>2.13.0</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
