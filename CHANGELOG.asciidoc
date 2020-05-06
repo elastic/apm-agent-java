@@ -34,6 +34,7 @@ This is not a breaking change, so former
 <<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
 * Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
 * Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
+* Add log level `OFF` to silence agent logging
 * Perform re-parenting of regular spans to be a child of profiler-inferred spans. Requires APM Server and Kibana 7.8.0. {pull}1117[#1117]
 
 [float]
@@ -46,6 +47,8 @@ This is not a breaking change, so former
 * Fix flaky gRPC server instrumentation {pull}1122[#1122]
 * Fix side effect of calling `Statement.getUpdateCount` more than once {pull}1139[#1139]
 * Stop capturing JDBC affected rows count using `Statement.getUpdateCount` to prevent unreliable side-effects {pull}1147[#1147]
+* Fix OpenTracing error tag handling (set transaction error result when tag value is `true`) {pull}1159[#1159]
+* Due to a bug in the build we didn't include the gRPC plugin in the build so far
 
 
 [[release-notes-1.x]]

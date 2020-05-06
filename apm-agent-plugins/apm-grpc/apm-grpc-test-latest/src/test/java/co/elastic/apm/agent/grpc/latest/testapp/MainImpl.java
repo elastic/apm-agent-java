@@ -22,18 +22,13 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc.v1_29_0.testapp;
+package co.elastic.apm.agent.grpc.latest.testapp;
 
-import co.elastic.apm.agent.grpc.GrpcTestNameGenerator;
-import co.elastic.apm.agent.grpc.testapp.AbstractGrpcAppTest;
-import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
-import org.junit.jupiter.api.DisplayNameGeneration;
+import co.elastic.apm.agent.grpc.testapp.Main;
 
-@DisplayNameGeneration(GrpcTestNameGenerator.class)
-class GrpcAppTest extends AbstractGrpcAppTest {
+public class MainImpl extends Main {
 
-    @Override
-    protected GrpcAppProvider getAppProvider() {
-        return GrpcAppProviderImpl.INSTANCE;
+    public static void main(String[] args) {
+        doMain(GrpcAppProviderImpl.INSTANCE.getGrpcApp("localhost", parsePort(args)));
     }
 }
