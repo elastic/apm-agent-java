@@ -25,8 +25,8 @@
 package co.elastic.apm.agent.jsf;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -100,7 +100,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
             public static void createExecuteSpan(@Advice.Argument(0) javax.faces.context.FacesContext facesContext,
                                                  @Advice.Local("span") Span span) {
                 if (tracer != null) {
-                    final TraceContextHolder<?> parent = tracer.getActive();
+                    final AbstractSpan<?> parent = tracer.getActive();
                     if (parent == null) {
                         return;
                     }
@@ -177,7 +177,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
             @Advice.OnMethodEnter(suppress = Throwable.class)
             public static void createRenderSpan(@Advice.Local("span") Span span) {
                 if (tracer != null) {
-                    final TraceContextHolder<?> parent = tracer.getActive();
+                    final AbstractSpan<?> parent = tracer.getActive();
                     if (parent == null) {
                         return;
                     }

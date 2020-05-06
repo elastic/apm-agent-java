@@ -139,7 +139,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
-        transaction.resetState();
 
         final Span childSpan = apmTracer.buildSpan("span")
             .asChildOf(span.context())
@@ -157,7 +156,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
-        transaction.resetState();
 
         try (Scope scope = apmTracer.activateSpan(span)) {
             final Span childSpan = apmTracer.buildSpan("span")
@@ -340,10 +338,16 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
                 Span nestedSpan = apmTracer.buildSpan("nestedSpan").start();
                 try (ApmScope nestedSpanScope = (ApmScope) apmTracer.activateSpan(nestedSpan)) {
                     assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(nestedSpan);
+                } finally {
+                    nestedSpan.finish();
                 }
                 assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(span);
+            } finally {
+                span.finish();
             }
             assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(transaction);
+        } finally {
+            transaction.finish();
         }
         assertThat(apmTracer.scopeManager().activeSpan()).isNull();
         assertThat(reporter.getSpans()).isEmpty();
