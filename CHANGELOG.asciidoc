@@ -37,7 +37,7 @@ This is not a breaking change, so former
 * Add log level `OFF` to silence agent logging
 * Adds <<config-span-min-duration,`span_min_duration`>> option to exclude fast executing spans.
   When set together with one of the more specific thresholds - `trace_methods_duration_threshold` or `profiling_inferred_spans_min_duration`,
-  the higher threshold will determine spans will be discarded.
+  the higher threshold will determine which spans will be discarded.
 
 [float]
 ===== Bug fixes

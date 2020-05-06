@@ -108,7 +108,15 @@ class AsyncTraceMethodInstrumentationTest {
 
     @Test
     @Tag("span_min_duration=50ms")
-    void testWithCrossedThreshold() {
+    void testWithCrossedThreshold_Generic() {
+        new TestAsyncTraceMethodsClass().invokeAsync();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(4);
+    }
+
+    @Test
+    @Tag("trace_methods_duration_threshold=50ms")
+    void testWithCrossedThreshold_Specific() {
         new TestAsyncTraceMethodsClass().invokeAsync();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(4);
