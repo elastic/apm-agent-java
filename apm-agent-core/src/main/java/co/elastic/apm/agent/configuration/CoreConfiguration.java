@@ -477,7 +477,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("In new Atlassian OSGi there is a config to append to boot delegation packages instead of overriding the default.")
-        .buildWithDefault(true);
+        .buildWithDefault(false);
 
     private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
         .key("central_config")

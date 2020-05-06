@@ -46,7 +46,7 @@ public class OsgiBootDelegationEnabler extends AbstractLifecycleListener {
     // see https://confluence.atlassian.com/jirakb/using-javaagent-with-jira-790793295.html#UsingjavaagentwithJIRA-Resolution
     private static final String ATLASSIAN_BOOTDELEGATION_DEFAULTS = "META-INF.services,com.yourkit,com.singularity.*,com.jprofiler," +
         "com.jprofiler.*,org.apache.xerces,org.apache.xerces.*,org.apache.xalan,org.apache.xalan.*,sun.*,com.sun.jndi.*,com.icl.saxon," +
-        "com.icl.saxon.*,javax.servlet,javax.servlet.*,com.sun.xml.bind.*";
+        "com.icl.saxon.*,javax.servlet,javax.servlet.*,com.sun.xml.bind.*,jdk.internal.*";
 
     @Override
     public void start(ElasticApmTracer tracer) {

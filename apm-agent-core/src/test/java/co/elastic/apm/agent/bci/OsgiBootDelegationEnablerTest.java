@@ -54,18 +54,19 @@ class OsgiBootDelegationEnablerTest {
         osgiBootDelegationEnabler.start(tracer);
         assertThat(System.getProperties())
             .containsEntry("org.osgi.framework.bootdelegation", "co.elastic.apm.agent.*")
-            .containsKey("atlassian.org.osgi.framework.bootdelegation.extra");
-        assertThat(System.getProperty("atlassian.org.osgi.framework.bootdelegation.extra")).isEqualTo("co.elastic.apm.agent.*");
+            .containsKey("atlassian.org.osgi.framework.bootdelegation")
+            .doesNotContainKey("atlassian.org.osgi.framework.bootdelegation.extra");
+        assertThat(System.getProperty("atlassian.org.osgi.framework.bootdelegation")).matches(".+,co.elastic.apm.agent.*");
     }
 
     @Test
-    void testBootdelegationWithLegacyAtlassianConfig() {
-        when(coreConfiguration.useAtlassianNewBootDelegationConfig()).thenReturn(false);
+    void testBootdelegationWithNewAtlassianConfig() {
+        when(coreConfiguration.useAtlassianNewBootDelegationConfig()).thenReturn(true);
         osgiBootDelegationEnabler.start(tracer);
         assertThat(System.getProperties())
             .containsEntry("org.osgi.framework.bootdelegation", "co.elastic.apm.agent.*")
-            .containsKey("atlassian.org.osgi.framework.bootdelegation");
-        assertThat(System.getProperty("atlassian.org.osgi.framework.bootdelegation")).matches(".+,co.elastic.apm.agent.*");
+            .containsEntry("atlassian.org.osgi.framework.bootdelegation.extra", "co.elastic.apm.agent.*")
+            .doesNotContainKey("atlassian.org.osgi.framework.bootdelegation");
     }
 
     @Test
@@ -74,24 +75,27 @@ class OsgiBootDelegationEnablerTest {
         osgiBootDelegationEnabler.start(tracer);
         assertThat(System.getProperties())
             .containsEntry("org.osgi.framework.bootdelegation", "foo.bar,co.elastic.apm.agent.*")
-            .containsKey("atlassian.org.osgi.framework.bootdelegation.extra");
+            .containsKey("atlassian.org.osgi.framework.bootdelegation")
+            .doesNotContainKey("atlassian.org.osgi.framework.bootdelegation.extra");
+    }
+
+    @Test
+    void testNewAtlassianBootdelegationWithExistingProperty() {
+        when(coreConfiguration.useAtlassianNewBootDelegationConfig()).thenReturn(true);
+        System.setProperty("atlassian.org.osgi.framework.bootdelegation.extra", "foo.bar");
+        osgiBootDelegationEnabler.start(tracer);
+        assertThat(System.getProperties())
+            .containsEntry("atlassian.org.osgi.framework.bootdelegation.extra", "foo.bar,co.elastic.apm.agent.*")
+            .doesNotContainKey("atlassian.org.osgi.framework.bootdelegation");
     }
 
     @Test
     void testAtlassianBootdelegationWithExistingProperty() {
-        System.setProperty("atlassian.org.osgi.framework.bootdelegation.extra", "foo.bar");
-        osgiBootDelegationEnabler.start(tracer);
-        assertThat(System.getProperties())
-            .containsEntry("atlassian.org.osgi.framework.bootdelegation.extra", "foo.bar,co.elastic.apm.agent.*");
-    }
-
-    @Test
-    void testAtlassianBootdelegationWithExistingPropertyLegacyAtlassianConfig() {
-        when(coreConfiguration.useAtlassianNewBootDelegationConfig()).thenReturn(false);
         System.setProperty("atlassian.org.osgi.framework.bootdelegation", "foo.bar");
         osgiBootDelegationEnabler.start(tracer);
         assertThat(System.getProperties())
-            .containsEntry("atlassian.org.osgi.framework.bootdelegation", "foo.bar,co.elastic.apm.agent.*");
+            .containsEntry("atlassian.org.osgi.framework.bootdelegation", "foo.bar,co.elastic.apm.agent.*")
+            .doesNotContainKey("atlassian.org.osgi.framework.bootdelegation.extra");
     }
 
     @Test
