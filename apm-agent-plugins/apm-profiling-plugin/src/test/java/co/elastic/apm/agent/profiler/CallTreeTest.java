@@ -342,7 +342,7 @@ class CallTreeTest {
                 // span names denoted by digits are actual spans, not profiler-inferred spans
                 // currently, the parent of an actual span can't be an inferred span
                 if (!Character.isDigit(spanName.charAt(0))) {
-                    assertThat(span.getTraceContext().isChildOf(spans.get(parentName)))
+                    assertThat(span.isChildOf(spans.get(parentName)))
                         .withFailMessage("Expected %s (%s) to be a child of %s (%s) but was %s", spanName, span.getTraceContext().getId(),
                             parentName, spans.get(parentName).getTraceContext().getId(), span.getTraceContext().getParentId())
                         .isTrue();

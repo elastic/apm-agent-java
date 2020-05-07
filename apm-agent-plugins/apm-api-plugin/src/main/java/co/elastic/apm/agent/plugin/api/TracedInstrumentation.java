@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -72,7 +71,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
         @Advice.Local("span") AbstractSpan abstractSpan) {
 
         if (tracer != null) {
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
             if (parent != null) {
                 Span span = parent.createSpan();
                 span.withType(type.isEmpty() ? "app" : type);
@@ -98,7 +97,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("span") AbstractSpan span,
+    public static void onMethodExit(@Nullable @Advice.Local("span") AbstractSpan<?> span,
                                     @Advice.Thrown Throwable t) {
         if (span != null) {
             span.captureException(t)

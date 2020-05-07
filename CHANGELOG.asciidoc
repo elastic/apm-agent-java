@@ -35,6 +35,10 @@ This is not a breaking change, so former
 * Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
 * Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
 * Add log level `OFF` to silence agent logging
+* Adds <<config-span-min-duration,`span_min_duration`>> option to exclude fast executing spans.
+  When set together with one of the more specific thresholds - `trace_methods_duration_threshold` or `profiling_inferred_spans_min_duration`,
+  the higher threshold will determine which spans will be discarded.
+* Automatically instrument quartz jobs from the quartz-jobs artifact {pull}1170[#1170]
 
 [float]
 ===== Bug fixes
@@ -48,6 +52,7 @@ This is not a breaking change, so former
 * Stop capturing JDBC affected rows count using `Statement.getUpdateCount` to prevent unreliable side-effects {pull}1147[#1147]
 * Fix OpenTracing error tag handling (set transaction error result when tag value is `true`) {pull}1159[#1159]
 * Due to a bug in the build we didn't include the gRPC plugin in the build so far
+* `java.lang.ClassNotFoundException: Unable to load class 'jdk.internal...'` is thrown when tracing specific versions of Atlassian systems {pull}1168[#1168]
 * Make sure spans are kept active during `AsyncHandler` methods in the `AsyncHttpClient`
 
 

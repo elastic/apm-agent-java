@@ -25,8 +25,8 @@
 package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
@@ -76,7 +76,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
     @Override
     @Nullable
     public Span createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
-        final TraceContextHolder<?> activeSpan = tracer.getActive();
+        final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
         }

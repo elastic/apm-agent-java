@@ -47,9 +47,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 
 /**
  * This class must not import classes from {@code javax.servlet} due to class loader issues.

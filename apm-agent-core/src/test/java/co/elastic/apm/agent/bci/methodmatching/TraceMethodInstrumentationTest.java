@@ -33,7 +33,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -47,11 +48,12 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.lang.annotation.Retention;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 class TraceMethodInstrumentationTest {
@@ -80,9 +82,14 @@ class TraceMethodInstrumentationTest {
             WildcardMatcher.valueOf("*exclude*"),
             WildcardMatcher.valueOf("manuallyTraced")));
 
-        Set<String> tags = testInfo.getTags();
-        if (!tags.isEmpty()) {
-            when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
+        for (String tag : testInfo.getTags()) {
+            TimeDuration duration = TimeDuration.of(tag.split("=")[1]);
+            if (tag.startsWith("span_min_duration=")) {
+                doReturn(duration).when(coreConfiguration).getSpanMinDuration();
+            }
+            if (tag.startsWith("trace_methods_duration_threshold=")) {
+                doReturn(duration).when(coreConfiguration).getTraceMethodsDurationThreshold();
+            }
         }
 
         tracer = mockInstrumentationSetup.getTracer();
@@ -182,7 +189,7 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("200ms")
+    @Tag("span_min_duration=200ms")
     void testDiscardMethods_DiscardAll() {
         new TestDiscardableMethods(tracer).root(false);
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -190,7 +197,25 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("200ms")
+    @Tag("span_min_duration=50ms")
+    @Tag("trace_methods_duration_threshold=200ms")
+    void testDiscardMethods_DiscardAll_HigherWinns_SpecificThreshold() {
+        new TestDiscardableMethods(tracer).root(false);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(0);
+    }
+
+    @Test
+    @Tag("span_min_duration=200ms")
+    @Tag("trace_methods_duration_threshold=50ms")
+    void testDiscardMethods_DiscardAll_HigherWinns_GenericThreshold() {
+        new TestDiscardableMethods(tracer).root(false);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(0);
+    }
+
+    @Test
+    @Tag("span_min_duration=200ms")
     void testDiscardMethods_Manual() {
         new TestDiscardableMethods(tracer).root(true);
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -198,8 +223,16 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("50ms")
-    void testDiscardMethods_ThresholdCrossed() {
+    @Tag("span_min_duration=50ms")
+    void testDiscardMethods_GeneralThresholdCrossed() {
+        new TestDiscardableMethods(tracer).root(true);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(5);
+    }
+
+    @Test
+    @Tag("trace_methods_duration_threshold=50ms")
+    void testDiscardMethods_SpecificThresholdCrossed() {
         new TestDiscardableMethods(tracer).root(true);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(5);
@@ -214,11 +247,11 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("50ms")
+    @Tag("span_min_duration=50ms")
     void testErrorCapture_TraceErrorBranch() {
         new TestErrorCapture().root();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(2);
+        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("TestErrorCapture#throwException", "TestErrorCapture#catchException");
         assertThat(reporter.getErrors()).hasSize(1);
     }
 
@@ -338,12 +371,11 @@ class TraceMethodInstrumentationTest {
         }
 
         private void manuallyTraced() {
-            TraceContextHolder<?> active = tracer.getActive();
+            AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
-                active.createSpan()
-                    .activate()
-                    .deactivate()
-                    .end();
+                Span span = active.createSpan();
+                span.propagateTraceContext(new HashMap<>(), (k, v, m) -> m.put(k, v));
+                span.end();
             }
         }
 

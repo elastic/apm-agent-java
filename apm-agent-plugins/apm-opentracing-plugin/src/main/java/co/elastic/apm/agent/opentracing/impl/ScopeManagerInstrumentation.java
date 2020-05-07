@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,8 +26,6 @@ package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -64,14 +62,9 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                      @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext) {
+        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
             if (span != null) {
                 span.activate();
-            } else if (traceContext != null) {
-                if (tracer != null) {
-                    tracer.activate(traceContext);
-                }
             }
         }
     }
@@ -86,10 +79,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void getCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                final TraceContextHolder active = tracer.getActive();
-                if (active instanceof AbstractSpan) {
-                    span = active;
-                }
+                span = tracer.getActive();
             }
         }
 
@@ -105,10 +95,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void getCurrentTraceContext(@Advice.Return(readOnly = false) Object traceContext) {
             if (tracer != null) {
-                final TraceContextHolder active = tracer.getActive();
-                if (active instanceof TraceContext) {
-                    traceContext = active;
-                }
+                traceContext = tracer.getActive();
             }
         }
 
