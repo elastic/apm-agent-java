@@ -123,4 +123,17 @@ public class LongList {
         sb.append(']');
         return sb.toString();
     }
+
+    public boolean containsAny(LongList other) {
+        for (int i = 0; i < other.size; i++) {
+            if (contains(other.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public long[] toArray() {
+        return Arrays.copyOfRange(longs, 0, size);
+    }
 }

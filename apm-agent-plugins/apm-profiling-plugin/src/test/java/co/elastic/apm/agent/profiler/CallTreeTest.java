@@ -371,36 +371,36 @@ class CallTreeTest {
     }
 
     /*
-     * [1           ]
-     *  [a         ]
-     *   [b][2    ]
-     *       [3  ]
-     *        [c]
+     * [1             ]
+     *  [a           ]
+     *   [b  ][3    ]
+     *    [2]  [4  ]
+     *          [c]
      */
     @Test
     void testNestedActivationAfterMethodEnds_CommonAncestorA() throws Exception {
         Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
-            "  bbb  ccc    ",
-            " aaaa  aaa  a ",
-            "1    23   32 1"
+            "  b b b  ccc    ",
+            " aa a a  aaa  a ",
+            "1  2 2 34   43 1"
         }, new Object[][]{
             {"a",   8},
             {"  b", 3},
             {"  c", 3},
         }, new Object[][]{
-            {"1",        13},
-            {"  a",      11},
-            {"    b",     2},
-            {"    2",     6},
-            {"      3",   4},
+            {"1",        15},
+            {"  a",      13},
+            {"    b",     4},
+            {"      2",   2},
+            {"    3",     6},
+            {"      4",   4},
             {"        c", 2}
         });
 
-        // this is empty but not null because a has stolen the child ids from b
-        assertThat(spans.get("b").getChildIds().getSize()).isEqualTo(0);
+        assertThat(spans.get("b").getChildIds().toArray()).containsExactly(spans.get("2").getTraceContext().getId().readLong(0));
         assertThat(spans.get("c").getChildIds()).isNull();
-        // has both 2 and 3 as child_ids, even though only 2 is a direct child
-        assertThat(spans.get("a").getChildIds().getSize()).isEqualTo(2);
+        // only has 3 as a child as 4 is a nested activation
+        assertThat(spans.get("a").getChildIds().toArray()).containsExactly(spans.get("3").getTraceContext().getId().readLong(0));
     }
 
     /*

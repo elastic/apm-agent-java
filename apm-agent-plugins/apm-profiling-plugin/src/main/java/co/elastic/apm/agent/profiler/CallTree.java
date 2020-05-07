@@ -516,8 +516,14 @@ public class CallTree implements Recyclable {
             if (topOfStack != null) {
                 long spanId = TraceContext.getSpanId(active);
                 activationStack.add(spanId);
-                topOfStack.addChildId(spanId);
+                if (!isNestedActivation(topOfStack)) {
+                    topOfStack.addChildId(spanId);
+                }
             }
+        }
+
+        private boolean isNestedActivation(CallTree topOfStack) {
+            return topOfStack.childIds != null && topOfStack.childIds.containsAny(activationStack);
         }
 
         public void onDeactivation(byte[] deactivated, byte[] active, long timestamp) {
@@ -576,9 +582,10 @@ public class CallTree implements Recyclable {
         }
 
         private static void stealActiveChildIds(LongList stealFrom, CallTree giveTo, LongList activeSpanIds) {
-            for (int i = activeSpanIds.getSize() - 1; i >= 0; i--) {
-                if (stealFrom.remove(activeSpanIds.get(i))) {
-                    giveTo.addChildId(activeSpanIds.get(i));
+            for (int i = stealFrom.getSize() - 1; i >= 0; i--) {
+                if (activeSpanIds.contains(stealFrom.get(i))) {
+                    giveTo.addChildId(stealFrom.get(i));
+                    stealFrom.remove(i);
                 } else {
                     return;
                 }
