@@ -714,13 +714,13 @@ public class LongHashSet extends AbstractSet<Long> implements Serializable
         {
             if (value != MISSING_VALUE)
             {
-                hashCode += Long.hashCode(value);
+                hashCode += Hashing.hash(value);
             }
         }
 
         if (containsMissingValue)
         {
-            hashCode += Long.hashCode(MISSING_VALUE);
+            hashCode += Hashing.hash(MISSING_VALUE);
         }
 
         return hashCode;
