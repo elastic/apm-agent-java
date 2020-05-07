@@ -454,7 +454,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the higher of both thresholds will determine which spans will be discarded.")
         .buildWithDefault(TimeDuration.of("0ms"));
 
-    private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
+    private final ConfigurationOption<String> appendPackagesToBootDelegationProperty = ConfigurationOption.stringOption()
         .key("boot_delegation_packages")
         .tags("added[1.7.0]")
         .configurationCategory(CORE_CATEGORY)
@@ -474,6 +474,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "org.apache.xerces.dom, co.elastic.apm.agent.*\n" +
             "----\n")
         .buildWithDefault("co.elastic.apm.agent.*");
+
+    private final ConfigurationOption<Boolean> atlassianNewBootDelegation = ConfigurationOption.booleanOption()
+        .key("use_atlassian_new_boot_delegation")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("In new Atlassian OSGi there is a config to append to boot delegation packages instead of overriding the default.")
+        .buildWithDefault(false);
 
     private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
         .key("central_config")
@@ -644,7 +651,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public @Nullable String getPackagesToAppendToBootdelegationProperty() {
-        String value = appendPackagesToBootDelagationProperty.get();
+        String value = appendPackagesToBootDelegationProperty.get();
         if (value != null) {
             value = value.trim();
             if (value.isEmpty()) {
@@ -652,6 +659,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         }
         return value;
+    }
+
+    public boolean useAtlassianNewBootDelegationConfig() {
+        return atlassianNewBootDelegation.get();
     }
 
     public Map<String, String> getGlobalLabels() {

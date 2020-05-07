@@ -46,16 +46,21 @@ public class OsgiBootDelegationEnabler extends AbstractLifecycleListener {
     // see https://confluence.atlassian.com/jirakb/using-javaagent-with-jira-790793295.html#UsingjavaagentwithJIRA-Resolution
     private static final String ATLASSIAN_BOOTDELEGATION_DEFAULTS = "META-INF.services,com.yourkit,com.singularity.*,com.jprofiler," +
         "com.jprofiler.*,org.apache.xerces,org.apache.xerces.*,org.apache.xalan,org.apache.xalan.*,sun.*,com.sun.jndi.*,com.icl.saxon," +
-        "com.icl.saxon.*,javax.servlet,javax.servlet.*,com.sun.xml.bind.*";
+        "com.icl.saxon.*,javax.servlet,javax.servlet.*,com.sun.xml.bind.*,jdk.internal.*";
 
     @Override
     public void start(ElasticApmTracer tracer) {
         // may be problematic as it could override the defaults in a properties file
-        String packagesToAppendToBootdelegationProperty = tracer.getConfig(CoreConfiguration.class).getPackagesToAppendToBootdelegationProperty();
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        String packagesToAppendToBootdelegationProperty = coreConfig.getPackagesToAppendToBootdelegationProperty();
         if (packagesToAppendToBootdelegationProperty != null) {
             appendToSystemProperty("org.osgi.framework.bootdelegation", packagesToAppendToBootdelegationProperty);
         }
-        appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation", ATLASSIAN_BOOTDELEGATION_DEFAULTS, APM_BASE_PACKAGE);
+        if (coreConfig.useAtlassianNewBootDelegationConfig()) {
+            appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation.extra", APM_BASE_PACKAGE);
+        } else {
+            appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation", ATLASSIAN_BOOTDELEGATION_DEFAULTS, APM_BASE_PACKAGE);
+        }
     }
 
     private static void appendToSystemProperty(String propertyName, String append) {
