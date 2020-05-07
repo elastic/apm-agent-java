@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -493,7 +494,8 @@ public class CallTree implements Recyclable {
         @Nullable
         private CallTree topOfStack;
 
-        private LongList activationStack = new LongList();
+        private final LongList activationStack = new LongList();
+        private final LongHashSet activeSet = new LongHashSet();
 
         public Root(ElasticApmTracer tracer) {
             this.rootContext = TraceContext.with64BitId(tracer);
@@ -516,6 +518,7 @@ public class CallTree implements Recyclable {
             if (topOfStack != null) {
                 long spanId = TraceContext.getSpanId(active);
                 activationStack.add(spanId);
+                activeSet.add(spanId);
                 if (!isNestedActivation(topOfStack)) {
                     topOfStack.addChildId(spanId);
                 }
@@ -535,9 +538,9 @@ public class CallTree implements Recyclable {
             }
             // else: activeSpan has not been materialized because no stack traces were added during this activation
             setActiveSpan(active, timestamp);
-            if (topOfStack != null) {
-                activationStack.remove(TraceContext.getSpanId(deactivated));
-            }
+            long spanId = TraceContext.getSpanId(deactivated);
+            activationStack.remove(spanId);
+            activeSet.remove(spanId);
         }
 
         public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs) {
@@ -559,14 +562,14 @@ public class CallTree implements Recyclable {
             if (firstFrameAfterActivation && previousTopOfStack != topOfStack && previousTopOfStack != null && previousTopOfStack.childIds != null) {
                 if (!topOfStack.isSuccessor(previousTopOfStack)) {
                     CallTree commonAncestor = findCommonAncestor(previousTopOfStack, topOfStack);
-                    stealActiveChildIds(previousTopOfStack.childIds, commonAncestor != null ? commonAncestor : topOfStack, activationStack);
+                    stealActiveChildIds(previousTopOfStack.childIds, commonAncestor != null ? commonAncestor : topOfStack, activeSet);
                 }
             }
         }
 
         @Nullable
         private CallTree findCommonAncestor(CallTree previousTopOfStack, CallTree topOfStack) {
-            int maxDepthOfCommonAncestor = Math.min(previousTopOfStack.getDepth(), topOfStack.getDepth()) - 1;
+            int maxDepthOfCommonAncestor = Math.min(previousTopOfStack.getDepth(), topOfStack.getDepth());
             CallTree commonAncestor = null;
             // i = 1 avoids considering the CallTree.Root node which is always the same
             for (int i = 1; i <= maxDepthOfCommonAncestor; i++) {
@@ -581,13 +584,11 @@ public class CallTree implements Recyclable {
             return commonAncestor;
         }
 
-        private static void stealActiveChildIds(LongList stealFrom, CallTree giveTo, LongList activeSpanIds) {
-            for (int i = stealFrom.getSize() - 1; i >= 0; i--) {
+        private static void stealActiveChildIds(LongList stealFrom, CallTree giveTo, LongHashSet activeSpanIds) {
+            for (int i = 0; i < stealFrom.getSize(); i++) {
                 if (activeSpanIds.contains(stealFrom.get(i))) {
                     giveTo.addChildId(stealFrom.get(i));
                     stealFrom.remove(i);
-                } else {
-                    return;
                 }
             }
         }
@@ -634,6 +635,7 @@ public class CallTree implements Recyclable {
             activationTimestamp = -1;
             topOfStack = null;
             activationStack.clear();
+            activeSet.clear();
         }
     }
 }
