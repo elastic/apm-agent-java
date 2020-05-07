@@ -839,7 +839,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeFieldName("span_count");
         jw.writeByte(OBJECT_START);
         writeField("dropped", spanCount.getDropped().get());
-        writeLastField("started", spanCount.getStarted().get());
+        writeLastField("started", spanCount.getReported().get());
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }

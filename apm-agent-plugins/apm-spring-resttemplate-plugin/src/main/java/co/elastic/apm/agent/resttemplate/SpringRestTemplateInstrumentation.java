@@ -29,9 +29,9 @@ import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -105,7 +105,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
             span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
                 request.getURI().getHost());
             if (span != null) {
@@ -113,7 +113,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
                 if (headerSetterHelperManager != null) {
                     TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(HttpRequest.class);
                     if (headerSetter != null) {
-                        span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                        span.propagateTraceContext(request, headerSetter);
                     }
                 }
             }

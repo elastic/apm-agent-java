@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -91,6 +92,9 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Nullable
     private volatile String type;
 
+
+    private int maxSpans;
+
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -112,6 +116,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     private void onTransactionStart(boolean startedAsChild, long epochMicros, Sampler sampler) {
+        maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
         if (!startedAsChild) {
             traceContext.asRootSpan(sampler);
         }
@@ -219,6 +224,10 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
+    boolean isSpanLimitReached() {
+        return getSpanCount().isSpanLimitReached(maxSpans);
+    }
+
     public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getTimerBySpanTypeAndSubtype() {
         return timerBySpanTypeAndSubtype;
     }
@@ -229,8 +238,9 @@ public class Transaction extends AbstractSpan<Transaction> {
         context.resetState();
         result = null;
         spanCount.resetState();
-        noop = false;
         type = null;
+        noop = false;
+        maxSpans = 0;
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
