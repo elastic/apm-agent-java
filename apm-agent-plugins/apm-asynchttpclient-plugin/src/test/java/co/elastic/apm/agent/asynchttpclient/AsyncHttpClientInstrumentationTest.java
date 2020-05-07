@@ -50,21 +50,21 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
     public static AsyncHandler<Response> customAsyncHandler = new AsyncCompletionHandler<Response>() {
         @Override
         public State onStatusReceived(HttpResponseStatus responseStatus) {
-            assertThat(tracer.currentTransaction()).isNotNull();
-            assertThat(tracer.currentTransaction().isExit()).isTrue();
+            assertThat(tracer.getActive()).isNotNull();
+            assertThat(tracer.getActive().isExit()).isTrue();
             return State.CONTINUE;
         }
 
         @Override
         public void onThrowable(Throwable t) {
-            assertThat(tracer.currentTransaction()).isNotNull();
-            assertThat(tracer.currentTransaction().isExit()).isTrue();
+            assertThat(tracer.getActive()).isNotNull();
+            assertThat(tracer.getActive().isExit()).isTrue();
         }
 
         @Override
         public Response onCompleted(Response response) {
-            assertThat(tracer.currentTransaction()).isNotNull();
-            assertThat(tracer.currentTransaction().isExit()).isTrue();
+            assertThat(tracer.getActive()).isNotNull();
+            assertThat(tracer.getActive().isExit()).isTrue();
             return response;
         }
 
