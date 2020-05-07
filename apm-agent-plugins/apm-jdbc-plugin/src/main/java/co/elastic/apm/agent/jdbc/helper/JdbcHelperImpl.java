@@ -28,7 +28,6 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
 import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -72,7 +71,7 @@ public class JdbcHelperImpl extends JdbcHelper {
 
     @Override
     @Nullable
-    public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
+    public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement) {
         if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null) {
             return null;
         }
@@ -120,7 +119,7 @@ public class JdbcHelperImpl extends JdbcHelper {
      * This makes sure that even when there are wrappers for the statement,
      * we only record each JDBC call once.
      */
-    private boolean isAlreadyMonitored(@Nullable TraceContextHolder<?> parent) {
+    private boolean isAlreadyMonitored(@Nullable AbstractSpan<?> parent) {
         if (!(parent instanceof Span)) {
             return false;
         }
