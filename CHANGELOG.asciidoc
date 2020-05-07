@@ -38,6 +38,7 @@ This is not a breaking change, so former
 * Adds <<config-span-min-duration,`span_min_duration`>> option to exclude fast executing spans.
   When set together with one of the more specific thresholds - `trace_methods_duration_threshold` or `profiling_inferred_spans_min_duration`,
   the higher threshold will determine which spans will be discarded.
+* Automatically instrument quartz jobs from the quartz-jobs artifact {pull}1170[#1170]
 * Perform re-parenting of regular spans to be a child of profiler-inferred spans. Requires APM Server and Kibana 7.8.0. {pull}1117[#1117]
 
 [float]
