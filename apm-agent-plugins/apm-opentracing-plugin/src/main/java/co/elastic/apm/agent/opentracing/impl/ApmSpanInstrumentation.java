@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,11 +25,10 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -73,16 +72,15 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                           @Advice.Argument(0) long finishMicros,
-                                           @Advice.Argument(value = 1, optional = true) @Nullable Object traceContext) {
+                                           @Advice.Argument(0) long finishMicros) {
             if (span != null) {
-                doFinishInternal(span, finishMicros, traceContext);
-                span = null;
+                doFinishInternal(span, finishMicros);
             }
         }
 
         @VisibleForAdvice
-        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros, @Nullable Object traceContext) {
+        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros) {
+            abstractSpan.incrementReferences();
             if (abstractSpan instanceof Transaction) {
                 Transaction transaction = (Transaction) abstractSpan;
                 if (transaction.getType() == null) {
@@ -103,12 +101,6 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 abstractSpan.end(finishMicros);
             } else {
                 abstractSpan.end();
-            }
-
-            // If the finished span is the active span, replace with the corresponding TraceContext
-            if (tracer != null && traceContext != null && abstractSpan == tracer.getActive() && traceContext instanceof TraceContext) {
-                tracer.deactivate(abstractSpan);
-                tracer.activate((TraceContext) traceContext);
             }
         }
     }
@@ -302,7 +294,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         public static void getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan,
                                            @Advice.Return(readOnly = false) Object traceContext) {
             if (abstractSpan != null) {
-                traceContext = abstractSpan.getTraceContext().copy();
+                traceContext = abstractSpan;
             }
         }
     }

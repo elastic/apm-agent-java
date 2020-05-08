@@ -25,8 +25,6 @@
 package co.elastic.apm.agent.objectpool;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.async.ContextInScopeCallableWrapper;
-import co.elastic.apm.agent.impl.async.ContextInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper;
 import co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -84,24 +82,6 @@ public class ObjectPoolFactory {
             @Override
             public SpanInScopeCallableWrapper<?> createInstance() {
                 return new SpanInScopeCallableWrapper(tracer);
-            }
-        });
-    }
-
-    public ObjectPool<ContextInScopeRunnableWrapper> createRunnableContextPool(int maxCapacity, final ElasticApmTracer tracer) {
-        return createRecyclableObjectPool(maxCapacity, new Allocator<ContextInScopeRunnableWrapper>() {
-            @Override
-            public ContextInScopeRunnableWrapper createInstance() {
-                return new ContextInScopeRunnableWrapper(tracer);
-            }
-        });
-    }
-
-    public ObjectPool<ContextInScopeCallableWrapper<?>> createCallableContextPool(int maxCapacity, final ElasticApmTracer tracer) {
-        return createRecyclableObjectPool(maxCapacity, new Allocator<ContextInScopeCallableWrapper<?>>() {
-            @Override
-            public ContextInScopeCallableWrapper<?> createInstance() {
-                return new ContextInScopeCallableWrapper<>(tracer);
             }
         });
     }

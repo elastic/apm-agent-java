@@ -74,7 +74,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
                 span.withName(method).appendToName(" ");
                 span.getContext().getHttp().withMethod(method).withUrl(requestLine.getUri());
             }
-            span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+            span.propagateTraceContext(request, headerSetter);
         }
 
         HttpHost host = getTarget();

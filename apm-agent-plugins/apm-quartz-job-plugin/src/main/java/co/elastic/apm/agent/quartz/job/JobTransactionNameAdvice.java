@@ -27,7 +27,7 @@ package co.elastic.apm.agent.quartz.job;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import org.quartz.JobExecutionContext;
@@ -44,7 +44,7 @@ public class JobTransactionNameAdvice {
     private static void setTransactionName(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
                                            @SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) {
         if (ElasticApmInstrumentation.tracer != null) {
-            TraceContextHolder<?> active = ElasticApmInstrumentation.tracer.getActive();
+            AbstractSpan<?> active = ElasticApmInstrumentation.tracer.getActive();
             if (context == null) {
                 logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
                 transaction = ElasticApmInstrumentation.tracer.startRootTransaction(clazz.getClassLoader());
