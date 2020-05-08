@@ -22,20 +22,22 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.grpc.v1_27_1;
+package co.elastic.apm.agent.grpc.latest.testapp;
 
-import co.elastic.apm.agent.grpc.AbstractGrpcContextHeadersTest;
-import co.elastic.apm.agent.grpc.GrpcTestNameGenerator;
+import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
-import co.elastic.apm.agent.grpc.v1_27_1.testapp.GrpcAppProviderImpl;
-import org.junit.jupiter.api.DisplayNameGeneration;
+import co.elastic.apm.agent.grpc.testapp.HelloClient;
+import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply;
+import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest;
 
-@DisplayNameGeneration(GrpcTestNameGenerator.class)
-class GrpcContextHeadersTest extends AbstractGrpcContextHeadersTest {
+public class GrpcAppProviderImpl implements GrpcAppProvider {
 
-    @Override
-    public GrpcAppProvider getAppProvider() {
-        return GrpcAppProviderImpl.INSTANCE;
+    public static final GrpcAppProviderImpl INSTANCE = new GrpcAppProviderImpl();
+
+    public GrpcApp getGrpcApp(String host, int port) {
+        HelloClient<HelloRequest, HelloReply> client = new HelloClientImpl(host, port);
+        HelloServerImpl server = new HelloServerImpl(port, client);
+        return new GrpcApp(server, client);
     }
 
 }
