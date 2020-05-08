@@ -26,10 +26,12 @@ package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.asynchttpclient.*;
+import org.asynchttpclient.handler.StreamedAsyncHandler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.reactivestreams.Publisher;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -70,12 +72,32 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
 
     };
 
+    public static class CustomStreamedAsyncHandler extends AsyncCompletionHandler<Response> implements StreamedAsyncHandler<Response> {
+
+        @Override
+        public Response onCompleted(Response response) {
+            assertThat(tracer.getActive()).isNotNull();
+            assertThat(tracer.getActive().isExit()).isTrue();
+            return response;
+        }
+
+        @Override
+        public State onStream(Publisher<HttpResponseBodyPart> publisher) {
+            assertThat(tracer.getActive()).isNotNull();
+            assertThat(tracer.getActive().isExit()).isTrue();
+            return State.ABORT;
+        }
+    }
+
+    public static AsyncHandler<Response> customStreamAsyncHandler = new CustomStreamedAsyncHandler();
+
     @Parameterized.Parameters()
     public static Iterable<RequestExecutor> data() {
         return Arrays.asList(
             (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build()).get(),
             (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), new AsyncCompletionHandlerBase()).get(),
             (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), customAsyncHandler).get(),
+            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), customStreamAsyncHandler).get(),
             (client, path) -> client.prepareGet(path).execute(new AsyncCompletionHandlerBase()).get(),
             (client, path) -> client.prepareGet(path).execute().get()
         );
