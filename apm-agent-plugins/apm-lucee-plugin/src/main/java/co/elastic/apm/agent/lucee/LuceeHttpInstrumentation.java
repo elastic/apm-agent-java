@@ -56,6 +56,7 @@ import lucee.runtime.tag.Http;
 import lucee.runtime.PageContext;
 import lucee.runtime.type.KeyImpl;
 import lucee.runtime.type.Struct;
+import lucee.commons.net.HTTPUtil;
 
 import co.elastic.apm.agent.lucee.LuceeHttpHeaderSetter;
 
@@ -113,7 +114,8 @@ public class LuceeHttpInstrumentation extends ElasticApmInstrumentation {
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
-            URI url = URI.create(objurl);
+            // Use Lucee converter as url without protocol are accepted
+            URI url = HTTPUtil.toURL(objurl);
             span = HttpClientHelper.startHttpClientSpan(parent, getMethodName(methodId), url.toString(), url.getScheme(), url.getHost(), url.getPort());
             if (span != null) {
                 if (params != null) {
