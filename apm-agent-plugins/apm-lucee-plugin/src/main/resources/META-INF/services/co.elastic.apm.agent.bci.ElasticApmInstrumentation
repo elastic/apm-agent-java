@@ -1,2 +1,6 @@
 co.elastic.apm.agent.lucee.LuceeHttpInstrumentation
 co.elastic.apm.agent.lucee.LuceeHttpEngineInstrumentation
+co.elastic.apm.agent.lucee.LuceeCompileInstrumentation
+co.elastic.apm.agent.lucee.LuceeLockInstrumentation
+co.elastic.apm.agent.lucee.LuceeApplicationInstrumentation
+co.elastic.apm.agent.lucee.LuceeExtensionImageTagInstrumentation
