@@ -284,12 +284,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-dubbo-plugin</artifactId>
+            <artifactId>apm-lucee-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-scala-concurrent-plugin</artifactId>
+            <artifactId>apm-lucee-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

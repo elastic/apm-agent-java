@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-plugins</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.15.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-lucee-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.lucee</groupId>
+            <artifactId>lucee</artifactId>
+            <version>5.3.5.92</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.lucee</groupId>
+            <artifactId>core</artifactId>
+            <version>5.3.5.92</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/src/jar/core.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.12</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-httpclient-core</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

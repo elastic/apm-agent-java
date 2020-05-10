@@ -57,6 +57,7 @@
         <module>apm-bootdelegation-plugin</module>
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
+<<<<<<< HEAD
         <module>apm-jdk-httpserver-plugin</module>
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
@@ -65,6 +66,9 @@
         <module>apm-vertx</module>
         <module>apm-sparkjava-plugin</module>
         <module>apm-javalin-plugin</module>
+=======
+        <module>apm-lucee-plugin</module>
+>>>>>>> 1034b59a5 (maven build scripts)
     </modules>
 
     <dependencies>
