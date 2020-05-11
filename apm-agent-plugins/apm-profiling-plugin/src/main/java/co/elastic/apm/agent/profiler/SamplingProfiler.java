@@ -56,15 +56,22 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
 
 /**
  * Correlates {@link ActivationEvent}s with {@link StackFrame}s which are recorded by {@link AsyncProfiler},
@@ -414,6 +421,9 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         long start = System.nanoTime();
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
+        if (config.isBackupDiagnosticFiles()) {
+            backupDiagnosticFiles(eof);
+        }
         try {
             jfrParser.parse(jfrFile, excludedClasses, includedClasses);
             final List<StackTraceEvent> stackTraceEvents = getSortedStackTraceEvents(jfrParser);
@@ -450,6 +460,23 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             jfrParser.resetState();
             resetActivationEventBuffer();
         }
+    }
+
+    private void backupDiagnosticFiles(long eof) throws IOException {
+        String now = String.format("%tFT%<tT.%<tL", new Date());
+        Path profilerDir = Paths.get(System.getProperty("java.io.tmpdir"), "profiler");
+        profilerDir.toFile().mkdir();
+
+        try (FileChannel activationsFile = FileChannel.open(profilerDir.resolve(now + "-activations.dat"), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+            if (eof > 0) {
+                activationEventsFileChannel.transferTo(0, eof, activationsFile);
+            } else {
+                int position = activationEventsBuffer.position();
+                activationsFile.write(activationEventsBuffer);
+                activationEventsBuffer.position(position);
+            }
+        }
+        Files.copy(jfrFile.toPath(), profilerDir.resolve(now + "-traces.jfr"));
     }
 
     private long getInferredSpansMinDurationNs() {
@@ -548,6 +575,14 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         return eof;
     }
 
+    void copyFromFiles(Path activationEvents, Path traces) throws IOException {
+        FileChannel otherActivationsChannel = FileChannel.open(activationEvents, READ);
+        activationEventsFileChannel.transferFrom(otherActivationsChannel, 0, otherActivationsChannel.size());
+        activationEventsFileChannel.position(otherActivationsChannel.size());
+        FileChannel otherTracesChannel = FileChannel.open(traces, READ);
+        FileChannel.open(jfrFile.toPath(), WRITE).transferFrom(otherTracesChannel, 0, otherTracesChannel.size());
+    }
+
     @Override
     public void start(ElasticApmTracer tracer) {
         scheduler.submit(this);
@@ -605,7 +640,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
     // --
 
-    private static class StackTraceEvent implements Comparable<StackTraceEvent> {
+    public static class StackTraceEvent implements Comparable<StackTraceEvent> {
         private final long nanoTime;
         private final long stackTraceId;
         private final long threadId;
@@ -614,6 +649,18 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             this.nanoTime = nanoTime;
             this.stackTraceId = stackTraceId;
             this.threadId = threadId;
+        }
+
+        public long getThreadId() {
+            return threadId;
+        }
+
+        public long getNanoTime() {
+            return nanoTime;
+        }
+
+        public long getStackTraceId() {
+            return stackTraceId;
         }
 
         @Override

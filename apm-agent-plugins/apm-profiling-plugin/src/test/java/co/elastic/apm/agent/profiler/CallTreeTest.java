@@ -296,6 +296,63 @@ class CallTreeTest {
     }
 
     /*
+     *  [a       ]   [a        ]
+     *   [1]           [1]
+     *       [2]           [c ]
+     *        [b]          [b ]  <- b should steal 2 but not 1 from a
+     *        [c]          [2]
+     */
+    @Test
+    void testDectivationBeforeEnd_DontStealChildIdsOfUnrelatedActivations() throws Exception {
+        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+            "      c c ",
+            "      b b ",
+            "a   a a aa",
+            " 1 1 2 2  "
+        }, new Object[][]{
+            {"a",     5},
+            {"  b",   2},
+            {"    c", 2},
+        }, new Object[][]{
+            {"a",      9},
+            {"  1",     2},
+            {"  c",     3, List.of("b")},
+            {"    2",   2},
+        });
+        assertThat(spans.get("a").getChildIds().getSize()).isEqualTo(1);
+        assertThat(spans.get("c").getChildIds().getSize()).isEqualTo(1);
+    }
+
+    /*
+     *  [a         ]   [a         ]
+     *   [1]            [1]
+     *       [2  ]           [c  ]  <- this is an open issue: c should start when 2 starts but starts with 3 starts
+     *        [3]           [2  ]
+     *         [c ]          [3]
+     */
+    @Test
+    void testDectivationBeforeEnd_DontStealChildIdsOfUnrelatedActivations_Nested() throws Exception {
+        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+            "       c  c ",
+            "       b  b ",
+            "a   a  a  aa",
+            " 1 1 23 32  "
+        }, new Object[][]{
+            {"a",     5},
+            {"  b",   2},
+            {"    c", 2},
+        }, new Object[][]{
+            {"a",      11},
+            {"  1",     2},
+            {"  c",     4, List.of("b")},
+            {"    2",   4},
+            {"      3", 2},
+        });
+        assertThat(spans.get("a").getChildIds().getSize()).isEqualTo(1);
+        assertThat(spans.get("c").getChildIds().getSize()).isEqualTo(1);
+    }
+
+    /*
      * [1       ]
      *  [a     ]
      *   [b][2]
@@ -303,17 +360,125 @@ class CallTreeTest {
     @Test
     void testActivationAfterMethodEnds() throws Exception {
         assertCallTree(new String[]{
-            " bbb      ",
-            " aaa aa a ",
-            "1   2  2 1"
+            "bb   ",
+            "aa a ",
+            "  1 1"
         }, new Object[][] {
-            {"a",       6},
-            {"  b",     3},
+            {"a",   3},
+            {"  b", 2},
         }, new Object[][] {
-            {"1",       9},
-            {"  a",     7},
-            {"    b",   2},
-            {"    2",   3}
+            {"a",   3},
+            {"  b", 1},
+            {"  1", 2}
+        });
+    }
+
+    /*
+     * [a   ]
+     * [b[1]
+     */
+    @Test
+    void testActivationBetweenMethods() throws Exception {
+        assertCallTree(new String[]{
+            "bb   ",
+            "aa  a",
+            "  11 "
+        }, new Object[][] {
+            {"a",   3},
+            {"  b", 2},
+        }, new Object[][] {
+            {"a",   4},
+            {"  b", 1},
+            {"  1", 1},
+        });
+    }
+
+    /*
+     * [a   ]
+     * [b[1]
+     *  c
+     */
+    @Test
+    void testActivationBetweenMethods_AfterFastMethod() throws Exception {
+        assertCallTree(new String[]{
+            " c   ",
+            "bb   ",
+            "aa  a",
+            "  11 "
+        }, new Object[][] {
+            {"a",   3},
+            {"  b", 2},
+        }, new Object[][] {
+            {"a",   4},
+            {"  b", 1},
+            {"  1", 1},
+        });
+    }
+
+    /*
+     * [a ]
+     * [b]
+     *  1
+     */
+    @Test
+    void testActivationBetweenFastMethods() throws Exception {
+        assertCallTree(new String[]{
+            "c  d   ",
+            "b  b   ",
+            "a  a  a",
+            " 11 22 "
+        }, new Object[][] {
+            {"a",   3},
+            {"  b", 2},
+        }, new Object[][] {
+            {"a",     6},
+            {"  b",   3},
+            {"    1", 1},
+            {"  2",   1},
+        });
+    }
+
+/*    *//*
+     * [a       ]
+     * [b] [1 [c]
+     *//*
+    @Test
+    void testActivationBetweenMethods_WithCommonAncestor() throws Exception {
+        assertCallTree(new String[]{
+            "  c     f  g ",
+            "bbb  e  d  dd",
+            "aaa  a  a  aa",
+            "   11 22 33  "
+        }, new Object[][] {
+            {"a",   7},
+            {"  b", 3},
+            {"  d", 3},
+        }, new Object[][] {
+            {"a",     12},
+            {"  b",   2},
+            {"  1",   1},
+            {"  2",   1},
+            {"  d",   4},
+            {"    3", 1},
+        });
+    }*/
+
+    /*
+     * [a    ]
+     *  [1  ]
+     *   [2]
+     */
+    @Test
+    void testNestedActivation() throws Exception {
+        Map<String, AbstractSpan<?>> spans = assertCallTree(new String[]{
+            "a  a  a",
+            " 12 21 "
+        }, new Object[][] {
+            {"a",     3},
+        }, new Object[][] {
+            {"a",     6},
+            {"  1",   4},
+            {"    2", 2},
         });
     }
 
@@ -340,7 +505,7 @@ class CallTreeTest {
             {"    3",    4},
             {"      c",  2}
         });
-        assertThat(spans.get("b").getChildIds().getSize()).isEqualTo(0);
+        assertThat(spans.get("b").getChildIds()).isNull();
     }
 
     /*
@@ -518,6 +683,23 @@ class CallTreeTest {
             {"1",     8},
             {"  a",   6},
             {"    2", 2},
+        });
+    }
+
+    @Test
+    void testCallTreeActivationAsChildOfFastSpan() throws Exception {
+        when(profilerConfig.getInferredSpansMinDuration()).thenReturn(TimeDuration.of("50ms"));
+        assertCallTree(new String[]{
+            "   c  c   ",
+            "   b  b   ",
+            " aaa  aaa ",
+            "1   22   1"
+        }, new Object[][]{
+            {"a",     6}
+        }, new Object[][]{
+            {"1",     9},
+            {"  a",   7},
+            {"    2", 1},
         });
     }
 

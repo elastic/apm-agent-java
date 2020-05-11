@@ -54,9 +54,8 @@ public class LongList {
 
     public void addAll(LongList other) {
         ensureCapacity(size + other.size);
-        for (int i = 0; i < other.size; i++) {
-            longs[size++] = other.longs[i];
-        }
+        System.arraycopy(other.longs, 0, longs, size, other.size);
+        size += other.size;
     }
 
     private void ensureCapacity(int size) {
@@ -122,15 +121,6 @@ public class LongList {
         }
         sb.append(']');
         return sb.toString();
-    }
-
-    public boolean containsAny(LongList other) {
-        for (int i = 0; i < other.size; i++) {
-            if (contains(other.get(i))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public long[] toArray() {
