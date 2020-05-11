@@ -69,7 +69,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
     public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
         AsyncHandlerOnCompletedInstrumentation.class,
         AsyncHandlerOnThrowableInstrumentation.class,
-        AsyncHandlerOnStatusReceivedInstrumentation.class);
+        AsyncHandlerOnStatusReceivedInstrumentation.class,
+        StreamedAsyncHandlerOnStreamInstrumentation.class);
 
     public AbstractAsyncHttpClientInstrumentation() {
         if (headerSetterManager == null) {
@@ -186,7 +187,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span) {
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span) {
             if (span != null) {
                 span.end();
                 span.deactivate();
@@ -209,7 +210,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span, @Advice.Argument(0) Throwable t) {
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span, @Advice.Argument(0) Throwable t) {
             if (span != null) {
                 span.captureException(t).end();
                 span.deactivate();
@@ -232,12 +233,35 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onMethodExit(@Advice.This AsyncHandler<?> asyncHandler, @Nullable @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
             if (span != null) {
                 span.getContext().getHttp().withStatusCode(status.getStatusCode());
                 span.deactivate();
             }
         }
+    }
+
+    public static class StreamedAsyncHandlerOnStreamInstrumentation extends AbstractAsyncHandlerInstrumentation {
+
+        public StreamedAsyncHandlerOnStreamInstrumentation() {
+            super(named("onStream").and(takesArgument(0, named("org.reactivestreams.Publisher"))));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span) {
+            span = handlerSpanMap.get(asyncHandler);
+            if (span != null) {
+                span.activate();
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span) {
+            if (span != null) {
+                span.deactivate();
+            }
+        }
+
     }
 
 }
