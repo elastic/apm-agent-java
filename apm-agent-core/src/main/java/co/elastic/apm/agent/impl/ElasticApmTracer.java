@@ -323,19 +323,8 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        Deque<AbstractSpan<?>> stack = activeStack.get();
-        final AbstractSpan<?> bottomOfStack = stack.peekLast();
-        if (bottomOfStack instanceof Transaction) {
-            return (Transaction) bottomOfStack;
-        } else if (bottomOfStack != null) {
-            for (Iterator<AbstractSpan<?>> it = stack.descendingIterator(); it.hasNext(); ) {
-                AbstractSpan<?> context = it.next();
-                if (context instanceof Transaction) {
-                    return (Transaction) context;
-                }
-            }
-        }
-        return null;
+        final AbstractSpan<?> bottomOfStack = activeStack.get().peekLast();
+        return bottomOfStack != null ? bottomOfStack.getTransaction() : null;
     }
 
     /**

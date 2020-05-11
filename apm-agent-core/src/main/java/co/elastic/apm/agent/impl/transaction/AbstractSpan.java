@@ -98,6 +98,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return discardRequested && getTraceContext().isDiscardable();
     }
 
+    @Nullable
+    public abstract Transaction getTransaction();
+
     private static class ChildDurationTimer implements Recyclable {
 
         private AtomicInteger activeChildren = new AtomicInteger();

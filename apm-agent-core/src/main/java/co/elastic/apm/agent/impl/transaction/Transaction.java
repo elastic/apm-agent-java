@@ -95,6 +95,11 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     private int maxSpans;
 
+    @Override
+    public Transaction getTransaction() {
+        return this;
+    }
+
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
     }
