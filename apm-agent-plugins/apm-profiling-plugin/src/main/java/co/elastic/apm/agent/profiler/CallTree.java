@@ -138,7 +138,7 @@ public class CallTree implements Recyclable {
         // if an actual child span is deactivated after this call tree node has ended
         // it means that this node has actually ended at least at the same point, if not after, the actual span has been deactivated
         //
-        // [a(inferred)]    ─► [a(inferred)  ] <- set end timestamp to timestamp of deactivation of b
+        // [a(inferred)]    ─► [a(inferred)  ] ← set end timestamp to timestamp of deactivation of b
         // └─[b(actual)  ]     └─[b(actual)  ]
         // see also CallTreeTest::testDectivationAfterEnd
         if (happenedDuring(activationTimestamp) && happenedAfter(deactivationTimestamp)) {
@@ -176,9 +176,9 @@ public class CallTree implements Recyclable {
     protected CallTree addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime, ObjectPool<CallTree> callTreePool, long minDurationNs, Root root) {
         count++;
         lastSeen = nanoTime;
-        //     c ee   <- traceContext not set - they are not a child of the active span but the frame below them
-        //   bbb dd   <- traceContext set
-        //   ------   <- all new CallTree during this period should have the traceContext set
+        //     c ee   ← traceContext not set - they are not a child of the active span but the frame below them
+        //   bbb dd   ← traceContext set
+        //   ------   ← all new CallTree during this period should have the traceContext set
         // a aaaaaa a
         //  |      |
         // active  deactive
@@ -335,7 +335,7 @@ public class CallTree implements Recyclable {
      *
      * <pre>
      *  c
-     *  b  <- b is a pillar
+     *  b  ← b is a pillar
      * aaa
      * </pre>
      */
@@ -479,7 +479,7 @@ public class CallTree implements Recyclable {
      * <pre>
      * bb
      * aa aa
-     *   1  1  <- activation
+     *   1  1  ← activation
      * </pre>
      * <p>
      * We would add the id of span {@code 1} to {@code b}'s {@link #maybeChildIds}.
