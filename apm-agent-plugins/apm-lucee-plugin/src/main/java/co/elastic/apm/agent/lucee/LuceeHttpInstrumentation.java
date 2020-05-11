@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import org.apache.http.client.methods.HttpRequestBase;
-import java.net.URI;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -115,8 +115,20 @@ public class LuceeHttpInstrumentation extends ElasticApmInstrumentation {
 
             final AbstractSpan<?> parent = tracer.getActive();
             // Use Lucee converter as url without protocol are accepted
-            URI url = HTTPUtil.toURL(objurl);
-            span = HttpClientHelper.startHttpClientSpan(parent, getMethodName(methodId), url.toString(), url.getScheme(), url.getHost(), url.getPort());
+            URL url = null;
+            try {
+                url = new URL(objurl);
+            }
+            catch (Throwable e) {
+                try {
+                    url = new URL("http://" + objurl);
+                } catch (Throwable seconde) {}
+            }
+            if (url != null) {
+                span = HttpClientHelper.startHttpClientSpan(parent, getMethodName(methodId), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+            } else {
+                span = HttpClientHelper.startHttpClientSpan(parent, getMethodName(methodId), objurl, "unknown", "unknown", 80);
+            }
             if (span != null) {
                 if (params != null) {
                     TextHeaderSetter<Http> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Http.class);
