@@ -22,8 +22,6 @@
 
         <!-- disable signature check as it's a test application -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
-
-        <version.spring-boot>2.2.4.RELEASE</version.spring-boot>
     </properties>
 
     <dependencyManagement>

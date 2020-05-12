@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,34 +24,19 @@
  */
 package co.elastic.apm.agent.webflux;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
-import static org.assertj.core.api.Assertions.assertThat;
+@Configuration
+class GreetingConfig {
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class ApplicationTest {
-
-    // tests the whole application behavior
-
-    @LocalServerPort
-    private int serverPort;
-
-    private GreetingWebClient client;
-
-    @BeforeEach
-    void beforeEach() {
-        client = new GreetingWebClient("localhost", 8080);
+    @Bean
+    GreetingWebClient getWebClient(Environment environment) {
+        String serverPort = environment.getProperty("server.port");
+        if (serverPort == null) {
+            throw new IllegalStateException("missing server port");
+        }
+        return new GreetingWebClient("localhost", Integer.parseInt(serverPort));
     }
-
-    @Test
-    void helloMono() {
-        assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
-    }
-
 }

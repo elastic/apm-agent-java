@@ -25,22 +25,37 @@
 package co.elastic.apm.agent.webflux;
 
 import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 public class GreetingWebClient {
 
 	private final WebClient client;
 
-    public GreetingWebClient(String url) {
-        this.client = WebClient.create(url);
+    public GreetingWebClient(String host, int port) {
+        this.client = WebClient.create(String.format("http://%s:%d/", host, port));
     }
 
     public String getHelloMono() {
-        return client.get()
+        Mono<ClientResponse> response = client.get()
             .uri("/hello")
             .accept(MediaType.TEXT_PLAIN)
-            .exchange()
-            .flatMap(res -> res.bodyToMono(String.class))
+            .exchange();
+
+        // exchange or retrieve ?
+
+        return response.flatMap(res -> res.bodyToMono(String.class))
+            .block();
+    }
+
+    public String get404(){
+        Mono<ClientResponse> response = client.get()
+            .uri("/error-404")
+            .accept(MediaType.TEXT_PLAIN)
+            .exchange();
+
+        return response.flatMap(res -> res.bodyToMono(String.class))
             .block();
     }
 }

@@ -15,6 +15,13 @@
     <properties>
         <!-- for licence header plugin -->
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+
+        <!-- spring boot version to use (for testing), needs to be kept in sync with spring version below -->
+        <version.spring-boot>2.2.4.RELEASE</version.spring-boot>
+
+        <!-- spring version & reactor our instrumentation will rely on -->
+        <version.spring>5.2.3.RELEASE</version.spring>
+        <version.reactor>3.3.2.RELEASE</version.reactor>
     </properties>
 
     <modules>

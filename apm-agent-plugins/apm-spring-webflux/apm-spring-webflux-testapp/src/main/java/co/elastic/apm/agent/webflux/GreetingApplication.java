@@ -27,16 +27,37 @@ package co.elastic.apm.agent.webflux;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+
+import java.util.Map;
 
 @SpringBootApplication
 public class GreetingApplication {
 
-	public static void main(String[] args) {
-        try (ConfigurableApplicationContext context = SpringApplication.run(GreetingApplication.class, args)) {
-            String port = context.getEnvironment().getProperty("local.server.port", "8080");
-            GreetingWebClient gwc = new GreetingWebClient("http://localhost:" + port);
-            System.out.println(gwc.getHelloMono());
+    public static void main(String[] args) {
+        try (ConfigurableApplicationContext context = run(8080)) {
+            GreetingWebClient client = getClient(context);
+            sampleRequests(client);
         }
+    }
 
-	}
+    /**
+     * Starts application on provided port
+     * @param port port to use
+     * @return application context
+     */
+    public static ConfigurableApplicationContext run(int port){
+        SpringApplication app = new SpringApplication(GreetingApplication.class);
+        app.setDefaultProperties(Map.of("server.port", port));
+        return app.run();
+    }
+
+    public static GreetingWebClient getClient(ConfigurableApplicationContext context){
+        return context.getBean(GreetingWebClient.class);
+    }
+
+    public static void sampleRequests(GreetingWebClient client){
+        System.out.println(client.getHelloMono());
+    }
+
 }
