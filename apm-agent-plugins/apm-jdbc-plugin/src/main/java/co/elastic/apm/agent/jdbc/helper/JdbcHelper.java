@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
@@ -67,15 +67,6 @@ public abstract class JdbcHelper {
     public abstract void clearInternalStorage();
 
     @Nullable
-    public abstract Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
-
-    /**
-     * Safely wraps calls to {@link java.sql.Statement#getUpdateCount()}
-     *
-     * @param statement {@code java.sql.Statement} instance
-     * @return {@link Long#MIN_VALUE} if statement does not support this feature, returned value otherwise
-     */
-    public abstract long safeGetUpdateCount(Object statement);
-
+    public abstract Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement);
 
 }

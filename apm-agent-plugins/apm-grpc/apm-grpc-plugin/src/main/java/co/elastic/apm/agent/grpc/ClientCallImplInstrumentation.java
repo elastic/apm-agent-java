@@ -105,7 +105,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return isConstructor().and(takesArgument(0, MethodDescriptor.class));
+            return isConstructor().and(takesArgument(0, named("io.grpc.MethodDescriptor")));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -84,7 +84,7 @@ public class TransactionUtils {
     public static List<Span> getSpans(Transaction t) {
         List<Span> spans = new ArrayList<>();
         Span span = new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1, false)
+            .start(TraceContext.fromParent(), t, -1)
             .withName("SELECT FROM product_types")
             .withType("db")
             .withSubtype("postgresql")
@@ -100,20 +100,20 @@ public class TransactionUtils {
         spans.add(span);
 
         spans.add(new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1, false)
+            .start(TraceContext.fromParent(), t, -1)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1, false)
+            .start(TraceContext.fromParent(), t, -1)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1, false)
+            .start(TraceContext.fromParent(), t, -1)
             .withName("GET /api/types")
             .withType("request"));
 
         span = new Span(MockTracer.create())
-            .start(TraceContext.fromParent(), t, -1, false)
+            .start(TraceContext.fromParent(), t, -1)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
             .withType("ext")

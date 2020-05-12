@@ -29,7 +29,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -63,7 +63,7 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) {
         if (tracer != null) {
-            TraceContextHolder<?> active = tracer.getActive();
+            AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
                 transaction = tracer.startRootTransaction(clazz.getClassLoader());
                 if (transaction != null) {

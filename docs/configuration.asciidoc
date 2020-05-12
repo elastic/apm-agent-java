@@ -5,39 +5,49 @@ Please only make changes in configuration.asciidoc.ftl
 ////
 [[configuration]]
 == Configuration
-The Elastic APM agent can be configured through different configuration sources,
-with the following descending order of precedence:
 
-No prefix is required for the configuration keys unless stated otherwise.
+To adapt the Elastic APM Java agent to your needs,
+you can configure it using one of the methods below, listed in descending order of precedence:
 
-[arabic]
-. {apm-app-ref}/agent-configuration.html[Central configuration] +
-   Supports <<configuration-dynamic>>
-. `elasticapm.properties` file +
-  In same folder as agent jar or provided through <<config-config-file>> option. +
-  Supports <<configuration-dynamic>>
-. Java system properties +
-  All configuration keys are prefixed with `elastic.apm.` +
-  Supports <<configuration-dynamic>> when set from the application.
-. Environment variables +
-  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. runtime attach parameters, those are mutually exclusive +
-.. `--config` parameter (<<setup-attach-cli>>)
-.. arguments of  `ElasticApmAttacher.attach(...)` (<<setup-attach-api>>)
-.. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()` (<<setup-attach-api>>) +
-. default values
+[horizontal]
+1) {apm-app-ref}/agent-configuration.html[Central configuration]::
+Configure the Agent in the Kibana APM app.
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+2) Properties file::
+The `elasticapm.properties` file is located in the same folder as the agent jar,
+or provided through the <<config-config-file,`config_file`>> option.
+image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+
+3) Java system properties::
+All configuration keys are prefixed with `elastic.apm.` +
+image:./images/dynamic-config.svg[link=configuration.html#configuration-dynamic]
+
+4) Environment variables::
+All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`.
+
+5) Runtime attach parameters::
+. `--config` parameter. +
+See <<setup-attach-cli>>.
+. Arguments of `ElasticApmAttacher.attach(...)`. +
+See <<setup-attach-api>>.
+. `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()`. +
+See <<setup-attach-api>>.
+
+6) Default values::
+Defined for each configuration.
 
 [float]
 [[configuration-dynamic]]
-=== Dynamic configuration
+=== Dynamic configuration image:./images/dynamic-config.svg[]
 
-Configuration options marked with Dynamic true can be changed at runtime when set from sources that support it:
+Configuration options marked with Dynamic true can be changed at runtime when set from supported sources:
 
-- {kibana-ref}/agent-configuration.html[Central configuration]
+- {apm-app-ref}/agent-configuration.html[Central configuration]
 - `elasticapm.properties` file
-- Java system properties when set from within the application.
+- Java system properties, but only when set from within the application
 
-NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource +
+NOTE: There are two distinct ways to use `elasticapm.properties`: as an external configuration file, and as a classpath resource. +
 Only the external file can be used for dynamic configuration.
 
 [float]
@@ -111,6 +121,7 @@ Click on a key to get more information.
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
 ** <<config-use-elastic-traceparent-header>>
+** <<config-span-min-duration>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-ignore-urls>>
@@ -156,7 +167,9 @@ Click on a key to get more information.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-circuit-breaker-enabled]]
-==== `circuit_breaker_enabled` (performance)
+==== `circuit_breaker_enabled` (added[1.14.0] performance experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
@@ -165,6 +178,8 @@ If ANY of the monitors detects a stress indication, the agent will become inacti
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -186,6 +201,8 @@ agent will resume and become fully functional.
 ==== `stress_monitoring_interval` (performance)
 
 The interval at which the agent polls the stress monitors. Must be at least `1s`.
+
+
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
@@ -214,6 +231,8 @@ The same threshold will be used for all heap pools, so that if ANY has a usage p
 the agent will consider it as a heap stress. The GC monitor relies only on memory consumption measured 
 after a recent GC.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -238,6 +257,8 @@ If `stress_monitor_gc_stress_threshold` has been crossed, the agent will conside
 In order to determine that the stress state is over, percentage of occupied memory in ALL heap pools should 
 be lower than this threshold. The GC monitor relies only on memory consumption measured after a recent GC.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -261,6 +282,8 @@ The minimal time required in order to determine whether the system is
 either currently under stress, or that the stress detected previously has been relieved. 
 All measurements during this time must be consistent in comparison to the relevant threshold in 
 order to detect a change of stress state. Must be at least `1m`.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `1m`.
@@ -288,6 +311,8 @@ The threshold used by the system CPU monitor to detect system CPU stress.
 If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, 
 the monitor considers this as a stress state.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -311,6 +336,8 @@ The threshold used by the system CPU monitor to determine that the system is
 not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below 
 this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the 
 monitor to decide that the CPU stress has been relieved.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -344,6 +371,8 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 
 The key of this option used to be `active`. The old key still works but is now deprecated.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -368,6 +397,8 @@ A boolean specifying if the agent should instrument the application to collect p
 NOTE: Both active and instrument needs to be true for instrumentation to be running.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -409,6 +440,8 @@ or to disable the corresponding `*-service-name` detecting instrumentations via 
 NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -444,6 +477,8 @@ you must set a unique node name for each in order to view metrics at the JVM lev
 NOTE: Metrics views can utilize this configuration since APM Server 7.5
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -465,6 +500,8 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 A version string for the currently deployed version of the service. If you donâ€™t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -484,6 +521,8 @@ A version string for the currently deployed version of the service. If you donâ€
 ==== `hostname` (added[1.10.0])
 
 Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.
+
+
 
 
 [options="header"]
@@ -514,6 +553,8 @@ NOTE: This feature is fully supported in the APM app in Kibana versions >= 7.2.
 You must use the query bar to filter for a specific environment in versions prior to 7.2.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -533,6 +574,8 @@ You must use the query bar to filter for a specific environment in versions prio
 ==== `transaction_sample_rate` (performance)
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -560,6 +603,8 @@ This is helpful in cases where a transaction creates a very high amount of spans
 Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.
 
 A message will be logged when the max number of spans has been exceeded but only at a rate of once every 5 minutes to ensure performance is not impacted.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -599,6 +644,8 @@ NOTE: Review the data captured by Elastic APM carefully to make sure it does not
 If you do find sensitive data in the Elasticsearch index,
 you should add an additional entry to this list (make sure to also include the default entries).
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -619,16 +666,18 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `messaging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `rocketmq`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
-If you want to try out incubating features, set the value to an empty string.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `incubating` | Collection | true
+| `experimental` | Collection | true
 |============
 
 
@@ -652,6 +701,8 @@ This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -688,6 +739,8 @@ Examples:
 
 NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -708,10 +761,10 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 ==== `capture_body` (performance)
 
 For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
-textual message body.
+variables). For transactions that are initiated by receiving a message from a message broker, the agent can 
+capture the textual message body.
 
-If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
+If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
 
 This option is case-insensitive.
 
@@ -722,6 +775,8 @@ WARNING: Request bodies often contain sensitive values like passwords, credit ca
 If your service handles data like this, we advise to only enable this feature with care.
 Turning on body capturing can also significantly increase the overhead in terms of heap usage,
 network utilisation and Elasticsearch index size.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Valid options: `off`, `errors`, `transactions`, `all`
 
@@ -743,9 +798,12 @@ Valid options: `off`, `errors`, `transactions`, `all`
 [[config-capture-headers]]
 ==== `capture_headers` (performance)
 
-If set to `true`, the agent will capture request and response headers, including cookies.
+If set to `true`, the agent will capture HTTP request and response headers (including cookies), 
+as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.
 
 NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -770,6 +828,8 @@ Labels added to all events, with the format `key=value[,key=value[,...]]`.
 Any labels set by application via the API will override global labels with the same keys.
 
 NOTE: This feature requires APM Server 7.2+
+
+
 
 
 [options="header"]
@@ -853,6 +913,8 @@ NOTE: This method is only available in the Elastic APM Java Agent.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -886,6 +948,10 @@ This configuration affects only spans.
 In order not to break span references,
 all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 regardless of their duration.
+
+NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+the higher of both thresholds will determine which spans will be discarded.
+
 
 
 Supports the duration suffixes `ms`, `s` and `m`.
@@ -928,6 +994,8 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -947,6 +1015,8 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 ==== `central_config` (added[1.8.0])
 
 When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -968,6 +1038,8 @@ When enabled, the agent will make periodic requests to the APM Server to fetch u
 ==== `breakdown_metrics` (added[1.8.0])
 
 Disables the collection of breakdown metrics (`span.self_time`)
+
+
 
 
 [options="header"]
@@ -996,6 +1068,8 @@ You can not refer to classpath locations.
 NOTE: this option can only be set via system properties, environment variables or the attacher options.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1022,6 +1096,8 @@ https://www.w3.org/TR/trace-context-1/[W3C Trace Context] specification.
 When this setting is `true`, the agent will also add the header `elastic-apm-traceparent`
 for backwards compatibility with older versions of Elastic APM agents.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1034,6 +1110,42 @@ for backwards compatibility with older versions of Elastic APM agents.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_elastic_traceparent_header` | `use_elastic_traceparent_header` | `ELASTIC_APM_USE_ELASTIC_TRACEPARENT_HEADER`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-min-duration]]
+==== `span_min_duration` (added[1.16.0])
+
+Sets the minimum duration of spans.
+Spans that execute faster than this threshold are attempted to be discarded.
+
+The attempt fails if they lead up to a span that can't be discarded.
+Spans that propagate the trace context to downstream services,
+such as outgoing HTTP requests,
+can't be discarded.
+Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.
+
+However, external calls that don't propagate context,
+such as calls to a database, can be discarded using this threshold.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_min_duration` | `span_min_duration` | `ELASTIC_APM_SPAN_MIN_DURATION`
 |============
 
 [[config-http]]
@@ -1051,6 +1163,8 @@ This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -1082,6 +1196,8 @@ Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -1115,6 +1231,8 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1134,6 +1252,8 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 [[config-use-path-as-transaction-name]]
 ==== `use_path_as_transaction_name` (experimental)
 
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
 If set to `true`,
 transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
 
@@ -1141,6 +1261,8 @@ WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
 Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+
+
 
 
 [options="header"]
@@ -1170,6 +1292,8 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1196,6 +1320,8 @@ If your application does not use @Path annotation inheritance, set this property
 
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1216,6 +1342,8 @@ If your application does not use @Path annotation inheritance, set this property
 
 By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.
 If you want to use the URI template from the `@Path` annotation, set the value to `true`.
+
+
 
 
 [options="header"]
@@ -1340,6 +1468,8 @@ The resulting documents in Elasticsearch look similar to this:
 ----
 
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1365,12 +1495,14 @@ Sets the logging level for the agent.
 
 This option is case-insensitive.
 
-Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `INFO` | Level | true
+| `INFO` | LogLevel | true
 |============
 
 
@@ -1396,6 +1528,8 @@ NOTE: When logging to a file,
 it's content is deleted when the application starts.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1416,9 +1550,12 @@ it's content is deleted when the application starts.
 
 A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
+Since version 1.16.0, the agent also adds `error.id` of captured error to the MDC just before the error message is logged.
 See <<log-correlation>> for more details.
 
 NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -1451,6 +1588,8 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1472,6 +1611,8 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [[config-profiling-inferred-spans-enabled]]
 ==== `profiling_inferred_spans_enabled` (added[1.15.0] experimental)
 
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
 Set to `true` to make the agent create spans for method executions based on
 https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
 
@@ -1483,6 +1624,8 @@ The inferred spans are created after a profiling session has ended.
 This means there is a delay between the regular and the inferred spans being visible in the UI.
 
 NOTE: This feature is not available on Windows
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -1507,6 +1650,8 @@ The frequency at which stack traces are gathered within a profiling session.
 The lower you set it, the more accurate the durations will be.
 This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
 The minimal duration of a profiling-inferred span is the same as the value of this setting.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `50ms`.
@@ -1534,6 +1679,8 @@ The minimum duration of an inferred span.
 Note that the min duration is also implicitly set by the sampling interval.
 However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
 The default unit for this option is `ms`.
@@ -1557,13 +1704,15 @@ The default unit for this option is `ms`.
 ==== `profiling_inferred_spans_included_classes` (added[1.15.0])
 
 If set, the agent will only create inferred spans for methods which match this list.
-Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
+Setting a value may slightly reduce overhead and can reduce clutter by only creating spans for the classes you are interested in.
 Example: `org.example.myapp.*`
 
 This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -1590,6 +1739,8 @@ This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -1618,6 +1769,8 @@ Both the agents and the APM server have to be configured with the same secret to
 Use if APM Server requires a token.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1641,6 +1794,8 @@ This string is used to ensure that only your agents can send data to your APM se
 Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.
 When both secret token and API key are used, API key has priority and secret token is ignored.
 Use if APM Server requires an API key.
+
+
 
 
 [options="header"]
@@ -1672,6 +1827,8 @@ See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/tech
 
 NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1696,6 +1853,8 @@ the request is cancelled and the event (exception or transaction) is discarded.
 Set to 0 to disable timeouts.
 
 WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
@@ -1722,6 +1881,8 @@ The default unit for this option is `s`.
 By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.
 
 Verification can be disabled by changing this setting to false.
+
+
 
 
 [options="header"]
@@ -1752,6 +1913,8 @@ This guards the application from crashing in case the APM server is unavailable 
 A lower value will decrease the heap overhead of the agent,
 while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1775,6 +1938,8 @@ Whether each transaction should have the process arguments attached.
 Disabled by default to save disk space.
 
 
+
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1796,6 +1961,8 @@ Disabled by default to save disk space.
 Maximum time to keep an HTTP request to the APM Server open for.
 
 NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
@@ -1824,6 +1991,8 @@ Note that a small overshoot is possible.
 
 Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1846,6 +2015,8 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 The interval at which the agent sends metrics to the APM Server.
 Must be at least `1s`.
 Set to `0s` to deactivate.
+
+
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `30s`.
@@ -1877,6 +2048,8 @@ This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
 
 
 [options="header"]
@@ -1917,6 +2090,8 @@ Most Java projects have a root package, e.g. `com.myproject`. You can set the ap
 If you are only interested in specific subpackages, you can separate them with commas:
 `-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
 
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 [options="header"]
 |============
@@ -1937,6 +2112,8 @@ If you are only interested in specific subpackages, you can separate them with c
 ==== `stack_trace_limit` (performance)
 
 Setting it to 0 will disable stack trace collection. Any positive integer value will be used as the maximum number of frames to collect. Setting it -1 means that all frames will be collected.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
@@ -1962,6 +2139,8 @@ While this is very helpful to find the exact place in your code that causes the 
 When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to `0ms`.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5ms`.
@@ -2236,16 +2415,16 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `messaging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `rocketmq`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
-# If you want to try out incubating features, set the value to an empty string.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: incubating
+# Default value: experimental
 #
-# disable_instrumentations=incubating
+# disable_instrumentations=experimental
 
 # When reporting exceptions,
 # un-nests the exceptions matching the wildcard pattern.
@@ -2286,10 +2465,10 @@ The default unit for this option is `ms`.
 # ignore_exceptions=
 
 # For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-# variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
-# textual message body.
+# variables). For transactions that are initiated by receiving a message from a message broker, the agent can 
+# capture the textual message body.
 # 
-# If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
+# If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].
 # 
 # This option is case-insensitive.
 # 
@@ -2308,7 +2487,8 @@ The default unit for this option is `ms`.
 #
 # capture_body=OFF
 
-# If set to `true`, the agent will capture request and response headers, including cookies.
+# If set to `true`, the agent will capture HTTP request and response headers (including cookies), 
+# as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.
 # 
 # NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 #
@@ -2413,6 +2593,8 @@ The default unit for this option is `ms`.
 # all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 # regardless of their duration.
 # 
+# NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+# the higher of both thresholds will determine which spans will be discarded.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
@@ -2487,6 +2669,26 @@ The default unit for this option is `ms`.
 # Default value: true
 #
 # use_elastic_traceparent_header=true
+
+# Sets the minimum duration of spans.
+# Spans that execute faster than this threshold are attempted to be discarded.
+# 
+# The attempt fails if they lead up to a span that can't be discarded.
+# Spans that propagate the trace context to downstream services,
+# such as outgoing HTTP requests,
+# can't be discarded.
+# Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.
+# 
+# However, external calls that don't propagate context,
+# such as calls to a database, can be discarded using this threshold.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# span_min_duration=0ms
 
 ############################################
 # HTTP                                     #
@@ -2716,9 +2918,9 @@ The default unit for this option is `ms`.
 # 
 # This option is case-insensitive.
 #
-# Valid options: ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
-# Type: Level
+# Type: LogLevel
 # Default value: INFO
 #
 # log_level=INFO
@@ -2741,6 +2943,7 @@ The default unit for this option is `ms`.
 
 # A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 # If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
+# Since version 1.16.0, the agent also adds `error.id` of captured error to the MDC just before the error message is logged.
 # See <<log-correlation>> for more details.
 # 
 # NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
@@ -2819,7 +3022,7 @@ The default unit for this option is `ms`.
 # profiling_inferred_spans_min_duration=0ms
 
 # If set, the agent will only create inferred spans for methods which match this list.
-# Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
+# Setting a value may slightly reduce overhead and can reduce clutter by only creating spans for the classes you are interested in.
 # Example: `org.example.myapp.*`
 # 
 # This option supports the wildcard `*`, which matches zero or more characters.

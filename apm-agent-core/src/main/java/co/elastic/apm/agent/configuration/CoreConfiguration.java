@@ -31,6 +31,7 @@ import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -48,7 +49,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
-import static co.elastic.apm.agent.impl.ElasticApmTracer.MAX_LOG_INTERVAL_MICRO_SECS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
@@ -164,7 +164,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
             "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.\n\n" +
-            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(MAX_LOG_INTERVAL_MICRO_SECS)  + " minutes to ensure performance is not impacted.")
+            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(Span.MAX_LOG_INTERVAL_MICRO_SECS)  + " minutes to ensure performance is not impacted.")
         .dynamic(true)
         .buildWithDefault(500);
 
@@ -219,12 +219,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out incubating features, set the value to an empty string.\n" +
+            "If you want to try out experimental features, set the value to an empty string.\n" +
             "\n" +
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
         .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
-        .buildWithDefault(Collections.<String>singleton("incubating"));
+        .buildWithDefault(Collections.<String>singleton("experimental"));
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -265,10 +265,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
         .description("For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST \n" +
-            "variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the \n" +
-            "textual message body.\n" +
+            "variables). For transactions that are initiated by receiving a message from a message broker, the agent can \n" +
+            "capture the textual message body.\n" +
             "\n" +
-            "If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
+            "If the HTTP request or the message has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
             "\n" +
             "This option is case-insensitive.\n" +
             "\n" +
@@ -286,7 +286,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("capture_headers")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("If set to `true`, the agent will capture request and response headers, including cookies.\n" +
+        .description("If set to `true`, the agent will capture HTTP request and response headers (including cookies), \n" +
+            "as well as messages' headers/properties when using messaging frameworks like Kafka or JMS.\n" +
             "\n" +
             "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
         .dynamic(true)
@@ -447,10 +448,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "This configuration affects only spans.\n" +
             "In order not to break span references,\n" +
             "all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,\n" +
-            "regardless of their duration.\n")
+            "regardless of their duration.\n" +
+            "\n" +
+            "NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,\n" +
+            "the higher of both thresholds will determine which spans will be discarded.")
         .buildWithDefault(TimeDuration.of("0ms"));
 
-    private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
+    private final ConfigurationOption<String> appendPackagesToBootDelegationProperty = ConfigurationOption.stringOption()
         .key("boot_delegation_packages")
         .tags("added[1.7.0]")
         .configurationCategory(CORE_CATEGORY)
@@ -470,6 +474,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "org.apache.xerces.dom, co.elastic.apm.agent.*\n" +
             "----\n")
         .buildWithDefault("co.elastic.apm.agent.*");
+
+    private final ConfigurationOption<Boolean> atlassianNewBootDelegation = ConfigurationOption.booleanOption()
+        .key("use_atlassian_new_boot_delegation")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("In new Atlassian OSGi there is a config to append to boot delegation packages instead of overriding the default.")
+        .buildWithDefault(false);
 
     private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
         .key("central_config")
@@ -523,6 +534,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .tags("internal")
         .buildWithDefault(4096);
+
+    private final ConfigurationOption<TimeDuration> spanMinDuration = TimeDurationValueConverter.durationOption("ms")
+        .key("span_min_duration")
+        .tags("added[1.16.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Sets the minimum duration of spans.\n" +
+            "Spans that execute faster than this threshold are attempted to be discarded.\n" +
+            "\n" +
+            "The attempt fails if they lead up to a span that can't be discarded.\n" +
+            "Spans that propagate the trace context to downstream services,\n" +
+            "such as outgoing HTTP requests,\n" +
+            "can't be discarded.\n" +
+            "Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.\n" +
+            "\n" +
+            "However, external calls that don't propagate context,\n" +
+            "such as calls to a database, can be discarded using this threshold.")
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.of("0ms"));
 
     public boolean isInstrument() {
         return instrument.get();
@@ -622,7 +651,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     }
 
     public @Nullable String getPackagesToAppendToBootdelegationProperty() {
-        String value = appendPackagesToBootDelagationProperty.get();
+        String value = appendPackagesToBootDelegationProperty.get();
         if (value != null) {
             value = value.trim();
             if (value.isEmpty()) {
@@ -630,6 +659,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         }
         return value;
+    }
+
+    public boolean useAtlassianNewBootDelegationConfig() {
+        return atlassianNewBootDelegation.get();
     }
 
     public Map<String, String> getGlobalLabels() {
@@ -650,6 +683,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public int getTracestateSizeLimit() {
         return tracestateHeaderSizeLimit.get();
+    }
+
+    public TimeDuration getSpanMinDuration() {
+        return spanMinDuration.get();
     }
 
     /*

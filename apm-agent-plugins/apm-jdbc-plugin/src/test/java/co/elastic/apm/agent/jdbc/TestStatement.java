@@ -34,7 +34,6 @@ class TestStatement implements Statement {
     private final Statement delegate;
 
     private boolean isGetConnectionSupported;
-    private boolean isGetUpdateCountSupported;
     private int unsupportedThrownCount;
 
     private Connection connection;
@@ -43,7 +42,6 @@ class TestStatement implements Statement {
         this.delegate = delegate;
         this.unsupportedThrownCount = 0;
         this.isGetConnectionSupported = true;
-        this.isGetUpdateCountSupported = true;
     }
 
     private void unsupportedCheck(boolean isFeatureSupported) throws SQLException {
@@ -57,19 +55,13 @@ class TestStatement implements Statement {
         this.isGetConnectionSupported = supported;
     }
 
-    public void setGetUpdateCountSupported(boolean supported) {
-        this.isGetUpdateCountSupported = supported;
-    }
-
     int getUnsupportedThrownCount(){
         return unsupportedThrownCount;
     }
 
-    public int getUpdateCount() throws SQLException {
-        unsupportedCheck(isGetUpdateCountSupported);
-        return delegate.getUpdateCount();
+    void setConnection(Connection connection) {
+        this.connection = connection;
     }
-
 
     public ResultSet executeQuery(String sql) throws SQLException {
         return delegate.executeQuery(sql);
@@ -135,13 +127,8 @@ class TestStatement implements Statement {
         return delegate.getResultSet();
     }
 
-    public Connection getConnection() throws SQLException {
-        unsupportedCheck(isGetConnectionSupported);
-
-        if (null != connection) {
-            return connection;
-        }
-        return delegate.getConnection();
+    public int getUpdateCount() throws SQLException {
+        return delegate.getUpdateCount();
     }
 
     public boolean getMoreResults() throws SQLException {
@@ -184,8 +171,13 @@ class TestStatement implements Statement {
         return delegate.executeBatch();
     }
 
-    void setConnection(Connection connection) {
-        this.connection = connection;
+    public Connection getConnection() throws SQLException {
+        unsupportedCheck(isGetConnectionSupported);
+
+        if (null != connection) {
+            return connection;
+        }
+        return delegate.getConnection();
     }
 
     public boolean getMoreResults(int current) throws SQLException {

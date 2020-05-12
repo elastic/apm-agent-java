@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -39,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceContextHolder<T> {
+public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recyclable {
     public static final int PRIO_USER_SUPPLIED = 1000;
     public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
     public static final int PRIO_METHOD_SIGNATURE = 100;
@@ -54,6 +55,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      */
     protected final StringBuilder name = new StringBuilder();
     protected final boolean collectBreakdownMetrics;
+    protected final ElasticApmTracer tracer;
     private long timestamp;
 
     // in microseconds
@@ -62,10 +64,42 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
     private int namePriority = PRIO_DEFAULT;
+    private boolean discardRequested = false;
+    /**
+     * Flag to mark a span as representing an exit event
+     */
+    private boolean isExit;
 
     public int getReferenceCount() {
         return references.get();
     }
+
+    /**
+     * Requests this span to be discarded, even if it's sampled.
+     * <p>
+     * Whether the span can actually be discarded is determined by {@link #isDiscarded()}
+     * </p>
+     */
+    public T requestDiscarding() {
+        this.discardRequested = true;
+        return (T) this;
+    }
+
+    /**
+     * Determines whether to discard the span.
+     * Only spans that return {@code false} are reported.
+     * <p>
+     * A span is discarded if it {@linkplain #isDiscardable() is discardable} and {@linkplain #requestDiscarding() requested to be discarded}.
+     * </p>
+     *
+     * @return {@code true}, if the span should be discarded, {@code false} otherwise.
+     */
+    public boolean isDiscarded() {
+        return discardRequested && getTraceContext().isDiscardable();
+    }
+
+    @Nullable
+    public abstract Transaction getTransaction();
 
     private static class ChildDurationTimer implements Recyclable {
 
@@ -123,7 +157,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     }
 
     public AbstractSpan(ElasticApmTracer tracer) {
-        super(tracer);
+        this.tracer = tracer;
         traceContext = TraceContext.with64BitId(this.tracer);
         boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
         boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
@@ -248,14 +282,12 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         return timestamp;
     }
 
-    @Override
     public TraceContext getTraceContext() {
         return traceContext;
     }
 
     @Override
     public void resetState() {
-        super.resetState();
         finished = true;
         name.setLength(0);
         timestamp = 0;
@@ -264,20 +296,61 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
         childDurations.resetState();
         references.set(0);
         namePriority = PRIO_DEFAULT;
+        discardRequested = false;
+        isExit = false;
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {
         return traceContext.isChildOf(parent.traceContext);
     }
 
-    @Override
     public Span createSpan() {
         return createSpan(traceContext.getClock().getEpochMicros());
     }
 
-    @Override
     public Span createSpan(long epochMicros) {
         return tracer.startSpan(this, epochMicros);
+    }
+
+    /**
+     * Creates a child Span representing a remote call event, unless this TraceContextHolder already represents an exit event.
+     * If current TraceContextHolder is representing an Exit- returns null
+     *
+     * @return an Exit span if this TraceContextHolder is not an exit span, null otherwise
+     */
+    @Nullable
+    public Span createExitSpan() {
+        if (isExit()) {
+            return null;
+        }
+        return createSpan().asExit();
+    }
+
+
+    public T asExit() {
+        isExit = true;
+        return (T) this;
+    }
+
+    public boolean isExit() {
+        return isExit;
+    }
+
+
+    public void captureException(long epochMicros, Throwable t) {
+        tracer.captureAndReportException(epochMicros, t, this);
+    }
+
+    public T captureException(@Nullable Throwable t) {
+        if (t != null) {
+            captureException(getTraceContext().getClock().getEpochMicros(), t);
+        }
+        return (T) this;
+    }
+
+    @Nullable
+    public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
+        return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
     }
 
     public void addLabel(String key, String value) {
@@ -334,24 +407,28 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
 
     protected abstract void afterEnd();
 
-    @Override
-    public boolean isChildOf(TraceContextHolder other) {
-        return getTraceContext().isChildOf(other);
-    }
-
-    @Override
     public T activate() {
-        incrementReferences();
-        return super.activate();
+        tracer.activate(this);
+        return (T) this;
     }
 
-    @Override
     public T deactivate() {
-        try {
-            return super.deactivate();
-        } finally {
-            decrementReferences();
+        tracer.deactivate(this);
+        return (T) this;
+    }
+
+    public Scope activateInScope() {
+        // already in scope
+        if (tracer.getActive() == this) {
+            return Scope.NoopScope.INSTANCE;
         }
+        activate();
+        return new Scope() {
+            @Override
+            public void close() {
+                deactivate();
+            }
+        };
     }
 
     /**
@@ -362,7 +439,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
      * </p>
      */
-    @Override
     public Runnable withActive(Runnable runnable) {
         return tracer.wrapRunnable(runnable, this);
     }
@@ -375,7 +451,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
      * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
      * </p>
      */
-    @Override
     public <V> Callable<V> withActive(Callable<V> callable) {
         return tracer.wrapCallable(callable, this);
     }
@@ -434,5 +509,54 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> extends TraceConte
     }
 
     protected abstract void recycle();
+
+    /**
+     * Sets Trace context text headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the text headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - an HTTP request
+     */
+    public <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
+        // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
+        setNonDiscardable();
+        getTraceContext().propagateTraceContext(carrier, headerSetter);
+    }
+
+    /**
+     * Sets Trace context binary headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the binary headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - a Kafka record
+     * @return true if Trace Context headers were set; false otherwise
+     */
+    public <C> boolean propagateTraceContext(C carrier, BinaryHeaderSetter<C> headerSetter) {
+        // the context of this span is propagated downstream so we can't discard it even if it's faster than span_min_duration
+        setNonDiscardable();
+        return getTraceContext().propagateTraceContext(carrier, headerSetter);
+    }
+
+    /**
+     * Sets this context as non-discardable,
+     * meaning that {@link AbstractSpan#isDiscarded()} will return {@code false},
+     * even if {@link AbstractSpan#requestDiscarding()} has been called.
+     */
+    public void setNonDiscardable() {
+        getTraceContext().setNonDiscardable();
+    }
+
+    /**
+     * Returns whether it's possible to discard this span.
+     *
+     * @return {@code true}, if it's safe to discard the span, {@code false} otherwise.
+     */
+    public boolean isDiscardable() {
+        return getTraceContext().isDiscardable();
+    }
+
+    public boolean isSampled() {
+        return getTraceContext().isSampled();
+    }
 
 }

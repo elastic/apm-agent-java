@@ -42,8 +42,8 @@ import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.IOUtils;
@@ -59,8 +59,8 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -115,7 +115,7 @@ class DslJsonSerializerTest {
     void testErrorSerialization() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
-        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction.getTraceContext()).withTimestamp(5000);
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
         error.setException(new Exception("test"));
@@ -140,7 +140,7 @@ class DslJsonSerializerTest {
     void testErrorSerializationOutsideTrace() {
         MockReporter reporter = new MockReporter();
         ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
-        tracer.captureException(new Exception("test"), getClass().getClassLoader());
+        tracer.captureAndReportException(new Exception("test"), getClass().getClassLoader());
 
         String errorJson = serializer.toJsonString(reporter.getFirstError());
         JsonNode errorTree = readJsonString(errorJson);
@@ -166,7 +166,7 @@ class DslJsonSerializerTest {
         Exception cause1 = new RuntimeException("first cause", cause2);
         Exception mainException = new Exception("main exception", cause1);
 
-        tracer.captureException(mainException, getClass().getClassLoader());
+        tracer.captureAndReportException(mainException, getClass().getClassLoader());
 
         JsonNode errorTree = readJsonString(serializer.toJsonString(reporter.getFirstError()));
 

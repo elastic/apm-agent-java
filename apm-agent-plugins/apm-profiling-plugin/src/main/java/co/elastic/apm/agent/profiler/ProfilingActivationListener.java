@@ -26,7 +26,8 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 
 import java.util.Objects;
 
@@ -45,18 +46,29 @@ public class ProfilingActivationListener implements ActivationListener {
     }
 
     @Override
-    public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
-        if (!context.isSampled()) {
-            return;
+    public void beforeActivate(AbstractSpan<?> context) {
+        if (context.isSampled()) {
+            AbstractSpan<?> active = tracer.getActive();
+            profiler.onActivation(context.getTraceContext(), active != null ? active.getTraceContext() : null);
         }
-        profiler.onActivation(context, tracer.getActive());
     }
 
     @Override
-    public void afterDeactivate(TraceContextHolder<?> deactivatedContext) throws Throwable {
-        if (!deactivatedContext.isSampled()) {
-            return;
+    public void beforeActivate(ErrorCapture error) {
+        // noop
+    }
+
+
+    @Override
+    public void afterDeactivate(AbstractSpan<?> deactivatedContext) {
+        if (deactivatedContext.isSampled()) {
+            AbstractSpan<?> active = tracer.getActive();
+            profiler.onDeactivation(deactivatedContext.getTraceContext(), active != null ? active.getTraceContext() : null);
         }
-        profiler.onDeactivation(deactivatedContext, tracer.getActive());
+    }
+
+    @Override
+    public void afterDeactivate(ErrorCapture deactivatedError) {
+        // noop
     }
 }

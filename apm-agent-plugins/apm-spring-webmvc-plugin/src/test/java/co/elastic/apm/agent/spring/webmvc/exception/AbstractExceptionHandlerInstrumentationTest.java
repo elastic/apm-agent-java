@@ -27,6 +27,7 @@ package co.elastic.apm.agent.spring.webmvc.exception;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import co.elastic.apm.agent.spring.webmvc.ExceptionHandlerInstrumentation;
@@ -46,6 +47,7 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -59,6 +61,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
 
     protected static MockReporter reporter;
     protected static ElasticApmTracer tracer;
+    protected static ConfigurationRegistry config;
     protected MockMvc mockMvc;
 
     @Autowired
@@ -70,6 +73,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
         reporter = mockInstrumentationSetup.getReporter();
         tracer = mockInstrumentationSetup.getTracer();
+        config = mockInstrumentationSetup.getConfig();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
             Arrays.asList(new ServletInstrumentation(tracer), new ExceptionHandlerInstrumentation()));
     }
@@ -83,8 +87,9 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
     @Before
     @BeforeEach
     public void setup() {
-        this.mockMvc =
-            MockMvcBuilders.webAppContextSetup(wac).build();
+        this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+        reporter.reset();
+        SpyConfiguration.reset(config);
     }
 
     protected void assertExceptionCapture(Class exceptionClazz, MockHttpServletResponse response, int statusCode, String responseContent, String exceptionMessage) throws UnsupportedEncodingException {
@@ -94,6 +99,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
         assertEquals(exceptionMessage, reporter.getErrors().get(0).getException().getMessage());
         assertEquals(exceptionClazz, reporter.getErrors().get(0).getException().getClass());
         assertEquals(statusCode, response.getStatus());
+        assertEquals(statusCode, reporter.getFirstTransaction().getContext().getResponse().getStatusCode());
         assertEquals(responseContent, response.getContentAsString());
     }
 

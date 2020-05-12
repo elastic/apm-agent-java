@@ -193,7 +193,7 @@ public class ElasticApmAgent {
         logger.info("Re initializing instrumentation");
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
 
-        resettableClassFileTransformer = agentBuilder.patchOnByteBuddyAgent(resettableClassFileTransformer);
+        resettableClassFileTransformer = agentBuilder.patchOn(instrumentation, resettableClassFileTransformer);
     }
 
     private static AgentBuilder initAgentBuilder(ElasticApmTracer tracer, Instrumentation instrumentation,
@@ -217,7 +217,11 @@ public class ElasticApmAgent {
     }
 
     private static boolean isIncluded(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
-        final Collection<String> disabledInstrumentations = coreConfiguration.getDisabledInstrumentations();
+        ArrayList<String> disabledInstrumentations = new ArrayList<>(coreConfiguration.getDisabledInstrumentations());
+        // Supporting the deprecated `incubating` tag for backward compatibility
+        if (disabledInstrumentations.contains("incubating")) {
+            disabledInstrumentations.add("experimental");
+        }
         return !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupNames()) && isInstrumentationEnabled(advice, coreConfiguration);
     }
 

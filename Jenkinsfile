@@ -126,7 +126,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw test -Pupdate-gherkin-spec
+                ./mvnw test
                 """
               }
             }
@@ -260,7 +260,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.doc_ci }
+            expression { return env.ONLY_DOCS == "false" }
           }
           steps {
             withGithubNotify(context: 'Javadoc') {

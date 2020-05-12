@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.report.ssl.SslUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
@@ -121,15 +122,6 @@ public class ApmServerClient {
         return copy;
     }
 
-    private static void trustAll(HttpsURLConnection connection) {
-        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
-        if (sf != null) {
-            // using the same instances is important for TCP connection reuse
-            connection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
-            connection.setSSLSocketFactory(sf);
-        }
-    }
-
     HttpURLConnection startRequest(String relativePath) throws IOException {
         return startRequestToUrl(appendPathToCurrentUrl(relativePath));
     }
@@ -137,11 +129,21 @@ public class ApmServerClient {
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
         final URLConnection connection = url.openConnection();
-        if (!reporterConfiguration.isVerifyServerCert()) {
-            if (connection instanceof HttpsURLConnection) {
-                trustAll((HttpsURLConnection) connection);
+
+        // change SSL socket factory to support both TLS fallback and disabling certificate validation
+        if (connection instanceof HttpsURLConnection) {
+            HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
+            boolean verifyServerCert = reporterConfiguration.isVerifyServerCert();
+
+            if (!verifyServerCert) {
+                httpsConnection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
+            }
+            SSLSocketFactory sslSocketFactory = SslUtils.getSSLSocketFactory(verifyServerCert);
+            if (sslSocketFactory != null) {
+                httpsConnection.setSSLSocketFactory(sslSocketFactory);
             }
         }
+
         String secretToken = reporterConfiguration.getSecretToken();
         String apiKey = reporterConfiguration.getApiKey();
         String authHeaderValue = null;

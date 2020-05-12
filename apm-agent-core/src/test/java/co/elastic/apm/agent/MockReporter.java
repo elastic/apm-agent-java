@@ -78,9 +78,9 @@ public class MockReporter implements Reporter {
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean disableDestinationAddressCheck;
 
-    private final List<Transaction> transactions = new ArrayList<>();
-    private final List<Span> spans = new ArrayList<>();
-    private final List<ErrorCapture> errors = new ArrayList<>();
+    private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+    private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
+    private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
     private boolean closed;
@@ -197,16 +197,15 @@ public class MockReporter implements Reporter {
         return getFirstTransaction();
     }
 
-    public void assertNoTransaction(){
+    public void assertNoTransaction() {
         assertThat(getTransactions())
             .describedAs("no transaction expected")
             .isEmpty();
     }
 
-    public void assertNoTransaction(long timeoutMs){
+    public void assertNoTransaction(long timeoutMs) {
         awaitTimeout(timeoutMs)
-            .untilAsserted(() -> assertThat(getTransactions()).isEmpty());
-        assertNoTransaction();
+            .untilAsserted(this::assertNoTransaction);
     }
 
     public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable assertion){
@@ -216,7 +215,7 @@ public class MockReporter implements Reporter {
 
     private static ConditionFactory awaitTimeout(long timeoutMs) {
         return await()
-            .pollDelay(5, TimeUnit.MILLISECONDS)
+            .pollInterval(1, TimeUnit.MILLISECONDS)
             .timeout(timeoutMs, TimeUnit.MILLISECONDS);
     }
 
@@ -342,14 +341,12 @@ public class MockReporter implements Reporter {
      */
     public synchronized void assertRecycledAfterDecrementingReferences() {
 
-        Predicate<AbstractSpan<?>> hasEmptyTraceContext = as -> as.getTraceContext().getId().isEmpty();
-
         List<Transaction> transactionsToFlush = transactions.stream()
-            .filter(hasEmptyTraceContext.negate())
+            .filter(t -> !hasEmptyTraceContext(t))
             .collect(Collectors.toList());
 
         List<Span> spansToFlush = spans.stream()
-            .filter(hasEmptyTraceContext.negate())
+            .filter(s-> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
         transactionsToFlush.forEach(Transaction::decrementReferences);
@@ -357,7 +354,7 @@ public class MockReporter implements Reporter {
 
         // after decrement, all transactions and spans should have been recycled
         transactions.forEach(t -> {
-            assertThat(hasEmptyTraceContext.test(t))
+            assertThat(hasEmptyTraceContext(t))
                 .describedAs("should have empty trace context : %s", t)
                 .isTrue();
             assertThat(t.isReferenced())
@@ -365,7 +362,7 @@ public class MockReporter implements Reporter {
                 .isFalse();
         });
         spans.forEach(s -> {
-            assertThat(hasEmptyTraceContext.test(s))
+            assertThat(hasEmptyTraceContext(s))
                 .describedAs("should have empty trace context : %s", s)
                 .isTrue();
             assertThat(s.isReferenced())
@@ -375,5 +372,9 @@ public class MockReporter implements Reporter {
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
+    }
+
+    private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
+        return item.getTraceContext().getId().isEmpty();
     }
 }

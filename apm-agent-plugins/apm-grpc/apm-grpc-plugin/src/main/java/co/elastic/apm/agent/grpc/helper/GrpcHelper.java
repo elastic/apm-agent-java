@@ -43,9 +43,17 @@ public interface GrpcHelper {
 
     // server part
 
-    void startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers);
+    @Nullable
+    Transaction startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers);
 
-    void endTransaction(Status status, @Nullable Throwable thrown, @Nullable Transaction transaction);
+    void registerTransactionAndDeactivate(@Nullable Transaction transaction, ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener);
+
+    void endTransaction(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall);
+
+    @Nullable
+    Transaction enterServerListenerMethod(ServerCall.Listener<?> listener);
+
+    void exitServerListenerMethod(@Nullable Throwable thrown, ServerCall.Listener<?> listener, Transaction transaction, boolean isLastMethod);
 
     // client part
 
@@ -61,4 +69,5 @@ public interface GrpcHelper {
     void captureListenerException(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown);
 
     void enrichSpanContext(ClientCall<?, ?> clientCall, @Nullable String authority);
+
 }

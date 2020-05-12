@@ -126,19 +126,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 return;
             }
 
-            if (t == null && jdbcHelperManager != null) {
-                JdbcHelper helper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helper != null) {
-                    long count = helper.safeGetUpdateCount(statement);
-                    if (count != Long.MIN_VALUE) {
-                        span.getContext()
-                            .getDb()
-                            .withAffectedRowsCount(count);
-                    }
-                }
-
-            }
-
             span.captureException(t)
                 .deactivate()
                 .end();
@@ -237,10 +224,10 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     /**
      * Instruments:
-     *  <ul>
-     *      <li>{@link Statement#executeBatch()} </li>
-     *      <li>{@link Statement#executeLargeBatch()} (java8)</li>
-     *  </ul>
+     * <ul>
+     *     <li>{@link Statement#executeBatch()} </li>
+     *     <li>{@link Statement#executeLargeBatch()} (java8)</li>
+     * </ul>
      */
     public static class ExecuteBatchInstrumentation extends StatementInstrumentation {
         public ExecuteBatchInstrumentation(ElasticApmTracer tracer) {
@@ -306,10 +293,10 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     /**
      * Instruments:
-     *  <ul>
-     *      <li>{@link PreparedStatement#executeUpdate()} </li>
-     *      <li>{@link PreparedStatement#executeLargeUpdate()} ()} (java8)</li>
-     *  </ul>
+     * <ul>
+     *     <li>{@link PreparedStatement#executeUpdate()} </li>
+     *     <li>{@link PreparedStatement#executeLargeUpdate()} ()} (java8)</li>
+     * </ul>
      */
     public static class ExecuteUpdateNoQueryInstrumentation extends StatementInstrumentation {
         public ExecuteUpdateNoQueryInstrumentation(ElasticApmTracer tracer) {
@@ -396,21 +383,11 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                 return;
             }
 
-            if (t == null && jdbcHelperManager != null) {
-                JdbcHelper jdbcHelper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (jdbcHelper != null) {
-                    span.getContext()
-                        .getDb()
-                        // getUpdateCount javadoc indicates that this method should be called only once
-                        // however in practice adding this extra call seem to not have noticeable side effects
-                        .withAffectedRowsCount(jdbcHelper.safeGetUpdateCount(statement));
-                }
-            }
-
             span.captureException(t)
                 .deactivate()
                 .end();
         }
 
     }
+
 }

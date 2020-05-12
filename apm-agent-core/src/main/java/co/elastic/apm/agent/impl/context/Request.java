@@ -27,8 +27,8 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
@@ -296,6 +296,7 @@ public class Request implements Recyclable {
             charBufferPool.recycle(bodyBuffer);
             bodyBuffer = null;
         }
+        rawBody = null;
     }
 
     public void copyFrom(Request other) {
@@ -314,6 +315,7 @@ public class Request implements Recyclable {
             }
             ((Buffer) thisBuffer).flip();
         }
+        this.rawBody = other.rawBody;
     }
 
     public boolean hasContent() {

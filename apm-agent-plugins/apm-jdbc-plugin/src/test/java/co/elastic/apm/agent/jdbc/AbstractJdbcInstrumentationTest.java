@@ -76,7 +76,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         this.connection = connection;
         this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))");
-        connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO);");
+        connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
         transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("transaction");
         transaction.withType("request");
@@ -114,8 +114,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     @Test
     public void test() throws SQLException {
         executeTest(this::testStatement);
-        executeTest(this::testUpdateStatement);
-        executeTest(this::testStatementNotSupportingUpdateCount);
+        executeTest(() -> testUpdateStatement(false));
+        executeTest(() -> testUpdateStatement(true));
         executeTest(this::testStatementNotSupportingConnection);
         executeTest(this::testStatementWithoutConnectionMetadata);
 
@@ -176,34 +176,31 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
     private void testStatement() throws SQLException {
         final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=1";
-        ResultSet resultSet = connection.createStatement().executeQuery(sql);
-        assertQuerySucceededAndSpanRecorded(resultSet, sql, false);
-    }
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
 
-    private void testUpdateStatement() throws SQLException {
-        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
-        boolean isResultSet = connection.createStatement().execute(sql);
-        assertThat(isResultSet).isFalse();
-        assertSpanRecorded(sql, false, 1);
-    }
-
-    private void testStatementNotSupportingUpdateCount() throws SQLException {
-        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER1' WHERE FOO=11";
-        TestStatement statement = new TestStatement(connection.createStatement());
-        statement.setGetUpdateCountSupported(false);
-        assertThat(statement.getUnsupportedThrownCount()).isZero();
-
-        boolean isResultSet = statement.execute(sql);
-        assertThat(statement.getUnsupportedThrownCount()).isEqualTo(1);
-        assertThat(isResultSet).isFalse();
+        assertThat(resultSet.next()).isTrue();
+        assertThat(resultSet.getInt("foo")).isEqualTo(1);
+        assertThat(resultSet.getString("BAR")).isEqualTo("APM");
 
         assertSpanRecorded(sql, false, -1);
+    }
 
-        // try to execute statement again, should not throw any exception
-        statement.execute(sql);
-        assertThat(statement.getUnsupportedThrownCount())
-            .describedAs("unsupported exception should only be thrown once")
-            .isEqualTo(1);
+    private void testUpdateStatement(boolean executeUpdate) throws SQLException {
+        final String sql = "UPDATE ELASTIC_APM SET BAR='AFTER' WHERE FOO=11";
+        Statement statement = connection.createStatement();
+        int expectedAffectedRows;
+        if (executeUpdate) {
+            statement.executeUpdate(sql);
+            // executeUpdate allows to capture affected rows without side-effects
+            expectedAffectedRows = 1;
+        } else {
+            boolean isResultSet = statement.execute(sql);
+            assertThat(isResultSet).isFalse();
+            expectedAffectedRows = -1;
+        }
+
+        assertSpanRecorded(sql, false, expectedAffectedRows);
     }
 
     private void testStatementNotSupportingConnection() throws SQLException {
@@ -223,7 +220,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         checkWithoutConnectionMetadata(statement, testConnection::getUnsupportedThrownCount);
     }
 
-    private interface ThrownCountCheck{
+    private interface ThrownCountCheck {
         int getThrownCount();
     }
 
@@ -235,7 +232,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(check.getThrownCount()).isEqualTo(1);
         assertThat(isResultSet).isFalse();
 
-        assertSpanRecordedWithoutConnection(sql, false, 1);
+        assertSpanRecordedWithoutConnection(sql, false, -1);
 
         // try to execute statement again, should not throw again
         statement.execute(sql);
@@ -337,7 +334,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         if (updatePreparedStatement != null) {
             updatePreparedStatement.setString(1, "UPDATED1");
             updatePreparedStatement.execute();
-            assertSpanRecorded(UPDATE_PREPARED_STATEMENT_SQL, true, 1);
+            assertSpanRecorded(UPDATE_PREPARED_STATEMENT_SQL, true, -1);
         }
     }
 
@@ -387,11 +384,6 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(reporter.getSpans()).hasSize(1);
         Db db = reporter.getFirstSpan().getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(insert);
-        if (!isKnownDatabase("Oracle", "")) {
-            assertThat(db.getAffectedRowsCount())
-                .isEqualTo(statement.getUpdateCount())
-                .isEqualTo(1);
-        }
     }
 
     private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {
@@ -504,4 +496,5 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
         return true;
     }
+
 }

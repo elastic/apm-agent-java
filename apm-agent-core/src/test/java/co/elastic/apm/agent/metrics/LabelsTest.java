@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -72,15 +72,50 @@ class LabelsTest {
     }
 
     @Test
+    void testEmptyIsEmpty() {
+        assertEmpty(Labels.EMPTY);
+    }
+
+    @Test
     void testRecycle() {
-        final Labels.Mutable resetLabels = Labels.Mutable.of("foo", "bar").transactionName(new StringBuilder("baz"));
+        final Labels.Mutable resetLabels = Labels.Mutable.of("foo", "bar")
+            .transactionName(new StringBuilder("baz"))
+            .spanType("spanType")
+            .spanSubType("spanSubType");
+
         final Labels immutableLabels = resetLabels.immutableCopy();
         resetLabels.resetState();
-        assertEqualsHashCode(
-            immutableLabels,
-            Labels.Mutable.of("foo", "bar").transactionName("baz"));
+
         assertNotEqual(resetLabels, immutableLabels);
-        assertEqualsHashCode(resetLabels, Labels.EMPTY);
+
+        // check that all fields have been properly reset
+        assertEmpty(resetLabels);
+
+    }
+
+    private void assertEmpty(Labels labels) {
+        assertThat(labels.getKeys()).isEmpty();
+        assertThat(labels.getValues()).isEmpty();
+        assertThat(labels.getSpanType()).isNull();
+        assertThat(labels.getSpanSubType()).isNull();
+        assertThat(labels.getTransactionName()).isNull();
+        assertThat(labels.getTransactionType()).isNull();
+
+        assertEqualsHashCode(labels, Labels.EMPTY);
+    }
+
+    @Test
+    void testEqualsIncludesSpanSubType() {
+        Labels.Mutable l1 = Labels.Mutable.of().spanType("span").spanSubType("subtype1");
+        Labels.Mutable l2 = Labels.Mutable.of().spanType("span").spanSubType("subtype2");
+        assertNotEqual(l1, l2);
+    }
+
+    @Test
+    void testEqualsIncludesSpanType() {
+        Labels.Mutable l1 = Labels.Mutable.of().spanType("span1");
+        Labels.Mutable l2 = Labels.Mutable.of().spanType("span2");
+        assertNotEqual(l1, l2);
     }
 
     private void assertNotEqual(Labels l1, Labels l2) {

@@ -93,7 +93,9 @@ public class MockTracer {
     public static synchronized MockInstrumentationSetup getOrCreateInstrumentationTracer() {
 
         ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
-        if (tracer == null || tracer.getState() == ElasticApmTracer.TracerState.STOPPED) {
+        if (tracer == null || tracer.getState() == ElasticApmTracer.TracerState.STOPPED ||
+            !(tracer.getReporter() instanceof MockReporter) || !(tracer.getObjectPoolFactory() instanceof TestObjectPoolFactory)) {
+
             // use an object pool that does bookkeeping to allow for extra usage checks
             TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
@@ -113,7 +115,9 @@ public class MockTracer {
                 .build();
         } else {
             ElasticApmAgent.reset();
-            TracerInternalApiUtils.resumeTracer(tracer);
+            if (!tracer.isRunning()) {
+                TracerInternalApiUtils.resumeTracer(tracer);
+            }
             ((MockReporter) tracer.getReporter()).reset();
             SpyConfiguration.reset(tracer.getConfigurationRegistry());
         }
