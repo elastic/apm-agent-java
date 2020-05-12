@@ -311,6 +311,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Nullable
+    @Override
     public Transaction getTransaction() {
         return transaction;
     }
