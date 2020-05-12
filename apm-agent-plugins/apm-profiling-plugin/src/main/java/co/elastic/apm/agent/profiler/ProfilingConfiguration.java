@@ -60,6 +60,13 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.15.0]", "experimental")
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Boolean> backupDiagnosticFiles = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_inferred_spans_backup_diagnostic_files")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(true)
+        .tags("added[1.15.0]", "internal")
+        .buildWithDefault(false);
+
     private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
         .key("profiling_inferred_spans_sampling_interval")
         .configurationCategory(PROFILING_CATEGORY)
@@ -180,5 +187,9 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isNonStopProfiling() {
         return getProfilingDuration().getMillis() >= getProfilingInterval().getMillis();
+    }
+
+    public boolean isBackupDiagnosticFiles() {
+        return backupDiagnosticFiles.get();
     }
 }

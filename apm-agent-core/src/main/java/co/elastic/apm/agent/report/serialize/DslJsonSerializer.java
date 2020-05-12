@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Db;
@@ -58,6 +59,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -85,6 +87,7 @@ import static com.dslplatform.json.JsonWriter.ARRAY_START;
 import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
+import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.MetricsReporter {
 
@@ -537,6 +540,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             serializeStackTrace(span.getStackFrames());
         }
         serializeSpanContext(span.getContext(), span.getTraceContext());
+        writeHexArray("child_ids", span.getChildIds());
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
@@ -1257,5 +1261,22 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeFieldName("timestamp");
         NumberConverter.serialize(epochMicros, jw);
         jw.writeByte(COMMA);
+    }
+
+    private void writeHexArray(String fieldName, @Nullable LongList longList) {
+        if (longList != null && longList.getSize() > 0) {
+            writeFieldName(fieldName);
+            jw.writeByte(ARRAY_START);
+            for (int i = 0, size = longList.getSize(); i < size; i++) {
+                if (i > 0) {
+                    jw.writeByte(COMMA);
+                }
+                jw.writeByte(QUOTE);
+                HexUtils.writeAsHex(longList.get(i), jw);
+                jw.writeByte(QUOTE);
+            }
+            jw.writeByte(ARRAY_END);
+            jw.writeByte(COMMA);
+        }
     }
 }

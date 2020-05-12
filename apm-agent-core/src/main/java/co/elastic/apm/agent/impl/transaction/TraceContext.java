@@ -75,7 +75,6 @@ import java.util.Objects;
  *                      2, 1]
  * </pre>
  */
-@SuppressWarnings({"rawtypes"})
 public class TraceContext implements Recyclable {
 
     public static final String ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME = "elastic-apm-traceparent";
@@ -675,6 +674,12 @@ public class TraceContext implements Recyclable {
             traceId.equals(that.traceId);
     }
 
+    public boolean idEquals(@Nullable TraceContext o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        return id.equals(o.id);
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(traceId, id, parentId, flags);
@@ -743,6 +748,14 @@ public class TraceContext implements Recyclable {
         clock.init(ByteUtils.getLong(buffer, offset));
         this.serviceName = serviceName;
         onMutation();
+    }
+
+    public static void deserializeSpanId(Id id, byte[] buffer) {
+        id.fromBytes(buffer, 16);
+    }
+
+    public static long getSpanId(byte[] serializedTraceContext) {
+        return ByteUtils.getLong(serializedTraceContext, 16);
     }
 
     public boolean traceIdAndIdEquals(byte[] serialized) {
