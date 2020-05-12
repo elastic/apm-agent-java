@@ -78,9 +78,9 @@ public class MockReporter implements Reporter {
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean disableDestinationAddressCheck;
 
-    private final List<Transaction> transactions = new ArrayList<>();
-    private final List<Span> spans = new ArrayList<>();
-    private final List<ErrorCapture> errors = new ArrayList<>();
+    private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+    private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
+    private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
     private boolean closed;
