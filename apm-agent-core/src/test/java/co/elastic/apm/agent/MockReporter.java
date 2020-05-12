@@ -340,10 +340,12 @@ public class MockReporter implements Reporter {
      */
     public synchronized void assertRecycledAfterDecrementingReferences() {
 
+        List<Transaction> transactions = getTransactions();
         List<Transaction> transactionsToFlush = transactions.stream()
             .filter(t -> !hasEmptyTraceContext(t))
             .collect(Collectors.toList());
 
+        List<Span> spans = getSpans();
         List<Span> spansToFlush = spans.stream()
             .filter(s-> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
