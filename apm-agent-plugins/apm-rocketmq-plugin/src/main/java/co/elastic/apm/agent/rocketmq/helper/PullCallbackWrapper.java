@@ -22,26 +22,32 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.servlet.wildfly;
+package co.elastic.apm.agent.rocketmq.helper;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import org.apache.rocketmq.client.consumer.PullCallback;
+import org.apache.rocketmq.client.consumer.PullResult;
 
-/**
- * Makes the {@code co.elastic.apm} package visible from all modules
- */
-public class WildFlyLifecycleListener extends AbstractLifecycleListener {
+class PullCallbackWrapper implements PullCallback {
 
-    private static final String JBOSS_MODULES_SYSTEM_PKGS = "jboss.modules.system.pkgs";
-    private static final String APM_BASE_PACKAGE = "co.elastic.apm.agent";
+    private PullCallback delegate;
+
+    private RocketMQInstrumentationHelperImpl helper;
+
+    PullCallbackWrapper(PullCallback delegate, RocketMQInstrumentationHelperImpl helper) {
+        this.delegate = delegate;
+        this.helper = helper;
+    }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
-        final String systemPackages = System.getProperty(JBOSS_MODULES_SYSTEM_PKGS);
-        if (systemPackages != null) {
-            System.setProperty(JBOSS_MODULES_SYSTEM_PKGS, systemPackages + "," + APM_BASE_PACKAGE);
-        } else {
-            System.setProperty(JBOSS_MODULES_SYSTEM_PKGS, APM_BASE_PACKAGE);
-        }
+    public void onSuccess(PullResult pullResult) {
+        PullResult resultToUse = helper.getTracer().currentTransaction() != null ? pullResult : helper.replaceMsgList(pullResult);
+        delegate.onSuccess(resultToUse);
+    }
+
+    @Override
+    public void onException(Throwable e) {
+        delegate.onException(e);
     }
 }

@@ -22,26 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.servlet.wildfly;
+@NonnullApi
+package co.elastic.apm.agent.rocketmq.helper;
 
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-
-/**
- * Makes the {@code co.elastic.apm} package visible from all modules
- */
-public class WildFlyLifecycleListener extends AbstractLifecycleListener {
-
-    private static final String JBOSS_MODULES_SYSTEM_PKGS = "jboss.modules.system.pkgs";
-    private static final String APM_BASE_PACKAGE = "co.elastic.apm.agent";
-
-    @Override
-    public void start(ElasticApmTracer tracer) {
-        final String systemPackages = System.getProperty(JBOSS_MODULES_SYSTEM_PKGS);
-        if (systemPackages != null) {
-            System.setProperty(JBOSS_MODULES_SYSTEM_PKGS, systemPackages + "," + APM_BASE_PACKAGE);
-        } else {
-            System.setProperty(JBOSS_MODULES_SYSTEM_PKGS, APM_BASE_PACKAGE);
-        }
-    }
-}
+import co.elastic.apm.agent.annotation.NonnullApi;

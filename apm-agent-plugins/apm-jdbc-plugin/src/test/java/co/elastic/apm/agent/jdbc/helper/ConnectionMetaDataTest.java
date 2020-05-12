@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ConnectionMetaDataTest {
 

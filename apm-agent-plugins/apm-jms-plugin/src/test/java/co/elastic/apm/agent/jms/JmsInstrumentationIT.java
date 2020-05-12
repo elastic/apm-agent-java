@@ -51,7 +51,6 @@ import javax.jms.Queue;
 import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +66,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
@@ -74,8 +75,6 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QUEUE_PREFIX;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
