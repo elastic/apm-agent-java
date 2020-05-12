@@ -39,6 +39,7 @@ This is not a breaking change, so former
   When set together with one of the more specific thresholds - `trace_methods_duration_threshold` or `profiling_inferred_spans_min_duration`,
   the higher threshold will determine which spans will be discarded.
 * Automatically instrument quartz jobs from the quartz-jobs artifact {pull}1170[#1170]
+* Add support for Apache RocketMQ clients - {pull}1057[#1057]
 
 [float]
 ===== Bug fixes
@@ -115,7 +116,6 @@ See <<supported-java-methods>> for more details
 * Adding a Circuit Breaker to pause the agent when stress is detected on the system and resume when the stress is relieved.
 See <<circuit-breaker>> and {pull}1040[#1040] for more info.
 * `Span#captureException` and `Transaction#captureException` in public API return reported error id - {pull}1015[#1015]
-* Add support for Apache RocketMQ clients - {pull}1057[#1057]
 
 [float]
 ===== Bug fixes

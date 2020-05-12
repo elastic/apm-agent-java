@@ -27,9 +27,9 @@ package co.elastic.apm.agent.rocketmq.helper;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.apache.rocketmq.client.consumer.MQConsumer;
@@ -83,7 +83,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
             return null;
         }
 
-        final TraceContextHolder<?> parent = tracer.getActive();
+        final AbstractSpan<?> parent = tracer.getActive();
 
         if (null == parent) {
             return null;
@@ -103,7 +103,7 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
             .getResource().append("rocketmq/").append(topic);
 
         try {
-            span.getTraceContext().setOutgoingTraceContextHeaders(msg, RocketMQMessageHeaderAccessor.getInstance());
+            span.propagateTraceContext(msg, RocketMQMessageHeaderAccessor.getInstance());
         } catch (Exception exp) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Failed to add user property to rocketmq message {} because {}", msg, exp.getMessage());
