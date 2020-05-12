@@ -296,6 +296,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         tracer.recycle(this);
     }
 
+    @Override
+    protected Span thiz() {
+        return this;
+    }
+
     public void setStackTrace(List<StackFrame> stackTrace) {
         this.stackFrames = stackTrace;
     }

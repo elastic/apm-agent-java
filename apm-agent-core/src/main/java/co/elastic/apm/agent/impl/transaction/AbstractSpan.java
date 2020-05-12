@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
@@ -69,6 +70,32 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * Flag to mark a span as representing an exit event
      */
     private boolean isExit;
+    /**
+     * <p>
+     * This use case for child ids is modifying parent/child relationships for profiler-inferred spans.
+     * Inferred spans are sent after a profiling session ends (5s by default) and after stack traces have been processed into inferred spans.
+     * Regular spans are sent right after the event (for example a DB call) has occurred.
+     * The effect is that a regular span cannot have a {@link TraceContext#parentId} pointing to an inferred span.
+     * That is because the latter did not exist at the time the regular span has been created.
+     * </p>
+     * <p>
+     * To work around this problem, inferred spans can point to their children.
+     * The UI does an operation known as "transitive reduction".
+     * What this does in this scenario is that it ignores the parent ID of a regular span if there's an inferred span
+     * with a {@code child_id} for this span.
+     * </p>
+     * <pre>
+     * ██████████████████████████████  transaction
+     * ↑ ↑ parent_id
+     * ╷ └──████████████████████       inferred span
+     * ╷         ↓ child_id
+     * └╶╶╶╶╶╶╶╶╶██████████            DB span
+     *  parent_id
+     *  (removed via transitive reduction)
+     * </pre>
+     */
+    @Nullable
+    private LongList childIds;
 
     public int getReferenceCount() {
         return references.get();
@@ -254,7 +281,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             this.name.append(cs);
             this.namePriority = priority;
         }
-        return (T) this;
+        return thiz();
     }
 
     public T withName(@Nullable String name) {
@@ -272,7 +299,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             this.name.append(name);
             this.namePriority = priority;
         }
-        return (T) this;
+        return thiz();
     }
 
     /**
@@ -298,10 +325,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         namePriority = PRIO_DEFAULT;
         discardRequested = false;
         isExit = false;
-    }
-
-    public boolean isChildOf(AbstractSpan<?> parent) {
-        return traceContext.isChildOf(parent.traceContext);
+        childIds = null;
     }
 
     public Span createSpan() {
@@ -406,6 +430,17 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     protected abstract void beforeEnd(long epochMicros);
 
     protected abstract void afterEnd();
+
+    public boolean isChildOf(AbstractSpan<?> parent) {
+        return traceContext.isChildOf(parent.traceContext) || parent.hasChildId(traceContext.getId());
+    }
+
+    private boolean hasChildId(Id spanId) {
+        if (childIds != null) {
+            return childIds.contains(spanId.readLong(0));
+        }
+        return false;
+    }
 
     public T activate() {
         tracer.activate(this);
@@ -559,4 +594,15 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return getTraceContext().isSampled();
     }
 
+    public T withChildIds(@Nullable LongList childIds) {
+        this.childIds = childIds;
+        return thiz();
+    }
+
+    @Nullable
+    public LongList getChildIds() {
+        return childIds;
+    }
+
+    protected abstract T thiz();
 }
