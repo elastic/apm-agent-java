@@ -26,10 +26,19 @@ package co.elastic.apm.agent.rocketmq.container;
 
 import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.core.command.ExecStartResultCallback;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.Transferable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -86,17 +95,18 @@ public class RocketMQContainer extends GenericContainer<RocketMQContainer> {
             throw new RuntimeException("Error in get local ip");
         }
 
-        String command = "brokerClusterName = DefaultCluster\n" +
+        String properties = "brokerClusterName = DefaultCluster\n" +
             "brokerName = broker-01\n" +
             "brokerId = 1\n" +
             "deleteWhen = 04\n" +
             "fileReservedTime = 48\n" +
             "brokerRole = ASYNC_MASTER\n" +
             "flushDiskType = ASYNC_FLUSH\n" +
+            "autoCreateTopicEnable = false\n" +
             "brokerIP1 = " + localIp + "\n";
 
         copyFileToContainer(
-            Transferable.of(command.getBytes(StandardCharsets.UTF_8), 700),
+            Transferable.of(properties.getBytes(StandardCharsets.UTF_8), 700),
             brokerConf
         );
 
@@ -106,14 +116,20 @@ public class RocketMQContainer extends GenericContainer<RocketMQContainer> {
         execCmd("sh", "mqnamesrv");
     }
 
-    private void execCmd(String... cmds) {
+    private ExecStartResultCallback execCmd(String... cmds) {
+        OutputStream outputStream = new ByteArrayOutputStream();
         ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd(getContainerId())
-            .withAttachStdout(true)
-            .withAttachStderr(true)
             .withCmd(cmds)
             .exec();
-        dockerClient.execStartCmd(execCreateCmdResponse.getId())
-            .exec(new ExecStartResultCallback(System.out, System.err));
+        try {
+            ExecStartResultCallback resultCallback = dockerClient.execStartCmd(execCreateCmdResponse.getId())
+                .exec(new ExecStartResultCallback())
+                .awaitCompletion();
+            System.out.println(((ByteArrayOutputStream) outputStream).toString(StandardCharsets.UTF_8));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private String getLocalIp() {
@@ -150,5 +166,6 @@ public class RocketMQContainer extends GenericContainer<RocketMQContainer> {
         }
         return null;
     }
+
 
 }

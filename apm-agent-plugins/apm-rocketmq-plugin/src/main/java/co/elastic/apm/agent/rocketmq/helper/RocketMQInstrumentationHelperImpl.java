@@ -228,8 +228,6 @@ public class RocketMQInstrumentationHelperImpl implements RocketMQInstrumentatio
                 transaction.withResult(((ConsumeConcurrentlyStatus)ret).name());
             } else if (ret instanceof ConsumeOrderlyStatus){
                 transaction.withResult(((ConsumeOrderlyStatus)ret).name());
-            } else {
-                transaction.withResult(ret.toString());
             }
             transaction.captureException(throwable)
                 .deactivate()
