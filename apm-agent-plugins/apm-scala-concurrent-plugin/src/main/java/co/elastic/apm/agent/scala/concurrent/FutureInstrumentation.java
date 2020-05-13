@@ -26,7 +26,7 @@ package co.elastic.apm.agent.scala.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -45,7 +45,7 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<Promise<?>, TraceContextHolder<?>> promisesToContext =
+    public static final WeakConcurrentMap<Promise<?>, AbstractSpan<?>> promisesToContext =
         new WeakConcurrentMap.WithInlinedExpunction<>();
 
     @Nonnull
@@ -68,10 +68,10 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onExecute(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-            final TraceContextHolder<?> active = getActive();
+            final AbstractSpan<?> active = getActive();
             if (active != null && runnable != null && tracer != null) {
                 // Do no discard branches leading to async operations so not to break span references
-                active.setDiscard(false);
+                active.setNonDiscardable();
                 runnable = active.withActive(runnable);
             }
         }
@@ -89,15 +89,16 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
         public ElementMatcher<? super MethodDescription> getMethodMatcher(){
             return named("submitForExecution").and(returns(void.class)).and(takesArguments(Runnable.class))
                 .or(named("submitAsyncBatched").and(returns(void.class)).and(takesArguments(Runnable.class)))
-                .or(named("submitSyncBatched").and(returns(void.class)).and(takesArguments(Runnable.class)));
+                .or(named("submitSyncBatched").and(returns(void.class)).and(takesArguments(Runnable.class)))
+                .or(named("unbatchedExecute").and(returns(void.class)).and(takesArguments(Runnable.class)));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onExecute(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-            final TraceContextHolder<?> active = getActive();
+            final AbstractSpan<?> active = getActive();
             if (active != null && runnable != null && tracer != null) {
                 // Do no discard branches leading to async operations so not to break span references
-                active.setDiscard(false);
+                active.setNonDiscardable();
                 runnable = active.withActive(runnable);
             }
         }
@@ -118,9 +119,9 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void onExit(@Advice.This Promise<?> thiz) {
-            final TraceContextHolder<?> active = getActive();
-            if (active != null) {
-                promisesToContext.put(thiz, active);
+            final AbstractSpan<?> context = getActive();
+            if (context != null) {
+                promisesToContext.put(thiz, context);
             }
         }
 
@@ -140,16 +141,18 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onEnter(@Advice.This Promise<?> thiz) {
-            final TraceContextHolder<?> context = promisesToContext.getIfPresent(thiz);
+        public static void onEnter(@Advice.This Promise<?> thiz, @Nullable @Advice.Local("context") AbstractSpan<?> context) {
+            context = promisesToContext.remove(thiz);
             if (tracer != null && context != null) {
                 tracer.activate(context);
             }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void onExit(@Advice.This Promise<?> thiz) {
-            promisesToContext.remove(thiz);
+        public static void onExit(@Nullable @Advice.Local("context") AbstractSpan<?> context) {
+            if (tracer != null && context != null) {
+                tracer.deactivate(context);
+            }
         }
 
     }
