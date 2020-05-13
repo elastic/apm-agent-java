@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
 import org.junit.Before;
@@ -67,12 +68,29 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void testExecutorExecute() throws Exception {
+    public void testExecutorExecute_Transaction() {
         executor.execute(this::createAsyncSpan);
         assertOnlySpanIsChildOfOnlyTransaction();
     }
 
-    private void assertOnlySpanIsChildOfOnlyTransaction() throws InterruptedException {
+    @Test
+    public void testExecutorExecute_Span() {
+        Span nonAsyncSpan = transaction.createSpan().withName("NonAsync").activate();
+        executor.execute(this::createAsyncSpan);
+        try {
+            // wait for the async operation to end
+            assertThat(reporter.getFirstSpan(1000)).isNotNull();
+        } finally {
+            nonAsyncSpan.deactivate().end();
+            transaction.deactivate().end();
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(2);
+        assertThat(nonAsyncSpan.isChildOf(transaction)).isTrue();
+        assertThat(reporter.getFirstSpan().isChildOf(nonAsyncSpan)).isTrue();
+    }
+
+    private void assertOnlySpanIsChildOfOnlyTransaction() {
         try {
             // wait for the async operation to end
             assertThat(reporter.getFirstSpan(1000)).isNotNull();
@@ -85,7 +103,7 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     private void createAsyncSpan() {
-        assertThat(tracer.getActive().getTraceContext().getId()).isEqualTo(transaction.getTraceContext().getId());
+        assertThat(tracer.currentTransaction()).isEqualTo(transaction);
         tracer.getActive().createSpan().withName("Async").end();
     }
 }

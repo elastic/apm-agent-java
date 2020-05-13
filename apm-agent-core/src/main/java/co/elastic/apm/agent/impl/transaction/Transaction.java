@@ -95,6 +95,11 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     private int maxSpans;
 
+    @Override
+    public Transaction getTransaction() {
+        return this;
+    }
+
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -291,6 +296,11 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Override
     protected void recycle() {
         tracer.recycle(this);
+    }
+
+    @Override
+    protected Transaction thiz() {
+        return this;
     }
 
     void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {

@@ -51,10 +51,14 @@ public class HexUtils {
 
     public static void writeBytesAsHex(byte[] bytes, JsonWriter jw) {
         for (int i = 0; i < bytes.length; i++) {
-            int v = bytes[i] & 0xFF;
-            jw.writeByte((byte) hexArray[v >>> 4]);
-            jw.writeByte((byte) hexArray[v & 0x0F]);
+            writeHexByte(jw, bytes[i]);
         }
+    }
+
+    private static void writeHexByte(JsonWriter jw, byte b) {
+        int v = b & 0xFF;
+        jw.writeByte((byte) hexArray[v >>> 4]);
+        jw.writeByte((byte) hexArray[v & 0x0F]);
     }
 
     public static void writeBytesAsHex(byte[] bytes, StringBuilder sb) {
@@ -112,5 +116,16 @@ public class HexUtils {
         for (int i = 0; i < srcLength; i += 2) {
             bytes[destOffset + (i / 2)] = getNextByte(hexEncodedString, srcOffset + i);
         }
+    }
+
+    public static void writeAsHex(long l, JsonWriter jw) {
+        writeHexByte(jw, (byte) (l >> 56));
+        writeHexByte(jw, (byte) (l >> 48));
+        writeHexByte(jw, (byte) (l >> 40));
+        writeHexByte(jw, (byte) (l >> 32));
+        writeHexByte(jw, (byte) (l >> 24));
+        writeHexByte(jw, (byte) (l >> 16));
+        writeHexByte(jw, (byte) (l >> 8));
+        writeHexByte(jw, (byte) l);
     }
 }

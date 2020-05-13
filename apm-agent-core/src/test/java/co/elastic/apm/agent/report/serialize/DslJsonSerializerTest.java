@@ -26,6 +26,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -41,6 +42,7 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -382,6 +384,21 @@ class DslJsonSerializerTest {
         assertThat(db.get("rows_affected").longValue()).isEqualTo(5);
         assertThat(db.get("instance").textValue()).isEqualTo("test-instance");
         assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM TABLE");
+    }
+
+    @Test
+    void testSpanChildIdSerialization() {
+        Id id1 = Id.new64BitId();
+        id1.setToRandomValue();
+        Id id2 = Id.new64BitId();
+        id2.setToRandomValue();
+        Span span = new Span(MockTracer.create());
+        span.withChildIds(LongList.of(id1.getLeastSignificantBits(), id2.getLeastSignificantBits()));
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode child_ids = spanJson.get("child_ids");
+        assertThat(child_ids.get(0).textValue()).isEqualTo(id1.toString());
+        assertThat(child_ids.get(1).textValue()).isEqualTo(id2.toString());
     }
 
     @Test
