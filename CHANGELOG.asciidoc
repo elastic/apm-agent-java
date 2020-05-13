@@ -52,6 +52,7 @@ endif::[]
   the higher threshold will determine which spans will be discarded.
 * Automatically instrument quartz jobs from the quartz-jobs artifact {pull}1170[#1170]
 * Perform re-parenting of regular spans to be a child of profiler-inferred spans. Requires APM Server and Kibana 7.8.0. {pull}1117[#1117]
+* Upgrade Async Profiler version to 1.7.0
 
 [float]
 ===== Bug fixes
@@ -67,6 +68,8 @@ endif::[]
 * Due to a bug in the build we didn't include the gRPC plugin in the build so far
 * `java.lang.ClassNotFoundException: Unable to load class 'jdk.internal...'` is thrown when tracing specific versions of Atlassian systems {pull}1168[#1168]
 * Make sure spans are kept active during `AsyncHandler` methods in the `AsyncHttpClient`
+* CPU and memory metrics are sometimes not reported properly when using IBM J9 {pull}1148[#1148]
+* `NullPointerException` thrown by the agent on WebLogic {pull}1142[#1142]
 
 [[release-notes-1.15.0]]
 ==== 1.15.0 - 2020/03/27
