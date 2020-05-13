@@ -29,7 +29,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -81,10 +80,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(normalReturn).isEqualTo("arg12");
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions.size()).isEqualTo(1);
-        validateDubboTransaction(
-            transactions.get(0), DubboTestApi.class, "normalReturn");
-        noCaptureBody(transactions.get(0));
-
+        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "normalReturn");
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(1);
@@ -104,65 +100,12 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             assertThat(e instanceof BizException).isTrue();
         }
 
-        noCaptureBody(reporter.getTransactions().get(0));
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors.size()).isEqualTo(2);
         for (ErrorCapture error : errors) {
             Throwable t = error.getException();
             assertThat(t instanceof BizException).isTrue();
         }
-    }
-
-    @Test
-    public void testNormalReturnAndCaptureError() {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        dubboTestApi.normalReturn("arg1", 2);
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions.size()).isEqualTo(1);
-        noCaptureBody(transactions.get(0));
-    }
-
-    @Test
-    public void testNormalReturnAndCaptureTransaction() {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String retValue = dubboTestApi.normalReturn("arg1", 2);
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions.size()).isEqualTo(1);
-        validateNormalReturnCapture(transactions.get(0), new Object[]{"arg1", 2}, retValue);
-    }
-
-    @Test
-    public void testBizExceptionAndCaptureError() {
-        String arg = "bizException";
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        try {
-            dubboTestApi.throwBizException(arg);
-        } catch (BizException e) {
-            List<Transaction> transactions = reporter.getTransactions();
-            assertThat(transactions.size()).isEqualTo(1);
-            validateBizExceptionCapture(transactions.get(0), new Object[]{arg}, e);
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
-    public void testBizExceptionAndCaptureTransaction() {
-        String arg = "bizException";
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        try {
-            dubboTestApi.throwBizException(arg);
-        } catch (BizException e) {
-            List<Transaction> transactions = reporter.getTransactions();
-            assertThat(transactions.size()).isEqualTo(1);
-            validateBizExceptionCapture(transactions.get(0), new Object[]{arg}, e);
-            return;
-        }
-        throw new RuntimeException("not ok");
     }
 
     @Test
@@ -188,31 +131,6 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         List<ErrorCapture> errors = reporter.getErrors();
         assertThat(errors).hasSize(1);
         assertThat(errors.get(0).getException() instanceof BizException).isTrue();
-    }
-
-    void noCaptureBody(Transaction transaction) {
-        assertThat(transaction.getContext().hasCustom()).isFalse();
-    }
-
-    void validateNormalReturnCapture(Transaction transaction, Object[] args, Object returnValue) {
-        TransactionContext context = transaction.getContext();
-        validateArgs(args, context);
-        assertThat(context.getCustom("return")).isEqualTo(returnValue != null ? returnValue.toString() : "null");
-    }
-
-    void validateBizExceptionCapture(Transaction transaction, Object[] args, Throwable t) {
-        TransactionContext context = transaction.getContext();
-        validateArgs(args, context);
-        assertThat(context.getCustom("throw")).isEqualTo(t.toString());
-    }
-
-    private void validateArgs(Object[] args, TransactionContext context) {
-        assertThat(context.hasCustom()).isTrue();
-        if (args != null && args.length > 0) {
-            for (int i = 0; i < args.length; i++) {
-                assertThat(context.getCustom("arg-" + i)).isEqualTo(args[i].toString());
-            }
-        }
     }
 
     public void validateDubboTransaction(Transaction transaction, Class<?> apiClass, String methodName) {

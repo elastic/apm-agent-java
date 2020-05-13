@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.dubbo.api.impl.DubboTestApiImpl;
@@ -46,7 +45,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
@@ -124,30 +122,6 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
     }
 
     @Test
-    public void testAsyncCaptureTransaction() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        String arg = "hello";
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        dubboTestApi.async(arg);
-        Future<Object> future = RpcContext.getContext().getFuture();
-        future.get();
-        Transaction transaction = reporter.getFirstTransaction(5000);
-        validateNormalReturnCapture(transaction, new Object[]{arg}, arg);
-    }
-
-    @Test
-    public void testAsyncCaptureError() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        String arg = "hello";
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        dubboTestApi.async(arg);
-        Future<Object> future = RpcContext.getContext().getFuture();
-        future.get();
-        Transaction transaction = reporter.getFirstTransaction(5000);
-        noCaptureBody(transaction);
-    }
-
-    @Test
     public void testAsyncException() throws Exception {
         DubboTestApi dubboTestApi = getDubboTestApi();
         String arg = "error";
@@ -177,42 +151,6 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
     }
 
     @Test
-    public void testAsyncExceptionCaptureTransaction() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "error";
-        try {
-            dubboTestApi.async(arg);
-            Future<Object> future = RpcContext.getContext().getFuture();
-            assertThat(future).isNotNull();
-            future.get();
-        } catch (Exception e) {
-            Transaction transaction = reporter.getFirstTransaction(5000);
-            validateBizExceptionCapture(transaction, new Object[]{arg}, e.getCause());
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
-    public void testAsyncExceptionCaptureError() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "error";
-        try {
-            dubboTestApi.async(arg);
-            Future<Object> future = RpcContext.getContext().getFuture();
-            assertThat(future).isNotNull();
-            future.get();
-        } catch (Exception e) {
-            Transaction transaction = reporter.getFirstTransaction(5000);
-            validateBizExceptionCapture(transaction, new Object[]{arg}, e.getCause());
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
     public void testAsyncByFuture() throws Exception {
         DubboTestApi dubboTestApi = getDubboTestApi();
         String arg = "hello";
@@ -228,28 +166,6 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         Thread.sleep(1000); // wait 1s
         List<Span> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(2);
-    }
-
-    @Test
-    public void testAsyncByFutureCaptureTransaction() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "hello";
-        CompletableFuture<String> future = dubboTestApi.asyncByFuture(arg);
-        future.get();
-        Transaction transaction = reporter.getFirstTransaction(5000);
-        validateNormalReturnCapture(transaction, new Object[]{arg}, arg);
-    }
-
-    @Test
-    public void testAsyncByFutureCaptureError() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "hello";
-        CompletableFuture<String> future = dubboTestApi.asyncByFuture(arg);
-        future.get();
-        Transaction transaction = reporter.getFirstTransaction(5000);
-        noCaptureBody(transaction);
     }
 
     @Test
@@ -279,37 +195,6 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         throw new RuntimeException("not ok");
     }
 
-    @Test
-    public void testAsyncByFutureExceptionCaptureTransaction() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "error";
-        CompletableFuture<String> future = dubboTestApi.asyncByFuture(arg);
-        try {
-            future.get();
-        } catch (Exception e) {
-            Transaction transaction = reporter.getFirstTransaction(5000);
-            validateBizExceptionCapture(transaction, new Object[]{arg}, e.getCause());
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
-    public void testAsyncByFutureExceptionCaptureError() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "error";
-        CompletableFuture<String> future = dubboTestApi.asyncByFuture(arg);
-        try {
-            future.get();
-        } catch (Exception e) {
-            Transaction transaction = reporter.getFirstTransaction(5000);
-            validateBizExceptionCapture(transaction, new Object[]{arg}, e.getCause());
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
 
     @Test
     public void testAsyncByAsyncContext() throws Exception {
@@ -325,28 +210,6 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
         assertThat(spans.size()).isEqualTo(2);
-    }
-
-    @Test
-    public void testAsyncByAsyncContextCaptureTransaction() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "hello";
-        String ret = dubboTestApi.asyncByAsyncContext(arg);
-        assertThat(ret).isEqualTo(arg);
-        Transaction transaction = reporter.getFirstTransaction(5000);
-        validateNormalReturnCapture(transaction, new Object[]{arg}, arg);
-    }
-
-    @Test
-    public void testAsyncByAsyncContextCaptureError() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "hello";
-        String ret = dubboTestApi.asyncByAsyncContext(arg);
-        assertThat(ret).isEqualTo(arg);
-        Transaction transaction = reporter.getFirstTransaction(5000);
-        noCaptureBody(transaction);
     }
 
     @Test
@@ -368,36 +231,6 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             for (ErrorCapture error : errors) {
                 assertThat(error.getException() instanceof BizException).isTrue();
             }
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
-    public void testAsyncByAsyncContextExceptionCaptureTransaction() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "error";
-        try {
-            dubboTestApi.asyncByAsyncContext(arg);
-        } catch (BizException e) {
-            Transaction transaction = reporter.getFirstTransaction(5000);
-            validateBizExceptionCapture(transaction, new Object[]{arg}, e);
-            return;
-        }
-        throw new RuntimeException("not ok");
-    }
-
-    @Test
-    public void testAsyncByAsyncContextExceptionCaptureError() throws Exception {
-        when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
-        DubboTestApi dubboTestApi = getDubboTestApi();
-        String arg = "error";
-        try {
-            dubboTestApi.asyncByAsyncContext(arg);
-        } catch (BizException e) {
-            Transaction transaction = reporter.getFirstTransaction(5000);
-            validateBizExceptionCapture(transaction, new Object[]{arg}, e);
             return;
         }
         throw new RuntimeException("not ok");

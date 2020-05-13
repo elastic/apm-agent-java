@@ -31,5 +31,5 @@ import java.util.function.BiConsumer;
 
 public interface AsyncCallbackCreator {
 
-    BiConsumer<Result, Throwable> create(AbstractSpan<?> span, Object[] args);
+    BiConsumer<Result, Throwable> create(AbstractSpan<?> span);
 }

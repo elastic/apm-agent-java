@@ -125,9 +125,6 @@ public class AlibabaMonitorFilterAdvice {
                 if (actualExp != null) {
                     transaction.captureException(actualExp);
                 }
-
-                Object ret = result != null ? result.getValue() : null;
-                DubboTraceHelper.doCapture(transaction, invocation.getArguments(), actualExp, ret);
             } finally {
                 transaction.deactivate().end();
             }

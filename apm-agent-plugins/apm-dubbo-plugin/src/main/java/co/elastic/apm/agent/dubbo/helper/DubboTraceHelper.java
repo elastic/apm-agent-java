@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.dubbo.helper;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -93,33 +92,5 @@ public class DubboTraceHelper {
         fillName(transaction, apiClass, methodName);
         transaction.withType("dubbo");
         transaction.activate();
-    }
-
-    public static void doCapture(Transaction transaction, Object[] args, Throwable t, Object returnValue) {
-        if (transaction == null) {
-            return;
-        }
-        boolean hasError = t != null;
-        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
-        CoreConfiguration.EventType captureBody = coreConfig.getCaptureBody();
-        if (CoreConfiguration.EventType.OFF.equals(captureBody) ||
-            (CoreConfiguration.EventType.ERRORS.equals(captureBody) && !hasError)) {
-            return;
-        }
-
-        captureArgs(transaction, args);
-        if (t != null) {
-            transaction.addCustomContext("throw", t.toString());
-        } else {
-            transaction.addCustomContext("return", returnValue.toString());
-        }
-    }
-
-    public static void captureArgs(Transaction transaction, Object[] args) {
-        if (args != null) {
-            for (int i = 0; i < args.length; i++) {
-                transaction.addCustomContext("arg-" + i, args[i].toString());
-            }
-        }
     }
 }

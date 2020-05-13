@@ -39,10 +39,6 @@ public class ExecutorServiceWrapper implements ExecutorService {
 
     private final ExecutorService delegate;
 
-    public static ExecutorService wrap(ExecutorService delegate) {
-        return new ExecutorServiceWrapper(delegate);
-    }
-
     public ExecutorServiceWrapper(ExecutorService delegate) {
         this.delegate = delegate;
     }

@@ -116,7 +116,7 @@ public class ApacheMonitorFilterAdvice {
             }
             if (result instanceof AsyncRpcResult) {
                 AsyncRpcResult asyncResult = (AsyncRpcResult) result;
-                asyncResult.whenCompleteWithContext(callbackCreator.create(actualSpan, invocation.getArguments()));
+                asyncResult.whenCompleteWithContext(callbackCreator.create(actualSpan));
             }
         } finally {
             actualSpan.deactivate();
