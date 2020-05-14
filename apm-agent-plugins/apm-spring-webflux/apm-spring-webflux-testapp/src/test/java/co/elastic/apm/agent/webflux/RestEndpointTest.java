@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,55 +24,21 @@
  */
 package co.elastic.apm.agent.webflux;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class RestEndpointTest extends ApplicationTest {
 
-public abstract class ApplicationTest {
+    @LocalServerPort
+    private int serverPort;
 
-    private GreetingWebClient client;
-
-    protected abstract GreetingWebClient createClient();
-
-    @BeforeEach
-    void beforeEach() {
-        // test with functional endpoints only, testing both functional and annotated controller should be properly
-        // covered by instrumentation tests.
-        client = createClient();
-    }
-
-    @Test
-    void helloMono() {
-        assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
-    }
-
-    @Test
-    void mappingError() {
-        assertThat(client.getMappingError404())
-            .contains("/error-404");
-    }
-
-    @Test
-    void handlerException() {
-        assertThat(client.getHandlerError())
-            .contains("intentional handler exception");
-    }
-
-    @Test
-    void handlerMonoError() {
-        assertThat(client.getMonoError())
-            .isEqualTo("error handler: intentional error");
-    }
-
-    @Test
-    void handlerMonoEmpty() {
-        assertThat(client.getMonoEmpty())
-            .isNull();
+    @Override
+    protected GreetingWebClient createClient() {
+        return new GreetingWebClient("localhost", serverPort, true);
     }
 
 }

@@ -24,55 +24,20 @@
  */
 package co.elastic.apm.agent.webflux;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class FunctionalEndpointTest extends ApplicationTest {
 
-public abstract class ApplicationTest {
+    @LocalServerPort
+    private int serverPort;
 
-    private GreetingWebClient client;
-
-    protected abstract GreetingWebClient createClient();
-
-    @BeforeEach
-    void beforeEach() {
-        // test with functional endpoints only, testing both functional and annotated controller should be properly
-        // covered by instrumentation tests.
-        client = createClient();
+    @Override
+    protected GreetingWebClient createClient() {
+        return new GreetingWebClient("localhost", serverPort, false);
     }
-
-    @Test
-    void helloMono() {
-        assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
-    }
-
-    @Test
-    void mappingError() {
-        assertThat(client.getMappingError404())
-            .contains("/error-404");
-    }
-
-    @Test
-    void handlerException() {
-        assertThat(client.getHandlerError())
-            .contains("intentional handler exception");
-    }
-
-    @Test
-    void handlerMonoError() {
-        assertThat(client.getMonoError())
-            .isEqualTo("error handler: intentional error");
-    }
-
-    @Test
-    void handlerMonoEmpty() {
-        assertThat(client.getMonoEmpty())
-            .isNull();
-    }
-
 }
