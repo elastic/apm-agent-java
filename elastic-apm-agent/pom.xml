@@ -281,6 +281,7 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>
+                                        <exclude>META-INF/versions/**</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>
@@ -334,7 +335,12 @@
                                 <relocation>
                                     <!-- makes sure we don't load log4j2.{properties|xml|yml|json} files-->
                                     <pattern>log4j2</pattern>
-                                    <shadedPattern>apmlog4j2</shadedPattern>
+                                    <shadedPattern>log4j2-elasticapm</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- makes sure we don't pollute the system classloader with Log4j2-{charsets.properties|*.xsd} files-->
+                                    <pattern>Log4j-</pattern>
+                                    <shadedPattern>Log4jElasticApm-</shadedPattern>
                                 </relocation>
 
                                 <relocation>
