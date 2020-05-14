@@ -27,20 +27,39 @@ package co.elastic.apm.agent.webflux;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.server.RequestPredicates;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
+
+import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
 
 @Configuration
 public class GreetingRouter {
 
 	@Bean
 	public RouterFunction<ServerResponse> route(GreetingHandler greetingHandler) {
-		return RouterFunctions.route(
-		    RequestPredicates.GET("/hello").and(RequestPredicates.accept(MediaType.TEXT_PLAIN)),
-            greetingHandler::helloMono);
-
-
+        return RouterFunctions.route()
+            .route(r -> r.path().equals("/router/hello"),
+                request -> ServerResponse.ok()
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(BodyInserters.fromValue(greetingHandler.helloMessage(request.queryParam("name")))))
+            .GET("/router/error-handler", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.throwException())
+            .GET("/router/error-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoError())
+            .GET("/router/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
+            .onError(
+                e -> true, (e, request) -> ServerResponse
+                    .status(request.queryParam("status")
+                        .map(Integer::parseInt)
+                        .orElse(500))
+                    .bodyValue(greetingHandler.exceptionMessage(e))
+            )
+            .build();
 	}
+
+    // exception handler
+    // TODO
+
+    // pre/post filter interception
+    // TODO
 }

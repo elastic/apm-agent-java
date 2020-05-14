@@ -27,7 +27,6 @@ package co.elastic.apm.agent.webflux;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
 
 import java.util.Map;
 
@@ -58,6 +57,10 @@ public class GreetingApplication {
 
     public static void sampleRequests(GreetingWebClient client){
         System.out.println(client.getHelloMono());
+        System.out.println(client.getMappingError404());
+        System.out.println(client.getHandlerError());
+        System.out.println(client.getMonoError());
+        System.out.println(client.getMonoEmpty());
     }
 
 }

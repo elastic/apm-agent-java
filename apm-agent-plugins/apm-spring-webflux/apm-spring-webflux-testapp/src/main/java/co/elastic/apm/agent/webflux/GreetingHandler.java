@@ -31,13 +31,38 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nullable;
+import java.util.Optional;
+
 @Component
 public class GreetingHandler {
 
-	public Mono<ServerResponse> helloMono(ServerRequest request) {
-        String name = request.queryParam("name").orElse("Spring");
-        return ServerResponse.ok()
-            .contentType(MediaType.TEXT_PLAIN)
-            .body(BodyInserters.fromValue(String.format("Hello, %s!", name)));
-	}
+    public String helloMessage(Optional<String> name){
+        return String.format("Hello, %s!", name.orElse("Spring"));
+    }
+
+    public <T> Mono<T> throwException(){
+        throw new RuntimeException("intentional handler exception");
+    }
+
+    public <T> Mono<T> monoError() {
+        return Mono.error(new RuntimeException("intentional error"));
+    }
+
+    public <T> Mono<T> monoEmpty(){
+        return Mono.empty();
+    }
+
+    public Mono<ServerResponse> monoError(@Nullable ServerRequest request) {
+        return monoError();
+    }
+
+    public Mono<ServerResponse> monoEmpty(@Nullable ServerRequest request) {
+        return monoEmpty();
+    }
+
+    public String exceptionMessage(Throwable t){
+        return "error handler: " + t.getMessage();
+    }
+
 }

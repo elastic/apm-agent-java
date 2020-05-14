@@ -31,31 +31,64 @@ import reactor.core.publisher.Mono;
 
 public class GreetingWebClient {
 
-	private final WebClient client;
+    private final WebClient client;
+    private final String baseUri;
 
-    public GreetingWebClient(String host, int port) {
-        this.client = WebClient.create(String.format("http://%s:%d/", host, port));
+    // this client also applies a few basic checks to ensure that application behaves
+    // as expected within unit tests and in packaged application without duplicating
+    // all the testing logic.
+
+    public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint) {
+        this.baseUri = String.format("http://%s:%d/%s", host, port, useFunctionalEndpoint ? "router" : "controller");
+        this.client = WebClient.create(baseUri);
     }
 
     public String getHelloMono() {
-        Mono<ClientResponse> response = client.get()
-            .uri("/hello")
-            .accept(MediaType.TEXT_PLAIN)
-            .exchange();
+        return flatMapToString(exchange("/hello"));
+    }
 
-        // exchange or retrieve ?
+    public String getMappingError404() {
+        return expectServerStatus("/error-404", 404);
+    }
 
+    public String getHandlerError() {
+        return expectServerStatus("/error-handler", 500);
+    }
+
+    public String getMonoError() {
+        return expectServerStatus("/error-mono", 500);
+    }
+
+    public String getMonoEmpty() {
+        return expectServerStatus("/empty-mono", 200);
+    }
+
+    private String expectServerStatus(String path, int status) {
+        Mono<ClientResponse> exchange = exchange(path)
+            .map(r -> checkStatus(r, status));
+        return flatMapToString(exchange);
+    }
+
+    private static ClientResponse checkStatus(ClientResponse r, int expectedStatus) {
+        int statusCode = r.rawStatusCode();
+        if (statusCode != expectedStatus) {
+            throw new IllegalStateException(String.format("unexpected status code %d", statusCode));
+        }
+        return r;
+    }
+
+    private static String flatMapToString(Mono<ClientResponse> response) {
         return response.flatMap(res -> res.bodyToMono(String.class))
             .block();
     }
 
-    public String get404(){
-        Mono<ClientResponse> response = client.get()
-            .uri("/error-404")
-            .accept(MediaType.TEXT_PLAIN)
-            .exchange();
+    private Mono<ClientResponse> exchange(String uri) {
+        System.out.println(String.format("GET %s%s", baseUri, uri));
 
-        return response.flatMap(res -> res.bodyToMono(String.class))
-            .block();
+        // exchange or retrieve ?
+        return client.get()
+            .uri(uri)
+            .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
+            .exchange();
     }
 }

@@ -1,15 +1,37 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2020 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
-import reactor.core.Scannable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class Sandbox {
@@ -74,11 +96,26 @@ public class Sandbox {
             .verifyComplete();
     }
 
-    private static <T> Mono<T> wrap(Mono<T> mono){
+    @Test
+    void flux_with_decoration() {
+        Flux<String> flux = Flux.just("a", "b", "c");
+
+        flux = wrap(flux);
+
+        StepVerifier.create(flux)
+            .expectNext("a", "b", "c")
+            .verifyComplete();
+    }
+
+    private static <T> Mono<T> wrap(Mono<T> mono) {
         return mono.<T>transform(lift());
     }
 
-    private static <T> Function<? super Publisher<T>, ? extends Publisher<T>>  lift(){
+    private static <T> Flux<T> wrap(Flux<T> flux) {
+        return flux.<T>transform(lift());
+    }
+
+    private static <T> Function<? super Publisher<T>, ? extends Publisher<T>> lift() {
         return Operators.lift((scannable, subscriber) -> new DecoratedSubScriber<>(subscriber));
     }
 
@@ -91,17 +128,17 @@ public class Sandbox {
 
         @Override
         public void onSubscribe(Subscription subscription) {
-            wrap("onSubscribe", ()-> subscriber.onSubscribe(subscription));
+            wrap("onSubscribe", () -> subscriber.onSubscribe(subscription));
         }
 
         @Override
         public void onNext(T next) {
-            wrap("onNext", ()-> subscriber.onNext(next));
+            wrap("onNext", () -> subscriber.onNext(next));
         }
 
         @Override
         public void onError(Throwable t) {
-            wrap("onError", ()-> subscriber.onError(t));
+            wrap("onError", () -> subscriber.onError(t));
         }
 
         @Override
@@ -109,10 +146,10 @@ public class Sandbox {
             wrap("onComplete", subscriber::onComplete);
         }
 
-        private static void wrap(String name, Runnable task){
-            System.out.println("before "+ name);
+        private static void wrap(String name, Runnable task) {
+            System.out.println("before " + name);
             task.run();
-            System.out.println("after "+ name);
+            System.out.println("after " + name);
         }
     }
 }

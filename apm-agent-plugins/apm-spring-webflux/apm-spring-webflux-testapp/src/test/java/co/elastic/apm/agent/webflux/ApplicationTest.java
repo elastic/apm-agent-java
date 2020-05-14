@@ -35,23 +35,65 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class ApplicationTest {
-
-    // tests the whole application behavior
+public abstract class ApplicationTest {
 
     @LocalServerPort
     private int serverPort;
 
     private GreetingWebClient client;
 
+    protected abstract GreetingWebClient createClient(int serverPort);
+
+    public static class ApplicationFunctionalEndpoints extends ApplicationTest {
+
+        @Override
+        protected GreetingWebClient createClient(int serverPort) {
+            return new GreetingWebClient("localhost", serverPort, false);
+        }
+    }
+
+    public static class ApplicationRestEndpoints extends ApplicationTest {
+        @Override
+        protected GreetingWebClient createClient(int serverPort) {
+            return new GreetingWebClient("localhost", serverPort, true);
+        }
+
+    }
+
     @BeforeEach
     void beforeEach() {
-        client = new GreetingWebClient("localhost", 8080);
+        // test with functional endpoints only, testing both functional and annotated controller should be properly
+        // covered by instrumentation tests.
+        client = createClient(serverPort);
     }
 
     @Test
     void helloMono() {
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
+    }
+
+    @Test
+    void mappingError() {
+        assertThat(client.getMappingError404())
+            .contains("/error-404");
+    }
+
+    @Test
+    void handlerException() {
+        assertThat(client.getHandlerError())
+            .contains("intentional handler exception");
+    }
+
+    @Test
+    void handlerMonoError() {
+        assertThat(client.getMonoError())
+            .isEqualTo("error handler: intentional error");
+    }
+
+    @Test
+    void handlerMonoEmpty() {
+        assertThat(client.getMonoEmpty())
+            .isNull();
     }
 
 }
