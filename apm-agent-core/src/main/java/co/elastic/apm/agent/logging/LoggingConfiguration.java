@@ -54,7 +54,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public static final String SYSTEM_OUT = "System.out";
     static final String LOG_LEVEL_KEY = "log_level";
     static final String LOG_FILE_KEY = "log_file";
-    static final String LOG_FILE_MAX_SIZE_KEY = "log_file_max_size";
+    static final String LOG_FILE_SIZE_KEY = "log_file_size";
     static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
 
     private static final String LOGGING_CATEGORY = "Logging";
@@ -132,14 +132,14 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     @SuppressWarnings("unused")
     public ConfigurationOption<ByteValue> logFileMaxSize = ByteValueConverter.byteOption()
-        .key(LOG_FILE_MAX_SIZE_KEY)
+        .key(LOG_FILE_SIZE_KEY)
         .configurationCategory(LOGGING_CATEGORY)
-        .description("The max size of the log file.\n" +
+        .description("The size of the log file.\n" +
             "\n" +
             //"To support <<config-ship-agent-logs,shipping the logs>> to APM Server,\n" +
             "The agent always keeps one history file so that the max total log file size is twice the value of this setting.\n")
         .dynamic(false)
-        .tags("added[1.16.0]")
+        .tags("added[1.17.0]")
         .buildWithDefault(ByteValue.of(DEFAULT_MAX_SIZE));
 
     private final ConfigurationOption<Boolean> shipAgentLogs = ConfigurationOption.booleanOption()
@@ -153,7 +153,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.\n" +
             "\n" +
             "If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.\n" +
-            "The amount of logs that can be buffered is at least <<config-log-file-max-size,`log_file_max_size`>>.\n" +
+            "The amount of logs that can be buffered is at least <<config-log-file-size,`log_file_size`>>.\n" +
             "If the application crashes or APM Server is not available when shutting down,\n" +
             "the agent will resume shipping the log file when the application restarts.\n" +
             "\n" +
@@ -162,7 +162,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "If <<config-log-file,`log_file`>> is set to `System.out`,\n" +
             "the agent will additionally log into a temp file which is then sent to APM Server.\n" +
-            "This log's size is determined by <<config-log-file-max-size,`log_file_max_size`>> and will be deleted on shutdown.\n" +
+            "This log's size is determined by <<config-log-file-size,`log_file_size`>> and will be deleted on shutdown.\n" +
             "This means that logs that could not be sent before the application terminates are lost.")
         .dynamic(false)
         .tags("added[not officially added yet]", "internal")
@@ -176,7 +176,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
             "where each log event is serialized as a single line.")
-        .tags("added[1.16.0]")
+        .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     @SuppressWarnings("unused")
@@ -191,7 +191,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             //"If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,\n" +
             //"the value has to be `JSON`."
         )
-        .tags("added[1.16.0]")
+        .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {

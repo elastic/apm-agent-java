@@ -136,7 +136,7 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
-** <<config-log-file-max-size>>
+** <<config-log-file-size>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
 * <<config-messaging>>
@@ -1538,10 +1538,10 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-log-file-max-size]]
-==== `log_file_max_size` (added[1.16.0])
+[[config-log-file-size]]
+==== `log_file_size` (added[1.17.0])
 
-The max size of the log file.
+The size of the log file.
 
 The agent always keeps one history file so that the max total log file size is twice the value of this setting.
 
@@ -1559,13 +1559,13 @@ The agent always keeps one history file so that the max total log file size is t
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.log_file_max_size` | `log_file_max_size` | `ELASTIC_APM_LOG_FILE_MAX_SIZE`
+| `elastic.apm.log_file_size` | `log_file_size` | `ELASTIC_APM_LOG_FILE_SIZE`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-format-sout]]
-==== `log_format_sout` (added[1.16.0])
+==== `log_format_sout` (added[1.17.0])
 
 Defines the log format when logging to `System.out`.
 
@@ -1592,7 +1592,7 @@ Valid options: `PLAIN_TEXT`, `JSON`
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-format-file]]
-==== `log_format_file` (added[1.16.0])
+==== `log_format_file` (added[1.17.0])
 
 Defines the log format when logging to a file.
 
@@ -2979,7 +2979,7 @@ The default unit for this option is `ms`.
 #
 # enable_log_correlation=false
 
-# The max size of the log file.
+# The size of the log file.
 # 
 # The agent always keeps one history file so that the max total log file size is twice the value of this setting.
 # 
@@ -2988,7 +2988,7 @@ The default unit for this option is `ms`.
 # Type: ByteValue
 # Default value: 50mb
 #
-# log_file_max_size=50mb
+# log_file_size=50mb
 
 # Defines the log format when logging to `System.out`.
 # 

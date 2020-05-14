@@ -200,7 +200,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     }
 
     private AppenderComponentBuilder createFileAppender(ConfigurationBuilder<BuiltConfiguration> builder, String logFile, LayoutComponentBuilder layout) {
-        ByteValue size = ByteValue.of(getValue("log_file_max_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
+        ByteValue size = ByteValue.of(getValue("log_file_size", sources, LoggingConfiguration.DEFAULT_MAX_SIZE));
         return builder.newAppender("rolling", "RollingFile")
             .addAttribute("fileName", logFile)
             .addAttribute("filePattern", logFile + ".%i")

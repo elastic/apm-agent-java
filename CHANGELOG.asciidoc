@@ -36,7 +36,7 @@ This is not a breaking change, so former
 * Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
 * Logging
 ** Add log level `OFF` to silence agent logging
-** Log files are now rotated after they reach <<config-log-file-max-size>>.
+** Log files are now rotated after they reach <<config-log-file-size>>.
   There will always be one history file `${log_file}.1`.
 ** Add <<config-log-format-sout>> and <<config-log-format-file>> with the options `PLAIN_TEXT` and `JSON`.
   The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to format the logs.
