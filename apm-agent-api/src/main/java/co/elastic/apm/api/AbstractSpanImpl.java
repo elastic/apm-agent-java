@@ -30,7 +30,7 @@ import java.lang.invoke.MethodHandle;
 
 public abstract class AbstractSpanImpl implements Span {
     @Nonnull
-    // co.elastic.apm.agent.impl.transaction.TraceContextHolder
+    // co.elastic.apm.agent.impl.transaction.Span
     protected final Object span;
 
     AbstractSpanImpl(@Nonnull Object span) {

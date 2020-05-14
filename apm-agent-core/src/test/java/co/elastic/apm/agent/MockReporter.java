@@ -56,7 +56,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,9 +77,9 @@ public class MockReporter implements Reporter {
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean disableDestinationAddressCheck;
 
-    private final List<Transaction> transactions = new ArrayList<>();
-    private final List<Span> spans = new ArrayList<>();
-    private final List<ErrorCapture> errors = new ArrayList<>();
+    private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+    private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
+    private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
     private boolean closed;
@@ -340,10 +339,12 @@ public class MockReporter implements Reporter {
      */
     public synchronized void assertRecycledAfterDecrementingReferences() {
 
+        List<Transaction> transactions = getTransactions();
         List<Transaction> transactionsToFlush = transactions.stream()
             .filter(t -> !hasEmptyTraceContext(t))
             .collect(Collectors.toList());
 
+        List<Span> spans = getSpans();
         List<Span> spansToFlush = spans.stream()
             .filter(s-> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
@@ -351,23 +352,28 @@ public class MockReporter implements Reporter {
         transactionsToFlush.forEach(Transaction::decrementReferences);
         spansToFlush.forEach(Span::decrementReferences);
 
-        // after decrement, all transactions and spans should have been recycled
-        transactions.forEach(t -> {
-            assertThat(hasEmptyTraceContext(t))
-                .describedAs("should have empty trace context : %s", t)
-                .isTrue();
-            assertThat(t.isReferenced())
-                .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
-                .isFalse();
-        });
-        spans.forEach(s -> {
-            assertThat(hasEmptyTraceContext(s))
-                .describedAs("should have empty trace context : %s", s)
-                .isTrue();
-            assertThat(s.isReferenced())
-                .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
-                .isFalse();
-        });
+        // transactions might be active after they have already been reported
+        // after a short amount of time, all transactions and spans should have been recycled
+        await()
+            .timeout(1, TimeUnit.SECONDS)
+            .untilAsserted(() -> transactions.forEach(t -> {
+                assertThat(hasEmptyTraceContext(t))
+                    .describedAs("should have empty trace context : %s", t)
+                    .isTrue();
+                assertThat(t.isReferenced())
+                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                    .isFalse();
+            }));
+        await()
+            .timeout(1, TimeUnit.SECONDS)
+            .untilAsserted(() -> spans.forEach(s -> {
+                assertThat(hasEmptyTraceContext(s))
+                    .describedAs("should have empty trace context : %s", s)
+                    .isTrue();
+                assertThat(s.isReferenced())
+                    .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                    .isFalse();
+            }));
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);

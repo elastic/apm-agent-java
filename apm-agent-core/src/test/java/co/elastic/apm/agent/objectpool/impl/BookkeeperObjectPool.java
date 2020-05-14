@@ -45,7 +45,7 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     private static final Logger logger = LoggerFactory.getLogger(BookkeeperObjectPool.class);
 
     private final ObjectPool<T> pool;
-    private final Set<T> toReturn = Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>());
+    private final Set<T> toReturn = Collections.synchronizedSet(Collections.<T>newSetFromMap(new IdentityHashMap<T, Boolean>()));
     // An ever-increasing counter for how many objects where requested from the pool
     private AtomicInteger objectCounter = new AtomicInteger();
 

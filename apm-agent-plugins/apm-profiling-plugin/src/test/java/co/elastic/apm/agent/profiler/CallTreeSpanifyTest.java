@@ -102,13 +102,12 @@ class CallTreeSpanifyTest {
     @Test
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
-        TraceContext traceContext = rootContext.getTraceContext();
-        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
+        CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), rootContext.serialize(), rootContext.getServiceName(), 0);
         NoopObjectPool<CallTree> callTreePool = NoopObjectPool.ofRecyclable(CallTree::new);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool, 0);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);
-        TraceContext.fromParent().asChildOf(spanContext, rootContext);
+        TraceContext.fromParentContext().asChildOf(spanContext, rootContext);
 
         root.onActivation(spanContext.serialize(), TimeUnit.MILLISECONDS.toNanos(5));
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10), callTreePool, 0);

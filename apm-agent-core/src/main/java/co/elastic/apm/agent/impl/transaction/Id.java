@@ -101,9 +101,7 @@ public class Id implements Recyclable {
 
     @Override
     public void resetState() {
-        for (int i = 0; i < data.length; i++) {
-            data[i] = 0;
-        }
+        Arrays.fill(data, (byte) 0);
         onMutation(true);
     }
 
