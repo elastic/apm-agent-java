@@ -56,7 +56,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -353,23 +352,28 @@ public class MockReporter implements Reporter {
         transactionsToFlush.forEach(Transaction::decrementReferences);
         spansToFlush.forEach(Span::decrementReferences);
 
-        // after decrement, all transactions and spans should have been recycled
-        transactions.forEach(t -> {
-            assertThat(hasEmptyTraceContext(t))
-                .describedAs("should have empty trace context : %s", t)
-                .isTrue();
-            assertThat(t.isReferenced())
-                .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
-                .isFalse();
-        });
-        spans.forEach(s -> {
-            assertThat(hasEmptyTraceContext(s))
-                .describedAs("should have empty trace context : %s", s)
-                .isTrue();
-            assertThat(s.isReferenced())
-                .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
-                .isFalse();
-        });
+        // transactions might be active after they have already been reported
+        // after a short amount of time, all transactions and spans should have been recycled
+        await()
+            .timeout(1, TimeUnit.SECONDS)
+            .untilAsserted(() -> transactions.forEach(t -> {
+                assertThat(hasEmptyTraceContext(t))
+                    .describedAs("should have empty trace context : %s", t)
+                    .isTrue();
+                assertThat(t.isReferenced())
+                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                    .isFalse();
+            }));
+        await()
+            .timeout(1, TimeUnit.SECONDS)
+            .untilAsserted(() -> spans.forEach(s -> {
+                assertThat(hasEmptyTraceContext(s))
+                    .describedAs("should have empty trace context : %s", s)
+                    .isTrue();
+                assertThat(s.isReferenced())
+                    .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                    .isFalse();
+            }));
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
