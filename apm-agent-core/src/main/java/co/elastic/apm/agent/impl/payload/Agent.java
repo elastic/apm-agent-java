@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -48,11 +48,16 @@ public class Agent {
      * A unique agent ID, non-persistent (i.e. changes on restart).
      * <a href="https://www.elastic.co/guide/en/ecs/master/ecs-agent.html#_agent_field_details">See ECS for reference</a>.
      */
-    private final String ephemeralId = UUID.randomUUID().toString();
+    private final String ephemeralId;
 
     public Agent(String name, String version) {
+        this(name, version, UUID.randomUUID().toString());
+    }
+
+    public Agent(String name, String version, String ephemeralId) {
         this.name = name;
         this.version = version;
+        this.ephemeralId = ephemeralId;
     }
 
     /**

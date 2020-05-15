@@ -55,6 +55,7 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -66,6 +67,7 @@ public class ElasticApmTracerBuilder {
     private static final String TEMP_PROPERTIES_FILE_KEY = "c";
 
     private final Logger logger;
+    private final String ephemeralId;
 
     @Nullable
     private ConfigurationRegistry configurationRegistry;
@@ -86,7 +88,8 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracerBuilder(@Nullable String agentArguments) {
         this.agentArguments = agentArguments;
-        LoggingConfiguration.init(getConfigSources(agentArguments));
+        this.ephemeralId = UUID.randomUUID().toString();
+        LoggingConfiguration.init(getConfigSources(agentArguments), ephemeralId);
         logger = LoggerFactory.getLogger(getClass());
         objectPoolFactory = new ObjectPoolFactory();
         extraLifecycleListeners = new ArrayList<>();
@@ -126,7 +129,7 @@ public class ElasticApmTracerBuilder {
         }
 
         ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
-        MetaData metaData = MetaData.create(configurationRegistry, null, null);
+        MetaData metaData = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
             DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
@@ -143,7 +146,7 @@ public class ElasticApmTracerBuilder {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory);
+        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory, apmServerClient, metaData);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.start(lifecycleListeners);

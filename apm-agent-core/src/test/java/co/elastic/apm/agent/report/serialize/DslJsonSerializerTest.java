@@ -489,7 +489,7 @@ class DslJsonSerializerTest {
     void testConfiguredServiceNodeName() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
         when(configRegistry.getConfig(CoreConfiguration.class).getServiceNodeName()).thenReturn("Custom-Node-Name");
-        MetaData metaData = MetaData.create(configRegistry, null, null);
+        MetaData metaData = MetaData.create(configRegistry, null);
         serializer.serializeMetaDataNdJson(metaData);
         JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
         JsonNode serviceJson = metaDataJson.get("service");

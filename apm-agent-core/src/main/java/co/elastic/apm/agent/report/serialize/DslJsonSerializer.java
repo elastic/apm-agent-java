@@ -71,6 +71,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.CharBuffer;
@@ -231,6 +232,29 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     @Override
     public void serializeMetrics(MetricRegistry metricRegistry) {
         metricRegistry.report(this);
+    }
+
+    @Override
+    public void serializeFileMetaData(File file) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("metadata");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("log");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("file");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeField("path", file.getAbsolutePath());
+        writeLastField("name", file.getName());
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public JsonWriter getJsonWriter() {
+        return jw;
     }
 
     private void serializeErrors(List<ErrorCapture> errors) {

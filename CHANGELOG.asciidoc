@@ -28,6 +28,11 @@ endif::[]
 
 [float]
 ===== Features
+* Log files are now rotated after they reach <<config-log-file-size>>.
+There will always be one history file `${log_file}.1`.
+* Add <<config-log-format-sout>> and <<config-log-format-file>> with the options `PLAIN_TEXT` and `JSON`.
+The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to format the logs.
+
 
 [float]
 ===== Bug fixes
