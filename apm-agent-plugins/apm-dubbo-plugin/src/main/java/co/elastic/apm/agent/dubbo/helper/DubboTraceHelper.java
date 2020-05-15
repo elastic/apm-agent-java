@@ -32,27 +32,23 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
+import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
+
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 
 @VisibleForAdvice
 public class DubboTraceHelper {
 
-    @VisibleForAdvice
-    public static ElasticApmTracer tracer;
-
     private static final String EXTERNAL_TYPE = "external";
-
     private static final String DUBBO_SUBTYPE = "dubbo";
-
-    public static final String SPAN_KEY = "span";
-
-    public static void init(ElasticApmTracer tracer) {
-        DubboTraceHelper.tracer = tracer;
-    }
-
     @VisibleForAdvice
-    public static Span createConsumerSpan(Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
-        TraceContextHolder<?> traceContext = DubboTraceHelper.tracer.getActive();
+    public static final String SPAN_KEY = "_elastic_apm_span";
+
+    @Nullable
+    @VisibleForAdvice
+    public static Span createConsumerSpan(ElasticApmTracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
+        TraceContextHolder<?> traceContext = tracer.getActive();
         if (traceContext == null) {
             return null;
         }
@@ -75,22 +71,22 @@ public class DubboTraceHelper {
     }
 
     private static void fillName(AbstractSpan<?> span, Class<?> apiClass, String methodName) {
-        span.appendToName(getSimpleName(apiClass.getName()))
-            .appendToName("#")
-            .appendToName(methodName);
+        StringBuilder spanName = span.getAndOverrideName(PRIO_DEFAULT);
+        if (spanName != null) {
+            appendSimpleClassName(apiClass, spanName);
+            spanName.append("#")
+                .append(methodName);
+        }
     }
 
-    private static String getSimpleName(String className) {
-        if (className == null) {
-            return null;
-        }
-        return className.substring(className.lastIndexOf(".") + 1);
+    public static void appendSimpleClassName(Class<?> clazz, StringBuilder sb) {
+        String className = clazz.getName();
+        sb.append(className, className.lastIndexOf('.') + 1, className.length());
     }
 
     @VisibleForAdvice
     public static void fillTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
         fillName(transaction, apiClass, methodName);
-        transaction.withType("dubbo");
-        transaction.activate();
+        transaction.withType(Transaction.TYPE_REQUEST);
     }
 }

@@ -24,29 +24,31 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.dubbo.advice.AlibabaResponseFutureAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class AlibabaResponseFutureInstrumentation extends AbstractDubboInstrumentation {
 
-    public AlibabaResponseFutureInstrumentation(ElasticApmTracer tracer) {
-        AlibabaResponseFutureAdvice.init(tracer);
-    }
-
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface())
-            .and(hasSuperType(named("com.alibaba.dubbo.remoting.exchange.ResponseFuture")));
+        return hasSuperType(named("com.alibaba.dubbo.remoting.exchange.ResponseFuture"));
     }
 
+    /**
+     * {@link com.alibaba.dubbo.remoting.exchange.ResponseFuture#setCallback(ResponseCallback)}
+     */
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("setCallback");
@@ -55,5 +57,18 @@ public class AlibabaResponseFutureInstrumentation extends AbstractDubboInstrumen
     @Override
     public Class<?> getAdviceClass() {
         return AlibabaResponseFutureAdvice.class;
+    }
+
+    public static class AlibabaResponseFutureAdvice {
+
+        @VisibleForAdvice
+        public static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_CALLBACK_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+            AlibabaResponseCallbackInstrumentation.CaughtInstrumentation.class,
+            AlibabaResponseCallbackInstrumentation.DoneInstrumentation.class);
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onEnter(@Advice.Argument(value = 0, readOnly = false) ResponseCallback callback) {
+            ElasticApmAgent.ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
+        }
     }
 }

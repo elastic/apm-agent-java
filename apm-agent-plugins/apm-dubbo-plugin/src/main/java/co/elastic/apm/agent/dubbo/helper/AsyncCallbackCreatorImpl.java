@@ -26,33 +26,31 @@ package co.elastic.apm.agent.dubbo.helper;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import org.apache.dubbo.rpc.Result;
+import org.apache.dubbo.rpc.RpcContext;
 
 import java.util.function.BiConsumer;
 
 public class AsyncCallbackCreatorImpl implements AsyncCallbackCreator {
 
+    private final static BiConsumer<Result, Throwable> INSTANCE = new AsyncCallback();
+
     @Override
     public BiConsumer<Result, Throwable> create(AbstractSpan<?> span) {
-        return new AsyncCallback(span);
+        return INSTANCE;
     }
 
     public static class AsyncCallback implements BiConsumer<Result, Throwable> {
 
-        private AbstractSpan<?> span;
-
-        public AsyncCallback(AbstractSpan<?> span) {
-            this.span = span;
-        }
-
         @Override
         public void accept(Result result, Throwable t) {
-            try {
-                Throwable actualExp = t != null ? t : result.getException();
-                if (actualExp != null) {
-                    span.captureException(actualExp);
+            AbstractSpan<?> span = (AbstractSpan<?>) RpcContext.getContext().get(DubboTraceHelper.SPAN_KEY);
+            if (span != null) {
+                try {
+                    RpcContext.getContext().remove(DubboTraceHelper.SPAN_KEY);
+                    span.captureException(t).captureException(result.getException());
+                } finally {
+                    span.end();
                 }
-            } finally {
-                span.end();
             }
         }
     }

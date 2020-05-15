@@ -30,7 +30,6 @@ import co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.AsyncCallbackCreator;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -40,9 +39,12 @@ import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 
+import javax.annotation.Nullable;
+
 @VisibleForAdvice
 public class ApacheMonitorFilterAdvice {
 
+    @Nullable
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
 
@@ -54,7 +56,6 @@ public class ApacheMonitorFilterAdvice {
 
     public static void init(ElasticApmTracer tracer) {
         ApacheMonitorFilterAdvice.tracer = tracer;
-        DubboTraceHelper.init(tracer);
         attachmentHelperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.dubbo.helper.ApacheDubboAttachmentHelperImpl");
         asyncCallbackCreatorClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
@@ -65,58 +66,57 @@ public class ApacheMonitorFilterAdvice {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnterFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                            @Advice.Local("span") Span span,
-                                           @Advice.Local("transaction") Transaction transaction,
-                                           @Advice.Local("scope") Scope scope) {
+                                           @Advice.Local("transaction") Transaction transaction) {
         RpcContext context = RpcContext.getContext();
         ApacheDubboAttachmentHelper helper = attachmentHelperClassManager.getForClassLoaderOfClass(Invocation.class);
-        if (helper == null) {
+        if (helper == null || tracer == null) {
             return;
         }
         // for consumer side, just create span, more information will be collected in provider side
         if (context.isConsumerSide()) {
-            if (tracer == null || tracer.getActive() == null) {
+            if (tracer.getActive() == null) {
                 return;
             }
-
-            span = DubboTraceHelper.createConsumerSpan(invocation.getInvoker().getInterface(),
+            span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
                 invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
                 span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
             }
-            return;
-        }
-
-
-        // for provider side
-        transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
-        if (transaction != null) {
-            scope = transaction.activateInScope();
-            DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());
+        } else {
+            // for provider side
+            transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
+            if (transaction != null) {
+                transaction.activate();
+                DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());
+            }
         }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                           @Advice.Return Result result,
-                                          @Advice.Local("span") final Span span,
+                                          @Nullable @Advice.Local("span") final Span span,
                                           @Advice.Thrown Throwable t,
-                                          @Advice.Local("transaction") Transaction transaction,
-                                          @Advice.Local("scope") Scope scope) {
+                                          @Nullable @Advice.Local("transaction") Transaction transaction) {
 
         RpcContext context = RpcContext.getContext();
         AbstractSpan<?> actualSpan = context.isConsumerSide() ? span : transaction;
-        AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(Result.class);
-        if (actualSpan == null || callbackCreator == null) {
+        if (actualSpan == null) {
             return;
         }
 
         try {
-            if (scope != null) {
-                scope.close();
-            }
             if (result instanceof AsyncRpcResult) {
+                AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(Result.class);
+                if (callbackCreator == null) {
+                    actualSpan.end();
+                    return;
+                }
                 AsyncRpcResult asyncResult = (AsyncRpcResult) result;
+                context.set(DubboTraceHelper.SPAN_KEY, actualSpan);
                 asyncResult.whenCompleteWithContext(callbackCreator.create(actualSpan));
+            } else {
+                actualSpan.end();
             }
         } finally {
             actualSpan.deactivate();

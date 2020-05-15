@@ -29,6 +29,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.apache.dubbo.rpc.Invocation;
+import org.apache.dubbo.rpc.Invoker;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -44,6 +46,9 @@ public class AlibabaMonitorFilterInstrumentation extends AbstractDubboInstrument
         return named("com.alibaba.dubbo.monitor.support.MonitorFilter");
     }
 
+    /**
+     * {@link org.apache.dubbo.monitor.support.MonitorFilter#invoke(Invoker, Invocation)}
+     */
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("invoke")

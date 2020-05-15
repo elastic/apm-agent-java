@@ -30,7 +30,7 @@ endif::[]
 ===== Features
 
 * Add support for <<supported-databases, Redis Redisson client>>
-* Add support for the apache rpc framework - dubbo， official site is https://dubbo.apache.org/en-us/
+* Add support for the Apache/Alibaba Dubbo RPC framework
 
 [float]
 ===== Bug fixes

@@ -22,11 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.dubbo.helper;
+@NonnullApi
+package co.elastic.apm.agent.dubbo.advice;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-
-public interface WrapperCreator<T> {
-
-    T wrap(T delegate, Span span);
-}
+import co.elastic.apm.agent.annotation.NonnullApi;
