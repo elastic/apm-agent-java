@@ -45,7 +45,7 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<Promise<?>, AbstractSpan<?>> promisesToContext =
+    public static final WeakConcurrentMap<Object, AbstractSpan<?>> promisesToContext =
         new WeakConcurrentMap.WithInlinedExpunction<>();
 
     @Nonnull
@@ -54,62 +54,11 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
         return Arrays.asList("concurrent", "future");
     }
 
-    public static class ExecutionContextInstrumentation extends FutureInstrumentation {
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("scala.concurrent.ExecutionContext"));
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher(){
-            return named("execute").and(returns(void.class)).and(takesArguments(Runnable.class));
-        }
-
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onExecute(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-            final AbstractSpan<?> active = getActive();
-            if (active != null && runnable != null && tracer != null) {
-                // Do no discard branches leading to async operations so not to break span references
-                active.setNonDiscardable();
-                runnable = active.withActive(runnable);
-            }
-        }
-
-    }
-
-    public static class BatchedExecutionContextInstrumentation extends FutureInstrumentation {
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("scala.concurrent.BatchingExecutor"));
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher(){
-            return named("submitForExecution").and(returns(void.class)).and(takesArguments(Runnable.class))
-                .or(named("submitAsyncBatched").and(returns(void.class)).and(takesArguments(Runnable.class)))
-                .or(named("submitSyncBatched").and(returns(void.class)).and(takesArguments(Runnable.class)))
-                .or(named("unbatchedExecute").and(returns(void.class)).and(takesArguments(Runnable.class)));
-        }
-
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onExecute(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-            final AbstractSpan<?> active = getActive();
-            if (active != null && runnable != null && tracer != null) {
-                // Do no discard branches leading to async operations so not to break span references
-                active.setNonDiscardable();
-                runnable = active.withActive(runnable);
-            }
-        }
-
-    }
-
     public static class ConstructorInstrumentation extends FutureInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("scala.concurrent.impl.Promise$Transformation"));
+            return named("scala.concurrent.impl.Promise$Transformation");
         }
 
         @Override
@@ -131,7 +80,7 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("scala.concurrent.impl.Promise$Transformation"));
+            return named("scala.concurrent.impl.Promise$Transformation");
         }
 
         @Override
