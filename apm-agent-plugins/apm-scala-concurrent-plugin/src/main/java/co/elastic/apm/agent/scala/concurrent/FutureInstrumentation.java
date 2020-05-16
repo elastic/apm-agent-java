@@ -32,7 +32,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import scala.concurrent.Promise;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -67,10 +66,13 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void onExit(@Advice.This Promise<?> thiz) {
+        public static void onExit(@Advice.This Object thiz) {
             final AbstractSpan<?> context = getActive();
             if (context != null) {
                 promisesToContext.put(thiz, context);
+                // this span might be ended before the Promise$Transformation#run method starts
+                // we have to avoid that this span gets recycled, even in the above mentioned case
+                context.incrementReferences();
             }
         }
 
@@ -90,10 +92,13 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onEnter(@Advice.This Promise<?> thiz, @Nullable @Advice.Local("context") AbstractSpan<?> context) {
+        public static void onEnter(@Advice.This Object thiz, @Nullable @Advice.Local("context") AbstractSpan<?> context) {
             context = promisesToContext.remove(thiz);
             if (tracer != null && context != null) {
                 tracer.activate(context);
+                // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
+                // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
+                context.decrementReferences();
             }
         }
 
