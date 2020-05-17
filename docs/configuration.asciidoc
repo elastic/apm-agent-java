@@ -114,6 +114,7 @@ Click on a key to get more information.
 ** <<config-capture-body>>
 ** <<config-capture-headers>>
 ** <<config-global-labels>>
+** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
@@ -846,6 +847,34 @@ NOTE: This feature requires APM Server 7.2+
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.global_labels` | `global_labels` | `ELASTIC_APM_GLOBAL_LABELS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-classes-excluded-from-instrumentation]]
+==== `classes_excluded_from_instrumentation`
+
+Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
+use wildcards, as in: `com.project.exclude.*`
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.classes_excluded_from_instrumentation` | `classes_excluded_from_instrumentation` | `ELASTIC_APM_CLASSES_EXCLUDED_FROM_INSTRUMENTATION`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2593,6 +2622,19 @@ The default unit for this option is `ms`.
 # Default value: 
 #
 # global_labels=
+
+# Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
+# use wildcards, as in: `com.project.exclude.*`
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 
+#
+# classes_excluded_from_instrumentation=
 
 # A list of methods for which to create a transaction or span.
 # 

@@ -334,11 +334,22 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("classes_excluded_from_instrumentation")
         .configurationCategory(CORE_CATEGORY)
+        .description("Use to exclude specific classes from being instrumented. In order to exclude entire packages, \n" +
+            "use wildcards, as in: `com.project.exclude.*`" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(false)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+
+    private final ConfigurationOption<List<WildcardMatcher>> defaultClassesExcludedFromInstrumentation = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("default_classes_excluded_from_instrumentation")
+        .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
-        .dynamic(true)
+        .dynamic(false)
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("(?-i)org.infinispan*"),
             WildcardMatcher.valueOf("(?-i)org.apache.xerces*"),
@@ -636,6 +647,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getClassesExcludedFromInstrumentation() {
         return classesExcludedFromInstrumentation.get();
+    }
+
+    public List<WildcardMatcher> getDefaultClassesExcludedFromInstrumentation() {
+        return defaultClassesExcludedFromInstrumentation.get();
     }
 
     public List<WildcardMatcher> getMethodsExcludedFromInstrumentation() {

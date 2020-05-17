@@ -61,6 +61,7 @@ import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 class TestRequestBodyCapturing extends AbstractInstrumentationTest {
@@ -231,7 +232,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testTrackPostParams() throws IOException, ServletException {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
         request.addParameter("baz", "qux", "quux");
