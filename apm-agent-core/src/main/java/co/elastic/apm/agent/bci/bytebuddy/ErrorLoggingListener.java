@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -40,7 +40,8 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
                 "Consider updating to a newer version of that library.", typeName);
         } else {
             if (throwable.getMessage().contains("Cannot resolve type description")) {
-                logger.info(typeName + " refers to a missing class", throwable);
+                logger.info(typeName + " refers to a missing class.");
+                logger.debug("ByteBuddy type resolution stack trace: ", throwable);
             } else {
                 logger.warn("Error on transformation " + typeName, throwable);
             }
