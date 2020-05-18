@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-es-restclient-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.14.1-SNAPSHOT</version>
+        <version>1.16.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-es-restclient-plugin-7_1</artifactId>
@@ -18,6 +18,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-es-restclient-plugin-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-client</artifactId>
             <version>${version.elasticsearch}</version>
@@ -28,12 +34,12 @@
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
             <version>${version.elasticsearch}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-es-restclient-plugin-common</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

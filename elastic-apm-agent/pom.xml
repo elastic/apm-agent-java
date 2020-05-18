@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.14.1-SNAPSHOT</version>
+        <version>1.16.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -126,6 +126,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-grpc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-kafka-base-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -172,6 +177,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-log-correlation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log-shipper-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -276,6 +286,17 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>
+                                        <exclude>META-INF/versions/**</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!--
+                                        We have to exclude the log4j plugin descriptor file because we can't shade its contents
+                                        Therefore, we have to manually specify the plugin packages via PluginManager.addPackage
+                                        -->
+                                        <exclude>**/Log4j2Plugins.dat</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>
@@ -308,20 +329,32 @@
                                     <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>co.elastic.logging</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.logging</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.logging</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.apache.logging</shadedPattern>
+                                </relocation>
+
+                                <relocation>
+                                    <!-- makes sure we don't load log4j2.{properties|xml|yml|json} files-->
+                                    <pattern>log4j2</pattern>
+                                    <shadedPattern>elasticapmlog4j2</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- makes sure we don't pollute the system classloader with Log4j2-{charsets.properties|*.xsd} files-->
+                                    <pattern>Log4j-</pattern>
+                                    <shadedPattern>ElasticApmLog4j-</shadedPattern>
+                                </relocation>
+
+                                <relocation>
                                     <pattern>org.stagemonitor</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.jctools</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
-                                </relocation>
-                                <!--
-                                Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
-                                Although this is not a package but a string constant, it does work
-                                -->
-                                <relocation>
-                                    <pattern>simplelogger.properties</pattern>
-                                    <shadedPattern>elasticapmlogger.properties</shadedPattern>
                                 </relocation>
                                 <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
                                 <relocation>

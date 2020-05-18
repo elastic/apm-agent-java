@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -32,10 +33,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
+    public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
+    private static long lastSpanMaxWarningTimestamp;
 
     /**
      * General type describing this span (eg: 'db', 'ext', 'template', etc)
@@ -71,11 +75,23 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     private List<StackFrame> stackFrames;
 
+    /**
+     * If a span is non-discardable, all the spans leading up to it are non-discardable as well
+     */
+    public void setNonDiscardable() {
+        if (isDiscardable()) {
+            getTraceContext().setNonDiscardable();
+            if (parent != null) {
+                parent.setNonDiscardable();
+            }
+        }
+    }
+
     public Span(ElasticApmTracer tracer) {
         super(tracer);
     }
 
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
         childContextCreator.asChildOf(traceContext, parentContext);
         if (parentContext instanceof Transaction) {
             this.transaction = (Transaction) parentContext;
@@ -85,17 +101,28 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             this.parent = parentSpan;
             this.transaction = parentSpan.transaction;
         }
-        return start(epochMicros, dropped);
+        return start(epochMicros);
     }
 
-    private Span start(long epochMicros, boolean dropped) {
-        if (dropped) {
-            traceContext.setRecorded(false);
+    private Span start(long epochMicros) {
+        if (transaction != null) {
+            SpanCount spanCount = transaction.getSpanCount();
+            if (transaction.isSpanLimitReached()) {
+                if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
+                    lastSpanMaxWarningTimestamp = epochMicros;
+                    logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.",
+                        tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans(), transaction);
+                }
+                logger.debug("Span exceeds transaction_max_spans {}", this);
+                traceContext.setRecorded(false);
+                spanCount.getDropped().incrementAndGet();
+            }
+            spanCount.getTotal().incrementAndGet();
         }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {
-            setStartTimestamp(getTraceContext().getClock().getEpochMicros());
+            setStartTimestampNow();
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startSpan {} {", this);
@@ -269,6 +296,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         tracer.recycle(this);
     }
 
+    @Override
+    protected Span thiz() {
+        return this;
+    }
+
     public void setStackTrace(List<StackFrame> stackTrace) {
         this.stackFrames = stackTrace;
     }
@@ -276,5 +308,16 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     public List<StackFrame> getStackFrames() {
         return stackFrames;
+    }
+
+    @Nullable
+    @Override
+    public Transaction getTransaction() {
+        return transaction;
+    }
+
+    @Nullable
+    public AbstractSpan<?> getParent() {
+        return parent;
     }
 }

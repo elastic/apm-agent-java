@@ -37,13 +37,12 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> circuitBreakerEnabled = ConfigurationOption.booleanOption()
         .key("circuit_breaker_enabled")
-        .tags("added[1.14.0]")
-        .tags("performance")
+        .tags("added[1.14.0]", "performance",  "experimental")
         .configurationCategory(CIRCUIT_BREAKER_CATEGORY)
         .description("A boolean specifying whether the circuit breaker should be enabled or not. \n" +
             "When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. \n" +
             "If ANY of the monitors detects a stress indication, the agent will become inactive, as if the \n" +
-            "<<config-active>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. \n" +
+            "<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. \n" +
             "When inactive, the agent continues polling the same monitors in order to detect whether the stress state \n" +
             "has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the \n" +
             "agent will resume and become fully functional.")
@@ -105,8 +104,8 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.14.0]")
         .tags("performance")
         .description("The threshold used by the system CPU monitor to detect system CPU stress. \n" +
-            "If the system CPU crosses this threshold at least `stress_monitor_cpu_num_measurements` consecutive \n" +
-            "measurements, the monitor considers this as a stress state.")
+            "If the system CPU crosses this threshold for a duration of at least `stress_monitor_cpu_duration_threshold`, \n" +
+            "the monitor considers this as a stress state.")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
         .buildWithDefault(0.95);
@@ -118,7 +117,7 @@ public class CircuitBreakerConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("The threshold used by the system CPU monitor to determine that the system is \n" +
             "not under CPU stress. If the monitor detected a CPU stress, the measured system CPU needs to be below \n" +
-            "this threshold at least `stress_monitor_cpu_num_measurements` consecutive times in order for the \n" +
+            "this threshold for a duration of at least `stress_monitor_cpu_duration_threshold` in order for the \n" +
             "monitor to decide that the CPU stress has been relieved.")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))

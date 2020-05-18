@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -49,7 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public class RequestStreamRecordingInstrumentation extends ElasticApmInstrumentation {
+public class RequestStreamRecordingInstrumentation extends AbstractServletInstrumentation {
 
     @Nullable
     @VisibleForAdvice
@@ -57,6 +56,7 @@ public class RequestStreamRecordingInstrumentation extends ElasticApmInstrumenta
     public static HelperClassManager<InputStreamWrapperFactory> wrapperHelperClassManager;
 
     public RequestStreamRecordingInstrumentation(ElasticApmTracer tracer) {
+        ServletApiAdvice.init(tracer);
         synchronized (RequestStreamRecordingInstrumentation.class) {
             if (wrapperHelperClassManager == null) {
                 wrapperHelperClassManager = HelperClassManager.ForSingleClassLoader.of(tracer,

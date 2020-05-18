@@ -26,6 +26,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -41,9 +42,10 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.IOUtils;
@@ -59,8 +61,8 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -115,7 +117,7 @@ class DslJsonSerializerTest {
     void testErrorSerialization() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
-        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction.getTraceContext()).withTimestamp(5000);
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
         error.setException(new Exception("test"));
@@ -140,7 +142,7 @@ class DslJsonSerializerTest {
     void testErrorSerializationOutsideTrace() {
         MockReporter reporter = new MockReporter();
         ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
-        tracer.captureException(new Exception("test"), getClass().getClassLoader());
+        tracer.captureAndReportException(new Exception("test"), getClass().getClassLoader());
 
         String errorJson = serializer.toJsonString(reporter.getFirstError());
         JsonNode errorTree = readJsonString(errorJson);
@@ -166,7 +168,7 @@ class DslJsonSerializerTest {
         Exception cause1 = new RuntimeException("first cause", cause2);
         Exception mainException = new Exception("main exception", cause1);
 
-        tracer.captureException(mainException, getClass().getClassLoader());
+        tracer.captureAndReportException(mainException, getClass().getClassLoader());
 
         JsonNode errorTree = readJsonString(serializer.toJsonString(reporter.getFirstError()));
 
@@ -385,6 +387,21 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testSpanChildIdSerialization() {
+        Id id1 = Id.new64BitId();
+        id1.setToRandomValue();
+        Id id2 = Id.new64BitId();
+        id2.setToRandomValue();
+        Span span = new Span(MockTracer.create());
+        span.withChildIds(LongList.of(id1.getLeastSignificantBits(), id2.getLeastSignificantBits()));
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode child_ids = spanJson.get("child_ids");
+        assertThat(child_ids.get(0).textValue()).isEqualTo(id1.toString());
+        assertThat(child_ids.get(1).textValue()).isEqualTo(id2.toString());
+    }
+
+    @Test
     void testInlineReplacement() {
         StringBuilder sb = new StringBuilder("this.is.a.string");
         DslJsonSerializer.replace(sb, ".", "_DOT_", 6);
@@ -472,7 +489,7 @@ class DslJsonSerializerTest {
     void testConfiguredServiceNodeName() {
         ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
         when(configRegistry.getConfig(CoreConfiguration.class).getServiceNodeName()).thenReturn("Custom-Node-Name");
-        MetaData metaData = MetaData.create(configRegistry, null, null);
+        MetaData metaData = MetaData.create(configRegistry, null);
         serializer.serializeMetaDataNdJson(metaData);
         JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
         JsonNode serviceJson = metaDataJson.get("service");

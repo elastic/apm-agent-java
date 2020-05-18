@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,7 +26,6 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.eclipse.jetty.http.HttpVersion;
@@ -53,7 +52,6 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 // Jenkins fails with java.lang.IllegalStateException: no valid keystore
@@ -111,23 +109,27 @@ class ReporterFactoryTest {
     @Test
     void testNotValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
-        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
+        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null));
 
         reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
 
-        assertThat(requestHandled).isTrue();
+        assertThat(requestHandled)
+            .describedAs("request should ignore certificate validation and properly execute")
+            .isTrue();
     }
 
 
     @Test
     void testValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
-        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
+        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null));
 
         reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
 
-        assertThat(requestHandled).isFalse();
+        assertThat(requestHandled)
+            .describedAs("request should have produced a certificate validation error")
+            .isFalse();
     }
 }

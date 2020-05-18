@@ -27,6 +27,7 @@ package co.elastic.apm.agent.resttemplate;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import org.springframework.http.HttpRequest;
 
+@SuppressWarnings("unused")
 public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {
     @Override
     public void setHeader(String headerName, String headerValue, HttpRequest request) {

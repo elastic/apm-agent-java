@@ -47,9 +47,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 
 /**
  * This class must not import classes from {@code javax.servlet} due to class loader issues.
@@ -153,15 +153,21 @@ public class ServletTransactionHelper {
     }
 
     @VisibleForAdvice
-    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                        @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
-                        @Nullable String contentTypeHeader, boolean deactivate) {
+    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+                        boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
+                        @Nullable String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
+        if (servletPath == null) {
+            // the servlet path is specified as non-null but WebLogic does return null...
+            servletPath = "";
+        }
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
                 transaction.ignoreTransaction();
             } else {
-                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader);
+                doOnAfter(transaction, exception, committed, status, overrideStatusCodeOnThrowable, method,
+                    parameterMap, servletPath, pathInfo, contentTypeHeader)
+                ;
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -173,10 +179,11 @@ public class ServletTransactionHelper {
         transaction.end();
     }
 
-    private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
+    private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
+                           boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
+                           String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
-        if (exception != null && status == 200) {
+        if (exception != null && status == 200 && overrideStatusCodeOnThrowable) {
             // Probably shouldn't be 200 but 5XX, but we are going to miss this...
             status = 500;
         }

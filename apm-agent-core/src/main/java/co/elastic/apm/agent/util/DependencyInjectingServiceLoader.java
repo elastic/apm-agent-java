@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -108,14 +109,36 @@ public class DependencyInjectingServiceLoader<T> {
     private T instantiate(String implementation) {
         try {
             final Class<?> implementationClass = Class.forName(implementation, true, classLoader);
+            checkClassModifiers(implementationClass);
             Constructor<?> constructor = getMatchingConstructor(implementationClass);
             if (constructor != null) {
+                checkConstructorModifiers(constructor);
                 return clazz.cast(constructor.newInstance(constructorArguments));
             } else {
-                return clazz.cast(implementationClass.getConstructor().newInstance());
+                constructor = implementationClass.getConstructor();
+                checkConstructorModifiers(constructor);
+                return clazz.cast(constructor.newInstance());
             }
+        } catch (InstantiationException e) {
+            String msg = String.format("unable to instantiate '%s', please check descriptor in META-INF", implementation);
+            throw new ServiceConfigurationError(msg, e);
         } catch (Exception e) {
             throw new ServiceConfigurationError(e.getMessage(), e);
+        }
+    }
+
+    private static void checkConstructorModifiers(Constructor<?> constructor) {
+        if (!Modifier.isPublic(constructor.getModifiers())) {
+            throw new ServiceConfigurationError("constructor is not public : " + constructor);
+        }
+    }
+
+    private static void checkClassModifiers(Class<?> clazz) {
+        boolean isAbstract = Modifier.isAbstract(clazz.getModifiers());
+        boolean isPublic = Modifier.isPublic(clazz.getModifiers());
+
+        if (isAbstract || !isPublic) {
+            throw new ServiceConfigurationError(String.format("unable to instantiate '%s' because it's either abstract or not public", clazz));
         }
     }
 

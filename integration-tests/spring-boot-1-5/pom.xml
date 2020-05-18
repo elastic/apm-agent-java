@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.14.1-SNAPSHOT</version>
+        <version>1.16.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>spring-boot-1-5</artifactId>
@@ -13,7 +13,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <version.spring-boot-1.5>1.5.14.RELEASE</version.spring-boot-1.5>
+        <version.spring-boot-1.5>1.5.22.RELEASE</version.spring-boot-1.5>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
 
@@ -41,11 +41,24 @@
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${version.spring-boot-1.5}</version>
             <scope>test</scope>
-            <!-- avoid having multiple slf4j implementations on the classpath -->
             <exclusions>
+                <!-- avoid LoggingException: log4j-slf4j-impl cannot be present with log4j-to-slf4j -->
                 <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+            <version>${version.spring-boot-1.5}</version>
+            <scope>test</scope>
+            <exclusions>
+                <!-- prefer the log4j version that's coming from the agent core to avoid NoCallDefFoundErrors -->
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

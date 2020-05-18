@@ -281,7 +281,9 @@ public abstract class AbstractServletContainerIntegrationTest {
                                             Map<String, String> headersMap) throws IOException, InterruptedException {
         Response response = executeRequest(pathToTest, headersMap);
         if (expectedResponseCode != null) {
-            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+            assertThat(response.code())
+                .withFailMessage(response.toString() + getServerLogs())
+                .isEqualTo(expectedResponseCode);
         }
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
@@ -295,7 +297,9 @@ public abstract class AbstractServletContainerIntegrationTest {
     public String executeAndValidatePostRequest(String pathToTest, RequestBody postBody, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
         Response response = executePostRequest(pathToTest, postBody);
         if (expectedResponseCode != null) {
-            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+            assertThat(response.code())
+                .withFailMessage(response.toString() + getServerLogs())
+                .isEqualTo(expectedResponseCode);
         }
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();

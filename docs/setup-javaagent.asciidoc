@@ -8,11 +8,12 @@
 The first step in getting started with the Elastic APM Java agent is to download the latest release of the agent jar file from
 link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent[maven central].
 
-NOTE: Don't declare a dependency to the agent in your application.
+NOTE: Agents are not like regular application dependencies.
+Don't declare a dependency to the agent in your application.
 
 [float]
 [[setup-javaagent-add-flag]]
-==== Add `javaagent` flag
+==== Add `-javaagent` flag
 When starting your application, add the JVM flag `-javaagent:/path/to/elastic-apm-agent-<version>.jar`
 
 [float]

@@ -42,6 +42,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
+import org.awaitility.core.ConditionFactory;
+import org.awaitility.core.ThrowingRunnable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,11 +56,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.*;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -76,9 +77,9 @@ public class MockReporter implements Reporter {
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean disableDestinationAddressCheck;
 
-    private final List<Transaction> transactions = new ArrayList<>();
-    private final List<Span> spans = new ArrayList<>();
-    private final List<ErrorCapture> errors = new ArrayList<>();
+    private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
+    private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
+    private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
     private boolean closed;
@@ -139,14 +140,14 @@ public class MockReporter implements Reporter {
             // see if this span's action is not supported for its subtype
             Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
             if (!unsupportedActions.contains(span.getAction())) {
-                assertThat(destination.getAddress()).isNotEmpty();
-                assertThat(destination.getPort()).isGreaterThan(0);
+                assertThat(destination.getAddress()).describedAs("destination address is required").isNotEmpty();
+                assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
         }
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).isNotEmpty();
-        assertThat(service.getResource()).isNotEmpty();
-        assertThat(service.getType()).isNotNull();
+        assertThat(service.getName()).describedAs("service name is required").isNotEmpty();
+        assertThat(service.getResource()).describedAs("service resourse is required").isNotEmpty();
+        assertThat(service.getType()).describedAs("service type is required").isNotNull();
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {
@@ -182,28 +183,57 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized Transaction getFirstTransaction() {
-        return transactions.iterator().next();
+        assertThat(transactions)
+            .describedAs("at least one transaction expected, none have been reported (yet)")
+            .isNotEmpty();
+        return transactions.get(0);
     }
 
     public Transaction getFirstTransaction(long timeoutMs) {
-        await()
-            .pollDelay(10, TimeUnit.MILLISECONDS)
-            .timeout(timeoutMs, TimeUnit.MILLISECONDS)
+        awaitTimeout(timeoutMs)
             .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
 
-    public Span getFirstSpan(long timeoutMs) throws InterruptedException {
-        final long end = System.currentTimeMillis() + timeoutMs;
-        do {
-            synchronized (this) {
-                if (!spans.isEmpty()) {
-                    return getFirstSpan();
-                }
-            }
-            Thread.sleep(1);
-        } while (System.currentTimeMillis() < end);
+    public void assertNoTransaction() {
+        assertThat(getTransactions())
+            .describedAs("no transaction expected")
+            .isEmpty();
+    }
+
+    public void assertNoTransaction(long timeoutMs) {
+        awaitTimeout(timeoutMs)
+            .untilAsserted(this::assertNoTransaction);
+    }
+
+    public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable assertion){
+        awaitTimeout(timeoutMs)
+            .untilAsserted(assertion);
+    }
+
+    private static ConditionFactory awaitTimeout(long timeoutMs) {
+        return await()
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    public Span getFirstSpan(long timeoutMs) {
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getSpans()).isNotEmpty());
         return getFirstSpan();
+    }
+
+    public void assertNoSpan() {
+        assertThat(getSpans())
+            .describedAs("no span expected")
+            .isEmpty();
+    }
+
+    public void assertNoSpan(long timeoutMs) {
+        awaitTimeout(timeoutMs)
+            .untilAsserted(() -> assertThat(getSpans()).isEmpty());
+
+        assertNoSpan();
     }
 
     @Override
@@ -221,11 +251,14 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized Span getFirstSpan() {
+        assertThat(spans)
+            .describedAs("at least one span expected, none have been reported")
+            .isNotEmpty();
         return spans.get(0);
     }
 
     public synchronized List<Span> getSpans() {
-        return spans;
+        return Collections.unmodifiableList(spans);
     }
 
     public synchronized List<ErrorCapture> getErrors() {
@@ -233,6 +266,9 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized ErrorCapture getFirstError() {
+        assertThat(errors)
+            .describedAs("at least one error expected, none have been reported")
+            .isNotEmpty();
         return errors.iterator().next();
     }
 
@@ -277,11 +313,11 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         closed = true;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         transactions.clear();
         spans.clear();
         errors.clear();
@@ -292,7 +328,7 @@ public class MockReporter implements Reporter {
      * after reporting to the APM Server.
      * See {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)}
      */
-    public void decrementReferences() {
+    public synchronized void decrementReferences() {
         transactions.forEach(Transaction::decrementReferences);
         spans.forEach(Span::decrementReferences);
     }
@@ -301,40 +337,49 @@ public class MockReporter implements Reporter {
      * Decrements transactions and spans reference count and check that they are properly recycled. This method should likely be called
      * last in the test execution as it destroys any transaction/span that has happened.
      */
-    public void assertRecycledAfterDecrementingReferences() {
+    public synchronized void assertRecycledAfterDecrementingReferences() {
 
-        Predicate<AbstractSpan<?>> hasEmptyTraceContext = as -> as.getTraceContext().getId().isEmpty();
-
+        List<Transaction> transactions = getTransactions();
         List<Transaction> transactionsToFlush = transactions.stream()
-            .filter(hasEmptyTraceContext.negate())
+            .filter(t -> !hasEmptyTraceContext(t))
             .collect(Collectors.toList());
 
+        List<Span> spans = getSpans();
         List<Span> spansToFlush = spans.stream()
-            .filter(hasEmptyTraceContext.negate())
+            .filter(s-> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
         transactionsToFlush.forEach(Transaction::decrementReferences);
         spansToFlush.forEach(Span::decrementReferences);
 
-        // after decrement, all transactions and spans should have been recycled
-        transactions.forEach(t -> {
-            assertThat(hasEmptyTraceContext.test(t))
-                .describedAs("should have empty trace context : %s", t)
-                .isTrue();
-            assertThat(t.isReferenced())
-                .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
-                .isFalse();
-        });
-        spans.forEach(s -> {
-            assertThat(hasEmptyTraceContext.test(s))
-                .describedAs("should have empty trace context : %s", s)
-                .isTrue();
-            assertThat(s.isReferenced())
-                .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
-                .isFalse();
-        });
+        // transactions might be active after they have already been reported
+        // after a short amount of time, all transactions and spans should have been recycled
+        await()
+            .timeout(1, TimeUnit.SECONDS)
+            .untilAsserted(() -> transactions.forEach(t -> {
+                assertThat(hasEmptyTraceContext(t))
+                    .describedAs("should have empty trace context : %s", t)
+                    .isTrue();
+                assertThat(t.isReferenced())
+                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                    .isFalse();
+            }));
+        await()
+            .timeout(1, TimeUnit.SECONDS)
+            .untilAsserted(() -> spans.forEach(s -> {
+                assertThat(hasEmptyTraceContext(s))
+                    .describedAs("should have empty trace context : %s", s)
+                    .isTrue();
+                assertThat(s.isReferenced())
+                    .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                    .isFalse();
+            }));
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
+    }
+
+    private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
+        return item.getTraceContext().getId().isEmpty();
     }
 }

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-agent-plugins</artifactId>
+        <version>1.16.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-grpc</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <packaging>pom</packaging>
+
+    <properties>
+        <!-- for licence header plugin -->
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+
+        <!-- modules using grpc should override those -->
+        <grpc.version>should-be-set-at-module-level</grpc.version>
+        <protobuf.version>should-be-set-at-module-level</protobuf.version>
+    </properties>
+
+    <modules>
+        <module>apm-grpc-plugin</module>
+        <module>apm-grpc-test-1.6.1</module>
+        <!-- other intermediate gRPC versions that have been tested : 1.7.1, 1,9.1, 1.13.2, 1.22.0, 1.23.0, 1.27.1 -->
+        <module>apm-grpc-test-latest</module>
+   </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+            </plugin>
+        </plugins>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.5.0.Final</version>
+            </extension>
+        </extensions>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>update-grpc</id>
+            <activation>
+                <!-- active by default as it should be idempotent -->
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <!--
+            Separate profile to update generated classes from protocol buffers
+
+            Generated classes are checked in just like regular files because IntelliJ does not include generated test
+            sources by default and requires manual setup. Given updates to this test application are quite rare, that'
+            definitely an acceptable compromise to make it dev friendly.
+            -->
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.xolstice.maven.plugins</groupId>
+                        <artifactId>protobuf-maven-plugin</artifactId>
+                        <version>0.6.1</version>
+                        <configuration>
+                            <pluginId>grpc-java</pluginId>
+                            <pluginArtifact>
+                                io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}
+                            </pluginArtifact>
+                            <protocArtifact>
+                                com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
+                            </protocArtifact>
+                            <!-- make generated class files part of checked-in code in test scope -->
+                            <outputDirectory>${basedir}/src/test/java</outputDirectory>
+                            <!--
+                            required otherwise folder is wiped including non-generated classes
+                            as an extra safety we use another package for generated classes
+                            -->
+                            <clearOutputDirectory>false</clearOutputDirectory>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>grpc-${grpc.version}</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                    <goal>compile-custom</goal>
+                                    <goal>test-compile</goal>
+                                    <goal>test-compile-custom</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- updating licence header on generated files is required-->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>update-file-header</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+
+</project>

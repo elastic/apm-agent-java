@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
@@ -57,15 +56,22 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
 
 /**
  * Correlates {@link ActivationEvent}s with {@link StackFrame}s which are recorded by {@link AsyncProfiler},
@@ -125,17 +131,17 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private static final int PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB = 10;
     private static final int MAX_ACTIVATION_EVENTS_FILE_SIZE = ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE;
     private static final int ACTIVATION_EVENTS_BUFFER_SIZE = ActivationEvent.SERIALIZED_SIZE * 4 * 1024;
-    private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
-        new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
+    private final EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext> ACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext>() {
             @Override
-            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder<?> active, TraceContextHolder<?> previouslyActive) {
+            public void translateTo(ActivationEvent event, long sequence, TraceContext active, TraceContext previouslyActive) {
                 event.activation(active, Thread.currentThread().getId(), previouslyActive, nanoClock.nanoTime());
             }
         };
-    private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> DEACTIVATION_EVENT_TRANSLATOR =
-        new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
+    private final EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext> DEACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorTwoArg<ActivationEvent, TraceContext, TraceContext>() {
             @Override
-            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder active, TraceContextHolder previouslyActive) {
+            public void translateTo(ActivationEvent event, long sequence, TraceContext active, TraceContext previouslyActive) {
                 event.deactivation(active, Thread.currentThread().getId(), previouslyActive, nanoClock.nanoTime());
             }
         };
@@ -242,7 +248,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     /**
      * Called whenever a span is activated.
      * <p>
-     * This and {@link #onDeactivation(TraceContextHolder, TraceContextHolder)} are the only methods which are executed in a multi-threaded
+     * This and {@link #onDeactivation} are the only methods which are executed in a multi-threaded
      * context.
      * </p>
      *
@@ -250,7 +256,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param previouslyActive the span which has previously been activated
      * @return {@code true}, if the event could be processed, {@code false} if the internal event queue is full which means the event has been discarded
      */
-    public boolean onActivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+    public boolean onActivation(TraceContext activeSpan, @Nullable TraceContext previouslyActive) {
         if (profilingSessionOngoing) {
             if (previouslyActive == null) {
                 AsyncProfiler.getInstance().enableProfilingCurrentThread();
@@ -267,7 +273,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     /**
      * Called whenever a span is deactivated.
      * <p>
-     * This and {@link #onActivation(TraceContextHolder, TraceContextHolder)} are the only methods which are executed in a multi-threaded
+     * This and {@link #onActivation} are the only methods which are executed in a multi-threaded
      * context.
      * </p>
      *
@@ -275,7 +281,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param previouslyActive the span which has previously been activated
      * @return {@code true}, if the event could be processed, {@code false} if the internal event queue is full which means the event has been discarded
      */
-    public boolean onDeactivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+    public boolean onDeactivation(TraceContext activeSpan, @Nullable TraceContext previouslyActive) {
         if (profilingSessionOngoing) {
             if (previouslyActive == null) {
                 AsyncProfiler.getInstance().disableProfilingCurrentThread();
@@ -408,13 +414,16 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             return;
         }
         long eof = startProcessingActivationEventsFile();
-        if (eof == 0 && activationEventsBuffer.limit() == 0) {
+        if (eof == 0 && activationEventsBuffer.limit() == 0 && profiledThreads.isEmpty()) {
             logger.debug("No activation events during this period. Skip processing stack traces.");
             return;
         }
         long start = System.nanoTime();
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
+        if (config.isBackupDiagnosticFiles()) {
+            backupDiagnosticFiles(eof);
+        }
         try {
             jfrParser.parse(jfrFile, excludedClasses, includedClasses);
             final List<StackTraceEvent> stackTraceEvents = getSortedStackTraceEvents(jfrParser);
@@ -424,7 +433,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             List<StackFrame> stackFrames = new ArrayList<>();
             ElasticApmTracer tracer = this.tracer;
             ActivationEvent event = new ActivationEvent();
-            long inferredSpansMinDuration = config.getInferredSpansMinDuration().getMillis() * 1_000_000;
+            long inferredSpansMinDuration = getInferredSpansMinDurationNs();
             for (StackTraceEvent stackTrace : stackTraceEvents) {
                 processActivationEventsUpTo(stackTrace.nanoTime, event, eof);
                 CallTree.Root root = profiledThreads.get(stackTrace.threadId);
@@ -449,7 +458,29 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 logger.debug("Processing traces took {}µs", (System.nanoTime() - start) / 1000);
             }
             jfrParser.resetState();
+            resetActivationEventBuffer();
         }
+    }
+
+    private void backupDiagnosticFiles(long eof) throws IOException {
+        String now = String.format("%tFT%<tT.%<tL", new Date());
+        Path profilerDir = Paths.get(System.getProperty("java.io.tmpdir"), "profiler");
+        profilerDir.toFile().mkdir();
+
+        try (FileChannel activationsFile = FileChannel.open(profilerDir.resolve(now + "-activations.dat"), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+            if (eof > 0) {
+                activationEventsFileChannel.transferTo(0, eof, activationsFile);
+            } else {
+                int position = activationEventsBuffer.position();
+                activationsFile.write(activationEventsBuffer);
+                activationEventsBuffer.position(position);
+            }
+        }
+        Files.copy(jfrFile.toPath(), profilerDir.resolve(now + "-traces.jfr"));
+    }
+
+    private long getInferredSpansMinDurationNs() {
+        return Math.max(config.getInferredSpansMinDuration().getMillis(), coreConfig.getSpanMinDuration().getMillis()) * 1_000_000;
     }
 
     /**
@@ -485,8 +516,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 readActivationEventsToBuffer(activationEventsFileChannel, eof, buf);
             }
             long eventTimestamp = peekLong(buf);
-            if (eventTimestamp < previousTimestamp) {
-                logger.warn("Timestamp of current activation event ({}) is lower than the one from the previous event ({})", eventTimestamp, previousTimestamp);
+            if (eventTimestamp < previousTimestamp && logger.isDebugEnabled()) {
+                logger.debug("Timestamp of current activation event ({}) is lower than the one from the previous event ({})", eventTimestamp, previousTimestamp);
             }
             previousTimestamp = eventTimestamp;
             if (eventTimestamp <= timestamp) {
@@ -518,7 +549,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         }
     }
 
-    private void resetActivationEventBuffer() throws IOException {
+    public void resetActivationEventBuffer() throws IOException {
         ((Buffer) activationEventsBuffer).clear();
         activationEventsFileChannel.position(0L);
     }
@@ -542,6 +573,14 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         long eof = activationEventsFileChannel.position();
         activationEventsFileChannel.position(0);
         return eof;
+    }
+
+    void copyFromFiles(Path activationEvents, Path traces) throws IOException {
+        FileChannel otherActivationsChannel = FileChannel.open(activationEvents, READ);
+        activationEventsFileChannel.transferFrom(otherActivationsChannel, 0, otherActivationsChannel.size());
+        activationEventsFileChannel.position(otherActivationsChannel.size());
+        FileChannel otherTracesChannel = FileChannel.open(traces, READ);
+        FileChannel.open(jfrFile.toPath(), WRITE).transferFrom(otherTracesChannel, 0, otherTracesChannel.size());
     }
 
     @Override
@@ -601,7 +640,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
     // --
 
-    private static class StackTraceEvent implements Comparable<StackTraceEvent> {
+    public static class StackTraceEvent implements Comparable<StackTraceEvent> {
         private final long nanoTime;
         private final long stackTraceId;
         private final long threadId;
@@ -610,6 +649,18 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             this.nanoTime = nanoTime;
             this.stackTraceId = stackTraceId;
             this.threadId = threadId;
+        }
+
+        public long getThreadId() {
+            return threadId;
+        }
+
+        public long getNanoTime() {
+            return nanoTime;
+        }
+
+        public long getStackTraceId() {
+            return stackTraceId;
         }
 
         @Override
@@ -640,12 +691,12 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         private long threadId;
         private boolean activation;
 
-        public void activation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext, long nanoTime) {
-            set(context.getTraceContext(), threadId, true, previousContext != null ? previousContext.getTraceContext() : null, nanoTime);
+        public void activation(TraceContext context, long threadId, @Nullable TraceContext previousContext, long nanoTime) {
+            set(context, threadId, true, previousContext != null ? previousContext : null, nanoTime);
         }
 
-        public void deactivation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext, long nanoTime) {
-            set(context.getTraceContext(), threadId, false, previousContext != null ? previousContext.getTraceContext() : null, nanoTime);
+        public void deactivation(TraceContext context, long threadId, @Nullable TraceContext previousContext, long nanoTime) {
+            set(context, threadId, false, previousContext != null ? previousContext : null, nanoTime);
         }
 
         private void set(TraceContext traceContext, long threadId, boolean activation, @Nullable TraceContext previousContext, long nanoTime) {
@@ -733,7 +784,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                     logger.debug("End call tree ({}) for thread {}", deserialize(samplingProfiler, traceContextBuffer), threadId);
                 }
                 samplingProfiler.profiledThreads.remove(threadId);
-                callTree.end(samplingProfiler.callTreePool, samplingProfiler.config.getInferredSpansMinDuration().getMillis() * 1_000_000);
+                callTree.end(samplingProfiler.callTreePool, samplingProfiler.getInferredSpansMinDurationNs());
                 int createdSpans = callTree.spanify();
                 if (logger.isDebugEnabled()) {
                     if (createdSpans > 0) {

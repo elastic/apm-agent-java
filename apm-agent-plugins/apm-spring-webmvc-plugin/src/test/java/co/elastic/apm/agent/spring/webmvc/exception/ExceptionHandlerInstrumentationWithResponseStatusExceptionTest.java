@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -47,8 +47,8 @@ public class ExceptionHandlerInstrumentationWithResponseStatusExceptionTest exte
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(ResponseStatusException.class, response, 409, "", "Response status 409 with reason \"responseStatusException\"; nested exception is co.elastic.apm.agent.spring.webmvc.exception.testapp.response_status_exception.ResponseStatusRuntimeException: runtime exception occured");
-        assertEquals("runtime exception occured", reporter.getErrors().get(0).getException().getCause().getMessage());
+        assertExceptionCapture(ResponseStatusException.class, response, 409, "", "Response status 409 with reason \"responseStatusException\"; nested exception is co.elastic.apm.agent.spring.webmvc.exception.testapp.response_status_exception.ResponseStatusRuntimeException: runtime exception occurred");
+        assertEquals("runtime exception occurred", reporter.getErrors().get(0).getException().getCause().getMessage());
         assertEquals(ResponseStatusRuntimeException.class, reporter.getErrors().get(0).getException().getCause().getClass());
     }
 }

@@ -58,12 +58,22 @@ pipeline {
             deleteDir()
             gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
+            script {
+              dir("${BASE_DIR}"){
+                // Skip all the stages except docs for PR's with asciidoc and md changes only
+                env.ONLY_DOCS = isGitRegionMatch(patterns: [ '.*\\.(asciidoc|md)' ], shouldMatchAll: true)
+              }
+            }
           }
         }
         /**
         Build on a linux environment.
         */
         stage('Build') {
+          when {
+            beforeAgent true
+            expression { return env.ONLY_DOCS == "false" }
+          }
           steps {
             withGithubNotify(context: 'Build', tab: 'artifacts') {
               deleteDir()
@@ -86,6 +96,10 @@ pipeline {
       }
     }
     stage('Tests') {
+      when {
+        beforeAgent true
+        expression { return env.ONLY_DOCS == "false" }
+      }
       environment {
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -246,7 +260,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            expression { return params.doc_ci }
+            expression { return env.ONLY_DOCS == "false" }
           }
           steps {
             withGithubNotify(context: 'Javadoc') {
@@ -266,9 +280,12 @@ pipeline {
     stage('Integration Tests') {
       agent none
       when {
-        anyOf {
-          changeRequest()
-          expression { return !params.Run_As_Master_Branch }
+        allOf {
+          expression { return env.ONLY_DOCS == "false" }
+          anyOf {
+            changeRequest()
+            expression { return !params.Run_As_Master_Branch }
+          }
         }
       }
       steps {
