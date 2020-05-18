@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,11 +24,9 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
+import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.alibaba.dubbo.rpc.Result;
-import com.alibaba.dubbo.rpc.RpcContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -40,6 +38,10 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isOverriddenFrom;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Can't get the span from the {@link com.alibaba.dubbo.rpc.RpcContext} as it is reset already.
+ * Therefore, the {@link ResponseCallback} is mapped to the {@link AbstractSpan} in {@link AlibabaResponseFutureInstrumentation}
+ */
 public abstract class AlibabaResponseCallbackInstrumentation extends AbstractDubboInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -57,14 +59,9 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractDub
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Local("span") AbstractSpan<?> span) {
-            RpcContext context = RpcContext.getContext();
-            if (context == null) {
-                return;
-            }
-            span = (Span) context.get(DubboTraceHelper.SPAN_KEY);
+        private static void onEnter(@Advice.This ResponseCallback thiz, @Advice.Local("span") AbstractSpan<?> span) {
+            span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
             if (span != null) {
-                context.remove(DubboTraceHelper.SPAN_KEY);
                 span.activate();
             }
         }
@@ -76,16 +73,10 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractDub
             if (span == null) {
                 return;
             }
-            try {
-                if (response instanceof Result) {
-                    Result result = (Result) response;
-                    if (result.hasException()) {
-                        span.captureException(result.getException());
-                    }
-                }
-            } finally {
-                span.deactivate().end();
+            if (response instanceof Result) {
+                span.captureException(((Result) response).getException());
             }
+            span.captureException(thrown).deactivate().end();
         }
     }
 
@@ -100,14 +91,9 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractDub
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Local("span") AbstractSpan<?> span) {
-            RpcContext context = RpcContext.getContext();
-            if (context == null) {
-                return;
-            }
-            span = (Span) context.get(DubboTraceHelper.SPAN_KEY);
+        private static void onEnter(@Advice.This ResponseCallback thiz, @Advice.Local("span") AbstractSpan<?> span) {
+            span = AlibabaResponseFutureInstrumentation.callbackSpanMap.remove(thiz);
             if (span != null) {
-                context.remove(DubboTraceHelper.SPAN_KEY);
                 span.activate();
             }
         }
@@ -121,8 +107,8 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractDub
             }
             span.captureException(thrown)
                 .captureException(caught)
-                .deactivate();
-            span.end();
+                .deactivate()
+                .end();
         }
     }
 }

@@ -35,7 +35,6 @@ import org.apache.dubbo.rpc.Invoker;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-
 public class ApacheMonitorFilterInstrumentation extends AbstractDubboInstrumentation {
 
     public ApacheMonitorFilterInstrumentation(ElasticApmTracer tracer) {

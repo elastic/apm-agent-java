@@ -56,7 +56,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     @BeforeEach
     void startRootTransaction() {
         when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
-        tracer.startRootTransaction(Thread.currentThread().getContextClassLoader()).activate();
+        tracer.startRootTransaction(Thread.currentThread().getContextClassLoader()).withName("transaction").activate();
     }
 
     @AfterEach
@@ -152,7 +152,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
         Destination.Service service = destination.getService();
         assertThat(service.getType()).isEqualTo("external");
-        assertThat(service.getResource().toString()).isEqualTo("dubbo");
+        assertThat(service.getResource().toString()).matches("localhost:\\d+");
         assertThat(service.getName().toString()).isEqualTo("dubbo");
     }
 

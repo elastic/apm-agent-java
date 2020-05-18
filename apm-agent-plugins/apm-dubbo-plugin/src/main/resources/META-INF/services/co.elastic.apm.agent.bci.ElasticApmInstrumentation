@@ -1,3 +1,3 @@
 co.elastic.apm.agent.dubbo.ApacheMonitorFilterInstrumentation
 co.elastic.apm.agent.dubbo.AlibabaMonitorFilterInstrumentation
-co.elastic.apm.agent.dubbo.AlibabaResponseFutureInstrumentation
+co.elastic.apm.agent.dubbo.AlibabaRpcContextInstrumentation

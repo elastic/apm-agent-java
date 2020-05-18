@@ -264,8 +264,8 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 
 |Apache Dubbo
 | 2.7.3 and upper,  2.6.x
-|
-| 1.15.0
+| This is an experimental plugin. Remove `experimental` from <<config-disable-instrumentations,`disable_instrumentations`>> to enable.
+| 1.17.0
 
 |===
 

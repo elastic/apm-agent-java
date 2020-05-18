@@ -27,7 +27,9 @@ package co.elastic.apm.agent.dubbo;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -40,6 +42,9 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class AlibabaResponseFutureInstrumentation extends AbstractDubboInstrumentation {
+
+    @VisibleForAdvice
+    public static final WeakConcurrentMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -68,6 +73,14 @@ public class AlibabaResponseFutureInstrumentation extends AbstractDubboInstrumen
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.Argument(value = 0, readOnly = false) ResponseCallback callback) {
+            if (tracer == null) {
+                return;
+            }
+            AbstractSpan<?> active = tracer.getActive();
+            if (active == null) {
+                return;
+            }
+            callbackSpanMap.put(callback, active);
             ElasticApmAgent.ensureInstrumented(callback.getClass(), RESPONSE_CALLBACK_INSTRUMENTATIONS);
         }
     }

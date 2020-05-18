@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
@@ -48,7 +47,7 @@ public class DubboTraceHelper {
     @Nullable
     @VisibleForAdvice
     public static Span createConsumerSpan(ElasticApmTracer tracer, Class<?> apiClass, String methodName, InetSocketAddress remoteAddress) {
-        TraceContextHolder<?> traceContext = tracer.getActive();
+        AbstractSpan<?> traceContext = tracer.getActive();
         if (traceContext == null) {
             return null;
         }
@@ -65,7 +64,8 @@ public class DubboTraceHelper {
         destination.withAddress(remoteAddress.getHostName()).withPort(remoteAddress.getPort());
 
         Destination.Service service = destination.getService();
-        service.withType(EXTERNAL_TYPE).withResource(DUBBO_SUBTYPE).withName(DUBBO_SUBTYPE);
+        service.withType(EXTERNAL_TYPE).withName(DUBBO_SUBTYPE);
+        service.getResource().append(remoteAddress.getHostName()).append(':').append(remoteAddress.getPort());
 
         return span.activate();
     }

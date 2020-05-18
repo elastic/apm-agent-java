@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentationTest {
 
@@ -130,11 +131,12 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
             Future<Object> future = RpcContext.getContext().getFuture();
             assertThat(future).isNotNull();
             future.get();
+            fail("expected to get exception from async dubbo call");
         } catch (Exception e) {
             // exception from Future will be wrapped as RpcException by dubbo implementation
-            assertThat(e.getCause() instanceof BizException).isTrue();
-            List<Transaction> transactions = reporter.getTransactions();
-            assertThat(transactions.size()).isEqualTo(1);
+            assertThat(e.getCause()).isInstanceOf(BizException.class);
+            Transaction transaction = reporter.getFirstTransaction(1000);
+            assertThat(transaction).isNotNull();
             assertThat(reporter.getFirstSpan(500)).isNotNull();
             List<Span> spans = reporter.getSpans();
             assertThat(spans.size()).isEqualTo(1);
@@ -142,11 +144,8 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors.size()).isEqualTo(2);
             for (ErrorCapture error : errors) {
-                Throwable t = error.getException();
-                assertThat(t instanceof BizException).isTrue();
+                assertThat(error.getException()).isInstanceOf(BizException.class);
             }
-            return;
         }
-        throw new RuntimeException("not ok");
     }
 }

@@ -72,17 +72,15 @@ public class ApacheMonitorFilterAdvice {
         if (helper == null || tracer == null) {
             return;
         }
+        AbstractSpan<?> active = tracer.getActive();
         // for consumer side, just create span, more information will be collected in provider side
-        if (context.isConsumerSide()) {
-            if (tracer.getActive() == null) {
-                return;
-            }
+        if (context.isConsumerSide() && active != null) {
             span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
                 invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
-                span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
+                span.propagateTraceContext(invocation, helper);
             }
-        } else {
+        } else if (active == null) {
             // for provider side
             transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
             if (transaction != null) {
@@ -105,21 +103,18 @@ public class ApacheMonitorFilterAdvice {
             return;
         }
 
-        try {
-            if (result instanceof AsyncRpcResult) {
-                AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(Result.class);
-                if (callbackCreator == null) {
-                    actualSpan.end();
-                    return;
-                }
-                AsyncRpcResult asyncResult = (AsyncRpcResult) result;
-                context.set(DubboTraceHelper.SPAN_KEY, actualSpan);
-                asyncResult.whenCompleteWithContext(callbackCreator.create(actualSpan));
-            } else {
+        actualSpan.deactivate();
+        if (result instanceof AsyncRpcResult) {
+            AsyncCallbackCreator callbackCreator = asyncCallbackCreatorClassManager.getForClassLoaderOfClass(Result.class);
+            if (callbackCreator == null) {
                 actualSpan.end();
+                return;
             }
-        } finally {
-            actualSpan.deactivate();
+            AsyncRpcResult asyncResult = (AsyncRpcResult) result;
+            context.set(DubboTraceHelper.SPAN_KEY, actualSpan);
+            asyncResult.whenCompleteWithContext(callbackCreator.create(actualSpan));
+        } else {
+            actualSpan.end();
         }
     }
 }
