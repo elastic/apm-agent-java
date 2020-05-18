@@ -24,22 +24,34 @@
  */
 package co.elastic.apm.agent.dubbo.advice;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.dubbo.AlibabaResponseFutureInstrumentation;
 import co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcContext;
+import com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter;
 import net.bytebuddy.asm.Advice;
+
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Future;
 
 @VisibleForAdvice
 public class AlibabaMonitorFilterAdvice {
 
+    @VisibleForAdvice
+    public static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_FUTURE_INSTRUMENTATION = Collections.<Class<? extends ElasticApmInstrumentation>>singletonList(AlibabaResponseFutureInstrumentation.class);
+    @Nullable
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
 
@@ -48,7 +60,6 @@ public class AlibabaMonitorFilterAdvice {
 
     public static void init(ElasticApmTracer tracer) {
         AlibabaMonitorFilterAdvice.tracer = tracer;
-        DubboTraceHelper.init(tracer);
         helperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelperImpl");
     }
@@ -57,77 +68,54 @@ public class AlibabaMonitorFilterAdvice {
     public static void onEnterFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                            @Advice.Local("span") Span span,
                                            @Advice.Local("apiClazz") Class<?> apiClazz,
-                                           @Advice.Local("transaction") Transaction transaction,
-                                           @Advice.Local("scope") Scope scope) {
+                                           @Advice.Local("transaction") Transaction transaction) {
         RpcContext context = RpcContext.getContext();
         AlibabaDubboAttachmentHelper helper = helperManager.getForClassLoaderOfClass(Invocation.class);
-        if (helper == null) {
+        if (helper == null || tracer == null) {
             return;
         }
         // for consumer side, just create span, more information will be collected in provider side
         if (context.isConsumerSide()) {
-            if (tracer == null || tracer.getActive() == null) {
+            if (tracer.getActive() == null) {
                 return;
             }
-            span = DubboTraceHelper.createConsumerSpan(invocation.getInvoker().getInterface(),
+            span = DubboTraceHelper.createConsumerSpan(tracer, invocation.getInvoker().getInterface(),
                 invocation.getMethodName(), context.getRemoteAddress());
             if (span != null) {
                 span.getTraceContext().setOutgoingTraceContextHeaders(invocation, helper);
             }
-
-            return;
+        } else {
+            // for provider side
+            transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
+            if (transaction != null) {
+                transaction.activate();
+                DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());
+            }
         }
 
-        // for provider side
-        transaction = tracer.startChildTransaction(invocation, helper, Invocation.class.getClassLoader());
-        if (transaction != null) {
-            scope = transaction.activateInScope();
-            DubboTraceHelper.fillTransaction(transaction, invocation.getInvoker().getInterface(), invocation.getMethodName());
-        }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
                                           @Advice.Return Result result,
-                                          @Advice.Local("span") Span span,
-                                          @Advice.Thrown Throwable t,
-                                          @Advice.Local("transaction") Transaction transaction,
-                                          @Advice.Local("scope") Scope scope) {
+                                          @Nullable @Advice.Local("span") Span span,
+                                          @Nullable @Advice.Thrown Throwable t,
+                                          @Nullable @Advice.Local("transaction") Transaction transaction) {
         Throwable actualExp = t != null ? t : result.getException();
         RpcContext context = RpcContext.getContext();
-        if (context.isConsumerSide()) {
-            if (span == null) {
-                return;
+        if (span != null) {
+            span.captureException(actualExp).deactivate();
+            Future<Object> future = context.getFuture();
+            if (future instanceof FutureAdapter) {
+                context.set(DubboTraceHelper.SPAN_KEY, span);
+                Class<? extends ResponseFuture> futureClass = ((FutureAdapter<?>) future).getFuture().getClass();
+                ElasticApmAgent.ensureInstrumented(futureClass, RESPONSE_FUTURE_INSTRUMENTATION);
+            } else {
+                span.end();
             }
-            try {
-                if (actualExp != null) {
-                    span.captureException(actualExp);
-                }
-
-            } finally {
-                span.deactivate();
-                if (context.getFuture() == null) {
-                    span.end();
-                } else {
-                    context.set(DubboTraceHelper.SPAN_KEY, span);
-                }
-            }
-            return;
+        } else if (transaction != null) {
+            transaction.captureException(actualExp).deactivate().end();
         }
 
-        // provider side
-        if (scope != null) {
-            scope.close();
-        }
-
-        if (transaction != null) {
-            try {
-                if (actualExp != null) {
-                    transaction.captureException(actualExp);
-                }
-            } finally {
-                transaction.deactivate().end();
-            }
-        }
     }
 }

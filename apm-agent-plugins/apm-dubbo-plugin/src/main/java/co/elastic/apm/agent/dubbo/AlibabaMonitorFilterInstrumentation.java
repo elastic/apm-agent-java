@@ -26,6 +26,9 @@ package co.elastic.apm.agent.dubbo;
 
 import co.elastic.apm.agent.dubbo.advice.AlibabaMonitorFilterAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import com.alibaba.dubbo.monitor.support.MonitorFilter;
+import com.alibaba.dubbo.rpc.Invocation;
+import com.alibaba.dubbo.rpc.Invoker;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -44,6 +47,9 @@ public class AlibabaMonitorFilterInstrumentation extends AbstractDubboInstrument
         return named("com.alibaba.dubbo.monitor.support.MonitorFilter");
     }
 
+    /**
+     * {@link MonitorFilter#invoke(Invoker, Invocation)}
+     */
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("invoke")

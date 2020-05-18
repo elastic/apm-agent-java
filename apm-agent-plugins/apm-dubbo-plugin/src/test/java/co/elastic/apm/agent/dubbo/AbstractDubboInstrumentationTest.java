@@ -135,7 +135,7 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
 
     public void validateDubboTransaction(Transaction transaction, Class<?> apiClass, String methodName) {
         assertThat(transaction.getNameAsString()).isEqualTo(getDubboName(apiClass, methodName));
-        assertThat(transaction.getType()).isEqualTo("dubbo");
+        assertThat(transaction.getType()).isEqualTo("request");
     }
 
     protected String getDubboName(Class<?> apiClass, String methodName) {

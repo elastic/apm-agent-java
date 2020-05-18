@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.dubbo.helper;
 
 import com.alibaba.dubbo.rpc.Invocation;
-import com.alibaba.dubbo.rpc.RpcContext;
 
 import javax.annotation.Nullable;
 
@@ -44,7 +43,6 @@ public class AlibabaDubboAttachmentHelperImpl implements AlibabaDubboAttachmentH
 
     @Override
     public void setHeader(String headerName, String headerValue, Invocation invocation) {
-        RpcContext context = RpcContext.getContext();
-        context.setAttachment(headerName, headerValue);
+        invocation.getAttachments().put(headerName, headerValue);
     }
 }
