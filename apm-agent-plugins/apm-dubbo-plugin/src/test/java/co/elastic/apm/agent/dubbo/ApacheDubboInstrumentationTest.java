@@ -160,9 +160,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
         validateDubboTransaction(transaction, DubboTestApi.class, "asyncByFuture");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
-        Thread.sleep(1000); // wait 1s
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans.size()).isEqualTo(2);
+        reporter.awaitSpanCount(2);
     }
 
     @Test
@@ -177,9 +175,7 @@ public class ApacheDubboInstrumentationTest extends AbstractDubboInstrumentation
             validateDubboTransaction(transaction, DubboTestApi.class, "asyncByFuture");
 
             assertThat(reporter.getFirstSpan(500)).isNotNull();
-            Thread.sleep(1000); // wait reporter data 1s
-            List<Span> spans = reporter.getSpans();
-            assertThat(spans.size()).isEqualTo(2);
+            reporter.awaitSpanCount(2);
 
             List<ErrorCapture> errors = reporter.getErrors();
             assertThat(errors).hasSize(2);
