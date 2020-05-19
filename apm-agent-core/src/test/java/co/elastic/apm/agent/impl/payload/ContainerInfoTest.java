@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -84,6 +84,13 @@ public class ContainerInfoTest {
         String line = "1:name=systemd:/kubepods/besteffort/pod" + podId + "/" + containerId;
         SystemInfo systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+    }
+
+    @Test
+    void testUbuntuCgroup() {
+        String line = "1:name=systemd:/user.slice/user-1000.slice/user@1000.service/apps.slice/apps-org.gnome.Terminal" +
+            ".slice/vte-spawn-75bc72bd-6642-4cf5-b62c-0674e11bfc84.scope";
+        assertThat(createSystemInfo().parseContainerId(line).getContainerInfo()).isNull();
     }
 
     @Test

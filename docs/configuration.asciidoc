@@ -114,6 +114,7 @@ Click on a key to get more information.
 ** <<config-capture-body>>
 ** <<config-capture-headers>>
 ** <<config-global-labels>>
+** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
@@ -137,6 +138,9 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
+** <<config-log-file-size>>
+** <<config-log-format-sout>>
+** <<config-log-format-file>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
 * <<config-profiling>>
@@ -847,6 +851,34 @@ NOTE: This feature requires APM Server 7.2+
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-classes-excluded-from-instrumentation]]
+==== `classes_excluded_from_instrumentation`
+
+Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
+use wildcards, as in: `com.project.exclude.*`
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.classes_excluded_from_instrumentation` | `classes_excluded_from_instrumentation` | `ELASTIC_APM_CLASSES_EXCLUDED_FROM_INSTRUMENTATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-trace-methods]]
 ==== `trace_methods` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -1525,7 +1557,8 @@ When set to the special value 'System.out',
 the logs are sent to standard out.
 
 NOTE: When logging to a file,
-it's content is deleted when the application starts.
+the log will be formatted in new-line-delimited JSON.
+When logging to std out, the log will be formatted as plain-text.
 
 
 
@@ -1569,6 +1602,87 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-file-size]]
+==== `log_file_size` (added[1.17.0])
+
+The size of the log file.
+
+The agent always keeps one history file so that the max total log file size is twice the value of this setting.
+
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `50mb` | ByteValue | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_file_size` | `log_file_size` | `ELASTIC_APM_LOG_FILE_SIZE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-format-sout]]
+==== `log_format_sout` (added[1.17.0])
+
+Defines the log format when logging to `System.out`.
+
+When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+where each log event is serialized as a single line.
+
+
+
+Valid options: `PLAIN_TEXT`, `JSON`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `PLAIN_TEXT` | LogFormat | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_format_sout` | `log_format_sout` | `ELASTIC_APM_LOG_FORMAT_SOUT`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-format-file]]
+==== `log_format_file` (added[1.17.0])
+
+Defines the log format when logging to a file.
+
+When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+where each log event is serialized as a single line.
+
+
+
+
+Valid options: `PLAIN_TEXT`, `JSON`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `PLAIN_TEXT` | LogFormat | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_format_file` | `log_format_file` | `ELASTIC_APM_LOG_FORMAT_FILE`
 |============
 
 [[config-messaging]]
@@ -2134,7 +2248,6 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 [[config-span-frames-min-duration]]
 ==== `span_frames_min_duration` (performance)
 
-In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
@@ -2508,6 +2621,19 @@ The default unit for this option is `ms`.
 # Default value: 
 #
 # global_labels=
+
+# Use to exclude specific classes from being instrumented. In order to exclude entire packages, 
+# use wildcards, as in: `com.project.exclude.*`
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 
+#
+# classes_excluded_from_instrumentation=
 
 # A list of methods for which to create a transaction or span.
 # 
@@ -2933,7 +3059,8 @@ The default unit for this option is `ms`.
 # the logs are sent to standard out.
 # 
 # NOTE: When logging to a file,
-# it's content is deleted when the application starts.
+# the log will be formatted in new-line-delimited JSON.
+# When logging to std out, the log will be formatted as plain-text.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -2953,6 +3080,42 @@ The default unit for this option is `ms`.
 # Default value: false
 #
 # enable_log_correlation=false
+
+# The size of the log file.
+# 
+# The agent always keeps one history file so that the max total log file size is twice the value of this setting.
+# 
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: ByteValue
+# Default value: 50mb
+#
+# log_file_size=50mb
+
+# Defines the log format when logging to `System.out`.
+# 
+# When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+# where each log event is serialized as a single line.
+#
+# Valid options: PLAIN_TEXT, JSON
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: LogFormat
+# Default value: PLAIN_TEXT
+#
+# log_format_sout=PLAIN_TEXT
+
+# Defines the log format when logging to a file.
+# 
+# When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+# where each log event is serialized as a single line.
+# 
+#
+# Valid options: PLAIN_TEXT, JSON
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: LogFormat
+# Default value: PLAIN_TEXT
+#
+# log_format_file=PLAIN_TEXT
 
 ############################################
 # Messaging                                #
@@ -3232,7 +3395,6 @@ The default unit for this option is `ms`.
 #
 # stack_trace_limit=50
 
-# In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 # When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 

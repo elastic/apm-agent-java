@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 public class ServiceNameUtil {
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(.*)?$";
 
-    static String getDefaultServiceName() {
+    public static String getDefaultServiceName() {
         return getDefaultServiceName(System.getProperty("sun.java.command"));
     }
 

@@ -68,6 +68,7 @@ import java.util.UUID;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 /**
@@ -230,7 +231,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Test
     public void testBodyCaptureEnabled() {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
         testScenario = TestScenario.BODY_CAPTURE_ENABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();

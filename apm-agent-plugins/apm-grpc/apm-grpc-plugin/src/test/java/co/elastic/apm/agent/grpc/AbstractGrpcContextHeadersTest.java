@@ -92,7 +92,7 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
         Transaction transaction2 = transactions.stream()
             .filter((t) -> !t.equals(transaction1))
             .findFirst()
-            .orElseThrow();
+            .orElseThrow(() -> null);
 
         Span span = reporter.getFirstSpan();
 
