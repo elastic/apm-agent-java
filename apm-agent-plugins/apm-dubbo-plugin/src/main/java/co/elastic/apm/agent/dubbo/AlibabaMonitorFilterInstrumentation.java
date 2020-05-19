@@ -62,7 +62,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * We can't just instrument all filters, as some don't have the full {@link com.alibaba.dubbo.rpc.RpcContext}.
  * </p>
  */
-public class AlibabaMonitorFilterInstrumentation extends AbstractDubboInstrumentation {
+public class AlibabaMonitorFilterInstrumentation extends AbstractAlibabaDubboInstrumentation {
 
     public AlibabaMonitorFilterInstrumentation(ElasticApmTracer tracer) {
         AlibabaMonitorFilterAdvice.init(tracer);

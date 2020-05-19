@@ -110,9 +110,8 @@ public class ApacheMonitorFilterAdvice {
                 actualSpan.end();
                 return;
             }
-            AsyncRpcResult asyncResult = (AsyncRpcResult) result;
             context.set(DubboTraceHelper.SPAN_KEY, actualSpan);
-            asyncResult.whenCompleteWithContext(callbackCreator.create(actualSpan));
+            result.whenCompleteWithContext(callbackCreator.create(actualSpan));
         } else {
             actualSpan.end();
         }

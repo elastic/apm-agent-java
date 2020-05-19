@@ -32,7 +32,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class ApacheMonitorFilterInstrumentation extends AbstractDubboInstrumentation {
@@ -53,7 +55,11 @@ public class ApacheMonitorFilterInstrumentation extends AbstractDubboInstrumenta
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("invoke")
             .and(takesArgument(0, named("org.apache.dubbo.rpc.Invoker")))
-            .and(takesArgument(1, named("org.apache.dubbo.rpc.Invocation")));
+            .and(takesArgument(1, named("org.apache.dubbo.rpc.Invocation")))
+            // makes sure we only instrument Dubbo 2.7.3+ which introduces this method
+            .and(returns(named("org.apache.dubbo.rpc.Result")
+                .and(declaresMethod(named("whenCompleteWithContext")
+                    .and(takesArgument(0, named("java.util.function.BiConsumer")))))));
     }
 
     @Override

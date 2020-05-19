@@ -17,7 +17,7 @@ import java.util.concurrent.Future;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class AlibabaRpcContextInstrumentation extends AbstractDubboInstrumentation {
+public class AlibabaRpcContextInstrumentation extends AbstractAlibabaDubboInstrumentation {
 
     @VisibleForAdvice
     public static final List<Class<? extends ElasticApmInstrumentation>> RESPONSE_FUTURE_INSTRUMENTATION =

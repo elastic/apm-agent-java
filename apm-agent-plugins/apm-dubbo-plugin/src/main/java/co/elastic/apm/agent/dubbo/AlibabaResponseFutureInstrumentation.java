@@ -41,7 +41,7 @@ import java.util.List;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class AlibabaResponseFutureInstrumentation extends AbstractDubboInstrumentation {
+public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboInstrumentation {
 
     @VisibleForAdvice
     public static final WeakConcurrentMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
