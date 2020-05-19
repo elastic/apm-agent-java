@@ -113,9 +113,8 @@ public class AlibabaDubboInstrumentationTest extends AbstractDubboInstrumentatio
         ret = (String) future.get();
         assertThat(ret).isEqualTo(arg);
 
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions.size()).isEqualTo(1);
-        validateDubboTransaction(transactions.get(0), DubboTestApi.class, "async");
+        Transaction transaction = reporter.getFirstTransaction(1000);
+        validateDubboTransaction(transaction, DubboTestApi.class, "async");
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         List<Span> spans = reporter.getSpans();
