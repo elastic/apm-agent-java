@@ -29,6 +29,8 @@ endif::[]
 [float]
 ===== Features
 
+* Add experimental support for Scala Futures
+
 [float]
 ===== Bug fixes
 

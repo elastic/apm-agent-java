@@ -281,6 +281,14 @@ This section lists all supported asynchronous frameworks.
 |The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
 |1.4.0
 
+|Scala Future
+|2.13.x
+|The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.
+It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, ...
+
+NOTE: To enable Scala Future support, you need to enable experimental plugins.
+|1.17.0
+
 |===
 
 

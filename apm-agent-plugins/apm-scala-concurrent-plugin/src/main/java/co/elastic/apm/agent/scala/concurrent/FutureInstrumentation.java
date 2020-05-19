@@ -50,7 +50,7 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
     @Nonnull
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("concurrent", "future");
+        return Arrays.asList("scala-future", "experimental");
     }
 
     public static class ConstructorInstrumentation extends FutureInstrumentation {
