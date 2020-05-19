@@ -343,7 +343,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<List<WildcardMatcher>> defaultClassesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
-        .key("default_classes_excluded_from_instrumentation")
+        .key("classes_excluded_from_instrumentation_default")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("\n" +
