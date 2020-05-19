@@ -43,6 +43,7 @@ import java.util.Iterator;
 class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
 
     public static final Logger logger = LoggerFactory.getLogger(ConsumerRecordsIteratorWrapper.class);
+    public static final String FRAMEWORK_NAME = "Kafka";
 
     private final Iterator<ConsumerRecord> delegate;
     private final ElasticApmTracer tracer;
@@ -83,6 +84,8 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
                 Transaction transaction = tracer.startChildTransaction(record, KafkaRecordHeaderAccessor.instance(), ConsumerRecordsIteratorWrapper.class.getClassLoader());
                 if (transaction != null) {
                     transaction.withType("messaging").withName("Kafka record from " + topic).activate();
+                    transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+
                     Message message = transaction.getContext().getMessage();
                     message.withQueue(topic);
                     if (record.timestampType() == TimestampType.CREATE_TIME) {

@@ -76,6 +76,8 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("scheduled");
         assertThat(reporter.getTransactions().get(0).getNameAsString())
             .isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+        assertThat(reporter.getTransactions().get(0).getContext().getFrameworkName()).isEqualTo("Quartz");
+        assertThat(reporter.getTransactions().get(0).getContext().getFrameworkVersion()).isEqualTo("2.3.1");
     }
 
     @Test

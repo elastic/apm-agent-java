@@ -49,6 +49,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPa
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.plugin.api.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -82,6 +83,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
                     }
                     transaction.withType(type)
                         .activate();
+                    transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
                 }
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);

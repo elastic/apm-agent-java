@@ -44,12 +44,17 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         transaction.setType("default");
     }
 
-
     @Test
     void testSetName() {
         transaction.setName("foo");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("foo");
+    }
+
+    @Test
+    void testFrameworkName() {
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getContext().getFrameworkName()).isEqualTo("API");
     }
 
     @Test

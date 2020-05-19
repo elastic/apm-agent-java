@@ -53,6 +53,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
 
     static final String TIBCO_TMP_QUEUE_PREFIX = "$TMP$";
     static final String TEMP = "<temporary>";
+    static final String FRAMEWORK_NAME = "JMS";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelperImpl.class);
     private final ElasticApmTracer tracer;
@@ -122,7 +123,11 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     @Override
     @Nullable
     public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        return tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+        if (transaction != null) {
+            transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+        }
+        return transaction;
     }
 
     @Override

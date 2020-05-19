@@ -35,6 +35,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import javax.faces.context.FacesContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,6 +58,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentation {
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_SUBTYPE = "jsf";
+    private static final String FRAMEWORK_NAME = "JavaServer Faces";
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -121,6 +123,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                                     transaction.appendToName(pathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
                                 }
                             }
+                            transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
                         } catch (Exception e) {
                             // do nothing- rely on the default servlet name logic
                         }

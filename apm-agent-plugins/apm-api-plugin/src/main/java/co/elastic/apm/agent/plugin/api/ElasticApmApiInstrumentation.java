@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -33,6 +34,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
+import static co.elastic.apm.agent.plugin.api.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -67,6 +69,9 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         private static void doStartTransaction(@Advice.Origin Class<?> clazz, @Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
                 transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                if (transaction != null) {
+                    ((Transaction) transaction).getContext().setFrameworkName(FRAMEWORK_NAME);
+                }
             }
         }
     }
@@ -95,6 +100,9 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                     transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
                 } else {
                     transaction = tracer.startRootTransaction(clazz.getClassLoader());
+                }
+                if (transaction != null) {
+                    ((Transaction) transaction).getContext().setFrameworkName(FRAMEWORK_NAME);
                 }
             }
         }

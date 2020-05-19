@@ -34,6 +34,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.SpringVersion;
 import org.springframework.web.method.HandlerMethod;
 
 import javax.annotation.Nullable;
@@ -64,6 +65,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * </p>
  */
 public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentation {
+
+    private static final String FRAMEWORK_NAME = "Spring Web MVC";
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
@@ -129,6 +132,8 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
                     if (logger.isDebugEnabled()) {
                         logger.debug("Set name {} to transaction {}", transaction.getNameAsString(), transaction.getTraceContext().getId());
                     }
+                    transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                    transaction.getContext().setFrameworkVersion(SpringVersion.getVersion());
                 } else {
                     logger.debug("Transaction is null");
                 }

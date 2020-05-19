@@ -405,12 +405,19 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
     private void serializeFramework(final Framework framework) {
+        serializeFramework(framework.getName(), framework.getVersion());
+        jw.writeByte(COMMA);
+    }
+
+    private void serializeFramework(final String frameworkName, final @Nullable String frameworkVersion) {
         writeFieldName("framework");
         jw.writeByte(JsonWriter.OBJECT_START);
-        writeField("name", framework.getName());
-        writeLastField("version", framework.getVersion());
+        writeLastField("name", frameworkName);
+        if (frameworkVersion != null) {
+            jw.writeByte(COMMA);
+            writeLastField("version", frameworkVersion);
+        }
         jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(COMMA);
     }
 
     private void serializeLanguage(final Language language) {
@@ -577,6 +584,29 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             writeLastField("name", serviceName);
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeServiceNameWithFramework(final TransactionContext context, final TraceContext traceContext) {
+        String serviceName = traceContext.getServiceName();
+        if (serviceName != null || context.getFrameworkName() != null) {
+            writeFieldName("service");
+            jw.writeByte(OBJECT_START);
+            if (serviceName != null) {
+                writeLastField("name", serviceName);
+            }
+            serializeFrameworkName(serviceName == null, context.getFrameworkName(), context.getFrameworkVersion());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeFrameworkName(boolean isServiceNameNull, @Nullable final String frameworkName, @Nullable final String frameworkVersion) {
+        if (frameworkName != null) {
+            if (!isServiceNameNull) {
+                jw.writeByte(COMMA);
+            }
+            serializeFramework(frameworkName, frameworkVersion);
         }
     }
 
@@ -871,7 +901,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private void serializeContext(final TransactionContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
-        serializeServiceName(traceContext);
+        serializeServiceNameWithFramework(context, traceContext);
 
         if (context.getUser().hasContent()) {
             serializeUser(context.getUser());

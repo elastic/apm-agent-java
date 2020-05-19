@@ -476,6 +476,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         for (Transaction receiveTransaction : receiveTransactions) {
             assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from ");
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
+            assertThat(receiveTransaction.getContext().getFrameworkName()).isEqualTo("JMS");
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);

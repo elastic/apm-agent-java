@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.context;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,11 +58,19 @@ public class TransactionContext extends AbstractContext {
      */
     private final User user = new User();
 
+    @Nullable
+    private String frameworkName;
+
+    @Nullable
+    private String frameworkVersion;
+
     public void copyFrom(TransactionContext other) {
         super.copyFrom(other);
         response.copyFrom(other.response);
         request.copyFrom(other.request);
         user.copyFrom(other.user);
+        this.frameworkName = other.getFrameworkName();
+        this.frameworkVersion = other.getFrameworkVersion();
     }
 
     public Object getCustom(String key) {
@@ -110,6 +119,24 @@ public class TransactionContext extends AbstractContext {
         return user;
     }
 
+    public void setFrameworkName(@Nullable String frameworkName) {
+        this.frameworkName = frameworkName;
+    }
+
+    @Nullable
+    public String getFrameworkName() {
+        return this.frameworkName;
+    }
+
+    public void setFrameworkVersion(@Nullable String frameworkVersion) {
+        this.frameworkVersion = frameworkVersion;
+    }
+
+    @Nullable
+    public String getFrameworkVersion() {
+        return this.frameworkVersion;
+    }
+
     @Override
     public void resetState() {
         super.resetState();
@@ -117,9 +144,12 @@ public class TransactionContext extends AbstractContext {
         response.resetState();
         request.resetState();
         user.resetState();
+        frameworkName = null;
+        frameworkVersion = null;
     }
 
     public void onTransactionEnd() {
         request.onTransactionEnd();
     }
+
 }

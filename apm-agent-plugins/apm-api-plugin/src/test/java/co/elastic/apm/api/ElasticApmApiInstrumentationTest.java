@@ -320,4 +320,10 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
+
+    @Test
+    void testFrameworkNameWithStartTransactionWithRemoteParent() {
+        ElasticApm.startTransactionWithRemoteParent(null).end();
+        assertThat(reporter.getFirstTransaction().getContext().getFrameworkName()).isEqualTo("API");
+    }
 }

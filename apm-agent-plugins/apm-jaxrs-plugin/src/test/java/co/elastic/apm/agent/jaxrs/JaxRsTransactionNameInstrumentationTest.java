@@ -258,6 +258,19 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testInterface/test");
     }
 
+    @Test
+    public void testJaxRsFrameworkNameAndVersion() throws IOException {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getFrameworkName()).isEqualTo("JAX-RS");
+        assertThat(reporter.getFirstTransaction().getContext().getFrameworkVersion()).isEqualTo("2.1");
+    }
 
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.

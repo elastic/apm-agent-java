@@ -50,6 +50,8 @@ import javax.annotation.Nullable;
 @SuppressWarnings("unused")
 public class GrpcHelperImpl implements GrpcHelper {
 
+    private static final String FRAMEWORK_NAME = "gRPC";
+
     /**
      * Map of all in-flight spans, is only used by client part.
      * Key is {@link ClientCall}, value is {@link Span}.
@@ -111,6 +113,8 @@ public class GrpcHelperImpl implements GrpcHelper {
         transaction.withName(methodDescriptor.getFullMethodName())
             .withType("request")
             .activate();
+
+        transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
 
         return transaction;
     }

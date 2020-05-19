@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.Framework;
@@ -540,6 +541,16 @@ class DslJsonSerializerTest {
 
         transaction.getContext().getMessage().withQueue("test_queue").withAge(0);
 
+        TransactionContext transactionContext = transaction.getContext();
+        TraceContext ctx = transaction.getTraceContext();
+
+        String serviceName = RandomStringUtils.randomAlphabetic(5);
+        String frameworkName = RandomStringUtils.randomAlphanumeric(10);
+        String frameworkVersion = RandomStringUtils.randomNumeric(3);
+        ctx.setServiceName(serviceName);
+        transactionContext.setFrameworkName(frameworkName);
+        transactionContext.setFrameworkVersion(frameworkVersion);
+
         String jsonString = serializer.toJsonString(transaction);
         JsonNode json = readJsonString(jsonString);
 
@@ -547,6 +558,9 @@ class DslJsonSerializerTest {
         assertThat(jsonContext.get("user").get("id").asText()).isEqualTo("42");
         assertThat(jsonContext.get("user").get("email").asText()).isEqualTo("user@email.com");
         assertThat(jsonContext.get("user").get("username").asText()).isEqualTo("bob");
+        assertThat(jsonContext.get("service").get("name").asText()).isEqualTo(serviceName);
+        assertThat(jsonContext.get("service").get("framework").get("name").asText()).isEqualTo(frameworkName);
+        assertThat(jsonContext.get("service").get("framework").get("version").asText()).isEqualTo(frameworkVersion);
 
         JsonNode jsonRequest = jsonContext.get("request");
         assertThat(jsonRequest.get("method").asText()).isEqualTo("PUT");
