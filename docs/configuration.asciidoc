@@ -2248,7 +2248,6 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 [[config-span-frames-min-duration]]
 ==== `span_frames_min_duration` (performance)
 
-In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
@@ -3396,7 +3395,6 @@ The default unit for this option is `ms`.
 #
 # stack_trace_limit=50
 
-# In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 # When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 
