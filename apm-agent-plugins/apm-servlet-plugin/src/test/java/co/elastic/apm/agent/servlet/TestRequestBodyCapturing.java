@@ -61,6 +61,7 @@ import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 class TestRequestBodyCapturing extends AbstractInstrumentationTest {
@@ -94,7 +95,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     void setUp() {
         webConfiguration = tracer.getConfig(WebConfiguration.class);
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
         filterChain = new MockFilterChain(new HttpServlet() {
             @Override
             protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -133,7 +134,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testCaptureBodyOff() throws Exception {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
+        doReturn(CoreConfiguration.EventType.OFF).when(coreConfiguration).getCaptureBody();
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
@@ -146,7 +147,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     void testCaptureBodyNotOff(CoreConfiguration.EventType eventType) throws Exception {
         streamCloser = is -> { throw new RuntimeException(); };
 
-        when(coreConfiguration.getCaptureBody()).thenReturn(eventType);
+        doReturn(eventType).when(coreConfiguration).getCaptureBody();
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
 
         final Transaction transaction = reporter.getFirstTransaction();
@@ -231,7 +232,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testTrackPostParams() throws IOException, ServletException {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
         request.addParameter("baz", "qux", "quux");
@@ -246,7 +247,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testTrackPostParamsDisabled() throws IOException, ServletException {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
         when(webConfiguration.getCaptureContentTypes()).thenReturn(Collections.emptyList());
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
