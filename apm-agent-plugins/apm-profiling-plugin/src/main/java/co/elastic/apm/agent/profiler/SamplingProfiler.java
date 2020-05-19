@@ -335,7 +335,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
         try {
-            String startCommand = "start,jfr,event=wall,cstack=n,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile + ",recover=" + config.getRecoverMode();
+            String startCommand = "start,jfr,event=wall,cstack=n,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile + ",safemode=" + config.getAsyncProfilerSafeMode();
             String startMessage = asyncProfiler.execute(startCommand);
             logger.debug(startMessage);
             if (!profiledThreads.isEmpty()) {
