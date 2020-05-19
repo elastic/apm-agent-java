@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,11 +24,12 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Headers;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
@@ -58,6 +59,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -69,6 +71,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.CharBuffer;
@@ -85,6 +88,7 @@ import static com.dslplatform.json.JsonWriter.ARRAY_START;
 import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
+import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.MetricsReporter {
 
@@ -228,6 +232,29 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     @Override
     public void serializeMetrics(MetricRegistry metricRegistry) {
         metricRegistry.report(this);
+    }
+
+    @Override
+    public void serializeFileMetaData(File file) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("metadata");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("log");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("file");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeField("path", file.getAbsolutePath());
+        writeLastField("name", file.getName());
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public JsonWriter getJsonWriter() {
+        return jw;
     }
 
     private void serializeErrors(List<ErrorCapture> errors) {
@@ -537,6 +564,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             serializeStackTrace(span.getStackFrames());
         }
         serializeSpanContext(span.getContext(), span.getTraceContext());
+        writeHexArray("child_ids", span.getChildIds());
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
@@ -835,7 +863,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeFieldName("span_count");
         jw.writeByte(OBJECT_START);
         writeField("dropped", spanCount.getDropped().get());
-        writeLastField("started", spanCount.getStarted().get());
+        writeLastField("started", spanCount.getReported().get());
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }
@@ -1257,5 +1285,22 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeFieldName("timestamp");
         NumberConverter.serialize(epochMicros, jw);
         jw.writeByte(COMMA);
+    }
+
+    private void writeHexArray(String fieldName, @Nullable LongList longList) {
+        if (longList != null && longList.getSize() > 0) {
+            writeFieldName(fieldName);
+            jw.writeByte(ARRAY_START);
+            for (int i = 0, size = longList.getSize(); i < size; i++) {
+                if (i > 0) {
+                    jw.writeByte(COMMA);
+                }
+                jw.writeByte(QUOTE);
+                HexUtils.writeAsHex(longList.get(i), jw);
+                jw.writeByte(QUOTE);
+            }
+            jw.writeByte(ARRAY_END);
+            jw.writeByte(COMMA);
+        }
     }
 }

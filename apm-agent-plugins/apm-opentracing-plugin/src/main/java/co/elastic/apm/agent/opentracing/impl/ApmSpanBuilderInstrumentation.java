@@ -70,7 +70,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext parentContext,
+        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> parentContext,
                                       @Advice.Origin Class<?> spanBuilderClass,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
@@ -82,22 +82,34 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
 
         @Nullable
         @VisibleForAdvice
-        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable TraceContext parentContext,
+        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable AbstractSpan<?> parentContext,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,
                                                                 @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
+            AbstractSpan<?> result = null;
             if (tracer != null) {
                 if (parentContext == null) {
-                    return createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
+                    result = createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
                 } else {
                     if (microseconds >= 0) {
-                        return tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
+                        result = tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
                     } else {
-                        return tracer.startSpan(TraceContext.fromParent(), parentContext);
+                        result = tracer.startSpan(TraceContext.fromParent(), parentContext);
                     }
                 }
             }
-            return null;
+            if (result != null) {
+                // This reference count never gets decremented, which means it will be handled by GC rather than being recycled.
+                // The OpenTracing API allows interactions with the span, such as span.getTraceContext even after the span has finished
+                // This makes it hard to recycle the span as the life cycle is unclear.
+                // See also https://github.com/opentracing/opentracing-java/issues/312
+                // Previously, we kept a permanent copy of the trace context around and recycled the span on finish.
+                // But that meant lots of complexity in the internal API,
+                // as it had to deal with the fact that a TraceContext might be returned by ElasticApmTracer.getActive.
+                // The complexity doesn't seem worth the OT specific optimization that a bit less memory gets allocated.
+                result.incrementReferences();
+            }
+            return result;
         }
 
         @Nullable

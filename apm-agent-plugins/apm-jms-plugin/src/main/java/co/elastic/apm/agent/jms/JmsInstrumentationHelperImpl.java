@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
@@ -72,7 +71,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     @Nullable
     public Span startJmsSendSpan(Destination destination, Message message) {
 
-        final TraceContextHolder<?> activeSpan = tracer.getActive();
+        final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
         }
@@ -99,7 +98,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
-            span.getTraceContext().setOutgoingTraceContextHeaders(message, JmsMessagePropertyAccessor.instance());
+            span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
             if (span.isSampled()) {
                 span.getContext().getDestination().getService()
                     .withName("jms")

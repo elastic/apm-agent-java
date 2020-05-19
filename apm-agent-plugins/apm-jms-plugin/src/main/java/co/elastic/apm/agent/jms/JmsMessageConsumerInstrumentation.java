@@ -29,7 +29,6 @@ import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -109,7 +108,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 boolean createPollingTransaction = false;
                 boolean createPollingSpan = false;
                 if (tracer != null) {
-                    final TraceContextHolder<?> parent = tracer.getActive();
+                    final AbstractSpan<?> parent = tracer.getActive();
                     if (parent == null) {
                         createPollingTransaction = true;
                     } else {
@@ -207,7 +206,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 if (abstractSpan != null) {
                     try {
                         if (discard) {
-                            abstractSpan.setDiscard(true);
+                            abstractSpan.requestDiscarding();
                         } else if (addDetails) {
                             if (message != null && helper != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");

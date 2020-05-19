@@ -121,6 +121,7 @@ Click on a key to get more information.
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
 ** <<config-use-elastic-traceparent-header>>
+** <<config-span-min-duration>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-ignore-urls>>
@@ -136,6 +137,9 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
+** <<config-log-file-size>>
+** <<config-log-format-sout>>
+** <<config-log-format-file>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
 * <<config-profiling>>
@@ -948,6 +952,8 @@ In order not to break span references,
 all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 regardless of their duration.
 
+NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+the higher of both thresholds will determine which spans will be discarded.
 
 
 
@@ -1107,6 +1113,42 @@ for backwards compatibility with older versions of Elastic APM agents.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_elastic_traceparent_header` | `use_elastic_traceparent_header` | `ELASTIC_APM_USE_ELASTIC_TRACEPARENT_HEADER`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-min-duration]]
+==== `span_min_duration` (added[1.16.0])
+
+Sets the minimum duration of spans.
+Spans that execute faster than this threshold are attempted to be discarded.
+
+The attempt fails if they lead up to a span that can't be discarded.
+Spans that propagate the trace context to downstream services,
+such as outgoing HTTP requests,
+can't be discarded.
+Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.
+
+However, external calls that don't propagate context,
+such as calls to a database, can be discarded using this threshold.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_min_duration` | `span_min_duration` | `ELASTIC_APM_SPAN_MIN_DURATION`
 |============
 
 [[config-http]]
@@ -1458,12 +1500,12 @@ This option is case-insensitive.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `INFO` | Level | true
+| `INFO` | LogLevel | true
 |============
 
 
@@ -1486,7 +1528,8 @@ When set to the special value 'System.out',
 the logs are sent to standard out.
 
 NOTE: When logging to a file,
-it's content is deleted when the application starts.
+the log will be formatted in new-line-delimited JSON.
+When logging to std out, the log will be formatted as plain-text.
 
 
 
@@ -1530,6 +1573,87 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-file-size]]
+==== `log_file_size` (added[1.17.0])
+
+The size of the log file.
+
+The agent always keeps one history file so that the max total log file size is twice the value of this setting.
+
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `50mb` | ByteValue | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_file_size` | `log_file_size` | `ELASTIC_APM_LOG_FILE_SIZE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-format-sout]]
+==== `log_format_sout` (added[1.17.0])
+
+Defines the log format when logging to `System.out`.
+
+When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+where each log event is serialized as a single line.
+
+
+
+Valid options: `PLAIN_TEXT`, `JSON`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `PLAIN_TEXT` | LogFormat | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_format_sout` | `log_format_sout` | `ELASTIC_APM_LOG_FORMAT_SOUT`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-format-file]]
+==== `log_format_file` (added[1.17.0])
+
+Defines the log format when logging to a file.
+
+When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+where each log event is serialized as a single line.
+
+
+
+
+Valid options: `PLAIN_TEXT`, `JSON`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `PLAIN_TEXT` | LogFormat | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_format_file` | `log_format_file` | `ELASTIC_APM_LOG_FORMAT_FILE`
 |============
 
 [[config-messaging]]
@@ -2095,7 +2219,6 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 [[config-span-frames-min-duration]]
 ==== `span_frames_min_duration` (performance)
 
-In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
@@ -2554,6 +2677,8 @@ The default unit for this option is `ms`.
 # all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 # regardless of their duration.
 # 
+# NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+# the higher of both thresholds will determine which spans will be discarded.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
@@ -2628,6 +2753,26 @@ The default unit for this option is `ms`.
 # Default value: true
 #
 # use_elastic_traceparent_header=true
+
+# Sets the minimum duration of spans.
+# Spans that execute faster than this threshold are attempted to be discarded.
+# 
+# The attempt fails if they lead up to a span that can't be discarded.
+# Spans that propagate the trace context to downstream services,
+# such as outgoing HTTP requests,
+# can't be discarded.
+# Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.
+# 
+# However, external calls that don't propagate context,
+# such as calls to a database, can be discarded using this threshold.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# span_min_duration=0ms
 
 ############################################
 # HTTP                                     #
@@ -2857,9 +3002,9 @@ The default unit for this option is `ms`.
 # 
 # This option is case-insensitive.
 #
-# Valid options: ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
-# Type: Level
+# Type: LogLevel
 # Default value: INFO
 #
 # log_level=INFO
@@ -2872,7 +3017,8 @@ The default unit for this option is `ms`.
 # the logs are sent to standard out.
 # 
 # NOTE: When logging to a file,
-# it's content is deleted when the application starts.
+# the log will be formatted in new-line-delimited JSON.
+# When logging to std out, the log will be formatted as plain-text.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -2892,6 +3038,42 @@ The default unit for this option is `ms`.
 # Default value: false
 #
 # enable_log_correlation=false
+
+# The size of the log file.
+# 
+# The agent always keeps one history file so that the max total log file size is twice the value of this setting.
+# 
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: ByteValue
+# Default value: 50mb
+#
+# log_file_size=50mb
+
+# Defines the log format when logging to `System.out`.
+# 
+# When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+# where each log event is serialized as a single line.
+#
+# Valid options: PLAIN_TEXT, JSON
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: LogFormat
+# Default value: PLAIN_TEXT
+#
+# log_format_sout=PLAIN_TEXT
+
+# Defines the log format when logging to a file.
+# 
+# When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+# where each log event is serialized as a single line.
+# 
+#
+# Valid options: PLAIN_TEXT, JSON
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: LogFormat
+# Default value: PLAIN_TEXT
+#
+# log_format_file=PLAIN_TEXT
 
 ############################################
 # Messaging                                #
@@ -3171,7 +3353,6 @@ The default unit for this option is `ms`.
 #
 # stack_trace_limit=50
 
-# In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 # When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 

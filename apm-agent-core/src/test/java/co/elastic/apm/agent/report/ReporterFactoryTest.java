@@ -109,7 +109,7 @@ class ReporterFactoryTest {
     @Test
     void testNotValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
-        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
+        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null));
 
         reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
@@ -123,7 +123,7 @@ class ReporterFactoryTest {
     @Test
     void testValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
-        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
+        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null));
 
         reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();

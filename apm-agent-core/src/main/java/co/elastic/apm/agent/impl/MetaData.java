@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,9 +34,9 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
-
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.UUID;
 
 public class MetaData {
 
@@ -65,14 +65,16 @@ public class MetaData {
         globalLabelValues = new ArrayList<>(globalLabels.values());
     }
 
-    public static MetaData create(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName, @Nullable String frameworkVersion) {
+    public static MetaData create(ConfigurationRegistry configurationRegistry, @Nullable String ephemeralId) {
+        if (ephemeralId == null) {
+            ephemeralId = UUID.randomUUID().toString();
+        }
         final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        final Service service = new ServiceFactory().createService(coreConfiguration, frameworkName, frameworkVersion);
+        final Service service = new ServiceFactory().createService(coreConfiguration, ephemeralId);
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        
         return new MetaData(processInformation, service, SystemInfo.create(coreConfiguration.getHostname()), coreConfiguration.getGlobalLabels());
     }
 

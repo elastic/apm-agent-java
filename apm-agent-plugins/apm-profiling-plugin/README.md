@@ -89,25 +89,37 @@ Two consecutive method invocations are interpreted as one longer execution
 [actual]   [actual]   ->  [--------  --------]
 ^          ^              
 ```
-#### With non-implemented workaround
 
-Actual spans can't be a child of an inferred span, as inferred spans are sent later (after profiling session ends)
+#### With workaround
+
+These are some tricky situations we have managed to find a workaround for.
+
+##### Regular spans as a child of an inferred span
+
+This is tricky as regular spans are sent to APM Server right after the event has ended.
+Inferred spans are sent later - after the profiling session ends.
+
+This is how the situation looks like without a workaround:
 ```
 [transaction   ]     [transaction   ]  
 └─[inferred  ]    -> ├─[inferred  ]    
   └─[actual]         └───[actual]      
 ```
+There are situations where the ordering is off as a result of that.
 
-#### With workaround
+The workaround is that inferred spans set a child_ids array,
+containing an array of regular spans they are the parent of.
 
-Parent inferred span ends before child. Workaround: set end timestamp of inferred span to end timestamp of actual span.
+##### Parent inferred span ends before child
+Workaround: set end timestamp of inferred span to end timestamp of actual span.
 ```
 [inferred ]--------         [inferred  -----]--
          [actual]       ->           [actual]
 ^         ^         ^     
 ```
 
-Parent inferred span starts after child. Workaround: set start timestamp of inferred span to start timestamp of actual span.
+##### Parent inferred span starts after child
+Workaround: set start timestamp of inferred span to start timestamp of actual span.
 ```
   --------[inferred ]          --[------inferred ]
     [actual ]           ->       [actual ]        
