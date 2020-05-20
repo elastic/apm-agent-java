@@ -81,7 +81,7 @@ public class ApmServerClient {
     }
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
-        initHttpUrlConnectionClass();
+//        initHttpUrlConnectionClass();
         this.reporterConfiguration = reporterConfiguration;
         this.healthChecker = new ApmServerHealthChecker(this);
         this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
