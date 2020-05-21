@@ -182,12 +182,14 @@ public class GrpcHelperImpl implements GrpcHelper {
             // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
             // and set 'unknown' status, we just replicate this behavior as we don't instrument the part that does this
             endTransaction(Status.UNKNOWN, thrown, transaction);
+        }
 
+        if (thrown != null || isLastMethod) {
             // listener won't be called anymore
-            inFlightServerListeners.remove(listener);
-        } else if (isLastMethod) {
-            // last method of listener, listener won't be called anymore
-            inFlightServerListeners.remove(listener);
+            ServerCall<?, ?> serverCall = inFlightServerListeners.remove(listener);
+            if (serverCall != null) {
+                inFlightTransactions.remove(serverCall);
+            }
         }
     }
 
