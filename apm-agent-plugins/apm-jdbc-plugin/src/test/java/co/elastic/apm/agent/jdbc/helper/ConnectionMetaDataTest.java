@@ -90,6 +90,7 @@ class ConnectionMetaDataTest {
         // https://docs.actian.com/ingres/11.0/index.html#page/QuickStart_Win/5._Connecting_to_Ingres_Using_JDBC.htm
         testUrl("jdbc:ingres://myhost:II7/testdb;UID=userid;PWD=password", "ingres", "myhost", -1);
         testUrl("jdbc:ingres://localhost:II7/testdb;UID=userid;PWD=password", "ingres", "localhost", -1);
+        testUrl("jdbc:ingres://localhost:567/testdb;UID=userid;PWD=password", "ingres", "localhost", 567);
     }
 
     @Test
