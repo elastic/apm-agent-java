@@ -543,7 +543,12 @@ public class ConnectionMetaData {
             if (indexOfColon > 0) {
                 host = hostPort.substring(0, indexOfColon);
                 if (hostPort.length() > indexOfColon + 1) {
-                    port = Integer.parseInt(hostPort.substring(indexOfColon + 1));
+                    String portString = hostPort.substring(indexOfColon + 1);
+                    try {
+                        port = Integer.parseInt(portString);
+                    } catch (NumberFormatException e) {
+                        logger.debug("Port parsed from the connection string {} is not a number - {}", url, portString);
+                    }
                 }
             } else {
                 host = hostPort;
