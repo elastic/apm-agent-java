@@ -37,6 +37,7 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
 
 [float]
 ===== Bug fixes
+* Ingres/Actian connection string parsing throws `NumberFormatException` - {pull}1198[#1198]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

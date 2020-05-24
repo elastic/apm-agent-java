@@ -213,11 +213,7 @@ public class ConnectionMetaData {
                             host = parts[0];
                         }
                         if (parts.length > 1) {
-                            try {
-                                port = Integer.parseInt(parts[1]);
-                            } catch (NumberFormatException e) {
-                                // apparently not a port...
-                            }
+                            port = toNumericPort(connectionUrl, parts[1], DEFAULT_PORT);
                         }
                     }
                 }
@@ -269,13 +265,13 @@ public class ConnectionMetaData {
                 if (parsedTree == null) {
                     logger.warn("Failed to parse Oracle DB address list from: {}", connectionUrl);
                 } else {
-                    ret = findAddressInTree(parsedTree);
+                    ret = findAddressInTree(connectionUrl, parsedTree);
                 }
                 return ret;
             }
 
             @Nullable
-            HostPort findAddressInTree(TreeNode treeNode) {
+            HostPort findAddressInTree(String connectionUrl, TreeNode treeNode) {
                 if (treeNode.name.toString().trim().equals("address")) {
                     String host = null;
                     int port = -1;
@@ -284,7 +280,7 @@ public class ConnectionMetaData {
                         if (name.equals("host")) {
                             host = childNode.value.toString().trim();
                         } else if (name.equals("port")) {
-                            port = Integer.parseInt(childNode.value.toString().trim());
+                            port = toNumericPort(connectionUrl, childNode.value.toString().trim());
                         }
                     }
                     if (host != null) {
@@ -294,7 +290,7 @@ public class ConnectionMetaData {
 
                 HostPort ret = null;
                 for (TreeNode childNode : treeNode.childNodes) {
-                    ret = findAddressInTree(childNode);
+                    ret = findAddressInTree(connectionUrl, childNode);
                     if (ret != null) {
                         break;
                     }
@@ -543,18 +539,27 @@ public class ConnectionMetaData {
             if (indexOfColon > 0) {
                 host = hostPort.substring(0, indexOfColon);
                 if (hostPort.length() > indexOfColon + 1) {
-                    String portString = hostPort.substring(indexOfColon + 1);
-                    try {
-                        port = Integer.parseInt(portString);
-                    } catch (NumberFormatException e) {
-                        logger.debug("Port parsed from the connection string {} is not a number - {}", url, portString);
-                    }
+                    port = toNumericPort(url, hostPort.substring(indexOfColon + 1));
                 }
             } else {
                 host = hostPort;
             }
 
             return new HostPort(host, port);
+        }
+
+        static int toNumericPort(String url, String portString) {
+            return toNumericPort(url, portString, -1);
+        }
+
+        static int toNumericPort(String url, String portString, int defaultPort) {
+            int port = defaultPort;
+            try {
+                port = Integer.parseInt(portString);
+            } catch (NumberFormatException e) {
+                logger.debug("Port parsed from the connection string {} is not a number - {}", url, portString);
+            }
+            return port;
         }
 
         @Nullable static HostPort parseMySqlFlavor(String connectionUrl) {
@@ -619,7 +624,7 @@ public class ConnectionMetaData {
                         int port = -1;
                         Matcher portMatcher = Pattern.compile("\\s*port\\s*=\\s*([^)]+)\\s*").matcher(tmp);
                         if (portMatcher.find()) {
-                            port = Integer.parseInt(portMatcher.group(1).trim());
+                            port = toNumericPort(connectionUrl, portMatcher.group(1).trim());
                         }
                         return new HostPort(host, port);
                     } else {
@@ -641,7 +646,7 @@ public class ConnectionMetaData {
                             if (keyValue[0].trim().equals("host")) {
                                 host = keyValue[1].trim();
                             } else if (keyValue[0].trim().equals("port")) {
-                                port = Integer.parseInt(keyValue[1].trim());
+                                port = toNumericPort(connectionUrl, keyValue[1].trim());
                             }
                         }
                     }
