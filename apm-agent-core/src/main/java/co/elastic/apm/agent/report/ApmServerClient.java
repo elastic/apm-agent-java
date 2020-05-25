@@ -81,7 +81,7 @@ public class ApmServerClient {
     }
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
-//        initHttpUrlConnectionClass();
+        initHttpUrlConnectionClass();
         this.reporterConfiguration = reporterConfiguration;
         this.healthChecker = new ApmServerHealthChecker(this);
         this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
@@ -103,9 +103,13 @@ public class ApmServerClient {
     private void initHttpUrlConnectionClass() {
         try {
             new URL("http://localhost:11111").openConnection();
+        } catch (IOException e) {
+            // silently ignored
+        }
+        try {
             new URL("https://localhost:11111").openConnection();
         } catch (IOException e) {
-            //ignore
+            // silently ignored
         }
     }
 
