@@ -532,7 +532,7 @@ public class CallTree implements Recyclable {
 
 
     private void stealLastChildId(CallTree giveTo) {
-        if (childIds != null) {
+        if (childIds != null && !childIds.isEmpty()) {
             giveTo.addChildId(childIds.remove(childIds.getSize() - 1));
         }
     }
