@@ -282,7 +282,7 @@ public class CallTree implements Recyclable {
                 // that needs to be transferred to this call tree node
                 // in the above example, 1's child id would be first transferred from a to b and then from b to c
                 // this ensures that the UI knows that c is the parent of 1
-                parent.stealLastChildId(this);
+                parent.giveLastChildIdTo(this);
             }
 
             List<CallTree> callTrees = getChildren();
@@ -484,7 +484,7 @@ public class CallTree implements Recyclable {
      * <p>
      * We would add the id of span {@code 1} to {@code b}'s {@link #maybeChildIds}.
      * But after seeing the next frame,
-     * we realize the {@code b} has already ended and that we should {@link #stealMaybeChildIds} from {@code b} and give it to {@code a}.
+     * we realize the {@code b} has already ended and that we should {@link #giveMaybeChildIdsTo} from {@code b} and give it to {@code a}.
      * This logic is implemented in {@link CallTree.Root#addStackTrace}.
      * After seeing another frame of {@code a}, we know that {@code 1} is really the child of {@code a}, so we {@link #transferMaybeChildIdsToChildIds()}.
      * </p>
@@ -514,11 +514,11 @@ public class CallTree implements Recyclable {
         for (int i = 0, childrenSize = children.size(); i < childrenSize; i++) {
             children.get(i).recursiveGiveChildIdsTo(giveTo);
         }
-        stealChildIds(giveTo);
-        stealMaybeChildIds(giveTo);
+        giveChildIdsTo(giveTo);
+        giveMaybeChildIdsTo(giveTo);
     }
 
-    void stealChildIds(CallTree giveTo) {
+    void giveChildIdsTo(CallTree giveTo) {
         if (this.childIds == null) {
             return;
         }
@@ -531,13 +531,13 @@ public class CallTree implements Recyclable {
     }
 
 
-    private void stealLastChildId(CallTree giveTo) {
+    void giveLastChildIdTo(CallTree giveTo) {
         if (childIds != null && !childIds.isEmpty()) {
             giveTo.addChildId(childIds.remove(childIds.getSize() - 1));
         }
     }
 
-    void stealMaybeChildIds(CallTree giveTo) {
+    void giveMaybeChildIdsTo(CallTree giveTo) {
         if (this.maybeChildIds == null) {
             return;
         }
@@ -669,7 +669,7 @@ public class CallTree implements Recyclable {
             if (firstFrameAfterActivation && previousTopOfStack != topOfStack && previousTopOfStack != null && previousTopOfStack.hasChildIds()) {
                 if (!topOfStack.isSuccessor(previousTopOfStack)) {
                     CallTree commonAncestor = findCommonAncestor(previousTopOfStack, topOfStack);
-                    previousTopOfStack.stealMaybeChildIds(commonAncestor != null ? commonAncestor : topOfStack);
+                    previousTopOfStack.giveMaybeChildIdsTo(commonAncestor != null ? commonAncestor : topOfStack);
                 }
             }
         }
