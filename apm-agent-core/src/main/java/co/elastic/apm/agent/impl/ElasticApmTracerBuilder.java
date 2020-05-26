@@ -117,6 +117,8 @@ public class ElasticApmTracerBuilder {
     }
 
     public ElasticApmTracer build() {
+        initializeJavaUtilLogging();
+
         boolean addApmServerConfigSource = false;
         List<LifecycleListener> lifecycleListeners = new ArrayList<>();
 
@@ -151,6 +153,21 @@ public class ElasticApmTracerBuilder {
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.start(lifecycleListeners);
         return tracer;
+    }
+
+    /**
+     * A noop method aimed for working around the JULI deadlock reported at https://github.com/elastic/apm-agent-java/issues/954.
+     * The main thread creates an {@link ApmServerClient} and then starts the Tracer, which start the {@link LifecycleListener}s.
+     * One of the listeners is the JMX metric tracker, that initializes the JUL mechanism. Concurrently, another thread is
+     * doing healthcheck with the APM server (kicked from the {@link ApmServerClient}), and this may cause a deadlock.
+     * Calling this method before both, should prevent this deadlock.
+     */
+    private void initializeJavaUtilLogging() {
+        try {
+            java.util.logging.Logger.getLogger("noop");
+        } catch (Throwable th) {
+            logger.info("Failed to initialized the Java Util Logging mechanism", th);
+        }
     }
 
     private LifecycleListener scheduleReloadAtRate(final ConfigurationRegistry configurationRegistry, final int rate, TimeUnit seconds) {

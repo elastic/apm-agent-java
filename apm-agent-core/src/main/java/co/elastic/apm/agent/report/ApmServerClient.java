@@ -81,7 +81,6 @@ public class ApmServerClient {
     }
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
-        initHttpUrlConnectionClass();
         this.reporterConfiguration = reporterConfiguration;
         this.healthChecker = new ApmServerHealthChecker(this);
         this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
@@ -94,19 +93,6 @@ public class ApmServerClient {
             }
         });
         setServerUrls(Collections.unmodifiableList(shuffledUrls));
-    }
-
-    /**
-     * A noop method for the sole purpose of loading the HttpUrlConnection class as a side effect, on the main thread,
-     * in order to work around the JULI deadlock reported at https://github.com/elastic/apm-agent-java/issues/954
-     */
-    private void initHttpUrlConnectionClass() {
-        try {
-            new URL("http://localhost:11111").openConnection();
-            new URL("https://localhost:11111").openConnection();
-        } catch (IOException e) {
-            //ignore
-        }
     }
 
     private void setServerUrls(List<URL> serverUrls) {
