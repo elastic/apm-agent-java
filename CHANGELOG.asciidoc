@@ -40,6 +40,7 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
 * Fixes `IndexOutOfBoundsException` that can occur when profiler-inferred spans are enabled.
   This also makes the profiler more resilient by just removing the call tree related to the exception (which might be in an invalid state)
   as opposed to stopping the profiler when an exception occurs.
+* Fix `NumberFormatException` when parsing Ingres/Actian JDBC connection strings - {pull}1198[#1198]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
