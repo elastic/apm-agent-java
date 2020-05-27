@@ -100,7 +100,7 @@ public interface JvmDiscoverer {
             for (String s : jpsOutput.split("\n")) {
                 JvmInfo parse = JvmInfo.parse(s);
                 // ignore jps command that we just started as it's already terminated and not relevant for attachment
-                if(!parse.packageOrPathOrJvmProperties.contains("sun.tools.jps.Jps")){
+                if(!parse.packageOrPathOrJvmProperties.contains(".Jps")){
                     set.add(parse);
                 }
             }
