@@ -45,6 +45,8 @@ public class Main {
             warmCount = 1;
         }
 
+        boolean waitForKeystroke = arguments.contains("--wait");
+
         if (isBench) {
             HelloServer.setVerbose(false);
         }
@@ -58,6 +60,9 @@ public class Main {
                 execute(client, true, warmCount);
                 System.out.println("benchmark warmup completed");
 
+                if (waitForKeystroke) {
+                    waitForKey();
+                }
                 System.out.println(String.format("benchmark with count = %d", count));
             }
 
@@ -65,6 +70,10 @@ public class Main {
 
             if (isBench) {
                 System.out.println("benchmark completed");
+
+                if (waitForKeystroke) {
+                    waitForKey();
+                }
             }
 
         } catch (IOException | InterruptedException | ExecutionException e) {
@@ -76,6 +85,11 @@ public class Main {
                 e.printStackTrace();
             }
         }
+    }
+
+    private static void waitForKey() throws IOException {
+        System.out.println("hit any key to continue");
+        System.in.read();
     }
 
     private static void execute(HelloClient<?, ?> client, boolean isBench, int count) throws InterruptedException, ExecutionException {
