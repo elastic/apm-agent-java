@@ -324,6 +324,6 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     @Test
     void testFrameworkNameWithStartTransactionWithRemoteParent() {
         ElasticApm.startTransactionWithRemoteParent(null).end();
-        assertThat(reporter.getFirstTransaction().getContext().getFrameworkName()).isEqualTo("API");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
     }
 }

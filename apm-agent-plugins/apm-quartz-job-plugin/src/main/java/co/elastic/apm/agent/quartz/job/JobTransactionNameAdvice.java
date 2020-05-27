@@ -71,13 +71,14 @@ public class JobTransactionNameAdvice {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }
             if (transaction != null) {
-                transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                transaction.setFrameworkName(FRAMEWORK_NAME);
                 String version = versionsCache.get(JobExecutionContext.class);
-                if (version == null) {
+                boolean isContains = versionsCache.containsKey(JobExecutionContext.class);
+                if (version == null && !isContains) {
                     version = VersionUtils.getVersionFromPomProperties(JobExecutionContext.class, "org.quartz-scheduler", "quartz");
                     versionsCache.put(JobExecutionContext.class, version);
                 }
-                transaction.getContext().setFrameworkVersion(version);
+                transaction.setFrameworkVersion(version);
             }
         }
     }

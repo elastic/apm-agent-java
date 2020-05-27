@@ -91,7 +91,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                     }
                     transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
                         .activate();
-                    transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
                 }
                 abstractSpan = transaction;
             }

@@ -83,7 +83,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
                     }
                     transaction.withType(type)
                         .activate();
-                    transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
                 }
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);

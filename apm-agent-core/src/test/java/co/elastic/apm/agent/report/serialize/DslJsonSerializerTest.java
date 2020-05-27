@@ -541,15 +541,16 @@ class DslJsonSerializerTest {
 
         transaction.getContext().getMessage().withQueue("test_queue").withAge(0);
 
-        TransactionContext transactionContext = transaction.getContext();
         TraceContext ctx = transaction.getTraceContext();
 
         String serviceName = RandomStringUtils.randomAlphabetic(5);
         String frameworkName = RandomStringUtils.randomAlphanumeric(10);
         String frameworkVersion = RandomStringUtils.randomNumeric(3);
+
         ctx.setServiceName(serviceName);
-        transactionContext.setFrameworkName(frameworkName);
-        transactionContext.setFrameworkVersion(frameworkVersion);
+
+        transaction.setFrameworkName(frameworkName);
+        transaction.setFrameworkVersion(frameworkVersion);
 
         String jsonString = serializer.toJsonString(transaction);
         JsonNode json = readJsonString(jsonString);

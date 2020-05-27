@@ -28,5 +28,5 @@ public final class Utils {
 
     private Utils() { }
 
-    protected static final String FRAMEWORK_NAME = "API";
+    public static final String FRAMEWORK_NAME = "API";
 }

@@ -125,7 +125,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
         Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
         if (transaction != null) {
-            transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+            transaction.setFrameworkName(FRAMEWORK_NAME);
         }
         return transaction;
     }

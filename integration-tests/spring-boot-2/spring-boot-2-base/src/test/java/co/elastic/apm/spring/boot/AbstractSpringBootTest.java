@@ -109,8 +109,8 @@ public abstract class AbstractSpringBootTest {
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
         assertThat(transaction.getTraceContext().getServiceName()).isEqualTo("spring-boot-test");
-        assertThat(transaction.getContext().getFrameworkName()).isEqualTo("Spring Web MVC");
-        assertThat(transaction.getContext().getFrameworkVersion()).isEqualTo("5.1.9.RELEASE");
+        assertThat(transaction.getFrameworkName()).isEqualTo("Spring Web MVC");
+        assertThat(transaction.getFrameworkVersion()).isEqualTo("5.1.9.RELEASE");
     }
 
     @Test
@@ -120,7 +120,7 @@ public abstract class AbstractSpringBootTest {
             .contains("// empty test script");
 
         assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("ResourceHttpRequestHandler");
-        assertThat(reporter.getFirstTransaction().getContext().getFrameworkName()).isEqualTo("Spring Web MVC");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("Spring Web MVC");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("username");
     }
 

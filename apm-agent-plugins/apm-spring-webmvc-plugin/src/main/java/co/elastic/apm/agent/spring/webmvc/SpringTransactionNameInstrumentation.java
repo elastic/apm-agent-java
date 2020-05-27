@@ -26,7 +26,6 @@ package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -132,8 +131,8 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
                     if (logger.isDebugEnabled()) {
                         logger.debug("Set name {} to transaction {}", transaction.getNameAsString(), transaction.getTraceContext().getId());
                     }
-                    transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
-                    transaction.getContext().setFrameworkVersion(SpringVersion.getVersion());
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
+                    transaction.setFrameworkVersion(SpringVersion.getVersion());
                 } else {
                     logger.debug("Transaction is null");
                 }

@@ -138,7 +138,7 @@ public class ServletApiAdvice {
                     }
                 }
             }
-            transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+            transaction.setFrameworkName(FRAMEWORK_NAME);
 
             servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
                 request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),

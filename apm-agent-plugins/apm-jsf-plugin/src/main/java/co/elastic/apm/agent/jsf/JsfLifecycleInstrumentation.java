@@ -123,7 +123,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                                     transaction.appendToName(pathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
                                 }
                             }
-                            transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                            transaction.setFrameworkName(FRAMEWORK_NAME);
                         } catch (Exception e) {
                             // do nothing- rely on the default servlet name logic
                         }

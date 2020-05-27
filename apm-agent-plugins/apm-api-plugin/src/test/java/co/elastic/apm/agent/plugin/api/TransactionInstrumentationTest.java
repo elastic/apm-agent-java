@@ -54,7 +54,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     @Test
     void testFrameworkName() {
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getContext().getFrameworkName()).isEqualTo("API");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
     }
 
     @Test

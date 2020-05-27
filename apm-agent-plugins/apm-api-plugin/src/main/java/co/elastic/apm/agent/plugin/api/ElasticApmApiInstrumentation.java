@@ -70,7 +70,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             if (tracer != null) {
                 transaction = tracer.startRootTransaction(clazz.getClassLoader());
                 if (transaction != null) {
-                    ((Transaction) transaction).getContext().setFrameworkName(FRAMEWORK_NAME);
+                    ((Transaction) transaction).setFrameworkName(FRAMEWORK_NAME);
                 }
             }
         }
@@ -102,7 +102,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                     transaction = tracer.startRootTransaction(clazz.getClassLoader());
                 }
                 if (transaction != null) {
-                    ((Transaction) transaction).getContext().setFrameworkName(FRAMEWORK_NAME);
+                    ((Transaction) transaction).setFrameworkName(FRAMEWORK_NAME);
                 }
             }
         }

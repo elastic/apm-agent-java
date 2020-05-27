@@ -132,7 +132,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 }
                 Transaction transaction = tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
                 if (transaction != null) {
-                    transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
                 }
                 return transaction;
             }

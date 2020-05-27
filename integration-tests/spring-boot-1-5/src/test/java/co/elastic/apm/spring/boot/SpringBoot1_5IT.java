@@ -84,8 +84,8 @@ public class SpringBoot1_5IT {
         // which is before the transaction has ended
         Transaction firstTransaction = reporter.getFirstTransaction(500);
         assertThat(firstTransaction.getNameAsString()).isEqualTo("TestApp#greeting");
-        assertThat(firstTransaction.getContext().getFrameworkName()).isEqualTo("Spring Web MVC");
-        assertThat(firstTransaction.getContext().getFrameworkVersion()).isEqualTo("4.3.25.RELEASE");
+        assertThat(firstTransaction.getFrameworkName()).isEqualTo("Spring Web MVC");
+        assertThat(firstTransaction.getFrameworkVersion()).isEqualTo("4.3.25.RELEASE");
     }
 
     @Test
@@ -96,8 +96,8 @@ public class SpringBoot1_5IT {
 
         Transaction firstTransaction = reporter.getFirstTransaction(500);
         assertThat(firstTransaction.getNameAsString()).isEqualTo("ResourceHttpRequestHandler");
-        assertThat(firstTransaction.getContext().getFrameworkName()).isEqualTo("Spring Web MVC");
-        assertThat(firstTransaction.getContext().getFrameworkVersion()).isEqualTo("4.3.25.RELEASE");
+        assertThat(firstTransaction.getFrameworkName()).isEqualTo("Spring Web MVC");
+        assertThat(firstTransaction.getFrameworkVersion()).isEqualTo("4.3.25.RELEASE");
     }
 
     @Controller

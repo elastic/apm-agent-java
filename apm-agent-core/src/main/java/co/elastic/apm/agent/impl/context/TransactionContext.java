@@ -58,19 +58,11 @@ public class TransactionContext extends AbstractContext {
      */
     private final User user = new User();
 
-    @Nullable
-    private String frameworkName;
-
-    @Nullable
-    private String frameworkVersion;
-
     public void copyFrom(TransactionContext other) {
         super.copyFrom(other);
         response.copyFrom(other.response);
         request.copyFrom(other.request);
         user.copyFrom(other.user);
-        this.frameworkName = other.getFrameworkName();
-        this.frameworkVersion = other.getFrameworkVersion();
     }
 
     public Object getCustom(String key) {
@@ -118,25 +110,6 @@ public class TransactionContext extends AbstractContext {
     public User getUser() {
         return user;
     }
-
-    public void setFrameworkName(@Nullable String frameworkName) {
-        this.frameworkName = frameworkName;
-    }
-
-    @Nullable
-    public String getFrameworkName() {
-        return this.frameworkName;
-    }
-
-    public void setFrameworkVersion(@Nullable String frameworkVersion) {
-        this.frameworkVersion = frameworkVersion;
-    }
-
-    @Nullable
-    public String getFrameworkVersion() {
-        return this.frameworkVersion;
-    }
-
     @Override
     public void resetState() {
         super.resetState();
@@ -144,8 +117,6 @@ public class TransactionContext extends AbstractContext {
         response.resetState();
         request.resetState();
         user.resetState();
-        frameworkName = null;
-        frameworkVersion = null;
     }
 
     public void onTransactionEnd() {

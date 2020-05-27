@@ -268,8 +268,21 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getContext().getFrameworkName()).isEqualTo("JAX-RS");
-        assertThat(reporter.getFirstTransaction().getContext().getFrameworkVersion()).isEqualTo("2.1");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("JAX-RS");
+        assertThat(reporter.getFirstTransaction().getFrameworkVersion()).isEqualTo("2.1");
+    }
+
+    @Test
+    public void testJaxRsFrameworkNameAndVersionWithNonSampledTransaction() throws IOException {
+        config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("JAX-RS");
+        assertThat(reporter.getFirstTransaction().getFrameworkVersion()).isEqualTo("2.1");
     }
 
     /**

@@ -443,7 +443,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
                                                 @Nullable String messageValue, String topic) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + topic);
-        assertThat(transaction.getContext().getFrameworkName()).isEqualTo("Kafka");
+        assertThat(transaction.getFrameworkName()).isEqualTo("Kafka");
 
         TraceContext traceContext = transaction.getTraceContext();
         if (parentSpan != null) {

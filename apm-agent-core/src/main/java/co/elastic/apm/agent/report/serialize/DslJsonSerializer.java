@@ -279,7 +279,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         if (errorCapture.getTraceContext().hasContent()) {
             serializeTraceContext(errorCapture.getTraceContext(), true);
         }
-        serializeContext(errorCapture.getContext(), errorCapture.getTraceContext());
+        serializeContext(null, errorCapture.getContext(), errorCapture.getTraceContext());
         writeField("culprit", errorCapture.getCulprit());
         serializeException(errorCapture.getException());
 
@@ -525,7 +525,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDurationMs());
         writeField("result", transaction.getResult());
-        serializeContext(transaction.getContext(), transaction.getTraceContext());
+        serializeContext(transaction, transaction.getContext(), transaction.getTraceContext());
         serializeSpanCount(transaction.getSpanCount());
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
@@ -587,15 +587,17 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
     }
 
-    private void serializeServiceNameWithFramework(final TransactionContext context, final TraceContext traceContext) {
+    private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext) {
         String serviceName = traceContext.getServiceName();
-        if (serviceName != null || context.getFrameworkName() != null) {
+        if (serviceName != null || transaction != null) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
             if (serviceName != null) {
                 writeLastField("name", serviceName);
             }
-            serializeFrameworkName(serviceName == null, context.getFrameworkName(), context.getFrameworkVersion());
+            if (transaction != null) {
+                serializeFrameworkName(serviceName == null, transaction.getFrameworkName(), transaction.getFrameworkVersion());
+            }
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
@@ -898,10 +900,10 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(COMMA);
     }
 
-    private void serializeContext(final TransactionContext context, TraceContext traceContext) {
+    private void serializeContext(@Nullable final Transaction transaction, final TransactionContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
-        serializeServiceNameWithFramework(context, traceContext);
+        serializeServiceNameWithFramework(transaction, traceContext);
 
         if (context.getUser().hasContent()) {
             serializeUser(context.getUser());

@@ -65,7 +65,7 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
             final Transaction transaction = tracer.currentTransaction();
             if (transaction != null) {
                 transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
-                transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                transaction.setFrameworkName(FRAMEWORK_NAME);
             }
         }
     }

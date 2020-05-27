@@ -89,13 +89,14 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                     }
                 }
                 transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
-                transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+                transaction.setFrameworkName(FRAMEWORK_NAME);
                 String version = versionsCache.get(javax.ws.rs.GET.class);
-                if (version == null) {
+                boolean isContains = versionsCache.containsKey(javax.ws.rs.GET.class);
+                if (version == null && !isContains) {
                     version = VersionUtils.getVersionFromPomProperties(javax.ws.rs.GET.class, GROUP_ID, ARTIFACT_ID);
                     versionsCache.put(javax.ws.rs.GET.class, version);
                 }
-                transaction.getContext().setFrameworkVersion(version);
+                transaction.setFrameworkVersion(version);
             }
         }
     }

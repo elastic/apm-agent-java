@@ -114,7 +114,7 @@ public class GrpcHelperImpl implements GrpcHelper {
             .withType("request")
             .activate();
 
-        transaction.getContext().setFrameworkName(FRAMEWORK_NAME);
+        transaction.setFrameworkName(FRAMEWORK_NAME);
 
         return transaction;
     }

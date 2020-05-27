@@ -155,7 +155,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(transaction.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo(expectedResult);
-        assertThat(transaction.getContext().getFrameworkName()).isEqualTo("gRPC");
+        assertThat(transaction.getFrameworkName()).isEqualTo("gRPC");
     }
 
     private static void checkNoTransaction() {

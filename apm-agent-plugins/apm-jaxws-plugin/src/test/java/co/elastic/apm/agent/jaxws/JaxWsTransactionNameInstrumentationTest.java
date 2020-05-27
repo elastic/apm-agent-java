@@ -54,7 +54,7 @@ class JaxWsTransactionNameInstrumentationTest extends AbstractInstrumentationTes
             transaction.end();
         }
         assertThat(transaction.getNameAsString()).isEqualTo("HelloWorldServiceImpl#sayHello");
-        assertThat(transaction.getContext().getFrameworkName()).isEqualTo("JAX-WS");
+        assertThat(transaction.getFrameworkName()).isEqualTo("JAX-WS");
     }
 
     @SOAPBinding(style = SOAPBinding.Style.RPC)
