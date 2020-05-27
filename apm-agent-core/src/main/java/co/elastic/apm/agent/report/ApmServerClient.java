@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.ssl.SslUtils;
+import co.elastic.apm.agent.util.GlobalLocks;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
@@ -115,7 +116,7 @@ public class ApmServerClient {
 
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
-        final URLConnection connection = url.openConnection();
+        final URLConnection connection = openUrlConnectionThreadSafely(url);
 
         // change SSL socket factory to support both TLS fallback and disabling certificate validation
         if (connection instanceof HttpsURLConnection) {
@@ -149,6 +150,15 @@ public class ApmServerClient {
         connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         return (HttpURLConnection) connection;
+    }
+
+    private URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
+        GlobalLocks.JUL_INIT_LOCK.lock();
+        try {
+            return url.openConnection();
+        } finally {
+            GlobalLocks.JUL_INIT_LOCK.unlock();
+        }
     }
 
     @Nonnull
