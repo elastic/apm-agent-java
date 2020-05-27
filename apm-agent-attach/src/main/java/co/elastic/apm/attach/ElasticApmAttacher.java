@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.attach;
 
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.io.File;
@@ -190,10 +192,17 @@ public class ElasticApmAttacher {
                 String hash = md5Hash(ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar"));
                 File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), "elastic-apm-agent-" + hash + ".jar");
                 if (!tempAgentJar.exists()) {
-                    try (OutputStream out = new FileOutputStream(tempAgentJar)) {
-                        byte[] buffer = new byte[1024];
-                        for (int length; (length = agentJar.read(buffer)) != -1;) {
-                            out.write(buffer, 0, length);
+                    try (FileOutputStream out = new FileOutputStream(tempAgentJar)) {
+                        FileChannel channel = out.getChannel();
+                        // If multiple JVM start on same compute, they can write in same file
+                        // and this file will be corrupted.
+                        try(FileLock ignored = channel.lock()) {
+                            if (tempAgentJar.length() == 0) {
+                                byte[] buffer = new byte[1024];
+                                for (int length; (length = agentJar.read(buffer)) != -1; ) {
+                                    out.write(buffer, 0, length);
+                                }
+                            }
                         }
                     }
                 } else if (!md5Hash(new FileInputStream(tempAgentJar)).equals(hash)) {
