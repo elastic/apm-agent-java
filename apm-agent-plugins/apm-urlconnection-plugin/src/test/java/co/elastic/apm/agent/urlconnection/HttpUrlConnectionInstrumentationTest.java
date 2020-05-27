@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -59,13 +61,14 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     public void testEndInDifferentThread() throws Exception {
         final HttpURLConnection urlConnection = new HttpURLConnectionWrapper(new HttpURLConnectionWrapper((HttpURLConnection) new URL(getBaseUrl() + "/").openConnection()));
         urlConnection.connect();
-        final Thread thread = new Thread(tracer.getActive().withActive(() -> {
-            try {
+        AbstractSpan<?> active = tracer.getActive();
+        final Thread thread = new Thread(() -> {
+            try (Scope scope = active.activateInScope()) {
                 urlConnection.getInputStream();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        }));
+        });
         thread.start();
         thread.join();
 

@@ -26,9 +26,8 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.util.DataStructures;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.util.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -56,26 +55,21 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final WeakConcurrentSet<Executor> excluded = DataStructures.createWeakConcurrentSetWithCleanerThread();
-    @VisibleForAdvice
     public static final Set<String> excludedClasses = new HashSet<>();
+    @VisibleForAdvice
+    @Nullable
+    public static JavaConcurrent javaConcurrent;
 
     static {
-        // this pool relies on the task to be an instance of org.glassfish.enterprise.concurrent.internal.ManagedFutureTask
-        // the wrapping is done in org.glassfish.enterprise.concurrent.ManagedExecutorServiceImpl.execute
-        // so this pool only works when called directly from ManagedExecutorServiceImpl
-        // excluding this class from instrumentation does not work as it inherits the execute and submit methods
-        excludedClasses.add("org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor");
-
         // Used in Tomcat 7
         // Especially the wrapping of org.apache.tomcat.util.net.AprEndpoint$SocketProcessor is problematic
         // because that is the Runnable for the actual request processor thread.
         // Wrapping that leaks transactions and spans to other requests.
         excludedClasses.add("org.apache.tomcat.util.threads.ThreadPoolExecutor");
+    }
 
-        // This pool relies on the task to be an instance of com.pilotfish.eip.server.ntm.transact.StageTransactionRunner
-        // in its beforeExecute implementation.
-        excludedClasses.add("com.pilotfish.eip.server.ntm.pool.NTMThreadPool");
+    public ExecutorInstrumentation(ElasticApmTracer tracer) {
+        javaConcurrent = new JavaConcurrent(tracer);
     }
 
     @Override
@@ -103,51 +97,33 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     @VisibleForAdvice
     public static boolean isExcluded(@Advice.This Executor executor) {
-        return excluded.contains(executor) || excludedClasses.contains(executor.getClass().getName());
+        return excludedClasses.contains(executor.getClass().getName());
     }
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
-        @SuppressWarnings("Duplicates")
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onExecute(@Advice.This Executor thiz,
-                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable,
-                                     @Advice.Local("original") Runnable original) {
-            final AbstractSpan<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && runnable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
-                //noinspection UnusedAssignment
-                original = runnable;
-                // Do no discard branches leading to async operations so not to break span references
-                active.setNonDiscardable();
-                runnable = active.withActive(runnable);
-                tracer.avoidWrappingOnThread();
-            }
+        public ExecutorRunnableInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
         }
 
-        // This advice detects if the Executor can't cope with our wrappers
-        // If so, it retries without the wrapper and adds it to a list of excluded Executor instances
-        // which disables context propagation for those
-        // There is a slight risk that retrying causes a side effect but the more likely scenario is that adding the task to the queue
-        // fails and noting has been executed yet.
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, repeatOn = Advice.OnNonDefaultValue.class)
-        public static boolean onError(@Advice.This Executor thiz,
-                                      @Nullable @Advice.Thrown Exception exception,
-                                      @Nullable @Advice.Argument(value = 0, readOnly = false) Runnable runnable,
-                                      @Advice.Local("original") @Nullable Runnable original) {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onExecute(@Advice.This Executor thiz,
+                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
+            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
+            if (CallDepth.isNestedCallAndIncrement(Runnable.class) || javaConcurrent == null || ExecutorInstrumentation.isExcluded(thiz)) {
+                return;
+            }
+            runnable = javaConcurrent.withContext(runnable);
+        }
 
-            try {
-                if (original != null && (exception instanceof ClassCastException || exception instanceof IllegalArgumentException)) {
-                    // seems like this executor expects a specific subtype of Callable
-                    runnable = original;
-                    // repeat only if submitting a task fails for the first time
-                    return excluded.add(thiz);
-                } else {
-                    // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
-                    return false;
-                }
-            } finally {
-                if (tracer != null) {
-                    tracer.allowWrappingOnThread();
-                }
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                   @Advice.Argument(value = 0) @Nullable Runnable runnable) {
+            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
+            if (CallDepth.isNestedCallAndDecrement(Runnable.class) || runnable == null || javaConcurrent == null) {
+                return;
+            }
+            if (thrown != null) {
+                javaConcurrent.removeContext(runnable);
             }
         }
 
@@ -160,43 +136,29 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
-        @SuppressWarnings("Duplicates")
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onSubmit(@Advice.This Executor thiz,
-                                    @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable,
-                                    @Advice.Local("original") Callable original) {
-            final AbstractSpan<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && callable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
-                original = callable;
-                // Do no discard branches leading to async operations so not to break span references
-                active.setNonDiscardable();
-                callable = active.withActive(callable);
-                tracer.avoidWrappingOnThread();
-            }
+        public ExecutorCallableInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
         }
 
-        // This advice detects if the Executor can't cope with our wrappers
-        // If so, it retries without the wrapper and adds it to a list of excluded Executor instances
-        // which disables context propagation for those
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, repeatOn = Advice.OnNonDefaultValue.class)
-        public static boolean onError(@Advice.This Executor thiz,
-                                      @Nullable @Advice.Thrown Exception exception,
-                                      @Nullable @Advice.Argument(value = 0, readOnly = false) Callable callable,
-                                      @Advice.Local("original") Callable original) {
-            try {
-                if (exception instanceof ClassCastException || exception instanceof IllegalArgumentException) {
-                    // seems like this executor expects a specific subtype of Callable
-                    callable = original;
-                    // repeat only if submitting a task fails for the first time
-                    return excluded.add(thiz);
-                } else {
-                    // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
-                    return false;
-                }
-            } finally {
-                if (tracer != null) {
-                    tracer.allowWrappingOnThread();
-                }
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onSubmit(@Advice.This Executor thiz,
+                                    @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable) {
+            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
+            if (CallDepth.isNestedCallAndIncrement(Runnable.class) || javaConcurrent == null || ExecutorInstrumentation.isExcluded(thiz)) {
+                return;
+            }
+            callable = javaConcurrent.withContext(callable);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                   @Advice.Argument(value = 0) @Nullable Callable<?> callable) {
+            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
+            if (CallDepth.isNestedCallAndDecrement(Runnable.class) || callable == null || javaConcurrent == null) {
+                return;
+            }
+            if (thrown != null) {
+                javaConcurrent.removeContext(callable);
             }
         }
 
