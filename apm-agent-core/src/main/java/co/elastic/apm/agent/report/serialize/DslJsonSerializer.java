@@ -589,13 +589,14 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext) {
         String serviceName = traceContext.getServiceName();
-        if (serviceName != null || transaction != null) {
+        boolean isFrameworkNameNotNull = transaction != null && transaction.getFrameworkName() != null;
+        if (serviceName != null || isFrameworkNameNotNull) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
             if (serviceName != null) {
                 writeLastField("name", serviceName);
             }
-            if (transaction != null) {
+            if (isFrameworkNameNotNull) {
                 serializeFrameworkName(serviceName == null, transaction.getFrameworkName(), transaction.getFrameworkVersion());
             }
             jw.writeByte(OBJECT_END);
