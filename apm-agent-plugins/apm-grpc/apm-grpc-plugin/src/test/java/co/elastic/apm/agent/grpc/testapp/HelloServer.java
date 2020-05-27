@@ -73,7 +73,8 @@ public abstract class HelloServer<Req,Rep> {
     }
 
     public void start() throws IOException {
-        serverPool = Executors.newFixedThreadPool(8);
+        int poolSize = Runtime.getRuntime().availableProcessors() / 2;
+        serverPool = Executors.newFixedThreadPool(poolSize);
         server = ServerBuilder.forPort(port)
             .addService(getService())
 //            .executor(serverPool)
