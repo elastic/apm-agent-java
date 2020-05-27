@@ -26,7 +26,11 @@ package co.elastic.apm.attach;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,4 +57,29 @@ class JvmDiscovererTest {
                 .ifPresent((s)-> assertThat(s).doesNotContain("sun.tool.jps.Jps"));
         }
     }
+
+    @Test
+    void getJpsPathNoJavaHome() {
+        Properties sysProperties = new Properties();
+        Path path = JvmDiscoverer.Jps.getJpsPath(sysProperties);
+        assertThat(path).asString()
+            .describedAs("should use binary in path as fallback")
+            .isEqualTo("jps");
+    }
+
+    @Test
+    void getJpsPathWindows() {
+        Properties sysProperties = new Properties();
+        sysProperties.put("os.name", "Windows ME"); // the best one ever !
+        Path path = JvmDiscoverer.Jps.getJpsPath(sysProperties);
+        assertThat(path).asString().isEqualTo("jps.exe");
+        // note: we can't really test both windows+java.home set as it relies on absolute path resolution
+    }
+
+    @Test
+    void getJpsPathCurrentJvm() {
+        Path path = JvmDiscoverer.Jps.getJpsPath(System.getProperties());
+        assertThat(Files.isExecutable(path)).isTrue();
+    }
+
 }

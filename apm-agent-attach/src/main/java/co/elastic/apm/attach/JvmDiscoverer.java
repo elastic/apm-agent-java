@@ -27,7 +27,6 @@ package co.elastic.apm.attach;
 import com.sun.jna.Platform;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
@@ -118,14 +117,26 @@ public interface JvmDiscoverer {
         }
 
         private static Process runJps() throws IOException {
-            return runJps(System.getProperties());
+            return new ProcessBuilder(getJpsPath(System.getProperties()).toString(), "-lv").start();
         }
 
-        private static Process runJps(Properties systemProperties) throws IOException {
-            Path binFolder = Paths.get(systemProperties.getProperty("java.home")).resolve("bin");
+        // package protected for testing
+        static Path getJpsPath(Properties systemProperties) {
+            String javaHome = systemProperties.getProperty("java.home");
             String os = systemProperties.getProperty("os.name");
-            Path jpsBinary = binFolder.resolve(os.startsWith("Windows") ? "jps.exe" : "jps");
-            return new ProcessBuilder(jpsBinary.toAbsolutePath().toString(), "-lv").start();
+            Path binaryPath;
+            if (os != null && os.startsWith("Windows")) {
+                binaryPath = Paths.get("jps.exe");
+            } else {
+                binaryPath = Paths.get("jps");
+            }
+            if (javaHome != null) {
+                binaryPath = Paths.get(javaHome)
+                    .toAbsolutePath()
+                    .resolve("bin")
+                    .resolve(binaryPath);
+            }
+            return binaryPath;
         }
     }
 
