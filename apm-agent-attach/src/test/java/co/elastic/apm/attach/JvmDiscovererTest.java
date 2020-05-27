@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,14 +26,31 @@ package co.elastic.apm.attach;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JvmDiscovererTest {
 
     @Test
     void discoverHotspotJvms() {
-        JvmDiscoverer.ForHotSpotVm hotspotJvmDiscoverer = JvmDiscoverer.ForHotSpotVm.withDefaultTempDir();
-        assertThat(hotspotJvmDiscoverer.isAvailable()).isTrue();
-        assertThat(hotspotJvmDiscoverer.discoverJvms()).contains(new JvmInfo(String.valueOf(ProcessHandle.current().pid()), null));
+        JvmDiscoverer.ForHotSpotVm discoverer = JvmDiscoverer.ForHotSpotVm.withDefaultTempDir();
+        assertThat(discoverer.isAvailable())
+            .describedAs("HotSpot JVM discovery should be available")
+            .isTrue();
+        assertThat(discoverer.discoverJvms()).contains(new JvmInfo(String.valueOf(ProcessHandle.current().pid()), null));
+    }
+
+    @Test
+    void jpsShouldIgnoreJps() throws Exception {
+
+        JvmDiscoverer discoverer = JvmDiscoverer.Jps.INSTANCE;
+        assertThat(discoverer.isAvailable())
+            .describedAs("jps JVM discovery should be available")
+            .isTrue();
+        for (JvmInfo jvm : discoverer.discoverJvms()) {
+            Optional.ofNullable(jvm.packageOrPathOrJvmProperties)
+                .ifPresent((s)-> assertThat(s).doesNotContain("sun.tool.jps.Jps"));
+        }
     }
 }

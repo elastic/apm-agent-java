@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,15 +27,19 @@ package co.elastic.apm.attach;
 import com.sun.jna.Platform;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 public interface JvmDiscoverer {
@@ -78,7 +82,7 @@ public interface JvmDiscoverer {
 
         @Nonnull
         private static String getJpsOutput() throws IOException, InterruptedException {
-            final Process jps = new ProcessBuilder("jps", "-lv").start();
+            final Process jps = runJps();
             if (jps.waitFor() == 0) {
                 return RemoteAttacher.toString(jps.getInputStream());
             } else {
@@ -96,7 +100,10 @@ public interface JvmDiscoverer {
             Set<JvmInfo> set = new HashSet<>();
             for (String s : jpsOutput.split("\n")) {
                 JvmInfo parse = JvmInfo.parse(s);
-                set.add(parse);
+                // ignore jps command that we just started as it's already terminated and not relevant for attachment
+                if(!parse.packageOrPathOrJvmProperties.contains("sun.tools.jps.Jps")){
+                    set.add(parse);
+                }
             }
             return set;
         }
@@ -104,10 +111,21 @@ public interface JvmDiscoverer {
         @Override
         public boolean isAvailable() {
             try {
-                return new ProcessBuilder("jps", "-lv").start().waitFor() == 0;
+                return runJps().waitFor() == 0;
             } catch (Exception e) {
                 return false;
             }
+        }
+
+        private static Process runJps() throws IOException {
+            return runJps(System.getProperties());
+        }
+
+        private static Process runJps(Properties systemProperties) throws IOException {
+            Path binFolder = Paths.get(systemProperties.getProperty("java.home")).resolve("bin");
+            String os = systemProperties.getProperty("os.name");
+            Path jpsBinary = binFolder.resolve(os.startsWith("Windows") ? "jps.exe" : "jps");
+            return new ProcessBuilder(jpsBinary.toAbsolutePath().toString(), "-lv").start();
         }
     }
 
