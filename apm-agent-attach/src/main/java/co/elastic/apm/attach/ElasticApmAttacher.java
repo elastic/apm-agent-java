@@ -196,7 +196,7 @@ public class ElasticApmAttacher {
                         FileChannel channel = out.getChannel();
                         // If multiple JVM start on same compute, they can write in same file
                         // and this file will be corrupted.
-                        try(FileLock ignored = channel.lock()) {
+                        try (FileLock ignored = channel.lock()) {
                             if (tempAgentJar.length() == 0) {
                                 byte[] buffer = new byte[1024];
                                 for (int length; (length = agentJar.read(buffer)) != -1; ) {
