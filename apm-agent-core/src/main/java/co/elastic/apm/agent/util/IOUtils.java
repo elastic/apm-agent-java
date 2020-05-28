@@ -36,6 +36,8 @@ import java.math.BigInteger;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
@@ -217,10 +219,15 @@ public class IOUtils {
             String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
             File tempFile = new File(System.getProperty("java.io.tmpdir"), tempFileNamePrefix + "-" + hash + tempFileNameExtension);
             if (!tempFile.exists()) {
-                try (OutputStream out = new FileOutputStream(tempFile)) {
-                    byte[] buffer = new byte[1024];
-                    for (int length; (length = resourceStream.read(buffer)) != -1; ) {
-                        out.write(buffer, 0, length);
+                try (FileOutputStream out = new FileOutputStream(tempFile)) {
+                    FileChannel channel = out.getChannel();
+                    // If multiple JVM start on same compute, they can write in same file
+                    // and this file will be corrupted.
+                    try (FileLock ignored = channel.lock()) {
+                        byte[] buffer = new byte[1024];
+                        for (int length; (length = resourceStream.read(buffer)) != -1; ) {
+                            out.write(buffer, 0, length);
+                        }
                     }
                 }
             } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
