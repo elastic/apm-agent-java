@@ -33,10 +33,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
-import co.elastic.apm.agent.impl.payload.Framework;
 import co.elastic.apm.agent.impl.payload.Language;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -411,11 +409,6 @@ class DslJsonSerializerTest {
 
     @Test
     void testSerializeMetadata() {
-
-        Framework framework = mock(Framework.class);
-        when(framework.getName()).thenReturn("awesome");
-        when(framework.getVersion()).thenReturn("0.0.1-alpha");
-
         SystemInfo systemInfo = mock(SystemInfo.class);
         SystemInfo.Container container = mock(SystemInfo.Container.class);
         when(container.getId()).thenReturn("container_id");
@@ -428,7 +421,6 @@ class DslJsonSerializerTest {
             .withAgent(new Agent("MyAgent", "1.11.1"))
             .withName("MyService")
             .withVersion("1.0")
-            .withFramework(framework)
             .withLanguage(new Language("c++", "14"));
 
 
@@ -443,11 +435,6 @@ class DslJsonSerializerTest {
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
         assertThat(serviceJson.get("version").textValue()).isEqualTo("1.0");
-
-        JsonNode frameworkJson = serviceJson.get("framework");
-        assertThat(frameworkJson).isNotNull();
-        assertThat(frameworkJson.get("name").asText()).isEqualTo("awesome");
-        assertThat(frameworkJson.get("version").asText()).isEqualTo("0.0.1-alpha");
 
         JsonNode languageJson = serviceJson.get("language");
         assertThat(languageJson).isNotNull();
