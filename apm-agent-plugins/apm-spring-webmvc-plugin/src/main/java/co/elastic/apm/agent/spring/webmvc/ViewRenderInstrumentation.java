@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,8 +26,8 @@ package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -66,7 +66,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
 
             String className = thiz.getClass().getName();
             span = parent.createSpan()

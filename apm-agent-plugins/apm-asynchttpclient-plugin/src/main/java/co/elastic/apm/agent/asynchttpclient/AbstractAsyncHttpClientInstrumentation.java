@@ -29,9 +29,9 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -69,7 +69,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
     public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
         AsyncHandlerOnCompletedInstrumentation.class,
         AsyncHandlerOnThrowableInstrumentation.class,
-        AsyncHandlerOnStatusReceivedInstrumentation.class);
+        AsyncHandlerOnStatusReceivedInstrumentation.class,
+        StreamedAsyncHandlerOnStreamInstrumentation.class);
 
     public AbstractAsyncHttpClientInstrumentation() {
         if (headerSetterManager == null) {
@@ -105,7 +106,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             }
             ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
 
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
             Uri uri = request.getUri();
             span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
 
@@ -116,7 +117,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
                     headerSetter = headerSetterManager.getForClassLoaderOfClass(Request.class);
                 }
                 if (headerSetter != null) {
-                    span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                    span.propagateTraceContext(request, headerSetter);
                 }
                 handlerSpanMap.put(asyncHandler, span);
             }
@@ -178,10 +179,18 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            final Span span = handlerSpanMap.remove(asyncHandler);
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span) {
+            span = handlerSpanMap.remove(asyncHandler);
+            if (span != null) {
+                span.activate();
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span) {
             if (span != null) {
                 span.end();
+                span.deactivate();
             }
         }
     }
@@ -193,10 +202,18 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) Throwable t) {
-            final Span span = handlerSpanMap.remove(asyncHandler);
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span) {
+            span = handlerSpanMap.remove(asyncHandler);
+            if (span != null) {
+                span.activate();
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span, @Advice.Argument(0) Throwable t) {
             if (span != null) {
                 span.captureException(t).end();
+                span.deactivate();
             }
         }
     }
@@ -208,12 +225,43 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) HttpResponseStatus status) {
-            final Span span = handlerSpanMap.get(asyncHandler);
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
+            span = handlerSpanMap.get(asyncHandler);
             if (span != null) {
-                span.getContext().getHttp().withStatusCode(status.getStatusCode());
+                span.activate();
             }
         }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span, @Advice.Argument(0) HttpResponseStatus status) {
+            if (span != null) {
+                span.getContext().getHttp().withStatusCode(status.getStatusCode());
+                span.deactivate();
+            }
+        }
+    }
+
+    public static class StreamedAsyncHandlerOnStreamInstrumentation extends AbstractAsyncHandlerInstrumentation {
+
+        public StreamedAsyncHandlerOnStreamInstrumentation() {
+            super(named("onStream").and(takesArgument(0, named("org.reactivestreams.Publisher"))));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Local("span") Span span) {
+            span = handlerSpanMap.get(asyncHandler);
+            if (span != null) {
+                span.activate();
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span) {
+            if (span != null) {
+                span.deactivate();
+            }
+        }
+
     }
 
 }

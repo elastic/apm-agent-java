@@ -19,21 +19,50 @@ endif::[]
 ////
 
 === Unreleased
-[[release-notes-1.16.0]]
-==== 1.16.0 - YYYY/MM/DD
+
+[[release-notes-1.17.0]]
+==== 1.17.0 - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
 
 [float]
 ===== Features
+* Log files are now rotated after they reach <<config-log-file-size>>.
+There will always be one history file `${log_file}.1`.
+* Add <<config-log-format-sout>> and <<config-log-format-file>> with the options `PLAIN_TEXT` and `JSON`.
+The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to format the logs.
+* Exposing <<config-classes-excluded-from-instrumentation>> config - {pull}1187[#1187]
+
+
+[float]
+===== Bug fixes
+* Fixes `IndexOutOfBoundsException` that can occur when profiler-inferred spans are enabled.
+  This also makes the profiler more resilient by just removing the call tree related to the exception (which might be in an invalid state)
+  as opposed to stopping the profiler when an exception occurs.
+* Fix `NumberFormatException` when parsing Ingres/Actian JDBC connection strings - {pull}1198[#1198]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.16.0]]
+==== 1.16.0 - 2020/05/13
+
+[float]
+===== Features
 
 * The log correlation feature now adds `error.id` to the MDC. See <<supported-logging-frameworks>> for details. - {pull}1050[#1050]
-* Deprecating the `incubating` tag in favour of the `experimental` tag.
-This is not a breaking change, so former
+* Deprecating the `incubating` tag in favour of the `experimental` tag. This is not a breaking change, so former
 <<config-disable-instrumentations,`disable_instrumentation`>> configuration containing the `incubating` tag will still be respected - {pull}1123[#1123]
 * Add a `--without-emulated-attach` option for runtime attachment to allow disabling this feature as a workaround.
 * Add workaround for JDK bug JDK-8236039 with TLS 1.3 {pull}1149[#1149]
+* Add log level `OFF` to silence agent logging
+* Adds <<config-span-min-duration,`span_min_duration`>> option to exclude fast executing spans.
+  When set together with one of the more specific thresholds - `trace_methods_duration_threshold` or `profiling_inferred_spans_min_duration`,
+  the higher threshold will determine which spans will be discarded.
+* Automatically instrument quartz jobs from the quartz-jobs artifact {pull}1170[#1170]
+* Perform re-parenting of regular spans to be a child of profiler-inferred spans. Requires APM Server and Kibana 7.8.0. {pull}1117[#1117]
+* Upgrade Async Profiler version to 1.7.0
 
 [float]
 ===== Bug fixes
@@ -45,10 +74,12 @@ This is not a breaking change, so former
 * Fix flaky gRPC server instrumentation {pull}1122[#1122]
 * Fix side effect of calling `Statement.getUpdateCount` more than once {pull}1139[#1139]
 * Stop capturing JDBC affected rows count using `Statement.getUpdateCount` to prevent unreliable side-effects {pull}1147[#1147]
-
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix OpenTracing error tag handling (set transaction error result when tag value is `true`) {pull}1159[#1159]
+* Due to a bug in the build we didn't include the gRPC plugin in the build so far
+* `java.lang.ClassNotFoundException: Unable to load class 'jdk.internal...'` is thrown when tracing specific versions of Atlassian systems {pull}1168[#1168]
+* Make sure spans are kept active during `AsyncHandler` methods in the `AsyncHttpClient`
+* CPU and memory metrics are sometimes not reported properly when using IBM J9 {pull}1148[#1148]
+* `NullPointerException` thrown by the agent on WebLogic {pull}1142[#1142]
 
 [[release-notes-1.15.0]]
 ==== 1.15.0 - 2020/03/27

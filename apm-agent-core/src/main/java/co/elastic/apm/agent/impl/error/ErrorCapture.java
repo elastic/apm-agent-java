@@ -25,25 +25,30 @@
 package co.elastic.apm.agent.impl.error;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.concurrent.Callable;
+import java.util.List;
 
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Recyclable {
+public class ErrorCapture implements Recyclable {
+
+    private static final Logger logger = LoggerFactory.getLogger(ErrorCapture.class);
 
     private final TraceContext traceContext;
 
@@ -53,6 +58,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
     private final TransactionContext context = new TransactionContext();
+    private final ElasticApmTracer tracer;
     /**
      * Information about the originally thrown error.
      */
@@ -72,7 +78,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
     private final StringBuilder culprit = new StringBuilder();
 
     public ErrorCapture(ElasticApmTracer tracer) {
-        super(tracer);
+        this.tracer = tracer;
         traceContext = TraceContext.with128BitId(this.tracer);
     }
 
@@ -126,7 +132,7 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
      * @param parent parent trace context
      * @return {@code this}, for chaining
      */
-    public ErrorCapture asChildOf(TraceContextHolder<?> parent) {
+    public ErrorCapture asChildOf(AbstractSpan<?> parent) {
         this.traceContext.asChildOf(parent.getTraceContext());
         if (parent instanceof Transaction) {
             Transaction transaction = (Transaction) parent;
@@ -144,32 +150,6 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
 
     public TraceContext getTraceContext() {
         return traceContext;
-    }
-
-    @Override
-    public Span createSpan() {
-        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
-    }
-
-    @Override
-    @Nullable
-    public Span createSpan(long epochMicros) {
-        throw new UnsupportedOperationException("Creating a span as a child of an error is not possible");
-    }
-
-    @Override
-    public boolean isChildOf(TraceContextHolder other) {
-        return getTraceContext().isChildOf(other);
-    }
-
-    @Override
-    public Runnable withActive(Runnable runnable) {
-        throw new UnsupportedOperationException("Wrapping of provided Runnable of an error is not possible");
-    }
-
-    @Override
-    public <V> Callable<V> withActive(Callable<V> callable) {
-        throw new UnsupportedOperationException("Wrapping of provided Callable of an error is not possible");
     }
 
     public void setException(Throwable e) {
@@ -222,6 +202,35 @@ public class ErrorCapture extends TraceContextHolder<ErrorCapture> implements Re
             }
         }
         culprit.append(')');
+    }
+
+    public ErrorCapture activate() {
+        List<ActivationListener> activationListeners = tracer.getActivationListeners();
+        for (int i = 0; i < activationListeners.size(); i++) {
+            try {
+                activationListeners.get(i).beforeActivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
+        return this;
+    }
+
+    public ErrorCapture deactivate() {
+        List<ActivationListener> activationListeners = tracer.getActivationListeners();
+        for (int i = 0; i < activationListeners.size(); i++) {
+            try {
+                // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
+                activationListeners.get(i).afterDeactivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
+        return this;
     }
 
     public static class TransactionInfo implements Recyclable {
