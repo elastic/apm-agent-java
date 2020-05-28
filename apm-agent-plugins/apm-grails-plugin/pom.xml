@@ -7,7 +7,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.15.1-SNAPSHOT</version>
+        <version>1.16.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-grails-plugin</artifactId>
@@ -15,26 +15,13 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <grails.version>4.0.1</grails.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.grails</groupId>
-            <artifactId>grails-core</artifactId>
-            <version>${grails.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.grails</groupId>
-            <artifactId>grails-web-boot</artifactId>
-            <version>${grails.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.grails</groupId>
             <artifactId>grails-web-mvc</artifactId>
-            <version>${grails.version}</version>
+            <version>[4.0.1,)</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

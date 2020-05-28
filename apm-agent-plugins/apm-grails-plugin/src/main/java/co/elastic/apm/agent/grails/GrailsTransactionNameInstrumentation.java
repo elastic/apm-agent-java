@@ -75,7 +75,7 @@ public class GrailsTransactionNameInstrumentation extends ElasticApmInstrumentat
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return classLoaderCanLoadClass("org.grails.web.servlet.mvc.GrailsDispatcherServlet");
+        return classLoaderCanLoadClass("org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo");
     }
 
     @Override
@@ -99,7 +99,7 @@ public class GrailsTransactionNameInstrumentation extends ElasticApmInstrumentat
                     final String className;
                     final String methodName;
                     if (handler instanceof GrailsControllerUrlMappingInfo) {
-                        GrailsControllerUrlMappingInfo urlMappingInfo = ((GrailsControllerUrlMappingInfo) handler);
+                        GrailsControllerUrlMappingInfo urlMappingInfo = (GrailsControllerUrlMappingInfo) handler;
                         GrailsControllerClass grailsControllerClass = urlMappingInfo.getControllerClass();
                         className = grailsControllerClass.getShortName();
                         String actionName = urlMappingInfo.getActionName();

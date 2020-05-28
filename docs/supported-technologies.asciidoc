@@ -117,6 +117,11 @@ rendering
  Note: JAX-WS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>> and when using the HTTP binding.
 |1.4.0
 
+|Grails
+|3+
+|
+|1.17.0
+
 |===
 
 

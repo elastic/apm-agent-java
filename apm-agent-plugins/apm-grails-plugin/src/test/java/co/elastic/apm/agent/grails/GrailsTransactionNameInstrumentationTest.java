@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,8 +33,9 @@ import org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo;
 import org.grails.web.mapping.mvc.UrlMappingsInfoHandlerAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -57,7 +58,7 @@ public class GrailsTransactionNameInstrumentationTest extends AbstractInstrument
         when(mappingInfo.getActionName()).thenReturn("bar");
         final Transaction transaction = tracer.startRootTransaction(null).withName("override me");
         try (Scope scope = transaction.activateInScope()) {
-            handlerAdapter.handle(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse(), new GrailsControllerUrlMappingInfo(controllerClass, mappingInfo));
+            handlerAdapter.handle(mock(HttpServletRequest.class), mock(HttpServletResponse.class), new GrailsControllerUrlMappingInfo(controllerClass, mappingInfo));
         } catch (Exception ignore) {
         }
         transaction.end();
