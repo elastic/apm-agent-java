@@ -25,6 +25,18 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +50,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import static java.nio.charset.StandardCharsets.UTF_16;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class IOUtilsTest  {
 
@@ -141,6 +154,45 @@ class IOUtilsTest  {
         final CharBuffer charBuffer = CharBuffer.allocate(16);
         assertThat(IOUtils.decodeUtf8Bytes("{foo}".getBytes(UTF_16), charBuffer).isError()).isTrue();
         assertThat((CharSequence) charBuffer).isEqualTo(CharBuffer.allocate(16));
+    }
+
+    @Test
+    void exportResourceToTemp() {
+        File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", UUID.randomUUID().toString(), "tmp");
+        tmp.deleteOnExit();
+        assertThat(tmp).hasSameContentAs(new File(this.getClass().getResource("/elasticapm.properties").getFile()));
+    }
+
+    @Test
+    void exportResourceToTemp_throwExceptionIfNotFound() {
+        assertThatThrownBy(() -> IOUtils.exportResourceToTemp("nonexist", UUID.randomUUID().toString(), "tmp")).hasMessage("nonexist not found");
+    }
+
+    @Test
+    void exportResourceToTempInMultipleThreads() throws InterruptedException, ExecutionException, IOException
+    {
+        final int nbThreads = 10;
+        final ExecutorService executorService = Executors.newFixedThreadPool(nbThreads);
+        final CountDownLatch countDownLatch = new CountDownLatch(nbThreads);
+        final List<Future<File>> futureList = new ArrayList<>(nbThreads);
+        final String tempFileNamePrefix = UUID.randomUUID().toString();
+
+        for (int i = 0; i < nbThreads; i++) {
+            futureList.add(executorService.submit(() -> {
+                countDownLatch.countDown();
+                countDownLatch.await();
+                File file = IOUtils.exportResourceToTemp("elasticapm.properties", tempFileNamePrefix, "tmp");
+                file.deleteOnExit();
+                return file;
+            }));
+        }
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.SECONDS);
+
+        for (Future<File> future : futureList) {
+            assertThat(future.get()).isNotNull();
+            assertThat(future.get()).exists();
+        }
     }
 
     @Nonnull
