@@ -42,6 +42,7 @@
         <module>apm-hibernate-search-plugin</module>
         <module>apm-redis-plugin</module>
         <module>apm-error-logging-plugin</module>
+        <module>apm-spring-webflux-plugin</module>
         <module>apm-jmx-plugin</module>
         <module>apm-mule4-plugin</module>
         <module>apm-mongoclient-plugin</module>
