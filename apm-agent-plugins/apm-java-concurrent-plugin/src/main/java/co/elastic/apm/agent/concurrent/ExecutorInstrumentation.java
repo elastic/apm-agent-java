@@ -41,15 +41,20 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isOverriddenFrom;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation {
@@ -167,6 +172,55 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             return named("submit").and(returns(Future.class)).and(takesArguments(Callable.class));
         }
 
+    }
+
+    public static class ExecutorInvokeAnyAllInstrumentation extends ExecutorInstrumentation {
+
+        public ExecutorInvokeAnyAllInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
+        /**
+         * <ul>
+         *     <li>{@link ExecutorService#invokeAll}</li>
+         *     <li>{@link ExecutorService#invokeAny}</li>
+         * </ul>
+         * @return
+         */
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return nameStartsWith("invoke")
+                .and(nameEndsWith("Any").or(nameEndsWith("All")))
+                .and(isPublic())
+                .and(takesArgument(0, Collection.class))
+                .and(isOverriddenFrom(ExecutorService.class));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static <T> void onEnter(@Advice.This Executor thiz,
+                                    @Nullable @Advice.Argument(value = 0, readOnly = false) Collection<? extends Callable<T>> callables) {
+            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
+            if (CallDepth.isNestedCallAndIncrement(Runnable.class) || javaConcurrent == null || callables == null
+                || ExecutorInstrumentation.isExcluded(thiz) || getActive() == null) {
+                return;
+            }
+
+            callables = javaConcurrent.withContext(callables);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                   @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
+            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
+            if (CallDepth.isNestedCallAndDecrement(Runnable.class) || callables == null || javaConcurrent == null) {
+                return;
+            }
+            if (thrown != null) {
+                for (Callable<?> callable : callables) {
+                    javaConcurrent.removeContext(callable);
+                }
+            }
+        }
     }
 
 }

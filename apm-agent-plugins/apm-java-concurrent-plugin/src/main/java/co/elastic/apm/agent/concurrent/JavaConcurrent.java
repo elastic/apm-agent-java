@@ -8,6 +8,8 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -102,6 +104,31 @@ public class JavaConcurrent {
 
     private static boolean isLambda(Object o) {
         return o.getClass().getName().indexOf('/') != -1;
+    }
+
+    public <T> Collection<? extends Callable<T>> withContext(Collection<? extends Callable<T>> callables) {
+        final Collection<Callable<T>> wrapped;
+        if (needsWrapping(callables)) {
+            wrapped = new ArrayList<>(callables.size());
+        } else {
+            wrapped = null;
+        }
+        for (Callable<T> callable : callables) {
+            final Callable<T> potentiallyWrappedCallable = withContext(callable);
+            if (wrapped != null) {
+                wrapped.add(potentiallyWrappedCallable);
+            }
+        }
+        return wrapped != null ? wrapped : callables;
+    }
+
+    private static boolean needsWrapping(Collection<? extends Callable<?>> callables) {
+        for (Callable<?> callable : callables) {
+            if (isLambda(callable)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static class RunnableLambdaWrapper implements Runnable {

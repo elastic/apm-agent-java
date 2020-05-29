@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.junit.After;
@@ -34,10 +35,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +63,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         return Arrays.asList(() -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()),
             () -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadScheduledExecutor()),
             () -> ExecutorServiceWrapper.wrap(new ForkJoinPool()),
-            () -> GlobalEventExecutor.INSTANCE);
+            () -> ExecutorServiceWrapper.wrap(GlobalEventExecutor.INSTANCE));
     }
 
     @Before
@@ -79,25 +85,25 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
             }
         }).get();
 
-        assertOnlySpanIsChildOfOnlyTransaction();
+        assertAsyncSpans(1);
     }
 
     @Test
     public void testExecutorSubmitRunnableLambda() throws Exception {
         executor.submit(() -> createAsyncSpan()).get(1, TimeUnit.SECONDS);
-        assertOnlySpanIsChildOfOnlyTransaction();
+        assertAsyncSpans(1);
     }
 
     @Test
     public void testExecutorExecute() throws Exception {
         executor.execute(this::createAsyncSpan);
-        assertOnlySpanIsChildOfOnlyTransaction();
+        assertAsyncSpans(1);
     }
 
     @Test
     public void testExecutorSubmitRunnableWithResult() throws Exception {
         executor.submit(this::createAsyncSpan, null);
-        assertOnlySpanIsChildOfOnlyTransaction();
+        assertAsyncSpans(1);
     }
 
     @Test
@@ -106,10 +112,78 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
             createAsyncSpan();
             return null;
         }).get(1, TimeUnit.SECONDS);
-        assertOnlySpanIsChildOfOnlyTransaction();
+        assertAsyncSpans(1);
     }
 
-    private void assertOnlySpanIsChildOfOnlyTransaction() throws InterruptedException {
+    @Test
+    public void testInvokeAll() throws Exception {
+        final List<Future<Span>> futures = executor.invokeAll(Arrays.<Callable<Span>>asList(this::createAsyncSpan, () -> createAsyncSpan(), new Callable<Span>() {
+            @Override
+            public Span call() throws Exception {
+                return createAsyncSpan();
+            }
+        }));
+        futures.forEach(ThrowingConsumer.of(Future::get));
+        assertAsyncSpans(3);
+    }
+
+    @Test
+    public void testInvokeAllTimed() throws Exception {
+        final List<Future<Span>> futures = executor.invokeAll(Arrays.asList(
+            new Callable<Span>() {
+                @Override
+                public Span call() throws Exception {
+                    return createAsyncSpan();
+                }
+            },
+            new Callable<Span>() {
+                @Override
+                public Span call() throws Exception {
+                    return createAsyncSpan();
+                }
+            }), 1, TimeUnit.SECONDS);
+        futures.forEach(ThrowingConsumer.of(Future::get));
+        assertAsyncSpans(2);
+    }
+
+    @Test
+    public void testInvokeAny() throws Exception {
+        executor.invokeAny(Collections.singletonList(new Callable<Span>() {
+            @Override
+            public Span call() {
+                return createAsyncSpan();
+            }
+        }));
+        assertAsyncSpans(1);
+    }
+
+    @Test
+    public void testInvokeAnyTimed() throws Exception {
+        executor.invokeAny(Collections.<Callable<Span>>singletonList(new Callable<Span>() {
+            @Override
+            public Span call() {
+                return createAsyncSpan();
+            }
+        }), 1, TimeUnit.SECONDS);
+        assertAsyncSpans(1);
+    }
+
+    @FunctionalInterface
+    public interface ThrowingConsumer<T> {
+        static <T> Consumer<T> of(ThrowingConsumer<T> throwingConsumer) {
+            return t -> {
+                try {
+                    throwingConsumer.accept(t);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            };
+        }
+        void accept(T t) throws Exception;
+    }
+
+
+    private void assertAsyncSpans(int expectedSpans) throws InterruptedException {
         try {
             // wait for the async operation to end
             assertThat(reporter.getFirstSpan(1000)).isNotNull();
@@ -117,12 +191,15 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
             transaction.deactivate().end();
         }
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
+        assertThat(reporter.getSpans()).hasSize(expectedSpans);
+       reporter.getSpans().forEach(span ->  assertThat(span.isChildOf(reporter.getFirstTransaction())).isTrue());
     }
 
-    private void createAsyncSpan() {
+    private Span createAsyncSpan() {
+        assertThat(tracer.getActive()).isNotNull();
         assertThat(tracer.getActive().getTraceContext().getId()).isEqualTo(transaction.getTraceContext().getId());
-        tracer.getActive().createSpan().withName("Async").end();
+        final Span span = tracer.getActive().createSpan().withName("Async");
+        span.end();
+        return span;
     }
 }

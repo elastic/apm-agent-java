@@ -1,2 +1,3 @@
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorRunnableInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorCallableInstrumentation
+co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorInvokeAnyAllInstrumentation
