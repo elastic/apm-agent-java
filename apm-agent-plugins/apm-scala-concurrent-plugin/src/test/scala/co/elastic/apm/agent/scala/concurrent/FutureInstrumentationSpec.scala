@@ -144,20 +144,9 @@ class FutureInstrumentationSpec extends FunSuite {
 
     val promise = Promise[Int]()
 
-    Future
-      .traverse(1 to 100) { _ =>
-        Future.sequence(List(
-          Future {
-            Thread.sleep(25)
-          },
-          Future {
-            Thread.sleep(50)
-          },
-          Future {
-            Thread.sleep(10)
-          }
-        ))
-      }
+      Future.sequence(List(
+        Future(Thread.sleep(25))
+      ))
       .map(_ => 42)
       .onComplete {
         case Success(value) => promise.success(value)
