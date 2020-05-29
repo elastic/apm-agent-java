@@ -41,8 +41,8 @@ public class Main {
 
         boolean isBench = arguments.contains("--benchmark");
         int warmCount = isBench ? count / 10 : 0;
-        if (warmCount < 1) {
-            warmCount = 1;
+        if (warmCount < 100) {
+            warmCount = 100;
         }
 
         boolean waitForKeystroke = arguments.contains("--wait");
@@ -76,6 +76,11 @@ public class Main {
                 }
             }
 
+            long clientErrors = client.getErrorCount();
+            if (clientErrors > 0) {
+                System.out.println(String.format("WARNING: client has reported %d errors, results might be incorrect", clientErrors));
+            }
+
         } catch (IOException | InterruptedException | ExecutionException e) {
             e.printStackTrace();
         } finally {
@@ -94,21 +99,44 @@ public class Main {
 
     private static void execute(HelloClient<?, ?> client, boolean isBench, int count) throws InterruptedException, ExecutionException {
         long start = System.currentTimeMillis();
+        int statusFrequency = count <= 10 ? 1: count / 10;
+
+        long timeLastUpdate = start;
+        int countLastUpdate = 0;
         for (int i = 1; i <= count; i++) {
             if (!isBench) {
                 System.out.println(String.format("---- run %d ----", i));
             }
 
             for (int j = 0; j < 3; j++) {
-                handleResponse(isBench, client.sayHello("bob", i));
+                handleResponse(isBench, client.sayHello("bob", j));
+                handleResponse(isBench, client.sayHelloMany("alice", j));
+                handleResponse(isBench, client.sayManyHello(Arrays.asList("bob", "alice", "oscar"), j));
+//                handleResponse(isBench, client.sayHelloManyMany(Arrays.asList("joe", "oscar"), j)); // TODO disabled for now as it throws exceptions
+                handleResponse(isBench, client.saysHelloAsync("async-user", j).get());
             }
-            handleResponse(isBench, client.sayHelloMany("alice", i));
-            handleResponse(isBench, client.sayManyHello(Arrays.asList("bob", "alice", "oscar"), i));
-            handleResponse(isBench, client.sayHelloManyMany(Arrays.asList("joe", "oscar"), i));
-            handleResponse(isBench, client.saysHelloAsync("async-user", i).get());
+
+            if (i % statusFrequency == 0 || i == count) {
+                long now = System.currentTimeMillis();
+                long timeSpent = now - timeLastUpdate;
+                int countSinceLastUpdate = i - countLastUpdate;
+                System.out.println(
+                    String.format("progress = %1$6.02f %% (%2$d), count = %3$d in %4$d ms, average = %5$.02f ms",
+                        i * 100d / count,
+                        i,
+                        countSinceLastUpdate,
+                        timeSpent,
+                        timeSpent * 1d / countSinceLastUpdate
+                    ));
+                timeLastUpdate = now;
+                countLastUpdate = i;
+
+                if (i == count) {
+                    long totalTime = System.currentTimeMillis() - start;
+                    System.out.println(String.format("total count = %d in %d ms, average = %.02f", count, totalTime, 1.0D * totalTime / count));
+                }
+            }
         }
-        long timeSpent = System.currentTimeMillis() - start;
-        System.out.println(String.format("completed %d iterations in %d ms, average = %.02f ms", count, timeSpent, timeSpent * 1D / count));
     }
 
     private static void handleResponse(boolean isBench, String response) {

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.grpc.testapp;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -37,17 +38,23 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public abstract class HelloClient<Req, Rep> {
 
     private static final Logger logger = LoggerFactory.getLogger(HelloClient.class);
-
     private final ManagedChannel channel;
+    private final AtomicLong errorCount;
 
     protected HelloClient(ManagedChannel channel) {
         this.channel = channel;
+        this.errorCount = new AtomicLong(0);
+    }
+
+    protected static Deadline getDeadline() {
+        return Deadline.after(5, TimeUnit.SECONDS);
     }
 
     public abstract Req buildRequest(String user, int depth);
@@ -58,10 +65,14 @@ public abstract class HelloClient<Req, Rep> {
 
     public abstract String getResponseMessage(Rep response);
 
+    public long getErrorCount() {
+        return errorCount.get();
+    }
+
     /**
      * Synchronous (blocking) hello
      *
-     * @param user user name
+     * @param user  user name
      * @param depth depth of nested calls, {@literal 0} for simple calls, use positive value for nesting
      * @return an hello statement
      */
@@ -72,6 +83,7 @@ public abstract class HelloClient<Req, Rep> {
             reply = executeBlocking(request);
         } catch (StatusRuntimeException e) {
             logger.error("server error {} {}", e.getStatus(), e.getMessage());
+            errorCount.incrementAndGet();
             return null;
         }
         return getResponseMessage(reply);
@@ -143,6 +155,7 @@ public abstract class HelloClient<Req, Rep> {
 
             @Override
             public void onError(Throwable throwable) {
+                errorCount.incrementAndGet();
                 throw new IllegalStateException("unexpected error", throwable);
             }
 
@@ -221,7 +234,7 @@ public abstract class HelloClient<Req, Rep> {
     private static void awaitLatch(CountDownLatch latch) {
         try {
             boolean await = latch.await(1, TimeUnit.SECONDS);
-            if(!await){
+            if (!await) {
                 throw new IllegalStateException("giving up waiting for latch, something is wrong");
             }
         } catch (InterruptedException e) {
@@ -241,6 +254,7 @@ public abstract class HelloClient<Req, Rep> {
 
             @Override
             public void onError(Throwable throwable) {
+                errorCount.incrementAndGet();
                 throw new IllegalStateException("unexpected error", throwable);
             }
 

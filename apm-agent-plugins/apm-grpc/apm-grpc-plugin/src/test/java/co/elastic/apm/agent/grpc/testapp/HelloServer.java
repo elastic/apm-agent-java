@@ -39,6 +39,7 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -46,6 +47,8 @@ import java.util.function.Function;
 public abstract class HelloServer<Req,Rep> {
 
     private static final Logger logger = LoggerFactory.getLogger(HelloServer.class);
+
+    private static final int POOL_SIZE = Runtime.getRuntime().availableProcessors() / 2;
 
     private static boolean verbose = true;
 
@@ -73,11 +76,19 @@ public abstract class HelloServer<Req,Rep> {
     }
 
     public void start() throws IOException {
-        int poolSize = Runtime.getRuntime().availableProcessors() / 2;
-        serverPool = Executors.newFixedThreadPool(poolSize);
+        serverPool = Executors.newFixedThreadPool(POOL_SIZE, new ThreadFactory() {
+            int i = 0;
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r);
+                thread.setName(String.format("grpc-server-%d", i++));
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
         server = ServerBuilder.forPort(port)
             .addService(getService())
-//            .executor(serverPool)
+            .executor(serverPool)
             .build();
 
         logger.info("starting grpc server on port {}", port);
@@ -100,6 +111,14 @@ public abstract class HelloServer<Req,Rep> {
         if (!shutdownOk) {
             throw new IllegalStateException("something is wrong, unable to properly shut down server");
         }
+
+        serverPool.shutdown();
+        try {
+            serverPool.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            serverPool.shutdownNow();
+        }
+
         logger.info("grpc server shutdown complete");
     }
 

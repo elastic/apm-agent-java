@@ -65,28 +65,38 @@ class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
 
     @Override
     public HelloReply executeBlocking(HelloRequest request) {
-        return blockingStub.sayHello(request);
+        return blockingStub
+            .withDeadline(getDeadline())
+            .sayHello(request);
     }
 
     @Override
     public ListenableFuture<HelloReply> executeAsync(HelloRequest request) {
-        return futureStub.sayHello(request);
+        return futureStub
+            .withDeadline(getDeadline())
+            .sayHello(request);
     }
 
 
     @Override
     protected StreamObserver<HelloRequest> doSayManyHello(StreamObserver<HelloReply> responseObserver) {
-        return stub.sayManyHello(responseObserver);
+        return stub
+            .withDeadline(getDeadline())
+            .sayManyHello(responseObserver);
     }
 
     @Override
     protected void doSayHelloMany(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
-        stub.sayHelloMany(request, responseObserver);
+        stub
+            .withDeadline(getDeadline())
+            .sayHelloMany(request, responseObserver);
     }
 
     @Override
     protected StreamObserver<HelloRequest> doSayHelloManyMany(StreamObserver<HelloReply> responseObserver) {
-        return stub.sayHelloStream(responseObserver);
+        return stub
+            .withDeadline(getDeadline())
+            .sayHelloStream(responseObserver);
     }
 
     @Override
