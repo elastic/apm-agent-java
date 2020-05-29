@@ -12,7 +12,8 @@ import net.bytebuddy.agent.ByteBuddyAgent
 import org.stagemonitor.configuration.ConfigurationRegistry
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future, Promise}
+import scala.util.{Failure, Success}
 
 class FutureInstrumentationSpec extends FunSuite {
 
@@ -36,19 +37,21 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val executionContext: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
 
-    Future("Test")
+    val future =  Future("Test")
       .map(_.length)
       .flatMap(l => Future(l * 2))
       .map(_.toString)
       .flatMap(s => Future(s"$s-$s"))
       .map(_ => tracer.currentTransaction().addCustomContext("future", true))
-      .map { _ =>
-        transaction.deactivate().end()
-        assertEquals(
-          reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
-          true
-        )
-      }
+
+    Await.ready(future, 10.seconds)
+    transaction.deactivate().end()
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
+      true
+    )
+
+
   }
 
   test("Worker thread should correctly set context on the current transaction") {
@@ -70,7 +73,7 @@ class FutureInstrumentationSpec extends FunSuite {
     implicit val multiPoolEc: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
 
-    Future
+    val future = Future
       .traverse(1 to 100) { _ =>
         Future.sequence(List(
           Future {
@@ -87,21 +90,90 @@ class FutureInstrumentationSpec extends FunSuite {
           }
         ))
       }
-      .map { _ =>
-        transaction.deactivate().end()
-        assertEquals(
-          reporter.getTransactions.get(0).getContext.getCustom("future1").asInstanceOf[Boolean],
-          true
-        )
-        assertEquals(
-          reporter.getTransactions.get(0).getContext.getCustom("future2").asInstanceOf[Boolean],
-          true
-        )
-        assertEquals(
-          reporter.getTransactions.get(0).getContext.getCustom("future3").asInstanceOf[Boolean],
-          true
-        )
+
+    Await.ready(future, 10.seconds)
+    transaction.deactivate().end()
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future1").asInstanceOf[Boolean],
+      true
+    )
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future2").asInstanceOf[Boolean],
+      true
+    )
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future3").asInstanceOf[Boolean],
+      true
+    )
+
+  }
+
+  test("Handle a combination of Promises and Futures correctly") {
+
+    implicit val multiPoolEc: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
+
+    val promise = Promise[Int]()
+
+    Future {
+      Thread.sleep(100)
       }
+      .map(_ => 42)
+      .onComplete {
+        case Success(value) => promise.success(value)
+        case Failure(exception) => promise.failure(exception)
+      }
+
+    val future = promise
+      .future
+      .map(_ => tracer.currentTransaction().addCustomContext("future", true))
+
+    Await.ready(future, 10.seconds)
+    transaction.deactivate().end()
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
+      true
+    )
+
+  }
+
+  test("Handle a combination of Promises and complex Futures correctly") {
+
+    implicit val multiPoolEc: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
+
+    val promise = Promise[Int]()
+
+    Future
+      .traverse(1 to 100) { _ =>
+        Future.sequence(List(
+          Future {
+            Thread.sleep(25)
+          },
+          Future {
+            Thread.sleep(50)
+          },
+          Future {
+            Thread.sleep(10)
+          }
+        ))
+      }
+      .map(_ => 42)
+      .onComplete {
+        case Success(value) => promise.success(value)
+        case Failure(exception) => promise.failure(exception)
+      }
+
+    val future = promise
+      .future
+      .map(_ => tracer.currentTransaction().addCustomContext("future", true))
+
+    Await.ready(future, 10.seconds)
+    transaction.deactivate().end()
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
+      true
+    )
 
   }
 
