@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.attach;
 
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.io.File;
@@ -33,12 +31,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -184,6 +182,9 @@ public class ElasticApmAttacher {
         // initializes lazily and ensures it's only loaded once
         final File agentJarFile = getAgentJarFile();
 
+        /**
+         * {@see co.elastic.apm.agent.util.IOUtils#exportResourceToTemp(java.lang.String, java.lang.String, java.lang.String)} who share the same code.
+         */
         private static File getAgentJarFile() {
             try (InputStream agentJar = ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar")) {
                 if (agentJar == null) {

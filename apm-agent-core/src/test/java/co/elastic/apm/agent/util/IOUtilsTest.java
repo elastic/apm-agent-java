@@ -164,6 +164,18 @@ class IOUtilsTest  {
     }
 
     @Test
+    void exportResourceToTempIdempotence() throws InterruptedException
+    {
+        String destination = UUID.randomUUID().toString();
+        File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", destination, "tmp");
+        tmp.deleteOnExit();
+        long actual = tmp.lastModified();
+        Thread.sleep(1000);
+        File after = IOUtils.exportResourceToTemp("elasticapm.properties", destination, "tmp");
+        assertThat(actual).isEqualTo(after.lastModified());
+    }
+
+    @Test
     void exportResourceToTemp_throwExceptionIfNotFound() {
         assertThatThrownBy(() -> IOUtils.exportResourceToTemp("nonexist", UUID.randomUUID().toString(), "tmp")).hasMessage("nonexist not found");
     }

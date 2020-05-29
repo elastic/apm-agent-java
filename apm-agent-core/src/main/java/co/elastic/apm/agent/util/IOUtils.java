@@ -35,12 +35,10 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -48,13 +46,13 @@ import java.security.NoSuchAlgorithmException;
 @VisibleForAdvice
 public class IOUtils {
     static final int BYTE_BUFFER_CAPACITY = 2048;
-    private static ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
+    private static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
         protected ByteBuffer initialValue() {
             return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
         }
     };
-    private static ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
+    private static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
         @Override
         protected CharsetDecoder initialValue() {
             return StandardCharsets.UTF_8.newDecoder();
@@ -211,36 +209,36 @@ public class IOUtils {
         }
     }
 
-    public static File exportResourceToTemp(String resource, String tempFileNamePrefix, String tempFileNameExtension) {
+    /**
+     * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
+     * So we need to block until the file is totally written.
+     */
+    public static synchronized File exportResourceToTemp(String resource, String tempFileNamePrefix, String tempFileNameExtension) {
         try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
             if (resourceStream == null) {
                 throw new IllegalStateException(resource + " not found");
             }
             String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
             File tempFile = new File(System.getProperty("java.io.tmpdir"), tempFileNamePrefix + "-" + hash + tempFileNameExtension);
-            try(FileChannel ignored = FileChannel.open(tempFile.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-                FileOutputStream out = new FileOutputStream(tempFile)) {
-                byte[] buffer = new byte[1024];
-                for (int length; (length = resourceStream.read(buffer)) != -1; ) {
-                    out.write(buffer, 0, length);
+            if (!tempFile.exists()) {
+                try (FileOutputStream out = new FileOutputStream(tempFile)) {
+                    FileChannel channel = out.getChannel();
+                    // If multiple JVM start on same compute, they can write in same file
+                    // and this file will be corrupted.
+                    try (FileLock ignored = channel.lock()) {
+                        if (tempFile.length() == 0) {
+                            byte[] buffer = new byte[1024];
+                            for (int length; (length = resourceStream.read(buffer)) != -1; ) {
+                                out.write(buffer, 0, length);
+                            }
+                        }
+                    }
                 }
-            } catch (FileAlreadyExistsException ignored) {
-                // Silently ignore
-                // When multiple JVM will try to create file, only the first can CREATE_NEW. Other will fail here.
+            } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
+                throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
             }
-            // If the first JVM is writing the file, we must wait until it's totally done.
-            // To avoid too long wait, we just sleep for one minute.
-            for(int i = 0; i < 10; i++) {
-                if (md5Hash(new FileInputStream(tempFile)).equals(hash)) {
-                    return tempFile;
-                }
-                Thread.sleep(100);
-            }
-            throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
+            return tempFile;
         } catch (NoSuchAlgorithmException | IOException e) {
-            throw new IllegalStateException(e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
         }
     }
