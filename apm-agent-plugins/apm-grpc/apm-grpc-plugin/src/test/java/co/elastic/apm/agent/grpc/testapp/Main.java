@@ -99,38 +99,28 @@ public class Main {
                 System.out.println(String.format("---- run %d ----", i));
             }
 
-            String response = client.sayHello("bob", i);
-            if (!isBench) {
-                System.out.println(response);
-                Thread.sleep(SLEEP);
+            for (int j = 0; j < 3; j++) {
+                handleResponse(isBench, client.sayHello("bob", i));
             }
-
-            response = client.sayHelloMany("alice", i);
-            if (!isBench) {
-                System.out.println(response);
-                Thread.sleep(SLEEP);
-            }
-
-            response = client.sayManyHello(Arrays.asList("bob", "alice", "oscar"), i);
-            if (!isBench) {
-                System.out.println(response);
-                Thread.sleep(SLEEP);
-            }
-
-            response = client.sayHelloManyMany(Arrays.asList("joe", "oscar"), i);
-            if (!isBench) {
-                System.out.println(response);
-                Thread.sleep(SLEEP);
-            }
-
-            response = client.saysHelloAsync("async-user", i).get();
-            if (!isBench) {
-                System.out.println(response);
-                Thread.sleep(SLEEP);
-            }
+            handleResponse(isBench, client.sayHelloMany("alice", i));
+            handleResponse(isBench, client.sayManyHello(Arrays.asList("bob", "alice", "oscar"), i));
+            handleResponse(isBench, client.sayHelloManyMany(Arrays.asList("joe", "oscar"), i));
+            handleResponse(isBench, client.saysHelloAsync("async-user", i).get());
         }
         long timeSpent = System.currentTimeMillis() - start;
         System.out.println(String.format("completed %d iterations in %d ms, average = %.02f ms", count, timeSpent, timeSpent * 1D / count));
+    }
+
+    private static void handleResponse(boolean isBench, String response) {
+        if (isBench) {
+            return;
+        }
+        System.out.println(response);
+        try {
+            Thread.sleep(SLEEP);
+        } catch (InterruptedException e) {
+            // silently ignored
+        }
     }
 
     protected static int parsePort(String[] args) {
