@@ -25,17 +25,17 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
@@ -46,13 +46,13 @@ import java.security.NoSuchAlgorithmException;
 @VisibleForAdvice
 public class IOUtils {
     static final int BYTE_BUFFER_CAPACITY = 2048;
-    private static ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
+    private static final ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
         protected ByteBuffer initialValue() {
             return ByteBuffer.allocate(BYTE_BUFFER_CAPACITY);
         }
     };
-    private static ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
+    private static final ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
         @Override
         protected CharsetDecoder initialValue() {
             return StandardCharsets.UTF_8.newDecoder();
@@ -209,7 +209,11 @@ public class IOUtils {
         }
     }
 
-    public static File exportResourceToTemp(String resource, String tempFileNamePrefix, String tempFileNameExtension) {
+    /**
+     * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
+     * So we need to block until the file is totally written.
+     */
+    public static synchronized File exportResourceToTemp(String resource, String tempFileNamePrefix, String tempFileNameExtension) {
         try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
             if (resourceStream == null) {
                 throw new IllegalStateException(resource + " not found");
@@ -217,10 +221,17 @@ public class IOUtils {
             String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
             File tempFile = new File(System.getProperty("java.io.tmpdir"), tempFileNamePrefix + "-" + hash + tempFileNameExtension);
             if (!tempFile.exists()) {
-                try (OutputStream out = new FileOutputStream(tempFile)) {
-                    byte[] buffer = new byte[1024];
-                    for (int length; (length = resourceStream.read(buffer)) != -1; ) {
-                        out.write(buffer, 0, length);
+                try (FileOutputStream out = new FileOutputStream(tempFile)) {
+                    FileChannel channel = out.getChannel();
+                    // If multiple JVM start on same compute, they can write in same file
+                    // and this file will be corrupted.
+                    try (FileLock ignored = channel.lock()) {
+                        if (tempFile.length() == 0) {
+                            byte[] buffer = new byte[1024];
+                            for (int length; (length = resourceStream.read(buffer)) != -1; ) {
+                                out.write(buffer, 0, length);
+                            }
+                        }
                     }
                 }
             } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
