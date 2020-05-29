@@ -115,9 +115,7 @@ class FutureInstrumentationSpec extends FunSuite {
 
     val promise = Promise[Int]()
 
-    Future {
-      Thread.sleep(100)
-      }
+    Future { Thread.sleep(100) }
       .map(_ => 42)
       .onComplete {
         case Success(value) => promise.success(value)
@@ -137,6 +135,26 @@ class FutureInstrumentationSpec extends FunSuite {
 
   }
 
+  test("Handle a Future.sequence correctly") {
+
+    implicit val multiPoolEc: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3))
+
+    val future = Future
+      .sequence(List(
+        Future(Thread.sleep(25))
+      ))
+      .map(_ => tracer.currentTransaction().addCustomContext("future", true))
+
+    Await.ready(future, 10.seconds)
+    transaction.deactivate().end()
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
+      true
+    )
+
+  }
+
   test("Handle a combination of Promises and complex Futures correctly") {
 
     implicit val multiPoolEc: ExecutionContextExecutor =
@@ -144,23 +162,29 @@ class FutureInstrumentationSpec extends FunSuite {
 
     val promise = Promise[Int]()
 
-      Future.sequence(List(
-        Future(Thread.sleep(25))
-      ))
-      .map(_ => 42)
-      .onComplete {
-        case Success(value) => promise.success(value)
-        case Failure(exception) => promise.failure(exception)
+      Future
+        .sequence(List(
+          Future(Thread.sleep(25))
+        ))
+        .map(_ => tracer.currentTransaction().addCustomContext("future1", true))
+        .map(_ => 42)
+        .onComplete {
+          case Success(value) => promise.success(value)
+          case Failure(exception) => promise.failure(exception)
       }
 
     val future = promise
       .future
-      .map(_ => tracer.currentTransaction().addCustomContext("future", true))
+      .map(_ => tracer.currentTransaction().addCustomContext("future2", true))
 
     Await.ready(future, 10.seconds)
     transaction.deactivate().end()
     assertEquals(
-      reporter.getTransactions.get(0).getContext.getCustom("future").asInstanceOf[Boolean],
+      reporter.getTransactions.get(0).getContext.getCustom("future1").asInstanceOf[Boolean],
+      true
+    )
+    assertEquals(
+      reporter.getTransactions.get(0).getContext.getCustom("future2").asInstanceOf[Boolean],
       true
     )
 
