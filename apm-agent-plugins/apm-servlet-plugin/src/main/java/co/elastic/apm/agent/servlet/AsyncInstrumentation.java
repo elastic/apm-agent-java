@@ -26,10 +26,8 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.concurrent.ExecutorInstrumentation;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.util.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -183,23 +181,13 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
 
             @Advice.OnMethodEnter(suppress = Throwable.class)
             private static void onEnterAsyncContextStart(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-                JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-                if (CallDepth.isNestedCallAndIncrement(Runnable.class) || javaConcurrent == null) {
-                    return;
-                }
-                runnable = javaConcurrent.withContext(runnable);
+                runnable = JavaConcurrent.withContext(runnable, tracer);
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class)
             private static void onExitAsyncContextStart(@Nullable @Advice.Thrown Throwable thrown,
                                                         @Advice.Argument(value = 0) @Nullable Runnable runnable) {
-                JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-                if (CallDepth.isNestedCallAndDecrement(Runnable.class) || runnable == null || javaConcurrent == null) {
-                    return;
-                }
-                if (thrown != null) {
-                    javaConcurrent.removeContext(runnable);
-                }
+                JavaConcurrent.doFinally(thrown, runnable);
             }
         }
     }

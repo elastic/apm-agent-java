@@ -52,6 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationTest {
 
     private final ExecutorService executor;
+    private CurrentThreadExecutor currentThreadExecutor;
     private Transaction transaction;
 
     public ExecutorServiceInstrumentationTest(Supplier<ExecutorService> supplier) {
@@ -68,6 +69,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Before
     public void setUp() {
+        currentThreadExecutor = new CurrentThreadExecutor();
         transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
     }
 
@@ -125,6 +127,12 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         }));
         futures.forEach(ThrowingConsumer.of(Future::get));
         assertAsyncSpans(3);
+    }
+
+    @Test
+    public void testNestedExecutions() throws Exception {
+        currentThreadExecutor.execute(() -> executor.execute(this::createAsyncSpan));
+        assertAsyncSpans(1);
     }
 
     @Test

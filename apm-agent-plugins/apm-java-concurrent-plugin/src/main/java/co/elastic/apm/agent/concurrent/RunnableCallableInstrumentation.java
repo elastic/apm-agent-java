@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
-import static co.elastic.apm.agent.concurrent.ExecutorInstrumentation.javaConcurrent;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -40,19 +39,16 @@ public class RunnableCallableInstrumentation extends ElasticApmInstrumentation {
         return Arrays.asList("concurrent", "executor");
     }
 
+    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onEnter(@Advice.This Object thiz,
-                                @Advice.Local("span") AbstractSpan<?> span) {
-        if (javaConcurrent == null) {
-            return;
-        }
-        span = javaConcurrent.restoreContext(thiz);
+    private static AbstractSpan<?> onEnter(@Advice.This Object thiz) {
+        return JavaConcurrent.restoreContext(thiz, tracer);
     }
 
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void onExit(@Advice.Thrown Throwable thrown,
-                               @Nullable @Advice.Local("span") AbstractSpan<?> span) {
+                               @Nullable @Advice.Enter AbstractSpan<?> span) {
         if (span != null) {
             span.deactivate();
         }

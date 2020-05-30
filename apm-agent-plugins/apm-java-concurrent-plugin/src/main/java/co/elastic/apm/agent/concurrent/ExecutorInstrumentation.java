@@ -26,8 +26,6 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.util.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -61,9 +59,6 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     @VisibleForAdvice
     public static final Set<String> excludedClasses = new HashSet<>();
-    @VisibleForAdvice
-    @Nullable
-    public static JavaConcurrent javaConcurrent;
 
     static {
         // Used in Tomcat 7
@@ -71,10 +66,6 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         // because that is the Runnable for the actual request processor thread.
         // Wrapping that leaks transactions and spans to other requests.
         excludedClasses.add("org.apache.tomcat.util.threads.ThreadPoolExecutor");
-    }
-
-    public ExecutorInstrumentation(ElasticApmTracer tracer) {
-        javaConcurrent = new JavaConcurrent(tracer);
     }
 
     @Override
@@ -106,30 +97,20 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
-        public ExecutorRunnableInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onExecute(@Advice.This Executor thiz,
                                      @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-            if (CallDepth.isNestedCallAndIncrement(Runnable.class) || javaConcurrent == null || ExecutorInstrumentation.isExcluded(thiz)) {
+            if (ExecutorInstrumentation.isExcluded(thiz)) {
                 return;
             }
-            runnable = javaConcurrent.withContext(runnable);
+            runnable = JavaConcurrent.withContext(runnable, tracer);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
                                    @Advice.Argument(value = 0) @Nullable Runnable runnable) {
-            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-            if (CallDepth.isNestedCallAndDecrement(Runnable.class) || runnable == null || javaConcurrent == null) {
-                return;
-            }
-            if (thrown != null) {
-                javaConcurrent.removeContext(runnable);
-            }
+            JavaConcurrent.doFinally(thrown, runnable);
         }
 
         @Override
@@ -141,30 +122,20 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
-        public ExecutorCallableInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onSubmit(@Advice.This Executor thiz,
                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable) {
-            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-            if (CallDepth.isNestedCallAndIncrement(Runnable.class) || javaConcurrent == null || ExecutorInstrumentation.isExcluded(thiz)) {
+            if (ExecutorInstrumentation.isExcluded(thiz)) {
                 return;
             }
-            callable = javaConcurrent.withContext(callable);
+            callable = JavaConcurrent.withContext(callable, tracer);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
                                    @Advice.Argument(value = 0) @Nullable Callable<?> callable) {
-            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-            if (CallDepth.isNestedCallAndDecrement(Runnable.class) || callable == null || javaConcurrent == null) {
-                return;
-            }
-            if (thrown != null) {
-                javaConcurrent.removeContext(callable);
-            }
+            JavaConcurrent.doFinally(thrown, callable);
         }
 
         @Override
@@ -176,16 +147,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     public static class ExecutorInvokeAnyAllInstrumentation extends ExecutorInstrumentation {
 
-        public ExecutorInvokeAnyAllInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         /**
          * <ul>
          *     <li>{@link ExecutorService#invokeAll}</li>
          *     <li>{@link ExecutorService#invokeAny}</li>
          * </ul>
-         * @return
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -199,27 +165,16 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static <T> void onEnter(@Advice.This Executor thiz,
                                     @Nullable @Advice.Argument(value = 0, readOnly = false) Collection<? extends Callable<T>> callables) {
-            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-            if (CallDepth.isNestedCallAndIncrement(Runnable.class) || javaConcurrent == null || callables == null
-                || ExecutorInstrumentation.isExcluded(thiz) || getActive() == null) {
+            if (ExecutorInstrumentation.isExcluded(thiz)) {
                 return;
             }
-
-            callables = javaConcurrent.withContext(callables);
+            callables = JavaConcurrent.withContext(callables, tracer);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
-            JavaConcurrent javaConcurrent = ExecutorInstrumentation.javaConcurrent;
-            if (CallDepth.isNestedCallAndDecrement(Runnable.class) || callables == null || javaConcurrent == null) {
-                return;
-            }
-            if (thrown != null) {
-                for (Callable<?> callable : callables) {
-                    javaConcurrent.removeContext(callable);
-                }
-            }
+            JavaConcurrent.doFinally(thrown, callables);
         }
     }
 

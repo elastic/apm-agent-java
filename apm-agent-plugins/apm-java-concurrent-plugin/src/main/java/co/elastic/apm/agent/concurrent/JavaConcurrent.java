@@ -17,15 +17,10 @@ import java.util.concurrent.Callable;
 public class JavaConcurrent {
 
     private static final WeakConcurrentMap<Object, AbstractSpan<?>> contextMap = new WeakConcurrentMap<Object, AbstractSpan<?>>(false);
-    private final ElasticApmTracer tracer;
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_INSTRUMENTATION = Collections.singletonList(RunnableCallableInstrumentation.class);
+    private static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
 
-
-    public JavaConcurrent(ElasticApmTracer tracer) {
-        this.tracer = tracer;
-    }
-
-    public void removeContext(Object o) {
+    private static void removeContext(Object o) {
         AbstractSpan<?> context = contextMap.remove(o);
         if (context != null) {
             context.decrementReferences();
@@ -33,7 +28,12 @@ public class JavaConcurrent {
     }
 
     @Nullable
-    public AbstractSpan<?> restoreContext(Object o) {
+    public static AbstractSpan<?> restoreContext(Object o, @Nullable ElasticApmTracer tracer) {
+        if (tracer == null) {
+            return null;
+        }
+        // When an Executor executes directly on the current thread we need to enable this thread for context propagation again
+        needsContext.set(Boolean.TRUE);
         AbstractSpan<?> context = contextMap.remove(o);
         if (context == null) {
             return null;
@@ -57,10 +57,11 @@ public class JavaConcurrent {
      * </p>
      */
     @Nullable
-    public Runnable withContext(@Nullable Runnable runnable) {
-        if (runnable instanceof RunnableLambdaWrapper || runnable == null) {
+    public static Runnable withContext(@Nullable Runnable runnable, @Nullable ElasticApmTracer tracer) {
+        if (runnable instanceof RunnableLambdaWrapper || runnable == null || tracer == null || needsContext.get() == Boolean.FALSE) {
             return runnable;
         }
+        needsContext.set(Boolean.FALSE);
         AbstractSpan<?> active = tracer.getActive();
         if (active == null) {
             return runnable;
@@ -85,10 +86,11 @@ public class JavaConcurrent {
      * </p>
      */
     @Nullable
-    public <T> Callable<T> withContext(@Nullable Callable<T> callable) {
-        if (callable instanceof CallableLambdaWrapper || callable == null) {
+    public static <T> Callable<T> withContext(@Nullable Callable<T> callable, @Nullable ElasticApmTracer tracer) {
+        if (callable instanceof CallableLambdaWrapper || callable == null || tracer == null  || needsContext.get() == Boolean.FALSE) {
             return callable;
         }
+        needsContext.set(Boolean.FALSE);
         AbstractSpan<?> active = tracer.getActive();
         if (active == null) {
             return callable;
@@ -102,11 +104,34 @@ public class JavaConcurrent {
         return callable;
     }
 
+    public static void doFinally(@Nullable Throwable thrown, @Nullable Object contextObject) {
+        needsContext.set(Boolean.TRUE);
+        if (thrown != null && contextObject != null) {
+            removeContext(contextObject);
+        }
+    }
+
+    public static void doFinally(@Nullable Throwable thrown, @Nullable Collection<? extends Callable<?>> callables) {
+        needsContext.set(Boolean.TRUE);
+        if (thrown != null && callables != null) {
+            for (Callable<?> callable : callables) {
+                removeContext(callable);
+            }
+        }
+    }
+
     private static boolean isLambda(Object o) {
         return o.getClass().getName().indexOf('/') != -1;
     }
 
-    public <T> Collection<? extends Callable<T>> withContext(Collection<? extends Callable<T>> callables) {
+    @Nullable
+    public static <T> Collection<? extends Callable<T>> withContext(@Nullable Collection<? extends Callable<T>> callables, @Nullable ElasticApmTracer tracer) {
+        if (callables == null || tracer == null) {
+            return null;
+        }
+        if (callables.isEmpty()) {
+            return callables;
+        }
         final Collection<Callable<T>> wrapped;
         if (needsWrapping(callables)) {
             wrapped = new ArrayList<>(callables.size());
@@ -114,11 +139,13 @@ public class JavaConcurrent {
             wrapped = null;
         }
         for (Callable<T> callable : callables) {
-            final Callable<T> potentiallyWrappedCallable = withContext(callable);
+            final Callable<T> potentiallyWrappedCallable = withContext(callable, tracer);
+            needsContext.set(Boolean.TRUE);
             if (wrapped != null) {
                 wrapped.add(potentiallyWrappedCallable);
             }
         }
+        needsContext.set(Boolean.FALSE);
         return wrapped != null ? wrapped : callables;
     }
 
