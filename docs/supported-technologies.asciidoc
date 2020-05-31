@@ -276,10 +276,20 @@ This section lists all supported asynchronous frameworks.
 |===
 |Framework |Supported versions | Description | Since
 
-|ExecutorService
+|`ExecutorService`
 |
-|The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
+|The agent propagates the context for ``ExecutorService``s.
 |1.4.0
+
+|`ScheduledExecutorService`
+|
+|The agent propagates the context for `ScheduledExecutorService#schedule` (this does not include `scheduleAtFixedRate` or `scheduleWithFixedDelay`.
+|1.17.0
+
+|`ForkJoinPool`
+|
+|The agent propagates the context for ``ForkJoinPool``s.
+|1.17.0
 
 |===
 

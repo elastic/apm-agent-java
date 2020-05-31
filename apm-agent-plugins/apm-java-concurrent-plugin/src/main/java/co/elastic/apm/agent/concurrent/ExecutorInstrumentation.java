@@ -40,10 +40,16 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isOverriddenFrom;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -113,11 +119,20 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             JavaConcurrent.doFinally(thrown, runnable);
         }
 
+        /**
+         * <ul>
+         *     <li>{@link ExecutorService#execute(Runnable)}</li>
+         *     <li>{@link ExecutorService#submit(Runnable)}</li>
+         *     <li>{@link ExecutorService#submit(Runnable, Object)}</li>
+         *     <li>{@link ScheduledExecutorService#schedule(Runnable, long, TimeUnit)}</li>
+         * </ul>
+         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("execute").and(returns(void.class)).and(takesArguments(Runnable.class))
                 .or(named("submit").and(returns(Future.class)).and(takesArguments(Runnable.class)))
-                .or(named("submit").and(returns(Future.class)).and(takesArguments(Runnable.class, Object.class)));
+                .or(named("submit").and(returns(Future.class)).and(takesArguments(Runnable.class, Object.class)))
+                .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Runnable.class, long.class, TimeUnit.class)));
         }
     }
 
@@ -138,9 +153,16 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             JavaConcurrent.doFinally(thrown, callable);
         }
 
+        /**
+         * <ul>
+         *     <li>{@link ExecutorService#submit(Callable)}</li>
+         *     <li>{@link ScheduledExecutorService#schedule(Callable, long, TimeUnit)}</li>
+         * </ul>
+         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("submit").and(returns(Future.class)).and(takesArguments(Callable.class));
+            return named("submit").and(returns(Future.class)).and(takesArguments(Callable.class))
+                .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Callable.class, long.class, TimeUnit.class)));
         }
 
     }
@@ -175,6 +197,44 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
             JavaConcurrent.doFinally(thrown, callables);
+        }
+    }
+
+    public static class ForkJoinPoolInstrumentation extends ExecutorInstrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return hasSuperType(is(ForkJoinPool.class)).and(super.getTypeMatcher());
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onExecute(@Advice.This Executor thiz,
+                                     @Advice.Argument(value = 0, readOnly = false) @Nullable ForkJoinTask<?> task) {
+            if (ExecutorInstrumentation.isExcluded(thiz)) {
+                return;
+            }
+            task = JavaConcurrent.withContext(task, tracer);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                   @Advice.Argument(value = 0) @Nullable ForkJoinTask<?> task) {
+            JavaConcurrent.doFinally(thrown, task);
+        }
+
+        /**
+         * <ul>
+         *     <li>{@link ForkJoinPool#execute(ForkJoinTask)}</li>
+         *     <li>{@link ForkJoinPool#submit(ForkJoinTask)}</li>
+         *     <li>{@link ForkJoinPool#invoke(ForkJoinTask)}</li>
+         * </ul>
+         * @return
+         */
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("execute").and(returns(void.class)).and(takesArguments(ForkJoinTask.class))
+                .or(named("submit").and(returns(ForkJoinTask.class)).and(takesArguments(ForkJoinTask.class)))
+                .or(named("invoke").and(returns(Object.class)).and(takesArguments(ForkJoinTask.class)));
         }
     }
 
