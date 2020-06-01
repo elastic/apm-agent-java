@@ -37,6 +37,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -57,6 +58,8 @@ public class ServletApiTestApp extends TestApp {
         testHttpUrlConnection(test);
         testCaptureBody(test);
         testJmxMetrics(test);
+        testTransactionReportingWithForward(test);
+        testTransactionReportingWithInclude(test);
     }
 
     private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
@@ -73,6 +76,40 @@ public class ServletApiTestApp extends TestApp {
             final JsonNode transaction = test.assertTransactionReported("/simple-webapp/echo", 200);
             assertThat(transaction.get("context").get("request").get("body").textValue()).isEqualTo("{foo}\n{bar}");
         }
+    }
+
+    private void testTransactionReportingWithForward(AbstractServletContainerIntegrationTest test) throws Exception {
+        String pathToTest = "/simple-webapp" + "/forward";
+        test.clearMockServerLog();
+
+        test.executeAndValidateRequest(pathToTest, "Hello World", 200, null);
+
+        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+        List<JsonNode> reportedSpans = test.getReportedSpans();
+        assertThat(reportedSpans.size()).isEqualTo(2);
+
+        List<JsonNode> h2dbSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("db.h2.query")).collect(Collectors.toList());
+        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("servlet.request-dispatcher.forward")).collect(Collectors.toList());
+        assertThat(h2dbSpans.size()).isEqualTo(1);
+        assertThat(forwardSpans.size()).isEqualTo(1);
+        assertThat(forwardSpans.get(0).get("name")).isEqualTo("FORWARD /servlet");
+    }
+
+    private void testTransactionReportingWithInclude(AbstractServletContainerIntegrationTest test) throws Exception {
+        String pathToTest = "/simple-webapp" + "/include";
+        test.clearMockServerLog();
+
+        test.executeAndValidateRequest(pathToTest, "Hello World", 200, null);
+
+        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+        List<JsonNode> reportedSpans = test.getReportedSpans();
+        assertThat(reportedSpans.size()).isEqualTo(2);
+
+        List<JsonNode> h2dbSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("db.h2.query")).collect(Collectors.toList());
+        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("servlet.request-dispatcher.include")).collect(Collectors.toList());
+        assertThat(h2dbSpans.size()).isEqualTo(1);
+        assertThat(forwardSpans.size()).isEqualTo(1);
+        assertThat(forwardSpans.get(0).get("name")).isEqualTo("INCLUDE /servlet");
     }
 
     private void testExecutorService(AbstractServletContainerIntegrationTest test) throws Exception {

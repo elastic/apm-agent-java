@@ -25,7 +25,9 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.transaction.Span;
 import okhttp3.Response;
+import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +35,7 @@ import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
+import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -42,6 +45,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.EnumSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,8 +60,15 @@ class ServletInstrumentationTest extends AbstractServletTest {
         handler.addServlet(TestServlet.class, "/test");
         handler.addServlet(BaseTestServlet.class, "/base");
         handler.addServlet(ForwardingServlet.class, "/forward");
+        handler.addServlet(ForwardingServletWithPathInfo.class, "/forward/path");
         handler.addServlet(IncludingServlet.class, "/include");
+        handler.addServlet(IncludingServletWithPathInfo.class, "/include/path");
+        handler.addServlet(TestServletWithPathInfo.class, "/test/path/*");
         handler.addFilter(TestFilter.class, "/filter/*", EnumSet.of(DispatcherType.REQUEST));
+        handler.addServlet(ErrorServlet.class, "/error");
+        ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
+        errorHandler.addErrorPage(404, "/error");
+        handler.setErrorHandler(errorHandler);
     }
 
     @Test
@@ -82,19 +93,54 @@ class ServletInstrumentationTest extends AbstractServletTest {
     }
 
     @Test
-    void testForward() throws Exception {
+    void testForward_verifyThatSpanNameContainsOriginalServletPath() throws Exception {
         callServlet(1, "/forward");
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("FORWARD /test");
     }
 
     @Test
-    void testInclude() throws Exception {
+    void testInclude_verifyThatSpanNameContainsTargetServletPath() throws Exception {
         callServlet(1, "/include");
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("INCLUDE /test");
+    }
+
+    @Test
+    void testError() throws Exception {
+        callServlet(1, "/unknown", "Hello Error!", 404);
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getNameAsString()).isEqualTo("ERROR /error");
+    }
+
+    @Test
+    void testServletInstrumentationWithPathInfo() throws Exception {
+        callServlet(1, "/test/path/name", "Hello World! /name", 200);
+    }
+
+    @Test
+    void testForwardWithPathInfo_verifyThatSpanNameContainsOriginalServletPathAndPathInfo() throws Exception {
+        callServlet(1, "/forward/path", "Hello World! /forward-path-info", 200);
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("FORWARD /test/path/forward-path-info");
+    }
+
+    @Test
+    void testIncludeWithPathInfo_verifyThatSpanNameContainsOriginalServletPathAndPathInfo() throws Exception {
+        callServlet(1, "/include/path", "Hello World! /include-path-info", 200);
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("INCLUDE /test/path/include-path-info");
     }
 
     private void callServlet(int expectedTransactions, String path) throws IOException, InterruptedException {
+        callServlet(expectedTransactions, path, "Hello World!", 200);
+    }
+
+    private void callServlet(int expectedTransactions, String path, String expectedResponseBody, int expectedStatusCode) throws IOException, InterruptedException {
         final Response response = get(path);
-        assertThat(response.code()).isEqualTo(200);
-        assertThat(response.body().string()).isEqualTo("Hello World!");
+        assertThat(response.code()).isEqualTo(expectedStatusCode);
+        assertThat(response.body().string()).isEqualTo(expectedResponseBody);
 
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
@@ -117,6 +163,15 @@ class ServletInstrumentationTest extends AbstractServletTest {
         }
     }
 
+    public static class TestServletWithPathInfo extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+            String pathInfo = req.getPathInfo();
+            String includePathInfoHeader = (String) req.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
+            resp.getWriter().append("Hello World! " + (pathInfo != null ? pathInfo : includePathInfoHeader != null ? includePathInfoHeader : ""));
+        }
+    }
+
     public static class ForwardingServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -124,10 +179,33 @@ class ServletInstrumentationTest extends AbstractServletTest {
         }
     }
 
+    public static class ForwardingServletWithPathInfo extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.getRequestDispatcher("/test/path/forward-path-info").forward(req, resp);
+        }
+    }
+
     public static class IncludingServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             req.getRequestDispatcher("/test").include(req, resp);
+        }
+    }
+
+    public static class IncludingServletWithPathInfo extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.getRequestDispatcher("/test/path/include-path-info").include(req, resp);
+        }
+    }
+
+    public static class ErrorServlet extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            PrintWriter out = resp.getWriter();
+            out.print("Hello Error!");
+            out.close();
         }
     }
 
