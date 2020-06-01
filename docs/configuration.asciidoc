@@ -178,7 +178,7 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+<<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
@@ -2288,7 +2288,7 @@ The default unit for this option is `ms`.
 # A boolean specifying whether the circuit breaker should be enabled or not. 
 # When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 # If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# <<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 # When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 # has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 # agent will resume and become fully functional.
