@@ -410,6 +410,10 @@ public class ElasticApmAgent {
             }
         }
 
+        // Leave these variables here instead of invoking the config methods within the matching methods, otherwise Mockito has trouble with it
+        List<WildcardMatcher> defaultClassesExcludedFromInstrumentation = coreConfiguration.getDefaultClassesExcludedFromInstrumentation();
+        List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
+
         return new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
@@ -470,13 +474,13 @@ public class ElasticApmAgent {
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation(), target.getName()) != null;
+                    return WildcardMatcher.anyMatch(defaultClassesExcludedFromInstrumentation, target.getName()) != null;
                 }
             })
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation(), target.getName()) != null;
+                    return WildcardMatcher.anyMatch(classesExcludedFromInstrumentation, target.getName()) != null;
                 }
             })
             .disableClassFormatChanges();

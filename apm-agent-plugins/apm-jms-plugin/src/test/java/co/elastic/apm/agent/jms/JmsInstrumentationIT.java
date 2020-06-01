@@ -80,7 +80,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {
@@ -285,14 +284,14 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testPollingTransactionCreationOnly() throws Exception {
-        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(POLLING);
+        doReturn(POLLING).when(config.getConfig(MessagingConfiguration.class)).getMessagePollingTransactionStrategy();
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
     @Test
     public void testHandlingAndPollingTransactionCreation() throws Exception {
-        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(BOTH);
+        doReturn(BOTH).when(config.getConfig(MessagingConfiguration.class)).getMessagePollingTransactionStrategy();
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
@@ -306,9 +305,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueDisablement() throws Exception {
-        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(BOTH);
-        when(config.getConfig(MessagingConfiguration.class).getIgnoreMessageQueues())
-            .thenReturn(List.of(WildcardMatcher.valueOf("ignore-*")));
+        doReturn(BOTH).when(config.getConfig(MessagingConfiguration.class)).getMessagePollingTransactionStrategy();
+        doReturn(List.of(WildcardMatcher.valueOf("ignore-*"))).when(config.getConfig(MessagingConfiguration.class)).getIgnoreMessageQueues();
         final Queue queue = brokerFacade.createQueue("ignore-this");
         expectNoTraces.set(true);
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
