@@ -411,8 +411,8 @@ public class ElasticApmAgent {
         }
 
         // Leave these variables here instead of invoking the config methods within the matching methods, otherwise Mockito has trouble with it
-        List<WildcardMatcher> defaultClassesExcludedFromInstrumentation = coreConfiguration.getDefaultClassesExcludedFromInstrumentation();
-        List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
+        final List<WildcardMatcher> defaultClassesExcludedFromInstrumentation = coreConfiguration.getDefaultClassesExcludedFromInstrumentation();
+        final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
 
         return new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
