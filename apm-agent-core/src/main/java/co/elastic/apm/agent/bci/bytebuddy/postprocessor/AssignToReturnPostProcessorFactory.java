@@ -27,18 +27,16 @@ package co.elastic.apm.agent.bci.bytebuddy.postprocessor;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationList;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.StackManipulation;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
-import net.bytebuddy.implementation.bytecode.member.MethodReturn;
 import net.bytebuddy.implementation.bytecode.member.MethodVariableAccess;
 
 import static net.bytebuddy.matcher.ElementMatchers.annotationType;
 
 public class AssignToReturnPostProcessorFactory implements Advice.PostProcessor.Factory {
     @Override
-    public Advice.PostProcessor make(final MethodDescription.InDefinedShape adviceMethod, boolean exit) {
+    public Advice.PostProcessor make(final MethodDescription.InDefinedShape adviceMethod, final boolean exit) {
         final AnnotationList annotations = adviceMethod.getDeclaredAnnotations().filter(annotationType(AssignToReturn.class));
         if (!annotations.isEmpty()) {
             final AssignToReturn assignTo = annotations.getOnly().prepare(AssignToReturn.class).load();

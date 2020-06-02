@@ -37,7 +37,7 @@ import static net.bytebuddy.matcher.ElementMatchers.annotationType;
 
 public class AssignToArgumentPostProcessorFactory implements Advice.PostProcessor.Factory {
     @Override
-    public Advice.PostProcessor make(final MethodDescription.InDefinedShape adviceMethod, boolean exit) {
+    public Advice.PostProcessor make(final MethodDescription.InDefinedShape adviceMethod, final boolean exit) {
         final AnnotationList annotations = adviceMethod.getDeclaredAnnotations().filter(annotationType(AssignToArgument.class));
         if (!annotations.isEmpty()) {
             final AssignToArgument assignTo = annotations.getOnly().prepare(AssignToArgument.class).load();
