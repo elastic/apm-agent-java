@@ -27,9 +27,7 @@ package co.elastic.apm.agent.bci.bytebuddy.postprocessor;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationList;
 import net.bytebuddy.description.field.FieldDescription;
-import net.bytebuddy.description.field.FieldList;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.TargetType;
 import net.bytebuddy.dynamic.scaffold.FieldLocator;
@@ -39,7 +37,6 @@ import net.bytebuddy.implementation.bytecode.member.FieldAccess;
 import net.bytebuddy.implementation.bytecode.member.MethodVariableAccess;
 
 import static net.bytebuddy.matcher.ElementMatchers.annotationType;
-import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class  AssignToFieldPostProcessorFactory implements Advice.PostProcessor.Factory {
     @Override
@@ -63,6 +60,7 @@ public class  AssignToFieldPostProcessorFactory implements Advice.PostProcessor.
                         throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + field.getType());
                     }
                     return new StackManipulation.Compound(
+                        MethodVariableAccess.loadThis(),
                         MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
                         assign,
                         FieldAccess.forField(field).write()
