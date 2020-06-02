@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.asm.Advice;
@@ -65,10 +66,12 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
     @SuppressWarnings("rawtypes")
     public static class ConsumerRecordsAdvice {
 
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void wrapIterable(@Nullable @Advice.Return(readOnly = false) Iterable<ConsumerRecord> iterable) {
+        @Nullable
+        @AssignToReturn
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static Iterable<ConsumerRecord> wrapIterable(@Nullable @Advice.Return Iterable<ConsumerRecord> iterable) {
             if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {
-                return;
+                return iterable;
             }
 
             //noinspection ConstantConditions,rawtypes
@@ -77,6 +80,7 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
             if (iterable != null && kafkaInstrumentationHelper != null) {
                 iterable = kafkaInstrumentationHelper.wrapConsumerRecordIterable(iterable);
             }
+            return iterable;
         }
     }
 }

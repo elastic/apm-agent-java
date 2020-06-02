@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -55,6 +57,7 @@ class InstrumentationTest {
     private ElasticApmTracer tracer;
     private ConfigurationRegistry configurationRegistry;
     private CoreConfiguration coreConfig;
+    private String privateString;
 
     @BeforeEach
     void setup() {
@@ -72,6 +75,16 @@ class InstrumentationTest {
     void testIntercept() {
         init(configurationRegistry, List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
+    }
+
+    @Test
+    void testFieldAccess() {
+        init(configurationRegistry, List.of(new FieldAccessInstrumentation()));
+        assignToField("@AssignToField");
+        assertThat(privateString).isEqualTo("@AssignToField");
+    }
+
+    public void assignToField(String s) {
     }
 
     @Test
@@ -225,9 +238,10 @@ class InstrumentationTest {
     }
 
     public static class TestInstrumentation extends ElasticApmInstrumentation {
-        @Advice.OnMethodExit
-        public static void onMethodExit(@Advice.Return(readOnly = false) String returnValue) {
-            returnValue = "intercepted";
+        @AssignToReturn
+        @Advice.OnMethodExit(inline = false)
+        public static String onMethodExit() {
+            return "intercepted";
         }
 
         @Override
@@ -247,9 +261,10 @@ class InstrumentationTest {
     }
 
     public static class MathInstrumentation extends ElasticApmInstrumentation {
-        @Advice.OnMethodExit
-        public static void onMethodExit(@Advice.Return(readOnly = false) int returnValue) {
-            returnValue = 42;
+        @AssignToReturn
+        @Advice.OnMethodExit(inline = false)
+        public static int onMethodExit() {
+            return 42;
         }
 
         @Override
@@ -292,12 +307,13 @@ class InstrumentationTest {
 
     public static class SuppressExceptionInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onMethodEnter() {
+        public static String onMethodEnter() {
             throw new RuntimeException("This exception should be suppressed");
         }
 
+        @AssignToReturn
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onMethodExit(@Advice.Thrown Throwable throwable) {
+        public static String onMethodExit(@Advice.Thrown Throwable throwable) {
             throw new RuntimeException("This exception should be suppressed");
         }
 
@@ -314,6 +330,29 @@ class InstrumentationTest {
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.emptyList();
+        }
+    }
+
+    public static class FieldAccessInstrumentation extends ElasticApmInstrumentation {
+
+        @AssignToField("privateString")
+        @Advice.OnMethodEnter
+        public static String onEnter(@Advice.Argument(0) String s) {
+            return s;
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+        }
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.named("assignToField");
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return List.of("test", "experimental");
         }
     }
 }

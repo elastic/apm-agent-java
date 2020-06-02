@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -64,7 +65,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                    @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
             transaction.setUser(id, email, username);
@@ -76,17 +77,19 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("ensureParentId"));
         }
 
+        @Nullable
+        @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                          @Advice.Return(readOnly = false) String spanId) {
-            if (tracer != null) {
-                final TraceContext traceContext = transaction.getTraceContext();
-                if (traceContext.getParentId().isEmpty()) {
-                    traceContext.getParentId().setToRandomValue();
-                }
-                spanId = traceContext.getParentId().toString();
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction) {
+            if (tracer == null) {
+                return null;
             }
+            final TraceContext traceContext = transaction.getTraceContext();
+            if (traceContext.getParentId().isEmpty()) {
+                traceContext.getParentId().setToRandomValue();
+            }
+            return traceContext.getParentId().toString();
         }
     }
 
@@ -95,8 +98,8 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("setResult"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                            @Advice.Argument(0) String result) {
             transaction.withResult(result);
         }
@@ -108,7 +111,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Object value) {
             if (value != null ) {

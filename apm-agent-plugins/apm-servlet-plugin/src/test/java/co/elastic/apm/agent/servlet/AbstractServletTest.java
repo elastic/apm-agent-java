@@ -68,8 +68,8 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
 
         httpClient = new OkHttpClient.Builder()
             // set to 0 for debugging
-            .readTimeout(10, TimeUnit.SECONDS)
-            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.SECONDS)
+            .connectTimeout(0, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .build();
     }

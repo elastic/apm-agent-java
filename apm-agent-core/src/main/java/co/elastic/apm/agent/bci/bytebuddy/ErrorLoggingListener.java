@@ -25,13 +25,31 @@
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
 
     private static final Logger logger = LoggerFactory.getLogger(ErrorLoggingListener.class);
+
+    @Override
+    public void onTransformation(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, boolean loaded, DynamicType dynamicType) {
+        if (typeDescription.getName().equals("org.apache.activemq.ActiveMQMessageConsumer")) {
+            try {
+                Files.write(Paths.get("/Users/felixbarnsteiner/projects/github/elastic/apm-agent-java/ActiveMQMessageConsumer.class"), dynamicType.getBytes());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     @Override
     public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded, Throwable throwable) {

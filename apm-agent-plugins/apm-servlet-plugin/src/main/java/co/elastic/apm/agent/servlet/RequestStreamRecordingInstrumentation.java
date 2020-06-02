@@ -26,6 +26,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -105,25 +106,27 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
             }
         };
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onReadEnter(@Advice.This Object thiz,
-                                       @Advice.Local("transaction") Transaction transaction,
-                                       @Advice.Local("nested") boolean nested) {
-            nested = nestedThreadLocal.get();
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static boolean onReadEnter(@Advice.This Object thiz) {
+            boolean nested = nestedThreadLocal.get();
             nestedThreadLocal.set(Boolean.TRUE);
+            return nested;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void afterGetInputStream(@Advice.Return(readOnly = false) ServletInputStream inputStream,
-                                               @Advice.Local("nested") boolean nested) {
-            if (nested || tracer == null || wrapperHelperClassManager == null) {
-                return;
+        @AssignToReturn
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static ServletInputStream afterGetInputStream(@Advice.Return ServletInputStream inputStream,
+                                                             @Advice.Enter boolean nested) {
+            if (nested == Boolean.TRUE || tracer == null || wrapperHelperClassManager == null) {
+                return inputStream;
             }
             try {
                 final Transaction transaction = tracer.currentTransaction();
                 // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
                 if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {
-                    inputStream = wrapperHelperClassManager.getForClassLoaderOfClass(inputStream.getClass()).wrap(transaction.getContext().getRequest(), inputStream);
+                    return wrapperHelperClassManager.getForClassLoaderOfClass(inputStream.getClass()).wrap(transaction.getContext().getRequest(), inputStream);
+                } else {
+                    return inputStream;
                 }
             } finally {
                 nestedThreadLocal.set(Boolean.FALSE);

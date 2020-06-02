@@ -92,17 +92,17 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Return @Nullable okhttp3.Response response,
-                                          @Advice.Local("span") @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t) {
-            if (span != null) {
+            final AbstractSpan<?> active = getActive();
+            if (active != null && active.isExit()) {
                 try {
                     if (response != null) {
                         int statusCode = response.code();
-                        span.getContext().getHttp().withStatusCode(statusCode);
+                        ((Span) active).getContext().getHttp().withStatusCode(statusCode);
                     }
-                    span.captureException(t);
+                    active.captureException(t);
                 } finally {
-                    span.deactivate().end();
+                    active.deactivate().end();
                 }
             }
         }

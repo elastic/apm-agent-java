@@ -26,6 +26,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -179,8 +180,10 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         @VisibleForAdvice
         public static class AsyncContextStartAdvice {
 
-            @Advice.OnMethodEnter(suppress = Throwable.class)
-            private static void onEnterAsyncContextStart(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
+            @Nullable
+            @AssignToArgument(0)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Runnable onEnterAsyncContextStart(@Advice.Argument(0) @Nullable Runnable runnable) {
                 if (tracer != null && runnable != null && tracer.isWrappingAllowedOnThread()) {
                     final Transaction transaction = tracer.currentTransaction();
                     if (transaction != null) {
@@ -188,10 +191,11 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
                         tracer.avoidWrappingOnThread();
                     }
                 }
+                return runnable;
             }
 
-            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class)
-            private static void onExitAsyncContextStart() {
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, inline = false)
+            public static void onExitAsyncContextStart() {
                 if (tracer != null) {
                     tracer.allowWrappingOnThread();
                 }

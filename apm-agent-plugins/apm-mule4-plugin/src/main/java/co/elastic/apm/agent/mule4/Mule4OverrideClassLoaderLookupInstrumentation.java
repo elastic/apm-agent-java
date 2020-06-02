@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.mule4;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -77,9 +78,10 @@ public class Mule4OverrideClassLoaderLookupInstrumentation extends ElasticApmIns
     }
 
     public static class Mule4OverrideClassLoaderLookupAdvice {
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void makeParentOnlyForAgentClasses(@Advice.Argument(0) @Nullable final String packageName,
-                                                         @Advice.Return(readOnly = false) LookupStrategy lookupStrategy) {
+        @AssignToReturn
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static LookupStrategy makeParentOnlyForAgentClasses(@Advice.Argument(0) @Nullable final String packageName,
+                                                                   @Advice.Return LookupStrategy lookupStrategy) {
 
             // Until instrumentation mechanism is initiated, agent classes get loaded from the launching class loader.
             // Whenever flows are invoked with the visibility of this class loader's classpath, we can't let other agent
@@ -90,6 +92,7 @@ public class Mule4OverrideClassLoaderLookupInstrumentation extends ElasticApmIns
                 Mule4OverrideClassLoaderLookupInstrumentation.class.getClassLoader() == null) {
                 lookupStrategy = new DelegateOnlyLookupStrategy(ClassLoader.getSystemClassLoader());
             }
+            return lookupStrategy;
         }
     }
 }

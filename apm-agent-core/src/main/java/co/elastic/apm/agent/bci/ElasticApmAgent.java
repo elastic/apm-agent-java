@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgumentPostProcessorFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
@@ -32,6 +33,8 @@ import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToFieldPostProcessorFactory;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturnPostProcessorFactory;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -83,6 +86,7 @@ import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
+import static net.bytebuddy.matcher.ElementMatchers.annotationType;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -298,6 +302,10 @@ public class ElasticApmAgent {
     private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmTracer tracer, final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
+            .with(new Advice.PostProcessor.Factory.Compound(
+                new AssignToArgumentPostProcessorFactory(),
+                new AssignToReturnPostProcessorFactory(),
+                new AssignToFieldPostProcessorFactory()))
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
         Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();
@@ -410,6 +418,9 @@ public class ElasticApmAgent {
             }
         }
 
+        final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
+        final List<WildcardMatcher> defaultClassesExcludedFromInstrumentation = coreConfiguration.getDefaultClassesExcludedFromInstrumentation();
+
         return new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
@@ -470,13 +481,13 @@ public class ElasticApmAgent {
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation(), target.getName()) != null;
+                    return WildcardMatcher.anyMatch(defaultClassesExcludedFromInstrumentation, target.getName()) != null;
                 }
             })
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation(), target.getName()) != null;
+                    return WildcardMatcher.anyMatch(classesExcludedFromInstrumentation, target.getName()) != null;
                 }
             })
             .disableClassFormatChanges();
