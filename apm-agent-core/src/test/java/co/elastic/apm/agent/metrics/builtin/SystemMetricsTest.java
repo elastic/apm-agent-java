@@ -59,22 +59,20 @@ class SystemMetricsTest {
 
     @ParameterizedTest
     @CsvSource({
-        "/proc/meminfo,     6235127808, /proc/memory.limit_in_bytes        , /proc/memory.usage_in_bytes, /proc/memory.stat, 0",
-        "/proc/meminfo-3.14, 556630016, /proc/memory.limit_in_bytes        , /proc/memory.usage_in_bytes, /proc/memory.stat, 0",
-        "/proc/meminfo,     7000000000, /proc/memory.limit_in_bytes-limited, /proc/memory.usage_in_bytes, /proc/memory.stat, 778842112"
+        "/proc/meminfo,     6235127808, /proc/cgroup, /proc/unlimited",
+        "/proc/meminfo-3.14, 556630016, /proc/cgroup, /proc/unlimited",
+        "/proc/meminfo,     7000000000, /proc/cgroup, /proc/limited",
+        "/proc/meminfo,     7000000000, /proc/cgroup2, /proc/sys_cgroup2"
     })
-    void testFreeMemoryMeminfo(String file, long value, String cgroupLimit, String cgroupUsage, String cgroupStat, long rss) throws Exception {
-        SystemMetrics.CgroupFiles cgroupFiles = new SystemMetrics.CgroupFiles(new File(getClass().getResource(cgroupLimit).toURI()),
-            new File(getClass().getResource(cgroupUsage).toURI()),
-            new File(getClass().getResource(cgroupStat).toURI()) );
-        SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()), cgroupFiles, cgroupFiles);
+    void testFreeMemoryMeminfo(String file, long value, String selfCGroup, String sysFsGroup) throws Exception {
+        SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()),
+            new File(getClass().getResource(selfCGroup).toURI()),
+            new File(getClass().getResource(sysFsGroup).toURI())
+        );
         systemMetrics.bindTo(metricRegistry);
 
         assertThat(metricRegistry.getGaugeValue("system.memory.actual.free", Labels.EMPTY)).isEqualTo(value);
         assertThat(metricRegistry.getGaugeValue("system.memory.total", Labels.EMPTY)).isEqualTo(7964778496L);
-        if (rss > 0) {
-            assertThat(metricRegistry.getGaugeValue("system.process.memory.rss.bytes", Labels.EMPTY)).isEqualTo(rss);
-        }
     }
 
     private void consumeCpu() {
