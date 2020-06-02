@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -85,6 +86,16 @@ class InstrumentationTest {
     }
 
     public void assignToField(String s) {
+    }
+
+    @Test
+    void testAssignToArgument() {
+        init(configurationRegistry, List.of(new AssignToArgumentInstrumentation()));
+        assertThat(assignToArgument("foo")).isEqualTo("foo@AssignToArgument");
+    }
+
+    public String assignToArgument(String s) {
+        return s;
     }
 
     @Test
@@ -348,6 +359,29 @@ class InstrumentationTest {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return ElementMatchers.named("assignToField");
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return List.of("test", "experimental");
+        }
+    }
+
+    public static class AssignToArgumentInstrumentation extends ElasticApmInstrumentation {
+
+        @AssignToArgument(0)
+        @Advice.OnMethodEnter
+        public static String onEnter(@Advice.Argument(0) String s) {
+            return s + "@AssignToArgument";
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+        }
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.named("assignToArgument");
         }
 
         @Override

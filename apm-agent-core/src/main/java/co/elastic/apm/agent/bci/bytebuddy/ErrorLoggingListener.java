@@ -41,17 +41,6 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
     private static final Logger logger = LoggerFactory.getLogger(ErrorLoggingListener.class);
 
     @Override
-    public void onTransformation(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, boolean loaded, DynamicType dynamicType) {
-        if (typeDescription.getName().equals("org.apache.activemq.ActiveMQMessageConsumer")) {
-            try {
-                Files.write(Paths.get("/Users/felixbarnsteiner/projects/github/elastic/apm-agent-java/ActiveMQMessageConsumer.class"), dynamicType.getBytes());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @Override
     public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded, Throwable throwable) {
         if (throwable instanceof MinimumClassFileVersionValidator.UnsupportedClassFileVersionException) {
             logger.warn("{} uses an unsupported class file version (pre Java 5) and can't be instrumented. " +
