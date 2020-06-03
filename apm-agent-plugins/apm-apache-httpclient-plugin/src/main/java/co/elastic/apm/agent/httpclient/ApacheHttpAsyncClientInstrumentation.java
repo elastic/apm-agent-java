@@ -26,6 +26,8 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.ApacheHttpAsyncClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -58,51 +60,6 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
     // Referencing specific Apache HTTP client classes are allowed due to type erasure
     @VisibleForAdvice
     public static HelperClassManager<ApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, FutureCallback<?>, HttpContext, HttpRequest>> asyncHelperManager;
-
-    private static class ApacheHttpAsyncClientAdvice {
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(@Advice.Argument(value = 0, readOnly = false) HttpAsyncRequestProducer requestProducer,
-                                            @Advice.Argument(2) HttpContext context,
-                                            @Advice.Argument(value = 3, readOnly = false) FutureCallback futureCallback,
-                                            @Advice.Local("span") @Nullable Span span,
-                                            @Advice.Local("wrapped") boolean wrapped) {
-            if (tracer == null || tracer.getActive() == null) {
-                return;
-            }
-            final AbstractSpan<?> parent = tracer.getActive();
-            span = parent.createExitSpan();
-            if (span != null) {
-                span.withType(HttpClientHelper.EXTERNAL_TYPE)
-                    .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
-                    .activate();
-
-                ApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, FutureCallback<?>, HttpContext, HttpRequest> asyncHelper =
-                    asyncHelperManager.getForClassLoaderOfClass(HttpAsyncRequestProducer.class);
-                TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
-                if (asyncHelper != null && headerSetter != null) {
-                    requestProducer = asyncHelper.wrapRequestProducer(requestProducer, span, headerSetter);
-                    futureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
-                    wrapped = true;
-                }
-            }
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
-                                          @Advice.Local("wrapped") boolean wrapped,
-                                          @Advice.Thrown @Nullable Throwable t) {
-            if (span != null) {
-                // Deactivate in this thread. Span will be ended and reported by the listener
-                span.deactivate();
-
-                if (!wrapped) {
-                    // Listener is not wrapped- we need to end the span so to avoid leak and report error if occurred during method invocation
-                    span.captureException(t);
-                    span.end();
-                }
-            }
-        }
-    }
 
     public ApacheHttpAsyncClientInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
@@ -143,5 +100,54 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             .and(takesArgument(1, named("org.apache.http.nio.protocol.HttpAsyncResponseConsumer")))
             .and(takesArgument(2, named("org.apache.http.protocol.HttpContext")))
             .and(takesArgument(3, named("org.apache.http.concurrent.FutureCallback")));
+    }
+
+    public static class ApacheHttpAsyncClientAdvice {
+        @AssignTo(arguments = {
+            @AssignToArgument(index = 0, value = 0),
+            @AssignToArgument(index = 1, value = 3)
+        })
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object[] onBeforeExecute(@Advice.Argument(value = 0) HttpAsyncRequestProducer requestProducer,
+                                               @Advice.Argument(2) HttpContext context,
+                                               @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
+            if (tracer == null || tracer.getActive() == null) {
+                return new Object[]{requestProducer, futureCallback, false, null};
+            }
+            final AbstractSpan<?> parent = tracer.getActive();
+            Span span = parent.createExitSpan();
+            boolean wrapped = false;
+            if (span != null) {
+                span.withType(HttpClientHelper.EXTERNAL_TYPE)
+                    .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
+                    .activate();
+
+                ApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, FutureCallback<?>, HttpContext, HttpRequest> asyncHelper =
+                    asyncHelperManager.getForClassLoaderOfClass(HttpAsyncRequestProducer.class);
+                TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
+                if (asyncHelper != null && headerSetter != null) {
+                    requestProducer = asyncHelper.wrapRequestProducer(requestProducer, span, headerSetter);
+                    futureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
+                    wrapped = true;
+                }
+            }
+            return new Object[]{requestProducer, futureCallback, wrapped, span};
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
+                                          @Advice.Thrown @Nullable Throwable t) {
+            Span span = enter != null ? (Span) enter[3] : null;
+            if (span != null) {
+                // Deactivate in this thread. Span will be ended and reported by the listener
+                span.deactivate();
+
+                if (!((Boolean) enter[2])) {
+                    // Listener is not wrapped- we need to end the span so to avoid leak and report error if occurred during method invocation
+                    span.captureException(t);
+                    span.end();
+                }
+            }
+        }
     }
 }

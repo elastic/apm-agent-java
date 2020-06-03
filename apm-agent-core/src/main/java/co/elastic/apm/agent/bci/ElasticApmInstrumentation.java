@@ -82,6 +82,29 @@ public abstract class ElasticApmInstrumentation {
 
     @Nullable
     @VisibleForAdvice
+    public static Span getActiveSpan() {
+        if (tracer != null) {
+            final AbstractSpan<?> active = tracer.getActive();
+            if (active instanceof Span) {
+                return (Span) active;
+            }
+        }
+        return null;
+    }
+
+
+    @Nullable
+    @VisibleForAdvice
+    public static Span getActiveExitSpan() {
+        final Span span = getActiveSpan();
+        if (span != null && span.isExit()) {
+            return span;
+        }
+        return null;
+    }
+
+    @Nullable
+    @VisibleForAdvice
     public static Span createExitSpan() {
         final AbstractSpan<?> activeSpan = getActive();
         if (activeSpan == null || activeSpan.isExit()) {

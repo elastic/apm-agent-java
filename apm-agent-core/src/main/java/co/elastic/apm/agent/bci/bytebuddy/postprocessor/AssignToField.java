@@ -42,6 +42,8 @@ public @interface AssignToField {
      */
     String value();
 
+    int index() default -1;
+
     /**
      * Returns the type that declares the field that should be mapped to the annotated parameter. If this property
      * is set to {@code void}, the field is looked up implicitly within the instrumented class's class hierarchy.
@@ -51,20 +53,6 @@ public @interface AssignToField {
      * {@link TargetType} for the instrumented type.
      */
     Class<?> declaringType() default Void.class;
-
-    /**
-     * <p>
-     * Indicates if it is possible to write to this parameter. If this property is set to {@code false}, the annotated
-     * type must be equal to the type declaring the instrumented method if the typing is not also set to {@link Assigner.Typing#DYNAMIC}.
-     * If this property is set to {@code true}, the annotated parameter can be any super type of the instrumented method's declaring type.
-     * </p>
-     * <p>
-     * <b>Important</b>: This property must be set to {@code true} if the advice method is not inlined.
-     * </p>
-     *
-     * @return {@code true} if this parameter is read-only.
-     */
-    boolean readOnly() default true;
 
     /**
      * The typing that should be applied when assigning the field value.

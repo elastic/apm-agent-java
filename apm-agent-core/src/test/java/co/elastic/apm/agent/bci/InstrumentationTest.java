@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
@@ -46,6 +47,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +88,13 @@ class InstrumentationTest {
         assertThat(privateString).isEqualTo("@AssignToField");
     }
 
+    @Test
+    void testFieldAccessArray() {
+        init(configurationRegistry, List.of(new FieldAccessArrayInstrumentation()));
+        assignToField("@AssignToField");
+        assertThat(privateString).isEqualTo("@AssignToField");
+    }
+
     public void assignToField(String s) {
     }
 
@@ -97,6 +106,27 @@ class InstrumentationTest {
 
     public String assignToArgument(String s) {
         return s;
+    }
+
+    @Test
+    void testAssignToArgumentArray() {
+        init(configurationRegistry, List.of(new AssignToArgumentsInstrumentation()));
+        assertThat(assignToArguments("foo", "bar")).isEqualTo("barfoo");
+    }
+
+    public String assignToArguments(String foo, String bar) {
+        return foo + bar;
+    }
+
+    @Test
+    void testAssignToReturnArray() {
+        init(configurationRegistry, List.of(new AssignToReturnArrayInstrumentation()));
+        assertThat(assignToReturn("foo", "bar")).isEqualTo("foobar");
+    }
+
+    @Nullable
+    public String assignToReturn(String foo, String bar) {
+        return null;
     }
 
     @Test
@@ -358,6 +388,31 @@ class InstrumentationTest {
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.named("assignToField");
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return List.of("test", "experimental");
+        }
+    }
+
+    public static class FieldAccessArrayInstrumentation extends ElasticApmInstrumentation {
+
+        @AssignTo(fields = @AssignToField(index = 0, value = "privateString"))
+        @Advice.OnMethodEnter
+        public static Object[] onEnter(@Advice.Argument(0) String s) {
+            return new Object[]{s};
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+        }
+
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return ElementMatchers.named("assignToField");
@@ -381,9 +436,61 @@ class InstrumentationTest {
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
+
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return ElementMatchers.named("assignToArgument");
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return List.of("test", "experimental");
+        }
+    }
+
+    public static class AssignToArgumentsInstrumentation extends ElasticApmInstrumentation {
+
+        @AssignTo(arguments = {
+            @AssignToArgument(index = 0, value = 1),
+            @AssignToArgument(index = 1, value = 0)
+        })
+        @Advice.OnMethodEnter
+        public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
+            return new Object[]{foo, bar};
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.named("assignToArguments");
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return List.of("test", "experimental");
+        }
+    }
+
+    public static class AssignToReturnArrayInstrumentation extends ElasticApmInstrumentation {
+
+        @AssignTo(returns = @AssignToReturn(index = 0))
+        @Advice.OnMethodExit
+        public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
+            return new Object[]{foo + bar};
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.named("assignToReturn");
         }
 
         @Override

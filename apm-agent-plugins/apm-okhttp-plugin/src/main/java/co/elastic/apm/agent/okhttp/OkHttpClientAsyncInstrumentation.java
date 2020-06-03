@@ -26,6 +26,9 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -38,7 +41,6 @@ import com.squareup.okhttp.Response;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,25 +80,28 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
     @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeEnqueue(@Advice.Origin Class<? extends Call> clazz,
-                                            @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Request originalRequest,
-                                            @Advice.Argument(value = 0, readOnly = false) @Nullable Callback callback,
-                                            @Advice.Local("span") Span span) {
+        @AssignTo(
+            fields = @AssignToField(index = 0, value = "originalRequest"),
+            arguments = @AssignToArgument(index = 1, value = 0)
+        )
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object[] onBeforeEnqueue(@Advice.Origin Class<? extends Call> clazz,
+                                               @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
+                                               @Advice.Argument(0) @Nullable Callback callback) {
             if (tracer == null || tracer.getActive() == null || callbackWrapperCreator == null) {
-                return;
+                return new Object[] {originalRequest, callback, null};
             }
 
             final WrapperCreator<Callback> wrapperCreator = callbackWrapperCreator.getForClassLoaderOfClass(clazz);
             if (originalRequest == null || callback == null || wrapperCreator == null) {
-                return;
+                return new Object[] {originalRequest, callback, null};
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
 
             Request request = originalRequest;
             URL url = request.url();
-            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
+            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
             if (span != null) {
                 span.activate();
@@ -110,10 +115,12 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                 }
                 callback = wrapperCreator.wrap(callback, span);
             }
+            return new Object[] {originalRequest, callback, span};
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onAfterEnqueue(@Advice.Local("span") @Nullable Span span) {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void onAfterEnqueue(@Advice.Enter @Nullable Object[] enter) {
+            Span span = enter != null ? (Span) enter[2] : null;
             if (span != null) {
                 span.deactivate();
             }

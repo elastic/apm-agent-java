@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgumentPostProcessorFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
@@ -33,8 +32,7 @@ import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToFieldPostProcessorFactory;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturnPostProcessorFactory;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToPostProcessorFactory;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -86,7 +84,6 @@ import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
-import static net.bytebuddy.matcher.ElementMatchers.annotationType;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -302,10 +299,7 @@ public class ElasticApmAgent {
     private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmTracer tracer, final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
-            .with(new Advice.PostProcessor.Factory.Compound(
-                new AssignToArgumentPostProcessorFactory(),
-                new AssignToReturnPostProcessorFactory(),
-                new AssignToFieldPostProcessorFactory()))
+            .with(new AssignToPostProcessorFactory())
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
         Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();

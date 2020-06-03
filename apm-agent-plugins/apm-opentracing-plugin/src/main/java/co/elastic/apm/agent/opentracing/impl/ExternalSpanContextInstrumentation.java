@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -65,17 +67,27 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
             super(named("toTraceId"));
         }
 
-        @SuppressWarnings("Duplicates")
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
-                                     @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext,
-                                     @Advice.Return(readOnly = false) String traceId) {
-            if (textMap != null && childTraceContext == null) {
-                childTraceContext = parseTextMap(textMap);
+        @Nullable
+        @AssignToField(value = "childTraceContext")
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static TraceContext toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+                                     @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (textMap == null) {
+                return childTraceContext;
             }
-            if (childTraceContext != null) {
-                traceId = childTraceContext.getTraceId().toString();
+            return parseTextMap(textMap);
+
+        }
+
+
+        @Nullable
+        @AssignToReturn
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (childTraceContext == null) {
+                return null;
             }
+            return childTraceContext.getTraceId().toString();
         }
     }
 
@@ -85,17 +97,25 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
             super(named("toSpanId"));
         }
 
-        @SuppressWarnings("Duplicates")
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
-                                    @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext,
-                                    @Advice.Return(readOnly = false) String spanId) {
-            if (textMap != null && childTraceContext == null) {
-                childTraceContext = parseTextMap(textMap);
+        @Nullable
+        @AssignToField(value = "childTraceContext")
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static TraceContext toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+                                    @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (textMap == null) {
+                return childTraceContext;
             }
-            if (childTraceContext != null) {
-                spanId = childTraceContext.getParentId().toString();
+            return parseTextMap(textMap);
+        }
+
+        @Nullable
+        @AssignToReturn
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (childTraceContext == null) {
+                return null;
             }
+            return childTraceContext.getParentId().toString();
         }
     }
 
