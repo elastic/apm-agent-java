@@ -44,6 +44,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 
@@ -70,6 +72,8 @@ public class SystemMetrics extends AbstractLifecycleListener {
     private static String CGROUP2_MAX_MEMORY = "memory.max";
     private static String CGROUP2_USED_MEMORY = "memory.current";
     private static long UNLIMITED = 0x7FFFFFFFFFFFF000L;
+
+    private Pattern MEMORY_CGROUP = Pattern.compile("^\\d+\\:memory\\:.*");
 
     @Nullable
     private final Method systemCpuUsage;
@@ -105,44 +109,45 @@ public class SystemMetrics extends AbstractLifecycleListener {
     }
 
     public CgroupFiles verifyCgroupEnabled(File procSelfCgroup, File sysFsCgroup) {
-        try(BufferedReader fileReader = new BufferedReader(new FileReader(procSelfCgroup))) {
-            String lineCgroup = null;
-            for (String cgroupLine = fileReader.readLine(); cgroupLine != null && !cgroupLine.isEmpty(); cgroupLine = fileReader.readLine()) {
-                if (lineCgroup==null && cgroupLine.startsWith("0:")) {
-                    lineCgroup = cgroupLine;
+        if (procSelfCgroup.canRead()) {
+            try(BufferedReader fileReader = new BufferedReader(new FileReader(procSelfCgroup))) {
+                String lineCgroup = null;
+                for (String cgroupLine = fileReader.readLine(); cgroupLine != null && !cgroupLine.isEmpty(); cgroupLine = fileReader.readLine()) {
+                    if (lineCgroup == null && cgroupLine.startsWith("0:")) {
+                        lineCgroup = cgroupLine;
+                    }
+                    if (MEMORY_CGROUP.matcher(cgroupLine).matches()) {
+                        lineCgroup = cgroupLine;
+                    }
                 }
-                if (cgroupLine.startsWith("9:memory")) {
-                    lineCgroup = cgroupLine;
-                }
-            }
-            if ( lineCgroup!=null ) {
-                final String[] cgroupSplit = StringUtils.split(lineCgroup, ':');
-                // Checking cgroup2
-                File maxMemory = new File(sysFsCgroup, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_MAX_MEMORY);
-                if (maxMemory.canRead()) {
-                    try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
-                        String memMaxLine = fileReaderMem.readLine();
-                        if (!"max".equalsIgnoreCase(memMaxLine)) {
-                            return new CgroupFiles(maxMemory,
-                                new File(sysFsCgroup, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_USED_MEMORY));
+                if (lineCgroup != null) {
+                    final String[] cgroupSplit = StringUtils.split(lineCgroup, ':');
+                    // Checking cgroup2
+                    File maxMemory = new File(sysFsCgroup, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_MAX_MEMORY);
+                    if (maxMemory.canRead()) {
+                        try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
+                            String memMaxLine = fileReaderMem.readLine();
+                            if (!"max".equalsIgnoreCase(memMaxLine)) {
+                                return new CgroupFiles(maxMemory,
+                                    new File(sysFsCgroup, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_USED_MEMORY));
+                            }
+                        }
+                    }
+                    // Checking cgroup1
+                    maxMemory = new File(sysFsCgroup, CGROUP1_MAX_MEMORY);
+                    if (maxMemory.canRead()) {
+                        try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
+                            String memMaxLine = fileReaderMem.readLine();
+                            long memMax = Long.parseLong(memMaxLine);
+                            if (memMax < UNLIMITED) { // Cgroup1 use a contant to disabled limits
+                                return new CgroupFiles(maxMemory,
+                                    new File(sysFsCgroup, CGROUP1_USED_MEMORY));
+                            }
                         }
                     }
                 }
-                // Checking cgroup1
-                maxMemory = new File(sysFsCgroup, CGROUP1_MAX_MEMORY);
-                if (maxMemory.canRead()) {
-                    try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
-                        String memMaxLine = fileReaderMem.readLine();
-                        long memMax = Long.parseLong(memMaxLine);
-                        if (memMax < UNLIMITED) { // Cgroup1 use a contant to disabled limits
-                            return new CgroupFiles(maxMemory,
-                                new File(sysFsCgroup, CGROUP1_USED_MEMORY));
-                        }
-                    }
-                }
+            } catch (Exception e) {
             }
-        }
-        catch (Exception e) {
         }
         return null;
     }
@@ -195,8 +200,7 @@ public class SystemMetrics extends AbstractLifecycleListener {
                 }
             });
         }
-
-        if (cgroupFiles == null && memInfoFile.canRead()) {
+        else if (memInfoFile.canRead()) {
             metricRegistry.addUnlessNan("system.memory.actual.free", Labels.EMPTY, new DoubleSupplier() {
                 final List<WildcardMatcher> relevantLines = Arrays.asList(
                     caseSensitiveMatcher("MemAvailable:*kB"),
