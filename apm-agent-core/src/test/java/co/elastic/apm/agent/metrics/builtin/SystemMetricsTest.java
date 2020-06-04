@@ -34,6 +34,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.File;
+import java.io.FileWriter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -59,15 +60,27 @@ class SystemMetricsTest {
 
     @ParameterizedTest
     @CsvSource({
-        "/proc/meminfo,     6235127808, /proc/cgroup, /proc/unlimited",
-        "/proc/meminfo-3.14, 556630016, /proc/cgroup, /proc/unlimited",
-        "/proc/meminfo,     7000000000, /proc/cgroup, /proc/limited",
+        "/proc/meminfo,     6235127808, /proc/cgroup, /proc/unlimited/memory",
+        "/proc/meminfo-3.14, 556630016, /proc/cgroup, /proc/unlimited/memory",
+        "/proc/meminfo,     7000000000, /proc/cgroup, /proc/limited/memory",
         "/proc/meminfo,     7000000000, /proc/cgroup2, /proc/sys_cgroup2"
     })
     void testFreeMemoryMeminfo(String file, long value, String selfCGroup, String sysFsGroup) throws Exception {
+        File mountInfo = new File(getClass().getResource(sysFsGroup).toURI());
+        File fileTmp = File.createTempFile("temp", null);
+        fileTmp.deleteOnExit();
+        FileWriter fw = new FileWriter(fileTmp);
+        if ("/proc/sys_cgroup2".equalsIgnoreCase(sysFsGroup)) {
+            fw.write("30 23 0:26 / " + mountInfo.getAbsolutePath() + " rw,nosuid,nodev,noexec,relatime shared:4 - cgroup2 cgroup rw,seclabel\n");
+        }
+        else {
+            fw.write("39 30 0:35 / " + mountInfo.getAbsolutePath() + " rw,nosuid,nodev,noexec,relatime shared:10 - cgroup cgroup rw,seclabel,memory\n");
+        }
+        fw.close();
+
         SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()),
             new File(getClass().getResource(selfCGroup).toURI()),
-            new File(getClass().getResource(sysFsGroup).toURI())
+            fileTmp
         );
         systemMetrics.bindTo(metricRegistry);
 

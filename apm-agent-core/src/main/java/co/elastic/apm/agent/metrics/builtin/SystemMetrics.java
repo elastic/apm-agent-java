@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
@@ -62,18 +63,20 @@ import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
  * under Apache License 2.0
  */
 public class SystemMetrics extends AbstractLifecycleListener {
-
     public static final String PROC_SELF_CGROUP = "/proc/self/cgroup";
     public static final String SYS_FS_CGROUP = "/sys/fs/cgroup";
+    public static final String PROC_SELF_MOUNTINFO = "/proc/self/mountinfo";
     private final OperatingSystemMXBean operatingSystemBean;
 
-    private static String CGROUP1_MAX_MEMORY = "memory/memory.limit_in_bytes";
-    private static String CGROUP1_USED_MEMORY = "memory/memory.usage_in_bytes";
+    private static String CGROUP1_MAX_MEMORY = "memory.limit_in_bytes";
+    private static String CGROUP1_USED_MEMORY = "memory.usage_in_bytes";
     private static String CGROUP2_MAX_MEMORY = "memory.max";
     private static String CGROUP2_USED_MEMORY = "memory.current";
     private static long UNLIMITED = 0x7FFFFFFFFFFFF000L;
 
     private Pattern MEMORY_CGROUP = Pattern.compile("^\\d+\\:memory\\:.*");
+    private Pattern CGROUP1_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup.*cgroup.*memory.*");
+    private Pattern CGROUP2_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup2.*cgroup.*");
 
     @Nullable
     private final Method systemCpuUsage;
@@ -90,13 +93,14 @@ public class SystemMetrics extends AbstractLifecycleListener {
     @Nullable
     private final Method virtualProcessMemory;
     private final File memInfoFile;
+    @Nullable
     private final CgroupFiles cgroupFiles;
 
     public SystemMetrics() {
-        this(new File("/proc/meminfo"), new File(PROC_SELF_CGROUP), new File(SYS_FS_CGROUP));
+        this(new File("/proc/meminfo"), new File(PROC_SELF_CGROUP), new File(PROC_SELF_MOUNTINFO));
     }
 
-    SystemMetrics(File memInfoFile, File procSelfCgroup, File sysFsCgroup) {
+    SystemMetrics(File memInfoFile, File procSelfCgroup, File mountInfo) {
         this.operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
         this.systemCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getSystemCpuLoad");
         this.processCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getProcessCpuLoad");
@@ -105,11 +109,11 @@ public class SystemMetrics extends AbstractLifecycleListener {
         this.virtualProcessMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getCommittedVirtualMemorySize");
         this.memInfoFile = memInfoFile;
 
-        cgroupFiles = verifyCgroupEnabled(procSelfCgroup, sysFsCgroup);
+        cgroupFiles = verifyCgroupEnabled(procSelfCgroup, mountInfo);
     }
 
-    public CgroupFiles verifyCgroupEnabled(File procSelfCgroup, File sysFsCgroup) {
-        if (procSelfCgroup.canRead()) {
+    public CgroupFiles verifyCgroupEnabled(File procSelfCgroup, File mountInfo) {
+        if (procSelfCgroup.canRead() && mountInfo.canRead()) {
             try(BufferedReader fileReader = new BufferedReader(new FileReader(procSelfCgroup))) {
                 String lineCgroup = null;
                 for (String cgroupLine = fileReader.readLine(); cgroupLine != null && !cgroupLine.isEmpty(); cgroupLine = fileReader.readLine()) {
@@ -121,32 +125,61 @@ public class SystemMetrics extends AbstractLifecycleListener {
                     }
                 }
                 if (lineCgroup != null) {
-                    final String[] cgroupSplit = StringUtils.split(lineCgroup, ':');
-                    // Checking cgroup2
-                    File maxMemory = new File(sysFsCgroup, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_MAX_MEMORY);
-                    if (maxMemory.canRead()) {
-                        try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
-                            String memMaxLine = fileReaderMem.readLine();
-                            if (!"max".equalsIgnoreCase(memMaxLine)) {
-                                return new CgroupFiles(maxMemory,
-                                    new File(sysFsCgroup, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_USED_MEMORY));
+                    CgroupFiles cgroupFilesTest = null;
+                    try(BufferedReader fileMountInfoReader = new BufferedReader(new FileReader(mountInfo))) {
+                        for (String mountLine = fileMountInfoReader.readLine(); mountLine != null && !mountLine.isEmpty(); mountLine = fileMountInfoReader.readLine()) {
+                            Matcher matcher = CGROUP2_MOUNT_POINT.matcher(mountLine);
+                            if (matcher.matches()) {
+                                cgroupFilesTest = verifyCgroup2Available(lineCgroup, new File(matcher.group(1)));
+                                if (cgroupFilesTest != null) return cgroupFilesTest;
+                            }
+                            matcher = CGROUP1_MOUNT_POINT.matcher(mountLine);
+                            if (matcher.matches()) {
+                                cgroupFilesTest = verifyCgroup1Available(new File(matcher.group(1)));
+                                if (cgroupFilesTest != null) return cgroupFilesTest;
                             }
                         }
                     }
-                    // Checking cgroup1
-                    maxMemory = new File(sysFsCgroup, CGROUP1_MAX_MEMORY);
-                    if (maxMemory.canRead()) {
-                        try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
-                            String memMaxLine = fileReaderMem.readLine();
-                            long memMax = Long.parseLong(memMaxLine);
-                            if (memMax < UNLIMITED) { // Cgroup1 use a contant to disabled limits
-                                return new CgroupFiles(maxMemory,
-                                    new File(sysFsCgroup, CGROUP1_USED_MEMORY));
-                            }
-                        }
-                    }
+                    // Fall back to /sys/fs/cgroup if not found on mountinfo
+                    cgroupFilesTest = verifyCgroup2Available(lineCgroup, new File(SYS_FS_CGROUP));
+                    if (cgroupFilesTest != null) return cgroupFilesTest;
+                    cgroupFilesTest = verifyCgroup1Available( new File(SYS_FS_CGROUP + File.pathSeparator + "memory"));
+                    if (cgroupFilesTest != null) return cgroupFilesTest;
+
                 }
             } catch (Exception e) {
+            }
+        }
+        return null;
+    }
+
+    private CgroupFiles verifyCgroup2Available(String lineCgroup, File mountDiscovered) throws IOException {
+        final String[] cgroupSplit = StringUtils.split(lineCgroup, ':');
+        // Checking cgroup2
+        File maxMemory = new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_MAX_MEMORY);
+        if (maxMemory.canRead()) {
+            try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
+                String memMaxLine = fileReaderMem.readLine();
+                if (!"max".equalsIgnoreCase(memMaxLine)) {
+                    return new CgroupFiles(maxMemory,
+                        new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_USED_MEMORY));
+                }
+            }
+        }
+        return null;
+    }
+
+    private CgroupFiles verifyCgroup1Available(File mountDiscovered) throws IOException {
+        // Checking cgroup1
+        File maxMemory = new File(mountDiscovered, CGROUP1_MAX_MEMORY);
+        if (maxMemory.canRead()) {
+            try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
+                String memMaxLine = fileReaderMem.readLine();
+                long memMax = Long.parseLong(memMaxLine);
+                if (memMax < UNLIMITED) { // Cgroup1 use a contant to disabled limits
+                    return new CgroupFiles(maxMemory,
+                        new File(mountDiscovered, CGROUP1_USED_MEMORY));
+                }
             }
         }
         return null;
