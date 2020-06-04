@@ -575,8 +575,20 @@ public class ElasticApmTracer {
         return activationListeners;
     }
 
-    void registerLifecycleListeners(List<LifecycleListener> lifecycleListeners) {
+    /**
+     * As opposed to {@link ElasticApmTracer#start()}, this method does not change the tracer's state and it's purpose
+     * is to be called at JVM bootstrap.
+     * @param lifecycleListeners Lifecycle listeners
+     */
+    void init(List<LifecycleListener> lifecycleListeners) {
         this.lifecycleListeners.addAll(lifecycleListeners);
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            try {
+                lifecycleListener.init(this);
+            } catch (Exception e) {
+                logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
+            }
+        }
     }
 
     public void stopInitializationDelay() {

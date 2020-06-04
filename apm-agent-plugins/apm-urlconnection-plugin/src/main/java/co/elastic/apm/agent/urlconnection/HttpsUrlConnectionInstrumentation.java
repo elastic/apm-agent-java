@@ -71,6 +71,7 @@ public class HttpsUrlConnectionInstrumentation extends ElasticApmInstrumentation
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void stopInitializationDelay(@Nullable @Advice.Return(typing = Assigner.Typing.DYNAMIC) Object sslFactory) {
         System.out.println("sslFactory = " + sslFactory);
+        // todo: THIS CALL IS SYNCHRONIZED SO SHOULD BE CALLED ONLY ONCE
         if (tracer != null && sslFactory != null) {
             tracer.stopInitializationDelay();
         }
