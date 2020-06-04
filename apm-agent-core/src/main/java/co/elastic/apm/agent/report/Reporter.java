@@ -35,6 +35,8 @@ import java.util.concurrent.Future;
 
 public interface Reporter extends Closeable {
 
+    void start();
+
     void report(Transaction transaction);
 
     void report(Span span);

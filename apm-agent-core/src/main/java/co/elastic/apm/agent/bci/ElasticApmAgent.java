@@ -118,6 +118,12 @@ public class ElasticApmAgent {
     public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
+        boolean delayStart = true;
+        if (delayStart) {
+            tracer.startAsync();
+        } else {
+            tracer.start();
+        }
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
     }
 

@@ -85,8 +85,10 @@ public class ApmServerClientTest {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .build();
+        tracer.start();
 
-        apmServerClient = new ApmServerClient(reporterConfiguration, tracer.getConfig(ReporterConfiguration.class).getServerUrls());
+        apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start(tracer.getConfig(ReporterConfiguration.class).getServerUrls());
     }
 
     @Test
@@ -197,7 +199,8 @@ public class ApmServerClientTest {
 
     @Test
     public void testWithEmptyServerUrlList() {
-        ApmServerClient client = new ApmServerClient(reporterConfiguration, Collections.emptyList());
+        ApmServerClient client = new ApmServerClient(reporterConfiguration);
+        client.start(Collections.emptyList());
         Exception exception = null;
         try {
             client.execute("/irrelevant", connection -> null);

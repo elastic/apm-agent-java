@@ -72,18 +72,22 @@ public class ApmServerClient {
     private static final Version VERSION_6_7 = Version.of("6.7.0");
     private static final Version VERSION_7_9 = Version.of("7.9.0");
     private final ReporterConfiguration reporterConfiguration;
+    @Nullable
     private volatile List<URL> serverUrls;
     private volatile Future<Version> apmServerVersion;
     private final AtomicInteger errorCount = new AtomicInteger();
     private final ApmServerHealthChecker healthChecker;
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration) {
-        this(reporterConfiguration, shuffleUrls(reporterConfiguration.getServerUrls()));
-    }
-
-    public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
         this.reporterConfiguration = reporterConfiguration;
         this.healthChecker = new ApmServerHealthChecker(this);
+    }
+
+    public void start() {
+        start(shuffleUrls(reporterConfiguration.getServerUrls()));
+    }
+
+    public void start(List<URL> shuffledUrls) {
         this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
@@ -253,6 +257,7 @@ public class ApmServerClient {
     }
 
     public <T> List<T> executeForAllUrls(String path, ConnectionHandler<T> connectionHandler) {
+        List<URL> serverUrls = getServerUrls();
         List<T> results = new ArrayList<>(serverUrls.size());
         for (URL serverUrl : serverUrls) {
             HttpURLConnection connection = null;
@@ -269,6 +274,7 @@ public class ApmServerClient {
     }
 
     URL getCurrentUrl() {
+        List<URL> serverUrls = getServerUrls();
         return serverUrls.get(errorCount.get() % serverUrls.size());
     }
 
@@ -282,7 +288,7 @@ public class ApmServerClient {
         // Copying the URLs instead of rotating serverUrls makes sure that a concurrently happening connection error
         // for a different request does not skip a URL.
         // In other words, it avoids that concurrently running requests influence each other.
-        ArrayList<URL> serverUrlsCopy = new ArrayList<>(serverUrls);
+        ArrayList<URL> serverUrlsCopy = new ArrayList<>(getServerUrls());
         Collections.rotate(serverUrlsCopy, errorCount.get());
         return serverUrlsCopy;
     }
@@ -292,7 +298,10 @@ public class ApmServerClient {
     }
 
     List<URL> getServerUrls() {
-        return this.serverUrls;
+        if (serverUrls == null) {
+            throw new IllegalStateException("APM Server client not yet initialized");
+        }
+        return serverUrls;
     }
 
     public boolean supportsNonStringLabels() {

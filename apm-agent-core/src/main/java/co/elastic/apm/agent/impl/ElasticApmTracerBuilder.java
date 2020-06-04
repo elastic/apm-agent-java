@@ -129,6 +129,7 @@ public class ElasticApmTracerBuilder {
         }
 
         ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
+        apmServerClient.start();
         MetaData metaData = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
@@ -149,7 +150,7 @@ public class ElasticApmTracerBuilder {
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory, apmServerClient, metaData);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
-        tracer.start(lifecycleListeners);
+        tracer.registerLifecycleListeners(lifecycleListeners);
         return tracer;
     }
 

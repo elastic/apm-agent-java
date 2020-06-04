@@ -80,7 +80,8 @@ public class ApmServerConfigurationSourceTest {
         mockApmServer.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.0.0"))));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
         configurationSource = new ApmServerConfigurationSource(
             new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),

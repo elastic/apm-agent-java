@@ -29,8 +29,10 @@ import co.elastic.apm.agent.util.ThreadUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -61,8 +63,16 @@ public class HttpsUrlConnectionInstrumentation extends ElasticApmInstrumentation
     /**
      * This will not allow using the default SSL factory from any agent thread
      */
-    @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
+    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class)
     public static boolean skipExecutionIfAgentThread() {
         return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
+    }
+
+    @Advice.OnMethodExit(suppress = Throwable.class)
+    public static void stopInitializationDelay(@Nullable @Advice.Return(typing = Assigner.Typing.DYNAMIC) Object sslFactory) {
+        System.out.println("sslFactory = " + sslFactory);
+        if (tracer != null && sslFactory != null) {
+            tracer.stopInitializationDelay();
+        }
     }
 }

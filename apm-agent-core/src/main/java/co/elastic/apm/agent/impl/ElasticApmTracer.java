@@ -48,6 +48,7 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +79,8 @@ public class ElasticApmTracer {
      * The requirement increases if the application tends to wrap multiple {@link Runnable}s.
      */
     private static final int MAX_POOLED_RUNNABLES = 256;
+
+    private static final Object INIT_LOCK = new Object();
 
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
 
@@ -572,12 +575,47 @@ public class ElasticApmTracer {
         return activationListeners;
     }
 
-    synchronized void start(List<LifecycleListener> lifecycleListeners) {
+    void registerLifecycleListeners(List<LifecycleListener> lifecycleListeners) {
+        this.lifecycleListeners.addAll(lifecycleListeners);
+    }
+
+    public void stopInitializationDelay() {
+        synchronized (INIT_LOCK) {
+            INIT_LOCK.notify();
+        }
+    }
+
+    public synchronized void startAsync() {
+        System.out.println("start async");
+        ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1).submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    int delayInitMs = coreConfiguration.getDelayInitMs();
+                    System.out.println("start wait for " + delayInitMs + " milliseconds");
+                    if (delayInitMs > 0) {
+                        synchronized (INIT_LOCK) {
+                            INIT_LOCK.wait(delayInitMs);
+                        }
+                    }
+                    System.out.println("end wait");
+                } catch (InterruptedException e) {
+                    // todo
+                } finally {
+                    ElasticApmTracer.this.start();
+                }
+            }
+        });
+    }
+
+    public synchronized void start() {
+        System.out.println("start sync");
         if (tracerState != TracerState.UNINITIALIZED) {
             logger.warn("Trying to start an already initialized agent");
             return;
         }
-        this.lifecycleListeners.addAll(lifecycleListeners);
+        apmServerClient.start();
+        reporter.start();
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.start(this);

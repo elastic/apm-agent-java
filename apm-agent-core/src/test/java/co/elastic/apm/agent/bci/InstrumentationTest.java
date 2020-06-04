@@ -210,11 +210,11 @@ class InstrumentationTest {
     }
 
     private void init(ConfigurationRegistry config, List<ElasticApmInstrumentation> instrumentations) {
-        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
-                .configurationRegistry(config)
-                .build(),
-            ByteBuddyAgent.install(),
-            instrumentations);
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .build();
+        tracer.start();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), instrumentations);
     }
 
     private String interceptMe() {

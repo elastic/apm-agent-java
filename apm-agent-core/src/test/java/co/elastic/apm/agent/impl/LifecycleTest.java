@@ -64,6 +64,7 @@ public class LifecycleTest {
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
             .build();
+        tracerImpl.start();
         assertThat(TestLifecycleListener.init.get()).isEqualTo(initBefore + 1);
         assertThat(TestLifecycleListener.start.get()).isEqualTo(startBefore + 1);
     }
@@ -133,6 +134,7 @@ public class LifecycleTest {
             .configurationRegistry(configRegistry)
             .reporter(new MockReporter())
             .build();
+        tracer.start();
         assertThat(tracer.isRunning()).isFalse();
     }
 

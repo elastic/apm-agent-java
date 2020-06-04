@@ -118,6 +118,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.11.0]")
         .build();
 
+    private final ConfigurationOption<Integer> delayInitMs = ConfigurationOption.integerOption()
+        .key("delay_initialization_ms")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("If set to a value greater than 0, agent will delay it's initialization by the configured number of milliseconds.")
+        .buildWithDefault(5000);
+
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
         .key("service_version")
         .configurationCategory(CORE_CATEGORY)
@@ -587,6 +594,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             return null;
         }
         return nodeName;
+    }
+
+    public int getDelayInitMs() {
+        return delayInitMs.get();
     }
 
     public String getServiceVersion() {

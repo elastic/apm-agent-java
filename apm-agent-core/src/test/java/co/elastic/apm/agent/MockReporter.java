@@ -113,6 +113,9 @@ public class MockReporter implements Reporter {
     }
 
     @Override
+    public void start() {}
+
+    @Override
     public synchronized void report(Transaction transaction) {
         if (closed) {
             return;
