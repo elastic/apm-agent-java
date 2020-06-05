@@ -32,6 +32,8 @@ import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -155,11 +157,17 @@ class IOUtilsTest  {
     }
 
     @Test
-    void exportResourceToTemp() {
+    void exportResourceToTemp() throws URISyntaxException {
         File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
+
+        URL url = this.getClass().getResource("/elasticapm.properties");
+        System.out.println("toString " + url.toString());
+        System.out.println("toURI.toASCIIString " + url.toURI().toASCIIString());
+        System.out.println("getFile " + url.getFile());
+
         assertThat(tmp)
-            .hasSameContentAs(new File(this.getClass().getResource("/elasticapm.properties").getFile()));
+            .hasSameContentAs(new File(url.getFile()));
     }
 
     @Test
