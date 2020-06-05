@@ -168,7 +168,6 @@ class IOUtilsTest  {
         System.out.println("getFile " + url.getFile());
 
         assertThat(new File(url.toURI().getPath())).exists();
-        assertThat(new File(url.getFile())).doesNotExist();
 
         assertThat(tmp)
             .hasSameContentAs(new File(url.toURI().getPath()));
