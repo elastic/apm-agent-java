@@ -32,7 +32,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.URLDecoder;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -221,11 +220,7 @@ public class IOUtils {
                 throw new IllegalStateException(resource + " not found");
             }
             String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
-
-            // temp folder might be url-encoded
-            String tempFolder = URLDecoder.decode(System.getProperty("java.io.tmpdir"), StandardCharsets.UTF_8.name());
-
-            File tempFile = new File(tempFolder, tempFileNamePrefix + "-" + hash + tempFileNameExtension);
+            File tempFile = new File(System.getProperty("java.io.tmpdir"), tempFileNamePrefix + "-" + hash + tempFileNameExtension);
             if (!tempFile.exists()) {
                 try (FileOutputStream out = new FileOutputStream(tempFile)) {
                     FileChannel channel = out.getChannel();

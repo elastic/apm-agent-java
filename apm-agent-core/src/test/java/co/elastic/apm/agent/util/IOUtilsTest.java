@@ -25,27 +25,25 @@
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.Test;
+
+import javax.annotation.Nonnull;
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.Test;
-
-import javax.annotation.Nonnull;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.util.concurrent.ArrayBlockingQueue;
 
 import static java.nio.charset.StandardCharsets.UTF_16;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -160,7 +158,8 @@ class IOUtilsTest  {
     void exportResourceToTemp() {
         File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
-        assertThat(tmp).hasSameContentAs(new File(this.getClass().getResource("/elasticapm.properties").getFile()));
+        assertThat(tmp)
+            .hasSameContentAs(new File(this.getClass().getResource("/elasticapm.properties").getFile()));
     }
 
     @Test
