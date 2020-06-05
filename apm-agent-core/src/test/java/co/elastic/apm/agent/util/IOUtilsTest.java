@@ -33,11 +33,11 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.net.URISyntaxException;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -159,17 +159,14 @@ class IOUtilsTest  {
     }
 
     @Test
-    void exportResourceToTemp() throws UnsupportedEncodingException {
+    void exportResourceToTemp() throws UnsupportedEncodingException, URISyntaxException {
         File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
 
-        URL url = IOUtilsTest.class.getResource("/elasticapm.properties");
-
-        // required because file path may be url-encoded (for example on CI server with spaces in project name)
-        String referenceFile = URLDecoder.decode(url.getFile(), UTF_8);
+        Path referenceFile = Paths.get(IOUtilsTest.class.getResource("/elasticapm.properties").toURI());
 
         assertThat(tmp)
-            .hasSameContentAs(new File(referenceFile));
+            .hasSameContentAs(referenceFile.toFile());
     }
 
     @Test
