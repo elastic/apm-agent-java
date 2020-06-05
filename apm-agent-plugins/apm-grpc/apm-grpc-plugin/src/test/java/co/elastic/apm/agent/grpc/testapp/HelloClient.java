@@ -54,7 +54,7 @@ public abstract class HelloClient<Req, Rep> {
     }
 
     protected static Deadline getDeadline() {
-        return Deadline.after(5, TimeUnit.SECONDS);
+        return Deadline.after(10, TimeUnit.SECONDS);
     }
 
     public abstract Req buildRequest(String user, int depth);
