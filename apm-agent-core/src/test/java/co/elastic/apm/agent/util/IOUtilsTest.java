@@ -161,13 +161,17 @@ class IOUtilsTest  {
         File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
 
-        URL url = this.getClass().getResource("/elasticapm.properties");
+        URL url = IOUtilsTest.class.getResource("/elasticapm.properties");
+        new File(url.toURI().getPath());
         System.out.println("toString " + url.toString());
         System.out.println("toURI.toASCIIString " + url.toURI().toASCIIString());
         System.out.println("getFile " + url.getFile());
 
+        assertThat(new File(url.toURI().getPath())).exists();
+        assertThat(new File(url.getFile())).doesNotExist();
+
         assertThat(tmp)
-            .hasSameContentAs(new File(url.getFile()));
+            .hasSameContentAs(new File(url.toURI().getPath()));
     }
 
     @Test
