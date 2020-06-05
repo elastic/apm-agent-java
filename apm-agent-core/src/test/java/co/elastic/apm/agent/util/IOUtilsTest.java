@@ -32,10 +32,12 @@ import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -157,20 +159,17 @@ class IOUtilsTest  {
     }
 
     @Test
-    void exportResourceToTemp() throws URISyntaxException {
+    void exportResourceToTemp() throws UnsupportedEncodingException {
         File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
 
         URL url = IOUtilsTest.class.getResource("/elasticapm.properties");
-        new File(url.toURI().getPath());
-        System.out.println("toString " + url.toString());
-        System.out.println("toURI.toASCIIString " + url.toURI().toASCIIString());
-        System.out.println("getFile " + url.getFile());
 
-        assertThat(new File(url.toURI().getPath())).exists();
+        // required because file path may be url-encoded (for example on CI server with spaces in project name)
+        String referenceFile = URLDecoder.decode(url.getFile(), UTF_8);
 
         assertThat(tmp)
-            .hasSameContentAs(new File(url.toURI().getPath()));
+            .hasSameContentAs(new File(referenceFile));
     }
 
     @Test
