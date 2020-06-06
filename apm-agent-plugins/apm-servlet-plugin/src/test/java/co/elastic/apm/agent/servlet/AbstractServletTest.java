@@ -53,7 +53,7 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
 
         // because we reuse the same classloader with different servlet context names
         // we need to explicitly reset the name cache to make service name detection work as expected
-        ServletTransactionHelper.clearServiceNameCache();
+        ServletGlobalState.clearServiceNameCache();
 
         // server is not reused between tests as handler is provided from subclass
         // another alternative

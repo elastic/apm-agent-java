@@ -43,7 +43,6 @@ import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.commons.math.util.MathUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -236,7 +235,6 @@ class InstrumentationTest {
     }
 
     @Test
-    @Disabled("this is currently a limitation in Byte Buddy")
     void testSuppressException() {
         ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
@@ -282,7 +280,7 @@ class InstrumentationTest {
 
     public static class TestInstrumentation extends ElasticApmInstrumentation {
         @AssignToReturn
-        @Advice.OnMethodExit(inline = false)
+        @Advice.OnMethodExit
         public static String onMethodExit() {
             return "intercepted";
         }
@@ -454,7 +452,7 @@ class InstrumentationTest {
             @AssignToArgument(index = 0, value = 1),
             @AssignToArgument(index = 1, value = 0)
         })
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(inline = false)
         public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
             return new Object[]{foo, bar};
         }
@@ -478,7 +476,7 @@ class InstrumentationTest {
     public static class AssignToReturnArrayInstrumentation extends ElasticApmInstrumentation {
 
         @AssignTo(returns = @AssignToReturn(index = 0))
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(inline = false)
         public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
             return new Object[]{foo + bar};
         }

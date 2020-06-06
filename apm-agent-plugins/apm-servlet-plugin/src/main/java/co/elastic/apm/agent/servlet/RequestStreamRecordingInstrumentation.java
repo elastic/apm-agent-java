@@ -24,19 +24,16 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
 import javax.servlet.ServletInputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,22 +47,6 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class RequestStreamRecordingInstrumentation extends AbstractServletInstrumentation {
-
-    @Nullable
-    @VisibleForAdvice
-    // referring to InputStreamWrapperFactory is legal because of type erasure
-    public static HelperClassManager<InputStreamWrapperFactory> wrapperHelperClassManager;
-
-    public RequestStreamRecordingInstrumentation(ElasticApmTracer tracer) {
-        ServletApiAdvice.init(tracer);
-        synchronized (RequestStreamRecordingInstrumentation.class) {
-            if (wrapperHelperClassManager == null) {
-                wrapperHelperClassManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-                    "co.elastic.apm.agent.servlet.helper.InputStreamFactoryHelperImpl",
-                    "co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper");
-            }
-        }
-    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -92,10 +73,6 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
         return GetInputStreamAdvice.class;
     }
 
-    public interface InputStreamWrapperFactory {
-        ServletInputStream wrap(Request request, ServletInputStream servletInputStream);
-    }
-
     public static class GetInputStreamAdvice {
 
         @VisibleForAdvice
@@ -117,14 +94,14 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static ServletInputStream afterGetInputStream(@Advice.Return ServletInputStream inputStream,
                                                              @Advice.Enter boolean nested) {
-            if (nested == Boolean.TRUE || tracer == null || wrapperHelperClassManager == null) {
+            if (nested == Boolean.TRUE || tracer == null) {
                 return inputStream;
             }
             try {
                 final Transaction transaction = tracer.currentTransaction();
                 // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
                 if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {
-                    return wrapperHelperClassManager.getForClassLoaderOfClass(inputStream.getClass()).wrap(transaction.getContext().getRequest(), inputStream);
+                    return new RecordingServletInputStreamWrapper(transaction.getContext().getRequest(), inputStream);
                 } else {
                     return inputStream;
                 }

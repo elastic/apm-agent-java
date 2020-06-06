@@ -194,4 +194,8 @@ public abstract class ElasticApmInstrumentation {
 
     public void onTypeMatch(TypeDescription typeDescription, ClassLoader classLoader, ProtectionDomain protectionDomain, @Nullable Class<?> classBeingRedefined) {
     }
+
+    public boolean indyDispatch() {
+        return false;
+    }
 }

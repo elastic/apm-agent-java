@@ -41,6 +41,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.PackageScanner;
 import co.elastic.apm.agent.util.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
@@ -48,15 +49,25 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.description.field.FieldDescription;
+import net.bytebuddy.description.field.FieldList;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.method.MethodList;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
+import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -66,6 +77,10 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.lang.invoke.ConstantCallSite;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
@@ -73,6 +88,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -83,9 +99,12 @@ import java.util.concurrent.TimeUnit;
 import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
+import static java.lang.invoke.MethodHandles.dropArguments;
+import static java.lang.invoke.MethodHandles.zero;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
+import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
@@ -93,6 +112,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 
 public class ElasticApmAgent {
 
@@ -286,6 +306,47 @@ public class ElasticApmAgent {
                     }
                 }
             })
+            .transform(new AgentBuilder.Transformer() {
+                @Override
+                public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule) {
+                    return builder.visit(new AsmVisitorWrapper.AbstractBase() {
+                        @Override
+                        public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context,
+                                                 TypePool typePool, FieldList<FieldDescription.InDefinedShape> fieldList, MethodList<?> methodList, int writerFlags, int readerFlags) {
+                            return new ClassVisitor(Opcodes.ASM7, classVisitor) {
+                                private boolean patchVersion;
+
+                                @Override
+                                public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                                    if (version < Opcodes.V1_7) {
+                                        patchVersion = true;
+                                        // up-patching the class file verison to version 7 in order to support advice dispatching via invoke dynamic
+                                        version = Opcodes.V1_7;
+                                    }
+                                    super.visit(version, access, name, signature, superName, interfaces);
+                                }
+
+                                @Override
+                                public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                    final MethodVisitor methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions);
+                                    if (patchVersion) {
+                                        return new JSRInlinerAdapter(methodVisitor, access, name, descriptor, signature, exceptions);
+                                    } else {
+                                        return methodVisitor;
+                                    }
+                                }
+                            };
+                        }
+
+                        @Override
+                        public int mergeWriter(int flags) {
+                            // class files with version < Java 7 don't require a stack frame map
+                            // as we're patching the version to at least 7, we have to compute the frames
+                            return flags | COMPUTE_FRAMES;
+                        }
+                    });
+                }
+            })
             .transform(getTransformer(tracer, instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
                 @Override
@@ -305,6 +366,13 @@ public class ElasticApmAgent {
         Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();
         if (offsetMapping != null) {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
+        }
+        if (instrumentation.indyDispatch()) {
+            try {
+                withCustomMapping = withCustomMapping.bootstrap(ElasticApmAgent.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, String.class, Class.class, MethodHandle.class, String.class, int.class));
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(new ElementMatcher<MethodDescription>() {
@@ -331,6 +399,41 @@ public class ElasticApmAgent {
             }, instrumentation.getAdviceClass().getName())
             .include(ClassLoader.getSystemClassLoader())
             .withExceptionHandler(PRINTING);
+    }
+
+    private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
+
+    public static ConstantCallSite bootstrap(MethodHandles.Lookup lookup,
+                                              String adviceMethodName,
+                                              MethodType adviceMethodType,
+                                              String adviceClassName,
+                                              Class<?> instrumentedType,
+                                              MethodHandle instrumentedMethod,
+                                              String instrumentedMethodName,
+                                              int enter) {
+        try {
+            Class<?> adviceClass = Class.forName(adviceClassName);
+            String packageName = adviceClass.getPackage().getName();
+            List<String> helperClasses = classesByPackage.get(packageName);
+            if (helperClasses == null) {
+                classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName));
+                helperClasses = classesByPackage.get(packageName);
+            }
+            ClassLoader helperClassLoader = HelperClassManager.ForDispatcher.inject(lookup.lookupClass().getClassLoader(), instrumentedType.getProtectionDomain(), helperClasses, isAnnotatedWith(named(GlobalState.class.getName())));
+            if (helperClassLoader != null) {
+                Class<?> adviceInHelperCL = helperClassLoader.loadClass(adviceClassName);
+                MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInHelperCL, adviceMethodName, adviceMethodType);
+                return new ConstantCallSite(methodHandle);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ConstantCallSite(empty(adviceMethodType));
+    }
+
+    public static MethodHandle empty(MethodType type) {
+        Objects.requireNonNull(type);
+        return dropArguments(zero(type.returnType()), 0, type.parameterList());
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
@@ -428,6 +531,8 @@ public class ElasticApmAgent {
                 ? new SoftlyReferencingTypePoolCache(TypePool.Default.ReaderMode.FAST, 1, isReflectionClassLoader())
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
+            // avoids instrumenting classes from helper class loaders
+            .or(any(), classLoaderWithName(ByteArrayClassLoader.ChildFirst.class.getName()))
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
             // ideally, those bootstrap classpath inclusions should be set at plugin level, see issue #952
             .or(nameStartsWith("java.")

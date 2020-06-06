@@ -30,7 +30,10 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.loading.ClassInjector;
+import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
+import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.pool.TypePool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +43,10 @@ import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -268,6 +273,68 @@ public abstract class HelperClassManager<T> {
                 helper = helperRef.get();
             }
             return helper;
+        }
+    }
+
+    public static class ForDispatcher {
+
+        private static final Map<ClassLoader, Map<Collection<String>, WeakReference<ClassLoader>>> alreadyInjected = new WeakHashMap<ClassLoader, Map<Collection<String>, WeakReference<ClassLoader>>>();
+
+        /**
+         * Creates an isolated CL that has two parents: the target class loader and the agent CL.
+         * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
+         */
+        @Nullable
+        public synchronized static ClassLoader inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject, ElementMatcher<TypeDescription> exclusionMatcher) throws Exception {
+            classesToInject = new ArrayList<>(classesToInject);
+
+            Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);
+            if (injectedClasses.containsKey(classesToInject)) {
+                return injectedClasses.get(classesToInject).get();
+            }
+
+            List<String> classesToInjectCopy = new ArrayList<>(classesToInject.size());
+            TypePool pool = new TypePool.Default(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
+            for (Iterator<String> iterator = classesToInject.iterator(); iterator.hasNext(); ) {
+                String className = iterator.next();
+                if (!exclusionMatcher.matches(pool.describe(className).resolve())) {
+                    classesToInjectCopy.add(className);
+                }
+            }
+            logger.debug("Creating helper class loader for {} containing {}", targetClassLoader, classesToInjectCopy);
+
+            ClassLoader parent = getHelperClassLoaderParent(targetClassLoader);
+            Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy);
+            // child first semantics are important here as the helper CL contains classes that are also present in the agent CL
+            ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
+            injectedClasses.put(classesToInject, new WeakReference<>(helperCL));
+
+
+            return helperCL;
+        }
+
+        private static Map<Collection<String>, WeakReference<ClassLoader>> getOrCreateInjectedClasses(@Nullable ClassLoader targetClassLoader) {
+            Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = alreadyInjected.get(targetClassLoader);
+            if (injectedClasses == null) {
+                injectedClasses = new HashMap<>();
+                alreadyInjected.put(targetClassLoader, injectedClasses);
+            }
+            return injectedClasses;
+        }
+
+        @Nullable
+        private static ClassLoader getHelperClassLoaderParent(@Nullable ClassLoader targetClassLoader) {
+            ClassLoader agentClassLoader = HelperClassManager.class.getClassLoader();
+            if (agentClassLoader != null && agentClassLoader != ClassLoader.getSystemClassLoader()) {
+                // future world: when the agent is loaded from an isolated class loader
+                // the helper class loader has both, the agent class loader and the target class loader as the parent
+                return new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
+            }
+            return targetClassLoader;
+        }
+
+        public synchronized static void clear() {
+            alreadyInjected.clear();
         }
     }
 

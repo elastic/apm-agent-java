@@ -22,17 +22,39 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci.bytebuddy.postprocessor;
+package co.elastic.apm.agent.threadlocal;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AssignTo {
-    AssignToArgument[] arguments() default {};
-    AssignToField[] fields() default {};
-    AssignToReturn[] returns() default {};
+import javax.annotation.Nullable;
+
+public class RemoveOnGetThreadLocal<T> extends DetachedThreadLocal<T> {
+
+    @Nullable
+    private final T defaultValue;
+
+    public RemoveOnGetThreadLocal() {
+        this(null);
+    }
+
+    public RemoveOnGetThreadLocal(@Nullable T defaultValue) {
+        super(Cleaner.INLINE);
+        this.defaultValue = defaultValue;
+    }
+
+    @Nullable
+    public T getAndRemove() {
+        T value = get();
+        if (value != null) {
+            clear();
+        }
+        return value;
+    }
+
+    @Override
+    @Nullable
+    protected T initialValue(Thread thread) {
+        return defaultValue;
+    }
+
 }

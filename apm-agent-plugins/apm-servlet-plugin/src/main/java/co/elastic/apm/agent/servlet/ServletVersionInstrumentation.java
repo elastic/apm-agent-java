@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -40,10 +39,8 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import java.util.Collection;
-import java.util.Collections;
 
-import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -58,7 +55,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Does not inherit from {@link AbstractServletInstrumentation} in order to still instrument when servlet version is not
  * supported.
  */
-public abstract class ServletVersionInstrumentation extends ElasticApmInstrumentation {
+public abstract class ServletVersionInstrumentation extends AbstractServletInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ServletVersionInstrumentation.class);
@@ -78,8 +75,8 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(SERVLET_API);
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return any();
     }
 
     /**
@@ -93,9 +90,9 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
                 .and(takesArgument(0, named("javax.servlet.ServletConfig")));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
-        private static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
+        public static void onEnter(@Advice.Argument(0) @Nullable ServletConfig servletConfig) {
             if (alreadyLogged) {
                 return;
             }
@@ -132,9 +129,9 @@ public abstract class ServletVersionInstrumentation extends ElasticApmInstrument
                 .and(takesArgument(1, named("javax.servlet.ServletResponse")));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("Duplicates") // duplication is fine here as it allows to inline code
-        private static void onEnter(@Advice.This Servlet servlet) {
+        public static void onEnter(@Advice.This Servlet servlet) {
             if (alreadyLogged) {
                 return;
             }

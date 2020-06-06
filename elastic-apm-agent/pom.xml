@@ -312,6 +312,10 @@
                                     <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>org.objectweb.asm</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.asm</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>com.dslplatform</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
                                 </relocation>

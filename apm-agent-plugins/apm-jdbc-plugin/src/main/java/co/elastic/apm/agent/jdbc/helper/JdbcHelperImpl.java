@@ -24,12 +24,11 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
-import co.elastic.apm.agent.util.DataStructures;
+import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,36 +39,48 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-@SuppressWarnings("unused") // indirect access to this class provided through HelperClassManager
-public class JdbcHelperImpl extends JdbcHelper {
+import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.connectionSupported;
+import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
+import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metadataSupported;
+import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.statementSqlMap;
+
+public class JdbcHelperImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
+    public static final String DB_SPAN_TYPE = "db";
+    public static final String DB_SPAN_ACTION = "query";
 
-    // Important implementation note:
-    //
-    // because this class is potentially loaded from multiple classloaders, making those fields 'static' will not
-    // have the expected behavior, thus, any direct reference to `JdbcHelperImpl` should only be obtained from the
-    // HelperClassManager<JdbcHelper> instance.
-    private final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
-    private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
-    private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
-
-    @VisibleForAdvice
-    public final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
+    private final DetachedThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new DetachedThreadLocal<SignatureParser>(DetachedThreadLocal.Cleaner.INLINE) {
         @Override
-        protected SignatureParser initialValue() {
+        protected SignatureParser initialValue(Thread thread) {
             return new SignatureParser();
         }
     };
 
-    @Override
-    public void clearInternalStorage() {
-        metaDataMap.clear();
-        metadataSupported.clear();
-        connectionSupported.clear();
+    /**
+     * Maps the provided sql to the provided Statement object
+     *
+     * @param statement javax.sql.Statement object
+     * @param sql       query string
+     */
+    public void mapStatementToSql(Object statement, String sql) {
+        statementSqlMap.putIfAbsent(statement, sql);
     }
 
-    @Override
+    /**
+     * Returns the SQL statement belonging to provided Statement.
+     * <p>
+     * Might return {@code null} when the provided Statement is a wrapper of the actual statement.
+     * </p>
+     *
+     * @return the SQL statement belonging to provided Statement, or {@code null}
+     */
+    @Nullable
+    public String retrieveSqlForStatement(Object statement) {
+        return statementSqlMap.get(statement);
+    }
+
+
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement) {
         if (!(statement instanceof Statement) || sql == null || isAlreadyMonitored(parent) || parent == null) {

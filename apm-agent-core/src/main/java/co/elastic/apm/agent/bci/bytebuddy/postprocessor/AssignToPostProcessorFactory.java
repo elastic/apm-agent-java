@@ -33,12 +33,16 @@ import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.TargetType;
 import net.bytebuddy.dynamic.scaffold.FieldLocator;
+import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.implementation.bytecode.StackManipulation;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.implementation.bytecode.collection.ArrayAccess;
 import net.bytebuddy.implementation.bytecode.constant.IntegerConstant;
 import net.bytebuddy.implementation.bytecode.member.FieldAccess;
 import net.bytebuddy.implementation.bytecode.member.MethodVariableAccess;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,7 +96,17 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
                 }
             }
         }
-        return new Compound(postProcessors);
+        return new Advice.PostProcessor() {
+            @Override
+            public StackManipulation resolve(TypeDescription typeDescription, MethodDescription methodDescription, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
+                final Label jumpToIfNull = new Label();
+                return new StackManipulation.Compound(
+                    new AddNullCheck(jumpToIfNull, adviceMethod.getReturnType(), MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter())),
+                    new AssignToPostProcessorFactory.Compound(postProcessors).resolve(typeDescription, methodDescription, assigner, argumentHandler),
+                    new AddLabel(jumpToIfNull)
+                );
+            }
+        };
     }
 
     private Advice.PostProcessor createAssignToReturnPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignToReturn assignToReturn) {
@@ -143,24 +157,31 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
                     if (!returnType.represents(Object[].class)) {
                         throw new IllegalStateException("Advice method has to return Object[] when setting an index");
                     }
+                    final Label jumpToIfNull = new Label();
+                    final StackManipulation load = MethodVariableAccess.REFERENCE.loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter());
                     return new StackManipulation.Compound(
+                        new AddNullCheck(jumpToIfNull, TypeDescription.Generic.OBJECT, load),
                         MethodVariableAccess.loadThis(),
-                        MethodVariableAccess.REFERENCE.loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
-                        IntegerConstant.forValue(assignToField.index()),
-                        ArrayAccess.REFERENCE.load(),
+                        load,
+                        loadArrayElement(assignToField.index()),
                         assigner.assign(TypeDescription.Generic.OBJECT, field.getType(), Assigner.Typing.DYNAMIC),
-                        FieldAccess.forField(field).write()
+                        FieldAccess.forField(field).write(),
+                        new AddLabel(jumpToIfNull)
                     );
                 } else {
                     final StackManipulation assign = assigner.assign(adviceMethod.getReturnType(), field.getType(), assignToField.typing());
                     if (!assign.isValid()) {
                         throw new IllegalStateException("Cannot assign " + adviceMethod.getReturnType() + " to " + field.getType());
                     }
+                    final Label jumpToIfNull = new Label();
+                    final StackManipulation load = MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter());
                     return new StackManipulation.Compound(
+                        new AddNullCheck(jumpToIfNull, TypeDescription.Generic.OBJECT, load),
                         MethodVariableAccess.loadThis(),
-                        MethodVariableAccess.of(adviceMethod.getReturnType()).loadFrom(exit ? argumentHandler.exit() : argumentHandler.enter()),
+                        load,
                         assign,
-                        FieldAccess.forField(field).write()
+                        FieldAccess.forField(field).write(),
+                        new AddLabel(jumpToIfNull)
                     );
                 }
             }
@@ -199,6 +220,12 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
         };
     }
 
+    private StackManipulation loadArrayElement(int i) {
+        return new StackManipulation.Compound(
+            IntegerConstant.forValue(i),
+            ArrayAccess.REFERENCE.load());
+    }
+
     public static class Compound implements Advice.PostProcessor {
 
         /**
@@ -227,6 +254,52 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
                 stackManipulations.add(postProcessor.resolve(instrumentedType, instrumentedMethod, assigner, argumentHandler));
             }
             return new StackManipulation.Compound(stackManipulations);
+        }
+    }
+
+    private static class AddNullCheck implements StackManipulation {
+        private final Label jumpToIfNull;
+        private final TypeDescription.Generic type;
+        private final StackManipulation load;
+
+        public AddNullCheck(Label jumpToIfNull, TypeDescription.Generic type, StackManipulation load) {
+            this.jumpToIfNull = jumpToIfNull;
+            this.type = type;
+            this.load = load;
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
+
+        @Override
+        public Size apply(MethodVisitor methodVisitor, Implementation.Context context) {
+            Size size = new Size(0, 0);
+            if (!type.isPrimitive()) {
+                size = size.aggregate(load.apply(methodVisitor, context));
+                methodVisitor.visitJumpInsn(Opcodes.IFNULL, jumpToIfNull);
+            }
+            return size;
+        }
+    }
+
+    private static class AddLabel implements StackManipulation {
+        private final Label label;
+
+        public AddLabel(Label label) {
+            this.label = label;
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
+
+        @Override
+        public Size apply(MethodVisitor methodVisitor, Implementation.Context context) {
+            methodVisitor.visitLabel(label);
+            return new Size(0, 0);
         }
     }
 }
