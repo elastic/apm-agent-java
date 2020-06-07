@@ -8,9 +8,6 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
-/**
- * The source code of IndyBootstrap.clazz, for reference.
- */
 public class IndyBootstrap {
     public static Method bootstrap;
 

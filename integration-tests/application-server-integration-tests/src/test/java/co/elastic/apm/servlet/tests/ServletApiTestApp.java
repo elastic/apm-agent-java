@@ -158,7 +158,8 @@ public class ServletApiTestApp extends TestApp {
             }
             List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
             for (JsonNode span : spans) {
-                assertThat(span.get("type").textValue()).isEqualTo("db.h2.query");
+                assertThat(span.get("type").textValue()).startsWith("db");
+                assertThat(span.get("type").textValue()).endsWith("query");
             }
         }
     }

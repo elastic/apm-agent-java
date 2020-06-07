@@ -322,15 +322,15 @@ public abstract class HelperClassManager<T> {
             return injectedClasses;
         }
 
-        @Nullable
         private static ClassLoader getHelperClassLoaderParent(@Nullable ClassLoader targetClassLoader) {
             ClassLoader agentClassLoader = HelperClassManager.class.getClassLoader();
-            if (agentClassLoader != null && agentClassLoader != ClassLoader.getSystemClassLoader()) {
-                // future world: when the agent is loaded from an isolated class loader
-                // the helper class loader has both, the agent class loader and the target class loader as the parent
-                return new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
+            if (agentClassLoader == null) {
+                agentClassLoader = ClassLoader.getSystemClassLoader();
             }
-            return targetClassLoader;
+            // the helper class loader has both, the agent class loader and the target class loader as the parent
+            // this is important so that the helper class loader has direct access to the agent class loader
+            // otherwise, filtering class loaders (like OSGi) have a chance to interfere
+            return new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
         }
 
         public synchronized static void clear() {
