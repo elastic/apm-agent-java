@@ -41,7 +41,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.PackageScanner;
 import co.elastic.apm.agent.util.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
@@ -77,10 +76,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
-import java.lang.invoke.ConstantCallSite;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
@@ -88,7 +83,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -99,12 +93,9 @@ import java.util.concurrent.TimeUnit;
 import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
-import static java.lang.invoke.MethodHandles.dropArguments;
-import static java.lang.invoke.MethodHandles.zero;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
-import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
@@ -368,11 +359,7 @@ public class ElasticApmAgent {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
         if (instrumentation.indyDispatch()) {
-            try {
-                withCustomMapping = withCustomMapping.bootstrap(ElasticApmAgent.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, String.class, Class.class, MethodHandle.class, String.class, int.class));
-            } catch (NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
+            withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod());
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(new ElementMatcher<MethodDescription>() {
@@ -399,41 +386,6 @@ public class ElasticApmAgent {
             }, instrumentation.getAdviceClass().getName())
             .include(ClassLoader.getSystemClassLoader())
             .withExceptionHandler(PRINTING);
-    }
-
-    private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
-
-    public static ConstantCallSite bootstrap(MethodHandles.Lookup lookup,
-                                              String adviceMethodName,
-                                              MethodType adviceMethodType,
-                                              String adviceClassName,
-                                              Class<?> instrumentedType,
-                                              MethodHandle instrumentedMethod,
-                                              String instrumentedMethodName,
-                                              int enter) {
-        try {
-            Class<?> adviceClass = Class.forName(adviceClassName);
-            String packageName = adviceClass.getPackage().getName();
-            List<String> helperClasses = classesByPackage.get(packageName);
-            if (helperClasses == null) {
-                classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName));
-                helperClasses = classesByPackage.get(packageName);
-            }
-            ClassLoader helperClassLoader = HelperClassManager.ForDispatcher.inject(lookup.lookupClass().getClassLoader(), instrumentedType.getProtectionDomain(), helperClasses, isAnnotatedWith(named(GlobalState.class.getName())));
-            if (helperClassLoader != null) {
-                Class<?> adviceInHelperCL = helperClassLoader.loadClass(adviceClassName);
-                MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInHelperCL, adviceMethodName, adviceMethodType);
-                return new ConstantCallSite(methodHandle);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return new ConstantCallSite(empty(adviceMethodType));
-    }
-
-    public static MethodHandle empty(MethodType type) {
-        Objects.requireNonNull(type);
-        return dropArguments(zero(type.returnType()), 0, type.parameterList());
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {

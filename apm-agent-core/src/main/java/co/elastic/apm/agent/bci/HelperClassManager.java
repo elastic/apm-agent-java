@@ -285,7 +285,7 @@ public abstract class HelperClassManager<T> {
          * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
          */
         @Nullable
-        public synchronized static ClassLoader inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject, ElementMatcher<TypeDescription> exclusionMatcher) throws Exception {
+        public synchronized static ClassLoader inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
             classesToInject = new ArrayList<>(classesToInject);
 
             Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);

@@ -98,7 +98,7 @@ public class AgentMain {
                 .getMethod("initialize", String.class, Instrumentation.class, File.class, boolean.class)
                 .invoke(null, agentArguments, instrumentation, agentJarFile, premain);
             System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
-        } catch (Exception e) {
+        } catch (Exception | LinkageError e) {
             System.err.println("Failed to start agent");
             e.printStackTrace();
         }
@@ -127,31 +127,41 @@ public class AgentMain {
         if (major < '7') {
             // given code is compiled with java 7, this one is unlikely in practice
             return false;
-        } else if (major == '7' || major > '8') {
-            return true;
         } else if (!vmName.contains("HotSpot(TM)")) {
             // non-hotspot JVMs are not concerned (yet)
             return true;
-        } else {
+        } else if (major == '7') {
+            // HotSpot 7
+            // versions prior to that have unreliable invoke dynamic support according to
+            // https://groovy-lang.org/indy.html
+            return isUpdateVersionAtLeast(version, 60);
+        } else if (major == '8' ){
             // HotSpot 8
-            int updateIndex = version.lastIndexOf("_");
-            if (updateIndex <= 0) {
-                // GA release '1.8.0'
-                return false;
+            return isUpdateVersionAtLeast(version, 40);
+        } else {
+            // > 8
+            return true;
+        }
+    }
+
+    private static boolean isUpdateVersionAtLeast(String version, int minimumUpdateVersion) {
+        int updateIndex = version.lastIndexOf("_");
+        if (updateIndex <= 0) {
+            // GA release '1.8.0'
+            return false;
+        } else {
+            int versionSuffixIndex = version.indexOf('-', updateIndex + 1);
+            String updateVersion;
+            if (versionSuffixIndex <= 0) {
+                updateVersion = version.substring(updateIndex + 1);
             } else {
-                int versionSuffixIndex = version.indexOf('-', updateIndex + 1);
-                String updateVersion;
-                if (versionSuffixIndex <= 0) {
-                    updateVersion = version.substring(updateIndex + 1);
-                } else {
-                    updateVersion = version.substring(updateIndex + 1, versionSuffixIndex);
-                }
-                try {
-                    return Integer.parseInt(updateVersion) >= 40;
-                } catch (NumberFormatException e) {
-                    // in case of unknown format, we just support by default
-                    return true;
-                }
+                updateVersion = version.substring(updateIndex + 1, versionSuffixIndex);
+            }
+            try {
+                return Integer.parseInt(updateVersion) >= minimumUpdateVersion;
+            } catch (NumberFormatException e) {
+                // in case of unknown format, we just support by default
+                return true;
             }
         }
     }

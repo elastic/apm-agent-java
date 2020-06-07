@@ -61,6 +61,21 @@ class AgentMainTest {
     }
 
     @Test
+    void java7HotSpotOnlySupportedAfterUpdate60() {
+        checkNotSupported(HOTSPOT_VM_NAME, Stream.of(
+            "1.7.0",
+            "1.7.0_1",
+            "1.7.0-hello",
+            "1.7.0_59"
+        ));
+        checkSupported(HOTSPOT_VM_NAME, Stream.of(
+            "1.7.0_60",
+            "1.7.0_241",
+            "1.7.0_241-hello"
+        ));
+    }
+
+    @Test
     void java8HotspotOnlySupportedAfterUpdate40() {
 
         // non-hotspot JVM will be supported by default
