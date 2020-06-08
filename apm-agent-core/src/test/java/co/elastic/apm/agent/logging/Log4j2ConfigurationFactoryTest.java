@@ -48,7 +48,7 @@ class Log4j2ConfigurationFactoryTest {
     @Test
     void testLogFileJson(@TempDir Path tempDir) {
         String logFile = tempDir.resolve("agent.json").toString();
-        Configuration configuration = getLogConfig(Map.of("log_file", logFile));
+        Configuration configuration = getLogConfig(Map.of("log_file", logFile, "log_format_file", "json"));
 
         assertThat(configuration.getAppenders().values()).hasSize(1);
         Appender appender = configuration.getAppenders().values().iterator().next();
@@ -61,7 +61,7 @@ class Log4j2ConfigurationFactoryTest {
     @Test
     void testLogFilePlainText(@TempDir Path tempDir) {
         String logFile = tempDir.resolve("agent.log").toString();
-        Configuration configuration = getLogConfig(Map.of("log_file", logFile, "log_format_file", "plain_text"));
+        Configuration configuration = getLogConfig(Map.of("log_file", logFile));
 
         assertThat(configuration.getAppenders().values()).hasSize(1);
         Appender appender = configuration.getAppenders().values().iterator().next();
