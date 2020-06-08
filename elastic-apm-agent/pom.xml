@@ -348,6 +348,11 @@
                                     <pattern>Log4j-</pattern>
                                     <shadedPattern>ElasticApmLog4j-</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <!-- makes sure that direct link to resources in meta-inf are also relocated, otherwise will load log4j plugins from app -->
+                                    <pattern>META-INF/org/apache/logging</pattern>
+                                    <shadedPattern>META-INF/co/elastic/apm/agent/shaded/logging</shadedPattern>
+                                </relocation>
 
                                 <relocation>
                                     <pattern>org.stagemonitor</pattern>

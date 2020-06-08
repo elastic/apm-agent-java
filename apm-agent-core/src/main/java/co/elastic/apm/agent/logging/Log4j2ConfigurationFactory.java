@@ -196,7 +196,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
     }
 
     private LogFormat getFileLogFormat() {
-        return new EnumValueConverter<>(LogFormat.class).convert(getValue(LOG_FORMAT_FILE_KEY, sources, LogFormat.JSON.toString()));
+        return new EnumValueConverter<>(LogFormat.class).convert(getValue(LOG_FORMAT_FILE_KEY, sources, LogFormat.PLAIN_TEXT.toString()));
     }
 
     private AppenderComponentBuilder createFileAppender(ConfigurationBuilder<BuiltConfiguration> builder, String logFile, LayoutComponentBuilder layout) {
