@@ -46,18 +46,13 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 /**
  * When {@link ElasticApmInstrumentation#indyDispatch()} returns {@code true},
  * we instruct byte buddy to dispatch {@linkplain Advice.OnMethodEnter#inline()} non-inlined advices} via an invokedynamic (indy) instruction.
- * <p>
- *
- * </p>
- *
- * @see ElasticApmInstrumentation#indyDispatch()
  */
 public class IndyBootstrap {
-    private static final String INDY_BOOTSTRAP_CLASS_NAME = "java.lang.IndyBootstrap";
-    private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/IndyBootstrap.clazz";
+    private static final String INDY_BOOTSTRAP_CLASS_NAME = "java.lang.IndyBootstrapDispatcher";
+    private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/IndyBootstrapDispatcher.clazz";
     private static final ConcurrentMap<String, List<String>> classesByPackage = new ConcurrentHashMap<>();
     @Nullable
-    private static Method indyBootstrapMethod;
+    static Method indyBootstrapMethod;
 
     public static Method getIndyBootstrapMethod() {
         if (indyBootstrapMethod != null) {
@@ -87,7 +82,7 @@ public class IndyBootstrap {
     }
 
     /**
-     * Is called by {@code java.lang.IndyBootstrap#bootstrap} via reflection.
+     * Is called by {@code java.lang.IndyBootstrapDispatcher#bootstrap} via reflection.
      * <p>
      * <p>
      * This is to make it impossible for OSGi or other filtering class loaders to restrict access to classes in the bootstrap class loader.
