@@ -129,7 +129,6 @@ public class ElasticApmTracerBuilder {
         }
 
         ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
-        apmServerClient.start();
         MetaData metaData = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority

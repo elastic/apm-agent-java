@@ -74,6 +74,7 @@ public class ApmServerClient {
     private final ReporterConfiguration reporterConfiguration;
     @Nullable
     private volatile List<URL> serverUrls;
+    @Nullable
     private volatile Future<Version> apmServerVersion;
     private final AtomicInteger errorCount = new AtomicInteger();
     private final ApmServerHealthChecker healthChecker;
@@ -313,6 +314,9 @@ public class ApmServerClient {
     }
 
     public boolean isAtLeast(Version apmServerVersion) {
+        if (this.apmServerVersion == null) {
+            throw new IllegalStateException("Called before init event");
+        }
         try {
             Version localApmServerVersion = this.apmServerVersion.get();
             if (localApmServerVersion == null) {
