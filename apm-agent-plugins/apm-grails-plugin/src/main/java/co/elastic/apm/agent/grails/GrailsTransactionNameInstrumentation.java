@@ -33,8 +33,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -53,10 +51,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class GrailsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
-    @SuppressWarnings("WeakerAccess")
-    public static final Logger logger = LoggerFactory.getLogger(GrailsTransactionNameInstrumentation.class);
-
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return nameStartsWith("org.grails.web.mapping.mvc")
@@ -73,6 +67,9 @@ public class GrailsTransactionNameInstrumentation extends ElasticApmInstrumentat
             .and(takesArgument(2, Object.class));
     }
 
+    /**
+     * Excludes Grails 2
+     */
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return classLoaderCanLoadClass("org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo");
@@ -93,34 +90,26 @@ public class GrailsTransactionNameInstrumentation extends ElasticApmInstrumentat
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         static void setTransactionName(@Advice.Argument(2) Object handler) {
-            if (tracer != null) {
-                final Transaction transaction = tracer.currentTransaction();
-                if (transaction != null) {
-                    final String className;
-                    final String methodName;
-                    if (handler instanceof GrailsControllerUrlMappingInfo) {
-                        GrailsControllerUrlMappingInfo urlMappingInfo = (GrailsControllerUrlMappingInfo) handler;
-                        GrailsControllerClass grailsControllerClass = urlMappingInfo.getControllerClass();
-                        className = grailsControllerClass.getShortName();
-                        String actionName = urlMappingInfo.getActionName();
-                        methodName = actionName != null ? actionName : INDEX_ACTION;
-                    } else {
-                        className = handler.getClass().getSimpleName();
-                        methodName = null;
-                    }
-                    setName(transaction, className, methodName);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Set name {} to transaction {}", transaction.getNameAsString(), transaction.getTraceContext().getId());
-                    }
-                } else {
-                    logger.debug("Transaction is null");
-                }
+            if (tracer == null) {
+                return;
+            }
+            final Transaction transaction = tracer.currentTransaction();
+            if (transaction == null) {
+                return;
+            }
+            final String className;
+            final String methodName;
+            if (handler instanceof GrailsControllerUrlMappingInfo) {
+                GrailsControllerUrlMappingInfo urlMappingInfo = (GrailsControllerUrlMappingInfo) handler;
+                GrailsControllerClass grailsControllerClass = urlMappingInfo.getControllerClass();
+                className = grailsControllerClass.getShortName();
+                String actionName = urlMappingInfo.getActionName();
+                methodName = actionName != null ? actionName : INDEX_ACTION;
             } else {
-                logger.debug("Tracer is null");
+                className = handler.getClass().getSimpleName();
+                methodName = null;
             }
-            if (logger.isTraceEnabled()) {
-                logger.trace("Stack trace: ", new RuntimeException());
-            }
+            setName(transaction, className, methodName);
         }
 
         @VisibleForAdvice
