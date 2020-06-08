@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
-import co.elastic.apm.agent.grpc.TestPort;
+import co.elastic.apm.agent.testutils.TestPort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

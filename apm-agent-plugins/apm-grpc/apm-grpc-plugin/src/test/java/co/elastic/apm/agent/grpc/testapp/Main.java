@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
-import co.elastic.apm.agent.grpc.TestPort;
+import co.elastic.apm.agent.testutils.TestPort;
 
 import java.io.IOException;
 import java.util.Arrays;
