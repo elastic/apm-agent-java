@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,14 +22,19 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.reactor_netty;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.HttpResponse;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.web.reactive.function.server.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -37,36 +42,45 @@ import java.util.Collections;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class FunctionalHandlerInstrumentation extends ElasticApmInstrumentation {
+public class HttpTrafficHandlerWriteInstrumentation extends ElasticApmInstrumentation {
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(HttpTrafficHandlerWriteInstrumentation.class);
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onHandlerAdd(@Advice.Argument(readOnly = false, value = 0) RequestPredicate predicate,
-                                    @Advice.Argument(readOnly = false, value = 1) HandlerFunction handlerFunction) {
-
-        //already wrapped
-        if (handlerFunction instanceof HandlerFunctionWrapper) {
+    public static void beforeWrite(@Advice.Argument(value = 0) ChannelHandlerContext chc,
+                                   @Advice.Argument(value = 1) Object msg) {
+        if (tracer == null) {
+            logger.trace("beforeWrite tracer == null");
             return;
         }
-        handlerFunction = new HandlerFunctionWrapper(handlerFunction);
+        if (msg instanceof HttpResponse) {
+            Transaction transaction = TransactionHolder.get(chc);
+            if (transaction == null) {
+                logger.trace("beforeWrite finishNettyTransaction transaction is not found");
+                return;
+            }
+            transaction
+                .deactivate()
+                .end();
+        }
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.springframework.web.reactive.function.server.RouterFunctionBuilder");
+        return named("reactor.netty.http.server.HttpTrafficHandler");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("add")
-            .and(takesArgument(0,
-                named("org.springframework.web.reactive.function.server.RequestPredicate")))
-            .and(takesArgument(1,
-                named("org.springframework.web.reactive.function.server.HandlerFunction")));
+        return named("write")
+            .and(takesArgument(0, named("io.netty.channel.ChannelHandlerContext")))
+            .and(takesArgument(1, named("java.lang.Object")))
+            .and(takesArgument(2, named("io.netty.channel.ChannelPromise")));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("webflux-functional-handler");
+        return Collections.singletonList("reactor-netty-write-handler");
     }
 }

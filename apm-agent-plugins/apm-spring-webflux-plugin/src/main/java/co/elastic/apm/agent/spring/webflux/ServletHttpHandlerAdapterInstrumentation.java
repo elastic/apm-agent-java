@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -33,66 +33,70 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.reactive.function.server.ServerRequest;
 
 import javax.annotation.Nullable;
+import javax.servlet.AsyncContext;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class HandlerFunctionInstrumentation extends ElasticApmInstrumentation {
+public class ServletHttpHandlerAdapterInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(HandlerFunctionInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(ServletHttpHandlerAdapterInstrumentation.class);
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void beforeRequestHandle(@Advice.Argument(value = 0) ServerRequest serverRequest,
-                                           @Advice.Local("transaction") @Nullable Transaction transaction) {
-
+    public static void beforeService(@Advice.Argument(value = 0) ServletRequest request,
+                                     @Advice.Local("transaction") @Nullable Transaction transaction) {
         if (tracer == null) {
-            logger.trace("beforeRequestHandle tracer == null");
+            logger.trace("beforeService tracer == null");
             return;
         }
         if (tracer.getActive() != null) {
-            logger.trace("beforeRequestHandle tracer.getActive() != null");
+            logger.trace("beforeService tracer.getActive() != null");
             return;
         }
         if (transaction == null) {
-            transaction = WebFluxInstrumentationHelper.createAndActivateTransaction(tracer, serverRequest);
+            transaction = WebFluxInstrumentationHelper.createAndActivateTransaction(tracer, request);
         }
     }
 
     @SuppressWarnings("unused")
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void afterRequestHandle(@Advice.Argument(value = 0) ServerRequest serverRequest,
-                                          @Advice.Local("transaction") @Nullable Transaction transaction,
-                                          @Advice.Thrown @Nullable Throwable t) {
-
+    public static void afterService(@Advice.Argument(value = 0) ServletRequest request,
+                                    @Advice.Argument(value = 1) ServletResponse response,
+                                    @Advice.Local("transaction") @Nullable Transaction transaction,
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (transaction != null) {
+            System.out.println("afterService transaction != null" + transaction);
             transaction.captureException(t)
                 .deactivate()
                 .end();
         } else {
-            logger.trace("afterRequestHandle transaction == null");
+            logger.trace("afterService transaction == null");
         }
     }
 
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.agent.spring.webflux.HandlerFunctionWrapper");
+        return named("org.springframework.http.server.reactive.ServletHttpHandlerAdapter");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handle")
-            .and(takesArgument(0,
-                named("org.springframework.web.reactive.function.server.ServerRequest")));
+        return named("service")
+            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
+            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("webflux-wrapper-handler");
+        return Collections.singletonList("webflux-reactive-servlet-handler");
     }
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -43,6 +43,11 @@ public class SimpleRestController {
     @GetMapping("/test")
     public Flux<String> get(ServerHttpRequest serverHttpRequest) {
         return Flux.just("Hello " + Optional.ofNullable(serverHttpRequest.getHeaders().getHost()).map(InetSocketAddress::getHostName).orElse("Unknown"));
+    }
+
+    @GetMapping("/test2")
+    public Flux<String> get() {
+        return Flux.just("Hello 2");
     }
 
     @PostMapping("/test")

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -67,7 +67,7 @@ public class AnnotatedHandlerInstrumentationTest {
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Collections.singletonList(new AnnotatedHandlerInstrumentation()));
+            Collections.singletonList(new ServletHttpHandlerAdapterInstrumentation()));
 
         SpringApplication.run(WebFluxApplication.class);
     }
@@ -94,6 +94,19 @@ public class AnnotatedHandlerInstrumentationTest {
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
         Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /test");
+    }
+
+    @Test
+    public void shouldDoGetRequestWithoutParams() throws Exception {
+        final HttpClient client = HttpClientBuilder.create().build();
+        final HttpGet request = new HttpGet("http://localhost:8080/test2");
+        final HttpResponse response = client.execute(request);
+        final int statusCode = response.getStatusLine().getStatusCode();
+        Assert.assertEquals(statusCode, HttpStatus.SC_OK);
+
+        final List<Transaction> transactions = reporter.getTransactions();
+        Assert.assertEquals(transactions.size(), 1);
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /test2");
     }
 
     @Test
