@@ -48,7 +48,7 @@ public abstract class HelloServer<Req,Rep> {
 
     private static final Logger logger = LoggerFactory.getLogger(HelloServer.class);
 
-    private static final int POOL_SIZE = Runtime.getRuntime().availableProcessors() / 2;
+    public static final int POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private static boolean verbose = true;
 

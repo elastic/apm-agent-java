@@ -87,9 +87,15 @@ public abstract class AbstractGrpcAppTest {
     @Test
     void nestedChecks() {
         for (SendAndCheckMessageStrategy strategy : STRATEGIES) {
-            strategy.sendAndCheckMessage(app, "joe", 0, "hello(joe)");
-            strategy.sendAndCheckMessage(app, "bob", 1, "nested(1)->hello(bob)");
-            strategy.sendAndCheckMessage(app, "rob", 2, "nested(2)->nested(1)->hello(rob)");
+            // because nested call is done with a blocking call, we have to make sure that we don't use all sever
+            // threads otherwise we get exceeded deadlines
+            for (int depth = 0; depth < HelloServer.POOL_SIZE; depth++) {
+                StringBuilder prefix = new StringBuilder();
+                for (int i = 1; i <= depth; i++) {
+                    prefix.insert(0, String.format("nested(%d)->", i));
+                }
+                strategy.sendAndCheckMessage(app, "joe", depth, prefix + "hello(joe)");
+            }
         }
     }
 
