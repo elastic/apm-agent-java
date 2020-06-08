@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
+import co.elastic.apm.agent.grpc.TestPort;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -164,6 +166,9 @@ public class Main {
             value = Integer.parseInt(arguments.get(portOptionIndex + 1));
         } catch (RuntimeException e) {
             // silently ignored
+        }
+        if (value < 0) {
+            value = TestPort.getAvailableRandomPort();
         }
         return value;
     }

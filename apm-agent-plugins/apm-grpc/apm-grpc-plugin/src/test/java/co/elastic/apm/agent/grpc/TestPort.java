@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,16 +24,33 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.grpc.testapp.GrpcApp;
-import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import javax.net.ServerSocketFactory;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.util.Random;
 
-public class GrpcTest {
+public class TestPort {
 
-    private static final int PORT = TestPort.getAvailableRandomPort();
-    private static final String HOST = "localhost";
+    private static final Random rand = new Random(System.currentTimeMillis());
 
-    public static GrpcApp getApp(GrpcAppProvider provider){
-        return provider.getGrpcApp(HOST, PORT);
+    private static final int MIN_PORT = 1024;
+    private static final int MAX_PORT = 65536;
+
+    public static int getAvailableRandomPort() {
+        int port;
+        do {
+            port = MIN_PORT + rand.nextInt(MAX_PORT - MIN_PORT + 1);
+        } while (!isAvailablePort(port));
+        return port;
     }
 
+    private static boolean isAvailablePort(int port) {
+        try {
+            ServerSocket serverSocket = ServerSocketFactory.getDefault().createServerSocket(port, 1, InetAddress.getByName("localhost"));
+            serverSocket.close();
+            return true;
+        } catch (Exception var3) {
+            return false;
+        }
+    }
 }

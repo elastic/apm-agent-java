@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
+import co.elastic.apm.agent.grpc.TestPort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ public abstract class AbstractGrpcAppTest {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractGrpcAppTest.class);
 
-    protected static final int PORT = 50051;
+    protected static final int PORT = TestPort.getAvailableRandomPort();
     protected static final String HOST = "localhost";
 
     private GrpcApp app;
