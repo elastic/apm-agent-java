@@ -22,16 +22,17 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc;
+package co.elastic.apm.agent.grails;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import grails.core.GrailsControllerClass;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.web.method.HandlerMethod;
+import org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -39,6 +40,7 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static grails.core.GrailsControllerClass.INDEX_ACTION;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -47,30 +49,11 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-/**
- * This instrumentation sets the {@link Transaction#name} according to the handler responsible for this request.
- * <p>
- * If the handler is a {@link org.springframework.stereotype.Controller}, the {@link Transaction#name} is set to
- * {@code ControllerName#methodName}.
- * If it is a different kind of handler,
- * like a {@link org.springframework.web.servlet.resource.ResourceHttpRequestHandler},
- * the request name is set to the simple class name of the handler.
- * </p>
- * <p>
- * Supports Spring MVC 3.x-5.x
- * </p>
- */
-public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentation {
+public class GrailsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    /**
-     * Instrumenting well defined interfaces like {@link org.springframework.web.servlet.HandlerAdapter}
-     * is preferred over instrumenting private methods like
-     * {@link org.springframework.web.servlet.DispatcherServlet#getHandler(javax.servlet.http.HttpServletRequest)},
-     * as interfaces should be more stable.
-     */
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("org.springframework.web.servlet")
+        return nameStartsWith("org.grails.web.mapping.mvc")
             .and(hasSuperType(named("org.springframework.web.servlet.HandlerAdapter")))
             .and(not(isInterface()));
     }
@@ -84,10 +67,12 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
             .and(takesArgument(2, Object.class));
     }
 
+    /**
+     * Excludes Grails 2
+     */
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // introduced in spring-web 3.1
-        return classLoaderCanLoadClass("org.springframework.web.method.HandlerMethod");
+        return classLoaderCanLoadClass("org.grails.web.mapping.mvc.GrailsControllerUrlMappingInfo");
     }
 
     @Override
@@ -97,7 +82,7 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("spring-mvc");
+        return Collections.singletonList("grails");
     }
 
     @VisibleForAdvice
@@ -114,10 +99,12 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
             }
             final String className;
             final String methodName;
-            if (handler instanceof HandlerMethod) {
-                HandlerMethod handlerMethod = ((HandlerMethod) handler);
-                className = handlerMethod.getBeanType().getSimpleName();
-                methodName = handlerMethod.getMethod().getName();
+            if (handler instanceof GrailsControllerUrlMappingInfo) {
+                GrailsControllerUrlMappingInfo urlMappingInfo = (GrailsControllerUrlMappingInfo) handler;
+                GrailsControllerClass grailsControllerClass = urlMappingInfo.getControllerClass();
+                className = grailsControllerClass.getShortName();
+                String actionName = urlMappingInfo.getActionName();
+                methodName = actionName != null ? actionName : INDEX_ACTION;
             } else {
                 className = handler.getClass().getSimpleName();
                 methodName = null;
