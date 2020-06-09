@@ -49,7 +49,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelperImpl.class);
 
-    public static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
+    public static final String QUERY_REGEXP = ".*_((search|msearch)(\\/template)?|count)$";
     public static final String SPAN_TYPE = "db";
     public static final String ELASTICSEARCH = "elasticsearch";
     public static final String SPAN_ACTION = "request";
@@ -97,7 +97,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
 
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(method);
-            if (endpoint.endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
+            if (endpoint.matches(QUERY_REGEXP)) {
                 if (httpEntity != null && httpEntity.isRepeatable()) {
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -37,6 +37,8 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.MultiSearchRequest;
+import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
@@ -45,7 +47,14 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.script.ScriptType;
+import org.elasticsearch.script.mustache.MultiSearchTemplateRequest;
+import org.elasticsearch.script.mustache.MultiSearchTemplateResponse;
+import org.elasticsearch.script.mustache.SearchTemplateRequest;
+import org.elasticsearch.script.mustache.SearchTemplateResponse;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.Test;
@@ -135,6 +144,99 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
 
         // Now update and re-search
         reporter.reset();
+        // Do CountRequest
+        CountRequest countRequest = new CountRequest(INDEX);
+        SearchSourceBuilder countSourceBuilder = new SearchSourceBuilder();
+        countSourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
+        countRequest.source(countSourceBuilder);
+        CountResponse cr = doCount(countRequest);
+        assertThat(cr.getCount()).isEqualTo(1);
+
+        spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        searchSpan = spans.get(0);
+        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_count", INDEX), 200, "POST");
+        validateDbContextContent(searchSpan, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        reporter.reset();
+        // Do MultisearchRequest
+
+        MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
+        SearchRequest firstSearchRequest = new SearchRequest(INDEX);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchQuery(FOO, BAR));
+        firstSearchRequest.source(searchSourceBuilder);
+        multiSearchRequest.add(firstSearchRequest);
+
+        MultiSearchResponse multiSearchResponse = doMultiSearch(multiSearchRequest);
+
+        spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        searchSpan = spans.get(0);
+        validateSpanContent(searchSpan, "Elasticsearch: POST /_msearch", 200, "POST");
+        verifyMultiSearchSpanContent(searchSpan);
+
+        reporter.reset();
+
+        // Do rollup search
+        SearchRequest rollupSearchRequest = new SearchRequest(INDEX);
+        SearchSourceBuilder rollupSearchBuilder = new SearchSourceBuilder();
+        rollupSearchBuilder.query(QueryBuilders.termQuery(FOO, BAR));
+        rollupSearchBuilder.from(0);
+        rollupSearchBuilder.size(5);
+        rollupSearchRequest.source(rollupSearchBuilder);
+        SearchResponse rollupSR = doRollupSearch(rollupSearchRequest);
+        verifyTotalHits(rollupSR.getHits());
+
+        spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span rollypSearchSpan = spans.get(0);
+        validateSpanContent(rollypSearchSpan, String.format("Elasticsearch: POST /%s/_rollup_search", INDEX), 200, "POST");
+        validateDbContextContent(rollypSearchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        reporter.reset();
+        // Do SearchTemplateRequest
+        SearchTemplateRequest searchTemplateRequest = new SearchTemplateRequest();
+        searchTemplateRequest.setRequest(new SearchRequest(INDEX));
+
+        searchTemplateRequest.setScriptType(ScriptType.INLINE);
+        searchTemplateRequest.setScript(
+            "{" +
+                "  \"query\": { \"term\" : { \"{{field}}\" : \"{{value}}\" } }," +
+                "  \"size\" : \"{{size}}\"" +
+                "}");
+
+        Map<String, Object> scriptParams = new HashMap<>();
+        scriptParams.put("field", FOO);
+        scriptParams.put("value", BAR);
+        scriptParams.put("size", 5);
+        searchTemplateRequest.setScriptParams(scriptParams);
+
+        SearchTemplateResponse templateResponse = doSearchTemplate(searchTemplateRequest);
+        verifyTotalHits(templateResponse.getResponse().getHits());
+
+        spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span searchTemplateSpan = spans.get(0);
+        validateSpanContent(searchTemplateSpan, String.format("Elasticsearch: GET /%s/_search/template", INDEX), 200, "GET");
+        validateDbContextContent(searchTemplateSpan, "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}");
+
+        reporter.reset();
+
+        // Do MultiSearchTemplateRequest
+        MultiSearchTemplateRequest multiRequest = new MultiSearchTemplateRequest();
+        multiRequest.add(searchTemplateRequest);
+        MultiSearchTemplateResponse multiSearchTemplateResponse = doMultiSearchTemplate(multiRequest);
+        MultiSearchTemplateResponse.Item[] items = multiSearchTemplateResponse.getResponses();
+        assertThat(items.length).isEqualTo(1);
+        verifyTotalHits(items[0].getResponse().getResponse().getHits());
+        spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span multiSearchTemplateSpan = spans.get(0);
+        validateSpanContent(multiSearchTemplateSpan, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
+        verifyMultiSearchTemplateSpanContent(multiSearchTemplateSpan);
+
+        reporter.reset();
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put(FOO, BAZ);
@@ -160,6 +262,14 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         assertThat(dr.status().getStatus()).isEqualTo(200);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
+
+    }
+
+    protected void verifyMultiSearchTemplateSpanContent(Span span) {
+
+    }
+
+    protected void verifyMultiSearchSpanContent(Span span) {
 
     }
 
@@ -236,6 +346,51 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
             return invokeAsync(searchRequest, method);
         }
         return client.search(searchRequest, RequestOptions.DEFAULT);
+    }
+
+    protected SearchTemplateResponse doSearchTemplate(SearchTemplateRequest searchRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<SearchTemplateRequest, SearchTemplateResponse> method =
+                (request, options, listener) -> client.searchTemplateAsync(request, options, listener);
+            return invokeAsync(searchRequest, method);
+        }
+        return client.searchTemplate(searchRequest, RequestOptions.DEFAULT);
+    }
+
+    protected MultiSearchTemplateResponse doMultiSearchTemplate(MultiSearchTemplateRequest searchRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<MultiSearchTemplateRequest, MultiSearchTemplateResponse> method =
+                (request, options, listener) -> client.msearchTemplateAsync(request, options, listener);
+            return invokeAsync(searchRequest, method);
+        }
+        return client.msearchTemplate(searchRequest, RequestOptions.DEFAULT);
+    }
+
+    protected SearchResponse doRollupSearch(SearchRequest searchRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<SearchRequest, SearchResponse> method =
+                (request, options, listener) -> client.rollup().searchAsync(request, options, listener);
+            return invokeAsync(searchRequest, method);
+        }
+        return client.rollup().search(searchRequest, RequestOptions.DEFAULT);
+    }
+
+    protected MultiSearchResponse doMultiSearch(MultiSearchRequest searchRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<MultiSearchRequest, MultiSearchResponse> method =
+                (request, options, listener) -> client.msearchAsync(request, options, listener);
+            return invokeAsync(searchRequest, method);
+        }
+        return client.msearch(searchRequest, RequestOptions.DEFAULT);
+    }
+
+    protected CountResponse doCount(CountRequest countRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<CountRequest, CountResponse> method =
+                (request, options, listener) -> client.countAsync(request, options, listener);
+            return invokeAsync(countRequest, method);
+        }
+        return client.count(countRequest, RequestOptions.DEFAULT);
     }
 
     protected UpdateResponse doUpdate(UpdateRequest updateRequest) throws IOException, ExecutionException, InterruptedException {
