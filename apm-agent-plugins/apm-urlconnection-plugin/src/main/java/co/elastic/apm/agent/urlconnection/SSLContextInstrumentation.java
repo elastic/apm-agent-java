@@ -29,35 +29,52 @@ import co.elastic.apm.agent.util.ThreadUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import java.util.Collection;
 import java.util.Collections;
 
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * //todo
+ * Prevents the agent from initializing JVM singletons that read SSL configuration before the application has the chance to configure
+ * system properties that influence the initialization.
+ * <p>
+ * If any of these methods is called within the context of an {@code elastic-apm} thread,
+ * the method is skipped.
+ * <ul>
+ *   <li>{@link SSLContext#getDefault()}</li>
+ *   <li>{@link SocketFactory#getDefault()}</li>
+ *   <li>{@link SSLSocketFactory#getDefault()}</li>
+ * </ul>
+ * </p>
  */
-public class HttpsUrlConnectionInstrumentation extends ElasticApmInstrumentation {
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("httpsurlconnection");
-    }
+public class SSLContextInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("javax.net.ssl.HttpsURLConnection");
+        return named("javax.net.ssl.SSLContext")
+            .or(named("javax.net.SocketFactory"))
+            .or(named("javax.net.ssl.SSLSocketFactory"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isStatic().and(named("getDefaultSSLSocketFactory")).and(returns(named("javax.net.ssl.SSLSocketFactory")));
+        return named("getDefault")
+            .and(isPublic())
+            .and(isStatic())
+            .and(takesArguments(0));
+    }
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton("ssl-context");
     }
 
     /**
@@ -68,12 +85,4 @@ public class HttpsUrlConnectionInstrumentation extends ElasticApmInstrumentation
         return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void stopInitializationDelay(@Nullable @Advice.Return(typing = Assigner.Typing.DYNAMIC) Object sslFactory) {
-        System.out.println("sslFactory = " + sslFactory);
-        // todo: THIS CALL IS SYNCHRONIZED SO SHOULD BE CALLED ONLY ONCE
-        if (tracer != null && sslFactory != null) {
-            tracer.stopInitializationDelay();
-        }
-    }
 }

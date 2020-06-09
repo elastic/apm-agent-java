@@ -62,6 +62,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadPoolExecutor;
 
 
 /**
@@ -79,8 +80,6 @@ public class ElasticApmTracer {
      * The requirement increases if the application tends to wrap multiple {@link Runnable}s.
      */
     private static final int MAX_POOLED_RUNNABLES = 256;
-
-    private static final Object INIT_LOCK = new Object();
 
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
 
@@ -591,37 +590,35 @@ public class ElasticApmTracer {
         }
     }
 
-    public void stopInitializationDelay() {
-        synchronized (INIT_LOCK) {
-            INIT_LOCK.notify();
+    public synchronized void start() {
+        if (getConfig(CoreConfiguration.class).getDelayInitMs() > 0) {
+            startWithDelay();
+        } else {
+            startSync();
         }
     }
 
-    public synchronized void startAsync() {
-        System.out.println("start async");
-        ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1).submit(new Runnable() {
+    private synchronized void startWithDelay() {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
+        pool.submit(new Runnable() {
             @Override
             public void run() {
                 try {
-                    int delayInitMs = coreConfiguration.getDelayInitMs();
-                    System.out.println("start wait for " + delayInitMs + " milliseconds");
-                    if (delayInitMs > 0) {
-                        synchronized (INIT_LOCK) {
-                            INIT_LOCK.wait(delayInitMs);
-                        }
-                    }
-                    System.out.println("end wait");
+                    long delayInitMs = coreConfiguration.getDelayInitMs();
+                    logger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
+                    Thread.sleep(delayInitMs);
+                    logger.info("end wait");
                 } catch (InterruptedException e) {
-                    // todo
+                    logger.error(e.getMessage(), e);
                 } finally {
                     ElasticApmTracer.this.start();
                 }
             }
         });
+        pool.shutdown();
     }
 
-    public synchronized void start() {
-        System.out.println("start sync");
+    private synchronized void startSync() {
         if (tracerState != TracerState.UNINITIALIZED) {
             logger.warn("Trying to start an already initialized agent");
             return;

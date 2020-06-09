@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,16 +31,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.HttpsURLConnection;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class HttpsUrlConnectionInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -48,40 +46,40 @@ class HttpsUrlConnectionInstrumentationTest extends AbstractInstrumentationTest 
     private static ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDeamonPool("HttpsUrlConnection-Test");
 
     @BeforeAll
-    static void setup() throws NoSuchFieldException {
+    static void setup() throws Exception {
         defaultSSLSocketFactoryField = HttpsURLConnection.class.getDeclaredField("defaultSSLSocketFactory");
         defaultSSLSocketFactoryField.setAccessible(true);
+        defaultSSLSocketFactoryField.set(null, null);
     }
 
     @BeforeEach
-    void resetState() throws IllegalAccessException {
+    void resetState() throws Exception {
         defaultSSLSocketFactoryField.set(null, null);
     }
 
     @Test
-    void testNonSkipped() throws IllegalAccessException {
+    void testNonSkipped() throws Exception {
         createConnection();
         Object defaultSslFactory = defaultSSLSocketFactoryField.get(null);
-        assertNotNull(defaultSslFactory);
-        assertEquals(defaultSslFactory, HttpsURLConnection.getDefaultSSLSocketFactory());
+        assertThat(defaultSslFactory).isNotNull();
+        assertThat(defaultSslFactory).isEqualTo(HttpsURLConnection.getDefaultSSLSocketFactory());
     }
 
     @Test
-    void testSkipped() throws IllegalAccessException, ExecutionException, InterruptedException {
+    void testSkipped() throws Exception {
         Future<?> connectionCreationFuture = elasticApmThreadPool.submit(this::createConnection);
         connectionCreationFuture.get();
-        assertNull(defaultSSLSocketFactoryField.get(null));
+        assertThat(defaultSSLSocketFactoryField.get(null)).isNull();
         createConnection();
-        assertNotNull(defaultSSLSocketFactoryField.get(null));
+        assertThat(defaultSSLSocketFactoryField.get(null)).isNotNull();
     }
 
     private void createConnection() {
-        URLConnection urlConnection = null;
         try {
-            urlConnection = new URL("https://localhost:11111").openConnection();
-            assertTrue(urlConnection instanceof HttpsURLConnection);
+            URLConnection urlConnection = new URL("https://localhost:11111").openConnection();
+            assertThat(urlConnection).isInstanceOf(HttpsURLConnection.class);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 }
