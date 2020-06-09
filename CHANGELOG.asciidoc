@@ -34,7 +34,7 @@ There will always be one history file `${log_file}.1`.
 The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to format the logs.
 * Exposing <<config-classes-excluded-from-instrumentation>> config - {pull}1187[#1187]
 * Add support for naming transactions based on Grails controllers. Supports Grails 3+ - {pull}1171[#1171]
-
+* Add support for the Apache/Alibaba Dubbo RPC framework
 
 [float]
 ===== Bug fixes
