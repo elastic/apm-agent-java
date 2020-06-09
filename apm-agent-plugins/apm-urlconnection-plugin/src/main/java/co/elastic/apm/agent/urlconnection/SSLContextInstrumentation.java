@@ -48,12 +48,12 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * <p>
  * If any of these methods is called within the context of an {@code elastic-apm} thread,
  * the method is skipped.
+ * </p>
  * <ul>
  *   <li>{@link SSLContext#getDefault()}</li>
  *   <li>{@link SocketFactory#getDefault()}</li>
  *   <li>{@link SSLSocketFactory#getDefault()}</li>
  * </ul>
- * </p>
  */
 public class SSLContextInstrumentation extends ElasticApmInstrumentation {
 
