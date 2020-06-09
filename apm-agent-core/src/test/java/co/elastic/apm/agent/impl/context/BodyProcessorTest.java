@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -36,7 +36,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class BodyProcessorTest {
 
@@ -54,7 +54,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Transaction_EventTypeAll() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(config).getCaptureBody();
 
         final Transaction transaction = processTransaction();
 
@@ -64,7 +64,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Transaction_EventTypeTransaction() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
+        doReturn(CoreConfiguration.EventType.TRANSACTIONS).when(config).getCaptureBody();
 
         final Transaction transaction = processTransaction();
 
@@ -74,7 +74,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Transaction_EventTypeError() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
+        doReturn(CoreConfiguration.EventType.ERRORS).when(config).getCaptureBody();
 
         final Transaction transaction = processTransaction();
 
@@ -84,7 +84,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Transaction_EventTypeOff() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
+        doReturn(CoreConfiguration.EventType.OFF).when(config).getCaptureBody();
 
         final Transaction transaction = processTransaction();
 
@@ -94,7 +94,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeAll() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(config).getCaptureBody();
 
         final ErrorCapture error = processError();
 
@@ -104,7 +104,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeTransaction() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.TRANSACTIONS);
+        doReturn(CoreConfiguration.EventType.TRANSACTIONS).when(config).getCaptureBody();
 
         final ErrorCapture error = processError();
 
@@ -114,7 +114,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeError() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ERRORS);
+        doReturn(CoreConfiguration.EventType.ERRORS).when(config).getCaptureBody();
 
         final ErrorCapture error = processError();
 
@@ -124,7 +124,7 @@ class BodyProcessorTest {
 
     @Test
     void processBeforeReport_Error_EventTypeOff() {
-        when(config.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
+        doReturn(CoreConfiguration.EventType.OFF).when(config).getCaptureBody();
 
         final ErrorCapture error = processError();
 

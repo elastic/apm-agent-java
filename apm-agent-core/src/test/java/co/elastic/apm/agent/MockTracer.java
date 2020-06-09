@@ -129,6 +129,15 @@ public class MockTracer {
         );
     }
 
+    public static synchronized void resetTracer() {
+        ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
+        if (tracer != null) {
+            ElasticApmAgent.reset();
+            tracer.stop();
+            ElasticApmInstrumentation.tracer = null;
+        }
+    }
+
     /**
      * Like {@link #create(ConfigurationRegistry)} but with a {@link SpyConfiguration#createSpyConfig() mocked ConfigurationRegistry}.
      *

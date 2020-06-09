@@ -49,6 +49,7 @@
         <module>apm-kafka-plugin</module>
         <module>apm-profiling-plugin</module>
         <module>apm-grpc</module>
+        <module>apm-grails-plugin</module>
         <module>apm-dubbo-plugin</module>
     </modules>
 

@@ -42,7 +42,9 @@ class LongListTest {
 
     @Test
     void testAdd() {
+        assertThat(longList.isEmpty()).isTrue();
         longList.add(42);
+        assertThat(longList.isEmpty()).isFalse();
         assertThat(longList.getSize()).isEqualTo(1);
         assertThat(longList.get(0)).isEqualTo(42);
     }
