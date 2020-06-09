@@ -21,6 +21,7 @@ co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddStringLabelInstru
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberLabelInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddBooleanLabelInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$ActivateInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DeactivateInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$IsSampledInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$InjectTraceHeadersInstrumentation
 co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation

@@ -346,6 +346,11 @@ public interface Span {
     Scope activate();
 
     /**
+     * Makes this span not active on the current thread.
+     */
+    void deactivate();
+
+    /**
      * Returns true if this span is recorded and sent to the APM Server
      *
      * @return true if this span is recorded and sent to the APM Server

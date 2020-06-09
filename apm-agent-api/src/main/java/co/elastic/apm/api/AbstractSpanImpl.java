@@ -138,6 +138,11 @@ public abstract class AbstractSpanImpl implements Span {
     }
 
     @Override
+    public void deactivate() {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.DeactivateInstrumentation
+    }
+
+    @Override
     public boolean isSampled() {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.IsSampledInstrumentation
         return false;

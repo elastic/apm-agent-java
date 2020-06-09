@@ -282,6 +282,16 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class DeactivateInstrumentation extends AbstractSpanInstrumentation {
+        public DeactivateInstrumentation() { super(named("deactivate")); }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void deactivate(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
+            context.deactivate();
+        }
+    }
+
     public static class IsSampledInstrumentation extends AbstractSpanInstrumentation {
         public IsSampledInstrumentation() {
             super(named("isSampled"));
