@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,65 +22,64 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.reactor_netty;
+package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.HttpRequest;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.reactive.HandlerResult;
+import org.springframework.web.server.ServerWebExchange;
 
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.spring.webflux.WebFluxInstrumentationHelper.*;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class HttpTrafficHandlerChannelReadInstrumentation extends ElasticApmInstrumentation {
+public class DispatcherHandlerInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(HttpTrafficHandlerChannelReadInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(DispatcherHandlerInstrumentation.class);
+
 
     @SuppressWarnings("unused")
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void channelRead(@Advice.Argument(value = 0) ChannelHandlerContext chc,
-                                   @Advice.Argument(value = 1) Object msg) {
+    @Advice.OnMethodEnter
+    public static void beforeHandleResult(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
+                                          @Advice.Argument(value = 1) HandlerResult handlerResult) {
         if (tracer == null) {
-            logger.trace("channelRead tracer == null");
+            logger.trace("beforeHandleResult tracer == null");
             return;
         }
-        if (msg instanceof HttpRequest) {
-            HttpRequest request = (HttpRequest) msg;
-            String method =request.method().name();
-            String path = request.uri();
-            String name =  method + " " + path;
-            Transaction transaction = tracer.startRootTransaction(chc.getClass().getClassLoader())
-                .withName(name)
-                .withType("serverRequest");
-            transaction.activate();
-            TransactionHolder.put(chc,transaction);
+        Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(ELASTIC_APM_AGENT_TRANSACTION);
+        if (transaction != null) {
+            transaction
+                .deactivate()
+                .end();
         }
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("reactor.netty.http.server.HttpTrafficHandler");
+        return named("org.springframework.web.reactive.DispatcherHandler");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("channelRead")
-            .and(takesArgument(0, named("io.netty.channel.ChannelHandlerContext")))
-            .and(takesArgument(1, named("java.lang.Object")));
+        return named("handleResult")
+            .and(takesArgument(0,
+                named("org.springframework.web.server.ServerWebExchange")))
+            .and(takesArgument(1,
+                named("org.springframework.web.reactive.HandlerResult")));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("reactor-netty-channelRead-handler");
+        return Collections.singletonList("webflux-dispatcher-handler");
     }
 }

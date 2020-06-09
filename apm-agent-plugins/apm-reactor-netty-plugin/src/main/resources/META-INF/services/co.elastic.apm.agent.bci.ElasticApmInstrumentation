@@ -1,2 +1,0 @@
-co.elastic.apm.agent.reactor_netty.HttpTrafficHandlerChannelReadInstrumentation
-co.elastic.apm.agent.reactor_netty.HttpTrafficHandlerWriteInstrumentation

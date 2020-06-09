@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,45 +22,47 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.reactor_netty;
+package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.HttpResponse;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.server.ServerWebExchange;
 
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.spring.webflux.WebFluxInstrumentationHelper.*;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class HttpTrafficHandlerWriteInstrumentation extends ElasticApmInstrumentation {
+public class AbstractErrorWebExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(HttpTrafficHandlerWriteInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(AbstractErrorWebExceptionHandlerInstrumentation.class);
 
     @SuppressWarnings("unused")
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void beforeWrite(@Advice.Argument(value = 0) ChannelHandlerContext chc,
-                                   @Advice.Argument(value = 1) Object msg) {
+    @Advice.OnMethodEnter
+    public static void beforeHandleMethod(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
+                                          @Advice.Argument(value = 1) Throwable throwable) {
         if (tracer == null) {
-            logger.trace("beforeWrite tracer == null");
+            logger.trace("beforeHandleMethod tracer == null");
             return;
         }
-        if (msg instanceof HttpResponse) {
-            Transaction transaction = TransactionHolder.get(chc);
-            if (transaction == null) {
-                logger.trace("beforeWrite finishNettyTransaction transaction is not found");
-                return;
+        Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(ELASTIC_APM_AGENT_TRANSACTION);
+        if (transaction != null) {
+            if (throwable instanceof ResponseStatusException) {
+                ResponseStatusException e = (ResponseStatusException) throwable;
+                transaction.withResult(e.getStatus().value() + " " + e.getStatus().getReasonPhrase());
             }
             transaction
+                .captureException(throwable)
                 .deactivate()
                 .end();
         }
@@ -68,19 +70,20 @@ public class HttpTrafficHandlerWriteInstrumentation extends ElasticApmInstrument
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("reactor.netty.http.server.HttpTrafficHandler");
+        return named("org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("write")
-            .and(takesArgument(0, named("io.netty.channel.ChannelHandlerContext")))
-            .and(takesArgument(1, named("java.lang.Object")))
-            .and(takesArgument(2, named("io.netty.channel.ChannelPromise")));
+        return named("handle")
+            .and(takesArgument(0,
+                named("org.springframework.web.server.ServerWebExchange")))
+            .and(takesArgument(1,
+                named("java.lang.Throwable")));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("reactor-netty-write-handler");
+        return Collections.singletonList("webflux-error-web-exception-handler");
     }
 }

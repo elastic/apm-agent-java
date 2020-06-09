@@ -39,8 +39,8 @@ import java.util.List;
 
 public class WebFluxInstrumentationHelper {
 
+    public static final String ELASTIC_APM_AGENT_TRANSACTION = Transaction.class.getName();
     public static final String TRANSACTION_TYPE = "serverRequest";
-
     public static final String CONTENT_LENGTH = "Content-Length";
 
     public static Transaction createAndActivateTransaction(final ElasticApmTracer tracer, final ServerRequest serverRequest) {
