@@ -133,11 +133,16 @@ public interface GrpcHelper {
                          ClientCall.Listener<?> listener,
                          Metadata headers);
 
-    // enterClientListenerMethod
-    // exitClientListenerMethod( boolean isLastMethod )
 
-    void endSpan(ClientCall.Listener<?> listener, @Nullable Throwable thrown);
-
+    @Deprecated
     void captureListenerException(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown);
+
+    @Nullable
+    Span enterClientListenerMethod(ClientCall.Listener<?> listener);
+
+    void exitClientListenerMethod(@Nullable Throwable thrown,
+                                  ClientCall.Listener<?> listener,
+                                  @Nullable Span span,
+                                  boolean isLastMethod);
 
 }

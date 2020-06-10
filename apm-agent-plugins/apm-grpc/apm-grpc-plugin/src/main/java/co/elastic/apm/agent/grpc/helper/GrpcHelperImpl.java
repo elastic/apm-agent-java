@@ -217,22 +217,40 @@ public class GrpcHelperImpl implements GrpcHelper {
     }
 
     @Override
-    public void endSpan(ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
-        Span span = clientCallListenerSpans.remove(listener);
-        if (span == null) {
-            return;
-        }
-
-        span.captureException(thrown)
-            .end();
-    }
-
-    @Override
     public void captureListenerException(ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
         if (thrown != null) {
             Span span = clientCallListenerSpans.get(listener);
             if (span != null) {
                 span.captureException(thrown);
+            }
+        }
+    }
+
+    @Override
+    @Nullable
+    public Span enterClientListenerMethod(ClientCall.Listener<?> listener) {
+        Span span = clientCallListenerSpans.get(listener);
+        if (span != null) {
+            span.activate();
+        }
+        return span;
+    }
+
+    @Override
+    public void exitClientListenerMethod(@Nullable Throwable thrown,
+                                         ClientCall.Listener<?> listener,
+                                         @Nullable Span span,
+                                         boolean isLastMethod) {
+
+        if (span != null) {
+            span.captureException(thrown)
+                .deactivate();
+        }
+
+        if (isLastMethod) {
+            clientCallListenerSpans.remove(listener);
+            if (span != null) {
+                span.end();
             }
         }
     }
