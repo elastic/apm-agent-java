@@ -61,14 +61,14 @@ public class GrpcHelperImpl implements GrpcHelper {
     private static final WeakConcurrentMap<ClientCall.Listener<?>, ClientCall<?, ?>> inFlightClientListeners;
 
     /**
-     * Map of all in-flight transactions, is only used by server part.
-     * Key is {@link ServerCall}, value is {@link Transaction}.
+     * Map of all in-flight {@link Transaction} with {@link ServerCall.Listener} instance as key.
      */
-    private static final WeakConcurrentMap<ServerCall<?, ?>, Transaction> inFlightTransactions;
+    private static final WeakConcurrentMap<ServerCall.Listener<?>, Transaction> serverListenerTransactions;
+
     /**
-     * Map of all in-flight {@link ServerCall} instances with the {@link ServerCall.Listener} instance as key
+     * Map of all in-flight {@link Transaction} with {@link ServerCall} instance as key.
      */
-    private static final WeakConcurrentMap<ServerCall.Listener<?>, ServerCall<?, ?>> inFlightServerListeners;
+    private static final WeakConcurrentMap<ServerCall<?, ?>, Transaction> serverCallTransactions;
 
 
     /**
@@ -83,8 +83,8 @@ public class GrpcHelperImpl implements GrpcHelper {
         inFlightClientListeners = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, ClientCall<?, ?>>();
         inFlightClientSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
 
-        inFlightServerListeners = new WeakConcurrentMap.WithInlinedExpunction<ServerCall.Listener<?>, ServerCall<?, ?>>();
-        inFlightTransactions = new WeakConcurrentMap.WithInlinedExpunction<ServerCall<?, ?>, Transaction>();
+        serverListenerTransactions = new WeakConcurrentMap.WithInlinedExpunction<ServerCall.Listener<?>, Transaction>();
+        serverCallTransactions = new WeakConcurrentMap.WithInlinedExpunction<ServerCall<?, ?>, Transaction>();
 
         headerCache = new WeakConcurrentMap.WithInlinedExpunction<String, Metadata.Key<String>>();
 
@@ -95,75 +95,46 @@ public class GrpcHelperImpl implements GrpcHelper {
     // transaction management (server part)
 
     @Override
-    public Transaction startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
+    public void startAndRegisterTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers, ServerCall.Listener<?> listener) {
         MethodDescriptor<?, ?> methodDescriptor = serverCall.getMethodDescriptor();
 
         // ignore non-unary method calls for now
         if (methodDescriptor.getType() != MethodDescriptor.MethodType.UNARY) {
-            return null;
+            return;
         }
 
         Transaction transaction = tracer.startChildTransaction(headers, headerGetter, cl);
         if (transaction == null) {
-            return null;
+            return;
         }
 
         transaction.withName(methodDescriptor.getFullMethodName())
-            .withType("request")
-            .activate();
+            .withType("request");
 
-        return transaction;
+        serverCallTransactions.put(serverCall, transaction);
+        serverListenerTransactions.put(listener, transaction);
+
     }
 
     @Override
-    public void registerTransactionAndDeactivate(@Nullable Transaction transaction, ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener) {
-        if (null == transaction) {
-            return;
+    public void setTransactionStatus(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
+        Transaction transaction = serverCallTransactions.remove(serverCall);
+
+        if (transaction != null) {
+            setTransactionStatus(status, thrown, transaction);
         }
-
-        inFlightTransactions.put(serverCall, transaction);
-        inFlightServerListeners.put(listener, serverCall);
-
-        transaction.deactivate();
     }
 
-    @Nullable
-    private Transaction getTransactionFromListener(ServerCall.Listener<?> listener) {
-        ServerCall<?, ?> serverCall = inFlightServerListeners.get(listener);
-        Transaction transaction = null;
-        if (null != serverCall) {
-            transaction = inFlightTransactions.get(serverCall);
-        }
-        return transaction;
-    }
-
-    @Override
-    public void endTransaction(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
-        Transaction transaction = inFlightTransactions.remove(serverCall);
-        if (transaction == null) {
-            return;
-        }
-
-        endTransaction(status, thrown, transaction);
-    }
-
-    private void endTransaction(Status status, @Nullable Throwable thrown, Transaction transaction) {
-        if (transaction.getResult() != null) {
-            return;
-        }
-
-        // transaction might be terminated early in case of thrown exception
-        // from method signature it's a runtime exception, thus very likely an issue in server implementation
+    private void setTransactionStatus(Status status, @Nullable Throwable thrown, Transaction transaction) {
         transaction
-            .withResult(status.getCode().name())
-            .captureException(thrown)
-            .end();
+            .withResultIfUnset(status.getCode().name())
+            .captureException(thrown);
     }
 
     @Nullable
     @Override
     public Transaction enterServerListenerMethod(ServerCall.Listener<?> listener) {
-        Transaction transaction = getTransactionFromListener(listener);
+        Transaction transaction = serverListenerTransactions.get(listener);
         if (transaction != null) {
             transaction.activate();
         }
@@ -171,7 +142,10 @@ public class GrpcHelperImpl implements GrpcHelper {
     }
 
     @Override
-    public void exitServerListenerMethod(@Nullable Throwable thrown, ServerCall.Listener<?> listener, @Nullable Transaction transaction, boolean isLastMethod) {
+    public void exitServerListenerMethod(@Nullable Throwable thrown,
+                                         ServerCall.Listener<?> listener,
+                                         @Nullable Transaction transaction,
+                                         boolean isLastMethod) {
         if (transaction == null) {
             return;
         }
@@ -181,16 +155,13 @@ public class GrpcHelperImpl implements GrpcHelper {
         if (null != thrown) {
             // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
             // and set 'unknown' status, we just replicate this behavior as we don't instrument the part that does this
-            endTransaction(Status.UNKNOWN, thrown, transaction);
+            setTransactionStatus(Status.UNKNOWN, thrown, transaction);
+        } else if (isLastMethod) {
+            // transaction status will be set by ServerCall.close instrumentation
+            transaction.end();
+            serverListenerTransactions.remove(listener);
         }
 
-        if (thrown != null || isLastMethod) {
-            // listener won't be called anymore
-            ServerCall<?, ?> serverCall = inFlightServerListeners.remove(listener);
-            if (serverCall != null) {
-                inFlightTransactions.remove(serverCall);
-            }
-        }
     }
 
     // exit span management (client part)

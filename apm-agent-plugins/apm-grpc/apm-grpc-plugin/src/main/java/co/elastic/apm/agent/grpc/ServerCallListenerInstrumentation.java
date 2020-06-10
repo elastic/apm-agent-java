@@ -37,7 +37,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -60,8 +59,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc")
-            .and(nameContains("Unary"));
+        return nameStartsWith("io.grpc");
     }
 
     @Override
@@ -87,7 +85,11 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             // message received --> indicates RPC start for unary call
             // actual method invocation is delayed until 'half close'
-            return named("onMessage");
+            return named("onMessage")
+                //
+                // client completed all message sending, but can still cancel the call
+                // --> for unary calls, actual method invocation is done within 'onHalfClose' method.
+                .or(named("onHalfClose"));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -129,7 +131,6 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
      * <ul>
      *     <li>{@link io.grpc.ServerCall.Listener#onCancel()}</li>
      *     <li>{@link io.grpc.ServerCall.Listener#onComplete()}</li>
-     *     <li>{@link io.grpc.ServerCall.Listener#onHalfClose()}</li>
      * </ul>
      * <p>
      * If one of those methods is called, the other one is guaranteed to not be called, hence the 'final'.
@@ -148,14 +149,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                 //
                 // call complete (but client not guaranteed to get all messages)
                 // --> end of unary call (success)
-                .or(named("onComplete"))
-                //
-                // client completed all message sending, but can still cancel the call
-                // --> for unary calls, actual method invocation is done within 'onHalfClose' method, and there is no
-                // call to 'onComplete', thus consider it as 'final' allows to properly perform cleanup as it's the last
-                // method that will be invoked on the listener.
-                //
-                .or(named("onHalfClose"));
+                .or(named("onComplete"));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -179,7 +173,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                    @Advice.This ServerCall.Listener<?> listener,
                                    @Advice.Local("transaction") @Nullable Transaction transaction) {
 
-            if (null == tracer || grpcHelperManager == null || transaction == null) {
+            if (null == tracer || grpcHelperManager == null) {
                 return;
             }
 

@@ -43,17 +43,40 @@ public interface GrpcHelper {
 
     // server part
 
-    @Nullable
-    Transaction startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers);
+    /**
+     * Starts transaction and registers for lookup with both {@link ServerCall} and {@link ServerCall.Listener} as keys.
+     *
+     * @param tracer     tracer
+     * @param cl         classloader
+     * @param serverCall server call
+     * @param headers    server call headers
+     * @param listener   server call listener
+     */
+    void startAndRegisterTransaction(ElasticApmTracer tracer,
+                                     ClassLoader cl,
+                                     ServerCall<?, ?> serverCall,
+                                     Metadata headers,
+                                     ServerCall.Listener<?> listener);
 
-    void registerTransactionAndDeactivate(@Nullable Transaction transaction, ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener);
-
-    void endTransaction(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall);
+    /**
+     * Sets transaction status using a transaction lookup by {@link ServerCall}, also removes lookup entry as it not
+     * used afterwards.
+     *
+     * @param status     status
+     * @param thrown     thrown exception (if any)
+     * @param serverCall server call
+     */
+    void setTransactionStatus(Status status,
+                              @Nullable Throwable thrown,
+                              ServerCall<?, ?> serverCall);
 
     @Nullable
     Transaction enterServerListenerMethod(ServerCall.Listener<?> listener);
 
-    void exitServerListenerMethod(@Nullable Throwable thrown, ServerCall.Listener<?> listener, Transaction transaction, boolean isLastMethod);
+    void exitServerListenerMethod(@Nullable Throwable thrown,
+                                  ServerCall.Listener<?> listener,
+                                  @Nullable Transaction transaction,
+                                  boolean isLastMethod);
 
     // client part
 
