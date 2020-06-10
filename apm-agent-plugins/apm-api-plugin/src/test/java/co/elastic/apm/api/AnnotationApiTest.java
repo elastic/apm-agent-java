@@ -41,6 +41,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
 
         assertThat(reporter.getSpans()).hasSize(2);
 
@@ -69,6 +70,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThatThrownBy(AnnotationTestClass::transactionWithException).isInstanceOf(RuntimeException.class);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("AnnotationTestClass#transactionWithException");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("catch me if you can");
     }
@@ -85,6 +87,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transactionWithType");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("job");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
 
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
@@ -114,6 +117,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedTransaction");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("type");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
 
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedSpanOrTransaction");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
@@ -141,6 +145,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedSpanOrTransaction");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
     }
 
     public static class AnnotationTestClass {

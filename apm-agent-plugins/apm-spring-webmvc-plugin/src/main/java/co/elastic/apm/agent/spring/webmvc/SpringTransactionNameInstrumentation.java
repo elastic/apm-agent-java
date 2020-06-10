@@ -31,6 +31,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.springframework.core.SpringVersion;
 import org.springframework.web.method.HandlerMethod;
 
 import javax.annotation.Nullable;
@@ -61,6 +62,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * </p>
  */
 public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentation {
+
+    private static final String FRAMEWORK_NAME = "Spring Web MVC";
 
     /**
      * Instrumenting well defined interfaces like {@link org.springframework.web.servlet.HandlerAdapter}
@@ -123,6 +126,8 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
                 methodName = null;
             }
             setName(transaction, className, methodName);
+            transaction.setFrameworkName(FRAMEWORK_NAME);
+            transaction.setFrameworkVersion(SpringVersion.getVersion());
         }
 
         @VisibleForAdvice
