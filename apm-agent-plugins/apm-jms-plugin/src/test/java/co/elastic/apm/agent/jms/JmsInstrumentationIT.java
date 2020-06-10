@@ -79,6 +79,7 @@ import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -125,7 +126,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         startAndActivateTransaction(null);
         brokerFacade.beforeTest();
         noopQ = brokerFacade.createQueue("NOOP");
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
     }
 
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
@@ -475,6 +476,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         for (Transaction receiveTransaction : receiveTransactions) {
             assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from ");
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
+            assertThat(receiveTransaction.getFrameworkName()).isEqualTo("JMS");
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);

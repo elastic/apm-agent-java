@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.ssl.SslUtils;
+import co.elastic.apm.agent.util.GlobalLocks;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
@@ -81,7 +82,6 @@ public class ApmServerClient {
     }
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
-        initHttpUrlConnectionClass();
         this.reporterConfiguration = reporterConfiguration;
         this.healthChecker = new ApmServerHealthChecker(this);
         this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
@@ -94,19 +94,6 @@ public class ApmServerClient {
             }
         });
         setServerUrls(Collections.unmodifiableList(shuffledUrls));
-    }
-
-    /**
-     * A noop method for the sole purpose of loading the HttpUrlConnection class as a side effect, on the main thread,
-     * in order to work around the JULI deadlock reported at https://github.com/elastic/apm-agent-java/issues/954
-     */
-    private void initHttpUrlConnectionClass() {
-        try {
-            new URL("http://localhost:11111").openConnection();
-            new URL("https://localhost:11111").openConnection();
-        } catch (IOException e) {
-            //ignore
-        }
     }
 
     private void setServerUrls(List<URL> serverUrls) {
@@ -129,7 +116,7 @@ public class ApmServerClient {
 
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
-        final URLConnection connection = url.openConnection();
+        final URLConnection connection = openUrlConnectionThreadSafely(url);
 
         // change SSL socket factory to support both TLS fallback and disabling certificate validation
         if (connection instanceof HttpsURLConnection) {
@@ -163,6 +150,15 @@ public class ApmServerClient {
         connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         return (HttpURLConnection) connection;
+    }
+
+    private URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
+        GlobalLocks.JUL_INIT_LOCK.lock();
+        try {
+            return url.openConnection();
+        } finally {
+            GlobalLocks.JUL_INIT_LOCK.unlock();
+        }
     }
 
     @Nonnull

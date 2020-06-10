@@ -51,7 +51,16 @@ import javax.annotation.Nullable;
 @SuppressWarnings("unused")
 public class GrpcHelperImpl implements GrpcHelper {
 
+    private static final String FRAMEWORK_NAME = "gRPC";
+
+    /**
+     * Map of all in-flight {@link Transaction} with {@link ClientCall} instance as key.
+     */
     private static final WeakConcurrentMap<ClientCall<?, ?>, Span> clientCallSpans;
+
+    /**
+     * Map of all in-flight {@link Transaction} with {@link ClientCall.Listener} instance as key.
+     */
     private static final WeakConcurrentMap<ClientCall.Listener<?>, Span> clientCallListenerSpans;
 
     /**
@@ -103,11 +112,11 @@ public class GrpcHelperImpl implements GrpcHelper {
         }
 
         transaction.withName(methodDescriptor.getFullMethodName())
-            .withType("request");
+            .withType("request")
+            .setFrameworkName(FRAMEWORK_NAME);
 
         serverCallTransactions.put(serverCall, transaction);
         serverListenerTransactions.put(listener, transaction);
-
     }
 
     @Override

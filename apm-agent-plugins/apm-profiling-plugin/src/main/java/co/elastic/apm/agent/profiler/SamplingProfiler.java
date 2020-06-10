@@ -335,7 +335,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
         try {
-            String startCommand = "start,jfr,event=wall,cstack=n,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile;
+            String startCommand = "start,jfr,event=wall,cstack=n,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile + ",safemode=" + config.getAsyncProfilerSafeMode();
             String startMessage = asyncProfiler.execute(startCommand);
             logger.debug(startMessage);
             if (!profiledThreads.isEmpty()) {
@@ -445,7 +445,14 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                     // stack frames may not contain any Java frames
                     // see https://github.com/jvm-profiling-tools/async-profiler/issues/271#issuecomment-582430233
                     if (!stackFrames.isEmpty()) {
-                        root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime, callTreePool, inferredSpansMinDuration);
+                        try {
+                            root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime, callTreePool, inferredSpansMinDuration);
+                        } catch (Exception e) {
+                            logger.warn("Removing call tree for thread {} because of exception while adding a stack trace: {} {}",
+                                stackTrace.threadId, e.getClass(), e.getMessage());
+                            logger.debug(e.getMessage(), e);
+                            profiledThreads.remove(stackTrace.threadId);
+                        }
                     }
                 }
                 stackFrames.clear();
@@ -522,7 +529,14 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             previousTimestamp = eventTimestamp;
             if (eventTimestamp <= timestamp) {
                 event.deserialize(buf);
-                event.handle(this);
+                try {
+                    event.handle(this);
+                } catch (Exception e) {
+                    logger.warn("Removing call tree for thread {} because of exception while handling activation event: {} {}",
+                        event.threadId, e.getClass(), e.getMessage());
+                    logger.debug(e.getMessage(), e);
+                    profiledThreads.remove(event.threadId);
+                }
             } else {
                 return;
             }

@@ -28,10 +28,8 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,12 +46,10 @@ class JfrParserTest {
         // using the smallest prime number possible for the buffer
         // should trigger most edge cases in the buffer being exhausted
         JfrParser jfrParser = new JfrParser(ByteBuffer.allocate(113), ByteBuffer.allocate(113));
-        URL url = getClass().getClassLoader().getResource("recording.jfr");
 
-        // URL provides url-encoded path, we have to explicitly decode it otherwise we won't find the file
-        String filePath = URLDecoder.decode(url.getPath(), StandardCharsets.UTF_8.name());
+        File file = Paths.get(JfrParserTest.class.getClassLoader().getResource("recording.jfr").toURI()).toFile();
 
-        jfrParser.parse(new File(filePath), List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
+        jfrParser.parse(file, List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();
         jfrParser.consumeStackTraces((threadId, stackTraceId, nanoTime) -> {

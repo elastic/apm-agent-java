@@ -397,8 +397,6 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy, boolean premain) {
-        final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
-
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
@@ -472,7 +470,13 @@ public class ElasticApmAgent {
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(classesExcludedFromInstrumentation, target.getName()) != null;
+                    return WildcardMatcher.anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation(), target.getName()) != null;
+                }
+            })
+            .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
+                @Override
+                public boolean matches(TypeDescription target) {
+                    return WildcardMatcher.anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation(), target.getName()) != null;
                 }
             })
             .disableClassFormatChanges();

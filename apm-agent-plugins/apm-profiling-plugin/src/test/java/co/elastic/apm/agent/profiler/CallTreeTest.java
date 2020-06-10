@@ -117,6 +117,23 @@ class CallTreeTest {
     }
 
     @Test
+    void testGiveEmptyChildIdsTo() {
+        CallTree rich = new CallTree();
+        rich.addChildId(42);
+        CallTree robinHood = new CallTree();
+        CallTree poor = new CallTree();
+
+        rich.giveLastChildIdTo(robinHood);
+        robinHood.giveLastChildIdTo(poor);
+        // list is not null but empty, expecting no exception
+        robinHood.giveLastChildIdTo(rich);
+
+        assertThat(rich.hasChildIds()).isFalse();
+        assertThat(robinHood.hasChildIds()).isFalse();
+        assertThat(poor.hasChildIds()).isTrue();
+    }
+
+    @Test
     void testTwoDistinctInvocationsOfMethodBShouldNotBeFoldedIntoOne() throws Exception {
         assertCallTree(new String[]{
             " bb bb",

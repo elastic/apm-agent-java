@@ -67,6 +67,16 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.15.0]", "internal")
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Integer> asyncProfilerSafeMode = ConfigurationOption.<Integer>integerOption()
+        .key("async_profiler_safe_mode")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(false)
+        .description("Can be used for analysis: the Async Profiler's area that deals with recovering stack trace frames \n" +
+            "is known to be sensitive in some systems. It is used as a bit mask using values are between 0 and 31, \n" +
+            "where 0 enables all recovery attempts and 31 disables all five (corresponding 1, 2, 4, 8 and 16).")
+        .tags("internal")
+        .buildWithDefault(0);
+
     private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
         .key("profiling_inferred_spans_sampling_interval")
         .configurationCategory(PROFILING_CATEGORY)
@@ -155,6 +165,10 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isProfilingEnabled() {
         return profilingEnabled.get();
+    }
+
+    public int getAsyncProfilerSafeMode() {
+        return asyncProfilerSafeMode.get();
     }
 
     public boolean isProfilingDisabled() {
