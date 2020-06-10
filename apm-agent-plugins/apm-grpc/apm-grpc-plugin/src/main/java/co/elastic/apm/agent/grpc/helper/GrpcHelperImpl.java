@@ -27,6 +27,7 @@ package co.elastic.apm.agent.grpc.helper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
@@ -50,15 +51,8 @@ import javax.annotation.Nullable;
 @SuppressWarnings("unused")
 public class GrpcHelperImpl implements GrpcHelper {
 
-    /**
-     * Map of all in-flight spans, is only used by client part.
-     * Key is {@link ClientCall}, value is {@link Span}.
-     */
-    private static final WeakConcurrentMap<ClientCall<?, ?>, Span> inFlightClientSpans;
-    /**
-     * Map of all in-flight {@link ClientCall} instances with the {@link ClientCall.Listener} instance as key
-     */
-    private static final WeakConcurrentMap<ClientCall.Listener<?>, ClientCall<?, ?>> inFlightClientListeners;
+    private static final WeakConcurrentMap<ClientCall<?, ?>, Span> clientCallSpans;
+    private static final WeakConcurrentMap<ClientCall.Listener<?>, Span> clientCallListenerSpans;
 
     /**
      * Map of all in-flight {@link Transaction} with {@link ServerCall.Listener} instance as key.
@@ -80,8 +74,8 @@ public class GrpcHelperImpl implements GrpcHelper {
     private static final TextHeaderGetter<Metadata> headerGetter;
 
     static {
-        inFlightClientListeners = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, ClientCall<?, ?>>();
-        inFlightClientSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
+        clientCallSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
+        clientCallListenerSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, Span>();
 
         serverListenerTransactions = new WeakConcurrentMap.WithInlinedExpunction<ServerCall.Listener<?>, Transaction>();
         serverCallTransactions = new WeakConcurrentMap.WithInlinedExpunction<ServerCall<?, ?>, Transaction>();
@@ -166,10 +160,10 @@ public class GrpcHelperImpl implements GrpcHelper {
 
     // exit span management (client part)
 
-    @Nullable
     @Override
-    public Span createExitSpanAndActivate(@Nullable Transaction transaction, @Nullable MethodDescriptor<?, ?> method) {
-        if (null == transaction) {
+    @Nullable
+    public Span startSpan(@Nullable AbstractSpan<?> parent, @Nullable MethodDescriptor<?, ?> method, @Nullable String authority) {
+        if (null == parent) {
             return null;
         }
 
@@ -178,94 +172,69 @@ public class GrpcHelperImpl implements GrpcHelper {
             return null;
         }
 
-        Span span = transaction.createExitSpan();
+        Span span = parent.createExitSpan();
         if (span == null) {
             // as it's an external call, we only need a single span for nested calls
             return null;
         }
 
-        return span.withName(method == null ? null : method.getFullMethodName())
+        span.withName(method == null ? null : method.getFullMethodName())
             .withType("external")
-            .withSubtype(GRPC)
-            .activate();
-    }
+            .withSubtype(GRPC);
 
-    @Override
-    public void registerSpanAndDeactivate(@Nullable Span span, ClientCall<?, ?> clientCall) {
-        if (span != null) {
-            inFlightClientSpans.put(clientCall, span);
-            span.deactivate();
+        if (authority != null) {
+            Destination destination = span.getContext().getDestination()
+                .withAddressPort(authority);
+
+            destination.getService()
+                .withName(GRPC)
+                .withResource(authority)
+                .withType(GRPC);
         }
+        return span.activate();
     }
 
     @Override
-    public void startSpan(ClientCall<?, ?> clientCall, ClientCall.Listener<?> responseListener, Metadata headers) {
+    public void registerSpan(@Nullable ClientCall<?, ?> clientCall, Span span) {
+        if (clientCall != null) {
+            clientCallSpans.put(clientCall, span);
+        }
+        span.deactivate();
+    }
+
+    @Override
+    public void clientCallStart(ClientCall<?, ?> clientCall, ClientCall.Listener<?> listener, Metadata headers) {
         // span should already have been registered
-        Span span = inFlightClientSpans.get(clientCall);
+        // no other lookup by client call is required, thus removing entry
+        Span span = clientCallSpans.remove(clientCall);
         if (span == null) {
             return;
         }
 
-        inFlightClientListeners.put(responseListener, clientCall);
+        clientCallListenerSpans.put(listener, span);
+
         span.propagateTraceContext(headers, headerSetter);
     }
 
     @Override
-    public void endSpan(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown) {
-        ClientCall<?, ?> clientCall = inFlightClientListeners.get(responseListener);
-        Span span = null;
-        if (clientCall != null) {
-            span = inFlightClientSpans.get(clientCall);
-        }
+    public void endSpan(ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
+        Span span = clientCallListenerSpans.remove(listener);
         if (span == null) {
             return;
         }
 
         span.captureException(thrown)
             .end();
-
-        inFlightClientListeners.remove(responseListener);
-        inFlightClientSpans.remove(clientCall);
     }
 
     @Override
-    public void captureListenerException(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown) {
+    public void captureListenerException(ClientCall.Listener<?> listener, @Nullable Throwable thrown) {
         if (thrown != null) {
-            Span span = getSpanFromListener(responseListener);
+            Span span = clientCallListenerSpans.get(listener);
             if (span != null) {
                 span.captureException(thrown);
             }
         }
-    }
-
-    @Override
-    public void enrichSpanContext(ClientCall<?, ?> clientCall, @Nullable String authority) {
-        if (authority == null) {
-            return;
-        }
-
-        Span span = inFlightClientSpans.get(clientCall);
-        if (span == null) {
-            return;
-        }
-
-        Destination destination = span.getContext().getDestination()
-            .withAddressPort(authority);
-
-        destination.getService()
-            .withName(GRPC)
-            .withResource(authority)
-            .withType(GRPC);
-    }
-
-    @Nullable
-    private Span getSpanFromListener(ClientCall.Listener<?> responseListener) {
-        ClientCall<?, ?> clientCall = inFlightClientListeners.get(responseListener);
-        Span span = null;
-        if (clientCall != null) {
-            span = inFlightClientSpans.get(clientCall);
-        }
-        return span;
     }
 
     public static class GrpcHeaderSetter implements TextHeaderSetter<Metadata> {

@@ -26,6 +26,7 @@ package co.elastic.apm.agent.grpc.helper;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.grpc.ClientCall;
@@ -70,9 +71,23 @@ public interface GrpcHelper {
                               @Nullable Throwable thrown,
                               ServerCall<?, ?> serverCall);
 
+    /**
+     * Activates transaction on starting server call listener method
+     *
+     * @param listener server call listener
+     * @return transaction, or {@literal null} if there is none
+     */
     @Nullable
     Transaction enterServerListenerMethod(ServerCall.Listener<?> listener);
 
+    /**
+     * Deactivates (and terminates) transaction on ending server call listener method
+     *
+     * @param thrown       thrown exception
+     * @param listener     server call listener
+     * @param transaction  transaction
+     * @param isLastMethod {@literal true} if listener method should terminate transaction
+     */
     void exitServerListenerMethod(@Nullable Throwable thrown,
                                   ServerCall.Listener<?> listener,
                                   @Nullable Transaction transaction,
@@ -80,17 +95,49 @@ public interface GrpcHelper {
 
     // client part
 
+    /**
+     * Starts a client exit span.
+     * <br>
+     * This is the first method called during a client call execution, the next is {@link #registerSpan(ClientCall, Span)}.
+     *
+     * @param parent    parent transaction, or parent span provided by {@link ElasticApmTracer#getActive()}.
+     * @param method    method descriptor
+     * @param authority channel authority string (host+port)
+     * @return client call span (activated) or {@literal null} if not within an exit span.
+     */
     @Nullable
-    Span createExitSpanAndActivate(@Nullable Transaction transaction, @Nullable MethodDescriptor<?, ?> method);
+    Span startSpan(@Nullable AbstractSpan<?> parent,
+                   @Nullable MethodDescriptor<?, ?> method,
+                   @Nullable String authority);
 
-    void registerSpanAndDeactivate(@Nullable Span span, ClientCall<?, ?> clientCall);
+    /**
+     * Registers (and deactivates) span in internal storage for lookup by client call.
+     * <br>
+     * This is the 2cnd method called during client call execution, the next is {@link #clientCallStart(ClientCall, ClientCall.Listener, Metadata)}.
+     *
+     * @param clientCall client call
+     * @param span       span
+     */
+    void registerSpan(@Nullable ClientCall<?, ?> clientCall, Span span);
 
-    void startSpan(ClientCall<?, ?> clientCall, ClientCall.Listener<?> responseListener, Metadata headers);
+    /**
+     * Starts client call and switch to client call listener instrumentation.
+     * <br>
+     * This is the 3rd method called during client call execution and the last to involve client call.
+     *
+     * @param clientCall client call
+     * @param listener   client call listener
+     * @param headers    headers
+     */
+    void clientCallStart(ClientCall<?, ?> clientCall,
+                         ClientCall.Listener<?> listener,
+                         Metadata headers);
 
-    void endSpan(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown);
+    // enterClientListenerMethod
+    // exitClientListenerMethod( boolean isLastMethod )
+
+    void endSpan(ClientCall.Listener<?> listener, @Nullable Throwable thrown);
 
     void captureListenerException(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown);
-
-    void enrichSpanContext(ClientCall<?, ?> clientCall, @Nullable String authority);
 
 }

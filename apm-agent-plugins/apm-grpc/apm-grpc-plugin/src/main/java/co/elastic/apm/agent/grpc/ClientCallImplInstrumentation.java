@@ -29,10 +29,8 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.grpc.helper.GrpcHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -45,7 +43,6 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -93,50 +90,6 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         return hasSuperType(named("io.grpc.ClientCall"));
     }
 
-    /**
-     * Instruments {@code ClientCallImpl} constructor to build client call exit span. Span is kept activated during
-     * constructor execution which makes sure that any nested constructor call will only create one exit span.
-     */
-    public static class Constructor extends ClientCallImplInstrumentation {
-
-        public Constructor(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return isConstructor().and(takesArgument(0, named("io.grpc.MethodDescriptor")));
-        }
-
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Nullable @Advice.Argument(0) MethodDescriptor<?, ?> method,
-                                    @Advice.Local("span") Span span) {
-
-            if (tracer == null || grpcHelperManager == null) {
-                return;
-            }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(MethodDescriptor.class);
-            if (helper != null) {
-                span = helper.createExitSpanAndActivate(tracer.currentTransaction(), method);
-            }
-
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onExit(@Advice.This ClientCall<?, ?> clientCall,
-                                   @Advice.Local("span") @Nullable Span span) {
-
-            if (tracer == null || grpcHelperManager == null) {
-                return;
-            }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(MethodDescriptor.class);
-            if (helper != null) {
-                helper.registerSpanAndDeactivate(span, clientCall);
-            }
-        }
-    }
 
     /**
      * Instruments {@code ClientCallImpl#start} to start client call span
@@ -170,7 +123,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
             GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
             if (helper != null) {
-                helper.startSpan(clientCall, listener, headers);
+                helper.clientCallStart(clientCall, listener, headers);
             }
 
         }
