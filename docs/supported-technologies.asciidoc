@@ -117,6 +117,11 @@ rendering
  Note: JAX-WS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>> and when using the HTTP binding.
 |1.4.0
 
+|Grails
+|3+
+|
+|1.17.0
+
 |===
 
 
@@ -261,6 +266,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 2.x
 |
 | 1.7.0
+
+|Apache Dubbo
+| 2.5+, except for 2.7.0, 2.7.1, and 2.7.2
+| This is an experimental plugin. Remove `experimental` from <<config-disable-instrumentations,`disable_instrumentations`>> to enable.
+| 1.17.0
 
 |===
 

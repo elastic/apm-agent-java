@@ -31,8 +31,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.SpringVersion;
 import org.springframework.web.method.HandlerMethod;
 
@@ -66,10 +64,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
     private static final String FRAMEWORK_NAME = "Spring Web MVC";
-
-    @VisibleForAdvice
-    @SuppressWarnings("WeakerAccess")
-    public static final Logger logger = LoggerFactory.getLogger(SpringTransactionNameInstrumentation.class);
 
     /**
      * Instrumenting well defined interfaces like {@link org.springframework.web.servlet.HandlerAdapter}
@@ -114,34 +108,26 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         static void setTransactionName(@Advice.Argument(2) Object handler) {
-            if (tracer != null) {
-                final Transaction transaction = tracer.currentTransaction();
-                if (transaction != null) {
-                    final String className;
-                    final String methodName;
-                    if (handler instanceof HandlerMethod) {
-                        HandlerMethod handlerMethod = ((HandlerMethod) handler);
-                        className = handlerMethod.getBeanType().getSimpleName();
-                        methodName = handlerMethod.getMethod().getName();
-                    } else {
-                        className = handler.getClass().getSimpleName();
-                        methodName = null;
-                    }
-                    setName(transaction, className, methodName);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Set name {} to transaction {}", transaction.getNameAsString(), transaction.getTraceContext().getId());
-                    }
-                    transaction.setFrameworkName(FRAMEWORK_NAME);
-                    transaction.setFrameworkVersion(SpringVersion.getVersion());
-                } else {
-                    logger.debug("Transaction is null");
-                }
+            if (tracer == null) {
+                return;
+            }
+            final Transaction transaction = tracer.currentTransaction();
+            if (transaction == null) {
+                return;
+            }
+            final String className;
+            final String methodName;
+            if (handler instanceof HandlerMethod) {
+                HandlerMethod handlerMethod = ((HandlerMethod) handler);
+                className = handlerMethod.getBeanType().getSimpleName();
+                methodName = handlerMethod.getMethod().getName();
             } else {
-                logger.debug("Tracer is null");
+                className = handler.getClass().getSimpleName();
+                methodName = null;
             }
-            if (logger.isTraceEnabled()) {
-                logger.trace("Stack trace: ", new RuntimeException());
-            }
+            setName(transaction, className, methodName);
+            transaction.setFrameworkName(FRAMEWORK_NAME);
+            transaction.setFrameworkVersion(SpringVersion.getVersion());
         }
 
         @VisibleForAdvice
