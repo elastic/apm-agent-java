@@ -33,8 +33,8 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.reactive.HandlerResult;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -47,21 +47,28 @@ public class DispatcherHandlerInstrumentation extends ElasticApmInstrumentation 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(DispatcherHandlerInstrumentation.class);
 
-
     @SuppressWarnings("unused")
-    @Advice.OnMethodEnter
-    public static void beforeHandleResult(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
-                                          @Advice.Argument(value = 1) HandlerResult handlerResult) {
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    public static void afterRequestHandle(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
+                                          @Advice.Return(readOnly = false) Mono<Void> mono) {
         if (tracer == null) {
-            logger.trace("beforeHandleResult tracer == null");
+            logger.trace("afterRequestHandle tracer == null");
             return;
         }
         Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(ELASTIC_APM_AGENT_TRANSACTION);
         if (transaction != null) {
-            transaction
-                .deactivate()
-                .end();
+            mono = mono.doOnTerminate(onTerminate(transaction));
         }
+    }
+
+    /**
+     * Workaround, bytebuddy generates lambda with private access modifier.
+     * method shall be public, otherwise Spring class won't have permission to execute it.
+     */
+    public static Runnable onTerminate(Transaction transaction) {
+        return () -> transaction
+            .deactivate()
+            .end();
     }
 
     @Override
