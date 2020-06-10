@@ -123,127 +123,26 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
-
-        // Search the index
         reporter.reset();
 
-        SearchRequest searchRequest = new SearchRequest(INDEX);
-        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
-        sourceBuilder.from(0);
-        sourceBuilder.size(5);
-        searchRequest.source(sourceBuilder);
-        SearchResponse sr = doSearch(searchRequest);
-        verifyTotalHits(sr.getHits());
+        testSearchRequest();
 
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
-        validateDbContextContent(searchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+        testCountRequest();
 
-        // Now update and re-search
-        reporter.reset();
-        // Do CountRequest
-        CountRequest countRequest = new CountRequest(INDEX);
-        SearchSourceBuilder countSourceBuilder = new SearchSourceBuilder();
-        countSourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
-        countRequest.source(countSourceBuilder);
-        CountResponse cr = doCount(countRequest);
-        assertThat(cr.getCount()).isEqualTo(1);
+        testMultiSearchRequest();
 
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_count", INDEX), 200, "POST");
-        validateDbContextContent(searchSpan, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+        testRollupSearch();
 
-        reporter.reset();
-        // Do MultisearchRequest
+        testSearchTemplateRequest();
 
-        MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
-        SearchRequest firstSearchRequest = new SearchRequest(INDEX);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchQuery(FOO, BAR));
-        firstSearchRequest.source(searchSourceBuilder);
-        multiSearchRequest.add(firstSearchRequest);
-
-        MultiSearchResponse multiSearchResponse = doMultiSearch(multiSearchRequest);
-
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, "Elasticsearch: POST /_msearch", 200, "POST");
-        verifyMultiSearchSpanContent(searchSpan);
-
-        reporter.reset();
-
-        // Do rollup search
-        SearchRequest rollupSearchRequest = new SearchRequest(INDEX);
-        SearchSourceBuilder rollupSearchBuilder = new SearchSourceBuilder();
-        rollupSearchBuilder.query(QueryBuilders.termQuery(FOO, BAR));
-        rollupSearchBuilder.from(0);
-        rollupSearchBuilder.size(5);
-        rollupSearchRequest.source(rollupSearchBuilder);
-        SearchResponse rollupSR = doRollupSearch(rollupSearchRequest);
-        verifyTotalHits(rollupSR.getHits());
-
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span rollypSearchSpan = spans.get(0);
-        validateSpanContent(rollypSearchSpan, String.format("Elasticsearch: POST /%s/_rollup_search", INDEX), 200, "POST");
-        validateDbContextContent(rollypSearchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
-
-        reporter.reset();
-        // Do SearchTemplateRequest
-        SearchTemplateRequest searchTemplateRequest = new SearchTemplateRequest();
-        searchTemplateRequest.setRequest(new SearchRequest(INDEX));
-
-        searchTemplateRequest.setScriptType(ScriptType.INLINE);
-        searchTemplateRequest.setScript(
-            "{" +
-                "  \"query\": { \"term\" : { \"{{field}}\" : \"{{value}}\" } }," +
-                "  \"size\" : \"{{size}}\"" +
-                "}");
-
-        Map<String, Object> scriptParams = new HashMap<>();
-        scriptParams.put("field", FOO);
-        scriptParams.put("value", BAR);
-        scriptParams.put("size", 5);
-        searchTemplateRequest.setScriptParams(scriptParams);
-
-        SearchTemplateResponse templateResponse = doSearchTemplate(searchTemplateRequest);
-        verifyTotalHits(templateResponse.getResponse().getHits());
-
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span searchTemplateSpan = spans.get(0);
-        validateSpanContent(searchTemplateSpan, String.format("Elasticsearch: GET /%s/_search/template", INDEX), 200, "GET");
-        validateDbContextContent(searchTemplateSpan, "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}");
-
-        reporter.reset();
-
-        // Do MultiSearchTemplateRequest
-        MultiSearchTemplateRequest multiRequest = new MultiSearchTemplateRequest();
-        multiRequest.add(searchTemplateRequest);
-        MultiSearchTemplateResponse multiSearchTemplateResponse = doMultiSearchTemplate(multiRequest);
-        MultiSearchTemplateResponse.Item[] items = multiSearchTemplateResponse.getResponses();
-        assertThat(items.length).isEqualTo(1);
-        verifyTotalHits(items[0].getResponse().getResponse().getHits());
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span multiSearchTemplateSpan = spans.get(0);
-        validateSpanContent(multiSearchTemplateSpan, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
-        verifyMultiSearchTemplateSpanContent(multiSearchTemplateSpan);
-
-        reporter.reset();
+        testMultisearchTemplateRequest();
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put(FOO, BAZ);
         UpdateRequest updateRequest = new UpdateRequest(INDEX, DOC_TYPE, DOC_ID).doc(jsonMap).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         UpdateResponse ur = doUpdate(updateRequest);
         assertThat(ur.status().getStatus()).isEqualTo(200);
-        sr = doSearch(new SearchRequest(INDEX));
+        SearchResponse sr = doSearch(new SearchRequest(INDEX));
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
         spans = reporter.getSpans();
@@ -262,7 +161,134 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         assertThat(dr.status().getStatus()).isEqualTo(200);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
+    }
 
+    protected void testSearchRequest() throws InterruptedException, ExecutionException, IOException {
+        SearchRequest searchRequest = new SearchRequest(INDEX);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
+        sourceBuilder.from(0);
+        sourceBuilder.size(5);
+        searchRequest.source(sourceBuilder);
+
+        SearchResponse response = doSearch(searchRequest);
+
+        verifyTotalHits(response.getHits());
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span span = spans.get(0);
+        validateSpanContent(span, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
+        validateDbContextContent(span, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        reporter.reset();
+    }
+
+    protected void testCountRequest() throws InterruptedException, ExecutionException, IOException {
+        CountRequest countRequest = new CountRequest(INDEX);
+        SearchSourceBuilder countSourceBuilder = new SearchSourceBuilder();
+        countSourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
+        countRequest.source(countSourceBuilder);
+
+        CountResponse responses = doCount(countRequest);
+
+        assertThat(responses.getCount()).isEqualTo(1);
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span span = spans.get(0);
+        validateSpanContent(span, String.format("Elasticsearch: POST /%s/_count", INDEX), 200, "POST");
+        validateDbContextContent(span, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        reporter.reset();
+    }
+
+    protected void testMultiSearchRequest() throws InterruptedException, ExecutionException, IOException {
+        MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
+        SearchRequest firstSearchRequest = new SearchRequest(INDEX);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchQuery(FOO, BAR));
+        firstSearchRequest.source(searchSourceBuilder);
+        multiSearchRequest.add(firstSearchRequest);
+
+        MultiSearchResponse response = doMultiSearch(multiSearchRequest);
+
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span span = spans.get(0);
+        validateSpanContent(span, "Elasticsearch: POST /_msearch", 200, "POST");
+        verifyMultiSearchSpanContent(span);
+
+        reporter.reset();
+    }
+
+    protected void testRollupSearch() throws InterruptedException, ExecutionException, IOException {
+        SearchRequest rollupSearchRequest = new SearchRequest(INDEX);
+        SearchSourceBuilder rollupSearchBuilder = new SearchSourceBuilder();
+        rollupSearchBuilder.query(QueryBuilders.termQuery(FOO, BAR));
+        rollupSearchBuilder.from(0);
+        rollupSearchBuilder.size(5);
+        rollupSearchRequest.source(rollupSearchBuilder);
+
+        SearchResponse response = doRollupSearch(rollupSearchRequest);
+
+        verifyTotalHits(response.getHits());
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span span = spans.get(0);
+        validateSpanContent(span, String.format("Elasticsearch: POST /%s/_rollup_search", INDEX), 200, "POST");
+        validateDbContextContent(span, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+
+        reporter.reset();
+    }
+
+    protected void testSearchTemplateRequest() throws InterruptedException, ExecutionException, IOException {
+        SearchTemplateRequest searchTemplateRequest = prepareSearchTemplateRequest();
+
+        SearchTemplateResponse response = doSearchTemplate(searchTemplateRequest);
+
+        verifyTotalHits(response.getResponse().getHits());
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span span = spans.get(0);
+        validateSpanContent(span, String.format("Elasticsearch: GET /%s/_search/template", INDEX), 200, "GET");
+        validateDbContextContent(span, "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}");
+
+        reporter.reset();
+    }
+
+    protected void testMultisearchTemplateRequest() throws InterruptedException, ExecutionException, IOException {
+        SearchTemplateRequest searchTemplateRequest = prepareSearchTemplateRequest();
+        MultiSearchTemplateRequest multiRequest = new MultiSearchTemplateRequest();
+        multiRequest.add(searchTemplateRequest);
+
+        MultiSearchTemplateResponse response = doMultiSearchTemplate(multiRequest);
+
+        MultiSearchTemplateResponse.Item[] items = response.getResponses();
+        assertThat(items.length).isEqualTo(1);
+        verifyTotalHits(items[0].getResponse().getResponse().getHits());
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span span = spans.get(0);
+        validateSpanContent(span, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
+        verifyMultiSearchTemplateSpanContent(span);
+
+        reporter.reset();
+    }
+
+    private SearchTemplateRequest prepareSearchTemplateRequest() {
+        SearchTemplateRequest searchTemplateRequest = new SearchTemplateRequest();
+        searchTemplateRequest.setRequest(new SearchRequest(INDEX));
+        searchTemplateRequest.setScriptType(ScriptType.INLINE);
+        searchTemplateRequest.setScript(
+            "{" +
+                "  \"query\": { \"term\" : { \"{{field}}\" : \"{{value}}\" } }," +
+                "  \"size\" : \"{{size}}\"" +
+                "}");
+        Map<String, Object> scriptParams = new HashMap<>();
+        scriptParams.put("field", FOO);
+        scriptParams.put("value", BAR);
+        scriptParams.put("size", 5);
+        searchTemplateRequest.setScriptParams(scriptParams);
+        return searchTemplateRequest;
     }
 
     protected void verifyMultiSearchTemplateSpanContent(Span span) {

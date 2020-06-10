@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.ELASTICSEARCH;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.QUERY_REGEXP;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_ACTION;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
