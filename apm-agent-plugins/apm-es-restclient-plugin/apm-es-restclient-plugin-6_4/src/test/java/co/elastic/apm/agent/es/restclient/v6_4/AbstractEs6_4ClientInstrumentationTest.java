@@ -112,30 +112,30 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
     @Test
     public void testDocumentScenario() throws Exception {
         // Index a document
-        IndexResponse ir = doIndex(new IndexRequest(INDEX, DOC_TYPE, DOC_ID).source(
-            jsonBuilder()
-                .startObject()
-                .field(FOO, BAR)
-                .endObject()
-        ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
-        assertThat(ir.status().getStatus()).isEqualTo(201);
+        createDocument();
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
         reporter.reset();
 
-        testSearchRequest();
+        // do search request
+        SearchRequest searchRequest = new SearchRequest(INDEX);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
+        sourceBuilder.from(0);
+        sourceBuilder.size(5);
+        searchRequest.source(sourceBuilder);
 
-        testCountRequest();
+        SearchResponse response = doSearch(searchRequest);
 
-        testMultiSearchRequest();
-
-        testRollupSearch();
-
-        testSearchTemplateRequest();
-
-        testMultisearchTemplateRequest();
+        verifyTotalHits(response.getHits());
+        spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        Span searchSpan = spans.get(0);
+        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
+        validateDbContextContent(searchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
+        reporter.reset();
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put(FOO, BAZ);
@@ -148,8 +148,8 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
-        for(Span span: spans) {
-            if(span.getNameAsString().contains("_update")) {
+        for (Span span : spans) {
+            if (span.getNameAsString().contains("_update")) {
                 updateSpanFound = true;
                 break;
             }
@@ -158,32 +158,16 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
 
         // Finally - delete the document
         reporter.reset();
-        DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
+        DeleteResponse dr = deleteDocument();
         assertThat(dr.status().getStatus()).isEqualTo(200);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
     }
 
-    protected void testSearchRequest() throws InterruptedException, ExecutionException, IOException {
-        SearchRequest searchRequest = new SearchRequest(INDEX);
-        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
-        sourceBuilder.from(0);
-        sourceBuilder.size(5);
-        searchRequest.source(sourceBuilder);
-
-        SearchResponse response = doSearch(searchRequest);
-
-        verifyTotalHits(response.getHits());
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        Span span = spans.get(0);
-        validateSpanContent(span, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
-        validateDbContextContent(span, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
-
+    @Test
+    public void testCountRequest_validateSpanContentAndDbContext() throws Exception {
+        createDocument();
         reporter.reset();
-    }
 
-    protected void testCountRequest() throws InterruptedException, ExecutionException, IOException {
         CountRequest countRequest = new CountRequest(INDEX);
         SearchSourceBuilder countSourceBuilder = new SearchSourceBuilder();
         countSourceBuilder.query(QueryBuilders.termQuery(FOO, BAR));
@@ -198,10 +182,14 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         validateSpanContent(span, String.format("Elasticsearch: POST /%s/_count", INDEX), 200, "POST");
         validateDbContextContent(span, "{\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
 
-        reporter.reset();
+        deleteDocument();
     }
 
-    protected void testMultiSearchRequest() throws InterruptedException, ExecutionException, IOException {
+    @Test
+    public void testMultiSearchRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+        createDocument();
+        reporter.reset();
+
         MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
         SearchRequest firstSearchRequest = new SearchRequest(INDEX);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -217,10 +205,14 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         validateSpanContent(span, "Elasticsearch: POST /_msearch", 200, "POST");
         verifyMultiSearchSpanContent(span);
 
-        reporter.reset();
+        deleteDocument();
     }
 
-    protected void testRollupSearch() throws InterruptedException, ExecutionException, IOException {
+    @Test
+    public void testRollupSearch_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+        createDocument();
+        reporter.reset();
+
         SearchRequest rollupSearchRequest = new SearchRequest(INDEX);
         SearchSourceBuilder rollupSearchBuilder = new SearchSourceBuilder();
         rollupSearchBuilder.query(QueryBuilders.termQuery(FOO, BAR));
@@ -237,10 +229,14 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         validateSpanContent(span, String.format("Elasticsearch: POST /%s/_rollup_search", INDEX), 200, "POST");
         validateDbContextContent(span, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
 
-        reporter.reset();
+        deleteDocument();
     }
 
-    protected void testSearchTemplateRequest() throws InterruptedException, ExecutionException, IOException {
+    @Test
+    public void testSearchTemplateRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+        createDocument();
+        reporter.reset();
+
         SearchTemplateRequest searchTemplateRequest = prepareSearchTemplateRequest();
 
         SearchTemplateResponse response = doSearchTemplate(searchTemplateRequest);
@@ -252,10 +248,14 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         validateSpanContent(span, String.format("Elasticsearch: GET /%s/_search/template", INDEX), 200, "GET");
         validateDbContextContent(span, "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}");
 
-        reporter.reset();
+        deleteDocument();
     }
 
-    protected void testMultisearchTemplateRequest() throws InterruptedException, ExecutionException, IOException {
+    @Test
+    public void testMultisearchTemplateRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+        createDocument();
+        reporter.reset();
+
         SearchTemplateRequest searchTemplateRequest = prepareSearchTemplateRequest();
         MultiSearchTemplateRequest multiRequest = new MultiSearchTemplateRequest();
         multiRequest.add(searchTemplateRequest);
@@ -271,7 +271,21 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         validateSpanContent(span, String.format("Elasticsearch: POST /_msearch/template", INDEX), 200, "POST");
         verifyMultiSearchTemplateSpanContent(span);
 
-        reporter.reset();
+        deleteDocument();
+    }
+
+    private void createDocument() throws IOException, ExecutionException, InterruptedException {
+        IndexResponse ir = doIndex(new IndexRequest(INDEX, DOC_TYPE, DOC_ID).source(
+            jsonBuilder()
+                .startObject()
+                .field(FOO, BAR)
+                .endObject()
+        ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
+        assertThat(ir.status().getStatus()).isEqualTo(201);
+    }
+
+    private DeleteResponse deleteDocument() throws InterruptedException, ExecutionException, IOException {
+        return doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
     }
 
     private SearchTemplateRequest prepareSearchTemplateRequest() {
