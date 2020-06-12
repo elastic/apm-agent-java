@@ -45,7 +45,7 @@ public interface GrpcHelper {
     // server part
 
     /**
-     * Starts transaction
+     * Starts transaction, when not {@literal null}, transaction is activated.
      *
      * @param tracer     tracer
      * @param cl         classloader
@@ -53,13 +53,14 @@ public interface GrpcHelper {
      * @param headers    server call headers
      * @return transaction, or {@literal null} if none has been created
      */
-    Transaction startAndRegisterTransaction(ElasticApmTracer tracer,
-                                            ClassLoader cl,
-                                            ServerCall<?, ?> serverCall,
-                                            Metadata headers);
+    Transaction startTransaction(ElasticApmTracer tracer,
+                                 ClassLoader cl,
+                                 ServerCall<?, ?> serverCall,
+                                 Metadata headers);
 
     /**
-     * Registers transaction for lookup with both {@link ServerCall} and {@link ServerCall.Listener} as keys.
+     * Registers transaction for lookup with both {@link ServerCall} and {@link ServerCall.Listener} as keys, transaction
+     * is expected to be activated before and is de-activated by this method.
      *
      * @param serverCall  server call
      * @param listener    server call listener

@@ -79,7 +79,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
 
         GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
         if (helper != null) {
-            transaction = helper.startAndRegisterTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
+            transaction = helper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
         }
     }
 

@@ -25,9 +25,14 @@
 package co.elastic.apm.agent.grpc.testapp;
 
 import io.grpc.BindableService;
+import io.grpc.Metadata;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
 import io.grpc.Status;
+import io.grpc.elastic.test.TestServerListener;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +60,9 @@ public abstract class HelloServer<Req,Rep> {
     protected final int port;
     protected final AtomicReference<Sync> syncBarriers;
     protected final HelloClient<Req, Rep>  client;
+
+    // contains listener method name that should throw an exception
+    protected final AtomicReference<String> listenerExceptionMethod;
     private Server server;
     private ExecutorService serverPool;
 
@@ -67,9 +75,23 @@ public abstract class HelloServer<Req,Rep> {
         this.port = port;
         this.syncBarriers = new AtomicReference<>();
         this.client = client;
+        this.listenerExceptionMethod = new AtomicReference<>();
+    }
+
+    public void setListenerExceptionMethod(String methodName) {
+        listenerExceptionMethod.set(methodName);
     }
 
     protected abstract BindableService getService();
+
+    protected ServerInterceptor getInterceptor() {
+        return new ServerInterceptor() {
+            @Override
+            public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+                return new TestServerListener<ReqT>(next.startCall(call, headers), listenerExceptionMethod);
+            }
+        };
+    }
 
     public static void setVerbose(boolean value){
         verbose = value;
@@ -78,6 +100,7 @@ public abstract class HelloServer<Req,Rep> {
     public void start() throws IOException {
         serverPool = Executors.newFixedThreadPool(POOL_SIZE, new ThreadFactory() {
             int i = 0;
+
             @Override
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
@@ -89,6 +112,7 @@ public abstract class HelloServer<Req,Rep> {
         server = ServerBuilder.forPort(port)
             .addService(getService())
             .executor(serverPool)
+            .intercept(getInterceptor())
             .build();
 
         logger.info("starting grpc server on port {}", port);

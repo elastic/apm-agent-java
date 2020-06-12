@@ -98,11 +98,16 @@ public class GrpcHelperImpl implements GrpcHelper {
     // transaction management (server part)
 
     @Override
-    public Transaction startAndRegisterTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
+    public Transaction startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
         MethodDescriptor<?, ?> methodDescriptor = serverCall.getMethodDescriptor();
 
         // ignore non-unary method calls for now
         if (methodDescriptor.getType() != MethodDescriptor.MethodType.UNARY) {
+            return null;
+        }
+
+        if (tracer.getActive() != null) {
+            // don't create nested transactions for nested calls
             return null;
         }
 
@@ -115,13 +120,15 @@ public class GrpcHelperImpl implements GrpcHelper {
             .withType("request")
             .setFrameworkName(FRAMEWORK_NAME);
 
-        return transaction;
+        return transaction.activate();
     }
 
     @Override
     public void registerTransaction(ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener, Transaction transaction) {
         serverCallTransactions.put(serverCall, transaction);
         serverListenerTransactions.put(listener, transaction);
+
+        transaction.deactivate();
     }
 
     @Override
@@ -130,6 +137,10 @@ public class GrpcHelperImpl implements GrpcHelper {
 
         if (transaction != null) {
             setTransactionStatus(status, thrown, transaction);
+            if (thrown != null) {
+                // transaction ended due to an exception, we have to end it
+                transaction.end();
+            }
         }
     }
 
@@ -160,12 +171,12 @@ public class GrpcHelperImpl implements GrpcHelper {
 
         transaction.deactivate();
 
-        if (null != thrown) {
+        if (isLastMethod || null != thrown) {
             // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
             // and set 'unknown' status, we just replicate this behavior as we don't instrument the part that does this
-            setTransactionStatus(Status.UNKNOWN, thrown, transaction);
-        } else if (isLastMethod) {
-            // transaction status will be set by ServerCall.close instrumentation
+            if (thrown != null) {
+                setTransactionStatus(Status.UNKNOWN, thrown, transaction);
+            }
             transaction.end();
             serverListenerTransactions.remove(listener);
         }
