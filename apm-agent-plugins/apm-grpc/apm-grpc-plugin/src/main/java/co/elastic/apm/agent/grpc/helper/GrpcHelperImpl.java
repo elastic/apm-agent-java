@@ -98,23 +98,28 @@ public class GrpcHelperImpl implements GrpcHelper {
     // transaction management (server part)
 
     @Override
-    public void startAndRegisterTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers, ServerCall.Listener<?> listener) {
+    public Transaction startAndRegisterTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
         MethodDescriptor<?, ?> methodDescriptor = serverCall.getMethodDescriptor();
 
         // ignore non-unary method calls for now
         if (methodDescriptor.getType() != MethodDescriptor.MethodType.UNARY) {
-            return;
+            return null;
         }
 
         Transaction transaction = tracer.startChildTransaction(headers, headerGetter, cl);
         if (transaction == null) {
-            return;
+            return null;
         }
 
         transaction.withName(methodDescriptor.getFullMethodName())
             .withType("request")
             .setFrameworkName(FRAMEWORK_NAME);
 
+        return transaction;
+    }
+
+    @Override
+    public void registerTransaction(ServerCall<?, ?> serverCall, ServerCall.Listener<?> listener, Transaction transaction) {
         serverCallTransactions.put(serverCall, transaction);
         serverListenerTransactions.put(listener, transaction);
     }

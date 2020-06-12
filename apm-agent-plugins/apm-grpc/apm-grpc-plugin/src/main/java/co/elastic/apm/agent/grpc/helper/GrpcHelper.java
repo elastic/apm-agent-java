@@ -45,19 +45,29 @@ public interface GrpcHelper {
     // server part
 
     /**
-     * Starts transaction and registers for lookup with both {@link ServerCall} and {@link ServerCall.Listener} as keys.
+     * Starts transaction
      *
      * @param tracer     tracer
      * @param cl         classloader
      * @param serverCall server call
      * @param headers    server call headers
-     * @param listener   server call listener
+     * @return transaction, or {@literal null} if none has been created
      */
-    void startAndRegisterTransaction(ElasticApmTracer tracer,
-                                     ClassLoader cl,
-                                     ServerCall<?, ?> serverCall,
-                                     Metadata headers,
-                                     ServerCall.Listener<?> listener);
+    Transaction startAndRegisterTransaction(ElasticApmTracer tracer,
+                                            ClassLoader cl,
+                                            ServerCall<?, ?> serverCall,
+                                            Metadata headers);
+
+    /**
+     * Registers transaction for lookup with both {@link ServerCall} and {@link ServerCall.Listener} as keys.
+     *
+     * @param serverCall  server call
+     * @param listener    server call listener
+     * @param transaction transaction
+     */
+    void registerTransaction(ServerCall<?, ?> serverCall,
+                             ServerCall.Listener<?> listener,
+                             Transaction transaction);
 
     /**
      * Sets transaction status using a transaction lookup by {@link ServerCall}, also removes lookup entry as it not
