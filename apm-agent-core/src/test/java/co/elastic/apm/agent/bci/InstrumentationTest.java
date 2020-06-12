@@ -40,6 +40,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math.util.MathUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -264,6 +266,25 @@ class InstrumentationTest {
 
     String exceptionPlease() {
         throw null;
+    }
+
+    @Test
+    void testPatchClassFileVersionToJava7() {
+        // loading classes compiled with bytecode level 50 (Java 6)
+        assertThat(StringUtils.startsWithIgnoreCase("APM", "apm")).isTrue();
+
+        // retransforming classes and patch to bytecode level 51 (Java 7)
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new CommonsLangInstrumentation()));
+
+        assertThat(CommonsLangInstrumentation.enterCount).hasValue(0);
+        assertThat(CommonsLangInstrumentation.exitCount).hasValue(0);
+
+        assertThat(StringUtils.startsWithIgnoreCase("APM", "apm")).isTrue();
+
+        assertThat(CommonsLangInstrumentation.enterCount).hasPositiveValue();
+        assertThat(CommonsLangInstrumentation.exitCount).hasPositiveValue();
     }
 
     private void init(ConfigurationRegistry config, List<ElasticApmInstrumentation> instrumentations) {
@@ -494,6 +515,42 @@ class InstrumentationTest {
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
+        }
+    }
+
+    public static class CommonsLangInstrumentation extends ElasticApmInstrumentation {
+
+        static AtomicInteger enterCount = new AtomicInteger();
+        static AtomicInteger exitCount = new AtomicInteger();
+
+        @Advice.OnMethodEnter(inline = false)
+        public static void onEnter() {
+            enterCount.incrementAndGet();
+        }
+
+        @Advice.OnMethodExit(inline = false)
+        public static void onExit() {
+            exitCount.incrementAndGet();
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.nameStartsWith(StringUtils.class.getPackageName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.any();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyDispatch() {
+            return true;
         }
     }
 }
