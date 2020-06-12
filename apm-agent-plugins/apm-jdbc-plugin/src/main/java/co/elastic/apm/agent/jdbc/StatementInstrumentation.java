@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -97,7 +96,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Nullable
-        @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Span onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
@@ -110,7 +108,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
 
-        @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.This Statement statement,
                                           @Advice.Enter @Nullable Span span,
@@ -150,7 +147,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Nullable
-        @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Span onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
@@ -161,7 +157,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
-        @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t,

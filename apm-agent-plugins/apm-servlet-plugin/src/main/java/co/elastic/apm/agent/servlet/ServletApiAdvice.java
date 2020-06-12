@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
 import co.elastic.apm.agent.threadlocal.RemoveOnGetThreadLocal;
-import co.elastic.apm.agent.threadlocal.ThreadLocalRegistry;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -54,12 +53,6 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 import static java.lang.Boolean.FALSE;
 
-/**
- * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
- * {@code javax.servlet}, as these are inlined into the matching methods.
- * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- */
 public class ServletApiAdvice {
 
     private static final ServletTransactionHelper servletTransactionHelper;
@@ -70,7 +63,7 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(tracer);
     }
 
-    private static final RemoveOnGetThreadLocal<Boolean> excluded = ThreadLocalRegistry.get(ServletApiAdvice.class, "excluded", false);
+    private static final RemoveOnGetThreadLocal<Boolean> excluded = RemoveOnGetThreadLocal.get(ServletApiAdvice.class, "excluded", false);
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable

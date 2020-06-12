@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl;
+import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +34,7 @@ public abstract class JdbcInstrumentation extends ElasticApmInstrumentation {
 
     private static final Collection<String> JDBC_GROUPS = Collections.singleton("jdbc");
 
-    protected static JdbcHelperImpl jdbcHelper = new JdbcHelperImpl();
+    protected static JdbcHelper jdbcHelper = new JdbcHelper();
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {

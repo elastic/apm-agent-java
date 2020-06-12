@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
@@ -51,16 +50,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-/**
- * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
- * {@code javax.servlet}, as these are inlined into the matching methods.
- * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- * However, the helper class {@link AsyncContextAdviceHelper} has access to the Servlet API,
- * as it is loaded by the child classloader of {@link AsyncContext}
- * (see {@link StartAsyncInstrumentation.StartAsyncAdvice#onExitStartAsync(AsyncContext)}
- * and {@link AsyncContextInstrumentation.AsyncContextStartAdvice#onEnterAsyncContextStart(Runnable)}).
- */
 public abstract class AsyncInstrumentation extends AbstractServletInstrumentation {
 
     private static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
@@ -114,10 +103,8 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
             return StartAsyncAdvice.class;
         }
 
-        @VisibleForAdvice
         public static class StartAsyncAdvice {
-            @VisibleForAdvice
-            public static AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(tracer);
+            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(tracer);
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
@@ -151,7 +138,6 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
             return AsyncContextStartAdvice.class;
         }
 
-        @VisibleForAdvice
         public static class AsyncContextStartAdvice {
 
             @Nullable

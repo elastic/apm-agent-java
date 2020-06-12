@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -36,18 +35,15 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
-@SuppressWarnings("unused")
 public class ServletTransactionCreationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelper.class);
 
     private final ElasticApmTracer tracer;
-    private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
 
     public ServletTransactionCreationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 

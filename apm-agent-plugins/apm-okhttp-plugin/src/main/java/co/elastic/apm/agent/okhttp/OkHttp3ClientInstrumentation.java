@@ -59,7 +59,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
     @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
-        private final static RemoveOnGetThreadLocal<Span> spanTls = new RemoveOnGetThreadLocal<>();
+        private final static RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(OkHttpClient3ExecuteAdvice.class, "spanTls");
 
         @Nullable
         @AssignToField(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)

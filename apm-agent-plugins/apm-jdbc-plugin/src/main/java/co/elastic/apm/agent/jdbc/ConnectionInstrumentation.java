@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -50,7 +49,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ConnectionInstrumentation extends JdbcInstrumentation {
 
-    @VisibleForAdvice
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void storeSql(@Advice.Return PreparedStatement statement,
                                 @Advice.Argument(0) String sql) {

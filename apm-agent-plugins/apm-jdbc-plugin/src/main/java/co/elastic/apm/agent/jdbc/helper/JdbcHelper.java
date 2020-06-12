@@ -44,9 +44,9 @@ import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metadataSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.statementSqlMap;
 
-public class JdbcHelperImpl {
+public class JdbcHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcHelper.class);
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
 

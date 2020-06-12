@@ -76,7 +76,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
 
     public static class ElasticsearchRestClientAsyncAdvice {
-        private static final RemoveOnGetThreadLocal<Span> spanTls = new RemoveOnGetThreadLocal<>();
+        private static final RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
         @AssignToArgument(5)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static ResponseListener onBeforeExecute(@Advice.Argument(0) String method,

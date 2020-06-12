@@ -195,6 +195,46 @@ public abstract class ElasticApmInstrumentation {
     public void onTypeMatch(TypeDescription typeDescription, ClassLoader classLoader, ProtectionDomain protectionDomain, @Nullable Class<?> classBeingRedefined) {
     }
 
+    /**
+     * When this method returns {@code true} the whole package (starting at the {@linkplain #getAdviceClass() advice's} package)
+     * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the class this instruments as
+     * the parent.
+     * <p>
+     * This instructs Byte Buddy to dispatch to the advice methods via an {@code INVOKEDYNAMIC} instruction.
+     * Upon first invocation of an instrumented method,
+     * this will call {@link IndyBootstrap#bootstrap} to determine the target {@link java.lang.invoke.ConstantCallSite}.
+     * </p>
+     * <p>
+     * Things to watch out for when using indy dispatch:
+     * <ul>
+     *     <li>
+     *         When an advice instruments classes in multiple class loaders, the plugin classes will be loaded form multiple class loaders.
+     *         In order to still share state across those plugin class loaders, use {@link co.elastic.apm.agent.util.GlobalVariables} or {@link GlobalState}.
+     *         That's necessary as a static variables are scoped to the class loader they are defined in.
+     *     </li>
+     *     <li>
+     *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
+     *         Use {@link co.elastic.apm.agent.threadlocal.RemoveOnGetThreadLocal} instead.
+     *     </li>
+     *     <li>
+     *         Due to the automatic plugin classloader creation that is based on package scanning,
+     *         plugins need be in their own uniquely named package.
+     *         As the package of the {@link #getAdviceClass()} is used as the root,
+     *         all advices have to be at the top level of the plugin.
+     *     </li>
+     *     <li>
+     *         Set {@link Advice.OnMethodEnter#inline()} and {@link Advice.OnMethodExit#inline()} to {@code false} on all advices.
+     *         As the {@code readOnly} flag in Byte Buddy annotations such as {@link Advice.Return#readOnly()} cannot be used with non
+     *         {@linkplain Advice.OnMethodEnter#inline() inlined advices},
+     *         use {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo} and friends.
+     *     </li>
+     * </ul>
+     * </p>
+     *
+     * @return whether to load the classes of this plugin in dedicated plugin class loaders (one for each unique class loader)
+     * and dispatch to the {@linkplain #getAdviceClass() advice} via an {@code INVOKEDYNAMIC} instruction.
+     * @see IndyBootstrap
+     */
     public boolean indyDispatch() {
         return false;
     }

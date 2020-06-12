@@ -24,16 +24,17 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper;
+import co.elastic.apm.agent.util.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import javax.servlet.ServletInputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,38 +76,26 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
 
     public static class GetInputStreamAdvice {
 
-        @VisibleForAdvice
-        public static final ThreadLocal<Boolean> nestedThreadLocal = new ThreadLocal<Boolean>() {
-            @Override
-            protected Boolean initialValue() {
-                return Boolean.FALSE;
-            }
-        };
+        private static final CallDepth callDepth = CallDepth.get(GetInputStreamAdvice.class);
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static boolean onReadEnter(@Advice.This Object thiz) {
-            boolean nested = nestedThreadLocal.get();
-            nestedThreadLocal.set(Boolean.TRUE);
-            return nested;
+        public static void onReadEnter(@Advice.This Object thiz) {
+            callDepth.increment();
         }
 
+        @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static ServletInputStream afterGetInputStream(@Advice.Return ServletInputStream inputStream,
-                                                             @Advice.Enter boolean nested) {
-            if (nested == Boolean.TRUE || tracer == null) {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
+        public static ServletInputStream afterGetInputStream(@Advice.Return @Nullable ServletInputStream inputStream) {
+            if (callDepth.isNestedCallAndDecrement() || tracer == null || inputStream == null) {
                 return inputStream;
             }
-            try {
-                final Transaction transaction = tracer.currentTransaction();
-                // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
-                if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {
-                    return new RecordingServletInputStreamWrapper(transaction.getContext().getRequest(), inputStream);
-                } else {
-                    return inputStream;
-                }
-            } finally {
-                nestedThreadLocal.set(Boolean.FALSE);
+            final Transaction transaction = tracer.currentTransaction();
+            // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
+            if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {
+                return new RecordingServletInputStreamWrapper(transaction.getContext().getRequest(), inputStream);
+            } else {
+                return inputStream;
             }
         }
     }

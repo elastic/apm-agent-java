@@ -33,11 +33,6 @@ import java.sql.Connection;
 @GlobalState
 public class JdbcGlobalState {
 
-    // Important implementation note:
-    //
-    // because this class is potentially loaded from multiple classloaders, making those fields 'static' will not
-    // have the expected behavior, thus, any direct reference to `JdbcHelperImpl` should only be obtained from the
-    // HelperClassManager<JdbcHelper> instance.
     public static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
     public static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
     public static final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();

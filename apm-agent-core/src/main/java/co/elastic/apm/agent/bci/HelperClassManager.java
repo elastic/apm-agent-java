@@ -276,7 +276,7 @@ public abstract class HelperClassManager<T> {
         }
     }
 
-    public static class ForDispatcher {
+    public static class ForIndyPlugin {
 
         private static final Map<ClassLoader, Map<Collection<String>, WeakReference<ClassLoader>>> alreadyInjected = new WeakHashMap<ClassLoader, Map<Collection<String>, WeakReference<ClassLoader>>>();
 
@@ -285,7 +285,7 @@ public abstract class HelperClassManager<T> {
          * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
          */
         @Nullable
-        public synchronized static ClassLoader inject(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
+        public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
             classesToInject = new ArrayList<>(classesToInject);
 
             Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);
@@ -301,16 +301,16 @@ public abstract class HelperClassManager<T> {
                     classesToInjectCopy.add(className);
                 }
             }
-            logger.debug("Creating helper class loader for {} containing {}", targetClassLoader, classesToInjectCopy);
+            logger.debug("Creating plugin class loader for {} containing {}", targetClassLoader, classesToInjectCopy);
 
-            ClassLoader parent = getHelperClassLoaderParent(targetClassLoader);
+            ClassLoader parent = getPluginClassLoaderParent(targetClassLoader);
             Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy);
-            // child first semantics are important here as the helper CL contains classes that are also present in the agent CL
-            ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
-            injectedClasses.put(classesToInject, new WeakReference<>(helperCL));
+            // child first semantics are important here as the plugin CL contains classes that are also present in the agent CL
+            ClassLoader pluginClassLoader = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
+            injectedClasses.put(classesToInject, new WeakReference<>(pluginClassLoader));
 
 
-            return helperCL;
+            return pluginClassLoader;
         }
 
         private static Map<Collection<String>, WeakReference<ClassLoader>> getOrCreateInjectedClasses(@Nullable ClassLoader targetClassLoader) {
@@ -322,13 +322,13 @@ public abstract class HelperClassManager<T> {
             return injectedClasses;
         }
 
-        private static ClassLoader getHelperClassLoaderParent(@Nullable ClassLoader targetClassLoader) {
+        private static ClassLoader getPluginClassLoaderParent(@Nullable ClassLoader targetClassLoader) {
             ClassLoader agentClassLoader = HelperClassManager.class.getClassLoader();
             if (agentClassLoader == null) {
                 agentClassLoader = ClassLoader.getSystemClassLoader();
             }
-            // the helper class loader has both, the agent class loader and the target class loader as the parent
-            // this is important so that the helper class loader has direct access to the agent class loader
+            // the plugin class loader has both, the agent class loader and the target class loader as the parent
+            // this is important so that the plugin class loader has direct access to the agent class loader
             // otherwise, filtering class loaders (like OSGi) have a chance to interfere
             return new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
         }

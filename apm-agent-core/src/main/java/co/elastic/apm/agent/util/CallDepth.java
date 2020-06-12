@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.util;
 
+import net.bytebuddy.asm.Advice;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,6 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CallDepth {
     private static final ConcurrentMap<String, CallDepth> registry = new ConcurrentHashMap<>();
     private final ThreadLocal<AtomicInteger> callDepthPerThread = new ThreadLocal<AtomicInteger>();
+
+    private CallDepth() {
+    }
 
     public static CallDepth get(Class<?> adviceClass) {
         // we want to return the same CallDepth instance even if the advice class has been loaded from different class loaders
@@ -62,8 +67,22 @@ public class CallDepth {
     }
 
     /**
+     * Calls {@link #increment()} and returns {@code false} if this is the outer-most (non-nested) invocation.
+     *
+     * @return {@code false} if this is the outer-most (non-nested) invocation, {@code true} otherwise
+     */
+    public boolean isNestedCallAndIncrement() {
+        return increment() != 0;
+    }
+
+    /**
      * Decrements and gets the call depth counter.
      * Returns {@code 0} if this is the outer-most (non-nested) invocation.
+     * <p>
+     * Note: this should be the first thing called on exit advices.
+     * Also make sure to set {@link Advice.OnMethodExit#onThrowable()} to {@link Throwable}{@code .class}.
+     * This ensures we don't end up with inconsistent counts.
+     * </p>
      *
      * @return the call depth after it has been incremented
      */
@@ -71,5 +90,19 @@ public class CallDepth {
         int depth = callDepthPerThread.get().decrementAndGet();
         assert depth >= 0;
         return depth;
+    }
+
+    /**
+     * Calls {@link #decrement()} and returns {@code false} if this is the outer-most (non-nested) invocation.
+     * <p>
+     * Note: this should be the first thing called on exit advices.
+     * Also make sure to set {@link Advice.OnMethodExit#onThrowable()} to {@link Throwable}{@code .class}.
+     * This ensures we don't end up with inconsistent counts.
+     * </p>
+     *
+     * @return {@code false} if this is the outer-most (non-nested) invocation, {@code true} otherwise
+     */
+    public boolean isNestedCallAndDecrement() {
+        return decrement() != 0;
     }
 }

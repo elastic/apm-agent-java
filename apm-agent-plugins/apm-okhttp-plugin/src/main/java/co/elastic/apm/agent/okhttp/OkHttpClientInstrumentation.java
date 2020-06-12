@@ -58,7 +58,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
 
     @VisibleForAdvice
     public static class OkHttpClientExecuteAdvice {
-        private final static RemoveOnGetThreadLocal<Span> spanTls = new RemoveOnGetThreadLocal<>();
+        private final static RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(OkHttpClientExecuteAdvice.class, "spanTls");
 
         @Nullable
         @AssignToField(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)

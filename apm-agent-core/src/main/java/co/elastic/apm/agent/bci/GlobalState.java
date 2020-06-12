@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -39,6 +39,9 @@ import java.lang.annotation.Target;
  * If there are multiple class loaders that are instrumented with a given instrumentation plugin,
  * the instrumentation classes will also be loaded by multiple class loaders.
  * The effect of that is that state added to static variables in one class loader does not affect the static variable in other class loaders.
+ * </p>
+ * <p>
+ * An alternative to this is {@link co.elastic.apm.agent.util.GlobalVariables} which can be used to make individual variables scoped globally.
  * </p>
  */
 @Retention(RetentionPolicy.RUNTIME)
