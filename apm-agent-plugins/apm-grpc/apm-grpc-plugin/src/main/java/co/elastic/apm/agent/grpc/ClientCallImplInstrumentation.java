@@ -103,7 +103,8 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.This ClientCall<?, ?> clientCall,
                                     @Advice.Argument(0) ClientCall.Listener<?> listener,
-                                    @Advice.Argument(1) Metadata headers) {
+                                    @Advice.Argument(1) Metadata headers,
+                                    @Advice.Local("span") Span span) {
 
             if (tracer == null || grpcHelperManager == null) {
                 return;
@@ -113,9 +114,23 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
             GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
             if (helper != null) {
-                helper.clientCallStart(clientCall, listener, headers);
+                span = helper.clientCallStartEnter(clientCall, listener, headers);
             }
 
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.Argument(0) ClientCall.Listener<?> listener,
+                                   @Advice.Thrown @Nullable Throwable thrown,
+                                   @Advice.Local("span") @Nullable Span span) {
+
+            if (span == null) {
+                return;
+            }
+            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
+            if (helper != null) {
+                helper.clientCallStartExit(listener, thrown);
+            }
         }
 
     }
@@ -169,7 +184,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         private static void onExit(@Advice.This ClientCall.Listener<?> listener,
-                                   @Advice.Thrown Throwable thrown,
+                                   @Advice.Thrown @Nullable Throwable thrown,
                                    @Advice.Local("span") @Nullable Span span) {
 
             if (grpcHelperManager == null || span == null) {

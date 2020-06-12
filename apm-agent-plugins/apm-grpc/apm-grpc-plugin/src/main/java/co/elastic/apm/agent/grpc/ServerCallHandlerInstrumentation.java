@@ -94,7 +94,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
         }
         if (thrown != null) {
             // terminate transaction in case of exception as it won't be stored
-            transaction.end();
+            transaction.deactivate().end();
             return;
         }
 

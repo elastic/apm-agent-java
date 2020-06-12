@@ -25,9 +25,15 @@
 package co.elastic.apm.agent.grpc.testapp;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
 import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
+import io.grpc.MethodDescriptor;
 import io.grpc.StatusRuntimeException;
+import io.grpc.elastic.test.TestClientCallImpl;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,10 +53,12 @@ public abstract class HelloClient<Req, Rep> {
     private static final Logger logger = LoggerFactory.getLogger(HelloClient.class);
     private final ManagedChannel channel;
     private final AtomicLong errorCount;
+    private final AtomicReference<String> exeptionMethod;
 
     protected HelloClient(ManagedChannel channel) {
         this.channel = channel;
         this.errorCount = new AtomicLong(0);
+        this.exeptionMethod = new AtomicReference<>();
     }
 
     protected static Deadline getDeadline() {
@@ -67,6 +75,19 @@ public abstract class HelloClient<Req, Rep> {
 
     public long getErrorCount() {
         return errorCount.get();
+    }
+
+    public void setExceptionMethod(String method) {
+        exeptionMethod.set(method);
+    }
+
+    protected ClientInterceptor getClientInterceptor() {
+        return new ClientInterceptor() {
+            @Override
+            public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+                return new TestClientCallImpl<ReqT, RespT>(next.newCall(method, callOptions), exeptionMethod);
+            }
+        };
     }
 
     /**

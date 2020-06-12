@@ -29,8 +29,13 @@ import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest;
 import co.elastic.apm.agent.grpc.testapp.HelloClient;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 
 class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
@@ -47,9 +52,10 @@ class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
 
     private HelloClientImpl(ManagedChannel channel) {
         super(channel);
-        this.blockingStub = HelloGrpc.newBlockingStub(channel);
-        this.futureStub = HelloGrpc.newFutureStub(channel);
-        this.stub = HelloGrpc.newStub(channel);
+        ClientInterceptor interceptor = getClientInterceptor();
+        this.blockingStub = HelloGrpc.newBlockingStub(channel).withInterceptors(interceptor);
+        this.futureStub = HelloGrpc.newFutureStub(channel).withInterceptors(interceptor);
+        this.stub = HelloGrpc.newStub(channel).withInterceptors(interceptor);
     }
 
     @Override

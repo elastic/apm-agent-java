@@ -53,6 +53,7 @@ public interface GrpcHelper {
      * @param headers    server call headers
      * @return transaction, or {@literal null} if none has been created
      */
+    @Nullable
     Transaction startTransaction(ElasticApmTracer tracer,
                                  ClassLoader cl,
                                  ServerCall<?, ?> serverCall,
@@ -124,7 +125,7 @@ public interface GrpcHelper {
     /**
      * Registers (and deactivates) span in internal storage for lookup by client call.
      * <br>
-     * This is the 2cnd method called during client call execution, the next is {@link #clientCallStart(ClientCall, ClientCall.Listener, Metadata)}.
+     * This is the 2cnd method called during client call execution, the next is {@link #clientCallStartEnter(ClientCall, ClientCall.Listener, Metadata)}.
      *
      * @param clientCall client call
      * @param span       span
@@ -134,19 +135,27 @@ public interface GrpcHelper {
     /**
      * Starts client call and switch to client call listener instrumentation.
      * <br>
-     * This is the 3rd method called during client call execution and the last to involve client call.
+     * This is the 3rd method called during client call execution, the next in sequence is
+     * {@link #clientCallStartExit(ClientCall.Listener, Throwable)}.
      *
      * @param clientCall client call
      * @param listener   client call listener
      * @param headers    headers
+     * @return span, or {@literal null is there is none}
      */
-    void clientCallStart(ClientCall<?, ?> clientCall,
-                         ClientCall.Listener<?> listener,
-                         Metadata headers);
+    @Nullable
+    Span clientCallStartEnter(ClientCall<?, ?> clientCall,
+                              ClientCall.Listener<?> listener,
+                              Metadata headers);
 
-
-    @Deprecated
-    void captureListenerException(ClientCall.Listener<?> responseListener, @Nullable Throwable thrown);
+    /**
+     * performs client call start cleanup in case of exception
+     *
+     * @param listener client call listener
+     * @param thrown   thrown exception
+     */
+    void clientCallStartExit(ClientCall.Listener<?> listener,
+                             @Nullable Throwable thrown);
 
     @Nullable
     Span enterClientListenerMethod(ClientCall.Listener<?> listener);
