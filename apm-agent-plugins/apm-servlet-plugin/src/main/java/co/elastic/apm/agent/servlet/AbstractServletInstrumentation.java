@@ -49,7 +49,7 @@ public abstract class AbstractServletInstrumentation extends ElasticApmInstrumen
     }
 
     @Override
-    public boolean indyDispatch() {
+    public boolean indyPlugin() {
         return true;
     }
 }

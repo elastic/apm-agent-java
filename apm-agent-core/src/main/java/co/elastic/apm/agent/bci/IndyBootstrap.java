@@ -45,7 +45,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * When {@link ElasticApmInstrumentation#indyDispatch()} returns {@code true},
+ * When {@link ElasticApmInstrumentation#indyPlugin()} returns {@code true},
  * we instruct Byte Buddy (via {@link Advice.WithCustomMapping#bootstrap(java.lang.reflect.Method)})
  * to dispatch {@linkplain Advice.OnMethodEnter#inline() non-inlined advices} via an invokedynamic (indy) instruction.
  * The target method is linked to a dynamically created plugin class loader that is specific to an instrumentation plugin
@@ -140,10 +140,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
- *         as explained in {@link ElasticApmInstrumentation#indyDispatch()}
+ *         as explained in {@link ElasticApmInstrumentation#indyPlugin()}
  *     </li>
  * </ul>
- * @see ElasticApmInstrumentation#indyDispatch()
+ * @see ElasticApmInstrumentation#indyPlugin()
  */
 public class IndyBootstrap {
 

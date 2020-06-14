@@ -42,7 +42,7 @@ public abstract class JdbcInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public boolean indyDispatch() {
+    public boolean indyPlugin() {
         return true;
     }
 }

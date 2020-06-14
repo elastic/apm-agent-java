@@ -205,7 +205,7 @@ public abstract class ElasticApmInstrumentation {
      * this will call {@link IndyBootstrap#bootstrap} to determine the target {@link java.lang.invoke.ConstantCallSite}.
      * </p>
      * <p>
-     * Things to watch out for when using indy dispatch:
+     * Things to watch out for when using indy plugins:
      * <ul>
      *     <li>
      *         When an advice instruments classes in multiple class loaders, the plugin classes will be loaded form multiple class loaders.
@@ -235,7 +235,7 @@ public abstract class ElasticApmInstrumentation {
      * and dispatch to the {@linkplain #getAdviceClass() advice} via an {@code INVOKEDYNAMIC} instruction.
      * @see IndyBootstrap
      */
-    public boolean indyDispatch() {
+    public boolean indyPlugin() {
         return false;
     }
 }

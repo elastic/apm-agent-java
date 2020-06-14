@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
@@ -48,27 +49,18 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationDescription;
-import net.bytebuddy.description.field.FieldDescription;
-import net.bytebuddy.description.field.FieldList;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.method.MethodList;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
-import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -107,7 +99,6 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
-import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 
 public class ElasticApmAgent {
 
@@ -301,47 +292,7 @@ public class ElasticApmAgent {
                     }
                 }
             })
-            .transform(new AgentBuilder.Transformer() {
-                @Override
-                public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule) {
-                    return builder.visit(new AsmVisitorWrapper.AbstractBase() {
-                        @Override
-                        public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context,
-                                                 TypePool typePool, FieldList<FieldDescription.InDefinedShape> fieldList, MethodList<?> methodList, int writerFlags, int readerFlags) {
-                            return new ClassVisitor(Opcodes.ASM7, classVisitor) {
-                                private boolean patchVersion;
-
-                                @Override
-                                public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-                                    if (version < Opcodes.V1_7) {
-                                        patchVersion = true;
-                                        // up-patching the class file verison to version 7 in order to support advice dispatching via invoke dynamic
-                                        version = Opcodes.V1_7;
-                                    }
-                                    super.visit(version, access, name, signature, superName, interfaces);
-                                }
-
-                                @Override
-                                public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                                    final MethodVisitor methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions);
-                                    if (patchVersion) {
-                                        return new JSRInlinerAdapter(methodVisitor, access, name, descriptor, signature, exceptions);
-                                    } else {
-                                        return methodVisitor;
-                                    }
-                                }
-                            };
-                        }
-
-                        @Override
-                        public int mergeWriter(int flags) {
-                            // class files with version < Java 7 don't require a stack frame map
-                            // as we're patching the version to at least 7, we have to compute the frames
-                            return flags | COMPUTE_FRAMES;
-                        }
-                    });
-                }
-            })
+            .transform(new PatchBytecodeVersionTo51Transformer())
             .transform(getTransformer(tracer, instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
                 @Override
@@ -362,7 +313,7 @@ public class ElasticApmAgent {
         if (offsetMapping != null) {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
-        if (instrumentation.indyDispatch()) {
+        if (instrumentation.indyPlugin()) {
             validateAdvice(instrumentation.getAdviceClass().getName());
             withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod());
         }
@@ -394,7 +345,7 @@ public class ElasticApmAgent {
     }
 
     /**
-     * Validates invariants explained in {@link ElasticApmInstrumentation#indyDispatch()}
+     * Validates invariants explained in {@link ElasticApmInstrumentation#indyPlugin()}
      * @param adviceClassName the name of the advice class
      */
     private static void validateAdvice(String adviceClassName) {

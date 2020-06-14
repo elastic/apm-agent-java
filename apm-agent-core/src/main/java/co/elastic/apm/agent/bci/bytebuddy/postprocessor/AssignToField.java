@@ -42,8 +42,6 @@ public @interface AssignToField {
      */
     String value();
 
-    int index() default -1;
-
     /**
      * Returns the type that declares the field that should be mapped to the annotated parameter. If this property
      * is set to {@code void}, the field is looked up implicitly within the instrumented class's class hierarchy.
@@ -60,4 +58,11 @@ public @interface AssignToField {
      * @return The typing to apply upon assignment.
      */
     Assigner.Typing typing() default Assigner.Typing.STATIC;
+
+    /**
+     * Used in combination with {@link AssignTo} to select the index of the returned {@code Object[]} that should be used for the assignment.
+     *
+     * @return the index of the {@code Object[]} that should be used for the assignment.
+     */
+    int index() default -1;
 }

@@ -29,12 +29,12 @@ import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.subpackage.AdviceInSubpackageInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.bci.subpackage.AdviceInSubpackageInstrumentation;
 import co.elastic.apm.agent.util.GlobalVariables;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
@@ -661,7 +661,7 @@ class InstrumentationTest {
         }
 
         @Override
-        public boolean indyDispatch() {
+        public boolean indyPlugin() {
             return true;
         }
     }
@@ -697,7 +697,7 @@ class InstrumentationTest {
         }
 
         @Override
-        public boolean indyDispatch() {
+        public boolean indyPlugin() {
             return true;
         }
     }
@@ -733,7 +733,7 @@ class InstrumentationTest {
         }
 
         @Override
-        public boolean indyDispatch() {
+        public boolean indyPlugin() {
             return true;
         }
     }
@@ -769,7 +769,7 @@ class InstrumentationTest {
         }
 
         @Override
-        public boolean indyDispatch() {
+        public boolean indyPlugin() {
             return true;
         }
     }
@@ -798,7 +798,7 @@ class InstrumentationTest {
         }
 
         @Override
-        public boolean indyDispatch() {
+        public boolean indyPlugin() {
             return true;
         }
     }
@@ -825,7 +825,7 @@ class InstrumentationTest {
         }
 
         @Override
-        public boolean indyDispatch() {
+        public boolean indyPlugin() {
             return true;
         }
     }

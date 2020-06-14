@@ -30,6 +30,12 @@ import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Allows registering a globally shared instance of a {@link DetachedThreadLocal} that allows for removal on get.
+ *
+ * @param <T>
+ * @see co.elastic.apm.agent.util.GlobalVariables
+ */
 public class RemoveOnGetThreadLocal<T> extends DetachedThreadLocal<T> {
 
     private static final ConcurrentMap<String, RemoveOnGetThreadLocal<?>> registry = new ConcurrentHashMap<>();
