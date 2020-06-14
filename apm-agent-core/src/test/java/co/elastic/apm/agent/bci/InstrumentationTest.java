@@ -34,6 +34,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.bci.subpackage.AdviceInSubpackageInstrumentation;
 import co.elastic.apm.agent.util.GlobalVariables;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
@@ -48,6 +49,7 @@ import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -62,6 +64,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -280,6 +283,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @Disabled
     void testPatchClassFileVersionJava6ToJava7() {
         // loading classes compiled with bytecode level 50 (Java 6)
         assertThat(StringUtils.startsWithIgnoreCase("APM", "apm")).isTrue();
@@ -299,6 +303,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @Disabled
     void testPatchClassFileVersionJava5ToJava7() {
         // loading classes compiled with bytecode level 49 (Java 6)
         new org.slf4j.event.SubstituteLoggingEvent();
@@ -318,6 +323,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @Disabled
     void testPatchClassFileVersionJava5ToJava7CommonsMath() {
         org.apache.commons.math3.stat.StatUtils.max(new double[]{3.14});
 
@@ -336,6 +342,7 @@ class InstrumentationTest {
     }
 
     @Test
+    @Disabled
     void testPrivateConstructorJava7() {
         org.apache.commons.pool2.impl.CallStackUtils.newCallStack("", false, false);
 
@@ -369,6 +376,22 @@ class InstrumentationTest {
         System.gc();
         System.gc();
         await().untilAsserted(() -> assertThat(pluginClassLoader.get()).isNull());
+    }
+
+    @Test
+    void testInlinedIndyAdvice() {
+        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new InlinedIndyAdviceInstrumentation())))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void testAdviceInSubpackage() {
+        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new AdviceInSubpackageInstrumentation())))
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Nullable
@@ -767,6 +790,33 @@ class InstrumentationTest {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("getPluginClassLoader");
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyDispatch() {
+            return true;
+        }
+    }
+
+    public static class InlinedIndyAdviceInstrumentation extends ElasticApmInstrumentation {
+
+        @Advice.OnMethodEnter
+        public static void onExit() {
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return none();
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return none();
         }
 
         @Override

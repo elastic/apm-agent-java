@@ -50,6 +50,7 @@ import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.field.FieldDescription;
 import net.bytebuddy.description.field.FieldList;
 import net.bytebuddy.description.method.MethodDescription;
@@ -61,6 +62,7 @@ import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
 import org.objectweb.asm.ClassVisitor;
@@ -96,7 +98,9 @@ import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflec
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
+import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -359,6 +363,7 @@ public class ElasticApmAgent {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
         if (instrumentation.indyDispatch()) {
+            validateAdvice(instrumentation.getAdviceClass().getName());
             withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod());
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
@@ -386,6 +391,36 @@ public class ElasticApmAgent {
             }, instrumentation.getAdviceClass().getName())
             .include(ClassLoader.getSystemClassLoader())
             .withExceptionHandler(PRINTING);
+    }
+
+    /**
+     * Validates invariants explained in {@link ElasticApmInstrumentation#indyDispatch()}
+     * @param adviceClassName the name of the advice class
+     */
+    private static void validateAdvice(String adviceClassName) {
+        validateAdviceIsInlined(adviceClassName);
+        if (adviceClassName.startsWith("co.elastic.apm.agent.") && adviceClassName.split("\\.").length > 6) {
+            throw new IllegalStateException("Indy-dispatched advice class must be at the root of the instrumentation plugin.");
+        }
+    }
+
+    private static void validateAdviceIsInlined(String adviceClassName) {
+        TypePool pool = new TypePool.Default(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
+        TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
+        for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
+            for (AnnotationDescription enter : enterAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodEnter.class))) {
+                if (enter.prepare(Advice.OnMethodEnter.class).load().inline()) {
+                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, enterAdvice.getName()));
+                }
+            }
+        }
+        for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
+            for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
+                if (exit.prepare(Advice.OnMethodExit.class).load().inline()) {
+                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, exitAdvice.getName()));
+                }
+            }
+        }
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
@@ -439,15 +474,26 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             return;
         }
-
-        if (resettableClassFileTransformer == null) {
-            throw new IllegalStateException("Reset was called before init");
+        Exception exception = null;
+        if (resettableClassFileTransformer != null) {
+            try {
+                resettableClassFileTransformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
+            } catch (Exception e) {
+                exception = e;
+            }
+            resettableClassFileTransformer = null;
         }
         dynamicallyInstrumentedClasses.clear();
-        resettableClassFileTransformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
-        resettableClassFileTransformer = null;
         for (ResettableClassFileTransformer transformer : dynamicClassFileTransformers) {
-            transformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
+            try {
+                transformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
+            } catch (Exception e) {
+                if (exception != null) {
+                    exception.addSuppressed(e);
+                } else {
+                    exception = e;
+                }
+            }
         }
         dynamicClassFileTransformers.clear();
         instrumentation = null;
