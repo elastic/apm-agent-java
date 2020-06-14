@@ -70,7 +70,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                    @Advice.Argument(0) String name) {
             context.withName(name, PRIO_USER_SUPPLIED);
@@ -83,7 +83,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                    @Advice.Argument(0) String type) {
             if (context instanceof Transaction) {
@@ -100,7 +100,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setType(@Advice.Argument(0) Object span,
                                    @Advice.Argument(1) @Nullable String type,
                                    @Advice.Argument(2) @Nullable String subtype,
@@ -118,7 +118,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Span doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
             return context.createSpan();
         }
@@ -130,7 +130,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setStartTimestamp(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                              @Advice.Argument(value = 0) long epochMicros) {
             context.setStartTimestamp(epochMicros);
@@ -143,7 +143,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
             context.end();
         }
@@ -155,7 +155,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                @Advice.Argument(value = 0) long epochMicros) {
             context.end(epochMicros);
@@ -175,7 +175,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @Nullable
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                             @Advice.Argument(0) Throwable t) {
             return context.captureExceptionAndGetErrorId(t);
@@ -194,7 +194,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                             @Advice.Argument(0) Throwable t) {
             context.captureException(t);
@@ -208,7 +208,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
             return context.getTraceContext().getId().toString();
         }
@@ -221,7 +221,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
             return context.getTraceContext().getTraceId().toString();
         }
@@ -233,7 +233,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) String value) {
             if (value != null) {
@@ -248,7 +248,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Number value) {
             if (value != null) {
@@ -263,7 +263,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Boolean value) {
             if (value != null) {
@@ -278,7 +278,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void activate(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
             context.activate();
         }
@@ -291,7 +291,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static boolean isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
             return context.isSampled();
         }
@@ -304,7 +304,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void injectTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
                                               @Advice.Argument(0) MethodHandle addHeaderMethodHandle,
                                               @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {

@@ -63,7 +63,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
 
         @Nullable
         @AssignToField(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
             if (tracer == null || tracer.getActive() == null || !(originalRequest instanceof Request)) {
@@ -91,7 +91,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
             return originalRequest;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Return @Nullable okhttp3.Response response,
                                           @Advice.Thrown @Nullable Throwable t) {
             final Span span = spanTls.getAndRemove();

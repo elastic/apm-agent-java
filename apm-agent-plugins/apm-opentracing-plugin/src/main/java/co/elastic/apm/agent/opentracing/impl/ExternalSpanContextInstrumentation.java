@@ -69,7 +69,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
 
         @Nullable
         @AssignToField(value = "childTraceContext")
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static TraceContext toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
                                      @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
             if (textMap == null) {
@@ -82,7 +82,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
 
         @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
             if (childTraceContext == null) {
                 return null;
@@ -99,7 +99,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
 
         @Nullable
         @AssignToField(value = "childTraceContext")
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static TraceContext toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
                                     @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
             if (textMap == null) {
@@ -110,7 +110,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
 
         @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
             if (childTraceContext == null) {
                 return null;

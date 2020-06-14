@@ -62,7 +62,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
 
         @Nullable
         @AssignToField(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
             if (tracer == null || tracer.getActive() == null || !(originalRequest instanceof com.squareup.okhttp.Request)) {
@@ -90,7 +90,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
             return originalRequest;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Return @Nullable com.squareup.okhttp.Response response,
                                           @Advice.Thrown @Nullable Throwable t) {
             Span span = spanTls.getAndRemove();

@@ -107,7 +107,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             @AssignToArgument(index = 0, value = 0),
             @AssignToArgument(index = 1, value = 3)
         })
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object[] onBeforeExecute(@Advice.Argument(value = 0) HttpAsyncRequestProducer requestProducer,
                                                @Advice.Argument(2) HttpContext context,
                                                @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
@@ -134,7 +134,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             return new Object[]{requestProducer, futureCallback, wrapped, span};
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
                                           @Advice.Thrown @Nullable Throwable t) {
             Span span = enter != null ? (Span) enter[3] : null;

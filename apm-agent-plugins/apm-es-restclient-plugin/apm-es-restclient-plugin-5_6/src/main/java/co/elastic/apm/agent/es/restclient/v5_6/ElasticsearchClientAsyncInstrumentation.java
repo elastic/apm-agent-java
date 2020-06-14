@@ -78,7 +78,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
     public static class ElasticsearchRestClientAsyncAdvice {
         private static final RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
         @AssignToArgument(5)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static ResponseListener onBeforeExecute(@Advice.Argument(0) String method,
                                                        @Advice.Argument(1) String endpoint,
                                                        @Advice.Argument(3) @Nullable HttpEntity entity,
@@ -95,7 +95,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
             return responseListener;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t) {
             final Span span = spanTls.getAndRemove();
             if (span != null) {

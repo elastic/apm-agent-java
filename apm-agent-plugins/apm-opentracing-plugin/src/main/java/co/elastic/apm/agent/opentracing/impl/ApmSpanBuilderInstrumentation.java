@@ -72,7 +72,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
 
         @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> parentContext,
                                       @Advice.Origin Class<?> spanBuilderClass,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,

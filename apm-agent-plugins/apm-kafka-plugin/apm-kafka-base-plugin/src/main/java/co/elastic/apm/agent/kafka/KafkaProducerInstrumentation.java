@@ -76,7 +76,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
     public static class KafkaProducerAdvice {
         @Nullable
         @AssignToArgument(1)
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord record,
                                       @Advice.Argument(1) @Nullable Callback callback) {
             if (tracer == null) {
@@ -97,7 +97,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
             return helper.wrapCallback(callback, span);
         }
 
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void afterSend(@Advice.Argument(0) final ProducerRecord record,
                                      @Advice.This final KafkaProducer thiz,
                                      @Advice.Thrown final Throwable throwable) {

@@ -67,7 +67,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @Nullable
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
             if (tracer != null) {
                 return tracer.startRootTransaction(clazz.getClassLoader());
@@ -86,7 +86,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @AssignToReturn
         @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Transaction doStartTransaction(@Advice.Origin Class<?> clazz,
                                                       @Advice.Argument(0) MethodHandle getFirstHeader,
                                                       @Advice.Argument(1) @Nullable Object headerExtractor,
@@ -115,7 +115,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @Nullable
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doGetCurrentTransaction() {
             if (tracer == null) {
                 return null;
@@ -132,7 +132,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @Nullable
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doGetCurrentSpan() {
             if (tracer == null) {
                 return null;
@@ -147,7 +147,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
             if (tracer != null) {
                 tracer.captureAndReportException(e, clazz.getClassLoader());

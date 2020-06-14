@@ -62,7 +62,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
             if (span != null) {
                 span.activate();
@@ -79,7 +79,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         @Nullable
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object getCurrentSpan() {
             if (tracer == null) {
                 return null;
@@ -98,7 +98,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         @Nullable
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object getCurrentTraceContext() {
             if (tracer == null) {
                 return null;

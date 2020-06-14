@@ -65,7 +65,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                    @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
             transaction.setUser(id, email, username);
@@ -80,7 +80,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         @Nullable
         @AssignToReturn
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction) {
             if (tracer == null) {
                 return null;
@@ -98,7 +98,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("setResult"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                            @Advice.Argument(0) String result) {
             transaction.withResult(result);
@@ -111,7 +111,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Object value) {
             if (value != null ) {

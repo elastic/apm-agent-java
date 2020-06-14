@@ -68,7 +68,7 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
 
         @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static Iterable<ConsumerRecord> wrapIterable(@Nullable @Advice.Return Iterable<ConsumerRecord> iterable) {
             if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {
                 return iterable;

@@ -72,7 +72,7 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
 
         @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static Iterable<Map.Entry<String, String>> baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> traceContext) {
             if (traceContext != null) {
                 return doGetBaggage(traceContext);
@@ -98,7 +98,7 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
 
         @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> traceContext) {
             if (traceContext == null) {
                 return null;
@@ -115,7 +115,7 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
 
         @Nullable
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static String toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> traceContext) {
             if (traceContext == null) {
                 return null;

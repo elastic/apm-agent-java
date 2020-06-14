@@ -79,7 +79,7 @@ public class Mule4OverrideClassLoaderLookupInstrumentation extends ElasticApmIns
 
     public static class Mule4OverrideClassLoaderLookupAdvice {
         @AssignToReturn
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static LookupStrategy makeParentOnlyForAgentClasses(@Advice.Argument(0) @Nullable final String packageName,
                                                                    @Advice.Return LookupStrategy lookupStrategy) {
 

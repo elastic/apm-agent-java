@@ -39,7 +39,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
 
     @VisibleForAdvice
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> dispatcher) {
         if (dispatcher != null) {
             dispatcher.deactivate();

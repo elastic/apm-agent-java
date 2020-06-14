@@ -84,7 +84,7 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             fields = @AssignToField(index = 0, value = "originalRequest"),
             arguments = @AssignToArgument(index = 1, value = 0)
         )
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object[] onBeforeEnqueue(@Advice.Origin Class<? extends Call> clazz,
                                                @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
                                                @Advice.Argument(0) @Nullable Callback callback) {
@@ -118,7 +118,7 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             return new Object[] {originalRequest, callback, span};
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void onAfterEnqueue(@Advice.Enter @Nullable Object[] enter) {
             Span span = enter != null ? (Span) enter[2] : null;
             if (span != null) {

@@ -52,7 +52,7 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
 
     public static class ElasticsearchRestClientAdvice {
         @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Span onBeforeExecute(@Advice.Argument(0) String method,
                                             @Advice.Argument(1) String endpoint,
                                             @Advice.Argument(3) @Nullable HttpEntity entity) {
@@ -64,7 +64,7 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
             return helper.createClientSpan(method, endpoint, entity);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
                                           @Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t) {
