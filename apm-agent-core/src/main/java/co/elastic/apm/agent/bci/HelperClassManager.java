@@ -284,13 +284,17 @@ public abstract class HelperClassManager<T> {
          * Creates an isolated CL that has two parents: the target class loader and the agent CL.
          * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
          */
-        @Nullable
-        public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain protectionDomain, List<String> classesToInject, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
+        public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader, List<String> classesToInject, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
             classesToInject = new ArrayList<>(classesToInject);
 
             Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);
             if (injectedClasses.containsKey(classesToInject)) {
-                return injectedClasses.get(classesToInject).get();
+                ClassLoader pluginClassLoader = injectedClasses.get(classesToInject).get();
+                if (pluginClassLoader == null) {
+                    injectedClasses.remove(classesToInject);
+                } else {
+                    return pluginClassLoader;
+                }
             }
 
             List<String> classesToInjectCopy = new ArrayList<>(classesToInject.size());
@@ -308,7 +312,6 @@ public abstract class HelperClassManager<T> {
             // child first semantics are important here as the plugin CL contains classes that are also present in the agent CL
             ClassLoader pluginClassLoader = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
             injectedClasses.put(classesToInject, new WeakReference<>(pluginClassLoader));
-
 
             return pluginClassLoader;
         }

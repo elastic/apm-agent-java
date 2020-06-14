@@ -451,9 +451,11 @@ public class ElasticApmAgent {
         }
         dynamicClassFileTransformers.clear();
         instrumentation = null;
+        HelperClassManager.ForIndyPlugin.clear();
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy, boolean premain) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
+                                                final AgentBuilder.DescriptionStrategy descriptionStrategy, final boolean premain) {
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
@@ -475,6 +477,14 @@ public class ElasticApmAgent {
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
             .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(100))
             .with(premain ? RedefinitionStrategy.Listener.NoOp.INSTANCE : RedefinitionStrategy.Listener.Pausing.of(100, TimeUnit.MILLISECONDS))
+            .with(new RedefinitionStrategy.Listener.Adapter() {
+                @Override
+                public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
+                    logger.warn("Error while redefining classes {}", throwable.getMessage());
+                    logger.debug(throwable.getMessage(), throwable);
+                    return super.onError(index, batch, throwable, types);
+                }
+            })
             .with(descriptionStrategy)
             .with(locationStrategy)
             .with(new ErrorLoggingListener())

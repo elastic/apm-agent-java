@@ -67,11 +67,7 @@ public class PackageScanner {
                     }
                 }
             } else {
-                final Path basePath = Paths.get(uri);
-                if (basePath.toString().contains("test-classes")) {
-                    continue;
-                }
-                classNames.addAll(listClassNames(basePackage, basePath));
+                classNames.addAll(listClassNames(basePackage, Paths.get(uri)));
             }
         }
         return classNames;

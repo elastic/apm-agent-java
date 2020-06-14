@@ -236,14 +236,10 @@ public class IndyBootstrap {
         }
         ClassLoader pluginClassLoader = HelperClassManager.ForIndyPlugin.getOrCreatePluginClassLoader(
             lookup.lookupClass().getClassLoader(),
-            instrumentedType.getProtectionDomain(),
             pluginClasses,
             isAnnotatedWith(named(GlobalState.class.getName())));
-        if (pluginClassLoader != null) {
-            Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-            MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
-            return new ConstantCallSite(methodHandle);
-        }
-        return null;
+        Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
+        MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
+        return new ConstantCallSite(methodHandle);
     }
 }

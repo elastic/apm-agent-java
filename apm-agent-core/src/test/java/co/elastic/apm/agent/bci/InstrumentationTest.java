@@ -34,27 +34,38 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.GlobalVariables;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math.util.MathUtils;
+import org.apache.commons.math3.stat.StatUtils;
+import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static net.bytebuddy.matcher.ElementMatchers.any;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 class InstrumentationTest {
@@ -269,7 +280,7 @@ class InstrumentationTest {
     }
 
     @Test
-    void testPatchClassFileVersionToJava7() {
+    void testPatchClassFileVersionJava6ToJava7() {
         // loading classes compiled with bytecode level 50 (Java 6)
         assertThat(StringUtils.startsWithIgnoreCase("APM", "apm")).isTrue();
 
@@ -285,6 +296,84 @@ class InstrumentationTest {
 
         assertThat(CommonsLangInstrumentation.enterCount).hasPositiveValue();
         assertThat(CommonsLangInstrumentation.exitCount).hasPositiveValue();
+    }
+
+    @Test
+    void testPatchClassFileVersionJava5ToJava7() {
+        // loading classes compiled with bytecode level 49 (Java 6)
+        new org.slf4j.event.SubstituteLoggingEvent();
+
+        // retransforming classes and patch to bytecode level 51 (Java 7)
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new LoggerFactoryInstrumentation()));
+
+        assertThat(LoggerFactoryInstrumentation.enterCount).hasValue(0);
+        assertThat(LoggerFactoryInstrumentation.exitCount).hasValue(0);
+
+        new org.slf4j.event.SubstituteLoggingEvent();
+
+        assertThat(LoggerFactoryInstrumentation.enterCount).hasPositiveValue();
+        assertThat(LoggerFactoryInstrumentation.exitCount).hasPositiveValue();
+    }
+
+    @Test
+    void testPatchClassFileVersionJava5ToJava7CommonsMath() {
+        org.apache.commons.math3.stat.StatUtils.max(new double[]{3.14});
+
+        // retransforming classes and patch to bytecode level 51 (Java 7)
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new StatUtilsInstrumentation()));
+
+        assertThat(StatUtilsInstrumentation.enterCount).hasValue(0);
+        assertThat(StatUtilsInstrumentation.exitCount).hasValue(0);
+
+        org.apache.commons.math3.stat.StatUtils.max(new double[]{3.14});
+
+        assertThat(StatUtilsInstrumentation.enterCount).hasPositiveValue();
+        assertThat(StatUtilsInstrumentation.exitCount).hasPositiveValue();
+    }
+
+    @Test
+    void testPrivateConstructorJava7() {
+        org.apache.commons.pool2.impl.CallStackUtils.newCallStack("", false, false);
+
+        // retransforming classes and patch to bytecode level 51 (Java 7)
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new CallStackUtilsInstrumentation()));
+
+        assertThat(CallStackUtilsInstrumentation.enterCount).hasValue(0);
+        assertThat(CallStackUtilsInstrumentation.exitCount).hasValue(0);
+
+        org.apache.commons.pool2.impl.CallStackUtils.newCallStack("", false, false);
+
+        assertThat(CallStackUtilsInstrumentation.enterCount).hasPositiveValue();
+        assertThat(CallStackUtilsInstrumentation.exitCount).hasPositiveValue();
+    }
+
+    @Test
+    void testPluginClassLoaderGCdAfterUndoingInstrumentation() {
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new ClassLoadingTestInstrumentation()));
+
+        WeakReference<ClassLoader> pluginClassLoader = new WeakReference<>(getPluginClassLoader());
+        assertThat(pluginClassLoader.get()).isNotNull();
+        assertThat(pluginClassLoader.get()).isInstanceOf(ByteArrayClassLoader.ChildFirst.class);
+
+        ElasticApmAgent.reset();
+        assertThat(getPluginClassLoader()).isNull();
+
+        System.gc();
+        System.gc();
+        await().untilAsserted(() -> assertThat(pluginClassLoader.get()).isNull());
+    }
+
+    @Nullable
+    public ClassLoader getPluginClassLoader() {
+        return null;
     }
 
     private void init(ConfigurationRegistry config, List<ElasticApmInstrumentation> instrumentations) {
@@ -308,12 +397,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+            return named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("interceptMe");
+            return named("interceptMe");
         }
 
         @Override
@@ -331,12 +420,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("org.apache.commons.math.util.MathUtils");
+            return named("org.apache.commons.math.util.MathUtils");
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("sign").and(ElementMatchers.takesArguments(int.class));
+            return named("sign").and(takesArguments(int.class));
         }
 
         @Override
@@ -353,7 +442,7 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named(InstrumentationTest.class.getName());
+            return named(InstrumentationTest.class.getName());
         }
 
         @Override
@@ -381,12 +470,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named(InstrumentationTest.class.getName());
+            return named(InstrumentationTest.class.getName());
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("noExceptionPlease");
+            return named("noExceptionPlease");
         }
 
         @Override
@@ -405,12 +494,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+            return named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("assignToField");
+            return named("assignToField");
         }
 
         @Override
@@ -429,12 +518,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+            return named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("assignToField");
+            return named("assignToField");
         }
 
         @Override
@@ -453,12 +542,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+            return named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("assignToArgument");
+            return named("assignToArgument");
         }
 
         @Override
@@ -480,12 +569,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+            return named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("assignToArguments");
+            return named("assignToArguments");
         }
 
         @Override
@@ -504,12 +593,12 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
+            return named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("assignToReturn");
+            return named("assignToReturn");
         }
 
         @Override
@@ -520,8 +609,8 @@ class InstrumentationTest {
 
     public static class CommonsLangInstrumentation extends ElasticApmInstrumentation {
 
-        static AtomicInteger enterCount = new AtomicInteger();
-        static AtomicInteger exitCount = new AtomicInteger();
+        public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
+        public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
 
         @Advice.OnMethodEnter(inline = false)
         public static void onEnter() {
@@ -540,7 +629,144 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.any();
+            return any();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyDispatch() {
+            return true;
+        }
+    }
+
+    public static class LoggerFactoryInstrumentation extends ElasticApmInstrumentation {
+
+        public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
+        public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
+
+        @Advice.OnMethodEnter(inline = false)
+        public static void onEnter() {
+            enterCount.incrementAndGet();
+        }
+
+        @Advice.OnMethodExit(inline = false)
+        public static void onExit() {
+            exitCount.incrementAndGet();
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named(SubstituteLoggingEvent.class.getName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return isConstructor();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyDispatch() {
+            return true;
+        }
+    }
+
+    public static class StatUtilsInstrumentation extends ElasticApmInstrumentation {
+
+        public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
+        public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
+
+        @Advice.OnMethodEnter(inline = false)
+        public static void onEnter() {
+            enterCount.incrementAndGet();
+        }
+
+        @Advice.OnMethodExit(inline = false)
+        public static void onExit() {
+            exitCount.incrementAndGet();
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named(StatUtils.class.getName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return any();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyDispatch() {
+            return true;
+        }
+    }
+
+    public static class CallStackUtilsInstrumentation extends ElasticApmInstrumentation {
+
+        public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
+        public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
+
+        @Advice.OnMethodEnter(inline = false)
+        public static void onEnter() {
+            enterCount.incrementAndGet();
+        }
+
+        @Advice.OnMethodExit(inline = false)
+        public static void onExit() {
+            exitCount.incrementAndGet();
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named(CallStackUtils.class.getName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return any();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyDispatch() {
+            return true;
+        }
+    }
+
+    public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
+
+        @AssignToReturn
+        @Advice.OnMethodExit(inline = false)
+        public static ClassLoader onExit() {
+            return ClassLoadingTestInstrumentation.class.getClassLoader();
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named("co.elastic.apm.agent.bci.InstrumentationTest");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("getPluginClassLoader");
         }
 
         @Override
