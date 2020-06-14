@@ -84,22 +84,24 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             fields = @AssignToField(index = 0, value = "originalRequest"),
             arguments = @AssignToArgument(index = 1, value = 0)
         )
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Object[] onBeforeEnqueue(@Advice.Origin Class<? extends Call> clazz,
-                                               @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
-                                               @Advice.Argument(0) @Nullable Callback callback) {
+        public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
+                                               final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
+                                               final @Advice.Argument(0) @Nullable Callback originalCallback) {
             if (tracer == null || tracer.getActive() == null || callbackWrapperCreator == null) {
-                return new Object[] {originalRequest, callback, null};
+                return null;
             }
 
             final WrapperCreator<Callback> wrapperCreator = callbackWrapperCreator.getForClassLoaderOfClass(clazz);
-            if (originalRequest == null || callback == null || wrapperCreator == null) {
-                return new Object[] {originalRequest, callback, null};
+            if (originalRequest == null || originalCallback == null || wrapperCreator == null) {
+                return null;
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
 
             Request request = originalRequest;
+            Callback callback = originalCallback;
             URL url = request.url();
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
@@ -110,12 +112,12 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                     if (headerSetter != null) {
                         Request.Builder builder = originalRequest.newBuilder();
                         span.propagateTraceContext(builder, headerSetter);
-                        originalRequest = builder.build();
+                        request = builder.build();
                     }
                 }
-                callback = wrapperCreator.wrap(callback, span);
+                callback = wrapperCreator.wrap(originalCallback, span);
             }
-            return new Object[] {originalRequest, callback, span};
+            return new Object[] {request, callback, span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)

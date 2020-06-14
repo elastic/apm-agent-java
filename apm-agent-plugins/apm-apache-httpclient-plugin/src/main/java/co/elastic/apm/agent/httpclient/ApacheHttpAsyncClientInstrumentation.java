@@ -107,15 +107,18 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             @AssignToArgument(index = 0, value = 0),
             @AssignToArgument(index = 1, value = 3)
         })
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object[] onBeforeExecute(@Advice.Argument(value = 0) HttpAsyncRequestProducer requestProducer,
                                                @Advice.Argument(2) HttpContext context,
                                                @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
             if (tracer == null || tracer.getActive() == null) {
-                return new Object[]{requestProducer, futureCallback, false, null};
+                return null;
             }
             final AbstractSpan<?> parent = tracer.getActive();
             Span span = parent.createExitSpan();
+            HttpAsyncRequestProducer wrappedProducer = requestProducer;
+            FutureCallback<?> wrappedFutureCallback = futureCallback;
             boolean wrapped = false;
             if (span != null) {
                 span.withType(HttpClientHelper.EXTERNAL_TYPE)
@@ -126,12 +129,12 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
                     asyncHelperManager.getForClassLoaderOfClass(HttpAsyncRequestProducer.class);
                 TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
                 if (asyncHelper != null && headerSetter != null) {
-                    requestProducer = asyncHelper.wrapRequestProducer(requestProducer, span, headerSetter);
-                    futureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
+                    wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, headerSetter);
+                    wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
                     wrapped = true;
                 }
             }
-            return new Object[]{requestProducer, futureCallback, wrapped, span};
+            return new Object[]{wrappedProducer, wrappedFutureCallback, wrapped, span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)

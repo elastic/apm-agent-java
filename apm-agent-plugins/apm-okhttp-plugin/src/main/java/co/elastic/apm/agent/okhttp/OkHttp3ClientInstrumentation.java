@@ -59,12 +59,13 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
     @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
-        private final static RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(OkHttpClient3ExecuteAdvice.class, "spanTls");
+        @VisibleForAdvice
+        public final static RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(OkHttpClient3ExecuteAdvice.class, "spanTls");
 
         @Nullable
         @AssignToField(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Object onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
+        public static Object onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
             if (tracer == null || tracer.getActive() == null || !(originalRequest instanceof Request)) {
                 return originalRequest;
