@@ -135,6 +135,7 @@ public class ServletApiTestApp extends TestApp {
             String transactionId = transaction.get("id").textValue();
             JsonNode context = transaction.get("context");
             assertThat(context).isNotNull();
+            assertThat(context.get("service").get("framework").get("name").textValue()).isEqualTo("Servlet API");
             JsonNode request = context.get("request");
             assertThat(request).isNotNull();
             JsonNode headers = request.get("headers");

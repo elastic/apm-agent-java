@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -45,6 +46,8 @@ import java.util.Map;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentation {
+
+    private static final String FRAMEWORK_NAME = "OpenTracing";
 
     private static final Logger logger = LoggerFactory.getLogger(ApmSpanBuilderInstrumentation.class);
 
@@ -129,7 +132,11 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
+                Transaction transaction = tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
+                if (transaction != null) {
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
+                }
+                return transaction;
             }
         }
     }

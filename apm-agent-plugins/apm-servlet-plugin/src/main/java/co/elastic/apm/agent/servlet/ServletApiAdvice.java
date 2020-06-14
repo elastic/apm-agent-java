@@ -55,6 +55,7 @@ import static java.lang.Boolean.FALSE;
 
 public class ServletApiAdvice {
 
+    private static final String FRAMEWORK_NAME = "Servlet API";
     private static final ServletTransactionHelper servletTransactionHelper;
     private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
 
@@ -112,6 +113,7 @@ public class ServletApiAdvice {
                     }
                 }
             }
+            transaction.setFrameworkName(FRAMEWORK_NAME);
 
             servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
                 request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),

@@ -35,6 +35,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
+import static co.elastic.apm.agent.plugin.api.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -69,10 +70,14 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
-            if (tracer != null) {
-                return tracer.startRootTransaction(clazz.getClassLoader());
+            if (tracer == null) {
+                return null;
             }
-            return null;
+            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            if (transaction != null) {
+                transaction.setFrameworkName(FRAMEWORK_NAME);
+            }
+            return transaction;
         }
     }
 
@@ -88,22 +93,27 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Transaction doStartTransaction(@Advice.Origin Class<?> clazz,
-                                                      @Advice.Argument(0) MethodHandle getFirstHeader,
-                                                      @Advice.Argument(1) @Nullable Object headerExtractor,
-                                                      @Advice.Argument(2) MethodHandle getAllHeaders,
-                                                      @Advice.Argument(3) @Nullable Object headersExtractor) {
+                                                     @Advice.Argument(0) MethodHandle getFirstHeader,
+                                                     @Advice.Argument(1) @Nullable Object headerExtractor,
+                                                     @Advice.Argument(2) MethodHandle getAllHeaders,
+                                                     @Advice.Argument(3) @Nullable Object headersExtractor) {
             if (tracer == null) {
                 return null;
             }
+            Transaction transaction = null;
             if (headersExtractor != null) {
                 HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
-                return tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
+                transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
             } else if (headerExtractor != null) {
                 HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
-                return tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
+                transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
             } else {
-                return tracer.startRootTransaction(clazz.getClassLoader());
+                transaction = tracer.startRootTransaction(clazz.getClassLoader());
             }
+            if (transaction != null) {
+                transaction.setFrameworkName(FRAMEWORK_NAME);
+            }
+            return transaction;
         }
     }
 

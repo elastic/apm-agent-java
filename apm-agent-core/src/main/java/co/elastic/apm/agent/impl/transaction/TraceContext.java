@@ -783,5 +783,4 @@ public class TraceContext implements Recyclable {
         copy.copyFrom(this);
         return copy;
     }
-
 }

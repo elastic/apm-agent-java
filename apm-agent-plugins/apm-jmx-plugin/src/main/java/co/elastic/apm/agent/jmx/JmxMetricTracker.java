@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.util.GlobalLocks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -108,7 +109,16 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 deferInit();
             }
         } else {
-            init(ManagementFactory.getPlatformMBeanServer());
+            init(getPlatformMBeanServerThreadSafely());
+        }
+    }
+
+    private MBeanServer getPlatformMBeanServerThreadSafely() {
+        GlobalLocks.JUL_INIT_LOCK.lock();
+        try {
+            return ManagementFactory.getPlatformMBeanServer();
+        } finally {
+            GlobalLocks.JUL_INIT_LOCK.unlock();
         }
     }
 
@@ -122,7 +132,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             public void run() {
                 while (!Thread.currentThread().isInterrupted() || timeout <= System.currentTimeMillis()) {
                     if (System.getProperty("java.util.logging.manager") != null || !MBeanServerFactory.findMBeanServer(null).isEmpty()) {
-                        init(ManagementFactory.getPlatformMBeanServer());
+                        init(getPlatformMBeanServerThreadSafely());
                         return;
                     }
                     try {
