@@ -40,7 +40,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class HttpsUrlConnectionInstrumentationTest extends AbstractInstrumentationTest {
+class SSLContextInstrumentationTest extends AbstractInstrumentationTest {
 
     private static Field defaultSSLSocketFactoryField;
     private static ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDeamonPool("HttpsUrlConnection-Test");
