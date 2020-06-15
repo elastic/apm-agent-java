@@ -178,7 +178,7 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+<<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
@@ -362,7 +362,10 @@ monitor to decide that the CPU stress has been relieved.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-recording]]
-==== `recording`
+==== `recording` (added[1.15.0])
+
+NOTE: This option was available in older versions through the `active` key. The old key is still 
+supported in newer versions, but it is now deprecated.
 
 A boolean specifying if the agent should be recording or not.
 When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
@@ -372,8 +375,6 @@ As this is a reversible switch, agent threads are not being killed when inactiva
 mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
-
-The key of this option used to be `active`. The old key still works but is now deprecated.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -2287,7 +2288,7 @@ The default unit for this option is `ms`.
 # A boolean specifying whether the circuit breaker should be enabled or not. 
 # When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 # If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# <<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 # When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 # has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 # agent will resume and become fully functional.
@@ -2368,6 +2369,9 @@ The default unit for this option is `ms`.
 # Core                                     #
 ############################################
 
+# NOTE: This option was available in older versions through the `active` key. The old key is still 
+# supported in newer versions, but it is now deprecated.
+# 
 # A boolean specifying if the agent should be recording or not.
 # When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 # When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
@@ -2376,8 +2380,6 @@ The default unit for this option is `ms`.
 # mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
-# 
-# The key of this option used to be `active`. The old key still works but is now deprecated.
 #
 # This setting can be changed at runtime
 # Type: Boolean
