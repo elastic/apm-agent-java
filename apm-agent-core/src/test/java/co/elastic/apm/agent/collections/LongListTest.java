@@ -70,6 +70,28 @@ class LongListTest {
     }
 
     @Test
+    void testAddAllLargeList() {
+        longList.add(42);
+        LongList list2 = new LongList();
+        for (int i = 0; i < 42; i++) {
+            list2.add(i);
+        }
+        longList.addAll(list2);
+        assertThat(this.longList.getSize()).isEqualTo(43);
+        assertThat(this.longList.get(0)).isEqualTo(42);
+        assertThat(this.longList.get(1)).isEqualTo(0);
+        assertThat(this.longList.get(2)).isEqualTo(1);
+    }
+
+    @Test
+    void testNewCapacity() {
+        assertThat(LongList.newCapacity(1, 0)).isEqualTo(1);
+        assertThat(LongList.newCapacity(42, 4)).isEqualTo(42);
+        assertThat(LongList.newCapacity(5, 4)).isEqualTo(6);
+        assertThatThrownBy(() -> LongList.newCapacity(Integer.MAX_VALUE, 4)).isInstanceOf(OutOfMemoryError.class);
+    }
+
+    @Test
     void testOutOfBounds() {
         assertThatThrownBy(() -> longList.get(0)).isInstanceOf(IndexOutOfBoundsException.class);
     }
