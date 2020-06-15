@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,7 @@ package co.elastic.apm.servlet.tests;
 
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -53,7 +54,9 @@ public class JsfApplicationServerTestApp extends TestApp {
 
         containerIntegrationTest.executeAndValidateRequest(fullTestPath, "HTTP GET", 200, null);
         JsonNode transaction = containerIntegrationTest.assertTransactionReported(viewPath, 200);
+
         assertThat(transaction.get("name").textValue()).isEqualTo(testedPath);
+        assertThat(transaction.get("context").get("service").get("framework").get("name").textValue()).isEqualTo("JavaServer Faces");
         String transactionId = transaction.get("id").textValue();
         List<JsonNode> spans = containerIntegrationTest.assertSpansTransactionId(
             containerIntegrationTest::getReportedSpans,
@@ -67,7 +70,6 @@ public class JsfApplicationServerTestApp extends TestApp {
         assertThat(renderSpan.get("name").textValue()).isEqualTo("JSF Render");
         assertThat(renderSpan.get("type").textValue()).isEqualTo("template.jsf.render");
     }
-
 
     private static final class ViewStateAndAction {
         private final String viewState;
