@@ -189,7 +189,10 @@ public class GrpcHelperImpl implements GrpcHelper {
 
     @Override
     @Nullable
-    public Span startSpan(@Nullable AbstractSpan<?> parent, @Nullable MethodDescriptor<?, ?> method, @Nullable String authority) {
+    public Span startSpan(@Nullable AbstractSpan<?> parent,
+                          @Nullable MethodDescriptor<?, ?> method,
+                          @Nullable String authority) {
+
         if (null == parent) {
             return null;
         }
@@ -230,7 +233,10 @@ public class GrpcHelperImpl implements GrpcHelper {
     }
 
     @Override
-    public Span clientCallStartEnter(ClientCall<?, ?> clientCall, ClientCall.Listener<?> listener, Metadata headers) {
+    public Span clientCallStartEnter(ClientCall<?, ?> clientCall,
+                                     ClientCall.Listener<?> listener,
+                                     Metadata headers) {
+
         // span should already have been registered
         // no other lookup by client call is required, thus removing entry
         Span span = clientCallSpans.remove(clientCall);

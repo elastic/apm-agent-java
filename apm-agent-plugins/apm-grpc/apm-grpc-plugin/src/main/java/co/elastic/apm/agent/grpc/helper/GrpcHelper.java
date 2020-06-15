@@ -149,7 +149,7 @@ public interface GrpcHelper {
                               Metadata headers);
 
     /**
-     * performs client call start cleanup in case of exception
+     * Performs client call start cleanup in case of exception
      *
      * @param listener client call listener
      * @param thrown   thrown exception
@@ -157,9 +157,22 @@ public interface GrpcHelper {
     void clientCallStartExit(ClientCall.Listener<?> listener,
                              @Nullable Throwable thrown);
 
+    /**
+     * Lookup and activate span when entering listener method execution
+     * @param listener client call listener
+     * @return active span or {@literal null} if there is none
+     */
     @Nullable
     Span enterClientListenerMethod(ClientCall.Listener<?> listener);
 
+    /**
+     * De-activates active span when exiting listener method execution, optionally terminates span when required.
+     *
+     * @param thrown       thrown exception (if any)
+     * @param listener     client call listener
+     * @param span         span reference obtained from {@link #enterClientListenerMethod(ClientCall.Listener)}
+     * @param isLastMethod {@literal true} if method is the last executed, {@literal false} if another is expected
+     */
     void exitClientListenerMethod(@Nullable Throwable thrown,
                                   ClientCall.Listener<?> listener,
                                   @Nullable Span span,
