@@ -80,7 +80,7 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
 
         GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
         if (helper != null) {
-            helper.endTransaction(status, thrown, serverCall);
+            helper.setTransactionStatus(status, thrown, serverCall);
         }
     }
 }

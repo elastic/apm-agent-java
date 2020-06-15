@@ -239,6 +239,11 @@ public class MockReporter implements Reporter {
         assertNoSpan();
     }
 
+    public void awaitSpanCount(int count) {
+        awaitTimeout(1000)
+            .untilAsserted(() -> assertThat(getSpans()).hasSize(count));
+    }
+
     @Override
     public synchronized void report(ErrorCapture error) {
         if (closed) {

@@ -92,8 +92,13 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Nullable
     private volatile String type;
 
-
     private int maxSpans;
+
+    @Nullable
+    private String frameworkName;
+
+    @Nullable
+    private String frameworkVersion;
 
     @Override
     public Transaction getTransaction() {
@@ -246,6 +251,8 @@ public class Transaction extends AbstractSpan<Transaction> {
         type = null;
         noop = false;
         maxSpans = 0;
+        frameworkName = null;
+        frameworkVersion = null;
         // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
@@ -296,6 +303,24 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Override
     protected void recycle() {
         tracer.recycle(this);
+    }
+
+    public void setFrameworkName(@Nullable String frameworkName) {
+        this.frameworkName = frameworkName;
+    }
+
+    @Nullable
+    public String getFrameworkName() {
+        return this.frameworkName;
+    }
+
+    public void setFrameworkVersion(@Nullable String frameworkVersion) {
+        this.frameworkVersion = frameworkVersion;
+    }
+
+    @Nullable
+    public String getFrameworkVersion() {
+        return this.frameworkVersion;
     }
 
     @Override
