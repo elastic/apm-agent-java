@@ -178,7 +178,7 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-<<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
+<<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
@@ -364,7 +364,7 @@ monitor to decide that the CPU stress has been relieved.
 [[config-recording]]
 ==== `recording` (added[1.15.0])
 
-NOTE: This option was available in older versions through the `active` key. The old key is still
+NOTE: This option was available in older versions through the `active` key. The old key is still 
 supported in newer versions, but it is now deprecated.
 
 A boolean specifying if the agent should be recording or not.
@@ -2288,7 +2288,7 @@ The default unit for this option is `ms`.
 # A boolean specifying whether the circuit breaker should be enabled or not. 
 # When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 # If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-# <<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
+# <<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 # When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 # has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 # agent will resume and become fully functional.
@@ -2369,9 +2369,9 @@ The default unit for this option is `ms`.
 # Core                                     #
 ############################################
 
-# NOTE: This option was available in older versions through the `active` key. The old key is still
+# NOTE: This option was available in older versions through the `active` key. The old key is still 
 # supported in newer versions, but it is now deprecated.
-#
+# 
 # A boolean specifying if the agent should be recording or not.
 # When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 # When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
