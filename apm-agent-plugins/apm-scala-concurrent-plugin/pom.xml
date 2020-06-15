@@ -17,6 +17,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-java-concurrent-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.scalameta</groupId>
             <artifactId>munit_2.13</artifactId>
             <version>0.7.2</version>
