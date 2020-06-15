@@ -8,14 +8,14 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
-public class IndyBootstrap {
+public class IndyBootstrapDispatcher {
     public static Method bootstrap;
 
     private static final MethodHandle VOID_NOOP;
 
     static {
         try {
-            VOID_NOOP = MethodHandles.lookup().findStatic(IndyBootstrap.class, "voidNoop", MethodType.methodType(void.class));
+            VOID_NOOP = MethodHandles.lookup().findStatic(IndyBootstrapDispatcher.class, "voidNoop", MethodType.methodType(void.class));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -25,10 +25,10 @@ public class IndyBootstrap {
                                      String adviceMethodName,
                                      MethodType adviceMethodType,
                                      String adviceClassName,
+                                     int enter,
                                      Class<?> instrumentedType,
-                                     MethodHandle instrumentedMethod,
                                      String instrumentedMethodName,
-                                     int enter) {
+                                     Object... args) {
         CallSite callSite = null;
         if (bootstrap != null) {
             try {
@@ -36,9 +36,10 @@ public class IndyBootstrap {
                     adviceMethodName,
                     adviceMethodType,
                     adviceClassName,
+                    enter,
                     instrumentedType,
-                    instrumentedMethod,
-                    instrumentedMethodName, enter);
+                    instrumentedMethodName,
+                    args);
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -49,7 +49,6 @@ import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -283,7 +282,6 @@ class InstrumentationTest {
     }
 
     @Test
-    @Disabled
     void testPatchClassFileVersionJava6ToJava7() {
         // loading classes compiled with bytecode level 50 (Java 6)
         assertThat(StringUtils.startsWithIgnoreCase("APM", "apm")).isTrue();
@@ -303,7 +301,6 @@ class InstrumentationTest {
     }
 
     @Test
-    @Disabled
     void testPatchClassFileVersionJava5ToJava7() {
         // loading classes compiled with bytecode level 49 (Java 6)
         new org.slf4j.event.SubstituteLoggingEvent();
@@ -323,7 +320,6 @@ class InstrumentationTest {
     }
 
     @Test
-    @Disabled
     void testPatchClassFileVersionJava5ToJava7CommonsMath() {
         org.apache.commons.math3.stat.StatUtils.max(new double[]{3.14});
 
@@ -342,7 +338,6 @@ class InstrumentationTest {
     }
 
     @Test
-    @Disabled
     void testPrivateConstructorJava7() {
         org.apache.commons.pool2.impl.CallStackUtils.newCallStack("", false, false);
 
@@ -668,8 +663,8 @@ class InstrumentationTest {
 
     public static class LoggerFactoryInstrumentation extends ElasticApmInstrumentation {
 
-        public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
-        public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
+        public static AtomicInteger enterCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "enterCount", new AtomicInteger());
+        public static AtomicInteger exitCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "exitCount", new AtomicInteger());
 
         @Advice.OnMethodEnter(inline = false)
         public static void onEnter() {
@@ -704,8 +699,8 @@ class InstrumentationTest {
 
     public static class StatUtilsInstrumentation extends ElasticApmInstrumentation {
 
-        public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
-        public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
+        public static AtomicInteger enterCount = GlobalVariables.get(StatUtilsInstrumentation.class, "enterCount", new AtomicInteger());
+        public static AtomicInteger exitCount = GlobalVariables.get(StatUtilsInstrumentation.class, "exitCount", new AtomicInteger());
 
         @Advice.OnMethodEnter(inline = false)
         public static void onEnter() {
@@ -740,8 +735,8 @@ class InstrumentationTest {
 
     public static class CallStackUtilsInstrumentation extends ElasticApmInstrumentation {
 
-        public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
-        public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
+        public static AtomicInteger enterCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "enterCount", new AtomicInteger());
+        public static AtomicInteger exitCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "exitCount", new AtomicInteger());
 
         @Advice.OnMethodEnter(inline = false)
         public static void onEnter() {

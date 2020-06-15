@@ -172,9 +172,9 @@ public class IndyBootstrap {
             indyBootstrapClass
                 .getField("bootstrap")
                 .set(null, IndyBootstrap.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class,
-                    String.class, Class.class, MethodHandle.class, String.class, int.class));
+                    String.class, int.class, Class.class, String.class, Object[].class));
             return indyBootstrapMethod = indyBootstrapClass.getMethod("bootstrap", MethodHandles.Lookup.class, String.class,
-                MethodType.class, String.class, Class.class, MethodHandle.class, String.class, int.class);
+                MethodType.class, String.class, int.class, Class.class, String.class, Object[].class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -218,15 +218,14 @@ public class IndyBootstrap {
      * Exceptions and {@code null} return values are handled by {@code java.lang.IndyBootstrapDispatcher#bootstrap}.
      * </p>
      */
-    @Nullable
     public static ConstantCallSite bootstrap(MethodHandles.Lookup lookup,
                                              String adviceMethodName,
                                              MethodType adviceMethodType,
                                              String adviceClassName,
+                                             int enter,
                                              Class<?> instrumentedType,
-                                             MethodHandle instrumentedMethod,
                                              String instrumentedMethodName,
-                                             int enter) throws Exception {
+                                             Object... args) throws Exception {
         Class<?> adviceClass = Class.forName(adviceClassName);
         String packageName = adviceClass.getPackage().getName();
         List<String> pluginClasses = classesByPackage.get(packageName);
