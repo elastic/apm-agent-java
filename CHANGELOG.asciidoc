@@ -44,7 +44,8 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
 * Fix `NumberFormatException` when parsing Ingres/Actian JDBC connection strings - {pull}1198[#1198]
 * Prevent agent from overriding JVM configured truststore when not using HTTPS for communication with APM server - {pull}1203[#1203]
 * Fix `java.lang.IllegalStateException` with `jps` JVM when using continuous runtime attach - {pull}1205[1205]
-* Fix agent trying to load log4j2 plugins from application {pull}1214[1214]
+* Fix agent trying to load log4j2 plugins from application - {pull}1214[1214]
+* Fix memory leak in gRPC instrumentation plugin - {pull}1196[1196]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
