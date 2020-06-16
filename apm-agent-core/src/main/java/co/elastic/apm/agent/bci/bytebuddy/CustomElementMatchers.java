@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.Version;
@@ -84,7 +85,7 @@ public class CustomElementMatchers {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
             private final boolean loadableByBootstrapClassLoader = canLoadClass(null, className);
-            private WeakConcurrentMap<ClassLoader, Boolean> cache = new WeakConcurrentMap.WithInlinedExpunction<>();
+            private final WeakConcurrentMap<ClassLoader, Boolean> cache = WeakMapSupplier.createMap();
 
             @Override
             public boolean matches(@Nullable ClassLoader target) {

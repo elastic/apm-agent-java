@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.grpc.helper;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
@@ -77,19 +78,19 @@ public class GrpcHelperImpl implements GrpcHelper {
     /**
      * gRPC header cache used to minimize allocations
      */
-    private static final WeakConcurrentMap.WithInlinedExpunction<String, Metadata.Key<String>> headerCache;
+    private static final WeakConcurrentMap<String, Metadata.Key<String>> headerCache;
 
     private static final TextHeaderSetter<Metadata> headerSetter;
     private static final TextHeaderGetter<Metadata> headerGetter;
 
     static {
-        clientCallSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
-        clientCallListenerSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall.Listener<?>, Span>();
+        clientCallSpans = WeakMapSupplier.createMap();
+        clientCallListenerSpans = WeakMapSupplier.createMap();
 
-        serverListenerTransactions = new WeakConcurrentMap.WithInlinedExpunction<ServerCall.Listener<?>, Transaction>();
-        serverCallTransactions = new WeakConcurrentMap.WithInlinedExpunction<ServerCall<?, ?>, Transaction>();
+        serverListenerTransactions = WeakMapSupplier.createMap();
+        serverCallTransactions = WeakMapSupplier.createMap();
 
-        headerCache = new WeakConcurrentMap.WithInlinedExpunction<String, Metadata.Key<String>>();
+        headerCache = WeakMapSupplier.createMap();
 
         headerSetter = new GrpcHeaderSetter();
         headerGetter = new GrpcHeaderGetter();

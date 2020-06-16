@@ -27,6 +27,7 @@ package co.elastic.apm.agent.jaxrs;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -59,7 +60,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final WeakConcurrentMap<Class<?>, String> versionsCache = new WeakConcurrentMap.WithInlinedExpunction<>();
+    public static final WeakConcurrentMap<Class<?>, String> versionsCache = WeakMapSupplier.createMap();
 
     private static final String FRAMEWORK_NAME = "JAX-RS";
     private static final String GROUP_ID = "javax.ws.rs";

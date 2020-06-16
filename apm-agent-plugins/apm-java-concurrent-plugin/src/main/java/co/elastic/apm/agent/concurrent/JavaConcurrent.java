@@ -26,6 +26,7 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -41,7 +42,7 @@ import java.util.concurrent.ForkJoinTask;
 
 public class JavaConcurrent {
 
-    private static final WeakConcurrentMap<Object, AbstractSpan<?>> contextMap = new WeakConcurrentMap<Object, AbstractSpan<?>>(false);
+    private static final WeakConcurrentMap<Object, AbstractSpan<?>> contextMap = WeakMapSupplier.createMap();
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
     private static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
@@ -75,12 +76,7 @@ public class JavaConcurrent {
     }
 
     /**
-     * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
-     *
-     * <p>
-     * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
-     * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
-     * </p>
+     * Instruments or wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      */
     @Nullable
     public static Runnable withContext(@Nullable Runnable runnable, @Nullable ElasticApmTracer tracer) {
@@ -104,12 +100,7 @@ public class JavaConcurrent {
     }
 
     /**
-     * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
-     *
-     * <p>
-     * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
-     * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
-     * </p>
+     * Instruments or wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      */
     @Nullable
     public static <T> Callable<T> withContext(@Nullable Callable<T> callable, @Nullable ElasticApmTracer tracer) {

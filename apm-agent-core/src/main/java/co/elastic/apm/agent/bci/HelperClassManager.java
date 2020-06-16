@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.type.TypeDescription;
@@ -209,7 +210,7 @@ public abstract class HelperClassManager<T> {
 
         private ForAnyClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             super(tracer, implementation, additionalHelpers);
-            clId2helperMap = new WeakConcurrentMap<>(false);
+            clId2helperMap = WeakMapSupplier.createMap();
         }
 
         /**
