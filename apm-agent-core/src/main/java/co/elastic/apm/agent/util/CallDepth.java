@@ -28,18 +28,24 @@ import net.bytebuddy.asm.Advice;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A utility that makes it easy to detect nested method calls.
  */
 public class CallDepth {
     private static final ConcurrentMap<String, CallDepth> registry = new ConcurrentHashMap<>();
-    private final ThreadLocal<AtomicInteger> callDepthPerThread = new ThreadLocal<AtomicInteger>();
+    private final ThreadLocal<MutableInt> callDepthPerThread = new ThreadLocal<MutableInt>();
 
     private CallDepth() {
     }
 
+    /**
+     * Returns or creates a globally shared call depth instance, based on the advice's class name.
+     *
+     * @param adviceClass the class of the advice the call depth is used in.
+     * @return a globally shared call depth instance, based on the advice's class name.
+     * @see GlobalVariables
+     */
     public static CallDepth get(Class<?> adviceClass) {
         // we want to return the same CallDepth instance even if the advice class has been loaded from different class loaders
         String key = adviceClass.getName();
@@ -51,6 +57,10 @@ public class CallDepth {
         return callDepth;
     }
 
+    static void clearRegistry() {
+        registry.clear();
+    }
+
     /**
      * Gets and increments the call depth counter.
      * Returns {@code 0} if this is the outer-most (non-nested) invocation.
@@ -58,12 +68,7 @@ public class CallDepth {
      * @return the call depth before it has been incremented
      */
     public int increment() {
-        AtomicInteger callDepthForCurrentThread = callDepthPerThread.get();
-        if (callDepthForCurrentThread == null) {
-            callDepthForCurrentThread = new AtomicInteger();
-            callDepthPerThread.set(callDepthForCurrentThread);
-        }
-        return callDepthForCurrentThread.getAndIncrement();
+        return get().getAndIncrement();
     }
 
     /**
@@ -87,7 +92,7 @@ public class CallDepth {
      * @return the call depth after it has been incremented
      */
     public int decrement() {
-        int depth = callDepthPerThread.get().decrementAndGet();
+        int depth = get().decrementAndGet();
         assert depth >= 0;
         return depth;
     }
@@ -104,5 +109,26 @@ public class CallDepth {
      */
     public boolean isNestedCallAndDecrement() {
         return decrement() != 0;
+    }
+
+    private MutableInt get() {
+        MutableInt callDepthForCurrentThread = callDepthPerThread.get();
+        if (callDepthForCurrentThread == null) {
+            callDepthForCurrentThread = new MutableInt();
+            callDepthPerThread.set(callDepthForCurrentThread);
+        }
+        return callDepthForCurrentThread;
+    }
+
+    private static class MutableInt {
+        private int i;
+
+        public int getAndIncrement() {
+            return i++;
+        }
+
+        public int decrementAndGet() {
+            return --i;
+        }
     }
 }
