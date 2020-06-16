@@ -43,7 +43,7 @@ pipeline {
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
