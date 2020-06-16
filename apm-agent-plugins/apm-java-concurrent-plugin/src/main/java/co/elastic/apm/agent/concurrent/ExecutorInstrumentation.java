@@ -198,6 +198,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
             JavaConcurrent.doFinally(thrown, callables);
         }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Arrays.asList("concurrent", "executor", "executor-collection");
+        }
     }
 
     public static class ForkJoinPoolInstrumentation extends ExecutorInstrumentation {
