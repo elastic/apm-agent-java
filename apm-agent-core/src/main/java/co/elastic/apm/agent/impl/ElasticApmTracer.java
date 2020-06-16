@@ -48,6 +48,7 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadPoolExecutor;
 
 
 /**
@@ -572,12 +574,57 @@ public class ElasticApmTracer {
         return activationListeners;
     }
 
-    synchronized void start(List<LifecycleListener> lifecycleListeners) {
+    /**
+     * As opposed to {@link ElasticApmTracer#start()}, this method does not change the tracer's state and it's purpose
+     * is to be called at JVM bootstrap.
+     * @param lifecycleListeners Lifecycle listeners
+     */
+    void init(List<LifecycleListener> lifecycleListeners) {
+        this.lifecycleListeners.addAll(lifecycleListeners);
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            try {
+                lifecycleListener.init(this);
+            } catch (Exception e) {
+                logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
+            }
+        }
+    }
+
+    public synchronized void start() {
+        if (getConfig(CoreConfiguration.class).getDelayInitMs() > 0) {
+            startWithDelay();
+        } else {
+            startSync();
+        }
+    }
+
+    private synchronized void startWithDelay() {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    long delayInitMs = coreConfiguration.getDelayInitMs();
+                    logger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
+                    Thread.sleep(delayInitMs);
+                    logger.info("end wait");
+                } catch (InterruptedException e) {
+                    logger.error(e.getMessage(), e);
+                } finally {
+                    ElasticApmTracer.this.start();
+                }
+            }
+        });
+        pool.shutdown();
+    }
+
+    private synchronized void startSync() {
         if (tracerState != TracerState.UNINITIALIZED) {
             logger.warn("Trying to start an already initialized agent");
             return;
         }
-        this.lifecycleListeners.addAll(lifecycleListeners);
+        apmServerClient.start();
+        reporter.start();
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.start(this);

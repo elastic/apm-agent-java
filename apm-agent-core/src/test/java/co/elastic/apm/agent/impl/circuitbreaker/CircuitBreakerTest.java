@@ -83,6 +83,7 @@ public class CircuitBreakerTest {
             .configurationRegistry(config)
             .reporter(new MockReporter())
             .build();
+        tracer.start();
 
         circuitBreaker = tracer.getLifecycleListener(CircuitBreaker.class);
         monitor = new TestStressMonitor(tracer);

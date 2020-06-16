@@ -62,6 +62,7 @@ class TraceContextTest {
             .reporter(new MockReporter())
             .withObjectPoolFactory(new TestObjectPoolFactory())
             .build();
+        tracer.start();
     }
 
     /**

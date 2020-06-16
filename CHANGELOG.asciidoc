@@ -46,6 +46,7 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
 * Fix `java.lang.IllegalStateException` with `jps` JVM when using continuous runtime attach - {pull}1205[1205]
 * Fix agent trying to load log4j2 plugins from application - {pull}1214[1214]
 * Fix memory leak in gRPC instrumentation plugin - {pull}1196[1196]
+* Fix HTTPS connection failures when agent is configured to use HTTPS to communicate with APM server {pull}1209[1209]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

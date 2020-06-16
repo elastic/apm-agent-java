@@ -53,6 +53,7 @@ class ScopeManagementTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .build();
+        tracer.start();
     }
 
     @AfterEach
