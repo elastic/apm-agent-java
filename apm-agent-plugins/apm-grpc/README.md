@@ -46,3 +46,10 @@ There is one version per test submodule
 java -jar apm-grpc-test-1.6.1/target/testapp.jar
 java -jar apm-grpc-test-latest/target/testapp.jar
 ```
+
+Those applications support a few command-line arguments
+```
+--port 4242    # sets server port to use
+--benchmark    # enables 'benchmark mode': adds a warm-up and disables verbose output
+--count 100    # sets number of iterations to execute
+```

@@ -103,7 +103,6 @@ public class CustomElementMatchers {
     }
 
     private static boolean canLoadClass(@Nullable ClassLoader target, String className) {
-        boolean result;
         try {
             final URL resource;
             final String classResource = className.replace('.', '/') + ".class";
@@ -112,19 +111,10 @@ public class CustomElementMatchers {
             } else {
                 resource = target.getResource(classResource);
             }
-            result = resource != null;
-            if (logger.isDebugEnabled()) {
-                String classLoaderName = (target == null) ? "Bootstrap ClassLoader" : target.getClass().getName();
-                String codeSourceString = "";
-                if (resource != null) {
-                    codeSourceString = " from " + resource;
-                }
-                logger.debug("{} was loaded by {}{}", className, classLoaderName, codeSourceString);
-            }
+            return resource != null;
         } catch (Exception ignore) {
-            result = false;
+            return false;
         }
-        return result;
     }
 
     /**

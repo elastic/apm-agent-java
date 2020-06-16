@@ -119,7 +119,9 @@ public class ElasticApmAgent {
     public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
+        // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
+        tracer.start();
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {

@@ -130,6 +130,7 @@ public class RemoteAttacher {
                 ElasticApmAttacher.attach(jvmInfo.pid, agentArgs);
                 log("INFO", "Done");
             } catch (Exception e) {
+                log("ERROR", "Unable to attach to JVM with PID = %s", jvmInfo.pid);
                 e.printStackTrace();
             }
         } else {

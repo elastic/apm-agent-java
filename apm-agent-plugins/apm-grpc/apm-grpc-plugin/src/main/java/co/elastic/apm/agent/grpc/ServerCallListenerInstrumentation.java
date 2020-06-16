@@ -37,19 +37,19 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Instruments implementations of {@link io.grpc.ServerCall.Listener} for runtime exceptions and transaction activation
+ * Instruments implementations of {@link ServerCall.Listener} for runtime exceptions and transaction activation
  * <br>
  * Implementation is split in two classes {@link FinalMethodCall} and {@link NonFinalMethodCall}
  * <ul>
- *     <li>{@link io.grpc.ServerCall.Listener#onMessage(Object)} ({@link NonFinalMethodCall})</li>
- *     <li>{@link io.grpc.ServerCall.Listener#onHalfClose()} ({@link NonFinalMethodCall})</li>
- *     <li>{@link io.grpc.ServerCall.Listener#onCancel()} ({@link FinalMethodCall})</li>
- *     <li>{@link io.grpc.ServerCall.Listener#onComplete()} ({@link FinalMethodCall})</li>
+ *     <li>{@link ServerCall.Listener#onReady()}} ({@link NonFinalMethodCall})</li>
+ *     <li>{@link ServerCall.Listener#onMessage(Object)} ({@link NonFinalMethodCall})</li>
+ *     <li>{@link ServerCall.Listener#onHalfClose()} ({@link NonFinalMethodCall})</li>
+ *     <li>{@link ServerCall.Listener#onCancel()} ({@link FinalMethodCall})</li>
+ *     <li>{@link ServerCall.Listener#onComplete()} ({@link FinalMethodCall})</li>
  * </ul>
  */
 public abstract class ServerCallListenerInstrumentation extends BaseInstrumentation {
@@ -60,8 +60,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc")
-            .and(nameContains("Unary"));
+        return nameStartsWith("io.grpc");
     }
 
     @Override
@@ -71,10 +70,11 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
     }
 
     /**
-     * Instruments implementations of {@link io.grpc.ServerCall.Listener}
+     * Instruments implementations of {@link ServerCall.Listener}
      * <ul>
-     *     <li>{@link io.grpc.ServerCall.Listener#onMessage(Object)}</li>
-     *     <li>{@link io.grpc.ServerCall.Listener#onHalfClose()}</li>
+     *     <li>{@link ServerCall.Listener#onReady()}()}</li>
+     *     <li>{@link ServerCall.Listener#onMessage(Object)}</li>
+     *     <li>{@link ServerCall.Listener#onHalfClose()}</li>
      * </ul>
      */
     public static class NonFinalMethodCall extends ServerCallListenerInstrumentation {
@@ -85,12 +85,14 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            // message received --> indicates RPC start for unary call
-            // actual method invocation is delayed until 'half close'
-            return named("onMessage")
+            return named("onReady")
+                //
+                // message received --> indicates RPC start for unary call
+                // actual method invocation is delayed until 'half close'
+                .or(named("onMessage"))
                 //
                 // client completed all message sending, but can still cancel the call
-                // --> for unary calls, actual method invocation is done here (but it's an impl. detail)
+                // --> for unary calls, actual method invocation is done within 'onHalfClose' method.
                 .or(named("onHalfClose"));
         }
 
@@ -129,10 +131,10 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
     }
 
     /**
-     * Instruments implementations of {@link io.grpc.ServerCall.Listener}
+     * Instruments implementations of {@link ServerCall.Listener}
      * <ul>
-     *     <li>{@link io.grpc.ServerCall.Listener#onCancel()}</li>
-     *     <li>{@link io.grpc.ServerCall.Listener#onComplete()}</li>
+     *     <li>{@link ServerCall.Listener#onCancel()}</li>
+     *     <li>{@link ServerCall.Listener#onComplete()}</li>
      * </ul>
      * <p>
      * If one of those methods is called, the other one is guaranteed to not be called, hence the 'final'.
@@ -175,7 +177,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                    @Advice.This ServerCall.Listener<?> listener,
                                    @Advice.Local("transaction") @Nullable Transaction transaction) {
 
-            if (null == tracer || grpcHelperManager == null || transaction == null) {
+            if (null == tracer || grpcHelperManager == null) {
                 return;
             }
 

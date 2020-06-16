@@ -49,7 +49,7 @@ public class OsgiBootDelegationEnabler extends AbstractLifecycleListener {
         "com.icl.saxon.*,javax.servlet,javax.servlet.*,com.sun.xml.bind.*,jdk.internal.*";
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void init(ElasticApmTracer tracer) {
         // may be problematic as it could override the defaults in a properties file
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         String packagesToAppendToBootdelegationProperty = coreConfig.getPackagesToAppendToBootdelegationProperty();

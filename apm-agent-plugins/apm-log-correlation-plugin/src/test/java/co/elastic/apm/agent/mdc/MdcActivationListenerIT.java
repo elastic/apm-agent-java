@@ -69,6 +69,7 @@ class MdcActivationListenerIT {
             .configurationRegistry(config)
             .reporter(reporter)
             .build();
+        tracer.start();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new Slf4jLoggingInstrumentation(), new Log4jLoggingInstrumentation()));
     }
 

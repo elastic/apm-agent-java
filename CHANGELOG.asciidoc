@@ -20,6 +20,21 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.18.0]]
+==== 1.18.0 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* Overhaul of the `ExecutorService` instrumentation that avoids issues like ``ClassCastException``s - {pull}1206[#1206]
+* Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
+* Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
+
+[float]
+===== Bug fixes
+
 [[release-notes-1.17.0]]
 ==== 1.17.0 - YYYY/MM/DD
 
@@ -33,9 +48,8 @@ There will always be one history file `${log_file}.1`.
 * Add <<config-log-format-sout>> and <<config-log-format-file>> with the options `PLAIN_TEXT` and `JSON`.
 The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to format the logs.
 * Exposing <<config-classes-excluded-from-instrumentation>> config - {pull}1187[#1187]
-* Overhaul of the `ExecutorService` instrumentation that avoids issues like ``ClassCastException``s - {pull}1206[#1206]
-* Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
-* Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
+* Add support for naming transactions based on Grails controllers. Supports Grails 3+ - {pull}1171[#1171]
+* Add support for the Apache/Alibaba Dubbo RPC framework
 
 [float]
 ===== Bug fixes
@@ -43,6 +57,11 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
   This also makes the profiler more resilient by just removing the call tree related to the exception (which might be in an invalid state)
   as opposed to stopping the profiler when an exception occurs.
 * Fix `NumberFormatException` when parsing Ingres/Actian JDBC connection strings - {pull}1198[#1198]
+* Prevent agent from overriding JVM configured truststore when not using HTTPS for communication with APM server - {pull}1203[#1203]
+* Fix `java.lang.IllegalStateException` with `jps` JVM when using continuous runtime attach - {pull}1205[1205]
+* Fix agent trying to load log4j2 plugins from application - {pull}1214[1214]
+* Fix memory leak in gRPC instrumentation plugin - {pull}1196[1196]
+* Fix HTTPS connection failures when agent is configured to use HTTPS to communicate with APM server {pull}1209[1209]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

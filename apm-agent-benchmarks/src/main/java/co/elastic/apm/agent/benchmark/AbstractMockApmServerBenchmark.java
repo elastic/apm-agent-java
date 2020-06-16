@@ -92,6 +92,7 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
             .build();
+        tracer.start();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
     }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -45,6 +45,7 @@ public class CdiApplicationServerTestApp extends TestApp {
         containerIntegrationTest.executeAndValidateRequest(testPath, "Hello World!", 200, null);
         JsonNode transaction = containerIntegrationTest.assertTransactionReported(testPath, 200);
         assertThat(transaction.get("name").textValue()).isEqualTo("GreeterServlet#doGet");
+        assertThat(transaction.get("context").get("service").get("framework").get("name").textValue()).isEqualTo("Servlet API");
         String transactionId = transaction.get("id").textValue();
         List<JsonNode> spans = containerIntegrationTest.assertSpansTransactionId(
                 containerIntegrationTest::getReportedSpans,
