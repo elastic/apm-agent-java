@@ -273,6 +273,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
+                    <source>8</source>
                 </configuration>
                 <executions>
                     <execution>
