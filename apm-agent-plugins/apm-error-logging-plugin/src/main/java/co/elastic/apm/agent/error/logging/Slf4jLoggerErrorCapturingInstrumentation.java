@@ -29,24 +29,26 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 
+import static co.elastic.apm.agent.error.logging.Log4j2LoggerErrorCapturingInstrumentation.LOG4J2_LOGGER;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class Log4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
+public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
     // prevents the shade plugin from relocating org.slf4j.Logger to co.elastic.apm.agent.shaded.slf4j.Logger
-    private static final String SLF4J_LOGGER = "org!slf4j!Logger".replace('!', '.');
+    static final String SLF4J_LOGGER = "org!slf4j!Logger".replace('!', '.');
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.apache.logging.log4j.Logger")).and(not(hasSuperType(named(SLF4J_LOGGER))));
+        return hasSuperType(named(SLF4J_LOGGER)
+            .and(not(hasSuperType(named(LOG4J2_LOGGER)))));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j");
+        ret.add("slf4j");
         return ret;
     }
 }
