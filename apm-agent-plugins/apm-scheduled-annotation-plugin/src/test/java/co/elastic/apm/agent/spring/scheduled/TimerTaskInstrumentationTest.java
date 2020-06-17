@@ -43,9 +43,10 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         Timer timer = new Timer(true);
         timer.scheduleAtFixedRate(timerTask, 0, 10L);
 
-        Thread.sleep(200L);
-        timer.cancel();
-        Thread.sleep(200L);
+        reporter.awaitUntilAsserted(200L, () -> {
+            timer.cancel();
+            assertThat(reporter.getTransactions()).isNotEmpty();
+        });
 
         assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
         Transaction firstTransaction = reporter.getTransactions().get(0);
@@ -60,9 +61,10 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         Timer timer = new Timer("Timer");
         timer.schedule(timerTask, 1L, 10L);
 
-        Thread.sleep(200L);
-        timer.cancel();
-        Thread.sleep(200L);
+        reporter.awaitUntilAsserted(200L, () -> {
+            timer.cancel();
+            assertThat(reporter.getTransactions()).isNotEmpty();
+        });
 
         assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
@@ -76,7 +78,9 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         long delay = 50L;
         timer.schedule(timerTask, delay);
 
-        Thread.sleep(4 * delay);
+        reporter.awaitUntilAsserted(4 * delay, () -> {
+            assertThat(reporter.getTransactions()).isNotEmpty();
+        });
 
         assertThat(reporter.getTransactions().size()).isEqualTo(1);
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
@@ -96,7 +100,9 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         long delay = 50L;
         timer.schedule(repeatedTask, delay);
 
-        Thread.sleep(4 * delay);
+        reporter.awaitUntilAsserted(4 * delay, () -> {
+            assertThat(reporter.getTransactions()).isNotEmpty();
+        });
 
         assertThat(reporter.getTransactions().size()).isEqualTo(1);
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("1#run");
