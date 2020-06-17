@@ -27,6 +27,7 @@ package co.elastic.apm.agent.dubbo;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -44,7 +45,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboInstrumentation {
 
     @VisibleForAdvice
-    public static final WeakConcurrentMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
+    public static final WeakConcurrentMap<ResponseCallback, AbstractSpan<?>> callbackSpanMap = WeakMapSupplier.createMap();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

@@ -24,11 +24,10 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.LifecycleListener;
-import co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper;
-import co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -60,7 +59,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -74,14 +72,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ElasticApmTracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
-    /**
-     * The number of required {@link Runnable} wrappers does not depend on the size of the disruptor
-     * but rather on the amount of application threads.
-     * The requirement increases if the application tends to wrap multiple {@link Runnable}s.
-     */
-    private static final int MAX_POOLED_RUNNABLES = 256;
-
-    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = WeakMapSupplier.createMap();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -90,8 +81,6 @@ public class ElasticApmTracer {
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
-    private final ObjectPool<SpanInScopeRunnableWrapper> runnableSpanWrapperObjectPool;
-    private final ObjectPool<SpanInScopeCallableWrapper<?>> callableSpanWrapperObjectPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
     // Maintains a stack of all the activated spans
@@ -101,13 +90,6 @@ public class ElasticApmTracer {
         @Override
         protected Deque<AbstractSpan<?>> initialValue() {
             return new ArrayDeque<AbstractSpan<?>>();
-        }
-    };
-
-    private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return Boolean.TRUE;
         }
     };
 
@@ -153,9 +135,6 @@ public class ElasticApmTracer {
 
         // we are assuming that we don't need as many errors as spans or transactions
         errorPool = poolFactory.createErrorPool(maxPooledElements / 2, this);
-
-        runnableSpanWrapperObjectPool = poolFactory.createRunnableWrapperPool(MAX_POOLED_RUNNABLES, this);
-        callableSpanWrapperObjectPool = poolFactory.createCallableWrapperPool(MAX_POOLED_RUNNABLES, this);
 
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
@@ -300,18 +279,6 @@ public class ElasticApmTracer {
         if (serviceName != null) {
             transaction.getTraceContext().setServiceName(serviceName);
         }
-    }
-
-    public void avoidWrappingOnThread() {
-        allowWrappingOnThread.set(Boolean.FALSE);
-    }
-
-    public void allowWrappingOnThread() {
-        allowWrappingOnThread.set(Boolean.TRUE);
-    }
-
-    public boolean isWrappingAllowedOnThread() {
-        return allowWrappingOnThread.get() == Boolean.TRUE;
     }
 
     public Transaction noopTransaction() {
@@ -502,28 +469,6 @@ public class ElasticApmTracer {
 
     public void recycle(ErrorCapture error) {
         errorPool.recycle(error);
-    }
-
-    public Runnable wrapRunnable(Runnable delegate, AbstractSpan<?> span) {
-        if (delegate instanceof SpanInScopeRunnableWrapper) {
-            return delegate;
-        }
-        return runnableSpanWrapperObjectPool.createInstance().wrap(delegate, span);
-    }
-
-    public void recycle(SpanInScopeRunnableWrapper wrapper) {
-        runnableSpanWrapperObjectPool.recycle(wrapper);
-    }
-
-    public <V> Callable<V> wrapCallable(Callable<V> delegate, AbstractSpan<?> span) {
-        if (delegate instanceof SpanInScopeCallableWrapper) {
-            return delegate;
-        }
-        return ((SpanInScopeCallableWrapper<V>) callableSpanWrapperObjectPool.createInstance()).wrap(delegate, span);
-    }
-
-    public void recycle(SpanInScopeCallableWrapper<?> wrapper) {
-        callableSpanWrapperObjectPool.recycle(wrapper);
     }
 
     /**
@@ -746,7 +691,7 @@ public class ElasticApmTracer {
             assertIsActive(span, stack.poll());
             List<ActivationListener> activationListeners = getActivationListeners();
             for (int i = 0, size = activationListeners.size(); i < size; i++) {
-                    try {
+                try {
                     // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
                     activationListeners.get(i).afterDeactivate(span);
                 } catch (Error e) {

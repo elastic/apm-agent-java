@@ -209,6 +209,7 @@ public abstract class HelperClassManager<T> {
 
         private ForAnyClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             super(tracer, implementation, additionalHelpers);
+            // deliberately doesn't use WeakMapSupplier as this class manages the cleanup manually
             clId2helperMap = new WeakConcurrentMap<>(false);
         }
 

@@ -22,15 +22,10 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.redis.lettuce;
+package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.collections.WeakMapSupplier;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.redis.RedisSpanUtils;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
-import io.lettuce.core.protocol.RedisCommand;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -39,57 +34,55 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ForkJoinTask;
 
-import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Starts a span in {@link io.lettuce.core.RedisChannelHandler#dispatch(RedisCommand)}
- *
- * The context will be propagated via the Netty instrumentation
+ * Used only within {@link JavaConcurrent#withContext} to
+ * {@linkplain co.elastic.apm.agent.bci.ElasticApmAgent#ensureInstrumented(Class, Collection) ensure}
+ * that particular {@link Callable}, {@link Runnable} and {@link ForkJoinTask} classes are instrumented.
  */
-public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation {
-
-    @VisibleForAdvice
-    @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<RedisCommand<?, ?, ?>, Span> commandToSpan = WeakMapSupplier.createMap();
+public class RunnableCallableForkJoinTaskInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.lettuce.core.RedisChannelHandler");
+        return hasSuperType(
+            is(Runnable.class)
+            .or(is(Callable.class))
+            .or(is(ForkJoinTask.class))
+        );
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("dispatch")
-            .and(returns(nameEndsWith("RedisCommand")))
-            .and(takesArguments(1))
-            .and(takesArgument(0, nameEndsWith("RedisCommand")));
+        return named("run").and(takesArguments(0))
+            .or(named("call").and(takesArguments(0)))
+            .or(named("exec").and(takesArguments(0).and(returns(boolean.class))));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("redis", "lettuce");
+        return Arrays.asList("concurrent", "executor");
     }
 
+    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command, @Advice.Local("span") Span span) throws Exception {
-        if (command != null) {
-            span = RedisSpanUtils.createRedisSpan(command.getType().name());
-            if (span != null) {
-                commandToSpan.put(command, span);
-            }
-        }
+    private static AbstractSpan<?> onEnter(@Advice.This Object thiz) {
+        return JavaConcurrent.restoreContext(thiz, tracer);
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    private static void afterDispatch(@Nullable @Advice.Local("span") Span span) {
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    private static void onExit(@Advice.Thrown Throwable thrown,
+                               @Nullable @Advice.Enter AbstractSpan<?> span) {
         if (span != null) {
             span.deactivate();
         }
     }
-
 }

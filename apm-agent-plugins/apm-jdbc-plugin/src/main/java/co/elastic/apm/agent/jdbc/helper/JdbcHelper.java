@@ -24,16 +24,16 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
 
 public abstract class JdbcHelper {
 
-    private static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+    private static final WeakConcurrentMap<Object, String> statementSqlMap = WeakMapSupplier.createMap();
 
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
