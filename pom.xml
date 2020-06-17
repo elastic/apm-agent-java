@@ -542,6 +542,30 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>org.apache.ivy</groupId>
+                <artifactId>ivy</artifactId>
+                <version>2.5.0</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>${version.jetty-server}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${version.jetty-server}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util</artifactId>
+                <version>${version.jetty-server}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -604,12 +628,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>${version.jetty-server}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-standalone</artifactId>
             <version>2.18.0</version>
@@ -619,12 +637,6 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>4.0.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.ivy</groupId>
-            <artifactId>ivy</artifactId>
-            <version>2.5.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

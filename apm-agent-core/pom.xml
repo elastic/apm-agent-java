@@ -89,16 +89,15 @@
             <version>2.0.23.Final</version>
             <scope>test</scope>
         </dependency>
+        <!-- jetty required to test reporter -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>${version.jetty-server}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-util</artifactId>
-            <version>${version.jetty-server}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -137,6 +136,11 @@
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit</artifactId>
             <version>${version.cucumber}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
