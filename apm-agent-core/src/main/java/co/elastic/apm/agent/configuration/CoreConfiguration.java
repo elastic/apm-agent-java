@@ -341,6 +341,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("classes_excluded_from_instrumentation")
+        .tags("added[1.17.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Use to exclude specific classes from being instrumented. In order to exclude entire packages, \n" +
             "use wildcards, as in: `com.project.exclude.*`" +
