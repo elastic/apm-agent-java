@@ -28,6 +28,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -56,16 +57,26 @@ public class WebFluxInstrumentationTest extends AbstractInstrumentationTest {
         context.close();
     }
 
+    @BeforeEach
+    void beforeEach(){
+        assertThat(reporter.getTransactions()).isEmpty();
+    }
+
     // test cases to cover
     // -> transaction created when properly executing span
     // -  exception thrown during dispatch should properly terminate transaction
 
     @Test
-    void simpleRequestDistpatch() {
-
-        assertThat(reporter.getTransactions()).isEmpty();
-
+    void dispatchHello() {
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
+
+        Transaction transaction = reporter.getFirstTransaction();
+        assertThat(transaction).isNotNull();
+    }
+
+    @Test
+    void dispatch404() {
+        assertThat(client.getMappingError404()).contains("Not Found");
 
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();

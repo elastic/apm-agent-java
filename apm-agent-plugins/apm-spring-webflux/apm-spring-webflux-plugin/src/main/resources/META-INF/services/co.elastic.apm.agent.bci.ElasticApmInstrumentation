@@ -1,1 +1,2 @@
 co.elastic.apm.agent.webflux.DispatcherHandlerInstrumentation
+co.elastic.apm.agent.webflux.HandlerAdapterInstrumentation
