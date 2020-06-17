@@ -78,8 +78,12 @@ public class GreetingWebClient {
     }
 
     private static String flatMapToString(Mono<ClientResponse> response) {
-        return response.flatMap(res -> res.bodyToMono(String.class))
+        String result = response.flatMap(res -> res.bodyToMono(String.class))
             .block();
+        if (result == null) {
+            throw new IllegalStateException("missing result");
+        }
+        return result;
     }
 
     private Mono<ClientResponse> exchange(String uri) {
