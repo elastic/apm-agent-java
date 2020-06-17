@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.16.1-SNAPSHOT</version>
+    <version>1.17.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -273,6 +273,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
+                    <source>8</source>
                 </configuration>
                 <executions>
                     <execution>

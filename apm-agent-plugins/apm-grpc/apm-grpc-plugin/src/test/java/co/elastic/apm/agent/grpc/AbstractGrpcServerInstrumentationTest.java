@@ -31,6 +31,8 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
 import java.util.List;
@@ -70,8 +72,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(app.sayHello("bob", 0))
             .isEqualTo("hello(bob)");
 
-        Transaction transaction = getReporter().getFirstTransaction(100);
-        checkUnaryTransaction(transaction, "OK");
+        checkUnaryTransaction(getFirstTransaction(), "OK");
     }
 
     @Test
@@ -151,7 +152,50 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         checkNoTransaction();
     }
 
-    private static void checkUnaryTransaction(Transaction transaction, String expectedResult){
+    @ParameterizedTest
+    @ValueSource(strings = {"onMessage", "onHalfClose", "onCancel", "onComplete", "onReady"})
+    void serverListenerException(String method) {
+        // throwing an exception in any of the server listener methods should mark the transaction in error
+        app.getServer().setListenerExceptionMethod(method);
+
+        String s = app.sayHello("any", 0);
+
+        String expectedTransactionStatus;
+        int expectedErrorCount = 0;
+        if (method.equals("onCancel") || method.equals("onComplete")) {
+            // onCancel is not called, thus exception is not thrown
+            // onComplete exception is thrown, but result is already sent, thus we still get it client-side
+            assertThat(s).isEqualTo("hello(any)");
+            expectedTransactionStatus = "OK";
+        } else {
+            // with all other listener methods, expected result is not available
+            assertThat(s).isNull();
+            expectedErrorCount = 1;
+            expectedTransactionStatus = "UNKNOWN";
+        }
+
+        assertThat(app.getClient().getErrorCount())
+            .describedAs("server listener exception should be visible on client")
+            .isEqualTo(expectedErrorCount);
+
+        checkUnaryTransaction(getFirstTransaction(), expectedTransactionStatus);
+    }
+
+    @Test
+    void noNestedTransactionsForSingleCall() {
+        String s = app.sayHello("bob", 0);
+        assertThat(s).isEqualTo("hello(bob)");
+
+        reporter.awaitUntilAsserted(200, () -> {
+            assertThat(reporter.getTransactions())
+                .describedAs("exactly one transaction is expected")
+                .hasSize(1);
+        });
+
+    }
+
+    private static void checkUnaryTransaction(Transaction transaction, String expectedResult) {
+        assertThat(transaction).isNotNull();
         assertThat(transaction.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo(expectedResult);
@@ -163,7 +207,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
     }
 
     private static Transaction getFirstTransaction() {
-        return getReporter().getFirstTransaction(100);
+        return getReporter().getFirstTransaction(1000);
     }
 
 }

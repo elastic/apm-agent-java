@@ -25,9 +25,14 @@
 package co.elastic.apm.agent.grpc.testapp;
 
 import io.grpc.BindableService;
+import io.grpc.Metadata;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
 import io.grpc.Status;
+import io.grpc.elastic.test.TestServerListener;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +42,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -45,10 +53,18 @@ public abstract class HelloServer<Req,Rep> {
 
     private static final Logger logger = LoggerFactory.getLogger(HelloServer.class);
 
+    public static final int POOL_SIZE = Runtime.getRuntime().availableProcessors() * 2;
+
+    private static boolean verbose = true;
+
     protected final int port;
     protected final AtomicReference<Sync> syncBarriers;
     protected final HelloClient<Req, Rep>  client;
+
+    // contains listener method name that should throw an exception
+    protected final AtomicReference<String> listenerExceptionMethod;
     private Server server;
+    private ExecutorService serverPool;
 
     protected static class Sync {
         public CyclicBarrier processingStart;
@@ -59,18 +75,54 @@ public abstract class HelloServer<Req,Rep> {
         this.port = port;
         this.syncBarriers = new AtomicReference<>();
         this.client = client;
+        this.listenerExceptionMethod = new AtomicReference<>();
+    }
+
+    public void setListenerExceptionMethod(String methodName) {
+        listenerExceptionMethod.set(methodName);
     }
 
     protected abstract BindableService getService();
 
+    protected ServerInterceptor getInterceptor() {
+        return new ServerInterceptor() {
+            @Override
+            public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+                return new TestServerListener<ReqT>(next.startCall(call, headers), listenerExceptionMethod);
+            }
+        };
+    }
+
+    public static void setVerbose(boolean value){
+        verbose = value;
+    }
+
     public void start() throws IOException {
+        serverPool = Executors.newFixedThreadPool(POOL_SIZE, new ThreadFactory() {
+            int i = 0;
+
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r);
+                thread.setName(String.format("grpc-server-%d", i++));
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
         server = ServerBuilder.forPort(port)
             .addService(getService())
+            .executor(serverPool)
+            .intercept(getInterceptor())
             .build();
+
         logger.info("starting grpc server on port {}", port);
+
+
         server.start();
         logger.info("grpc server start complete");
     }
+
+
 
     public void stop() throws InterruptedException {
         logger.info("stopping grpc server");
@@ -83,6 +135,14 @@ public abstract class HelloServer<Req,Rep> {
         if (!shutdownOk) {
             throw new IllegalStateException("something is wrong, unable to properly shut down server");
         }
+
+        serverPool.shutdown();
+        try {
+            serverPool.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            serverPool.shutdownNow();
+        }
+
         logger.info("grpc server shutdown complete");
     }
 
@@ -105,10 +165,12 @@ public abstract class HelloServer<Req,Rep> {
     protected static class GenericHelloGrpcImpl<Req,Rep> {
         private final HelloClient<Req, Rep> client;
         private final AtomicReference<Sync> syncBarriers;
+        private final boolean verbose;
 
         public GenericHelloGrpcImpl(HelloClient<Req, Rep> client, AtomicReference<Sync> syncBarriers) {
             this.client = client;
             this.syncBarriers = syncBarriers;
+            this.verbose = HelloServer.verbose;
         }
 
         public interface ReplyHandler {
@@ -146,7 +208,7 @@ public abstract class HelloServer<Req,Rep> {
             // even if the server has already started processing it.
             syncWait(true);
 
-            logger.info("start processing");
+           logVerbose("start processing");
 
             if (depth > 0) {
                 int nextDepth = depth - 1;
@@ -158,12 +220,12 @@ public abstract class HelloServer<Req,Rep> {
             } else {
 
                 if (userName.isEmpty()) {
-                    logger.info("trigger a graceful error");
+                    logVerbose("trigger a graceful error");
                     // this seems to be the preferred way to deal with errors on server implementation
                     replyHandler.gracefulError();
                     return;
                 } else if ("boom".equals(userName)) {
-                    logger.info("trigger a server exception aka 'not so graceful error'");
+                    logVerbose("trigger a server exception aka 'not so graceful error'");
                     // this will be translated into a Status#UNKNOWN
                     throw new RuntimeException("boom");
                 }
@@ -171,17 +233,23 @@ public abstract class HelloServer<Req,Rep> {
                 message = String.format("hello(%s)", userName);
             }
 
-            logger.info("end of processing, response not sent yet");
+            logVerbose("end of processing, response not sent yet");
 
             // end of processing, but before sending response
             syncWait(false);
 
-            logger.info("start sending response");
+            logVerbose("start sending response");
 
             replyHandler.sendReply(message);
 
-            logger.info("end of sending response");
+            logVerbose("end of sending response");
 
+        }
+
+        private void logVerbose(String msg, Object... args){
+            if (verbose) {
+                logger.info(msg, args);
+            }
         }
 
         public StreamObserver<Req> doSayManyHello(StreamObserver<Rep> responseObserver,
@@ -265,7 +333,7 @@ public abstract class HelloServer<Req,Rep> {
             Sync sync = syncBarriers.get();
             if (sync != null) {
                 String step = isStart ? "start" : "end";
-                logger.info("server waiting sync on " + step);
+                logVerbose("server waiting sync on " + step);
                 CyclicBarrier barrier = isStart ? sync.processingStart : sync.processingEnd;
                 long waitStart = System.currentTimeMillis();
                 try {
@@ -276,7 +344,7 @@ public abstract class HelloServer<Req,Rep> {
                     barrier.reset();
                 }
                 long waitedMillis = System.currentTimeMillis() - waitStart;
-                logger.info("waited for {} ms at processing {}", waitedMillis, step);
+                logVerbose("waited for {} ms at processing {}", waitedMillis, step);
             }
         }
     }

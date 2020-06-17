@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.bci.GlobalState;
-import co.elastic.apm.agent.util.DataStructures;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import java.sql.Connection;
@@ -33,10 +33,10 @@ import java.sql.Connection;
 @GlobalState
 public class JdbcGlobalState {
 
-    public static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
-    public static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
-    public static final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
-    public static final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
+    public static final WeakConcurrentMap<Object, String> statementSqlMap = WeakMapSupplier.createMap();
+    public static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = WeakMapSupplier.createMap();
+    public static final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = WeakMapSupplier.createMap();
+    public static final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = WeakMapSupplier.createMap();
 
     public static void clearInternalStorage() {
         metaDataMap.clear();

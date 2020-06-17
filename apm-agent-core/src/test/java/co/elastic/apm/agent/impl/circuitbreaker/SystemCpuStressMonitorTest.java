@@ -67,6 +67,7 @@ class SystemCpuStressMonitorTest {
             .configurationRegistry(configurationRegistry)
             .reporter(new MockReporter())
             .build();
+        tracer.start();
         getNextValueMethod = MBeanMock.class.getDeclaredMethod("getNextValue");
     }
 

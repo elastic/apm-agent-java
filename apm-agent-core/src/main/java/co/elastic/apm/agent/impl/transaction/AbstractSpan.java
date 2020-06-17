@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -464,30 +463,6 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
                 deactivate();
             }
         };
-    }
-
-    /**
-     * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
-     *
-     * <p>
-     * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
-     * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
-     * </p>
-     */
-    public Runnable withActive(Runnable runnable) {
-        return tracer.wrapRunnable(runnable, this);
-    }
-
-    /**
-     * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
-     *
-     * <p>
-     * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
-     * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
-     * </p>
-     */
-    public <V> Callable<V> withActive(Callable<V> callable) {
-        return tracer.wrapCallable(callable, this);
     }
 
     /**

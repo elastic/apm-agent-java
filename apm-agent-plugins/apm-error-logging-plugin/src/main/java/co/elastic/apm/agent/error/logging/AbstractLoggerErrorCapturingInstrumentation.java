@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumentation {
+public abstract class AbstractLoggerErrorCapturingInstrumentation extends ElasticApmInstrumentation {
 
     @SuppressWarnings({"WeakerAccess"})
     @VisibleForAdvice

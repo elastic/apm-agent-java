@@ -29,25 +29,25 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 
+import static co.elastic.apm.agent.error.logging.Slf4jLoggerErrorCapturingInstrumentation.SLF4J_LOGGER;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class Slf4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
+public class Log4j2LoggerErrorCapturingInstrumentation extends AbstractLoggerErrorCapturingInstrumentation {
 
-    // prevents the shade plugin from relocating org.slf4j.Logger to co.elastic.apm.agent.shaded.slf4j.Logger
-    private static final String SLF4J_LOGGER = "org!slf4j!Logger".replace('!', '.');
+    // prevents the shade plugin from relocating org.apache.logging.log4j.Logger to co.elastic.apm.agent.shaded.logging.log4j.Logger
+    static final String LOG4J2_LOGGER = "org!apache!logging!log4j!Logger".replace('!', '.');
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named(SLF4J_LOGGER)
-            .and(not(hasSuperType(named("org.apache.logging.log4j.Logger")))));
+        return hasSuperType(named(LOG4J2_LOGGER)).and(not(hasSuperType(named(SLF4J_LOGGER))));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("slf4j");
+        ret.add("log4j");
         return ret;
     }
 }

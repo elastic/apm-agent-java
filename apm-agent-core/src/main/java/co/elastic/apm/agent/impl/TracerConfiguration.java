@@ -34,17 +34,19 @@ public class TracerConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> recording = ConfigurationOption.booleanOption()
         .key(RECORDING)
         .aliasKeys("active")
+        .tags("added[1.15.0]")
         .configurationCategory(CoreConfiguration.CORE_CATEGORY)
-        .description("A boolean specifying if the agent should be recording or not.\n" +
+        .description("NOTE: This option was available in older versions through the `active` key. The old key is still \n" +
+            "supported in newer versions, but it is now deprecated.\n" +
+            "\n" +
+            "A boolean specifying if the agent should be recording or not.\n" +
             "When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
             "When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,\n" +
             "except for polling the central configuration endpoint.\n" +
             "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
             "mostly idle in this state, so the overhead should be negligible.\n" +
             "\n" +
-            "You can use this setting to dynamically disable Elastic APM at runtime.\n" +
-            "\n" +
-            "The key of this option used to be `active`. The old key still works but is now deprecated.")
+            "You can use this setting to dynamically disable Elastic APM at runtime.")
         .dynamic(true)
         .buildWithDefault(true);
 

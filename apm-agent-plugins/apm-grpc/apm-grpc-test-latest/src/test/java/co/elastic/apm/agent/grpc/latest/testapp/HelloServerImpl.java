@@ -24,12 +24,16 @@
  */
 package co.elastic.apm.agent.grpc.latest.testapp;
 
-import co.elastic.apm.agent.grpc.testapp.HelloClient;
-import co.elastic.apm.agent.grpc.testapp.HelloServer;
 import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloGrpc;
 import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.latest.testapp.generated.HelloRequest;
+import co.elastic.apm.agent.grpc.testapp.HelloClient;
+import co.elastic.apm.agent.grpc.testapp.HelloServer;
 import io.grpc.BindableService;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -44,6 +48,7 @@ class HelloServerImpl extends HelloServer<HelloRequest, HelloReply> {
     protected BindableService getService() {
         return new HelloGrpcImpl(client, syncBarriers);
     }
+
 
     private static class HelloGrpcImpl extends HelloGrpc.HelloImplBase {
 

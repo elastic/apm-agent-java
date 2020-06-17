@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -40,7 +41,7 @@ import java.util.List;
 @VisibleForAdvice
 public class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(new WeakConcurrentMap.WithInlinedExpunction<Process, Span>());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakMapSupplier.<Process, Span>createMap());
 
     private final WeakConcurrentMap<Process, Span> inFlightSpans;
 

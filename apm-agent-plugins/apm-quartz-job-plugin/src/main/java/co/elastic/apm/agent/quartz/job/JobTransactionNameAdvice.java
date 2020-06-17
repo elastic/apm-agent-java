@@ -27,6 +27,7 @@ package co.elastic.apm.agent.quartz.job;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
@@ -42,7 +43,7 @@ public class JobTransactionNameAdvice {
 
     private static final String FRAMEWORK_NAME = "Quartz";
     @VisibleForAdvice
-    public static final WeakConcurrentMap<Class<?>, String> versionsCache = new WeakConcurrentMap.WithInlinedExpunction<>();
+    public static final WeakConcurrentMap<Class<?>, String> versionsCache = WeakMapSupplier.createMap();
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);

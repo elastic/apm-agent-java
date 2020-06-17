@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
