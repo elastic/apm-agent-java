@@ -25,11 +25,11 @@
 package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
-import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,9 +50,9 @@ public class JdbcHelperImpl extends JdbcHelper {
     // because this class is potentially loaded from multiple classloaders, making those fields 'static' will not
     // have the expected behavior, thus, any direct reference to `JdbcHelperImpl` should only be obtained from the
     // HelperClassManager<JdbcHelper> instance.
-    private final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
-    private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
-    private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = new WeakConcurrentMap.WithInlinedExpunction<Class<?>, Boolean>();
+    private final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = WeakMapSupplier.createMap();
+    private final WeakConcurrentMap<Class<?>, Boolean> metadataSupported = WeakMapSupplier.createMap();
+    private final WeakConcurrentMap<Class<?>, Boolean> connectionSupported = WeakMapSupplier.createMap();
 
     @VisibleForAdvice
     public final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {

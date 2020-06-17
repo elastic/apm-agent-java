@@ -286,10 +286,20 @@ This section lists all supported asynchronous frameworks.
 |===
 |Framework |Supported versions | Description | Since
 
-|ExecutorService
+|`ExecutorService`
 |
-|The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
+|The agent propagates the context for ``ExecutorService``s.
 |1.4.0
+
+|`ScheduledExecutorService`
+|
+|The agent propagates the context for `ScheduledExecutorService#schedule` (this does not include `scheduleAtFixedRate` or `scheduleWithFixedDelay`.
+|1.17.0
+
+|`ForkJoinPool`
+|
+|The agent propagates the context for ``ForkJoinPool``s.
+|1.17.0
 
 |Scala Future
 |2.13.x
@@ -297,7 +307,7 @@ This section lists all supported asynchronous frameworks.
 It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, ...
 
 NOTE: To enable Scala Future support, you need to enable experimental plugins.
-|1.17.0
+|1.18.0
 
 |===
 
@@ -382,7 +392,9 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
 
-|1.13.0 (log correlation via `ThreadContext`)
+Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+|1.13.0
 
 
 |log4j
@@ -391,9 +403,7 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
 
-Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
-|1.11.0 (error capturing), 1.13.0 (log correlation via log4j's MDC)
+|1.13.0
 
 |===
 

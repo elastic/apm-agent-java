@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -89,13 +90,13 @@ public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.Argument(value = 0, readOnly = false) Runnable runnable) {
-            if (tracer == null || tracer.getActive() == null) {
-                return;
-            }
-            // context propagation is done by wrapping existing runnable argument
+            runnable = JavaConcurrent.withContext(runnable, tracer);
+        }
 
-            //noinspection UnusedAssignment
-            runnable = tracer.getActive().withActive(runnable);
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onExit(@Advice.Thrown Throwable thrown,
+                                   @Advice.Argument(value = 0) Runnable runnable) {
+            JavaConcurrent.doFinally(thrown, runnable);
         }
     }
 }

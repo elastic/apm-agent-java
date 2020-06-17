@@ -119,6 +119,7 @@ public class ApiKeysStepsDefinitions {
     @Then("the Authorization header is {string}")
     public void checkExpectedHeader(String expectedHeaderValue) {
         ApmServerClient apmServerClient = new ApmServerClient(configuration);
+        apmServerClient.start();
 
         try {
             apmServerClient.execute("/", new ApmServerClient.ConnectionHandler<Object>() {

@@ -73,7 +73,8 @@ public class ApmServerLogShipperTest {
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
 
-        ApmServerClient apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
+        ApmServerClient apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
 
         DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient);
         logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), MetaData.create(config, null), serializer);

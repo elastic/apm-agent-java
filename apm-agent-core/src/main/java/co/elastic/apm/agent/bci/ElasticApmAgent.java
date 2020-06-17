@@ -34,10 +34,10 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
@@ -82,9 +82,11 @@ import java.util.concurrent.TimeUnit;
 import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
+import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
@@ -104,7 +106,7 @@ public class ElasticApmAgent {
     @Nullable
     private static ResettableClassFileTransformer resettableClassFileTransformer;
     private static final List<ResettableClassFileTransformer> dynamicClassFileTransformers = new ArrayList<>();
-    private static final WeakConcurrentMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private static final WeakConcurrentMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakMapSupplier.createMap();
     @Nullable
     private static File agentJarFile;
 
@@ -118,7 +120,9 @@ public class ElasticApmAgent {
     public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
+        // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
+        tracer.start();
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
@@ -247,7 +251,7 @@ public class ElasticApmAgent {
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = instrumentation.getClassLoaderMatcher();
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = instrumentation.getTypeMatcherPreFilter();
         final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = instrumentation.getImplementationVersionPostFilter();
-        final ElementMatcher<? super MethodDescription> methodMatcher = instrumentation.getMethodMatcher();
+        final ElementMatcher<? super MethodDescription> methodMatcher = new ElementMatcher.Junction.Conjunction<>(instrumentation.getMethodMatcher(), not(isAbstract()));
         return agentBuilder
             .type(new AgentBuilder.RawMatcher() {
                 @Override
@@ -409,7 +413,6 @@ public class ElasticApmAgent {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
             }
         }
-
         return new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
@@ -467,18 +470,8 @@ public class ElasticApmAgent {
             .or(nameStartsWith("io.sqreen."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
-            .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
-                @Override
-                public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation(), target.getName()) != null;
-                }
-            })
-            .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
-                @Override
-                public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation(), target.getName()) != null;
-                }
-            })
+            .or(anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation()))
+            .or(anyMatch(coreConfiguration.getClassesExcludedFromInstrumentation()))
             .disableClassFormatChanges();
     }
 
