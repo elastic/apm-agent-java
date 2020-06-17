@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,13 +24,13 @@
  */
 package co.elastic.apm.agent.error.logging;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class Log4jLoggingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
+class Slf4jLoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
 
-    private static final Logger logger = LogManager.getLogger(Log4jLoggingInstrumentationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(Slf4jLoggerErrorCapturingInstrumentationTest.class);
 
     @Test
     void captureException() {
