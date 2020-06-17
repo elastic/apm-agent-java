@@ -24,13 +24,13 @@
  */
 package co.elastic.apm.agent.error.logging;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-class Slf4jLoggingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
+class Log4j2LoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(Slf4jLoggingInstrumentationTest.class);
+    private static final Logger logger = LogManager.getLogger(Log4j2LoggerErrorCapturingInstrumentationTest.class);
 
     @Test
     void captureException() {

@@ -27,8 +27,8 @@ package co.elastic.apm.agent.mdc;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.error.logging.Log4jLoggingInstrumentation;
-import co.elastic.apm.agent.error.logging.Slf4jLoggingInstrumentation;
+import co.elastic.apm.agent.error.logging.Log4j2LoggerErrorCapturingInstrumentation;
+import co.elastic.apm.agent.error.logging.Slf4jLoggerErrorCapturingInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -70,7 +70,7 @@ class MdcActivationListenerIT {
             .reporter(reporter)
             .build();
         tracer.start();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new Slf4jLoggingInstrumentation(), new Log4jLoggingInstrumentation()));
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new Slf4jLoggerErrorCapturingInstrumentation(), new Log4j2LoggerErrorCapturingInstrumentation()));
     }
 
     @AfterAll
