@@ -26,6 +26,8 @@ package co.elastic.apm.agent.webflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
+import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,8 +50,8 @@ public class WebFluxInstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeAll
     static void startApp() {
-        context = GreetingApplication.run(PORT);
-        client = GreetingApplication.getClient(context);
+        context = WebFluxApplication.run(PORT);
+        client = WebFluxApplication.getClient(context);
     }
 
     @AfterAll

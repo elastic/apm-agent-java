@@ -22,21 +22,28 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.server.ServerRequest;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
 
-@RestController
+@RestController()
 public class GreetingController {
 
     final GreetingHandler greetingHandler;
@@ -48,7 +55,7 @@ public class GreetingController {
 
     @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/hello")
     public Mono<String> getHello(@RequestParam(value = "name", required = false) @Nullable String name) {
-        return Mono.just(greetingHandler.helloMessage(Optional.ofNullable(name)));
+        return greetingHandler.helloMessage(Optional.ofNullable(name));
     }
 
     @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/error-handler")
@@ -70,6 +77,36 @@ public class GreetingController {
     public ResponseEntity<String> handleException(RuntimeException e){
         return ResponseEntity.status(500)
             .body(greetingHandler.exceptionMessage(e));
+    }
+
+    @GetMapping("/controller/hello-mapping")
+    public Mono<String> getMapping() {
+        return greetingHandler.helloMessage(Optional.of("GET"));
+    }
+
+    @PostMapping("/controller/hello-mapping")
+    public Mono<String> postMapping() {
+        return greetingHandler.helloMessage(Optional.of("POST"));
+    }
+
+    @PutMapping("/controller/hello-mapping")
+    public Mono<String> putMapping() {
+        return greetingHandler.helloMessage(Optional.of("PUT"));
+    }
+
+    @DeleteMapping("/controller/hello-mapping")
+    public Mono<String> deleteMapping() {
+        return greetingHandler.helloMessage(Optional.of("DELETE"));
+    }
+
+    @PatchMapping("/controller/hello-mapping")
+    public Mono<String> pathMapping() {
+        return greetingHandler.helloMessage(Optional.of("PATCH"));
+    }
+
+    @RequestMapping(path = "/controller/hello-mapping", method = {RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.TRACE})
+    public Mono<String> otherMapping(ServerRequest request) {
+        return greetingHandler.helloMessage(Optional.of(request.methodName()));
     }
 
 }

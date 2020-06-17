@@ -22,21 +22,23 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-class GreetingConfig {
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class RestEndpointTest extends ApplicationTest {
 
-    @Bean
-    GreetingWebClient getWebClient(Environment environment) {
-        String serverPort = environment.getProperty("server.port");
-        if (serverPort == null) {
-            throw new IllegalStateException("missing server port");
-        }
-        return new GreetingWebClient("localhost", Integer.parseInt(serverPort), true);
+    @LocalServerPort
+    private int serverPort;
+
+    @Override
+    protected GreetingWebClient createClient() {
+        return new GreetingWebClient("localhost", serverPort, true);
     }
+
 }

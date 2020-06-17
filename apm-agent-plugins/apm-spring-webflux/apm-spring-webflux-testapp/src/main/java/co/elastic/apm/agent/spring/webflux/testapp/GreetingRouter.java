@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +31,9 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Mono;
+
+import java.util.Optional;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
 
@@ -41,14 +44,14 @@ public class GreetingRouter {
 	public RouterFunction<ServerResponse> route(GreetingHandler greetingHandler) {
         return RouterFunctions.route()
             .route(r -> r.path().equals("/router/hello"),
-                request -> ServerResponse.ok()
-                        .contentType(MediaType.TEXT_PLAIN)
-                        .body(BodyInserters.fromValue(greetingHandler.helloMessage(request.queryParam("name")))))
+                request -> helloGreeting(greetingHandler, request.queryParam("name")))
+            .route(r -> r.path().equals("/router/hello-mapping"),
+                request -> helloGreeting(greetingHandler, Optional.of(request.methodName())))
             .GET("/router/error-handler", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.throwException())
             .GET("/router/error-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoError())
             .GET("/router/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
             .onError(
-                e -> true, (e, request) -> ServerResponse
+        e -> true, (e, request) -> ServerResponse
                     .status(request.queryParam("status")
                         .map(Integer::parseInt)
                         .orElse(500))
@@ -56,6 +59,12 @@ public class GreetingRouter {
             )
             .build();
 	}
+
+    private Mono<ServerResponse> helloGreeting(GreetingHandler greetingHandler, Optional<String> name) {
+        return ServerResponse.ok()
+            .contentType(MediaType.TEXT_PLAIN)
+            .body(BodyInserters.fromValue(greetingHandler.helloMessage(name).block()));
+    }
 
     // exception handler
     // TODO

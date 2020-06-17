@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,14 +22,30 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux.config;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebFlux
 public class WebFluxConfig implements WebFluxConfigurer {
+
+    @Bean
+    GreetingWebClient getWebClient(Environment environment) {
+        String serverPort = environment.getProperty("server.port");
+        if (serverPort == null) {
+            throw new IllegalStateException("missing server port");
+        }
+        return new GreetingWebClient("localhost", Integer.parseInt(serverPort), true);
+    }
 
 }

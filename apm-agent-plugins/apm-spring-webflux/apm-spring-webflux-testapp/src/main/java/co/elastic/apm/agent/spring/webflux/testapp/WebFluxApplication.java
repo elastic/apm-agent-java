@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -31,13 +31,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.util.Map;
 
 @SpringBootApplication
-public class GreetingApplication {
+public class WebFluxApplication{
 
     public static void main(String[] args) {
-        try (ConfigurableApplicationContext context = run(8080)) {
-            GreetingWebClient client = getClient(context);
-            sampleRequests(client);
-        }
+        // todo make port configurable or random
+        run(8080);
     }
 
     /**
@@ -46,21 +44,13 @@ public class GreetingApplication {
      * @return application context
      */
     public static ConfigurableApplicationContext run(int port){
-        SpringApplication app = new SpringApplication(GreetingApplication.class);
+        SpringApplication app = new SpringApplication(WebFluxApplication.class);
         app.setDefaultProperties(Map.of("server.port", port));
         return app.run();
     }
 
-    public static GreetingWebClient getClient(ConfigurableApplicationContext context){
+    public static GreetingWebClient getClient(ConfigurableApplicationContext context) {
         return context.getBean(GreetingWebClient.class);
-    }
-
-    public static void sampleRequests(GreetingWebClient client){
-        System.out.println(client.getHelloMono());
-        System.out.println(client.getMappingError404());
-        System.out.println(client.getHandlerError());
-        System.out.println(client.getMonoError());
-        System.out.println(client.getMonoEmpty());
     }
 
 }

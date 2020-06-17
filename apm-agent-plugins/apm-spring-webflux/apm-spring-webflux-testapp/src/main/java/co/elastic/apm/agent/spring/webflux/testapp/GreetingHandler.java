@@ -22,22 +22,34 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class FunctionalEndpointTest extends ApplicationTest {
+import java.util.Optional;
 
-    @LocalServerPort
-    private int serverPort;
+@Component
+public class GreetingHandler {
 
-    @Override
-    protected GreetingWebClient createClient() {
-        return new GreetingWebClient("localhost", serverPort, false);
+    public Mono<String> helloMessage(Optional<String> name) {
+        return Mono.just(String.format("Hello, %s!", name.orElse("Spring")));
     }
+
+    public <T> Mono<T> throwException(){
+        throw new RuntimeException("intentional handler exception");
+    }
+
+    public <T> Mono<T> monoError() {
+        return Mono.error(new RuntimeException("intentional error"));
+    }
+
+    public <T> Mono<T> monoEmpty() {
+        return Mono.empty();
+    }
+
+    public String exceptionMessage(Throwable t){
+        return "error handler: " + t.getMessage();
+    }
+
 }

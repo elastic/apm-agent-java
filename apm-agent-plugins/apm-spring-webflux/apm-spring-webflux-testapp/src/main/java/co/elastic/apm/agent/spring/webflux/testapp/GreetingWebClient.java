@@ -22,12 +22,13 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+
+import javax.annotation.Nullable;
 
 public class GreetingWebClient {
 
@@ -44,55 +45,46 @@ public class GreetingWebClient {
     }
 
     public String getHelloMono() {
-        return flatMapToString(exchange("/hello"));
+        return executeAndCheckRequest("GET", "/hello", 200);
     }
 
     public String getMappingError404() {
-        return expectServerStatus("/error-404", 404);
+        return executeAndCheckRequest("GET", "/error-404", 404);
     }
 
     public String getHandlerError() {
-        return expectServerStatus("/error-handler", 500);
+        return executeAndCheckRequest("GET", "/error-handler", 500);
     }
 
     public String getMonoError() {
-        return expectServerStatus("/error-mono", 500);
+        return executeAndCheckRequest("GET", "/error-mono", 500);
     }
 
+    @Nullable
     public String getMonoEmpty() {
-        return expectServerStatus("/empty-mono", 200);
+        return executeAndCheckRequest("GET", "/empty-mono", 200);
     }
 
-    private String expectServerStatus(String path, int status) {
-        Mono<ClientResponse> exchange = exchange(path)
-            .map(r -> checkStatus(r, status));
-        return flatMapToString(exchange);
+    public String methodMapping(String method) {
+        return executeAndCheckRequest(method, "/hello-mapping", 200);
     }
 
-    private static ClientResponse checkStatus(ClientResponse r, int expectedStatus) {
-        int statusCode = r.rawStatusCode();
-        if (statusCode != expectedStatus) {
-            throw new IllegalStateException(String.format("unexpected status code %d", statusCode));
-        }
-        return r;
-    }
+    private String executeAndCheckRequest(String method, String path, int expectedStatus) {
+        System.out.println(String.format("%s %s%s", method, baseUri, path));
 
-    private static String flatMapToString(Mono<ClientResponse> response) {
-        String result = response.flatMap(res -> res.bodyToMono(String.class))
-            .block();
-        if (result == null) {
-            throw new IllegalStateException("missing result");
-        }
-        return result;
-    }
-
-    private Mono<ClientResponse> exchange(String uri) {
-        System.out.println(String.format("GET %s%s", baseUri, uri));
-
-        // exchange or retrieve ?
-        return client.get()
-            .uri(uri)
+        return client.method(HttpMethod.valueOf(method))
+            .uri(path)
             .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
-            .exchange();
+            .exchange()// exchange or retrieve ?
+            .map(r -> {
+                if (r.rawStatusCode() != expectedStatus) {
+                    throw new IllegalStateException(String.format("unexpected status code %d", r.rawStatusCode()));
+                }
+                return r;
+            })
+            .flatMap(r -> r.bodyToMono(String.class))
+            .blockOptional()
+            .orElse("");
     }
+
 }

@@ -22,14 +22,12 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux.testapp;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -71,8 +69,14 @@ public abstract class ApplicationTest {
 
     @Test
     void handlerMonoEmpty() {
-        assertThat(client.getMonoEmpty())
-            .isNull();
+        assertThat(client.getMonoEmpty()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
+    void methodMapping(String method) {
+        assertThat(client.methodMapping(method))
+            .contains(String.format("Hello, %s!", method));
     }
 
 }
