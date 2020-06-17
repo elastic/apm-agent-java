@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.scheduled;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 
 import java.util.Timer;
@@ -47,7 +48,9 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         Thread.sleep(200L);
 
         assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
+        Transaction firstTransaction = reporter.getTransactions().get(0);
+        assertThat(firstTransaction.getNameAsString()).isEqualTo("TestTimerTask#run");
+        assertThat(firstTransaction.getFrameworkName()).isEqualTo("TimerTask");
     }
 
     @Test
