@@ -31,6 +31,7 @@ endif::[]
 * Overhaul of the `ExecutorService` instrumentation that avoids issues like ``ClassCastException``s - {pull}1206[#1206]
 * Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
 * Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
+* Add <<config-enabled,`enabled`>> flag
 
 [float]
 ===== Bug fixes

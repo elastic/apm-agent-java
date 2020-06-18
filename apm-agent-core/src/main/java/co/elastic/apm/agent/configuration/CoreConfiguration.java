@@ -61,6 +61,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
 
+    private final ConfigurationOption<Boolean> enabled = ConfigurationOption.booleanOption()
+        .key("enabled")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Setting to false will completely disable the agent, including instrumentation and remote config polling.\n" +
+            "If you want to dynamically change the status of the agent, use <<config-recording,`recording`>> instead.")
+        .dynamic(false)
+        .tags("added[1.18.0]")
+        .buildWithDefault(true);
+
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
         .key(INSTRUMENT)
         .configurationCategory(CORE_CATEGORY)
@@ -571,6 +580,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "such as calls to a database, can be discarded using this threshold.")
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("0ms"));
+
+    public boolean isEnabled() {
+        return enabled.get();
+    }
 
     public boolean isInstrument() {
         return instrument.get();
