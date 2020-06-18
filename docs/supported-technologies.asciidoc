@@ -361,7 +361,7 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
 
 |TimerTask
 |
-|The agent instruments the 'run' method in a package configured in <<config-application-packages>> of any class extending 'java.util.TimerTask', and creates a transaction with the type `scheduled`, representing the job execution
+|The agent instruments the `run` method in a package configured in <<config-application-packages>> of any class extending `java.util.TimerTask`, and creates a transaction with the type `scheduled`, representing the job execution
 |1.18.0
 
 |===
