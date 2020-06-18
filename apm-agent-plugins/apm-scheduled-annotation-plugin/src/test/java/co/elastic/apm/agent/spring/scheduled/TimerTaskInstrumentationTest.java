@@ -43,7 +43,7 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         Timer timer = new Timer(true);
         timer.scheduleAtFixedRate(timerTask, 0, 10L);
 
-        reporter.awaitUntilAsserted(200L, () -> {
+        reporter.awaitUntilAsserted(1000L, () -> {
             timer.cancel();
             assertThat(reporter.getTransactions()).isNotEmpty();
         });
@@ -61,7 +61,7 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         Timer timer = new Timer("Timer");
         timer.schedule(timerTask, 1L, 10L);
 
-        reporter.awaitUntilAsserted(200L, () -> {
+        reporter.awaitUntilAsserted(1000L, () -> {
             timer.cancel();
             assertThat(reporter.getTransactions()).isNotEmpty();
         });
@@ -78,7 +78,7 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         long delay = 50L;
         timer.schedule(timerTask, delay);
 
-        reporter.awaitUntilAsserted(4 * delay, () -> {
+        reporter.awaitUntilAsserted(1000L, () -> {
             assertThat(reporter.getTransactions()).isNotEmpty();
         });
 
@@ -100,7 +100,7 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         long delay = 50L;
         timer.schedule(repeatedTask, delay);
 
-        reporter.awaitUntilAsserted(4 * delay, () -> {
+        reporter.awaitUntilAsserted(1000L, () -> {
             assertThat(reporter.getTransactions()).isNotEmpty();
         });
 
