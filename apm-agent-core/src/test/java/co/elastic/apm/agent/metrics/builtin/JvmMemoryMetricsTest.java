@@ -42,15 +42,10 @@ class JvmMemoryMetricsTest {
         jvmMemoryMetrics.bindTo(registry);
         System.out.println(registry.toString());
         assertThat(registry.getGaugeValue("jvm.memory.heap.used", Labels.EMPTY)).isNotZero();
-
         assertThat(registry.getGaugeValue("jvm.memory.heap.committed", Labels.EMPTY)).isNotZero();
-
         assertThat(registry.getGaugeValue("jvm.memory.heap.max", Labels.EMPTY)).isNotZero();
-
         assertThat(registry.getGaugeValue("jvm.memory.non_heap.used", Labels.EMPTY)).isNotZero();
-
         assertThat(registry.getGaugeValue("jvm.memory.non_heap.committed", Labels.EMPTY)).isNotZero();
-
         assertThat(registry.getGaugeValue("jvm.memory.non_heap.max", Labels.EMPTY)).isNotZero();
 
         final Labels edenSpaceLabel = Labels.Mutable.of("name", "G1 Eden Space");
