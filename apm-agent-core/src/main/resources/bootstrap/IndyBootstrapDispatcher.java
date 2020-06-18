@@ -15,7 +15,7 @@ public class IndyBootstrapDispatcher {
 
     static {
         try {
-            VOID_NOOP = MethodHandles.lookup().findStatic(IndyBootstrapDispatcher.class, "voidNoop", MethodType.methodType(void.class));
+            VOID_NOOP = MethodHandles.publicLookup().findStatic(IndyBootstrapDispatcher.class, "voidNoop", MethodType.methodType(void.class));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

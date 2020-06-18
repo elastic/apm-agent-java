@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,61 +22,55 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.process;
+package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.ForkJoinTask;
 
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 /**
- * Instruments {@link ProcessBuilder#start()}
+ * Instruments {@link ForkJoinTask#fork()} to support parallel streams.
  */
-public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
-
+public class ForkJoinTaskInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("java.lang.ProcessBuilder");
+        return is(ForkJoinTask.class);
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("start")
-            .and(takesArguments(0));
+        return named("fork").and(returns(ForkJoinTask.class));
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ProcessBuilderStartAdvice.class;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("concurrent", "fork-join");
     }
 
-    public static class ProcessBuilderStartAdvice {
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onExit(@Advice.This ProcessBuilder processBuilder,
-                                  @Advice.Return Process process,
-                                  @Advice.Thrown @Nullable Throwable t) {
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void onExecute(@Advice.This ForkJoinTask<?> thiz) {
+        JavaConcurrent.withContext(thiz, tracer);
+    }
 
-            if (tracer == null) {
-                return;
-            }
-            AbstractSpan<?> parentSpan = tracer.getActive();
-            if (parentSpan == null) {
-                return;
-            }
-
-            if (t != null) {
-                // unable to start process, report exception as it's likely to be a bug
-                parentSpan.captureException(t);
-            }
-
-            ProcessHelper.startProcess(parentSpan, process, processBuilder.command());
-        }
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                              @Advice.This ForkJoinTask<?> thiz) {
+        JavaConcurrent.doFinally(thrown, thiz);
     }
 }

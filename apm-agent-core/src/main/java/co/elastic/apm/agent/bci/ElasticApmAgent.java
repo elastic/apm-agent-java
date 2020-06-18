@@ -52,6 +52,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
@@ -91,14 +92,12 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
-import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
+import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
-import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -350,19 +349,15 @@ public class ElasticApmAgent {
 
     /**
      * Validates invariants explained in {@link ElasticApmInstrumentation#indyPlugin()}
+     *
      * @param adviceClassName the name of the advice class
      */
     private static void validateAdvice(String adviceClassName) {
-        validateAdviceIsInlined(adviceClassName);
-        if (adviceClassName.startsWith("co.elastic.apm.agent.") && adviceClassName.split("\\.").length > 6) {
-            throw new IllegalStateException("Indy-dispatched advice class must be at the root of the instrumentation plugin.");
-        }
-    }
-
-    private static void validateAdviceIsInlined(String adviceClassName) {
         TypePool pool = new TypePool.Default(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
+            validateAdviceReturnAndParameterTypes(enterAdvice);
+
             for (AnnotationDescription enter : enterAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodEnter.class))) {
                 if (enter.prepare(Advice.OnMethodEnter.class).load().inline()) {
                     throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, enterAdvice.getName()));
@@ -370,10 +365,28 @@ public class ElasticApmAgent {
             }
         }
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
+            validateAdviceReturnAndParameterTypes(exitAdvice);
+            if (exitAdvice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
+                throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
+            }
             for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
                 if (exit.prepare(Advice.OnMethodExit.class).load().inline()) {
                     throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, exitAdvice.getName()));
                 }
+            }
+        }
+        if (adviceClassName.startsWith("co.elastic.apm.agent.") && adviceClassName.split("\\.").length > 6) {
+            throw new IllegalStateException("Indy-dispatched advice class must be at the root of the instrumentation plugin.");
+        }
+    }
+
+    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice) {
+        if (advice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
+            throw new IllegalStateException("Advice return type must not be an agent type: " + advice.toGenericString());
+        }
+        for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
+            if (parameter.getName().startsWith("co.elastic.apm")) {
+                throw new IllegalStateException("Advice parameters must not contain an agent type: " + advice.toGenericString());
             }
         }
     }
@@ -493,32 +506,6 @@ public class ElasticApmAgent {
             // avoids instrumenting classes from helper class loaders
             .or(any(), classLoaderWithName(ByteArrayClassLoader.ChildFirst.class.getName()))
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            // ideally, those bootstrap classpath inclusions should be set at plugin level, see issue #952
-            .or(nameStartsWith("java.")
-                .and(
-                    not(
-                        nameEndsWith("URLConnection")
-                            .or(nameStartsWith("java.util.concurrent."))
-                            .or(named("java.lang.ProcessBuilder"))
-                            .or(named("java.lang.ProcessImpl"))
-                            .or(named("java.lang.Process"))
-                            .or(named("java.lang.UNIXProcess"))
-                    )
-                )
-            )
-            .or(nameStartsWith("com.sun.")
-                .and(
-                    not(
-                        nameStartsWith("com.sun.faces.")
-                            .or(nameEndsWith("URLConnection"))
-                    )
-                )
-            )
-            .or(nameStartsWith("sun")
-                .and(
-                    not(nameEndsWith("URLConnection"))
-                )
-            )
             .or(nameStartsWith("co.elastic.apm.agent.shaded"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))

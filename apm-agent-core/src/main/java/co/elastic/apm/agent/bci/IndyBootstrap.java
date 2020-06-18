@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -236,7 +237,10 @@ public class IndyBootstrap {
         ClassLoader pluginClassLoader = HelperClassManager.ForIndyPlugin.getOrCreatePluginClassLoader(
             lookup.lookupClass().getClassLoader(),
             pluginClasses,
-            isAnnotatedWith(named(GlobalState.class.getName())));
+            isAnnotatedWith(named(GlobalState.class.getName()))
+                // no plugin CL necessary as all types are available form bootstrap CL
+                // also, this plugin is used as a dependency in other plugins
+                .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
         Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
         MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
         return new ConstantCallSite(methodHandle);

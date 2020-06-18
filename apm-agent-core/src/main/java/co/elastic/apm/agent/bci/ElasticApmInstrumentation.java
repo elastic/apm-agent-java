@@ -206,7 +206,24 @@ public abstract class ElasticApmInstrumentation {
      * </p>
      * <p>
      * Things to watch out for when using indy plugins:
+     * </p>
      * <ul>
+     *     <li>
+     *         Set {@link Advice.OnMethodEnter#inline()} and {@link Advice.OnMethodExit#inline()} to {@code false} on all advices.
+     *         As the {@code readOnly} flag in Byte Buddy annotations such as {@link Advice.Return#readOnly()} cannot be used with non
+     *         {@linkplain Advice.OnMethodEnter#inline() inlined advices},
+     *         use {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo} and friends.
+     *     </li>
+     *     <li>
+     *         Both the return type and the arguments of advice methods must no contain types from the agent.
+     *         If you'd like to return a {@link Span} from an advice, for example, return an {@link Object} instead.
+     *         When using an {@link net.bytebuddy.asm.Advice.Enter} argument on the
+     *         {@linkplain net.bytebuddy.asm.Advice.OnMethodExit exit advice},
+     *         that argument als has to be of type {@link Object} and you have to cast in within the method body.
+     *         The reason is that the return value will become a local variable in the instrumented method.
+     *         Due to OSGi, those methods may not have access to agent types.
+     *         Another case is when the instrumented class is inside the bootstrap classloader.
+     *     </li>
      *     <li>
      *         When an advice instruments classes in multiple class loaders, the plugin classes will be loaded form multiple class loaders.
      *         In order to still share state across those plugin class loaders, use {@link co.elastic.apm.agent.util.GlobalVariables} or {@link GlobalState}.
@@ -222,14 +239,7 @@ public abstract class ElasticApmInstrumentation {
      *         As the package of the {@link #getAdviceClass()} is used as the root,
      *         all advices have to be at the top level of the plugin.
      *     </li>
-     *     <li>
-     *         Set {@link Advice.OnMethodEnter#inline()} and {@link Advice.OnMethodExit#inline()} to {@code false} on all advices.
-     *         As the {@code readOnly} flag in Byte Buddy annotations such as {@link Advice.Return#readOnly()} cannot be used with non
-     *         {@linkplain Advice.OnMethodEnter#inline() inlined advices},
-     *         use {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo} and friends.
-     *     </li>
      * </ul>
-     * </p>
      *
      * @return whether to load the classes of this plugin in dedicated plugin class loaders (one for each unique class loader)
      * and dispatch to the {@linkplain #getAdviceClass() advice} via an {@code INVOKEDYNAMIC} instruction.

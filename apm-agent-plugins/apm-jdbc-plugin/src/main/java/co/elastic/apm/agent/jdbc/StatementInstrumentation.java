@@ -97,8 +97,8 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Span onBeforeExecute(@Advice.This Statement statement,
-                                           @Advice.Argument(0) String sql) {
+        public static Object onBeforeExecute(@Advice.This Statement statement,
+                                             @Advice.Argument(0) String sql) {
 
             if (tracer == null) {
                 return null;
@@ -110,13 +110,13 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.This Statement statement,
-                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span == null) {
                 return;
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
 
@@ -148,7 +148,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Span onBeforeExecute(@Advice.This Statement statement,
+        public static Object onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
             if (tracer == null) {
                 return null;
@@ -158,7 +158,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
             if (span == null) {
@@ -166,12 +166,12 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             }
 
             if (t == null) {
-                span.getContext()
+                ((Span) span).getContext()
                     .getDb()
                     .withAffectedRowsCount(returnValue);
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -218,7 +218,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
-        public static Span onBeforeExecute(@Advice.This Statement statement) {
+        public static Object onBeforeExecute(@Advice.This Statement statement) {
             if (tracer == null) {
                 return null;
             }
@@ -228,7 +228,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown Throwable t,
                                           @Advice.Return Object returnValue) {
             if (span == null) {
@@ -251,11 +251,11 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                     affectedCount += array[i];
                 }
             }
-            span.getContext()
+            ((Span) span).getContext()
                 .getDb()
                 .withAffectedRowsCount(affectedCount);
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -281,7 +281,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
-        public static Span onBeforeExecute(@Advice.This Statement statement) {
+        public static Object onBeforeExecute(@Advice.This Statement statement) {
             if (tracer == null) {
                 return null;
             }
@@ -291,7 +291,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
             if (span == null) {
@@ -299,12 +299,12 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             }
 
             if (t == null) {
-                span.getContext()
+                ((Span) span).getContext()
                     .getDb()
                     .withAffectedRowsCount(returnValue);
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -329,7 +329,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
-        public static Span onBeforeExecute(@Advice.This Statement statement) {
+        public static Object onBeforeExecute(@Advice.This Statement statement) {
             if (tracer != null) {
                 @Nullable String sql = jdbcHelper.retrieveSqlForStatement(statement);
                 return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
@@ -339,14 +339,14 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.This Statement statement,
-                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
 
             if (span == null) {
                 return;
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }

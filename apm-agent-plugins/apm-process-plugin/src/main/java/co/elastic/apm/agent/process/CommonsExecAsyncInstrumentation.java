@@ -33,6 +33,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -87,17 +88,23 @@ public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
         return CommonsExecAdvice.class;
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
+
     public static final class CommonsExecAdvice {
 
+        @Nullable
         @AssignToArgument(0)
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static Runnable onEnter(Runnable runnable) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Runnable onEnter(Runnable runnable) {
             return JavaConcurrent.withContext(runnable, tracer);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown Throwable thrown,
-                                   @Advice.Argument(value = 0) Runnable runnable) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown Throwable thrown,
+                                  @Advice.Argument(value = 0) Runnable runnable) {
             JavaConcurrent.doFinally(thrown, runnable);
         }
     }

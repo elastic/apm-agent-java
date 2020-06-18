@@ -51,6 +51,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isNative;
 import static net.bytebuddy.matcher.ElementMatchers.isSynthetic;
 import static net.bytebuddy.matcher.ElementMatchers.isTypeInitializer;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -110,6 +111,10 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
             .and(not(nameContains("CGLIB")))
             .and(not(nameContains("EnhancerBy")))
             .and(not(nameContains("$Proxy")))
+            .and(not(nameStartsWith("java.")))
+            .and(not(nameStartsWith("com.sun.")))
+            .and(not(nameStartsWith("sun.")))
+            .and(not(nameStartsWith("jdk.")))
             .and(declaresMethod(matches(methodMatcher.getMethodMatcher())));
     }
 
