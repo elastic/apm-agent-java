@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -74,7 +74,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> parentContext,
                                       @Advice.Origin Class<?> spanBuilderClass,

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.asm.Advice;
@@ -67,7 +67,7 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
     public static class ConsumerRecordsAdvice {
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static Iterable<ConsumerRecord> wrapIterable(@Nullable @Advice.Return Iterable<ConsumerRecord> iterable) {
             if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {

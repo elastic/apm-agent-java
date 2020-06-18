@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -62,7 +62,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
         public final static RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(OkHttpClientExecuteAdvice.class, "spanTls");
 
         @Nullable
-        @AssignToField(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)
+        @AssignTo.Field(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 

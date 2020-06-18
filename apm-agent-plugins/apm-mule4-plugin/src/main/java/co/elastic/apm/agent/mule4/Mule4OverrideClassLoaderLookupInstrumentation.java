@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.mule4;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -78,7 +78,7 @@ public class Mule4OverrideClassLoaderLookupInstrumentation extends ElasticApmIns
     }
 
     public static class Mule4OverrideClassLoaderLookupAdvice {
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static LookupStrategy makeParentOnlyForAgentClasses(@Advice.Argument(0) @Nullable final String packageName,
                                                                    @Advice.Return LookupStrategy lookupStrategy) {

@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -78,7 +78,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction) {

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
@@ -75,7 +75,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
     @SuppressWarnings("rawtypes")
     public static class KafkaProducerAdvice {
         @Nullable
-        @AssignToArgument(1)
+        @AssignTo.Argument(1)
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord record,
                                       @Advice.Argument(1) @Nullable Callback callback) {

@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -66,7 +66,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
@@ -88,7 +88,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
@@ -123,7 +123,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doGetCurrentTransaction() {
@@ -140,7 +140,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doGetCurrentSpan() {

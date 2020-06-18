@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.util.GlobalVariables;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -111,7 +111,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
 
         @Nullable
-        @AssignToArgument(0)
+        @AssignTo.Argument(0)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Runnable onExecute(@Advice.This Executor thiz,
                                          @Advice.Argument(0) @Nullable Runnable runnable) {
@@ -147,7 +147,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
 
         @Nullable
-        @AssignToArgument(0)
+        @AssignTo.Argument(0)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Callable<?> onSubmit(@Advice.This Executor thiz,
                                            @Advice.Argument(0) @Nullable Callable<?> callable) {
@@ -195,7 +195,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         }
 
         @Nullable
-        @AssignToArgument(0)
+        @AssignTo.Argument(0)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static <T> Collection<? extends Callable<T>> onEnter(@Advice.This Executor thiz,
                                     @Nullable @Advice.Argument(0) Collection<? extends Callable<T>> callables) {
@@ -239,7 +239,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         }
 
         @Nullable
-        @AssignToArgument(0)
+        @AssignTo.Argument(0)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static ForkJoinTask<?> onExecute(@Advice.This Executor thiz,
                                      @Advice.Argument(0) @Nullable ForkJoinTask<?> task) {

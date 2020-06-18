@@ -25,8 +25,7 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -68,7 +67,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
         }
 
         @Nullable
-        @AssignToField(value = "childTraceContext")
+        @AssignTo.Field(value = "childTraceContext")
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static TraceContext toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
                                      @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
@@ -81,7 +80,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
 
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
             if (childTraceContext == null) {
@@ -98,7 +97,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
         }
 
         @Nullable
-        @AssignToField(value = "childTraceContext")
+        @AssignTo.Field(value = "childTraceContext")
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static TraceContext toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
                                     @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
@@ -109,7 +108,7 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
             if (childTraceContext == null) {

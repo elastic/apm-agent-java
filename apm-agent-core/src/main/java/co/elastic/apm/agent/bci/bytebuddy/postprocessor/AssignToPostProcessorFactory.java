@@ -50,7 +50,7 @@ import java.util.List;
 import static net.bytebuddy.matcher.ElementMatchers.annotationType;
 
 public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factory {
-    private static FieldLocator getFieldLocator(TypeDescription instrumentedType, AssignToField assignTo) {
+    private static FieldLocator getFieldLocator(TypeDescription instrumentedType, AssignTo.Field assignTo) {
         if (assignTo.declaringType() == Void.class) {
             return new FieldLocator.ForClassHierarchy(instrumentedType);
         } else {
@@ -65,33 +65,33 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
     @Override
     public Advice.PostProcessor make(final MethodDescription.InDefinedShape adviceMethod, final boolean exit) {
         final AnnotationList annotations = adviceMethod.getDeclaredAnnotations()
-            .filter(annotationType(AssignToArgument.class)
-                .or(annotationType(AssignToField.class))
-                .or(annotationType(AssignToReturn.class))
+            .filter(annotationType(AssignTo.Argument.class)
+                .or(annotationType(AssignTo.Field.class))
+                .or(annotationType(AssignTo.Return.class))
                 .or(annotationType(AssignTo.class)));
         if (annotations.isEmpty()) {
             return Advice.PostProcessor.NoOp.INSTANCE;
         }
         final List<Advice.PostProcessor> postProcessors = new ArrayList<>();
         for (AnnotationDescription annotation : annotations) {
-            if (annotation.getAnnotationType().represents(AssignToArgument.class)) {
-                final AssignToArgument assignToArgument = annotations.getOnly().prepare(AssignToArgument.class).load();
+            if (annotation.getAnnotationType().represents(AssignTo.Argument.class)) {
+                final AssignTo.Argument assignToArgument = annotations.getOnly().prepare(AssignTo.Argument.class).load();
                 postProcessors.add(createAssignToArgumentPostProcessor(adviceMethod, exit, assignToArgument));
-            } else if (annotation.getAnnotationType().represents(AssignToField.class)) {
-                final AssignToField assignToField = annotations.getOnly().prepare(AssignToField.class).load();
+            } else if (annotation.getAnnotationType().represents(AssignTo.Field.class)) {
+                final AssignTo.Field assignToField = annotations.getOnly().prepare(AssignTo.Field.class).load();
                 postProcessors.add(createAssignToFieldPostProcessor(adviceMethod, exit, assignToField));
-            } else if (annotation.getAnnotationType().represents(AssignToReturn.class)) {
-                final AssignToReturn assignToReturn = annotations.getOnly().prepare(AssignToReturn.class).load();
+            } else if (annotation.getAnnotationType().represents(AssignTo.Return.class)) {
+                final AssignTo.Return assignToReturn = annotations.getOnly().prepare(AssignTo.Return.class).load();
                 postProcessors.add(createAssignToReturnPostProcessor(adviceMethod, exit, assignToReturn));
             } else if (annotation.getAnnotationType().represents(AssignTo.class)) {
                 final AssignTo assignTo = annotations.getOnly().prepare(AssignTo.class).load();
-                for (AssignToArgument assignToArgument : assignTo.arguments()) {
+                for (AssignTo.Argument assignToArgument : assignTo.arguments()) {
                     postProcessors.add(createAssignToArgumentPostProcessor(adviceMethod, exit, assignToArgument));
                 }
-                for (AssignToField assignToField : assignTo.fields()) {
+                for (AssignTo.Field assignToField : assignTo.fields()) {
                     postProcessors.add(createAssignToFieldPostProcessor(adviceMethod, exit, assignToField));
                 }
-                for (AssignToReturn assignToReturn : assignTo.returns()) {
+                for (AssignTo.Return assignToReturn : assignTo.returns()) {
                     postProcessors.add(createAssignToReturnPostProcessor(adviceMethod, exit, assignToReturn));
                 }
             }
@@ -109,7 +109,7 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
         };
     }
 
-    private Advice.PostProcessor createAssignToReturnPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignToReturn assignToReturn) {
+    private Advice.PostProcessor createAssignToReturnPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignTo.Return assignToReturn) {
         return new Advice.PostProcessor() {
             @Override
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
@@ -140,7 +140,7 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
         };
     }
 
-    private Advice.PostProcessor createAssignToFieldPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignToField assignToField) {
+    private Advice.PostProcessor createAssignToFieldPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignTo.Field assignToField) {
         return new Advice.PostProcessor() {
             @Override
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {
@@ -188,7 +188,7 @@ public class AssignToPostProcessorFactory implements Advice.PostProcessor.Factor
         };
     }
 
-    private Advice.PostProcessor createAssignToArgumentPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignToArgument assignToArgument) {
+    private Advice.PostProcessor createAssignToArgumentPostProcessor(final MethodDescription.InDefinedShape adviceMethod, final boolean exit, final AssignTo.Argument assignToArgument) {
         return new Advice.PostProcessor() {
             @Override
             public StackManipulation resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler) {

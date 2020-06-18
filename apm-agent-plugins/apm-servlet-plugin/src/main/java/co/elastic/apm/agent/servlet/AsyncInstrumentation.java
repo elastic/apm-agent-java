@@ -24,9 +24,9 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
-import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
+import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -141,7 +141,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         public static class AsyncContextStartAdvice {
 
             @Nullable
-            @AssignToArgument(0)
+            @AssignTo.Argument(0)
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Runnable onEnterAsyncContextStart(@Advice.Argument(0) @Nullable Runnable runnable) {
                 return JavaConcurrent.withContext(runnable, tracer);

@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.es.restclient.v6_4;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -74,7 +74,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         @VisibleForAdvice
         public static final RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
 
-        @AssignToArgument(1)
+        @AssignTo.Argument(1)
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static ResponseListener onBeforeExecute(@Advice.Argument(0) Request request,
                                                        @Advice.Argument(1) ResponseListener responseListener) {

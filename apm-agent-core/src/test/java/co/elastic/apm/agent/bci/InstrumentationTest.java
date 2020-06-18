@@ -26,9 +26,6 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
 import co.elastic.apm.agent.bci.subpackage.AdviceInSubpackageInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
@@ -404,7 +401,7 @@ class InstrumentationTest {
     }
 
     public static class TestInstrumentation extends ElasticApmInstrumentation {
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit
         public static String onMethodExit() {
             return "intercepted";
@@ -427,7 +424,7 @@ class InstrumentationTest {
     }
 
     public static class MathInstrumentation extends ElasticApmInstrumentation {
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
         public static int onMethodExit() {
             return 42;
@@ -477,7 +474,7 @@ class InstrumentationTest {
             throw new RuntimeException("This exception should be suppressed");
         }
 
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static String onMethodExit(@Advice.Thrown Throwable throwable) {
             throw new RuntimeException("This exception should be suppressed");
@@ -501,7 +498,7 @@ class InstrumentationTest {
 
     public static class FieldAccessInstrumentation extends ElasticApmInstrumentation {
 
-        @AssignToField("privateString")
+        @AssignTo.Field("privateString")
         @Advice.OnMethodEnter
         public static String onEnter(@Advice.Argument(0) String s) {
             return s;
@@ -525,7 +522,7 @@ class InstrumentationTest {
 
     public static class FieldAccessArrayInstrumentation extends ElasticApmInstrumentation {
 
-        @AssignTo(fields = @AssignToField(index = 0, value = "privateString"))
+        @AssignTo(fields = @AssignTo.Field(index = 0, value = "privateString"))
         @Advice.OnMethodEnter
         public static Object[] onEnter(@Advice.Argument(0) String s) {
             return new Object[]{s};
@@ -549,7 +546,7 @@ class InstrumentationTest {
 
     public static class AssignToArgumentInstrumentation extends ElasticApmInstrumentation {
 
-        @AssignToArgument(0)
+        @AssignTo.Argument(0)
         @Advice.OnMethodEnter
         public static String onEnter(@Advice.Argument(0) String s) {
             return s + "@AssignToArgument";
@@ -574,8 +571,8 @@ class InstrumentationTest {
     public static class AssignToArgumentsInstrumentation extends ElasticApmInstrumentation {
 
         @AssignTo(arguments = {
-            @AssignToArgument(index = 0, value = 1),
-            @AssignToArgument(index = 1, value = 0)
+            @AssignTo.Argument(index = 0, value = 1),
+            @AssignTo.Argument(index = 1, value = 0)
         })
         @Advice.OnMethodEnter(inline = false)
         public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
@@ -600,7 +597,7 @@ class InstrumentationTest {
 
     public static class AssignToReturnArrayInstrumentation extends ElasticApmInstrumentation {
 
-        @AssignTo(returns = @AssignToReturn(index = 0))
+        @AssignTo(returns = @AssignTo.Return(index = 0))
         @Advice.OnMethodExit(inline = false)
         public static Object[] onEnter(@Advice.Argument(0) String foo, @Advice.Argument(1) String bar) {
             return new Object[]{foo + bar};
@@ -768,7 +765,7 @@ class InstrumentationTest {
 
     public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
 
-        @AssignToReturn
+        @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
         public static ClassLoader onExit() {
             return ClassLoadingTestInstrumentation.class.getClassLoader();

@@ -25,8 +25,7 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -264,7 +263,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         public static class ListenerWrappingAdvice {
 
             @Nullable
-            @AssignToArgument(0)
+            @AssignTo.Argument(0)
             @Advice.OnMethodEnter(inline = false)
             public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
                 //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked

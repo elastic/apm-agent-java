@@ -27,8 +27,6 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToField;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -83,8 +81,8 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
     public static class OkHttpClient3ExecuteAdvice {
 
         @AssignTo(
-            fields = @AssignToField(index = 0, value = "originalRequest"),
-            arguments = @AssignToArgument(index = 1, value = 0)
+            fields = @AssignTo.Field(index = 0, value = "originalRequest"),
+            arguments = @AssignTo.Argument(index = 1, value = 0)
         )
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)

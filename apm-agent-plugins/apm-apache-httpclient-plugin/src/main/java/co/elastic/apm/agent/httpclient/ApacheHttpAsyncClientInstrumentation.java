@@ -27,7 +27,6 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToArgument;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.ApacheHttpAsyncClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -104,8 +103,8 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
 
     public static class ApacheHttpAsyncClientAdvice {
         @AssignTo(arguments = {
-            @AssignToArgument(index = 0, value = 0),
-            @AssignToArgument(index = 1, value = 3)
+            @AssignTo.Argument(index = 0, value = 0),
+            @AssignTo.Argument(index = 1, value = 3)
         })
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)

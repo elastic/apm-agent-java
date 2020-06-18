@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToReturn;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -102,7 +102,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("doCreateSpan"));
         }
 
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
         public static Span doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
@@ -142,7 +142,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
         public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
@@ -159,7 +159,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @Nullable
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
         public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
@@ -200,7 +200,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("isSampled"));
         }
 
-        @AssignToReturn
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
         public static boolean addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
