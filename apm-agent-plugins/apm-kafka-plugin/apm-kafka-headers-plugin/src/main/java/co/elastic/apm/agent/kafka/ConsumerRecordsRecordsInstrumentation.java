@@ -69,7 +69,7 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
         @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static Iterable<ConsumerRecord> wrapIterable(@Nullable @Advice.Return Iterable<ConsumerRecord> iterable) {
+        public static Iterable<ConsumerRecord> wrapIterable(@Nullable @Advice.Return final Iterable<ConsumerRecord> iterable) {
             if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {
                 return iterable;
             }
@@ -78,7 +78,7 @@ public class ConsumerRecordsRecordsInstrumentation extends KafkaConsumerRecordsI
             KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (iterable != null && kafkaInstrumentationHelper != null) {
-                iterable = kafkaInstrumentationHelper.wrapConsumerRecordIterable(iterable);
+                return kafkaInstrumentationHelper.wrapConsumerRecordIterable(iterable);
             }
             return iterable;
         }
