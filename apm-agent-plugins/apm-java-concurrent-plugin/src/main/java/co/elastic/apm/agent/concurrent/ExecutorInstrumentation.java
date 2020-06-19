@@ -87,8 +87,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         return hasSuperType(named("java.util.concurrent.Executor"))
             // executes on same thread, no need to wrap to activate again
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
-            .and(not(nameEndsWith("org.eclipse.jetty.util.thread.QueuedThreadPool")))
-            .and(not(nameContains(".netty.")))
+            .and(not(nameContains("jetty")))
+            .and(not(nameContains("tomcat")))
+            .and(not(nameContains("jboss")))
+            .and(not(nameContains("undertow")))
+            .and(not(nameContains("netty")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
             .and(not(nameStartsWith("com.hazelcast")))
             .and(not(isProxy()));

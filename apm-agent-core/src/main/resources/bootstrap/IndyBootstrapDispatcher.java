@@ -24,21 +24,14 @@ public class IndyBootstrapDispatcher {
     public static CallSite bootstrap(MethodHandles.Lookup lookup,
                                      String adviceMethodName,
                                      MethodType adviceMethodType,
-                                     String adviceClassName,
-                                     int enter,
-                                     Class<?> instrumentedType,
-                                     String instrumentedMethodName,
                                      Object... args) {
         CallSite callSite = null;
         if (bootstrap != null) {
             try {
-                callSite = (CallSite) bootstrap.invoke(null, lookup,
+                callSite = (CallSite) bootstrap.invoke(null,
+                    lookup,
                     adviceMethodName,
                     adviceMethodType,
-                    adviceClassName,
-                    enter,
-                    instrumentedType,
-                    instrumentedMethodName,
                     args);
             } catch (Exception e) {
                 e.printStackTrace();

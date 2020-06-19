@@ -27,6 +27,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassInjector;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -172,10 +173,8 @@ public class IndyBootstrap {
             Class<?> indyBootstrapClass = initIndyBootstrap();
             indyBootstrapClass
                 .getField("bootstrap")
-                .set(null, IndyBootstrap.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class,
-                    String.class, int.class, Class.class, String.class, Object[].class));
-            return indyBootstrapMethod = indyBootstrapClass.getMethod("bootstrap", MethodHandles.Lookup.class, String.class,
-                MethodType.class, String.class, int.class, Class.class, String.class, Object[].class);
+                .set(null, IndyBootstrap.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class));
+            return indyBootstrapMethod = indyBootstrapClass.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -219,30 +218,38 @@ public class IndyBootstrap {
      * Exceptions and {@code null} return values are handled by {@code java.lang.IndyBootstrapDispatcher#bootstrap}.
      * </p>
      */
+    @Nullable
     public static ConstantCallSite bootstrap(MethodHandles.Lookup lookup,
                                              String adviceMethodName,
                                              MethodType adviceMethodType,
-                                             String adviceClassName,
-                                             int enter,
-                                             Class<?> instrumentedType,
-                                             String instrumentedMethodName,
                                              Object... args) throws Exception {
-        Class<?> adviceClass = Class.forName(adviceClassName);
-        String packageName = adviceClass.getPackage().getName();
-        List<String> pluginClasses = classesByPackage.get(packageName);
-        if (pluginClasses == null) {
-            classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName));
-            pluginClasses = classesByPackage.get(packageName);
+        try {
+            String adviceClassName = (String) args[0];
+            int enter = (Integer) args[1];
+            Class<?> instrumentedType = (Class<?>) args[2];
+            String instrumentedMethodName = (String) args[3];
+            MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
+            Class<?> adviceClass = Class.forName(adviceClassName);
+            String packageName = adviceClass.getPackage().getName();
+            List<String> pluginClasses = classesByPackage.get(packageName);
+            if (pluginClasses == null) {
+                classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName));
+                pluginClasses = classesByPackage.get(packageName);
+            }
+            ClassLoader pluginClassLoader = HelperClassManager.ForIndyPlugin.getOrCreatePluginClassLoader(
+                lookup.lookupClass().getClassLoader(),
+                pluginClasses,
+                isAnnotatedWith(named(GlobalState.class.getName()))
+                    // no plugin CL necessary as all types are available form bootstrap CL
+                    // also, this plugin is used as a dependency in other plugins
+                    .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
+            Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
+            MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
+            return new ConstantCallSite(methodHandle);
+        } catch (Exception e) {
+            // must not be a static field as it would initialize logging before it's ready
+            LoggerFactory.getLogger(IndyBootstrap.class).error(e.getMessage(), e);
+            return null;
         }
-        ClassLoader pluginClassLoader = HelperClassManager.ForIndyPlugin.getOrCreatePluginClassLoader(
-            lookup.lookupClass().getClassLoader(),
-            pluginClasses,
-            isAnnotatedWith(named(GlobalState.class.getName()))
-                // no plugin CL necessary as all types are available form bootstrap CL
-                // also, this plugin is used as a dependency in other plugins
-                .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
-        Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-        MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
-        return new ConstantCallSite(methodHandle);
     }
 }
