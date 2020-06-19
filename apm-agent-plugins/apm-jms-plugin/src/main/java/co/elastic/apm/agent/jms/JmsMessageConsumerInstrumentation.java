@@ -274,12 +274,6 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 }
                 return original;
             }
-
-            @Advice.OnMethodExit
-            private static void onExit() {
-                // workaround for https://github.com/raphw/byte-buddy/issues/874#issuecomment-637616829
-            }
-
         }
     }
 }
