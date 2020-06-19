@@ -31,6 +31,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.GlobalVariables;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -380,6 +381,22 @@ class InstrumentationTest {
         assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
             Collections.singletonList(new AdviceInSubpackageInstrumentation())))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void testAdviceWithAgentReturnType() {
+        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new AgentTypeReturnInstrumentation())))
+            .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void testAdviceWithAgentParameterType() {
+        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new AgentTypeParameterInstrumentation())))
             .isInstanceOf(IllegalStateException.class);
     }
 
@@ -796,6 +813,66 @@ class InstrumentationTest {
 
         @Advice.OnMethodEnter
         public static void onExit() {
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return none();
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return none();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyPlugin() {
+            return true;
+        }
+    }
+
+    public static class AgentTypeReturnInstrumentation extends ElasticApmInstrumentation {
+
+        @Advice.OnMethodEnter(inline = false)
+        public static Span onEnter() {
+            return null;
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return none();
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return none();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyPlugin() {
+            return true;
+        }
+    }
+
+    public static class AgentTypeParameterInstrumentation extends ElasticApmInstrumentation {
+
+        @Advice.OnMethodEnter(inline = false)
+        public static Object onEnter() {
+            return null;
+        }
+
+        @Advice.OnMethodExit(inline = false)
+        private static void onExit(@Advice.Enter Span span) {
         }
 
         @Override

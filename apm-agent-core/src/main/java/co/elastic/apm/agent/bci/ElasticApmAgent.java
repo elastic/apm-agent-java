@@ -352,7 +352,7 @@ public class ElasticApmAgent {
      * @param adviceClassName the name of the advice class
      */
     private static void validateAdvice(String adviceClassName) {
-        TypePool pool = new TypePool.Default(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
+        TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
             validateAdviceReturnAndParameterTypes(enterAdvice);

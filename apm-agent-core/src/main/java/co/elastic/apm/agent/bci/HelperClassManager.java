@@ -299,7 +299,7 @@ public abstract class HelperClassManager<T> {
             }
 
             List<String> classesToInjectCopy = new ArrayList<>(classesToInject.size());
-            TypePool pool = new TypePool.Default(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
+            TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
             for (Iterator<String> iterator = classesToInject.iterator(); iterator.hasNext(); ) {
                 String className = iterator.next();
                 if (!exclusionMatcher.matches(pool.describe(className).resolve())) {
