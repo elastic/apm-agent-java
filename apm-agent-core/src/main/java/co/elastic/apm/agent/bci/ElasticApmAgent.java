@@ -384,7 +384,7 @@ public class ElasticApmAgent {
             throw new IllegalStateException("Advice return type must not be an agent type: " + advice.toGenericString());
         }
         for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
-            if (parameter.getName().startsWith("co.elastic.apm")) {
+            if (parameter.getType().getTypeName().startsWith("co.elastic.apm")) {
                 throw new IllegalStateException("Advice parameters must not contain an agent type: " + advice.toGenericString());
             }
         }
