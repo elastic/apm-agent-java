@@ -472,11 +472,17 @@ public class ElasticApmAgent {
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
-                locationStrategy =
-                    ((AgentBuilder.LocationStrategy.ForClassLoader) locationStrategy).withFallbackTo(
-                        ClassFileLocator.ForJarFile.of(agentJarFile),
-                        new RootPackageCustomLocator("java.", ClassFileLocator.ForClassLoader.ofBootLoader())
-                    );
+                locationStrategy = new AgentBuilder.LocationStrategy.Compound(
+                    // it's important to first try loading from the agent jar and not the class loader of the instrumented class
+                    // the latter may not have access to the agent resources:
+                    // when adding the agent to the bootstrap CL (appendToBootstrapClassLoaderSearch)
+                    // the bootstrap CL can load its classes but not its resources
+                    // the application class loader may cache the fact that a resource like AbstractSpan.class can't be resolved
+                    // and also refuse to load the class
+                    new AgentBuilder.LocationStrategy.Simple(ClassFileLocator.ForJarFile.of(agentJarFile)),
+                    AgentBuilder.LocationStrategy.ForClassLoader.WEAK,
+                    new AgentBuilder.LocationStrategy.Simple(new RootPackageCustomLocator("java.", ClassFileLocator.ForClassLoader.ofBootLoader()))
+                );
             } catch (IOException e) {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
             }

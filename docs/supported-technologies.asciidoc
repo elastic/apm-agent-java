@@ -52,7 +52,7 @@ the agent does not capture transactions.
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
-|8
+|8 service refresh 5+
 |
 |===
 

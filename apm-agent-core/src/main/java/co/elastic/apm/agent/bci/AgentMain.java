@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.net.URISyntaxException;
@@ -75,12 +76,13 @@ public class AgentMain {
 
         String javaVersion = System.getProperty("java.version");
         String javaVmName = System.getProperty("java.vm.name");
-        if (!isJavaVersionSupported(javaVersion, javaVmName)) {
+        String javaVmVersion = System.getProperty("java.vm.version");
+        if (!isJavaVersionSupported(javaVersion, javaVmName, javaVmVersion)) {
             // Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
             // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
             // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
             // for JVM internals, there is no other option but to use an up-to-date JVM instead.
-            System.err.println(String.format("Failed to start agent - JVM version not supported: %s", javaVersion));
+            System.err.println(String.format("Failed to start agent - JVM version not supported: %s %s %s", javaVersion, javaVmName, javaVmVersion));
             return;
         }
 
@@ -111,36 +113,59 @@ public class AgentMain {
      * unknown version format, we assume it's supported, thus this method might return false positives, but never false
      * negatives.
      *
-     * @param version jvm version, from {@code System.getProperty("java.version")}
-     * @param vmName  jvm name, from {@code System.getProperty("java.vm.name")}
+     * @param version   jvm version, from {@code System.getProperty("java.version")}
+     * @param vmName    jvm name, from {@code System.getProperty("java.vm.name")}
+     * @param vmVersion jvm version, from {@code System.getProperty("java.vm.version")}
      * @return true if the version is supported, false otherwise
      */
     // package-protected for testing
-    static boolean isJavaVersionSupported(String version, String vmName) {
-        boolean postJsr223 = !version.startsWith("1.");
+    static boolean isJavaVersionSupported(String version, String vmName, @Nullable String vmVersion) {
         // new scheme introduced in java 9, thus we can use it as a shortcut
-        if (postJsr223) {
-            return true;
+        int major;
+        if (version.startsWith("1.")) {
+            major = Character.digit(version.charAt(2), 10);
+        } else {
+            major = Integer.parseInt(version.split("\\.")[0]);
         }
 
-        char major = version.charAt(2);
-        if (major < '7') {
+        boolean isHotSpot = vmName.contains("HotSpot(TM)") || vmName.contains("OpenJDK");
+        boolean isIbmJ9 = vmName.contains("IBM J9");
+        if (major < 7) {
             // given code is compiled with java 7, this one is unlikely in practice
             return false;
-        } else if (!vmName.contains("HotSpot(TM)")) {
-            // non-hotspot JVMs are not concerned (yet)
-            return true;
-        } else if (major == '7') {
-            // HotSpot 7
-            // versions prior to that have unreliable invoke dynamic support according to
-            // https://groovy-lang.org/indy.html
-            return isUpdateVersionAtLeast(version, 60);
-        } else if (major == '8' ){
-            // HotSpot 8
-            return isUpdateVersionAtLeast(version, 40);
-        } else {
-            // > 8
-            return true;
+        }
+        if (isHotSpot) {
+            return isHotSpotVersionSupported(version, major);
+        } else if (isIbmJ9) {
+            return isIbmJ9VersionSupported(vmVersion, major);
+        }
+        // innocent until proven guilty
+        return true;
+    }
+
+    private static boolean isHotSpotVersionSupported(String version, int major) {
+        switch (major) {
+            case 7:
+                // versions prior to that have unreliable invoke dynamic support according to https://groovy-lang.org/indy.html
+                return isUpdateVersionAtLeast(version, 60);
+            case 8:
+                return isUpdateVersionAtLeast(version, 40);
+            default:
+                return true;
+        }
+    }
+
+    private static boolean isIbmJ9VersionSupported(@Nullable String vmVersion, int major) {
+        switch (major) {
+            case 7:
+                return false;
+            case 8:
+                // early versions crash during invokedynamic bootstrap
+                // the exact version that fixes that error is currently not known
+                // presumably, service refresh 5 (build 2.8) fixes the issue
+                return !"2.8".equals(vmVersion);
+            default:
+                return true;
         }
     }
 

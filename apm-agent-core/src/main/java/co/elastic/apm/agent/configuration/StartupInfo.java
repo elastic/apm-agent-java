@@ -58,12 +58,15 @@ public class StartupInfo extends AbstractLifecycleListener {
     }
 
     private static String getJvmAndOsVersionString() {
-        return "Java " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ") " +
+        return "Java " + System.getProperty("java.version") +
+            " Runtime version: "+ System.getProperty("java.runtime.version") +
+            " VM version: "+ System.getProperty("java.vm.version") +
+            " (" + System.getProperty("java.vendor") + ") " +
             System.getProperty("os.name") + " " + System.getProperty("os.version");
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void init(ElasticApmTracer tracer) {
         ConfigurationRegistry configurationRegistry = tracer.getConfigurationRegistry();
         logConfiguration(configurationRegistry, logger);
     }
