@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.util;
 
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,8 +33,10 @@ import java.util.Properties;
 
 public final class VersionUtils {
 
+    private static final WeakConcurrentMap<Class<?>, String> versionsCache = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private static final String UNKNOWN_VERSION = "UNKNOWN_VERSION";
     @Nullable
-    private static final String AGENT_VERSION = getVersionFromPomProperties(VersionUtils.class, "co.elastic.apm", "elastic-apm-agent");
+    private static final String AGENT_VERSION = getVersion(VersionUtils.class, "co.elastic.apm", "elastic-apm-agent");
 
     private VersionUtils() {
     }
@@ -43,7 +47,40 @@ public final class VersionUtils {
     }
 
     @Nullable
-    public static String getVersionFromPomProperties(Class clazz, String groupId, String artifactId) {
+    public static String getVersion(Class<?> clazz, String groupId, String artifactId) {
+        String version = getFromCache(clazz);
+        if (version != null) {
+            return version;
+        }
+        version = getVersionFromPackage(clazz);
+        if (version == null) {
+            version = getVersionFromPomProperties(clazz, groupId, artifactId);
+        }
+        cacheValue(clazz, version);
+        return version;
+    }
+
+    @Nullable
+    static String getVersionFromPackage(Class<?> clazz) {
+        Package pkg = clazz.getPackage();
+        if (pkg != null) {
+            return pkg.getImplementationVersion();
+        }
+        return null;
+    }
+
+    @Nullable
+    private static String getFromCache(Class<?> clazz) {
+        String cached = versionsCache.get(clazz);
+        return cached != UNKNOWN_VERSION ? cached : null;
+    }
+
+    private static void cacheValue(Class<?> clazz, @Nullable String value) {
+        versionsCache.put(clazz, value != null ? value : UNKNOWN_VERSION);
+    }
+
+    @Nullable
+    static String getVersionFromPomProperties(Class<?> clazz, String groupId, String artifactId) {
         final String classpathLocation = "/META-INF/maven/" + groupId + "/" + artifactId + "/pom.properties";
         final Properties pomProperties = getFromClasspath(classpathLocation, clazz);
         if (pomProperties != null) {
@@ -53,7 +90,7 @@ public final class VersionUtils {
     }
 
     @Nullable
-    private static Properties getFromClasspath(String classpathLocation, Class clazz) {
+    private static Properties getFromClasspath(String classpathLocation, Class<?> clazz) {
         final Properties props = new Properties();
         try (InputStream resourceStream = clazz.getResourceAsStream(classpathLocation)) {
             if (resourceStream != null) {
