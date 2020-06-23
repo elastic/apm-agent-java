@@ -48,15 +48,15 @@ public final class VersionUtils {
 
     @Nullable
     public static String getVersion(Class<?> clazz, String groupId, String artifactId) {
-        String version = getFromCache(clazz);
+        String version = versionsCache.get(clazz);
         if (version != null) {
-            return version;
+            return version != UNKNOWN_VERSION ? version : null;
         }
-        version = getVersionFromPackage(clazz);
+        version = getVersionFromPomProperties(clazz, groupId, artifactId);
         if (version == null) {
-            version = getVersionFromPomProperties(clazz, groupId, artifactId);
+            version = getVersionFromPackage(clazz);
         }
-        cacheValue(clazz, version);
+        versionsCache.put(clazz, version != null ? version : UNKNOWN_VERSION);
         return version;
     }
 
@@ -67,16 +67,6 @@ public final class VersionUtils {
             return pkg.getImplementationVersion();
         }
         return null;
-    }
-
-    @Nullable
-    private static String getFromCache(Class<?> clazz) {
-        String cached = versionsCache.get(clazz);
-        return cached != UNKNOWN_VERSION ? cached : null;
-    }
-
-    private static void cacheValue(Class<?> clazz, @Nullable String value) {
-        versionsCache.put(clazz, value != null ? value : UNKNOWN_VERSION);
     }
 
     @Nullable
