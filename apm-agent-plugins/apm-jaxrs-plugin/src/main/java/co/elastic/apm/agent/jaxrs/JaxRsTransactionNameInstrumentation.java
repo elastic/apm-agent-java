@@ -62,9 +62,11 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     @VisibleForAdvice
     public static final WeakConcurrentMap<Class<?>, String> versionsCache = WeakMapSupplier.createMap();
 
+    @VisibleForAdvice
     private static final String FRAMEWORK_NAME = "JAX-RS";
     private static final String GROUP_ID = "javax.ws.rs";
     private static final String ARTIFACT_ID = "javax.ws.rs-api";
+    private static final String UNKNOWN_VERSION = "unknown";
 
     public static boolean useAnnotationValueForTransactionName;
 
@@ -92,12 +94,16 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                 transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
                 transaction.setFrameworkName(FRAMEWORK_NAME);
                 String version = versionsCache.get(javax.ws.rs.GET.class);
-                boolean isContains = versionsCache.containsKey(javax.ws.rs.GET.class);
-                if (version == null && !isContains) {
+                if (version == null) {
                     version = VersionUtils.getVersionFromPomProperties(javax.ws.rs.GET.class, GROUP_ID, ARTIFACT_ID);
+                    if (version == null) {
+                        version = UNKNOWN_VERSION;
+                    }
                     versionsCache.put(javax.ws.rs.GET.class, version);
                 }
-                transaction.setFrameworkVersion(version);
+                if (!UNKNOWN_VERSION.equals(version)) {
+                    transaction.setFrameworkVersion(version);
+                }
             }
         }
     }

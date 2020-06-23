@@ -46,6 +46,9 @@ public class JobTransactionNameAdvice {
     public static final WeakConcurrentMap<Class<?>, String> versionsCache = WeakMapSupplier.createMap();
 
     @VisibleForAdvice
+    private static final String UNKNOWN_VERSION = "unknown";
+
+    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -74,12 +77,16 @@ public class JobTransactionNameAdvice {
             if (transaction != null) {
                 transaction.setFrameworkName(FRAMEWORK_NAME);
                 String version = versionsCache.get(JobExecutionContext.class);
-                boolean isContains = versionsCache.containsKey(JobExecutionContext.class);
-                if (version == null && !isContains) {
+                if (version == null) {
                     version = VersionUtils.getVersionFromPomProperties(JobExecutionContext.class, "org.quartz-scheduler", "quartz");
+                    if (version == null) {
+                        version = UNKNOWN_VERSION;
+                    }
                     versionsCache.put(JobExecutionContext.class, version);
                 }
-                transaction.setFrameworkVersion(version);
+                if (!UNKNOWN_VERSION.equals(version)) {
+                    transaction.setFrameworkVersion(version);
+                }
             }
         }
     }
