@@ -31,10 +31,11 @@ import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import javax.annotation.Nullable;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,15 +44,11 @@ public class WebFluxInstrumentationTest extends AbstractInstrumentationTest {
     public static final int PORT = 8081;
     // TODO: 06/05/2020 improvement: support random port for easier testing (without any spring-related test).
 
-    @Nullable
     private static ConfigurableApplicationContext context;
-    @Nullable
-    private static GreetingWebClient client;
 
     @BeforeAll
     static void startApp() {
         context = WebFluxApplication.run(PORT);
-        client = WebFluxApplication.getClient(context);
     }
 
     @AfterAll
@@ -64,23 +61,32 @@ public class WebFluxInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
-    // test cases to cover
-    // -> transaction created when properly executing span
-    // -  exception thrown during dispatch should properly terminate transaction
+    static Stream<GreetingWebClient> client(){
+        return Stream.of(
+            new GreetingWebClient("localhost", PORT, false),
+            new GreetingWebClient("localhost", PORT, true)
+        );
+    }
 
-    @Test
-    void dispatchHello() {
+    @ParameterizedTest
+    @MethodSource("client")
+    void dispatchHello(GreetingWebClient client) {
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
 
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
+        assertThat(transaction.getNameAsString()).isEqualTo(client.getPathPrefix() + "/hello");
     }
 
-    @Test
-    void dispatch404() {
+    @ParameterizedTest
+    @MethodSource("client")
+    void dispatch404(GreetingWebClient client) {
         assertThat(client.getMappingError404()).contains("Not Found");
 
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
+        assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
+        assertThat(transaction.getNameAsString()).isEqualTo(client.getPathPrefix() + "/error-404");
+        assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(404);
     }
 }

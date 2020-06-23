@@ -37,6 +37,7 @@ import reactor.core.publisher.Operators;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
 
@@ -44,7 +45,7 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("spring-webflux");
+        return Collections.singletonList("spring-webflux");
     }
 
 

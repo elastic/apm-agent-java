@@ -65,7 +65,6 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
             // store transaction in exchange to make it easy to retrieve from other handlers
             exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
-            System.out.println("creating transaction " + transaction);
         }
     }
 

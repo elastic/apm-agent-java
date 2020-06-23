@@ -34,13 +34,15 @@ public class GreetingWebClient {
 
     private final WebClient client;
     private final String baseUri;
+    private final String pathPrefix;
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
     // all the testing logic.
 
     public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint) {
-        this.baseUri = String.format("http://%s:%d/%s", host, port, useFunctionalEndpoint ? "router" : "controller");
+        this.pathPrefix = useFunctionalEndpoint ? "/router" : "/controller";
+        this.baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
         this.client = WebClient.create(baseUri);
     }
 
@@ -90,4 +92,12 @@ public class GreetingWebClient {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return String.format("GreetingWebClient [%s]", pathPrefix);
+    }
+
+    public String getPathPrefix() {
+        return pathPrefix;
+    }
 }
