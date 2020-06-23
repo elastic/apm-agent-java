@@ -72,7 +72,7 @@ public class GreetingWebClient {
     private String executeAndCheckRequest(String method, String path, int expectedStatus) {
         System.out.println(String.format("%s %s%s", method, baseUri, path));
 
-        return client.method(HttpMethod.valueOf(method))
+        String result = client.method(HttpMethod.valueOf(method))
             .uri(path)
             .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
             .exchange()// exchange or retrieve ?
@@ -85,6 +85,9 @@ public class GreetingWebClient {
             .flatMap(r -> r.bodyToMono(String.class))
             .blockOptional()
             .orElse("");
+
+        System.out.println(result);
+        return result;
     }
 
 }

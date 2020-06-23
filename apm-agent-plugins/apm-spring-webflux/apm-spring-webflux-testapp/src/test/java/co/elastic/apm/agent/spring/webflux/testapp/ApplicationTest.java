@@ -73,7 +73,7 @@ public abstract class ApplicationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
+    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH"})
     void methodMapping(String method) {
         assertThat(client.methodMapping(method))
             .contains(String.format("Hello, %s!", method));
