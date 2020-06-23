@@ -26,6 +26,7 @@ package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -59,7 +60,7 @@ public class AbstractErrorWebExceptionHandlerInstrumentation extends ElasticApmI
         if (transaction != null) {
             if (throwable instanceof ResponseStatusException) {
                 ResponseStatusException e = (ResponseStatusException) throwable;
-                transaction.withResult(e.getStatus().value() + " " + e.getStatus().getReasonPhrase());
+                transaction.withResult(ResultUtil.getResultByHttpStatus(e.getStatus().value()));
             }
             transaction
                 .captureException(throwable)

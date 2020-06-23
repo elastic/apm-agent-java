@@ -22,15 +22,15 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
 
-public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumentationTest {
+public class ServerRestInstrumentationTest extends AbstractServerInstrumentationTest {
 
     @Override
     protected GreetingWebClient getClient() {
-        return new GreetingWebClient("localhost", PORT, true);
+        return new GreetingWebClient("localhost", PORT, false);
     }
 
 }

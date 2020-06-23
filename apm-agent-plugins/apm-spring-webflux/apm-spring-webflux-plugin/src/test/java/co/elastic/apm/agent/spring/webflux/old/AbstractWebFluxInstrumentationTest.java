@@ -22,30 +22,36 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.spring.webflux.old;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import io.undertow.Undertow;
-import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.http.server.reactive.UndertowHttpHandlerAdapter;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.RouterFunctions;
-import org.springframework.web.reactive.function.server.ServerResponse;
+import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class AbstractWebFluxInstrumentationTest extends AbstractInstrumentationTest {
 
-    protected static Undertow startServer(RouterFunction<ServerResponse> route, int port) {
-        final HttpHandler httpHandler = RouterFunctions.toHttpHandler(route);
+    // TODO support random port for easier testing (without any spring-related test).
+    public static final int PORT = 8081;
 
-        final UndertowHttpHandlerAdapter undertowHttpHandlerAdapter = new UndertowHttpHandlerAdapter(httpHandler);
+    private static ConfigurableApplicationContext context;
 
-        final Undertow server = Undertow.builder()
-            .addHttpListener(port, "127.0.0.1")
-            .setHandler(undertowHttpHandlerAdapter)
-            .build();
-
-        server.start();
-
-        return server;
+    protected String uri(String path) {
+        return String.format("http://localhost:%d/%s", PORT, path);
     }
+
+    @BeforeAll
+    static void startApp() {
+        context = WebFluxApplication.run(PORT);
+    }
+
+    @AfterAll
+    static void stopApp() {
+        context.close();
+    }
+
 }

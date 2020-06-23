@@ -98,6 +98,8 @@
                 <version>${version.spring-boot}</version>
                 <configuration>
                     <mainClass>co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication</mainClass>
+                    <!-- by default original jar is replaced, which makes impossible to reuse as dependency -->
+                    <classifier>standalone</classifier>
                 </configuration>
                 <executions>
                     <execution>

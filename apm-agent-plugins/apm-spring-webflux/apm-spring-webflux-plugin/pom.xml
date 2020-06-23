@@ -17,6 +17,9 @@
 
         <!-- make plugin compile for java8 -->
         <maven.compiler.target>8</maven.compiler.target>
+
+        <!-- todo need to make animal sniffer configuration suitable for this module -->
+        <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
     <dependencies>

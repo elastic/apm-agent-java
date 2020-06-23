@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -68,7 +68,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
         assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getNameAsString()).isEqualTo(client.getPathPrefix() + "/hello");
+        assertThat(transaction.getNameAsString()).isEqualTo("co.elastic.apm.agent.spring.webflux.testapp.GreetingController#getHello");
     }
 
     @Test
@@ -81,6 +81,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
         assertThat(transaction.getNameAsString()).isEqualTo(client.getPathPrefix() + "/error-404");
+        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(404);
     }
 }
