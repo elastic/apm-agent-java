@@ -24,6 +24,7 @@
         <module>apm-opentracing-plugin</module>
         <module>apm-servlet-plugin</module>
         <module>apm-spring-webmvc-plugin</module>
+        <module>apm-spring-webflux</module>
         <module>apm-api-plugin</module>
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate-plugin</module>
@@ -42,7 +43,6 @@
         <module>apm-hibernate-search-plugin</module>
         <module>apm-redis-plugin</module>
         <module>apm-error-logging-plugin</module>
-        <module>apm-spring-webflux-plugin</module>
         <module>apm-jmx-plugin</module>
         <module>apm-mule4-plugin</module>
         <module>apm-mongoclient-plugin</module>
@@ -50,7 +50,6 @@
         <module>apm-kafka-plugin</module>
         <module>apm-profiling-plugin</module>
         <module>apm-grpc</module>
-        <module>apm-spring-webflux</module>
     </modules>
 
     <dependencies>

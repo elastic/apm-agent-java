@@ -26,21 +26,17 @@ package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-
 import org.springframework.http.HttpMethod;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.server.ServerWebExchange;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
-
 import java.util.List;
 
 public class WebFluxInstrumentationHelper {
 
     public static final String ELASTIC_APM_AGENT_TRANSACTION = Transaction.class.getName();
-    public static final String TRANSACTION_TYPE = "serverRequest";
+    public static final String TRANSACTION_TYPE = "request";
     public static final String CONTENT_LENGTH = "Content-Length";
 
     public static Transaction createAndActivateTransaction(final ElasticApmTracer tracer, final ServerRequest serverRequest) {
@@ -57,14 +53,15 @@ public class WebFluxInstrumentationHelper {
         return transaction;
     }
 
+    // TODO: 23/06/2020 not sure if it's required as serlvet plugin should already take care of transaction
     public static Transaction createAndActivateTransaction(ElasticApmTracer tracer, ServletRequest servletRequest) {
-        if(!(servletRequest instanceof HttpServletRequest)){
+        if (!(servletRequest instanceof HttpServletRequest)) {
             return null;
         }
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-        final String method =httpServletRequest.getMethod();
+        final String method = httpServletRequest.getMethod();
         final String path = httpServletRequest.getRequestURI();
-        final String name =  method + " " + path;
+        final String name = method + " " + path;
         final Transaction transaction = tracer.startRootTransaction(servletRequest.getClass().getClassLoader())
             .withName(name)
             .withType(TRANSACTION_TYPE);

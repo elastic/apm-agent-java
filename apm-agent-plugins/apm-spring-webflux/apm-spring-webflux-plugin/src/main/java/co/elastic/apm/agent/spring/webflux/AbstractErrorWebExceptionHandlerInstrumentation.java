@@ -33,60 +33,57 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.spring.webflux.WebFluxInstrumentationHelper.*;
+import static co.elastic.apm.agent.spring.webflux.WebFluxInstrumentationHelper.ELASTIC_APM_AGENT_TRANSACTION;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class DispatcherHandlerInstrumentation extends ElasticApmInstrumentation {
+public class AbstractErrorWebExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(DispatcherHandlerInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(AbstractErrorWebExceptionHandlerInstrumentation.class);
 
     @SuppressWarnings("unused")
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void afterRequestHandle(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
-                                          @Advice.Return(readOnly = false) Mono<Void> mono) {
+    @Advice.OnMethodEnter
+    public static void beforeHandleMethod(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
+                                          @Advice.Argument(value = 1) Throwable throwable) {
         if (tracer == null) {
-            logger.trace("afterRequestHandle tracer == null");
+            logger.trace("beforeHandleMethod tracer == null");
             return;
         }
         Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(ELASTIC_APM_AGENT_TRANSACTION);
         if (transaction != null) {
-            mono = mono.doOnTerminate(onTerminate(transaction));
+            if (throwable instanceof ResponseStatusException) {
+                ResponseStatusException e = (ResponseStatusException) throwable;
+                transaction.withResult(e.getStatus().value() + " " + e.getStatus().getReasonPhrase());
+            }
+            transaction
+                .captureException(throwable)
+                .deactivate()
+                .end();
         }
-    }
-
-    /**
-     * Workaround, bytebuddy generates lambda with private access modifier.
-     * method shall be public, otherwise Spring class won't have permission to execute it.
-     */
-    public static Runnable onTerminate(Transaction transaction) {
-        return () -> transaction
-            .deactivate()
-            .end();
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.springframework.web.reactive.DispatcherHandler");
+        return named("org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handleResult")
+        return named("handle")
             .and(takesArgument(0,
                 named("org.springframework.web.server.ServerWebExchange")))
             .and(takesArgument(1,
-                named("org.springframework.web.reactive.HandlerResult")));
+                named("java.lang.Throwable")));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("webflux-dispatcher-handler");
+        return Collections.singletonList("webflux-error-web-exception-handler");
     }
 }

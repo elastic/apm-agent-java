@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,18 +31,15 @@ import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ConfigurableApplicationContext;
-
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class WebFluxInstrumentationTest extends AbstractInstrumentationTest {
+public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
+    // TODO support random port for easier testing (without any spring-related test).
     public static final int PORT = 8081;
-    // TODO: 06/05/2020 improvement: support random port for easier testing (without any spring-related test).
 
     private static ConfigurableApplicationContext context;
 
@@ -61,30 +58,27 @@ public class WebFluxInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
-    static Stream<GreetingWebClient> client(){
-        return Stream.of(
-            new GreetingWebClient("localhost", PORT, false),
-            new GreetingWebClient("localhost", PORT, true)
-        );
-    }
+    protected abstract GreetingWebClient getClient();
 
-    @ParameterizedTest
-    @MethodSource("client")
-    void dispatchHello(GreetingWebClient client) {
+    @Test
+    void dispatchHello() {
+        GreetingWebClient client = getClient();
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
 
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
+        assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(client.getPathPrefix() + "/hello");
     }
 
-    @ParameterizedTest
-    @MethodSource("client")
-    void dispatch404(GreetingWebClient client) {
+    @Test
+    void dispatch404() {
+        GreetingWebClient client = getClient();
         assertThat(client.getMappingError404()).contains("Not Found");
 
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
+        assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
         assertThat(transaction.getNameAsString()).isEqualTo(client.getPathPrefix() + "/error-404");
         assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(404);

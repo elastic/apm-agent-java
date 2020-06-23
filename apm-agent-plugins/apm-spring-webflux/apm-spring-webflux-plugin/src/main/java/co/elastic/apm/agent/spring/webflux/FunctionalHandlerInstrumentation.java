@@ -29,7 +29,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.web.reactive.function.server.*;
+import org.springframework.web.reactive.function.server.HandlerFunction;
+import org.springframework.web.reactive.function.server.RequestPredicate;
 
 import java.util.Collection;
 import java.util.Collections;

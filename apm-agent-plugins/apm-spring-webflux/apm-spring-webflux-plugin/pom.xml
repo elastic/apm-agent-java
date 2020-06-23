@@ -2,11 +2,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.15.1-SNAPSHOT</version>
+        <version>1.16.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-plugin</artifactId>
@@ -31,6 +30,26 @@
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
             <version>${version.reactor}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <!-- TODO : not sure if it's required as servlet plugin should already activate any transaction -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <!-- TODO : only required for testing, we should be able to test with spring webflux client -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.12</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
