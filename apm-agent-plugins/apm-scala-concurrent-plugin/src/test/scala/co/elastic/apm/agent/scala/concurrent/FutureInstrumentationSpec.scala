@@ -28,7 +28,8 @@ class FutureInstrumentationSpec extends FunSuite {
     coreConfiguration = config.getConfig(classOf[CoreConfiguration])
     tracer = new ElasticApmTracerBuilder().configurationRegistry(config).reporter(reporter).build
     ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install)
-    transaction = tracer.startRootTransaction(null).withName("Transaction").activate()
+    tracer.start()
+    transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
   }
 
   override def afterEach(context: AfterEach): Unit = ElasticApmAgent.reset()
