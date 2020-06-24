@@ -36,6 +36,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fixes error capturing for log4j2 loggers. Version 1.17.0 introduced a regression.
+* Fixes `NullPointerException` related to JAX-RS and Quartz instrumentation - {pull}1249[#1249]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
