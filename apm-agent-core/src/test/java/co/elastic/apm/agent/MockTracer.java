@@ -115,8 +115,7 @@ public class MockTracer {
                     // checking proper object pool usage using tracer lifecycle events
                     objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
                 }))
-                .build();
-            tracer.start();
+                .buildAndStart();
         } else {
             ElasticApmAgent.reset();
             if (!tracer.isRunning()) {

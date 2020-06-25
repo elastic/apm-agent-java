@@ -25,9 +25,11 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.PAUSED;
@@ -63,8 +66,7 @@ public class LifecycleTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .build();
-        tracerImpl.start();
+            .buildAndStart();
         assertThat(TestLifecycleListener.init.get()).isEqualTo(initBefore + 1);
         assertThat(TestLifecycleListener.start.get()).isEqualTo(startBefore + 1);
     }
@@ -133,11 +135,36 @@ public class LifecycleTest {
         ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configRegistry)
             .reporter(new MockReporter())
-            .build();
-        tracer.start();
+            .buildAndStart();
         assertThat(tracer.isRunning()).isFalse();
         assertThat(tracer.startRootTransaction(null)).isNull();
         assertThat(tracer.captureException(new Exception(), null, null)).isNull();
+    }
+
+    @Test
+    void testStartDisabled() throws Exception {
+        ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig(SimpleSource.forTest("enabled", "false"));
+        AtomicBoolean initialized = new AtomicBoolean();
+        AtomicBoolean started = new AtomicBoolean();
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(configRegistry)
+            .reporter(new MockReporter())
+            .withLifecycleListener(new AbstractLifecycleListener() {
+                @Override
+                public void init(ElasticApmTracer tracer) {
+                    initialized.set(true);
+                }
+
+                @Override
+                public void start(ElasticApmTracer tracer) throws Exception {
+                    started.set(true);
+                }
+            })
+            .build();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+        assertThat(tracer.isRunning()).isFalse();
+        assertThat(initialized).isTrue();
+        assertThat(started).isFalse();
     }
 
     /*
