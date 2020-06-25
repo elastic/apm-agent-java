@@ -196,6 +196,8 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                                 register(Collections.singletonList(jmxMetric), server);
                             }
                         }
+                    } else {
+                        logger.debug("Received a notification that is not an instance of MBeanServerNotification");
                     }
                 } catch (Exception e) {
                     logger.error(e.getMessage(), e);
