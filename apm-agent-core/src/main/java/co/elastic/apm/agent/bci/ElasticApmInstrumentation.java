@@ -198,7 +198,7 @@ public abstract class ElasticApmInstrumentation {
     /**
      * When this method returns {@code true} the whole package (starting at the {@linkplain #getAdviceClass() advice's} package)
      * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the class this instruments as
-     * the parent.
+     * parents.
      * <p>
      * This instructs Byte Buddy to dispatch to the advice methods via an {@code INVOKEDYNAMIC} instruction.
      * Upon first invocation of an instrumented method,
@@ -215,11 +215,11 @@ public abstract class ElasticApmInstrumentation {
      *         use {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo} and friends.
      *     </li>
      *     <li>
-     *         Both the return type and the arguments of advice methods must no contain types from the agent.
+     *         Both the return type and the arguments of advice methods must not contain types from the agent.
      *         If you'd like to return a {@link Span} from an advice, for example, return an {@link Object} instead.
      *         When using an {@link net.bytebuddy.asm.Advice.Enter} argument on the
      *         {@linkplain net.bytebuddy.asm.Advice.OnMethodExit exit advice},
-     *         that argument als has to be of type {@link Object} and you have to cast in within the method body.
+     *         that argument also has to be of type {@link Object} and you have to cast it within the method body.
      *         The reason is that the return value will become a local variable in the instrumented method.
      *         Due to OSGi, those methods may not have access to agent types.
      *         Another case is when the instrumented class is inside the bootstrap classloader.
@@ -227,7 +227,7 @@ public abstract class ElasticApmInstrumentation {
      *     <li>
      *         When an advice instruments classes in multiple class loaders, the plugin classes will be loaded form multiple class loaders.
      *         In order to still share state across those plugin class loaders, use {@link co.elastic.apm.agent.util.GlobalVariables} or {@link GlobalState}.
-     *         That's necessary as a static variables are scoped to the class loader they are defined in.
+     *         That's necessary as static variables are scoped to the class loader they are defined in.
      *     </li>
      *     <li>
      *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
