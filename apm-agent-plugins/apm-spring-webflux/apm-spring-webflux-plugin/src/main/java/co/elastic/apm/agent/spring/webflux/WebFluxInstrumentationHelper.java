@@ -58,6 +58,7 @@ public class WebFluxInstrumentationHelper {
         if (!(servletRequest instanceof HttpServletRequest)) {
             return null;
         }
+
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
         final String method = httpServletRequest.getMethod();
         final String path = httpServletRequest.getRequestURI();

@@ -35,13 +35,12 @@ import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
 public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
 
-    public static final String TRANSACTION_ATTRIBUTE = "elastic.transaction";
+    public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -52,25 +51,25 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static <T> Mono<T> dispatcherWrap(Mono<T> mono, Transaction transaction) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new DecoratedSubScriber<>(subscriber, transaction, false))
+            Operators.lift((scannable, subscriber) -> new DecoratedSubscriber<>(subscriber, transaction, false))
         );
     }
 
     @VisibleForAdvice
     public static <T> Mono<T> handlerWrap(Mono<T> mono, Transaction transaction) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new DecoratedSubScriber<>(subscriber, transaction, true))
+            Operators.lift((scannable, subscriber) -> new DecoratedSubscriber<>(subscriber, transaction, true))
         );
     }
 
-    private static class DecoratedSubScriber<T> implements CoreSubscriber<T> {
+    private static class DecoratedSubscriber<T> implements CoreSubscriber<T> {
         private final CoreSubscriber<? super T> subscriber;
         private final Transaction transaction;
-        private boolean terminateTransactionOnComplete;
+        private final boolean terminateTransactionOnComplete;
 
         // TODO need to activate/deactivate transaction during next,error,complete method execution
 
-        public DecoratedSubScriber(CoreSubscriber<? super T> subscriber, Transaction transaction, boolean terminateTransactionOnComplete) {
+        public DecoratedSubscriber(CoreSubscriber<? super T> subscriber, Transaction transaction, boolean terminateTransactionOnComplete) {
             this.subscriber = subscriber;
             this.transaction = transaction;
             this.terminateTransactionOnComplete = terminateTransactionOnComplete;
@@ -91,7 +90,6 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
             if (t instanceof ResponseStatusException) {
                 // no matching mapping, generates a 404 error
                 HttpStatus status = ((ResponseStatusException) t).getStatus();
-                System.out.println("status = " + status.toString());
 
                 transaction.getContext()
                     .getResponse()
@@ -109,16 +107,21 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
         @Override
         public void onComplete() {
             wrap("onComplete", subscriber::onComplete);
-
             if (terminateTransactionOnComplete) {
                 transaction.end();
             }
+
         }
 
         private void wrap(String name, Runnable task) {
-            System.out.println(String.format("before\t%s\t%x\t%s", name, System.identityHashCode(subscriber), subscriber.getClass().getCanonicalName()));
-            task.run();
-            System.out.println(String.format("after\t%s\t%x\t%s", name, System.identityHashCode(subscriber), subscriber.getClass().getCanonicalName()));
+//            System.out.println(String.format("before\t%s\t%x\t%s", name, System.identityHashCode(subscriber), subscriber.getClass().getCanonicalName()));
+//            transaction.activate();
+            try {
+                task.run();
+            } finally {
+//                transaction.deactivate();
+            }
+//            System.out.println(String.format("after\t%s\t%x\t%s", name, System.identityHashCode(subscriber), subscriber.getClass().getCanonicalName()));
         }
     }
 

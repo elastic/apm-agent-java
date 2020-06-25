@@ -42,6 +42,10 @@ import java.util.Collections;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Instruments {@link co.elastic.apm.agent.spring.webflux.HandlerFunctionWrapper#handle(ServerRequest)} to create transaction for
+ * functional routes definition
+ */
 public class HandlerFunctionInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(HandlerFunctionInstrumentation.class);

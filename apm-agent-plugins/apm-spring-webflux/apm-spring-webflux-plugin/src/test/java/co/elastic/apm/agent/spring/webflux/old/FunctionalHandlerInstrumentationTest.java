@@ -22,90 +22,94 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.spring.webflux.old;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import io.undertow.Undertow;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.server.HandlerFunction;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.RouterFunctions;
-import org.springframework.web.reactive.function.server.ServerResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.stagemonitor.util.IOUtils;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.logging.Logger;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrumentationTest {
 
-    private static final Logger log = Logger.getLogger(FunctionalHandlerInstrumentationTest.class.getCanonicalName());
-
-    @After
-    public void after() {
-        reporter.reset();
+    @ParameterizedTest
+    @CsvSource({"router/hello", "router/hello2"})
+    public void shouldInstrumentSimpleGetRequest(String path) throws IOException {
+        doRequest(new HttpGet(uri(path)), "Hello, Spring!", "");
     }
 
     @Test
-    public void shouldInstrumentSimpleGetRequest() throws IOException {
-        final RouterFunction<ServerResponse> route = RouterFunctions.route()
-            .GET("/hello", request -> ServerResponse.ok().body(BodyInserters.fromObject("Hello World")))
-            .build();
-
-        final Undertow server = startServer(route, 8081);
-
-        final HttpClient client = new DefaultHttpClient();
-        final HttpGet request = new HttpGet("http://localhost:8081/hello");
-        request.addHeader("Content-Length", "1234");
-        final HttpResponse response = client.execute(request);
-        final int statusCode = response.getStatusLine().getStatusCode();
-        Assert.assertEquals(statusCode, HttpStatus.SC_OK);
-
-        final List<Transaction> transactions = reporter.getTransactions();
-
-        Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /hello");
-        Assert.assertEquals(transactions.get(0).getContext().getCustom("Content-Length"), "1234");
-
-        log.info("Request size: " + transactions.get(0).getContext().getCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH));
-        log.info("Request handled in: " + transactions.get(0).getDuration());
-
-        server.stop();
+    public void shouldInstrumentNestedRoutes() throws IOException {
+        doRequest(new HttpGet(uri("router/nested")), "Hello, nested GET!", "/router/nested");
+        doRequest(new HttpPost(uri("router/nested")), "Hello, nested POST!", "/router/nested");
     }
 
+    // TODO still fails
     @Test
-    public void shouldIgnoreNestedPostRequest() throws IOException {
-        final HandlerFunction<ServerResponse> hf1 = new HandlerFunctionWrapper<>(request -> ServerResponse.ok().body(BodyInserters.fromObject("Hello World")));
-        final HandlerFunction<ServerResponse> hf2 = request -> hf1.handle(request);
+    void shouldInstrumentPathWithParameters() throws IOException {
+        // TODO since 1234 is a path parameter, we should not get the URI as-is, but only the param template
+        doRequest(new HttpGet(uri("router/with-parameters/1234")), "Hello, 1234!", "/router/with-parameters/{}");
+    }
 
-        final RouterFunction<ServerResponse> route = RouterFunctions.route()
-            .GET("/hello", hf2)
-            .GET("/nested", hf1)
-            .build();
-
-        final Undertow server = startServer(route, 8081);
-
-        final HttpClient client = new DefaultHttpClient();
-        final HttpGet request = new HttpGet("http://localhost:8081/hello");
+    private Transaction doRequest(HttpUriRequest request, String expectedBody, String expectedTransactionName) throws IOException {
+        final HttpClient client = HttpClients.createDefault();
+//        request.addHeader("Content-Length", "1234");
         final HttpResponse response = client.execute(request);
         final int statusCode = response.getStatusLine().getStatusCode();
-        Assert.assertEquals(statusCode, HttpStatus.SC_OK);
+        assertThat(statusCode).isEqualTo(HttpStatus.SC_OK);
+        assertThat(IOUtils.toString(response.getEntity().getContent())).isEqualTo(expectedBody);
 
-        final List<Transaction> transactions = reporter.getTransactions();
+        // checking expected transaction
 
-        Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /hello");
+        Transaction transaction = reporter.getFirstTransaction(200);
 
-        log.info("Request size: " + transactions.get(0).getContext().getCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH));
-        log.info("Request handled in: " + transactions.get(0).getDuration());
+        // TODO with lambdas, using class name for naming has no sense, thus it's probably better to name with method + path
+        // TODO why do we need to care about content-length ? it should be provided within request itself
+        assertThat(transaction.getNameAsString()).isEqualTo(request.getURI().getPath());
+//        assertThat(transaction.getContext().getCustom("Content-Length"))
+//            .describedAs("request headers should be captured")
+//            .isEqualTo("1234");
 
-        server.stop();
+        return transaction;
     }
+
+//    @Test
+//    public void shouldIgnoreNestedPostRequest() throws IOException {
+//        final HandlerFunction<ServerResponse> hf1 = new HandlerFunctionWrapper<>(request -> ServerResponse.ok().body(BodyInserters.fromObject("Hello World")));
+//        final HandlerFunction<ServerResponse> hf2 = request -> hf1.handle(request);
+//
+//        final RouterFunction<ServerResponse> route = RouterFunctions.route()
+//            .GET("/hello", hf2)
+//            .GET("/nested", hf1)
+//            .build();
+//
+//        final Undertow server = startServer(route, 8081);
+//
+//        final HttpClient client = new DefaultHttpClient();
+//        final HttpGet request = new HttpGet("http://localhost:8081/hello");
+//        final HttpResponse response = client.execute(request);
+//        final int statusCode = response.getStatusLine().getStatusCode();
+//        Assert.assertEquals(statusCode, HttpStatus.SC_OK);
+//
+//        final List<Transaction> transactions = reporter.getTransactions();
+//
+//        Assert.assertEquals(transactions.size(), 1);
+//        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /hello");
+//
+//        log.info("Request size: " + transactions.get(0).getContext().getCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH));
+//        log.info("Request handled in: " + transactions.get(0).getDuration());
+//
+//        server.stop();
+//    }
 }

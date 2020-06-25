@@ -33,6 +33,8 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.reactive.DispatcherHandler;
+import org.springframework.web.reactive.HandlerResult;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -43,6 +45,10 @@ import static co.elastic.apm.agent.spring.webflux.WebFluxInstrumentationHelper.E
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+
+/**
+ * Instruments {@link DispatcherHandler#handleResult(ServerWebExchange, HandlerResult)} to capture end of transaction
+ */
 public class DispatcherHandlerInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(DispatcherHandlerInstrumentation.class);

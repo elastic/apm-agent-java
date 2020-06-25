@@ -70,7 +70,6 @@ public class AnnotatedHandlerInstrumentationTest extends AbstractWebFluxInstrume
         checkTransaction(new HttpPatch(uri("test")), "SimpleRestController#patch");
     }
 
-
     @Test
     public void shouldDoChainedGetRequest() throws Exception {
         checkTransaction(new HttpGet(uri("/test/chained")), "SimpleRestController#getChained");

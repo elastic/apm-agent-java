@@ -26,6 +26,7 @@ package co.elastic.apm.agent.spring.webflux.testapp;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -36,39 +37,54 @@ import reactor.core.publisher.Mono;
 import java.util.Optional;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
+import static org.springframework.web.reactive.function.server.RequestPredicates.method;
+import static org.springframework.web.reactive.function.server.RequestPredicates.path;
 
 @Configuration
 public class GreetingRouter {
 
-	@Bean
-	public RouterFunction<ServerResponse> route(GreetingHandler greetingHandler) {
+    @Bean
+    public RouterFunction<ServerResponse> route(GreetingHandler greetingHandler) {
+
         return RouterFunctions.route()
-            .route(r -> r.path().equals("/router/hello"),
+            // 'hello' and 'hello2' are identical, but entry point in builder is not
+            .route(path("/router/hello"),
                 request -> helloGreeting(greetingHandler, request.queryParam("name")))
-            .route(r -> r.path().equals("/router/hello-mapping"),
+            .GET("/router/hello2", accept(MediaType.TEXT_PLAIN),
+                request -> helloGreeting(greetingHandler, request.queryParam("name")))
+            // nested routes
+            .nest(path("/router/nested"), builder -> builder
+                .route(method(HttpMethod.GET), request -> nested(greetingHandler, request.methodName()))
+                .route(method(HttpMethod.POST), request -> nested(greetingHandler, request.methodName()))
+            )
+            // path with parameters
+            .route(path("/router/with-parameters/{id}"),
+                request -> helloGreeting(greetingHandler, Optional.of(request.pathVariable("id"))))
+            // route that supports multiple methods mapping
+            .route(path("/router/hello-mapping"),
                 request -> helloGreeting(greetingHandler, Optional.of(request.methodName())))
+            // errors and mono corner cases
             .GET("/router/error-handler", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.throwException())
             .GET("/router/error-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoError())
             .GET("/router/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
+            // error handler
             .onError(
-        e -> true, (e, request) -> ServerResponse
+                e -> true, (e, request) -> ServerResponse
                     .status(request.queryParam("status")
                         .map(Integer::parseInt)
                         .orElse(500))
                     .bodyValue(greetingHandler.exceptionMessage(e))
             )
             .build();
-	}
+    }
+
+    private Mono<ServerResponse> nested(GreetingHandler greetingHandler, String methodName) {
+        return helloGreeting(greetingHandler, Optional.of("nested " + methodName));
+    }
 
     private Mono<ServerResponse> helloGreeting(GreetingHandler greetingHandler, Optional<String> name) {
         return ServerResponse.ok()
             .contentType(MediaType.TEXT_PLAIN)
             .body(BodyInserters.fromValue(greetingHandler.helloMessage(name).block()));
     }
-
-    // exception handler
-    // TODO
-
-    // pre/post filter interception
-    // TODO
 }

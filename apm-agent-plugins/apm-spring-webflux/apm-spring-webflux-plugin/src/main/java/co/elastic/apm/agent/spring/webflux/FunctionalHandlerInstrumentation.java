@@ -31,6 +31,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.reactive.function.server.HandlerFunction;
 import org.springframework.web.reactive.function.server.RequestPredicate;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,8 +43,8 @@ public class FunctionalHandlerInstrumentation extends ElasticApmInstrumentation 
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onHandlerAdd(@Advice.Argument(readOnly = false, value = 0) RequestPredicate predicate,
-                                    @Advice.Argument(readOnly = false, value = 1) HandlerFunction handlerFunction) {
+    public static <T extends ServerResponse> void onHandlerAdd(@Advice.Argument(readOnly = false, value = 0) RequestPredicate predicate,
+                                                               @Advice.Argument(readOnly = false, value = 1) HandlerFunction<T> handlerFunction) {
 
         //already wrapped
         if (handlerFunction instanceof HandlerFunctionWrapper) {
@@ -60,10 +61,8 @@ public class FunctionalHandlerInstrumentation extends ElasticApmInstrumentation 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("add")
-            .and(takesArgument(0,
-                named("org.springframework.web.reactive.function.server.RequestPredicate")))
-            .and(takesArgument(1,
-                named("org.springframework.web.reactive.function.server.HandlerFunction")));
+            .and(takesArgument(0, named("org.springframework.web.reactive.function.server.RequestPredicate")))
+            .and(takesArgument(1, named("org.springframework.web.reactive.function.server.HandlerFunction")));
     }
 
     @Override

@@ -43,6 +43,10 @@ import java.util.Collections;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Instruments {@link org.springframework.http.server.reactive.ServletHttpHandlerAdapter#service(ServletRequest, ServletResponse)}
+ * to create transactions for annotated controllers.
+ */
 public class ServletHttpHandlerAdapterInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ServletHttpHandlerAdapterInstrumentation.class);

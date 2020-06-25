@@ -31,15 +31,17 @@ import reactor.core.publisher.Mono;
 
 public class HandlerFunctionWrapper<T extends ServerResponse> implements HandlerFunction<T> {
 
-    private final HandlerFunction handlerFunction;
+    private final HandlerFunction<T> handlerFunction;
 
-    public HandlerFunctionWrapper(HandlerFunction handlerFunction) {
+    // TODO wrapper could handle transaction directly without re-instrumenting it later
+    // TODO wrapper should probably be pooled to reduce memory allocation
+
+    public HandlerFunctionWrapper(HandlerFunction<T> handlerFunction) {
         this.handlerFunction = handlerFunction;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Mono<T> handle(ServerRequest request) {
-        return (Mono<T>) handlerFunction.handle(request);
+        return handlerFunction.handle(request);
     }
 }

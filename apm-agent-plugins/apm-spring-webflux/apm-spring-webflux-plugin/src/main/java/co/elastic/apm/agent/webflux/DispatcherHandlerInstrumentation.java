@@ -61,7 +61,8 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
         transaction = tracer.startRootTransaction(clazz.getClassLoader());
         if (transaction != null) {
             transaction.withName(exchange.getRequest().getPath().value())
-                .withType("request");
+                .withType("request")
+                .activate();
 
             // store transaction in exchange to make it easy to retrieve from other handlers
             exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
@@ -70,13 +71,14 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void onExit(@Advice.Local("transaction") @Nullable Transaction transaction,
-                               @Advice.Thrown Throwable thrown,
+                               @Advice.Thrown @Nullable Throwable thrown,
                                @Advice.Return(readOnly = false) Mono<Void> returnValue) {
 
-        if(null == transaction){
+        if (null == transaction || thrown != null) {
             return;
         }
 
+        transaction.deactivate();
         returnValue = dispatcherWrap(returnValue, transaction);
 
     }

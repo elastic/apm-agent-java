@@ -1,10 +1,10 @@
-#co.elastic.apm.agent.webflux.DispatcherHandlerInstrumentation
-#co.elastic.apm.agent.webflux.HandlerAdapterInstrumentation
+co.elastic.apm.agent.webflux.DispatcherHandlerInstrumentation
+co.elastic.apm.agent.webflux.HandlerAdapterInstrumentation
 
 # other implementation for review
-co.elastic.apm.agent.spring.webflux.AbstractErrorWebExceptionHandlerInstrumentation
+#co.elastic.apm.agent.spring.webflux.AbstractErrorWebExceptionHandlerInstrumentation
 co.elastic.apm.agent.spring.webflux.AbstractHandlerMethodMappingInstrumentation
-co.elastic.apm.agent.spring.webflux.DispatcherHandlerInstrumentation
-co.elastic.apm.agent.spring.webflux.FunctionalHandlerInstrumentation
-co.elastic.apm.agent.spring.webflux.HandlerFunctionInstrumentation
-co.elastic.apm.agent.spring.webflux.ServletHttpHandlerAdapterInstrumentation
+#co.elastic.apm.agent.spring.webflux.DispatcherHandlerInstrumentation
+#co.elastic.apm.agent.spring.webflux.FunctionalHandlerInstrumentation
+#co.elastic.apm.agent.spring.webflux.HandlerFunctionInstrumentation
+#co.elastic.apm.agent.spring.webflux.ServletHttpHandlerAdapterInstrumentation

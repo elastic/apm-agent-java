@@ -25,48 +25,41 @@
 package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.webflux.WebFluxInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.spring.webflux.WebFluxInstrumentationHelper.ELASTIC_APM_AGENT_TRANSACTION;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class AbstractErrorWebExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
-    @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(AbstractErrorWebExceptionHandlerInstrumentation.class);
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter
     public static void beforeHandleMethod(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
                                           @Advice.Argument(value = 1) Throwable throwable) {
-        if (tracer == null) {
-            logger.trace("beforeHandleMethod tracer == null");
+
+        Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE);
+        if (transaction == null) {
             return;
         }
-        Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(ELASTIC_APM_AGENT_TRANSACTION);
-        if (transaction != null) {
-            if (throwable instanceof ResponseStatusException) {
-                ResponseStatusException e = (ResponseStatusException) throwable;
-                transaction.withResult(ResultUtil.getResultByHttpStatus(e.getStatus().value()));
-            }
-            transaction
-                .captureException(throwable)
-                .deactivate()
-                .end();
+        if (throwable instanceof ResponseStatusException) {
+            ResponseStatusException e = (ResponseStatusException) throwable;
+            transaction.withResult(ResultUtil.getResultByHttpStatus(e.getStatus().value()));
         }
+        transaction
+            .captureException(throwable)
+            .deactivate()
+            .end();
     }
 
     @Override

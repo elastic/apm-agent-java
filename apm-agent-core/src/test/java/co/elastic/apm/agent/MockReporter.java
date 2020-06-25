@@ -191,7 +191,9 @@ public class MockReporter implements Reporter {
 
     public Transaction getFirstTransaction(long timeoutMs) {
         awaitTimeout(timeoutMs)
-            .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
+            .untilAsserted(() -> assertThat(getTransactions())
+                .describedAs("at least one transaction expected")
+                .isNotEmpty());
         return getFirstTransaction();
     }
 
