@@ -186,20 +186,25 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         listener = new NotificationListener() {
             @Override
             public void handleNotification(Notification notification, Object handback) {
-                if (notification instanceof MBeanServerNotification) {
-                    ObjectName mBeanName = ((MBeanServerNotification) notification).getMBeanName();
-                    for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
-                        if (jmxMetric.getObjectName().apply(mBeanName)) {
-                            logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
-                            register(Collections.singletonList(jmxMetric), server);
+                try {
+                    if (notification instanceof MBeanServerNotification) {
+                        ObjectName mBeanName = ((MBeanServerNotification) notification).getMBeanName();
+                        logger.trace("Receiving MBean registration notification for {}", mBeanName);
+                        for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
+                            if (jmxMetric.getObjectName().apply(mBeanName)) {
+                                logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
+                                register(Collections.singletonList(jmxMetric), server);
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
                 }
             }
         };
         try {
             server.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener, filter, null);
-        } catch (InstanceNotFoundException e) {
+        } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
     }
@@ -233,7 +238,11 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
         Set<ObjectInstance> mbeans = server.queryMBeans(jmxMetric.getObjectName(), null);
-        logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
+        if (!mbeans.isEmpty()) {
+            logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
+        } else {
+            logger.debug("Found no mbeans for object name {}. Listening for MBeans added later.", jmxMetric.getObjectName());
+        }
         for (ObjectInstance mbean : mbeans) {
             for (JmxMetric.Attribute attribute : jmxMetric.getAttributes()) {
                 final ObjectName objectName = mbean.getObjectName();
