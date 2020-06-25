@@ -56,6 +56,7 @@ public abstract class AbstractInstrumentationTest {
         config = mockInstrumentationSetup.getConfig();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
         reporter = mockInstrumentationSetup.getReporter();
+        assertThat(tracer.isRunning()).isTrue();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
