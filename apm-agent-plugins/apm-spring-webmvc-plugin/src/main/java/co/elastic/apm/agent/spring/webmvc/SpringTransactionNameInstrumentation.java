@@ -27,11 +27,11 @@ package co.elastic.apm.agent.spring.webmvc;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.core.SpringVersion;
 import org.springframework.web.method.HandlerMethod;
 
 import javax.annotation.Nullable;
@@ -127,7 +127,7 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
             }
             setName(transaction, className, methodName);
             transaction.setFrameworkName(FRAMEWORK_NAME);
-            transaction.setFrameworkVersion(SpringVersion.getVersion());
+            transaction.setFrameworkVersion(VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "spring-web"));
         }
 
         @VisibleForAdvice

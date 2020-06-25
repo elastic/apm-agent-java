@@ -31,10 +31,12 @@ endif::[]
 * Overhaul of the `ExecutorService` instrumentation that avoids issues like ``ClassCastException``s - {pull}1206[#1206]
 * Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
 * Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
+* Added support for `java.util.TimerTask` - {pull}1235[#1235]
 
 [float]
 ===== Bug fixes
 * Fixes error capturing for log4j2 loggers. Version 1.17.0 introduced a regression.
+* Fixes `NullPointerException` related to JAX-RS and Quartz instrumentation - {pull}1249[#1249]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
