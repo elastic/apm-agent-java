@@ -152,8 +152,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(realReporter)
-            .build();
-        tracer.start();
+            .buildAndStart();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

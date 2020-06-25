@@ -66,8 +66,7 @@ class SystemCpuStressMonitorTest {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(new MockReporter())
-            .build();
-        tracer.start();
+            .buildAndStart();
         getNextValueMethod = MBeanMock.class.getDeclaredMethod("getNextValue");
     }
 

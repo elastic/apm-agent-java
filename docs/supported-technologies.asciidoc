@@ -302,6 +302,14 @@ This section lists all supported asynchronous frameworks.
 |The agent propagates the context for ``ForkJoinPool``s.
 |1.17.0
 
+|Scala Future
+|2.13.x
+|The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.
+It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, ...
+
+NOTE: To enable Scala Future support, you need to enable experimental plugins.
+|1.18.0
+
 |===
 
 
@@ -359,6 +367,12 @@ When using a scheduling framework a transaction for every execution will be crea
 
 NOTE: only classes from the quartz-jobs dependency will be instrumented automatically. For the instrumentation of other jobs the package must be added to the <<config-application-packages>> parameter.
 |1.8.0
+
+|TimerTask
+|
+|The agent instruments the `run` method in a package configured in <<config-application-packages>> of any class extending `java.util.TimerTask`, and creates a transaction with the type `scheduled`, representing the job execution
+|1.18.0
+
 |===
 
 [float]

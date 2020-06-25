@@ -46,8 +46,7 @@ class MethodMatcherInstrumentationTest {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(new MockReporter())
-            .build();
-        tracer.start();
+            .buildAndStart();
     }
 
     @Test

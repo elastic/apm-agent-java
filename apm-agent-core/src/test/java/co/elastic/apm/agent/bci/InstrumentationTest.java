@@ -409,7 +409,6 @@ class InstrumentationTest {
         ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .build();
-        tracer.start();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), instrumentations);
     }
 
