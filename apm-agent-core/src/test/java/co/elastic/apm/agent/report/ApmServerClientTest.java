@@ -84,8 +84,7 @@ public class ApmServerClientTest {
         doReturn(List.of(url1, url2)).when(reporterConfiguration).getServerUrls();
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
-            .build();
-        tracer.start();
+            .buildAndStart();
 
         apmServerClient = new ApmServerClient(reporterConfiguration);
         apmServerClient.start(tracer.getConfig(ReporterConfiguration.class).getServerUrls());

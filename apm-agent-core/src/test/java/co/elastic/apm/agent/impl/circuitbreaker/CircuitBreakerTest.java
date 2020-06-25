@@ -82,8 +82,7 @@ public class CircuitBreakerTest {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(new MockReporter())
-            .build();
-        tracer.start();
+            .buildAndStart();
 
         circuitBreaker = tracer.getLifecycleListener(CircuitBreaker.class);
         monitor = new TestStressMonitor(tracer);

@@ -25,15 +25,12 @@
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
 import co.elastic.apm.agent.util.VersionUtils;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -59,13 +56,6 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<Class<?>, String> versionsCache = WeakMapSupplier.createMap();
-
-    private static final String FRAMEWORK_NAME = "JAX-RS";
-    private static final String GROUP_ID = "javax.ws.rs";
-    private static final String ARTIFACT_ID = "javax.ws.rs-api";
-
     public static boolean useAnnotationValueForTransactionName;
 
     private final Collection<String> applicationPackages;
@@ -90,14 +80,8 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                     }
                 }
                 transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
-                transaction.setFrameworkName(FRAMEWORK_NAME);
-                String version = versionsCache.get(javax.ws.rs.GET.class);
-                boolean isContains = versionsCache.containsKey(javax.ws.rs.GET.class);
-                if (version == null && !isContains) {
-                    version = VersionUtils.getVersionFromPomProperties(javax.ws.rs.GET.class, GROUP_ID, ARTIFACT_ID);
-                    versionsCache.put(javax.ws.rs.GET.class, version);
-                }
-                transaction.setFrameworkVersion(version);
+                transaction.setFrameworkName("JAX-RS");
+                transaction.setFrameworkVersion(VersionUtils.getVersion(javax.ws.rs.GET.class, "javax.ws.rs", "javax.ws.rs-api"));
             }
         }
     }

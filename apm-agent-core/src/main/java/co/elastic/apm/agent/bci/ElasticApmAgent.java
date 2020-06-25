@@ -120,13 +120,20 @@ public class ElasticApmAgent {
     public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
-        // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
-        initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
+        initInstrumentation(tracer, instrumentation, premain);
         tracer.start();
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
-        initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer));
+        initInstrumentation(tracer, instrumentation, false);
+    }
+
+    private static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation, boolean premain) {
+        if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
+            return;
+        }
+        // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
+        initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
     }
 
     @Nonnull
@@ -146,6 +153,9 @@ public class ElasticApmAgent {
 
     private static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                                         Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
+        if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
+            return;
+        }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
             public void run() {

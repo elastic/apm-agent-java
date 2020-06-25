@@ -63,8 +63,7 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
 
     @Setup
     public void setUp() {
-        tracer = new ElasticApmTracerBuilder().build();
-        tracer.start();
+        tracer = new ElasticApmTracerBuilder().buildAndStart();
         blockingQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new ArrayBlockingQueue<>(256), true, () -> new Transaction(tracer));
         jctoolsQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new MpmcArrayQueue<>(256), true, () -> new Transaction(tracer));
         jctoolsAtomicQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(256), true, () -> new Transaction(tracer));
