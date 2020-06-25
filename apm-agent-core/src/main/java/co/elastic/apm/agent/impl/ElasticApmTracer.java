@@ -102,7 +102,7 @@ public class ElasticApmTracer {
     /**
      * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
      * {@link ElasticApmTracer#getState()}, or when updated through one of the lifecycle-effecting synchronized methods
-     * {@link ElasticApmTracer#start(List)}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
+     * {@link ElasticApmTracer#start()}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
      * {@link ElasticApmTracer#stop()}.
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
@@ -367,6 +367,9 @@ public class ElasticApmTracer {
 
     @Nullable
     private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        if (!isRunning()) {
+            return null;
+        }
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();

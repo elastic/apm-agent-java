@@ -84,6 +84,20 @@ public class ContainerInfoTest {
         String line = "1:name=systemd:/kubepods/besteffort/pod" + podId + "/" + containerId;
         SystemInfo systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+
+        // 12:pids:/kubepods/kubepods/besteffort/pod0e886e9a-3879-45f9-b44d-86ef9df03224/244a65edefdffe31685c42317c9054e71dc1193048cf9459e2a4dd35cbc1dba4
+        containerId = "244a65edefdffe31685c42317c9054e71dc1193048cf9459e2a4dd35cbc1dba4";
+        podId = "0e886e9a-3879-45f9-b44d-86ef9df03224";
+        line = "12:pids:/kubepods/kubepods/besteffort/pod" + podId + "/" + containerId;
+        systemInfo = assertContainerId(line, containerId);
+        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+
+        // 10:cpuset:/kubepods/pod5eadac96-ab58-11ea-b82b-0242ac110009/7fe41c8a2d1da09420117894f11dd91f6c3a44dfeb7d125dc594bd53468861df
+        containerId = "7fe41c8a2d1da09420117894f11dd91f6c3a44dfeb7d125dc594bd53468861df";
+        podId = "5eadac96-ab58-11ea-b82b-0242ac110009";
+        line = "10:cpuset:/kubepods/pod" + podId + "/" + containerId;
+        systemInfo = assertContainerId(line, containerId);
+        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
     }
 
     @Test
