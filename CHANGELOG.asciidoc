@@ -32,6 +32,7 @@ endif::[]
 * Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
 * Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
 * Added support for `java.util.TimerTask` - {pull}1235[#1235]
+* Add capturing of request body in Elasticsearch queries: `_msearch`, `_count`, `_msearch/template`, `_search/template`, `_rollup_search` - {pull}1222[#1222]
 
 [float]
 ===== Bug fixes
