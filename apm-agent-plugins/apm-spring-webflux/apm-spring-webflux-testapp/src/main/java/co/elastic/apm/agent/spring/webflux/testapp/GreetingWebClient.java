@@ -71,7 +71,7 @@ public class GreetingWebClient {
         return executeAndCheckRequest(method, "/hello-mapping", 200);
     }
 
-    private String executeAndCheckRequest(String method, String path, int expectedStatus) {
+    public String executeAndCheckRequest(String method, String path, int expectedStatus) {
         System.out.println(String.format("%s %s%s", method, baseUri, path));
 
         String result = client.method(HttpMethod.valueOf(method))

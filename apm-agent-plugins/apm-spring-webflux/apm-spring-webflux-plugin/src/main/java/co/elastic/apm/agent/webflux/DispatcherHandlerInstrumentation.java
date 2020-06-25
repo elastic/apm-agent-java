@@ -79,6 +79,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
         }
 
         transaction.deactivate();
+        // we need to wrap returned mono to terminate transaction
         returnValue = dispatcherWrap(returnValue, transaction);
 
     }

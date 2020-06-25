@@ -30,6 +30,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -42,6 +43,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Instruments {@link org.springframework.web.reactive.HandlerAdapter#handle(ServerWebExchange, Object)} that handles
+ * annotation based controllers execution & naming
+ */
 public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
 
     @Override
@@ -60,12 +65,19 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onEnter(@Advice.Argument(0) ServerWebExchange exchange,
+                                @Advice.Argument(1) Object handler,
                                 @Advice.Local("transaction") Transaction transaction) {
 
         Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
         if (attribute instanceof Transaction) {
             transaction = (Transaction) attribute;
             transaction.activate();
+
+            if (handler instanceof HandlerMethod) {
+                // set name for annotated controllers
+                HandlerMethod handlerMethod = (HandlerMethod) handler;
+                transaction.withName(String.format("%s#%s", handlerMethod.getBeanType().getName(), handlerMethod.getMethod().getName()));
+            }
         }
     }
 

@@ -46,7 +46,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrum
     @ParameterizedTest
     @CsvSource({"router/hello", "router/hello2"})
     public void shouldInstrumentSimpleGetRequest(String path) throws IOException {
-        doRequest(new HttpGet(uri(path)), "Hello, Spring!", "");
+        doRequest(new HttpGet(uri(path)), "Hello, Spring!", "/" + path);
     }
 
     @Test
@@ -55,11 +55,10 @@ public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrum
         doRequest(new HttpPost(uri("router/nested")), "Hello, nested POST!", "/router/nested");
     }
 
-    // TODO still fails
     @Test
     void shouldInstrumentPathWithParameters() throws IOException {
         // TODO since 1234 is a path parameter, we should not get the URI as-is, but only the param template
-        doRequest(new HttpGet(uri("router/with-parameters/1234")), "Hello, 1234!", "/router/with-parameters/{}");
+        doRequest(new HttpGet(uri("router/with-parameters/1234")), "Hello, 1234!", "/router/with-parameters/{id}");
     }
 
     private Transaction doRequest(HttpUriRequest request, String expectedBody, String expectedTransactionName) throws IOException {
@@ -76,7 +75,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrum
 
         // TODO with lambdas, using class name for naming has no sense, thus it's probably better to name with method + path
         // TODO why do we need to care about content-length ? it should be provided within request itself
-        assertThat(transaction.getNameAsString()).isEqualTo(request.getURI().getPath());
+        assertThat(transaction.getNameAsString()).isEqualTo(expectedTransactionName);
 //        assertThat(transaction.getContext().getCustom("Content-Length"))
 //            .describedAs("request headers should be captured")
 //            .isEqualTo("1234");

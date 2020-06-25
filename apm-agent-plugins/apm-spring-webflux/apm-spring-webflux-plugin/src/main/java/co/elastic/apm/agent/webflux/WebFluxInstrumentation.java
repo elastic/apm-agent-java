@@ -31,12 +31,16 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.reactivestreams.Subscription;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.util.pattern.PathPattern;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
 import java.util.Collection;
 import java.util.Collections;
+
+import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
 
@@ -60,6 +64,59 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
         return mono.<T>transform(
             Operators.lift((scannable, subscriber) -> new DecoratedSubscriber<>(subscriber, transaction, true))
         );
+    }
+
+    @VisibleForAdvice
+    public static <T> Mono<T> setNameOnComplete(Mono<T> mono, ServerWebExchange exchange) {
+        return mono.<T>transform(
+            Operators.lift((scannable, subscriber) -> new BaseSubscriber<T>(subscriber) {
+
+                @Override
+                public void onComplete() {
+                    subscriber.onComplete();
+
+                    // set transaction name from URL pattern (if applicable)
+                    Transaction transaction = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
+                    if (transaction == null) {
+                        return;
+                    }
+                    PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
+                    if (pattern == null) {
+                        return;
+                    }
+                    transaction.withName(pattern.getPatternString());
+                }
+
+            })
+        );
+    }
+
+    private static class BaseSubscriber<T> implements CoreSubscriber<T> {
+        private final CoreSubscriber<? super T> subscriber;
+
+        public BaseSubscriber(CoreSubscriber<? super T> subscriber) {
+            this.subscriber = subscriber;
+        }
+
+        @Override
+        public void onSubscribe(Subscription s) {
+            subscriber.onSubscribe(s);
+        }
+
+        @Override
+        public void onNext(T t) {
+            subscriber.onNext(t);
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            subscriber.onError(t);
+        }
+
+        @Override
+        public void onComplete() {
+            subscriber.onComplete();
+        }
     }
 
     private static class DecoratedSubscriber<T> implements CoreSubscriber<T> {
