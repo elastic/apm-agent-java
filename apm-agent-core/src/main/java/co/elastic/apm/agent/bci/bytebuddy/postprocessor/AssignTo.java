@@ -59,6 +59,33 @@ import java.lang.annotation.Target;
  *         Works by returning an {@code Object[]} from the advice method.
  *     </li>
  * </ul>
+ *
+ * Taking an argument assignment as an example, the resulting code looks like this when decompiled:
+ * <pre>
+ *     public String assignToArgument(String arg) {
+ *         String var10000;
+ *         try {
+ *             // result of inline = false
+ *             var10000 = co.elastic.apm.agent.bci.InstrumentationTest.AssignToArgumentInstrumentation.onEnter(s);
+ *         } catch (Throwable var3) {
+ *             // result of suppress = Throwable.class
+ *             var3.printStackTrace();
+ *             var10000 = null;
+ *         }
+ *
+ *         // this is the result of the @AssignTo.Argument(0) post processor
+ *         // it's just a piece of code that's executed after the advice that has access to the return value of the advice (var10000)
+ *         // this assignment takes care of type conversions, according to {@link Argument#typing()}
+ *         String var2 = var10000;
+ *         // the null check avoids that we override the argument with null in case of an suppressed exception within the advice
+ *         if (var2 != null) {
+ *             // the actual assignment to the argument
+ *             arg = var2;
+ *         }
+ *
+ *         return arg;
+ *     }
+ * </pre>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

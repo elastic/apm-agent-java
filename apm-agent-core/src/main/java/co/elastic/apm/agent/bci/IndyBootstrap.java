@@ -217,12 +217,42 @@ public class IndyBootstrap {
      * <p>
      * Exceptions and {@code null} return values are handled by {@code java.lang.IndyBootstrapDispatcher#bootstrap}.
      * </p>
+     * This is how a bootstrap method looks like in the class file:
+     * <pre>
+     * BootstrapMethods:
+     *   1: #1060 REF_invokeStatic java/lang/IndyBootstrapDispatcher.bootstrap:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+     *     Method arguments:
+     *       #1049 co.elastic.apm.agent.bci.InstrumentationTest$CommonsLangInstrumentation
+     *       #1050 0
+     *       #12 org/apache/commons/lang3/StringUtils
+     *       #1072 isNotEmpty
+     *       #1075 REF_invokeStatic org/apache/commons/lang3/StringUtils.isNotEmpty:(Ljava/lang/CharSequence;)Z
+     * </pre>
+     *
+     * And this is how a invokedynamic instruction looks like inside methods,
+     * referencing above bootstrap method
+     * <pre>
+     *     invokedynamic #1076,  0           // InvokeDynamic #1:onEnter:()V
+     * </pre>
+     *
+     * @param lookup           A {@code java.lang.invoke.MethodHandles.Lookup} representing the instrumented method.
+     * @param adviceMethodName A {@link String} representing the advice method name.
+     * @param adviceMethodType A {@link java.lang.invoke.MethodType} representing the arguments and return type of the advice method.
+     * @param args             Additional arguments that are provided by Byte Buddy:
+     *                         <ul>
+     *                           <li>A {@link String} of the binary target class name.</li>
+     *                           <li>A {@link int} with value {@code 0} for an enter advice and {code 1} for an exist advice.</li>
+     *                           <li>A {@link Class} representing the class implementing the instrumented method.</li>
+     *                           <li>A {@link String} with the name of the instrumented method.</li>
+     *                           <li>A {@link java.lang.invoke.MethodHandle} representing the instrumented method unless the target is the type's static initializer.</li>
+     *                         </ul>
+     * @return a {@link ConstantCallSite} that is the target of the invokedynamic
      */
     @Nullable
     public static ConstantCallSite bootstrap(MethodHandles.Lookup lookup,
                                              String adviceMethodName,
                                              MethodType adviceMethodType,
-                                             Object... args) throws Exception {
+                                             Object... args) {
         try {
             String adviceClassName = (String) args[0];
             int enter = (Integer) args[1];
