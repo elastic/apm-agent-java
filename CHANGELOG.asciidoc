@@ -38,6 +38,7 @@ endif::[]
 * Fixes error capturing for log4j2 loggers. Version 1.17.0 introduced a regression.
 * Fixes `NullPointerException` related to JAX-RS and Quartz instrumentation - {pull}1249[#1249]
 * Expanding k8s pod ID discovery to some formerly non-supported environments
+* When `recording` is set to `false`, the agent will not send captured errors anymore.
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
