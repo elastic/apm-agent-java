@@ -42,7 +42,7 @@ public class GreetingWebClient {
     // all the testing logic.
 
     public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint) {
-        this.pathPrefix = useFunctionalEndpoint ? "/router" : "/controller";
+        this.pathPrefix = useFunctionalEndpoint ? "/functional" : "/annotated";
         this.baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
         this.client = WebClient.create(baseUri);
         this.useFunctionalEndpoint = useFunctionalEndpoint;

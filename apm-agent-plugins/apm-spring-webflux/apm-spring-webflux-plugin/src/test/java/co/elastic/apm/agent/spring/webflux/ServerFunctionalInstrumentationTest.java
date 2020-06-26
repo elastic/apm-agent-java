@@ -41,7 +41,7 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     void shouldInstrumentSimpleGetRequest(String path) {
         getClient().executeAndCheckRequest("GET", path, 200);
 
-        checkTransaction(getFirstTransaction(), "/router" + path);
+        checkTransaction(getFirstTransaction(), "/functional" + path);
     }
 
     @ParameterizedTest
@@ -49,7 +49,7 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     void shouldInstrumentNestedRoutes(String method) {
         getClient().executeAndCheckRequest(method, "/nested", 200);
 
-        checkTransaction(getFirstTransaction(), "/router/nested");
+        checkTransaction(getFirstTransaction(), "/functional/nested");
 
         // TODO : add assertions on HTTP request/response
     }
@@ -58,7 +58,7 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     void shouldInstrumentPathWithParameters()  {
         getClient().withPathParameter("1234");
 
-        checkTransaction(getFirstTransaction(), "/router/with-parameters/{id}");
+        checkTransaction(getFirstTransaction(), "/functional/with-parameters/{id}");
 
         // TODO : add assertions to make sure request URL contains path variables
     }

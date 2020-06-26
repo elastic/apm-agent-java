@@ -40,33 +40,36 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 import static org.springframework.web.reactive.function.server.RequestPredicates.method;
 import static org.springframework.web.reactive.function.server.RequestPredicates.path;
 
+/**
+ * Provides functional Webflux endpoint
+ */
 @Configuration
-public class GreetingRouter {
+public class GreetingFunctional {
 
     @Bean
     public RouterFunction<ServerResponse> route(GreetingHandler greetingHandler) {
 
         return RouterFunctions.route()
             // 'hello' and 'hello2' are identical, but entry point in builder is not
-            .route(path("/router/hello"),
+            .route(path("/functional/hello"),
                 request -> helloGreeting(greetingHandler, request.queryParam("name")))
-            .GET("/router/hello2", accept(MediaType.TEXT_PLAIN),
+            .GET("/functional/hello2", accept(MediaType.TEXT_PLAIN),
                 request -> helloGreeting(greetingHandler, request.queryParam("name")))
             // nested routes
-            .nest(path("/router/nested"), builder -> builder
+            .nest(path("/functional/nested"), builder -> builder
                 .route(method(HttpMethod.GET), request -> nested(greetingHandler, request.methodName()))
                 .route(method(HttpMethod.POST), request -> nested(greetingHandler, request.methodName()))
             )
             // path with parameters
-            .route(path("/router/with-parameters/{id}"),
+            .route(path("/functional/with-parameters/{id}"),
                 request -> helloGreeting(greetingHandler, Optional.of(request.pathVariable("id"))))
             // route that supports multiple methods mapping
-            .route(path("/router/hello-mapping"),
+            .route(path("/functional/hello-mapping"),
                 request -> helloGreeting(greetingHandler, Optional.of(request.methodName())))
             // errors and mono corner cases
-            .GET("/router/error-handler", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.throwException())
-            .GET("/router/error-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoError())
-            .GET("/router/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
+            .GET("/functional/error-handler", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.throwException())
+            .GET("/functional/error-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoError())
+            .GET("/functional/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
             // error handler
             .onError(
                 e -> true, (e, request) -> ServerResponse

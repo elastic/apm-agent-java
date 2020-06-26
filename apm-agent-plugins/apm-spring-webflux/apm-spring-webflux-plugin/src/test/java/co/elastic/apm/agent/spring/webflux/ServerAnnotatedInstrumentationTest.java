@@ -34,7 +34,7 @@ import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ServerRestInstrumentationTest extends AbstractServerInstrumentationTest {
+public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrumentationTest {
 
     @Override
     protected GreetingWebClient getClient() {
@@ -52,7 +52,7 @@ public class ServerRestInstrumentationTest extends AbstractServerInstrumentation
             prefix = "other";
         }
         String methodName = prefix + "Mapping";
-        String expectedName = "co.elastic.apm.agent.spring.webflux.testapp.GreetingController#" + methodName;
+        String expectedName = "co.elastic.apm.agent.spring.webflux.testapp.GreetingAnnotated#" + methodName;
 
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName);
 

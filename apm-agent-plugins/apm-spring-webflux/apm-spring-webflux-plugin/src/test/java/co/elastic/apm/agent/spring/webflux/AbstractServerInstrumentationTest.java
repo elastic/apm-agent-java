@@ -66,8 +66,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
 
         String expectedName = client.useFunctionalEndpoint()
-            ? "/router/hello"
-            : "co.elastic.apm.agent.spring.webflux.testapp.GreetingController#getHello";
+            ? "/functional/hello"
+            : "co.elastic.apm.agent.spring.webflux.testapp.GreetingAnnotated#getHello";
         Transaction transaction = checkTransaction(reporter.getFirstTransaction(500), expectedName);
 
         // TODO : add assertions to ensure that request/response is properly captured

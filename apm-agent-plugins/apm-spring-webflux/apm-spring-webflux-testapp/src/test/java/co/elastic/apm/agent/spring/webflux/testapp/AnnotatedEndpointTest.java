@@ -31,7 +31,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class RestEndpointTest extends ApplicationTest {
+public class AnnotatedEndpointTest extends ApplicationTest {
 
     @LocalServerPort
     private int serverPort;

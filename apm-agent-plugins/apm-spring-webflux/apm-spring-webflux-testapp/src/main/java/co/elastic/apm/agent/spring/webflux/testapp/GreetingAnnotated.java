@@ -45,32 +45,36 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
 
-@RestController()
-public class GreetingController {
+/**
+ * Provides Webflux annotated endpoint
+ */
+@RestController
+@RequestMapping("/annotated")
+public class GreetingAnnotated {
 
     final GreetingHandler greetingHandler;
 
     @Autowired
-    public GreetingController(GreetingHandler greetingHandler) {
+    public GreetingAnnotated(GreetingHandler greetingHandler) {
         this.greetingHandler = greetingHandler;
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/hello")
+    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/hello")
     public Mono<String> getHello(@RequestParam(value = "name", required = false) @Nullable String name) {
         return greetingHandler.helloMessage(name);
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/error-handler")
+    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/error-handler")
     public Mono<String> handlerError() {
         return greetingHandler.throwException();
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/error-mono")
+    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/error-mono")
     public Mono<String> monoError() {
         return greetingHandler.monoError();
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/empty-mono")
+    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/empty-mono")
     public Mono<String> monoEmpty() {
         return greetingHandler.monoEmpty();
     }
@@ -82,42 +86,42 @@ public class GreetingController {
             .body(greetingHandler.exceptionMessage(e));
     }
 
-    @GetMapping("/controller/hello-mapping")
+    @GetMapping("/hello-mapping")
     public Mono<String> getMapping() {
         return greetingHandler.helloMessage("GET");
     }
 
-    @PostMapping("/controller/hello-mapping")
+    @PostMapping("/hello-mapping")
     public Mono<String> postMapping() {
         return greetingHandler.helloMessage("POST");
     }
 
-    @PutMapping("/controller/hello-mapping")
+    @PutMapping("/hello-mapping")
     public Mono<String> putMapping() {
         return greetingHandler.helloMessage("PUT");
     }
 
-    @DeleteMapping("/controller/hello-mapping")
+    @DeleteMapping("/hello-mapping")
     public Mono<String> deleteMapping() {
         return greetingHandler.helloMessage("DELETE");
     }
 
-    @PatchMapping("/controller/hello-mapping")
+    @PatchMapping("/hello-mapping")
     public Mono<String> patchMapping() {
         return greetingHandler.helloMessage("PATCH");
     }
 
-    @RequestMapping(path = "/controller/hello-mapping", method = {RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.TRACE})
+    @RequestMapping(path = "/hello-mapping", method = {RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.TRACE})
     public Mono<String> otherMapping(ServerHttpRequest request) {
         return greetingHandler.helloMessage(request.getMethodValue());
     }
 
-    @GetMapping("/controller/with-parameters/{id}")
+    @GetMapping("/with-parameters/{id}")
     public Mono<String> withParameters(@PathVariable("id") String id) {
         return greetingHandler.helloMessage(id);
     }
 
-    @GetMapping("/controller/flux")
+    @GetMapping("/flux")
     public Flux<String> getFlux(@RequestParam(value = "count", required = false, defaultValue = "3") int count){
         return greetingHandler.helloFlux(count);
     }
