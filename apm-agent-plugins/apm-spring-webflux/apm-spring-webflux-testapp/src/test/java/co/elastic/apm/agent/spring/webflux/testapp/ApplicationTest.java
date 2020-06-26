@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class ApplicationTest {
 
-    private GreetingWebClient client;
+    protected GreetingWebClient client;
 
     protected abstract GreetingWebClient createClient();
 
@@ -73,10 +73,15 @@ public abstract class ApplicationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH"})
+    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
     void methodMapping(String method) {
         assertThat(client.methodMapping(method))
-            .contains(String.format("Hello, %s!", method));
+            .isEqualTo("HEAD".equals(method) ? "" : String.format("Hello, %s!", method));
+    }
+
+    @Test
+    void withPathParameter() {
+        assertThat(client.withPathParameter("42")).isEqualTo("Hello, 42!");
     }
 
 }

@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,10 +39,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.server.ServerRequest;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
-import java.util.Optional;
 
 @RestController()
 public class GreetingController {
@@ -55,7 +56,7 @@ public class GreetingController {
 
     @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/hello")
     public Mono<String> getHello(@RequestParam(value = "name", required = false) @Nullable String name) {
-        return greetingHandler.helloMessage(Optional.ofNullable(name));
+        return greetingHandler.helloMessage(name);
     }
 
     @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/controller/error-handler")
@@ -81,32 +82,42 @@ public class GreetingController {
 
     @GetMapping("/controller/hello-mapping")
     public Mono<String> getMapping() {
-        return greetingHandler.helloMessage(Optional.of("GET"));
+        return greetingHandler.helloMessage("GET");
     }
 
     @PostMapping("/controller/hello-mapping")
     public Mono<String> postMapping() {
-        return greetingHandler.helloMessage(Optional.of("POST"));
+        return greetingHandler.helloMessage("POST");
     }
 
     @PutMapping("/controller/hello-mapping")
     public Mono<String> putMapping() {
-        return greetingHandler.helloMessage(Optional.of("PUT"));
+        return greetingHandler.helloMessage("PUT");
     }
 
     @DeleteMapping("/controller/hello-mapping")
     public Mono<String> deleteMapping() {
-        return greetingHandler.helloMessage(Optional.of("DELETE"));
+        return greetingHandler.helloMessage("DELETE");
     }
 
     @PatchMapping("/controller/hello-mapping")
     public Mono<String> pathMapping() {
-        return greetingHandler.helloMessage(Optional.of("PATCH"));
+        return greetingHandler.helloMessage("PATCH");
     }
 
     @RequestMapping(path = "/controller/hello-mapping", method = {RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.TRACE})
     public Mono<String> otherMapping(ServerRequest request) {
-        return greetingHandler.helloMessage(Optional.of(request.methodName()));
+        return greetingHandler.helloMessage(request.methodName());
+    }
+
+    @GetMapping("/controller/with-parameters/{id}")
+    public Mono<String> withParameters(@PathVariable("id") String id) {
+        return greetingHandler.helloMessage(id);
+    }
+
+    @GetMapping("/controller/flux")
+    public Flux<String> getFlux(@RequestParam(value = "count", required = false, defaultValue = "3") int count){
+        return greetingHandler.helloFlux(count);
     }
 
 }

@@ -71,7 +71,16 @@ public class GreetingWebClient {
         return executeAndCheckRequest(method, "/hello-mapping", 200);
     }
 
-    public String executeAndCheckRequest(String method, String path, int expectedStatus) {
+    public String withPathParameter(String param) {
+        return executeAndCheckRequest("GET", "/with-parameters/" + param, 200);
+    }
+
+    // nested routes, only relevant for functional routing
+    public String nested(String method) {
+        return executeAndCheckRequest(method, "/nested", 200);
+    }
+
+    private String executeAndCheckRequest(String method, String path, int expectedStatus) {
         System.out.println(String.format("%s %s%s", method, baseUri, path));
 
         String result = client.method(HttpMethod.valueOf(method))

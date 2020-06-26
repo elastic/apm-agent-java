@@ -25,9 +25,13 @@
 package co.elastic.apm.agent.spring.webflux.testapp;
 
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -38,6 +42,16 @@ public class FunctionalEndpointTest extends ApplicationTest {
 
     @Override
     protected GreetingWebClient createClient() {
-        return new GreetingWebClient("localhost", serverPort, false);
+        return new GreetingWebClient("localhost", serverPort, true);
+    }
+
+    // nested routes are only available on functional endpoint
+
+    @ParameterizedTest
+    @CsvSource({"GET", "POST"})
+    void nestedRoutes(String method) {
+        assertThat(client.nested(method))
+            .isEqualTo(String.format("Hello, nested %s!", method));
+
     }
 }

@@ -25,15 +25,17 @@
 package co.elastic.apm.agent.spring.webflux.testapp;
 
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 
 @Component
 public class GreetingHandler {
 
-    public Mono<String> helloMessage(Optional<String> name) {
-        return Mono.just(String.format("Hello, %s!", name.orElse("Spring")));
+    public Mono<String> helloMessage(@Nullable String name) {
+        return Mono.just(String.format("Hello, %s!", Optional.ofNullable(name).orElse("Spring")));
     }
 
     public <T> Mono<T> throwException(){
@@ -52,4 +54,8 @@ public class GreetingHandler {
         return "error handler: " + t.getMessage();
     }
 
+    public Flux<String> helloFlux(int count) {
+        return Flux.range(1, count)
+            .map(i -> String.format("Hello flux %d", i));
+    }
 }

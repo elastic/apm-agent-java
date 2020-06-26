@@ -85,6 +85,6 @@ public class GreetingRouter {
     private Mono<ServerResponse> helloGreeting(GreetingHandler greetingHandler, Optional<String> name) {
         return ServerResponse.ok()
             .contentType(MediaType.TEXT_PLAIN)
-            .body(BodyInserters.fromValue(greetingHandler.helloMessage(name).block()));
+            .body(BodyInserters.fromValue(greetingHandler.helloMessage(name.orElse(null)).block()));
     }
 }
