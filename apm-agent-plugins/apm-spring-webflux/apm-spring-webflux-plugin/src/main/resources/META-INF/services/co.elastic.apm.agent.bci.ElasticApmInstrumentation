@@ -3,8 +3,8 @@ co.elastic.apm.agent.webflux.HandlerAdapterInstrumentation
 co.elastic.apm.agent.webflux.RouterFunctionInstrumentation
 
 # other implementation for review
-#co.elastic.apm.agent.spring.webflux.AbstractErrorWebExceptionHandlerInstrumentation
-#co.elastic.apm.agent.spring.webflux.DispatcherHandlerInstrumentation
-#co.elastic.apm.agent.spring.webflux.FunctionalHandlerInstrumentation
-#co.elastic.apm.agent.spring.webflux.HandlerFunctionInstrumentation
-#co.elastic.apm.agent.spring.webflux.ServletHttpHandlerAdapterInstrumentation
+#co.elastic.apm.agent.webflux.disabled.AbstractErrorWebExceptionHandlerInstrumentation
+#co.elastic.apm.agent.webflux.disabled.DispatcherHandlerInstrumentation
+#co.elastic.apm.agent.webflux.disabled.FunctionalHandlerInstrumentation
+#co.elastic.apm.agent.webflux.disabled.HandlerFunctionInstrumentation
+#co.elastic.apm.agent.webflux.disabled.ServletHttpHandlerAdapterInstrumentation

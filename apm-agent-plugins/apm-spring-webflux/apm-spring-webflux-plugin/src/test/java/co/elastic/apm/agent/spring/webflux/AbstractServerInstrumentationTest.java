@@ -65,10 +65,12 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         GreetingWebClient client = getClient();
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
 
-        Transaction transaction = reporter.getFirstTransaction(500);
-        assertThat(transaction).isNotNull();
-        assertThat(transaction.getType()).isEqualTo("request");
-        assertThat(transaction.getNameAsString()).isEqualTo("co.elastic.apm.agent.spring.webflux.testapp.GreetingController#getHello");
+        String expectedName = client.useFunctionalEndpoint()
+            ? "/router/hello"
+            : "co.elastic.apm.agent.spring.webflux.testapp.GreetingController#getHello";
+        Transaction transaction = checkTransaction(reporter.getFirstTransaction(500), expectedName);
+
+        // TODO : add assertions to ensure that request/response is properly captured
 
         // HTTP method is not set (yet), as adding it requires to also have the full URL
 //        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
@@ -83,12 +85,22 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         GreetingWebClient client = getClient();
         assertThat(client.getMappingError404()).contains("Not Found");
 
-        Transaction transaction = reporter.getFirstTransaction(200);
-        assertThat(transaction).isNotNull();
-        assertThat(transaction.getType()).isEqualTo("request");
+        Transaction transaction = checkTransaction(getFirstTransaction(), client.getPathPrefix() + "/error-404");// TODO might be "unknown route" like with servlets
+
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
-        assertThat(transaction.getNameAsString()).isEqualTo(client.getPathPrefix() + "/error-404"); // TODO should be "unknown route" like with servlets
 //        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(404);
     }
+
+    protected Transaction getFirstTransaction() {
+        return reporter.getFirstTransaction(200);
+    }
+
+    protected Transaction checkTransaction(Transaction transaction, String expectedName) {
+        assertThat(transaction.getType()).isEqualTo("request");
+        assertThat(transaction.getNameAsString()).isEqualTo(expectedName);
+
+        return transaction;
+    }
+
 }

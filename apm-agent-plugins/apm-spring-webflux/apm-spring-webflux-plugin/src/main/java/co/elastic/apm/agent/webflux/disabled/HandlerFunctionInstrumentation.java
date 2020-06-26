@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.webflux.disabled;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
@@ -43,7 +43,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments {@link co.elastic.apm.agent.spring.webflux.HandlerFunctionWrapper#handle(ServerRequest)} to create transaction for
+ * Instruments {@link HandlerFunctionWrapper#handle(ServerRequest)} to create transaction for
  * functional routes definition
  */
 public class HandlerFunctionInstrumentation extends ElasticApmInstrumentation {
@@ -85,7 +85,7 @@ public class HandlerFunctionInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.agent.spring.webflux.HandlerFunctionWrapper");
+        return named("co.elastic.apm.agent.webflux.disabled.HandlerFunctionWrapper");
     }
 
     @Override

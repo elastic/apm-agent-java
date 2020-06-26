@@ -22,77 +22,62 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.webflux.disabled;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.webflux.WebFluxInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.reactive.DispatcherHandler;
-import org.springframework.web.reactive.HandlerResult;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.agent.spring.webflux.WebFluxInstrumentationHelper.ELASTIC_APM_AGENT_TRANSACTION;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-
-/**
- * Instruments {@link DispatcherHandler#handleResult(ServerWebExchange, HandlerResult)} to capture end of transaction
- */
-public class DispatcherHandlerInstrumentation extends ElasticApmInstrumentation {
-    @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(DispatcherHandlerInstrumentation.class);
+public class AbstractErrorWebExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
 
     @SuppressWarnings("unused")
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void afterRequestHandle(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
-                                          @Advice.Return(readOnly = false) Mono<Void> mono) {
-        if (tracer == null) {
-            logger.trace("afterRequestHandle tracer == null");
+    @Advice.OnMethodEnter
+    public static void beforeHandleMethod(@Advice.Argument(value = 0) ServerWebExchange serverWebExchange,
+                                          @Advice.Argument(value = 1) Throwable throwable) {
+
+        Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE);
+        if (transaction == null) {
             return;
         }
-        Transaction transaction = (Transaction) serverWebExchange.getAttributes().remove(ELASTIC_APM_AGENT_TRANSACTION);
-        if (transaction != null) {
-            mono = mono.doOnTerminate(onTerminate(transaction));
+        if (throwable instanceof ResponseStatusException) {
+            ResponseStatusException e = (ResponseStatusException) throwable;
+            transaction.withResult(ResultUtil.getResultByHttpStatus(e.getStatus().value()));
         }
-    }
-
-    /**
-     * Workaround, bytebuddy generates lambda with private access modifier.
-     * method shall be public, otherwise Spring class won't have permission to execute it.
-     */
-    public static Runnable onTerminate(Transaction transaction) {
-        return () -> transaction
+        transaction
+            .captureException(throwable)
             .deactivate()
             .end();
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.springframework.web.reactive.DispatcherHandler");
+        return named("org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handleResult")
+        return named("handle")
             .and(takesArgument(0,
                 named("org.springframework.web.server.ServerWebExchange")))
             .and(takesArgument(1,
-                named("org.springframework.web.reactive.HandlerResult")));
+                named("java.lang.Throwable")));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("webflux-dispatcher-handler");
+        return Collections.singletonList("webflux-error-web-exception-handler");
     }
 }

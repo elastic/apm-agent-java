@@ -35,6 +35,7 @@ public class GreetingWebClient {
     private final WebClient client;
     private final String baseUri;
     private final String pathPrefix;
+    private final boolean useFunctionalEndpoint;
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
@@ -44,6 +45,7 @@ public class GreetingWebClient {
         this.pathPrefix = useFunctionalEndpoint ? "/router" : "/controller";
         this.baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
         this.client = WebClient.create(baseUri);
+        this.useFunctionalEndpoint = useFunctionalEndpoint;
     }
 
     public String getHelloMono() {
@@ -80,7 +82,7 @@ public class GreetingWebClient {
         return executeAndCheckRequest(method, "/nested", 200);
     }
 
-    private String executeAndCheckRequest(String method, String path, int expectedStatus) {
+    public String executeAndCheckRequest(String method, String path, int expectedStatus) {
         System.out.println(String.format("%s %s%s", method, baseUri, path));
 
         String result = client.method(HttpMethod.valueOf(method))
@@ -108,5 +110,9 @@ public class GreetingWebClient {
 
     public String getPathPrefix() {
         return pathPrefix;
+    }
+
+    public boolean useFunctionalEndpoint() {
+        return useFunctionalEndpoint;
     }
 }

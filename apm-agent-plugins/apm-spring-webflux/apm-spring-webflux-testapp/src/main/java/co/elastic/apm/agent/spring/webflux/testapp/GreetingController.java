@@ -27,6 +27,7 @@ package co.elastic.apm.agent.spring.webflux.testapp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -76,6 +77,7 @@ public class GreetingController {
 
     @ExceptionHandler
     public ResponseEntity<String> handleException(RuntimeException e){
+        e.printStackTrace(System.err);
         return ResponseEntity.status(500)
             .body(greetingHandler.exceptionMessage(e));
     }
@@ -101,13 +103,13 @@ public class GreetingController {
     }
 
     @PatchMapping("/controller/hello-mapping")
-    public Mono<String> pathMapping() {
+    public Mono<String> patchMapping() {
         return greetingHandler.helloMessage("PATCH");
     }
 
     @RequestMapping(path = "/controller/hello-mapping", method = {RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.TRACE})
-    public Mono<String> otherMapping(ServerRequest request) {
-        return greetingHandler.helloMessage(request.methodName());
+    public Mono<String> otherMapping(ServerHttpRequest request) {
+        return greetingHandler.helloMessage(request.getMethodValue());
     }
 
     @GetMapping("/controller/with-parameters/{id}")

@@ -24,7 +24,15 @@
  */
 package co.elastic.apm.agent.spring.webflux;
 
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import java.util.Arrays;
+import java.util.Locale;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ServerRestInstrumentationTest extends AbstractServerInstrumentationTest {
 
@@ -33,4 +41,21 @@ public class ServerRestInstrumentationTest extends AbstractServerInstrumentation
         return new GreetingWebClient("localhost", PORT, false);
     }
 
+    @ParameterizedTest
+    @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
+    void methodMapping(String method) {
+        assertThat(getClient().methodMapping(method))
+            .isEqualTo("HEAD".equals(method) ? "" : String.format("Hello, %s!", method));
+
+        String prefix = method.toLowerCase(Locale.ENGLISH);
+        if (Arrays.asList("head", "options", "trace").contains((prefix))) {
+            prefix = "other";
+        }
+        String methodName = prefix + "Mapping";
+        String expectedName = "co.elastic.apm.agent.spring.webflux.testapp.GreetingController#" + methodName;
+
+        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName);
+
+        // TODO : check for HTTP method in request
+    }
 }
