@@ -27,7 +27,7 @@ package co.elastic.apm.agent.webflux.disabled;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.webflux.WebFluxInstrumentation;
+import co.elastic.apm.agent.spring.webflux.WebFluxInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

@@ -1,4 +1,4 @@
-package co.elastic.apm.agent.webflux;
+package co.elastic.apm.agent.spring.webflux;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
