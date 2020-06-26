@@ -55,21 +55,21 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static <T> Mono<T> dispatcherWrap(Mono<T> mono, Transaction transaction) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new DecoratedSubscriber<>(subscriber, transaction, false))
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<>(subscriber, transaction, false))
         );
     }
 
     @VisibleForAdvice
     public static <T> Mono<T> handlerWrap(Mono<T> mono, Transaction transaction) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new DecoratedSubscriber<>(subscriber, transaction, true))
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<>(subscriber, transaction, true))
         );
     }
 
     @VisibleForAdvice
     public static <T> Mono<T> setNameOnComplete(Mono<T> mono, ServerWebExchange exchange) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new BaseSubscriber<T>(subscriber) {
+            Operators.lift((scannable, subscriber) -> new SubscriberWrapper<T>(subscriber) {
 
                 @Override
                 public void onComplete() {
@@ -91,10 +91,10 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
         );
     }
 
-    private static class BaseSubscriber<T> implements CoreSubscriber<T> {
+    private static class SubscriberWrapper<T> implements CoreSubscriber<T> {
         private final CoreSubscriber<? super T> subscriber;
 
-        public BaseSubscriber(CoreSubscriber<? super T> subscriber) {
+        public SubscriberWrapper(CoreSubscriber<? super T> subscriber) {
             this.subscriber = subscriber;
         }
 
@@ -119,66 +119,62 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
-    private static class DecoratedSubscriber<T> implements CoreSubscriber<T> {
-        private final CoreSubscriber<? super T> subscriber;
+    private static class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
         private final Transaction transaction;
         private final boolean terminateTransactionOnComplete;
 
-        // TODO need to activate/deactivate transaction during next,error,complete method execution
-
-        public DecoratedSubscriber(CoreSubscriber<? super T> subscriber, Transaction transaction, boolean terminateTransactionOnComplete) {
-            this.subscriber = subscriber;
+        public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber, Transaction transaction, boolean terminateTransactionOnComplete) {
+            super(subscriber);
             this.transaction = transaction;
             this.terminateTransactionOnComplete = terminateTransactionOnComplete;
         }
 
         @Override
-        public void onSubscribe(Subscription subscription) {
-            wrap("onSubscribe", () -> subscriber.onSubscribe(subscription));
-        }
-
-        @Override
         public void onNext(T next) {
-            wrap("onNext", () -> subscriber.onNext(next));
+            transaction.activate();
+            try {
+                super.onNext(next);
+            } finally {
+                transaction.deactivate();
+            }
         }
 
         @Override
         public void onError(Throwable t) {
-            if (t instanceof ResponseStatusException) {
-                // no matching mapping, generates a 404 error
-                HttpStatus status = ((ResponseStatusException) t).getStatus();
+            transaction.activate();
+            try {
+                super.onError(t);
+            } finally {
+                transaction.deactivate();
 
-                transaction.getContext()
-                    .getResponse()
-                    .withStatusCode(status.value())
-                    .withFinished(true);
+                if (t instanceof ResponseStatusException) {
+                    // no matching mapping, generates a 404 error
+                    HttpStatus status = ((ResponseStatusException) t).getStatus();
+
+                    transaction.getContext()
+                        .getResponse()
+                        .withStatusCode(status.value())
+                        .withFinished(true);
 
 
-                transaction.captureException(t)
-                    .withResultIfUnset(ResultUtil.getResultByHttpStatus(status.value()))
-                    .end();
+                    transaction.captureException(t)
+                        .withResultIfUnset(ResultUtil.getResultByHttpStatus(status.value()))
+                        .end();
+                }
             }
-            wrap("onError", () -> subscriber.onError(t));
         }
 
         @Override
         public void onComplete() {
-            wrap("onComplete", subscriber::onComplete);
-            if (terminateTransactionOnComplete) {
-                transaction.end();
-            }
-
-        }
-
-        private void wrap(String name, Runnable task) {
-//            System.out.println(String.format("before\t%s\t%x\t%s", name, System.identityHashCode(subscriber), subscriber.getClass().getCanonicalName()));
-//            transaction.activate();
+            transaction.activate();
             try {
-                task.run();
+                super.onComplete();
             } finally {
-//                transaction.deactivate();
+                transaction.deactivate();
+                if (terminateTransactionOnComplete) {
+                    transaction.end();
+                }
             }
-//            System.out.println(String.format("after\t%s\t%x\t%s", name, System.identityHashCode(subscriber), subscriber.getClass().getCanonicalName()));
         }
     }
 

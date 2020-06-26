@@ -37,6 +37,10 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Instruments {@link org.springframework.web.reactive.DispatcherHandler#handle(ServerWebExchange)} that handles functional
+ * controller transaction creation and lifecycle through wrapping
+ */
 public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
     @Override
