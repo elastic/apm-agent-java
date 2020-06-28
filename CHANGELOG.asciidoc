@@ -20,11 +20,34 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.17.0]]
-==== 1.17.0 - YYYY/MM/DD
+[[release-notes-1.18.0]]
+==== 1.18.0 - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
+
+[float]
+===== Features
+* Overhaul of the `ExecutorService` instrumentation that avoids issues like ``ClassCastException``s - {pull}1206[#1206]
+* Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
+* Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
+* Added support for `java.util.TimerTask` - {pull}1235[#1235]
+* Add capturing of request body in Elasticsearch queries: `_msearch`, `_count`, `_msearch/template`, `_search/template`, `_rollup_search` - {pull}1222[#1222]
+* Add <<config-enabled,`enabled`>> flag
+* Add experimental support for Scala Futures
+
+[float]
+===== Bug fixes
+* Fixes error capturing for log4j2 loggers. Version 1.17.0 introduced a regression.
+* Fixes `NullPointerException` related to JAX-RS and Quartz instrumentation - {pull}1249[#1249]
+* Expanding k8s pod ID discovery to some formerly non-supported environments
+* When `recording` is set to `false`, the agent will not send captured errors anymore.
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.17.0]]
+==== 1.17.0 - 2020/06/17
 
 [float]
 ===== Features
@@ -35,6 +58,7 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
 * Exposing <<config-classes-excluded-from-instrumentation>> config - {pull}1187[#1187]
 * Add support for naming transactions based on Grails controllers. Supports Grails 3+ - {pull}1171[#1171]
 * Add support for the Apache/Alibaba Dubbo RPC framework
+* Async Profiler version upgraded to 1.7.1, with a new debugging flag for the stack frame recovery mechanism - {pull}1173[#1173]
 
 [float]
 ===== Bug fixes
@@ -44,10 +68,9 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
 * Fix `NumberFormatException` when parsing Ingres/Actian JDBC connection strings - {pull}1198[#1198]
 * Prevent agent from overriding JVM configured truststore when not using HTTPS for communication with APM server - {pull}1203[#1203]
 * Fix `java.lang.IllegalStateException` with `jps` JVM when using continuous runtime attach - {pull}1205[1205]
-* Fix agent trying to load log4j2 plugins from application {pull}1214[1214]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix agent trying to load log4j2 plugins from application - {pull}1214[1214]
+* Fix memory leak in gRPC instrumentation plugin - {pull}1196[1196]
+* Fix HTTPS connection failures when agent is configured to use HTTPS to communicate with APM server {pull}1209[1209]
 
 [[release-notes-1.16.0]]
 ==== 1.16.0 - 2020/05/13
@@ -156,7 +179,7 @@ See <<circuit-breaker>> and {pull}1040[#1040] for more info.
 
 * Add support for <<supported-databases, Redis Lettuce client>>
 * Add `context.message.age.ms` field for JMS message receiving spans and transactions - {pull}970[#970]
-* Instrument log4j Logger#error(String, Throwable) ({pull}919[#919]) Automatically captures exceptions when calling `logger.error("message", exception)`
+* Instrument log4j2 Logger#error(String, Throwable) ({pull}919[#919]) Automatically captures exceptions when calling `logger.error("message", exception)`
 * Add instrumentation for external process execution through `java.lang.Process` and Apache `commons-exec` - {pull}903[#903]
 * Add `destination` fields to exit span contexts - {pull}976[#976]
 * Removed `context.message.topic.name` field - {pull}993[#993]

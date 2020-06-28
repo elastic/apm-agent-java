@@ -68,7 +68,7 @@ class ElasticApmTracerTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .build();
+            .buildAndStart();
     }
 
     @AfterEach
@@ -420,7 +420,7 @@ class ElasticApmTracerTest {
     void testOverrideServiceNameWithoutExplicitServiceName() {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
-            .build();
+            .buildAndStart();
         tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
         tracer.startRootTransaction(getClass().getClassLoader()).end();
 

@@ -66,7 +66,7 @@ public class MockTracer {
         // use an object pool that does bookkeeping to allow for extra usage checks
         TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
-        return new ElasticApmTracerBuilder()
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             // use testing bookkeeper implementation here so we will check that no forgotten recyclable object
@@ -82,6 +82,9 @@ public class MockTracer {
                 objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
             }))
             .build();
+
+        tracer.start();
+        return tracer;
     }
 
     /**
@@ -112,7 +115,7 @@ public class MockTracer {
                     // checking proper object pool usage using tracer lifecycle events
                     objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
                 }))
-                .build();
+                .buildAndStart();
         } else {
             ElasticApmAgent.reset();
             if (!tracer.isRunning()) {

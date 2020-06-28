@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -63,7 +64,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
     public static HelperClassManager<TextHeaderSetter<Request>> headerSetterManager;
 
     @VisibleForAdvice
-    public static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
+    public static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = WeakMapSupplier.createMap();
 
     @VisibleForAdvice
     public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(

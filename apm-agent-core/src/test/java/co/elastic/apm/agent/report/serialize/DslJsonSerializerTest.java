@@ -35,7 +35,6 @@ import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
-import co.elastic.apm.agent.impl.payload.Framework;
 import co.elastic.apm.agent.impl.payload.Language;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -410,11 +409,6 @@ class DslJsonSerializerTest {
 
     @Test
     void testSerializeMetadata() {
-
-        Framework framework = mock(Framework.class);
-        when(framework.getName()).thenReturn("awesome");
-        when(framework.getVersion()).thenReturn("0.0.1-alpha");
-
         SystemInfo systemInfo = mock(SystemInfo.class);
         SystemInfo.Container container = mock(SystemInfo.Container.class);
         when(container.getId()).thenReturn("container_id");
@@ -427,7 +421,6 @@ class DslJsonSerializerTest {
             .withAgent(new Agent("MyAgent", "1.11.1"))
             .withName("MyService")
             .withVersion("1.0")
-            .withFramework(framework)
             .withLanguage(new Language("c++", "14"));
 
 
@@ -442,11 +435,6 @@ class DslJsonSerializerTest {
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
         assertThat(serviceJson.get("version").textValue()).isEqualTo("1.0");
-
-        JsonNode frameworkJson = serviceJson.get("framework");
-        assertThat(frameworkJson).isNotNull();
-        assertThat(frameworkJson.get("name").asText()).isEqualTo("awesome");
-        assertThat(frameworkJson.get("version").asText()).isEqualTo("0.0.1-alpha");
 
         JsonNode languageJson = serviceJson.get("language");
         assertThat(languageJson).isNotNull();
@@ -540,6 +528,17 @@ class DslJsonSerializerTest {
 
         transaction.getContext().getMessage().withQueue("test_queue").withAge(0);
 
+        TraceContext ctx = transaction.getTraceContext();
+
+        String serviceName = RandomStringUtils.randomAlphabetic(5);
+        String frameworkName = RandomStringUtils.randomAlphanumeric(10);
+        String frameworkVersion = RandomStringUtils.randomNumeric(3);
+
+        ctx.setServiceName(serviceName);
+
+        transaction.setFrameworkName(frameworkName);
+        transaction.setFrameworkVersion(frameworkVersion);
+
         String jsonString = serializer.toJsonString(transaction);
         JsonNode json = readJsonString(jsonString);
 
@@ -547,6 +546,9 @@ class DslJsonSerializerTest {
         assertThat(jsonContext.get("user").get("id").asText()).isEqualTo("42");
         assertThat(jsonContext.get("user").get("email").asText()).isEqualTo("user@email.com");
         assertThat(jsonContext.get("user").get("username").asText()).isEqualTo("bob");
+        assertThat(jsonContext.get("service").get("name").asText()).isEqualTo(serviceName);
+        assertThat(jsonContext.get("service").get("framework").get("name").asText()).isEqualTo(frameworkName);
+        assertThat(jsonContext.get("service").get("framework").get("version").asText()).isEqualTo(frameworkVersion);
 
         JsonNode jsonRequest = jsonContext.get("request");
         assertThat(jsonRequest.get("method").asText()).isEqualTo("PUT");

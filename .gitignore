@@ -10,3 +10,4 @@ dependency-reduced-pom.xml
 .DS_Store
 html_docs
 docs/html/
+**/__pycache__/

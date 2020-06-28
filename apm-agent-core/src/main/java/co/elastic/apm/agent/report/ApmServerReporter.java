@@ -115,6 +115,10 @@ public class ApmServerReporter implements Reporter {
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
+    }
+
+    @Override
+    public void start() {
         disruptor.start();
         reportingEventHandler.init(this);
     }

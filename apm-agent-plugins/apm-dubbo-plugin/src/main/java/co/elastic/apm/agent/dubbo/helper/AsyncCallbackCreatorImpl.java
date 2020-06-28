@@ -47,7 +47,10 @@ public class AsyncCallbackCreatorImpl implements AsyncCallbackCreator {
             if (span != null) {
                 try {
                     RpcContext.getContext().remove(DubboTraceHelper.SPAN_KEY);
-                    span.captureException(t).captureException(result.getException());
+                    span.captureException(t);
+                    if (result != null) {
+                        span.captureException(result.getException());
+                    }
                 } finally {
                     span.end();
                 }

@@ -563,7 +563,7 @@ public class CallTree implements Recyclable {
         private static final StackFrame ROOT_FRAME = new StackFrame("root", "root");
         /**
          * The context of the thread root,
-         * mostly a transaction or a span which got activated by {@link co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper}
+         * mostly a transaction or a span which got activated in an auxiliary thread
          */
         protected TraceContext rootContext;
         /**

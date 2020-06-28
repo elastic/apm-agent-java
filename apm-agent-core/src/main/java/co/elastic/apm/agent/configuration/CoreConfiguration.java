@@ -61,6 +61,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
 
+    private final ConfigurationOption<Boolean> enabled = ConfigurationOption.booleanOption()
+        .key("enabled")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Setting to false will completely disable the agent, including instrumentation and remote config polling.\n" +
+            "If you want to dynamically change the status of the agent, use <<config-recording,`recording`>> instead.")
+        .dynamic(false)
+        .tags("added[1.18.0]")
+        .buildWithDefault(true);
+
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
         .key(INSTRUMENT)
         .configurationCategory(CORE_CATEGORY)
@@ -117,6 +126,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: Metrics views can utilize this configuration since APM Server 7.5")
         .tags("added[1.11.0]")
         .build();
+
+    private final ConfigurationOption<TimeDuration> delayInit = TimeDurationValueConverter.durationOption("ms")
+        .key("delay_initialization")
+        .aliasKeys("delay_initialization_ms")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("If set to a value greater than 0ms, the agent will delay it's initialization.")
+        .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
         .key("service_version")
@@ -564,6 +581,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("0ms"));
 
+    public boolean isEnabled() {
+        return enabled.get();
+    }
+
     public boolean isInstrument() {
         return instrument.get();
     }
@@ -587,6 +608,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             return null;
         }
         return nodeName;
+    }
+
+    public long getDelayInitMs() {
+        return delayInit.get().getMillis();
     }
 
     public String getServiceVersion() {

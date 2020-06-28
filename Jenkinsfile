@@ -15,7 +15,6 @@ pipeline {
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
-    OPBEANS_REPO = 'opbeans-java'
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -44,7 +43,7 @@ pipeline {
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -112,7 +111,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -145,7 +144,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -175,7 +174,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -206,7 +205,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
@@ -256,7 +255,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -305,18 +304,6 @@ pipeline {
         tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
       }
       stages {
-        stage('Docker push') {
-          when {
-            beforeAgent true
-            expression { return params.push_docker }
-          }
-          steps {
-            sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
-            // Get Docker registry credentials
-            dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
-            sh(label: "Push Docker image", script: "scripts/jenkins/push_docker.sh")
-          }
-        }
         stage('Opbeans') {
           environment {
             REPO_NAME = "${OPBEANS_REPO}"

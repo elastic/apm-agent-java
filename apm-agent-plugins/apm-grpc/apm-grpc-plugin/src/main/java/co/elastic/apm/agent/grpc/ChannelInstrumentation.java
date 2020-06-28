@@ -26,6 +26,7 @@ package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.grpc.helper.GrpcHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Span;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -69,18 +70,33 @@ public class ChannelInstrumentation extends BaseInstrumentation {
         return named("newCall");
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.This Channel channel,
-                               @Advice.Return @Nullable ClientCall<?, ?> clientCall,
-                               @Advice.Thrown @Nullable Throwable thrown) {
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    private static void onEnter(@Advice.This Channel channel,
+                                @Advice.Argument(0) MethodDescriptor<?, ?> method,
+                                @Advice.Local("span") Span span) {
 
-        if (clientCall == null || grpcHelperManager == null) {
+        if (tracer == null || grpcHelperManager == null) {
             return;
         }
 
         GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
         if (helper != null) {
-            helper.enrichSpanContext(clientCall, channel.authority());
+            span = helper.startSpan(tracer.getActive(), method, channel.authority());
+        }
+
+    }
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    private static void onExit(@Advice.Return @Nullable ClientCall<?, ?> clientCall,
+                               @Advice.Local("span") @Nullable Span span) {
+
+        if (grpcHelperManager == null || span == null) {
+            return;
+        }
+
+        GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
+        if (helper != null) {
+            helper.registerSpan(clientCall, span);
         }
 
     }

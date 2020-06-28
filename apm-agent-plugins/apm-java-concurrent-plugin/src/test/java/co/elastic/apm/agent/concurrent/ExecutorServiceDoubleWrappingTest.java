@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTest {
     private static final Object TEST_OBJECT = new Object();
 
-    private final RunnableWrapperExecutorService executor = RunnableWrapperExecutorService.wrap(Executors.newSingleThreadExecutor(), tracer);
+    private final RunnableWrapperExecutorService executor = RunnableWrapperExecutorService.wrap(ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()), tracer);
     private Transaction transaction;
 
     @Before
@@ -92,11 +92,7 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
         int numWrappers = 0;
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement stackTraceElement : stackTrace) {
-            if (stackTraceElement.getClassName().equals("co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper") &&
-                stackTraceElement.getMethodName().equals("run")) {
-                numWrappers++;
-            } else if (stackTraceElement.getClassName().equals("co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper") &&
-                stackTraceElement.getMethodName().equals("call")) {
+            if (stackTraceElement.getClassName().endsWith("LambdaWrapper")) {
                 numWrappers++;
             }
         }

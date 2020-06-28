@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.Version;
@@ -45,6 +46,7 @@ import java.net.URLConnection;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
+import java.util.List;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
@@ -83,7 +85,7 @@ public class CustomElementMatchers {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
             private final boolean loadableByBootstrapClassLoader = canLoadClass(null, className);
-            private WeakConcurrentMap<ClassLoader, Boolean> cache = new WeakConcurrentMap.WithInlinedExpunction<>();
+            private final WeakConcurrentMap<ClassLoader, Boolean> cache = WeakMapSupplier.createMap();
 
             @Override
             public boolean matches(@Nullable ClassLoader target) {
@@ -214,6 +216,20 @@ public class CustomElementMatchers {
             @Override
             public String toString() {
                 return "matches(" + matcher + ")";
+            }
+        };
+    }
+
+    public static ElementMatcher.Junction<NamedElement> anyMatch(final List<WildcardMatcher> matchers) {
+        return new ElementMatcher.Junction.AbstractBase<NamedElement>() {
+            @Override
+            public boolean matches(NamedElement target) {
+                return WildcardMatcher.isAnyMatch(matchers, target.getActualName());
+            }
+
+            @Override
+            public String toString() {
+                return "matches(" + matchers + ")";
             }
         };
     }

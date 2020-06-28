@@ -91,7 +91,7 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
                     .add("server_urls", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
-            .build();
+            .buildAndStart();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
     }

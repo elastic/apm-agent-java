@@ -81,7 +81,7 @@ image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-opentracing.svg[
 [source,java]
 ----
 import co.elastic.apm.opentracing.ElasticApmTracer;
-import io.opentracing.Tracer
+import io.opentracing.Tracer;
 
 Tracer tracer = new ElasticApmTracer();
 ----

@@ -22,16 +22,14 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -39,38 +37,13 @@ import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ScopeManagementTest {
-
-    private ElasticApmTracer tracer;
-    private MockReporter reporter;
-    private ConfigurationRegistry config;
-
-    @BeforeEach
-    void setUp() {
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-    }
-
-    @AfterEach
-    void tearDown() {
-        assertThat(tracer.getActive()).isNull();
-    }
+class ScopeManagementTest extends AbstractInstrumentationTest {
 
     /**
      * Disables assertions in {@link ElasticApmTracer}, runs the test and restores original setting
      */
     void runTestWithAssertionsDisabled(Runnable test) {
-        boolean assertionsEnabled = tracer.assertionsEnabled;
-        try {
-            tracer.assertionsEnabled = false;
-            test.run();
-        } finally {
-            tracer.assertionsEnabled = assertionsEnabled;
-        }
+        TracerInternalApiUtils.runWithoutAssertions(tracer, test);
     }
 
     @Test
@@ -109,52 +82,12 @@ class ScopeManagementTest {
     }
 
     @Test
-    void testContextAndSpanRunnableActivation() {
-        runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startRootTransaction(null).activate();
-            transaction.withActive(transaction.withActive((Runnable) () ->
-                assertThat(tracer.getActive()).isSameAs(transaction))).run();
-            transaction.deactivate();
-
-            assertThat(tracer.getActive()).isNull();
-        });
-    }
-
-    @Test
-    void testContextAndSpanCallableActivation() {
-        runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startRootTransaction(null).activate();
-            try {
-                assertThat(transaction.withActive(transaction.withActive(() -> tracer.currentTransaction())).call()).isSameAs(transaction);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            transaction.deactivate();
-
-            assertThat(tracer.getActive()).isNull();
-        });
-    }
-
-    @Test
-    void testSpanAndContextRunnableActivation() {
-        runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startRootTransaction(null).activate();
-            Runnable runnable = transaction.withActive((Runnable) () ->
-                assertThat(tracer.currentTransaction()).isSameAs(transaction));
-            transaction.withActive(runnable).run();
-            transaction.deactivate();
-
-            assertThat(tracer.getActive()).isNull();
-        });
-    }
-
-    @Test
     void testSpanAndContextCallableActivation() {
         runTestWithAssertionsDisabled(() -> {
             final Transaction transaction = tracer.startRootTransaction(null).activate();
-            Callable<Transaction> callable = transaction.withActive(() -> tracer.currentTransaction());
+            Callable<Transaction> callable = () -> tracer.currentTransaction();
             try {
-                assertThat(transaction.withActive(callable).call()).isSameAs(transaction);
+                assertThat(callable.call()).isSameAs(transaction);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -167,10 +100,10 @@ class ScopeManagementTest {
     @Test
     void testContextAndSpanRunnableActivationInDifferentThread() throws Exception {
         final Transaction transaction = tracer.startRootTransaction(null).activate();
-        Executors.newSingleThreadExecutor().submit(transaction.withActive(transaction.withActive(() -> {
+        ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(() -> {
             assertThat(tracer.getActive()).isSameAs(transaction);
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
-        }))).get();
+        }).get();
         transaction.deactivate();
 
         assertThat(tracer.getActive()).isNull();
@@ -179,10 +112,10 @@ class ScopeManagementTest {
     @Test
     void testContextAndSpanCallableActivationInDifferentThread() throws Exception {
         final Transaction transaction = tracer.startRootTransaction(null).activate();
-        Future<Transaction> transactionFuture = Executors.newSingleThreadExecutor().submit(transaction.withActive(transaction.withActive(() -> {
+        Future<Transaction> transactionFuture = ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(() -> {
             assertThat(tracer.getActive()).isSameAs(transaction);
             return tracer.currentTransaction();
-        })));
+        });
         assertThat(transactionFuture.get()).isSameAs(transaction);
         transaction.deactivate();
 
@@ -192,11 +125,11 @@ class ScopeManagementTest {
     @Test
     void testSpanAndContextRunnableActivationInDifferentThread() throws Exception {
         final Transaction transaction = tracer.startRootTransaction(null).activate();
-        Runnable runnable = transaction.withActive(() -> {
+        Runnable runnable = () -> {
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
             assertThat(tracer.getActive()).isSameAs(transaction);
-        });
-        Executors.newSingleThreadExecutor().submit(transaction.withActive(runnable)).get();
+        };
+        ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(runnable).get();
         transaction.deactivate();
 
         assertThat(tracer.getActive()).isNull();
@@ -205,31 +138,11 @@ class ScopeManagementTest {
     @Test
     void testSpanAndContextCallableActivationInDifferentThread() throws Exception {
         final Transaction transaction = tracer.startRootTransaction(null).activate();
-        Callable<Transaction> callable = transaction.withActive(() -> {
+        assertThat(ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(() -> {
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
             return tracer.currentTransaction();
-        });
-        assertThat(Executors.newSingleThreadExecutor().submit(transaction.withActive(callable)).get()).isSameAs(transaction);
+        }).get()).isSameAs(transaction);
         transaction.deactivate();
-
-        assertThat(tracer.getActive()).isNull();
-    }
-
-    @Test
-    void testAsyncActivationAfterEnd() throws Exception {
-        final Transaction transaction = tracer.startRootTransaction(null).activate();
-        Callable<Transaction> callable = transaction.withActive(() -> {
-            assertThat(tracer.getActive()).isSameAs(transaction);
-            return tracer.currentTransaction();
-        });
-        transaction.deactivate().end();
-        reporter.decrementReferences();
-        assertThat(transaction.isReferenced()).isTrue();
-
-        assertThat(Executors.newSingleThreadExecutor().submit(callable).get()).isSameAs(transaction);
-        assertThat(transaction.isReferenced()).isFalse();
-        // recycled because the transaction is finished, reported and the reference counter is 0
-        assertThat(transaction.getTraceContext().getTraceId().isEmpty()).isTrue();
 
         assertThat(tracer.getActive()).isNull();
     }

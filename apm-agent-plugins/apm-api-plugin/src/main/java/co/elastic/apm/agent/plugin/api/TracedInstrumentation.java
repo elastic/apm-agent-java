@@ -48,6 +48,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPa
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.plugin.api.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -90,6 +91,7 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
                     }
                     transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
                         .activate();
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
                 }
                 abstractSpan = transaction;
             }
