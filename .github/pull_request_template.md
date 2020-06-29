@@ -29,6 +29,6 @@ Just ignore the checkboxes of categories that don't apply.
   - [ ] I have updated [CHANGELOG.asciidoc](https://github.com/elastic/apm-agent-java/blob/master/CHANGELOG.asciidoc)
   - [ ] I have updated [supported-technologies.asciidoc](https://github.com/elastic/apm-agent-java/blob/master/docs/supported-technologies.asciidoc)
   - [ ] Added an API method or config option? Document in which version this will be introduced
-  - [ ] Added an instrumentation plugin? Describe wow you made sure that old, non-supported versions are not instrumented by accident.
+  - [ ] Added an instrumentation plugin? Describe how you made sure that old, non-supported versions are not instrumented by accident.
 - [ ] This is something else
     - [ ] I have updated [CHANGELOG.asciidoc](CHANGELOG.asciidoc)
