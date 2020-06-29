@@ -17,8 +17,7 @@ which is part of the JDK distribution and does not typically come with the JRE d
 [[setup-attach-api-caveats]]
 ==== Caveats
 
-Currently, this does not work in combination with OSGi containers (which includes most application servers).
-The symptom is that there will be a lot of exceptions like this: `java.lang.NoClassDefFoundError: co/elastic/apm/agent/servlet/ServletApiAdvice`.
+The approach to mitigate ``NoClassDefFoundError``s when used in OSGi containers (which includes most application servers) is experimental.
 
 There can only be one agent instance with one configuration per JVM.
 So if you deploy multiple web applications to the same application server and call `ElasticApmAttacher.attach()` in each application,

@@ -52,6 +52,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * to only a particular set of allowed packages.
  * This is a generic solution that works for all of them.
  * </p>
+ * <p>
+ * After all plugins have been migrated to indy plugins,
+ * this instrumentation can be removed.
+ * But having it in now allows to make runtime attachment more readily available sooner.
+ * Also, if indy plugins should not work out for some reason,
+ * we have already tested out this approach and thus have something to fall back to.
+ * </p>
  */
 public class BootstrapDelegationClassLoaderInstrumentation extends ElasticApmInstrumentation {
 

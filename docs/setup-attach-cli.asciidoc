@@ -27,8 +27,7 @@ The OS user executing `apm-agent-attach-standalone.jar` and the OS user of the a
 
 When attaching to a J9 VM, you have to explicitly set the `--pid <pid>` argument, or have `jps` installed.
 
-Currently, this does not work in combination with OSGi containers (which includes most application servers).
-The symptom is that there will be a lot of exceptions like this: `java.lang.NoClassDefFoundError: co/elastic/apm/agent/servlet/ServletApiAdvice`.
+The approach to mitigate ``NoClassDefFoundError``s when used in OSGi containers (which includes most application servers) is experimental.
 
 [float]
 [[setup-attach-cli-download]]
