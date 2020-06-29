@@ -478,6 +478,7 @@ public class ElasticApmAgent {
             .or(nameStartsWith("org.glowroot."))
             .or(nameStartsWith("com.compuware."))
             .or(nameStartsWith("io.sqreen."))
+            .or(nameStartsWith("com.contrastsecurity."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
             .or(anyMatch(coreConfiguration.getDefaultClassesExcludedFromInstrumentation()))
