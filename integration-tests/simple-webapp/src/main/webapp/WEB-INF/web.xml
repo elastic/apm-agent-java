@@ -80,4 +80,13 @@
         <servlet-name>ExecuteCmdServlet</servlet-name>
         <url-pattern>/execute-cmd-servlet</url-pattern>
     </servlet-mapping>
+
+    <servlet>
+        <servlet-name>JBossMBeanTestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.JBossMBeanTestServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>JBossMBeanTestServlet</servlet-name>
+        <url-pattern>/jboss-mbeans</url-pattern>
+    </servlet-mapping>
 </web-app>
