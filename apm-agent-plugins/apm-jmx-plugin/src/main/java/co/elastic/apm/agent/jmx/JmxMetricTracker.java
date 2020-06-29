@@ -102,9 +102,10 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         // otherwise WildFly fails to start with a IllegalStateException:
         // WFLYLOG0078: The logging subsystem requires the log manager to be org.jboss.logmanager.LogManager
         if (setsCustomLogManager()) {
-            if (!MBeanServerFactory.findMBeanServer(null).isEmpty()) {
+            List<MBeanServer> servers = MBeanServerFactory.findMBeanServer(null);
+            if (!servers.isEmpty()) {
                 // platform MBean server is already initialized
-                init(MBeanServerFactory.findMBeanServer(null).get(0));
+                init(servers.get(0));
             } else {
                 deferInit();
             }
@@ -131,8 +132,13 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted() || timeout <= System.currentTimeMillis()) {
-                    if (System.getProperty("java.util.logging.manager") != null || !MBeanServerFactory.findMBeanServer(null).isEmpty()) {
-                        init(getPlatformMBeanServerThreadSafely());
+                    List<MBeanServer> servers = MBeanServerFactory.findMBeanServer(null);
+                    if (!servers.isEmpty()) {
+                        // avoid actively creating a platform mbean server
+                        // because JBoss sets the javax.management.builder.initial system property
+                        // this makes Java create a JBoss specific mbean server that can only be loaded
+                        // when the module class loader is set as the current thread's context class loader
+                        init(servers.get(0));
                         return;
                     }
                     try {
@@ -186,20 +192,28 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         listener = new NotificationListener() {
             @Override
             public void handleNotification(Notification notification, Object handback) {
-                if (notification instanceof MBeanServerNotification) {
-                    ObjectName mBeanName = ((MBeanServerNotification) notification).getMBeanName();
-                    for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
-                        if (jmxMetric.getObjectName().apply(mBeanName)) {
-                            logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
-                            register(Collections.singletonList(jmxMetric), server);
-                        }
+                try {
+                    if (notification instanceof MBeanServerNotification) {
+                        onMBeanAdded(((MBeanServerNotification) notification).getMBeanName());
+                    }
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                }
+            }
+
+            private void onMBeanAdded(ObjectName mBeanName) {
+                logger.trace("Receiving MBean registration notification for {}", mBeanName);
+                for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
+                    if (jmxMetric.getObjectName().apply(mBeanName)) {
+                        logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
+                        register(Collections.singletonList(jmxMetric), server);
                     }
                 }
             }
         };
         try {
             server.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener, filter, null);
-        } catch (InstanceNotFoundException e) {
+        } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
     }
@@ -233,7 +247,11 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
         Set<ObjectInstance> mbeans = server.queryMBeans(jmxMetric.getObjectName(), null);
-        logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
+        if (!mbeans.isEmpty()) {
+            logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
+        } else {
+            logger.debug("Found no mbeans for object name {}. Listening for mbeans added later.", jmxMetric.getObjectName());
+        }
         for (ObjectInstance mbean : mbeans) {
             for (JmxMetric.Attribute attribute : jmxMetric.getAttributes()) {
                 final ObjectName objectName = mbean.getObjectName();
