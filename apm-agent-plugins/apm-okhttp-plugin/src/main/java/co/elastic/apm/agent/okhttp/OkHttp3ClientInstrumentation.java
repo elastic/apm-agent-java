@@ -31,7 +31,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import co.elastic.apm.agent.threadlocal.RemoveOnGetThreadLocal;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -60,7 +60,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
     public static class OkHttpClient3ExecuteAdvice {
 
         @VisibleForAdvice
-        public final static RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(OkHttpClient3ExecuteAdvice.class, "spanTls");
+        public final static GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(OkHttpClient3ExecuteAdvice.class, "spanTls");
 
         @Nullable
         @AssignTo.Field(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)

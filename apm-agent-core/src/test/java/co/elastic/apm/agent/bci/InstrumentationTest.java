@@ -38,6 +38,7 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
@@ -56,6 +57,7 @@ import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -366,6 +368,40 @@ class InstrumentationTest {
         System.gc();
         System.gc();
         await().untilAsserted(() -> assertThat(pluginClassLoader.get()).isNull());
+    }
+
+    @Test
+    void testNoClassLoaderLeakWhenInstrumentedApplicationIsUndeployed() throws Exception {
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new GetClassLoaderInstrumentation()));
+
+        Map<String, byte[]> typeDefinitions = Map.of(
+            InstrumentedInIsolatedClassLoader.class.getName(),
+            ClassFileLocator.ForClassLoader.of(ClassLoader.getSystemClassLoader()).locate(InstrumentedInIsolatedClassLoader.class.getName()).resolve()
+        );
+        ClassLoader applicationCL = new ByteArrayClassLoader.ChildFirst(null, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
+        Class<?> instrumentedClass = applicationCL.loadClass(InstrumentedInIsolatedClassLoader.class.getName());
+        assertThat(instrumentedClass.getMethod("getClassLoader").invoke(null)).isSameAs(applicationCL);
+
+        WeakReference<ClassLoader> applicationCLRef = new WeakReference<>(applicationCL);
+        // after clearing these references, the application class loader is expected to be eligible for GC
+        // the agent must not hold strong references the instrumented class or it's class loader
+        applicationCL = null;
+        instrumentedClass = null;
+
+        System.gc();
+        System.gc();
+        await().untilAsserted(() -> assertThat(applicationCLRef.get()).isNull());
+    }
+
+    public static class InstrumentedInIsolatedClassLoader {
+
+        @Nullable
+        public static ClassLoader getClassLoader() {
+            return null;
+        }
+
     }
 
     @Test
@@ -882,6 +918,35 @@ class InstrumentationTest {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return none();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyPlugin() {
+            return true;
+        }
+    }
+
+    public static class GetClassLoaderInstrumentation extends ElasticApmInstrumentation {
+
+        @AssignTo.Return
+        @Advice.OnMethodExit(inline = false)
+        public static ClassLoader onExit(@Advice.Origin Class<?> clazz) {
+            return clazz.getClassLoader();
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named(InstrumentedInIsolatedClassLoader.class.getName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("getClassLoader");
         }
 
         @Override

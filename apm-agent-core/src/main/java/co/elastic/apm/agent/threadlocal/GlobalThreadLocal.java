@@ -31,37 +31,38 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Allows registering a globally shared instance of a {@link DetachedThreadLocal} that allows for removal on get.
+ * Allows registering a globally shared instance of a {@link DetachedThreadLocal} that optionally allows for removal on get.
+ * Similar to {@link co.elastic.apm.agent.util.GlobalVariables} and {@link co.elastic.apm.agent.bci.GlobalState},
+ * this allows to get thread locals whose state is shared across plugin class loaders.
  *
  * @param <T>
- * @see co.elastic.apm.agent.util.GlobalVariables
  */
-public class RemoveOnGetThreadLocal<T> extends DetachedThreadLocal<T> {
+public class GlobalThreadLocal<T> extends DetachedThreadLocal<T> {
 
-    private static final ConcurrentMap<String, RemoveOnGetThreadLocal<?>> registry = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, GlobalThreadLocal<?>> registry = new ConcurrentHashMap<>();
     @Nullable
     private final T defaultValue;
 
-    private RemoveOnGetThreadLocal(@Nullable T defaultValue) {
+    private GlobalThreadLocal(@Nullable T defaultValue) {
         super(Cleaner.INLINE);
         this.defaultValue = defaultValue;
     }
 
-    public static <T> RemoveOnGetThreadLocal<T> get(Class<?> adviceClass, String key) {
+    public static <T> GlobalThreadLocal<T> get(Class<?> adviceClass, String key) {
         return get(adviceClass.getName() + "." + key, null);
     }
 
-    public static <T> RemoveOnGetThreadLocal<T> get(Class<?> adviceClass, String key, @Nullable T defaultValue) {
+    public static <T> GlobalThreadLocal<T> get(Class<?> adviceClass, String key, @Nullable T defaultValue) {
         return get(adviceClass.getName() + "." + key, defaultValue);
     }
 
-    private static <T> RemoveOnGetThreadLocal<T> get(String key, @Nullable T defaultValue) {
-        RemoveOnGetThreadLocal<?> threadLocal = registry.get(key);
+    private static <T> GlobalThreadLocal<T> get(String key, @Nullable T defaultValue) {
+        GlobalThreadLocal<?> threadLocal = registry.get(key);
         if (threadLocal == null) {
-            registry.putIfAbsent(key, new RemoveOnGetThreadLocal<T>(defaultValue));
+            registry.putIfAbsent(key, new GlobalThreadLocal<T>(defaultValue));
             threadLocal = registry.get(key);
         }
-        return (RemoveOnGetThreadLocal<T>) threadLocal;
+        return (GlobalThreadLocal<T>) threadLocal;
     }
 
     @Nullable

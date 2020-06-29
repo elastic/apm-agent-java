@@ -259,8 +259,7 @@ public class IndyBootstrap {
             Class<?> instrumentedType = (Class<?>) args[2];
             String instrumentedMethodName = (String) args[3];
             MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
-            Class<?> adviceClass = Class.forName(adviceClassName);
-            String packageName = adviceClass.getPackage().getName();
+            String packageName = adviceClassName.substring(0, adviceClassName.lastIndexOf('.'));
             List<String> pluginClasses = classesByPackage.get(packageName);
             if (pluginClasses == null) {
                 classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName));

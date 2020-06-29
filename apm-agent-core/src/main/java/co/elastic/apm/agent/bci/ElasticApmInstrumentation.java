@@ -27,6 +27,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -231,7 +232,7 @@ public abstract class ElasticApmInstrumentation {
      *     </li>
      *     <li>
      *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
-     *         Use {@link co.elastic.apm.agent.threadlocal.RemoveOnGetThreadLocal} instead.
+     *         Use {@link GlobalThreadLocal} instead.
      *     </li>
      *     <li>
      *         Due to the automatic plugin classloader creation that is based on package scanning,

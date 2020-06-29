@@ -677,4 +677,16 @@ public class ElasticApmAgent {
         return instance;
     }
 
+    public static ClassLoader getAgentClassLoader() {
+        ClassLoader agentClassLoader = ElasticApmAgent.class.getClassLoader();
+        if (agentClassLoader == null) {
+            // currently, the agent CL is the bootstrap CL in production
+            // but resources are not loadable from the bootstrap CL, only from the system CL
+            // also, we want to return a no-null CL from here
+            return ClassLoader.getSystemClassLoader();
+        }
+        // in tests, the agent CL is the system CL
+        // in the future, the agent will be loaded from an isolated CL in production
+        return agentClassLoader;
+    }
 }

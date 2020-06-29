@@ -327,10 +327,7 @@ public abstract class HelperClassManager<T> {
         }
 
         private static ClassLoader getPluginClassLoaderParent(@Nullable ClassLoader targetClassLoader) {
-            ClassLoader agentClassLoader = HelperClassManager.class.getClassLoader();
-            if (agentClassLoader == null) {
-                agentClassLoader = ClassLoader.getSystemClassLoader();
-            }
+            ClassLoader agentClassLoader = ElasticApmAgent.getAgentClassLoader();
             // the plugin class loader has both, the agent class loader and the target class loader as the parent
             // this is important so that the plugin class loader has direct access to the agent class loader
             // otherwise, filtering class loaders (like OSGi) have a chance to interfere
@@ -414,7 +411,7 @@ public abstract class HelperClassManager<T> {
     }
 
     private static byte[] getAgentClassBytes(String className) throws IOException {
-        final ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(ClassLoader.getSystemClassLoader());
+        final ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(ElasticApmAgent.getAgentClassLoader());
         return locator.locate(className).resolve();
     }
 }

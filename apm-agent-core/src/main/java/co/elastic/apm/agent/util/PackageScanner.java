@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -54,7 +56,7 @@ public class PackageScanner {
     public static List<String> getClassNames(final String basePackage) throws IOException, URISyntaxException {
         String baseFolderResource = basePackage.replace('.', '/');
         final List<String> classNames = new ArrayList<>();
-        Enumeration<URL> resources = getResourcesFromAgentClassLoader(baseFolderResource);
+        Enumeration<URL> resources = ElasticApmAgent.getAgentClassLoader().getResources(baseFolderResource);
         while (resources.hasMoreElements()) {
             URL resource = resources.nextElement();
             URI uri = resource.toURI();
@@ -87,11 +89,4 @@ public class PackageScanner {
         return classNames;
     }
 
-    private static Enumeration<URL> getResourcesFromAgentClassLoader(String baseFolderResource) throws IOException {
-        ClassLoader agentCL = PackageScanner.class.getClassLoader();
-        if (agentCL == null) {
-            agentCL = ClassLoader.getSystemClassLoader();
-        }
-        return agentCL.getResources(baseFolderResource);
-    }
 }

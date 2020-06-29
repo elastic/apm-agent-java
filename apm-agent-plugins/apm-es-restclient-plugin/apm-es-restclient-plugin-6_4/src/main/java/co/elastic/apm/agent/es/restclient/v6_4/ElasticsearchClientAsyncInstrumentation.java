@@ -30,7 +30,7 @@ import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.threadlocal.RemoveOnGetThreadLocal;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -72,7 +72,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
     public static class ElasticsearchRestClientAsyncAdvice {
         @VisibleForAdvice
-        public static final RemoveOnGetThreadLocal<Span> spanTls = RemoveOnGetThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
+        public static final GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
 
         @AssignTo.Argument(1)
         @Advice.OnMethodEnter(suppress = Throwable.class)

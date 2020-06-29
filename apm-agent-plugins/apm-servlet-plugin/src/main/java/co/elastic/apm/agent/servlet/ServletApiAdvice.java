@@ -30,7 +30,7 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
-import co.elastic.apm.agent.threadlocal.RemoveOnGetThreadLocal;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -64,7 +64,7 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(tracer);
     }
 
-    private static final RemoveOnGetThreadLocal<Boolean> excluded = RemoveOnGetThreadLocal.get(ServletApiAdvice.class, "excluded", false);
+    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable
