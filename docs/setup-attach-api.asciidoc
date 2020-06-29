@@ -18,6 +18,7 @@ which is part of the JDK distribution and does not typically come with the JRE d
 ==== Caveats
 
 The approach to mitigate ``NoClassDefFoundError``s when used in OSGi containers (which includes most application servers) is experimental.
+Versions prior to 1.18.0 don't support OSGi containers.
 
 There can only be one agent instance with one configuration per JVM.
 So if you deploy multiple web applications to the same application server and call `ElasticApmAttacher.attach()` in each application,
