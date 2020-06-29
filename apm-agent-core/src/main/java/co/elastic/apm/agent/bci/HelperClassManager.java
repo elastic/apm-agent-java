@@ -311,7 +311,15 @@ public abstract class HelperClassManager<T> {
             ClassLoader parent = getPluginClassLoaderParent(targetClassLoader);
             Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy);
             // child first semantics are important here as the plugin CL contains classes that are also present in the agent CL
-            ClassLoader pluginClassLoader = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
+            ClassLoader pluginClassLoader = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST) {
+                @Override
+                protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+                    if (name.equals("java.lang.ThreadLocal")) {
+                        throw new ClassNotFoundException("The usage of ThreadLocals is not allowed in instrumentation plugins. Use GlobalThreadLocal instead.");
+                    }
+                    return super.loadClass(name, resolve);
+                }
+            };
             injectedClasses.put(classesToInject, new WeakReference<>(pluginClassLoader));
 
             return pluginClassLoader;

@@ -31,6 +31,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.GlobalVariables;
@@ -434,6 +435,19 @@ class InstrumentationTest {
             ByteBuddyAgent.install(),
             Collections.singletonList(new AgentTypeParameterInstrumentation())))
             .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void testAdviceUsingThreadLocal() {
+        ElasticApmAgent.initInstrumentation(tracer,
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new UsingThreadLocal()));
+        assertThat(getSpanFromThreadLocal()).isNull();
+    }
+
+    @Nullable
+    public AbstractSpan<?> getSpanFromThreadLocal() {
+        return null;
     }
 
     @Nullable
@@ -918,6 +932,42 @@ class InstrumentationTest {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return none();
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singletonList("test");
+        }
+
+        @Override
+        public boolean indyPlugin() {
+            return true;
+        }
+    }
+
+    public static class UsingThreadLocal extends ElasticApmInstrumentation {
+
+        private static final ThreadLocal<AbstractSpan<?>> localSpan = new ThreadLocal<>() {
+            @Override
+            @Nullable
+            protected AbstractSpan<?> initialValue() {
+                return tracer.startRootTransaction(null);
+            }
+        };
+
+        @Advice.OnMethodEnter(inline = false)
+        public static void onEnter() {
+            localSpan.get();
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named(InstrumentationTest.class.getName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("getSpanFromThreadLocal");
         }
 
         @Override
