@@ -111,10 +111,6 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
             .and(not(nameContains("CGLIB")))
             .and(not(nameContains("EnhancerBy")))
             .and(not(nameContains("$Proxy")))
-            .and(not(nameStartsWith("java.")))
-            .and(not(nameStartsWith("com.sun.")))
-            .and(not(nameStartsWith("sun.")))
-            .and(not(nameStartsWith("jdk.")))
             .and(declaresMethod(matches(methodMatcher.getMethodMatcher())));
     }
 
