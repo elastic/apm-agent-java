@@ -122,6 +122,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *         <b>Unit testing:</b>
  *         Classes loaded from the bootstrap class loader can be instrumented in unit tests.
  *     </li>
+ *     <li>
+ *         <b>No shading:</b>
+ *         When loading the agent in an isolated class loader, we don't have to shade every dependency anymore.
+ *         This makes packaging, source jar generation, and instrumenting shaded dependencies such as log4j2 much easier.
+ *     </li>
  * </ul>
  * <p>
  * Challenges:
