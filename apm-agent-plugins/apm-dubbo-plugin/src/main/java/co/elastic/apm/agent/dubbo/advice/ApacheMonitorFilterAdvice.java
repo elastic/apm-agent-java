@@ -98,7 +98,7 @@ public class ApacheMonitorFilterAdvice {
                                           @Nullable @Advice.Local("transaction") Transaction transaction) {
 
         RpcContext context = RpcContext.getContext();
-        AbstractSpan<?> actualSpan = context.isConsumerSide() ? span : transaction;
+        AbstractSpan<?> actualSpan = span != null ? span : transaction;
         if (actualSpan == null) {
             return;
         }
