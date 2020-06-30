@@ -99,6 +99,7 @@ Click on a key to get more information.
 ** <<config-stress-monitor-system-cpu-relief-threshold>>
 * <<config-core>>
 ** <<config-recording>>
+** <<config-enabled>>
 ** <<config-instrument>>
 ** <<config-service-name>>
 ** <<config-service-node-name>>
@@ -114,6 +115,7 @@ Click on a key to get more information.
 ** <<config-capture-body>>
 ** <<config-capture-headers>>
 ** <<config-global-labels>>
+** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
@@ -121,6 +123,7 @@ Click on a key to get more information.
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
 ** <<config-use-elastic-traceparent-header>>
+** <<config-span-min-duration>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-ignore-urls>>
@@ -136,8 +139,7 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
-** <<config-log-file-max-size>>
-** <<config-ship-agent-logs>>
+** <<config-log-file-size>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
 * <<config-messaging>>
@@ -177,7 +179,7 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+<<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
@@ -361,7 +363,10 @@ monitor to decide that the CPU stress has been relieved.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-recording]]
-==== `recording`
+==== `recording` (added[1.15.0])
+
+NOTE: This option was available in older versions through the `active` key. The old key is still
+supported in newer versions, but it is now deprecated.
 
 A boolean specifying if the agent should be recording or not.
 When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
@@ -371,8 +376,6 @@ As this is a reversible switch, agent threads are not being killed when inactiva
 mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
-
-The key of this option used to be `active`. The old key still works but is now deprecated.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -388,6 +391,30 @@ The key of this option used to be `active`. The old key still works but is now d
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.recording` | `recording` | `ELASTIC_APM_RECORDING`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enabled]]
+==== `enabled` (added[1.18.0])
+
+Setting to false will completely disable the agent, including instrumentation and remote config polling.
+If you want to dynamically change the status of the agent, use <<config-recording,`recording`>> instead.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enabled` | `enabled` | `ELASTIC_APM_ENABLED`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -669,7 +696,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logback`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logback`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -850,6 +877,34 @@ NOTE: This feature requires APM Server 7.2+
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-classes-excluded-from-instrumentation]]
+==== `classes_excluded_from_instrumentation`
+
+Use to exclude specific classes from being instrumented. In order to exclude entire packages,
+use wildcards, as in: `com.project.exclude.*`
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.classes_excluded_from_instrumentation` | `classes_excluded_from_instrumentation` | `ELASTIC_APM_CLASSES_EXCLUDED_FROM_INSTRUMENTATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-trace-methods]]
 ==== `trace_methods` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
@@ -952,6 +1007,8 @@ In order not to break span references,
 all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 regardless of their duration.
 
+NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+the higher of both thresholds will determine which spans will be discarded.
 
 
 
@@ -1111,6 +1168,42 @@ for backwards compatibility with older versions of Elastic APM agents.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_elastic_traceparent_header` | `use_elastic_traceparent_header` | `ELASTIC_APM_USE_ELASTIC_TRACEPARENT_HEADER`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-span-min-duration]]
+==== `span_min_duration` (added[1.16.0])
+
+Sets the minimum duration of spans.
+Spans that execute faster than this threshold are attempted to be discarded.
+
+The attempt fails if they lead up to a span that can't be discarded.
+Spans that propagate the trace context to downstream services,
+such as outgoing HTTP requests,
+can't be discarded.
+Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.
+
+However, external calls that don't propagate context,
+such as calls to a database, can be discarded using this threshold.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_min_duration` | `span_min_duration` | `ELASTIC_APM_SPAN_MIN_DURATION`
 |============
 
 [[config-http]]
@@ -1462,12 +1555,12 @@ This option is case-insensitive.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `INFO` | Level | true
+| `INFO` | LogLevel | true
 |============
 
 
@@ -1535,6 +1628,87 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-file-size]]
+==== `log_file_size` (added[1.17.0])
+
+The size of the log file.
+
+The agent always keeps one history file so that the max total log file size is twice the value of this setting.
+
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `50mb` | ByteValue | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_file_size` | `log_file_size` | `ELASTIC_APM_LOG_FILE_SIZE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-format-sout]]
+==== `log_format_sout` (added[1.17.0])
+
+Defines the log format when logging to `System.out`.
+
+When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+where each log event is serialized as a single line.
+
+
+
+Valid options: `PLAIN_TEXT`, `JSON`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `PLAIN_TEXT` | LogFormat | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_format_sout` | `log_format_sout` | `ELASTIC_APM_LOG_FORMAT_SOUT`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-format-file]]
+==== `log_format_file` (added[1.17.0])
+
+Defines the log format when logging to a file.
+
+When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
+where each log event is serialized as a single line.
+
+
+
+
+Valid options: `PLAIN_TEXT`, `JSON`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `PLAIN_TEXT` | LogFormat | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_format_file` | `log_format_file` | `ELASTIC_APM_LOG_FORMAT_FILE`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2225,7 +2399,6 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 [[config-span-frames-min-duration]]
 ==== `span_frames_min_duration` (performance)
 
-In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
@@ -2265,7 +2438,7 @@ The default unit for this option is `ms`.
 # A boolean specifying whether the circuit breaker should be enabled or not. 
 # When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 # If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# <<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum.
 # When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 # has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 # agent will resume and become fully functional.
@@ -2346,6 +2519,9 @@ The default unit for this option is `ms`.
 # Core                                     #
 ############################################
 
+# NOTE: This option was available in older versions through the `active` key. The old key is still
+# supported in newer versions, but it is now deprecated.
+#
 # A boolean specifying if the agent should be recording or not.
 # When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 # When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
@@ -2354,14 +2530,21 @@ The default unit for this option is `ms`.
 # mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
-# 
-# The key of this option used to be `active`. The old key still works but is now deprecated.
 #
 # This setting can be changed at runtime
 # Type: Boolean
 # Default value: true
 #
 # recording=true
+
+# Setting to false will completely disable the agent, including instrumentation and remote config polling.
+# If you want to dynamically change the status of the agent, use <<config-recording,`recording`>> instead.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# enabled=true
 
 # A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 # 
@@ -2506,7 +2689,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logback`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logback`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2600,6 +2783,19 @@ The default unit for this option is `ms`.
 #
 # global_labels=
 
+# Use to exclude specific classes from being instrumented. In order to exclude entire packages,
+# use wildcards, as in: `com.project.exclude.*`
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value:
+#
+# classes_excluded_from_instrumentation=
+
 # A list of methods for which to create a transaction or span.
 # 
 # If you want to monitor a large number of methods,
@@ -2684,6 +2880,8 @@ The default unit for this option is `ms`.
 # all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
 # regardless of their duration.
 # 
+# NOTE: If this option and <<config-span-min-duration,`span_min_duration`>> are both configured,
+# the higher of both thresholds will determine which spans will be discarded.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
@@ -2758,6 +2956,26 @@ The default unit for this option is `ms`.
 # Default value: true
 #
 # use_elastic_traceparent_header=true
+
+# Sets the minimum duration of spans.
+# Spans that execute faster than this threshold are attempted to be discarded.
+#
+# The attempt fails if they lead up to a span that can't be discarded.
+# Spans that propagate the trace context to downstream services,
+# such as outgoing HTTP requests,
+# can't be discarded.
+# Additionally, spans that lead to an error or that may be a parent of an async operation can't be discarded.
+#
+# However, external calls that don't propagate context,
+# such as calls to a database, can be discarded using this threshold.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# span_min_duration=0ms
 
 ############################################
 # HTTP                                     #
@@ -2987,9 +3205,9 @@ The default unit for this option is `ms`.
 # 
 # This option is case-insensitive.
 #
-# Valid options: ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
-# Type: Level
+# Type: LogLevel
 # Default value: INFO
 #
 # log_level=INFO
@@ -3024,46 +3242,19 @@ The default unit for this option is `ms`.
 #
 # enable_log_correlation=false
 
-# The max size of the log file.
-# 
-# To support <<config-ship-agent-logs,shipping the logs>> to APM Server,
-# the agent always keeps one history file so that the max total log file size is twice the value of this setting.
-# 
+# The size of the log file.
+#
+# The agent always keeps one history file so that the max total log file size is twice the value of this setting.
+#
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: ByteValue
 # Default value: 50mb
 #
-# log_file_max_size=50mb
-
-# This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.8+).
-# Use the Kibana Logs App to see the logs from all of your agents.
-# 
-# If <<config-log-file,`log_file`>> is set to a real file location (as opposed to `System.out`),
-# this file will be shipped to the APM Server by the agent.
-# Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.
-# 
-# If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.
-# The amount of logs that can be buffered is at least <<config-log-file-max-size,`log_file_max_size`>>.
-# If the application crashes or APM Server is not available when shutting down,
-# the agent will resume shipping the log file when the application restarts.
-# 
-# Resume on restart does not work when the log is inside an ephemeral container.
-# Consider mounting the log file to the host or use Filebeat if you need the extra reliability in this case.
-# 
-# If <<config-log-file,`log_file`>> is set to `System.out`,
-# the agent will additionally log into a temp file which is then sent to APM Server.
-# This log's size is determined by <<config-log-file-max-size,`log_file_max_size`>> and will be deleted on shutdown.
-# This means that logs that could not be sent before the application terminates are lost.
-#
-# This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Boolean
-# Default value: true
-#
-# ship_agent_logs=true
+# log_file_size=50mb
 
 # Defines the log format when logging to `System.out`.
-# 
+#
 # When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
 #
@@ -3075,19 +3266,17 @@ The default unit for this option is `ms`.
 # log_format_sout=PLAIN_TEXT
 
 # Defines the log format when logging to a file.
-# 
+#
 # When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]
 # where each log event is serialized as a single line.
-# 
-# If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,
-# the value has to be `JSON`.
+#
 #
 # Valid options: PLAIN_TEXT, JSON
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: LogFormat
-# Default value: JSON
+# Default value: PLAIN_TEXT
 #
-# log_format_file=JSON
+# log_format_file=PLAIN_TEXT
 
 ############################################
 # Messaging                                #
@@ -3367,7 +3556,6 @@ The default unit for this option is `ms`.
 #
 # stack_trace_limit=50
 
-# In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
 # When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 

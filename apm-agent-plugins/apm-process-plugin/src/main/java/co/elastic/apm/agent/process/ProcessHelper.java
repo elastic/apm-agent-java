@@ -25,8 +25,9 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nonnull;
@@ -40,7 +41,7 @@ import java.util.List;
 @VisibleForAdvice
 public class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(new WeakConcurrentMap.WithInlinedExpunction<Process, Span>());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(WeakMapSupplier.<Process, Span>createMap());
 
     private final WeakConcurrentMap<Process, Span> inFlightSpans;
 
@@ -49,7 +50,7 @@ public class ProcessHelper {
     }
 
     @VisibleForAdvice
-    public static void startProcess(TraceContextHolder<?> parentContext, Process process, List<String> command) {
+    public static void startProcess(AbstractSpan<?> parentContext, Process process, List<String> command) {
         INSTANCE.doStartProcess(parentContext, process, command.get(0));
     }
 
@@ -65,7 +66,7 @@ public class ProcessHelper {
      * @param process       started process
      * @param processName   process name
      */
-    void doStartProcess(@Nonnull TraceContextHolder<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
+    void doStartProcess(@Nonnull AbstractSpan<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
         if (inFlightSpans.containsKey(process)) {
             return;
         }

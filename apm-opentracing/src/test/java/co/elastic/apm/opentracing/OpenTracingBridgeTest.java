@@ -83,6 +83,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1000);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("test");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("OpenTracing");
     }
 
     @Test
@@ -139,7 +140,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
-        transaction.resetState();
 
         final Span childSpan = apmTracer.buildSpan("span")
             .asChildOf(span.context())
@@ -157,7 +157,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
-        transaction.resetState();
 
         try (Scope scope = apmTracer.activateSpan(span)) {
             final Span childSpan = apmTracer.buildSpan("span")
@@ -207,6 +206,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         // manually finish span
         scope.span().finish(1);
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("OpenTracing");
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("test");
     }
@@ -226,6 +226,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final co.elastic.apm.agent.impl.transaction.Span nestedSpan = reporter.getSpans().get(0);
         assertThat(transaction.getDuration()).isGreaterThan(0);
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
+        assertThat(transaction.getFrameworkName()).isEqualTo("OpenTracing");
         assertThat(reporter.getSpans()).hasSize(2);
         assertThat(span.getNameAsString()).isEqualTo("span");
         assertThat(span.isChildOf(transaction)).isTrue();
@@ -256,6 +257,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final co.elastic.apm.agent.impl.transaction.Span nestedSpan = reporter.getSpans().get(0);
         assertThat(transaction.getDuration()).isGreaterThan(0);
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
+        assertThat(transaction.getFrameworkName()).isEqualTo("OpenTracing");
         assertThat(reporter.getSpans()).hasSize(2);
         assertThat(span.getNameAsString()).isEqualTo("span");
         assertThat(span.isChildOf(transaction)).isTrue();
@@ -340,10 +342,16 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
                 Span nestedSpan = apmTracer.buildSpan("nestedSpan").start();
                 try (ApmScope nestedSpanScope = (ApmScope) apmTracer.activateSpan(nestedSpan)) {
                     assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(nestedSpan);
+                } finally {
+                    nestedSpan.finish();
                 }
                 assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(span);
+            } finally {
+                span.finish();
             }
             assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(transaction);
+        } finally {
+            transaction.finish();
         }
         assertThat(apmTracer.scopeManager().activeSpan()).isNull();
         assertThat(reporter.getSpans()).isEmpty();
@@ -362,6 +370,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             span.finish();
         }
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("error");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");

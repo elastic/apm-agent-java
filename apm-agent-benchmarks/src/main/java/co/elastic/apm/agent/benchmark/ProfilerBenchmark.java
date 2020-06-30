@@ -62,7 +62,6 @@ public class ProfilerBenchmark extends AbstractMockApmServerBenchmark {
             new SystemNanoClock(),
             new File(getClass().getClassLoader().getResource("apm-activation-events.bin").toURI()),
             new File(getClass().getClassLoader().getResource("apm-traces.jfr").toURI()));
-        samplingProfiler.skipToEndOfActivationEventsFile();
     }
 
     @TearDown
@@ -72,6 +71,7 @@ public class ProfilerBenchmark extends AbstractMockApmServerBenchmark {
 
     @Benchmark
     public void processTraces() throws IOException {
+        samplingProfiler.skipToEndOfActivationEventsFile();
         samplingProfiler.processTraces();
         samplingProfiler.clearProfiledThreads();
     }

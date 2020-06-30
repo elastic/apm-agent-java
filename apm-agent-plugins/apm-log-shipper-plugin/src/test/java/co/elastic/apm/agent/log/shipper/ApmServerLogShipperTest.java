@@ -73,7 +73,8 @@ public class ApmServerLogShipperTest {
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
 
-        ApmServerClient apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
+        ApmServerClient apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
 
         DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient);
         logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), MetaData.create(config, null), serializer);
@@ -96,7 +97,7 @@ public class ApmServerLogShipperTest {
         List<String> events = getEvents();
         mockApmServer.verify(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)));
         assertThat(events).hasSize(3);
-        JsonNode fileMetadata = new ObjectMapper().readTree(events.get(1)).get("metadata").get("file");
+        JsonNode fileMetadata = new ObjectMapper().readTree(events.get(1)).get("metadata").get("log").get("file");
         assertThat(fileMetadata.get("name").textValue()).isEqualTo(logFile.getName());
         assertThat(fileMetadata.get("path").textValue()).isEqualTo(logFile.getAbsolutePath());
         assertThat(events.get(2)).isEqualTo("foo");

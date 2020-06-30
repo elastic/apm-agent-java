@@ -25,52 +25,41 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
-
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
-    void asyncProcessWithinTransaction() throws IOException, InterruptedException {
+    void asyncProcessWithinTransaction() throws Exception {
         startTransaction();
-        asyncProcessHasTransactionContext(true);
+        assertThat(asyncProcessHasTransactionContext().get())
+            .describedAs("executor runnable not in the expected transaction context")
+            .isNotNull();
         terminateTransaction();
     }
 
     @Test
-    void asyncProcessOutsideTransaction() throws IOException, InterruptedException {
-        asyncProcessHasTransactionContext(false);
+    void asyncProcessOutsideTransaction() throws Exception {
+        assertThat(asyncProcessHasTransactionContext().get())
+            .describedAs("executor runnable should not be in transaction context")
+            .isNull();
     }
 
-    @Test
-    void customInstrumentationClassName() {
-        assertThat(MyExecutor.class.getSimpleName())
-            .describedAs("'Executor' is required in subclass name for faster instrumentation non-matching")
-            .contains("Executor");
-    }
-
-    private static TraceContextHolder<?> asyncProcessHasTransactionContext(boolean expectedInTransaction) throws IOException, InterruptedException {
-        AtomicReference<TraceContextHolder<?>> activeTransaction = new AtomicReference<>();
-
-        DefaultExecutor executor = new MyExecutor(activeTransaction);
-
-        final AtomicBoolean processProperlyCompleted = new AtomicBoolean(false);
-
+    private static CompletableFuture<AbstractSpan<?>> asyncProcessHasTransactionContext() throws Exception {
+        final CompletableFuture<AbstractSpan<?>> future = new CompletableFuture<>();
         DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler() {
 
             // note: calling super is required otherwise process termination is not detected and waits forever
@@ -78,36 +67,28 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
             @Override
             public void onProcessComplete(int exitValue) {
                 super.onProcessComplete(exitValue);
-                processProperlyCompleted.set(exitValue == 0);
+                if (exitValue == 0) {
+                    future.complete(tracer.getActive());
+                } else {
+                    future.completeExceptionally(new IllegalStateException("Exit value is not 0: " + exitValue));
+                }
             }
 
             @Override
             public void onProcessFailed(ExecuteException e) {
                 super.onProcessFailed(e);
-                processProperlyCompleted.set(false);
+                future.completeExceptionally(e);
             }
         };
 
-        executor.execute(new CommandLine(getJavaBinaryPath()).addArgument("-version"), handler);
+        new DefaultExecutor().execute(new CommandLine(getJavaBinaryPath()).addArgument("-version"), handler);
         handler.waitFor();
 
-
-        assertThat(processProperlyCompleted.get())
+        assertThat(future.isCompletedExceptionally())
             .describedAs("async process should have properly executed")
-            .isTrue();
+            .isFalse();
 
-        if (expectedInTransaction) {
-            assertThat(activeTransaction.get())
-                .describedAs("executor runnable not in the expected transaction context")
-                .isNotNull();
-        } else {
-            assertThat(activeTransaction.get())
-                .describedAs("executor runnable should not be in transaction context")
-                .isNull();
-        }
-
-
-        return activeTransaction.get();
+        return future;
     }
 
     private static String getJavaBinaryPath() {
@@ -131,32 +112,6 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         transaction.deactivate().end();
 
         reporter.assertRecycledAfterDecrementingReferences();
-    }
-
-    /**
-     * Custom implementation for testing, requires to have 'Executor' in name
-     */
-    private static class MyExecutor extends DefaultExecutor {
-
-        private AtomicReference<TraceContextHolder<?>> activeTransaction;
-
-        private MyExecutor(AtomicReference<TraceContextHolder<?>> activeTransaction) {
-            this.activeTransaction = activeTransaction;
-        }
-
-        @Override
-        protected Thread createThread(final Runnable runnable, String name) {
-            Runnable wrapped = new Runnable() {
-                @Override
-                public void run() {
-                    // we don't assert directly here as throwing an exception will wait forever
-                    activeTransaction.set(tracer.getActive());
-
-                    runnable.run();
-                }
-            };
-            return super.createThread(wrapped, name);
-        }
     }
 
 }

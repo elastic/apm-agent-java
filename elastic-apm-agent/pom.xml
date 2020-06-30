@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.15.1-SNAPSHOT</version>
+        <version>1.17.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -47,6 +47,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-error-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-grails-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -122,6 +127,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-es-restclient-plugin-6_4</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-grpc-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -214,6 +224,16 @@
             <artifactId>apm-process-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-dubbo-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-scala-concurrent-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- For auto-generating configuration docs -->
         <dependency>
@@ -281,11 +301,16 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>
+                                        <exclude>META-INF/versions/**</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
+                                        <!--
+                                        We have to exclude the log4j plugin descriptor file because we can't shade its contents
+                                        Therefore, we have to manually specify the plugin packages via PluginManager.addPackage
+                                        -->
                                         <exclude>**/Log4j2Plugins.dat</exclude>
                                     </excludes>
                                 </filter>
@@ -328,8 +353,19 @@
                                 </relocation>
 
                                 <relocation>
+                                    <!-- makes sure we don't load log4j2.{properties|xml|yml|json} files-->
                                     <pattern>log4j2</pattern>
-                                    <shadedPattern>apmlog4j2</shadedPattern>
+                                    <shadedPattern>elasticapmlog4j2</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- makes sure we don't pollute the system classloader with Log4j2-{charsets.properties|*.xsd} files-->
+                                    <pattern>Log4j-</pattern>
+                                    <shadedPattern>ElasticApmLog4j-</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- makes sure that direct link to resources in meta-inf are also relocated, otherwise will load log4j plugins from app -->
+                                    <pattern>META-INF/org/apache/logging</pattern>
+                                    <shadedPattern>META-INF/co/elastic/apm/agent/shaded/logging</shadedPattern>
                                 </relocation>
 
                                 <relocation>
@@ -339,14 +375,6 @@
                                 <relocation>
                                     <pattern>org.jctools</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
-                                </relocation>
-                                <!--
-                                Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
-                                Although this is not a package but a string constant, it does work
-                                -->
-                                <relocation>
-                                    <pattern>simplelogger.properties</pattern>
-                                    <shadedPattern>elasticapmlogger.properties</shadedPattern>
                                 </relocation>
                                 <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
                                 <relocation>
@@ -404,6 +432,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
+                    <source>8</source>
                 </configuration>
                 <executions>
                     <execution>

@@ -26,11 +26,11 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -65,7 +65,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
-            final TraceContextHolder<?> parent = tracer.getActive();
+            final AbstractSpan<?> parent = tracer.getActive();
             String method;
             if (request instanceof HttpUriRequest) {
                 HttpUriRequest uriRequest = (HttpUriRequest) request;
@@ -75,12 +75,12 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 if (span != null) {
                     span.activate();
                     if (headerSetter != null) {
-                        span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                        span.propagateTraceContext(request, headerSetter);
                     }
                 } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter)
                     && headerSetter != null && parent != null) {
                     // re-adds the header on redirects
-                    parent.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+                    parent.propagateTraceContext(request, headerSetter);
                 }
 
             }

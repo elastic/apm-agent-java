@@ -29,6 +29,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -37,6 +38,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.commons.math.util.MathUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -46,34 +48,42 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 class InstrumentationTest {
 
-    private final ElasticApmTracer tracer = MockTracer.create();
+    private ElasticApmTracer tracer;
+    private ConfigurationRegistry configurationRegistry;
+    private CoreConfiguration coreConfig;
+
+    @BeforeEach
+    void setup() {
+        tracer = MockTracer.create();
+        configurationRegistry = SpyConfiguration.createSpyConfig();
+        coreConfig = configurationRegistry.getConfig(CoreConfiguration.class);
+    }
 
     @AfterEach
-    void afterAll() {
-        ElasticApmAgent.reset();
+    void reset() {
+        MockTracer.resetTracer();
     }
 
     @Test
     void testIntercept() {
-        init(SpyConfiguration.createSpyConfig(), List.of(new TestInstrumentation()));
+        init(configurationRegistry, List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
 
     @Test
     void testDisabled() {
-        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-        when(config.getConfig(CoreConfiguration.class).getDisabledInstrumentations()).thenReturn(Collections.singletonList("test"));
-        init(config, List.of(new TestInstrumentation()));
+        doReturn(Collections.singletonList("test")).when(coreConfig).getDisabledInstrumentations();
+        init(configurationRegistry, List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
     }
 
     @Test
     void testEnsureInstrumented() {
-        init(SpyConfiguration.createSpyConfig(), List.of());
+        init(configurationRegistry, List.of());
         assertThat(interceptMe()).isEmpty();
         ElasticApmAgent.ensureInstrumented(getClass(), List.of(TestInstrumentation.class));
         assertThat(interceptMe()).isEqualTo("intercepted");
@@ -81,48 +91,77 @@ class InstrumentationTest {
 
     @Test
     void testReInitEnableOneInstrumentation() {
-        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-        CoreConfiguration configConfig = config.getConfig(CoreConfiguration.class);
-        when(configConfig.getDisabledInstrumentations()).thenReturn(Collections.singletonList("test"));
-        init(config, List.of(new TestInstrumentation()));
+        doReturn(Collections.singletonList("test")).when(coreConfig).getDisabledInstrumentations();
+        init(configurationRegistry, List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
 
-        when(configConfig.getDisabledInstrumentations()).thenReturn(List.of());
+        doReturn(List.of()).when(coreConfig).getDisabledInstrumentations();
         ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
 
     @Test
     void testDefaultDisabledInstrumentation() {
-        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-
-        init(config, List.of(new TestInstrumentation()));
+        init(configurationRegistry, List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
 
-        when(config.getConfig(CoreConfiguration.class).getDisabledInstrumentations()).thenReturn(Collections.singletonList("experimental"));
+        doReturn(Collections.singletonList("experimental")).when(coreConfig).getDisabledInstrumentations();
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
+    void testExcludedClassesFromInstrumentation() {
+        doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.bci.InstrumentationTest")))
+            .when(coreConfig).getClassesExcludedFromInstrumentation();
+        init(configurationRegistry, List.of(new TestInstrumentation()));
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
+    void testExcludedPackageFromInstrumentation() {
+        doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.bci.*")))
+            .when(coreConfig).getClassesExcludedFromInstrumentation();
+        init(configurationRegistry, List.of(new TestInstrumentation()));
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
+    void testExcludedDefaultClassesFromInstrumentation() {
+        doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.bci.InstrumentationTest")))
+            .when(coreConfig).getDefaultClassesExcludedFromInstrumentation();
+        init(configurationRegistry, List.of(new TestInstrumentation()));
+        ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
+    void testExcludedDefaultPackageFromInstrumentation() {
+        doReturn(List.of(WildcardMatcher.valueOf("co.elastic.apm.agent.bci.*")))
+            .when(coreConfig).getDefaultClassesExcludedFromInstrumentation();
+        init(configurationRegistry, List.of(new TestInstrumentation()));
         ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
     }
 
     @Test
     void testLegacyDefaultDisabledInstrumentation() {
-        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-
-        init(config, List.of(new TestInstrumentation()));
+        init(configurationRegistry, List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
 
-        when(config.getConfig(CoreConfiguration.class).getDisabledInstrumentations()).thenReturn(Collections.singletonList("incubating"));
+        doReturn(Collections.singletonList("incubating")).when(coreConfig).getDisabledInstrumentations();
         ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
     }
 
     @Test
     void testReInitDisableAllInstrumentations() {
-        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-        init(config, List.of(new TestInstrumentation()));
+        init(configurationRegistry, List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEqualTo("intercepted");
 
-        when(config.getConfig(CoreConfiguration.class).isInstrument()).thenReturn(false);
+        doReturn(false).when(coreConfig).isInstrument();
         ElasticApmAgent.doReInitInstrumentation(List.of(new TestInstrumentation()));
         assertThat(interceptMe()).isEmpty();
     }
@@ -171,11 +210,10 @@ class InstrumentationTest {
     }
 
     private void init(ConfigurationRegistry config, List<ElasticApmInstrumentation> instrumentations) {
-        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
-                .configurationRegistry(config)
-                .build(),
-            ByteBuddyAgent.install(),
-            instrumentations);
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .build();
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), instrumentations);
     }
 
     private String interceptMe() {

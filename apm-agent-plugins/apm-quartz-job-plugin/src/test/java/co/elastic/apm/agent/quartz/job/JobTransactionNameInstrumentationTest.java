@@ -24,14 +24,16 @@
  */
 package co.elastic.apm.agent.quartz.job;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quartz.Job;
@@ -45,11 +47,9 @@ import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
+import org.quartz.jobs.DirectoryScanJob;
+import org.quartz.jobs.DirectoryScanListener;
 import org.springframework.scheduling.quartz.QuartzJobBean;
-
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -76,6 +76,8 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("scheduled");
         assertThat(reporter.getTransactions().get(0).getNameAsString())
             .isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+        assertThat(reporter.getTransactions().get(0).getFrameworkName()).isEqualTo("Quartz");
+        assertThat(reporter.getTransactions().get(0).getFrameworkVersion()).isEqualTo("2.3.1");
     }
 
     @Test
@@ -159,6 +161,27 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
     }
 
+    @Test
+    void testDirectoryScan() throws SchedulerException, IOException {
+        Path directoryScanTest = Files.createTempDirectory("DirectoryScanTest");
+
+        Trigger trigger = TriggerBuilder
+            .newTrigger()
+            .withIdentity("myTrigger")
+            .withSchedule(
+                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+            .build();
+        final JobDetail job = JobBuilder.newJob(DirectoryScanJob.class)
+            .withIdentity("dummyJobName")
+            .usingJobData(DirectoryScanJob.DIRECTORY_NAME, directoryScanTest.toAbsolutePath().toString())
+            .usingJobData(DirectoryScanJob.DIRECTORY_SCAN_LISTENER_NAME, TestDirectoryScanListener.class.getSimpleName())
+            .build();
+
+        scheduler.getContext().put(TestDirectoryScanListener.class.getSimpleName(), new TestDirectoryScanListener());
+        scheduler.scheduleJob(job, trigger);
+        verifyJobDetails(job);
+    }
+
     public static class TestJob implements Job {
         @Override
         public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -200,5 +223,12 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
         }
 
+    }
+
+    public static class TestDirectoryScanListener implements DirectoryScanListener {
+
+        @Override
+        public void filesUpdatedOrAdded(File[] files) {
+        }
     }
 }

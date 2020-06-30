@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
+import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -79,6 +80,8 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                     }
                 }
                 transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
+                transaction.setFrameworkName("JAX-RS");
+                transaction.setFrameworkVersion(VersionUtils.getVersion(javax.ws.rs.GET.class, "javax.ws.rs", "javax.ws.rs-api"));
             }
         }
     }

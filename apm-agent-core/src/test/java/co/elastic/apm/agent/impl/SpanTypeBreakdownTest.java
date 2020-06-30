@@ -29,8 +29,8 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricSet;
@@ -381,15 +381,15 @@ class SpanTypeBreakdownTest {
     void testBreakdown_spanStartedAfterParentEnded() {
         final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
-            .withType("request");
-        final Runnable runnable = transaction.withActive(() -> {
-            final TraceContextHolder<?> active = tracer.getActive();
-            assertThat(active).isSameAs(transaction);
-            assertThat(transaction.getTraceContext().getId().isEmpty()).isFalse();
-            active.createSpan(20).withType("db").withSubtype("mysql").end(30);
-        });
+            .withType("request")
+            .activate();
         transaction.end(10);
-        runnable.run();
+
+        final AbstractSpan<?> active = tracer.getActive();
+        assertThat(active).isSameAs(transaction);
+        assertThat(transaction.getTraceContext().getId().isEmpty()).isFalse();
+        active.createSpan(20).withType("db").withSubtype("mysql").end(30);
+        transaction.deactivate();
 
         reporter.assertRecycledAfterDecrementingReferences();
 

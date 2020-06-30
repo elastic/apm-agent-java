@@ -25,8 +25,8 @@
 package co.elastic.apm.agent.jsf;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -35,6 +35,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import javax.faces.context.FacesContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,6 +58,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentation {
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_SUBTYPE = "jsf";
+    private static final String FRAMEWORK_NAME = "JavaServer Faces";
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -100,7 +102,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
             public static void createExecuteSpan(@Advice.Argument(0) javax.faces.context.FacesContext facesContext,
                                                  @Advice.Local("span") Span span) {
                 if (tracer != null) {
-                    final TraceContextHolder<?> parent = tracer.getActive();
+                    final AbstractSpan<?> parent = tracer.getActive();
                     if (parent == null) {
                         return;
                     }
@@ -121,6 +123,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                                     transaction.appendToName(pathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
                                 }
                             }
+                            transaction.setFrameworkName(FRAMEWORK_NAME);
                         } catch (Exception e) {
                             // do nothing- rely on the default servlet name logic
                         }
@@ -177,7 +180,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
             @Advice.OnMethodEnter(suppress = Throwable.class)
             public static void createRenderSpan(@Advice.Local("span") Span span) {
                 if (tracer != null) {
-                    final TraceContextHolder<?> parent = tracer.getActive();
+                    final AbstractSpan<?> parent = tracer.getActive();
                     if (parent == null) {
                         return;
                     }

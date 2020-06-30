@@ -117,6 +117,14 @@ public class ElasticApmTracerBuilder {
     }
 
     public ElasticApmTracer build() {
+        return build(false);
+    }
+
+    public ElasticApmTracer buildAndStart() {
+        return build(true);
+    }
+
+    private ElasticApmTracer build(boolean startTracer) {
         boolean addApmServerConfigSource = false;
         List<LifecycleListener> lifecycleListeners = new ArrayList<>();
 
@@ -149,7 +157,10 @@ public class ElasticApmTracerBuilder {
         ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory, apmServerClient, metaData);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
-        tracer.start(lifecycleListeners);
+        tracer.init(lifecycleListeners);
+        if (startTracer) {
+            tracer.start();
+        }
         return tracer;
     }
 

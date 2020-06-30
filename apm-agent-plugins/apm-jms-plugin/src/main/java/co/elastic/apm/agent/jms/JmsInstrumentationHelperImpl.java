@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
@@ -54,6 +53,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
 
     static final String TIBCO_TMP_QUEUE_PREFIX = "$TMP$";
     static final String TEMP = "<temporary>";
+    static final String FRAMEWORK_NAME = "JMS";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelperImpl.class);
     private final ElasticApmTracer tracer;
@@ -72,7 +72,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     @Nullable
     public Span startJmsSendSpan(Destination destination, Message message) {
 
-        final TraceContextHolder<?> activeSpan = tracer.getActive();
+        final AbstractSpan<?> activeSpan = tracer.getActive();
         if (activeSpan == null) {
             return null;
         }
@@ -99,7 +99,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
-            span.getTraceContext().setOutgoingTraceContextHeaders(message, JmsMessagePropertyAccessor.instance());
+            span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
             if (span.isSampled()) {
                 span.getContext().getDestination().getService()
                     .withName("jms")
@@ -123,7 +123,11 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     @Override
     @Nullable
     public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        return tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+        if (transaction != null) {
+            transaction.setFrameworkName(FRAMEWORK_NAME);
+        }
+        return transaction;
     }
 
     @Override

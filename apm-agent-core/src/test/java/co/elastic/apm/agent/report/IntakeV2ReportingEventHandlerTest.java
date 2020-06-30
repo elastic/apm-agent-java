@@ -101,7 +101,8 @@ class IntakeV2ReportingEventHandlerTest {
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
-        apmServerClient = new ApmServerClient(reporterConfiguration, List.of(
+        apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start(List.of(
             new URL(HTTP_LOCALHOST + mockApmServer1.port()),
             // testing ability to configure a server url with additional path (ending with "/" in this case)
             new URL(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + "/")
@@ -113,12 +114,14 @@ class IntakeV2ReportingEventHandlerTest {
             new MetaData(title, service, system, Collections.emptyMap()), apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start(List.of(new URL("http://non.existing:8080")));
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), this.apmServerClient),
             new MetaData(title1, service1, system, Collections.emptyMap()),
-            new ApmServerClient(reporterConfiguration, List.of(new URL("http://non.existing:8080"))));
+            apmServerClient);
     }
 
     @AfterEach

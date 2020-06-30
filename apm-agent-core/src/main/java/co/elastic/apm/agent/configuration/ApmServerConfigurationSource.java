@@ -104,6 +104,11 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     }
 
     @Override
+    public void init(ElasticApmTracer tracer) throws Exception {
+        // noop
+    }
+
+    @Override
     public void start(final ElasticApmTracer tracer) {
         threadPool = ExecutorUtils.createSingleThreadDeamonPool("remote-config-poller", 1);
         threadPool.execute(new Runnable() {

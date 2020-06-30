@@ -24,16 +24,16 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
 
 public abstract class JdbcHelper {
 
-    private static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+    private static final WeakConcurrentMap<Object, String> statementSqlMap = WeakMapSupplier.createMap();
 
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
@@ -67,26 +67,6 @@ public abstract class JdbcHelper {
     public abstract void clearInternalStorage();
 
     @Nullable
-    public abstract Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
-
-    /**
-     * Safely wraps calls to {@link java.sql.Statement#getUpdateCount()} and stores last result.
-     * <p>
-     * getUpdateCount javadoc indicates that this method should be called only once.
-     * In practice, adding this extra call seem to not have noticeable side effects on most databases but Oracle.
-     * </p>
-     *
-     * @param statement {@code java.sql.Statement} instance
-     * @return {@link Integer#MIN_VALUE} if statement does not support this feature, returned value otherwise
-     */
-    public abstract int getAndStoreUpdateCount(Object statement);
-
-    /**
-     * Get and clears stored update count (if any) for a given statement.
-     *
-     * @param statement {@code java.sql.Statement} instance
-     * @return {@link Integer#MIN_VALUE} if there is no stored value for this statement
-     */
-    public abstract int getAndClearStoredUpdateCount(Object statement);
+    public abstract Span createJdbcSpan(@Nullable String sql, Object statement, @Nullable AbstractSpan<?> parent, boolean preparedStatement);
 
 }

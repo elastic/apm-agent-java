@@ -40,6 +40,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPa
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -56,6 +57,7 @@ public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
+            .or(nameStartsWith("org.quartz.job"))
             .and(hasSuperType(named("org.quartz.Job")))
             .and(declaresMethod(getMethodMatcher()));
     }

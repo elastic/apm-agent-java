@@ -139,6 +139,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
@@ -146,11 +147,12 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             new MetaData(title, service, system, Collections.emptyMap()),
             apmServerClient);
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
+        realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(realReporter)
-            .build();
+            .buildAndStart();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

@@ -24,13 +24,10 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.LifecycleListener;
-import co.elastic.apm.agent.impl.async.ContextInScopeCallableWrapper;
-import co.elastic.apm.agent.impl.async.ContextInScopeRunnableWrapper;
-import co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper;
-import co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -41,7 +38,6 @@ import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -51,6 +47,7 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,11 +58,9 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadPoolExecutor;
 
 
 /**
@@ -77,16 +72,7 @@ import java.util.concurrent.TimeUnit;
 public class ElasticApmTracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
-    /**
-     * The number of required {@link Runnable} wrappers does not depend on the size of the disruptor
-     * but rather on the amount of application threads.
-     * The requirement increases if the application tends to wrap multiple {@link Runnable}s.
-     */
-    private static final int MAX_POOLED_RUNNABLES = 256;
-
-    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
-
-    public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
+    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = WeakMapSupplier.createMap();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -95,26 +81,15 @@ public class ElasticApmTracer {
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
-    private final ObjectPool<SpanInScopeRunnableWrapper> runnableSpanWrapperObjectPool;
-    private final ObjectPool<SpanInScopeCallableWrapper<?>> callableSpanWrapperObjectPool;
-    private final ObjectPool<ContextInScopeRunnableWrapper> runnableContextWrapperObjectPool;
-    private final ObjectPool<ContextInScopeCallableWrapper<?>> callableContextWrapperObjectPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    private final ThreadLocal<Deque<TraceContextHolder<?>>> activeStack = new ThreadLocal<Deque<TraceContextHolder<?>>>() {
+    private final ThreadLocal<Deque<AbstractSpan<?>>> activeStack = new ThreadLocal<Deque<AbstractSpan<?>>>() {
         @Override
-        protected Deque<TraceContextHolder<?>> initialValue() {
-            return new ArrayDeque<TraceContextHolder<?>>();
-        }
-    };
-
-    private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return Boolean.TRUE;
+        protected Deque<AbstractSpan<?>> initialValue() {
+            return new ArrayDeque<AbstractSpan<?>>();
         }
     };
 
@@ -123,12 +98,11 @@ public class ElasticApmTracer {
     private final MetricRegistry metricRegistry;
     private Sampler sampler;
     boolean assertionsEnabled = false;
-    private long lastSpanMaxWarningTimestamp;
 
     /**
      * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
      * {@link ElasticApmTracer#getState()}, or when updated through one of the lifecycle-effecting synchronized methods
-     * {@link ElasticApmTracer#start(List)}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
+     * {@link ElasticApmTracer#start()}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
      * {@link ElasticApmTracer#stop()}.
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
@@ -161,13 +135,6 @@ public class ElasticApmTracer {
 
         // we are assuming that we don't need as many errors as spans or transactions
         errorPool = poolFactory.createErrorPool(maxPooledElements / 2, this);
-
-        runnableSpanWrapperObjectPool = poolFactory.createRunnableWrapperPool(MAX_POOLED_RUNNABLES, this);
-        callableSpanWrapperObjectPool = poolFactory.createCallableWrapperPool(MAX_POOLED_RUNNABLES, this);
-
-        runnableContextWrapperObjectPool = poolFactory.createRunnableContextPool(MAX_POOLED_RUNNABLES, this);
-        callableContextWrapperObjectPool = poolFactory.createCallableContextPool(MAX_POOLED_RUNNABLES, this);
-
 
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
@@ -314,18 +281,6 @@ public class ElasticApmTracer {
         }
     }
 
-    public void avoidWrappingOnThread() {
-        allowWrappingOnThread.set(Boolean.FALSE);
-    }
-
-    public void allowWrappingOnThread() {
-        allowWrappingOnThread.set(Boolean.TRUE);
-    }
-
-    public boolean isWrappingAllowedOnThread() {
-        return allowWrappingOnThread.get() == Boolean.TRUE;
-    }
-
     public Transaction noopTransaction() {
         return createTransaction().startNoop();
     }
@@ -341,19 +296,8 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        Deque<TraceContextHolder<?>> stack = activeStack.get();
-        final TraceContextHolder<?> bottomOfStack = stack.peekLast();
-        if (bottomOfStack instanceof Transaction) {
-            return (Transaction) bottomOfStack;
-        } else if (bottomOfStack != null) {
-            for (Iterator<TraceContextHolder<?>> it = stack.descendingIterator(); it.hasNext(); ) {
-                TraceContextHolder<?> context = it.next();
-                if (context instanceof Transaction) {
-                    return (Transaction) context;
-                }
-            }
-        }
-        return null;
+        final AbstractSpan<?> bottomOfStack = activeStack.get().peekLast();
+        return bottomOfStack != null ? bottomOfStack.getTransaction() : null;
     }
 
     /**
@@ -380,31 +324,7 @@ public class ElasticApmTracer {
      * @see #startSpan(TraceContext.ChildContextCreator, Object)
      */
     public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        Span span = createSpan();
-        final boolean dropped = isDropped(epochMicros);
-        span.start(childContextCreator, parentContext, epochMicros, dropped);
-        return span;
-    }
-
-    private boolean isDropped(long epochMicros) {
-        final boolean dropped;
-        Transaction transaction = currentTransaction();
-        if (transaction != null) {
-            if (isTransactionSpanLimitReached(transaction)) {
-                if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
-                    lastSpanMaxWarningTimestamp = epochMicros;
-                    logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.", coreConfiguration.getTransactionMaxSpans(), transaction);
-                }
-                dropped = true;
-                transaction.getSpanCount().getDropped().incrementAndGet();
-            } else {
-                dropped = false;
-                transaction.getSpanCount().getStarted().incrementAndGet();
-            }
-        } else {
-            dropped = false;
-        }
-        return dropped;
+        return createSpan().start(childContextCreator, parentContext, epochMicros);
     }
 
     private Span createSpan() {
@@ -416,12 +336,8 @@ public class ElasticApmTracer {
         return span;
     }
 
-    private boolean isTransactionSpanLimitReached(Transaction transaction) {
-        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getStarted().get();
-    }
-
     /**
-     * Captures an exception without providing an explicit reference to a parent {@link TraceContextHolder}
+     * Captures an exception without providing an explicit reference to a parent {@link AbstractSpan}
      *
      * @param e                     the exception to capture
      * @param initiatingClassLoader the class
@@ -434,7 +350,7 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
+    public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
         String id = null;
         ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
         if (errorCapture != null) {
@@ -445,12 +361,15 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public ErrorCapture captureException(@Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
     }
 
     @Nullable
-    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        if (!isRunning()) {
+            return null;
+        }
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
@@ -463,6 +382,8 @@ public class ElasticApmTracer {
             }
             if (parent != null) {
                 error.asChildOf(parent);
+                // don't discard spans leading up to an error, otherwise they'd point to an invalid parent
+                parent.setNonDiscardable();
             } else {
                 error.getTraceContext().getId().setToRandomValue();
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
@@ -497,17 +418,44 @@ public class ElasticApmTracer {
     }
 
     public void endSpan(Span span) {
-        if (span.isSampled() && !span.isDiscard()) {
-            long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
-            if (spanFramesMinDurationMs != 0 && span.isSampled() && span.getStackFrames() == null) {
-                if (span.getDurationMs() >= spanFramesMinDurationMs) {
-                    span.withStacktrace(new Throwable());
-                }
-            }
-            reporter.report(span);
-        } else {
+        if (!span.isSampled()) {
             span.decrementReferences();
+            return;
         }
+        if (span.getDuration() < coreConfiguration.getSpanMinDuration().getMillis() * 1000) {
+            logger.debug("Span faster than span_min_duration. Request discarding {}", span);
+            span.requestDiscarding();
+        }
+        if (span.isDiscarded()) {
+            logger.debug("Discarding span {}", span);
+            Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                transaction.getSpanCount().getDropped().incrementAndGet();
+            }
+            span.decrementReferences();
+            return;
+        }
+        reportSpan(span);
+    }
+
+    private void reportSpan(Span span) {
+        AbstractSpan<?> parent = span.getParent();
+        if (parent != null && parent.isDiscarded()) {
+            logger.warn("Reporting a child of an discarded span. The current span '{}' will not be shown in the UI. Consider deactivating span_min_duration.", span);
+        }
+        Transaction transaction = span.getTransaction();
+        if (transaction != null) {
+            transaction.getSpanCount().getReported().incrementAndGet();
+        }
+        // makes sure that parents are also non-discardable
+        span.setNonDiscardable();
+        long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
+        if (spanFramesMinDurationMs != 0 && span.isSampled() && span.getStackFrames() == null) {
+            if (span.getDurationMs() >= spanFramesMinDurationMs) {
+                span.withStacktrace(new Throwable());
+            }
+        }
+        reporter.report(span);
     }
 
     public void endError(ErrorCapture error) {
@@ -524,50 +472,6 @@ public class ElasticApmTracer {
 
     public void recycle(ErrorCapture error) {
         errorPool.recycle(error);
-    }
-
-    public Runnable wrapRunnable(Runnable delegate, AbstractSpan<?> span) {
-        if (delegate instanceof SpanInScopeRunnableWrapper) {
-            return delegate;
-        }
-        return runnableSpanWrapperObjectPool.createInstance().wrap(delegate, span);
-    }
-
-    public void recycle(SpanInScopeRunnableWrapper wrapper) {
-        runnableSpanWrapperObjectPool.recycle(wrapper);
-    }
-
-    public <V> Callable<V> wrapCallable(Callable<V> delegate, AbstractSpan<?> span) {
-        if (delegate instanceof SpanInScopeCallableWrapper) {
-            return delegate;
-        }
-        return ((SpanInScopeCallableWrapper<V>) callableSpanWrapperObjectPool.createInstance()).wrap(delegate, span);
-    }
-
-    public void recycle(SpanInScopeCallableWrapper<?> wrapper) {
-        callableSpanWrapperObjectPool.recycle(wrapper);
-    }
-
-    public Runnable wrapRunnable(Runnable delegate, TraceContext traceContext) {
-        if (delegate instanceof ContextInScopeRunnableWrapper || delegate instanceof SpanInScopeRunnableWrapper) {
-            return delegate;
-        }
-        return runnableContextWrapperObjectPool.createInstance().wrap(delegate, traceContext);
-    }
-
-    public void recycle(ContextInScopeRunnableWrapper wrapper) {
-        runnableContextWrapperObjectPool.recycle(wrapper);
-    }
-
-    public <V> Callable<V> wrapCallable(Callable<V> delegate, TraceContext traceContext) {
-        if (delegate instanceof ContextInScopeCallableWrapper || delegate instanceof SpanInScopeCallableWrapper) {
-            return delegate;
-        }
-        return ((ContextInScopeCallableWrapper<V>) callableContextWrapperObjectPool.createInstance()).wrap(delegate, traceContext);
-    }
-
-    public void recycle(ContextInScopeCallableWrapper<?> callableWrapper) {
-        callableContextWrapperObjectPool.recycle(callableWrapper);
     }
 
     /**
@@ -606,7 +510,7 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public TraceContextHolder<?> getActive() {
+    public AbstractSpan<?> getActive() {
         return activeStack.get().peek();
     }
 
@@ -618,12 +522,57 @@ public class ElasticApmTracer {
         return activationListeners;
     }
 
-    synchronized void start(List<LifecycleListener> lifecycleListeners) {
+    /**
+     * As opposed to {@link ElasticApmTracer#start()}, this method does not change the tracer's state and it's purpose
+     * is to be called at JVM bootstrap.
+     * @param lifecycleListeners Lifecycle listeners
+     */
+    void init(List<LifecycleListener> lifecycleListeners) {
+        this.lifecycleListeners.addAll(lifecycleListeners);
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            try {
+                lifecycleListener.init(this);
+            } catch (Exception e) {
+                logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
+            }
+        }
+    }
+
+    public synchronized void start() {
+        if (getConfig(CoreConfiguration.class).getDelayInitMs() > 0) {
+            startWithDelay();
+        } else {
+            startSync();
+        }
+    }
+
+    private synchronized void startWithDelay() {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    long delayInitMs = coreConfiguration.getDelayInitMs();
+                    logger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
+                    Thread.sleep(delayInitMs);
+                    logger.info("end wait");
+                } catch (InterruptedException e) {
+                    logger.error(e.getMessage(), e);
+                } finally {
+                    ElasticApmTracer.this.start();
+                }
+            }
+        });
+        pool.shutdown();
+    }
+
+    private synchronized void startSync() {
         if (tracerState != TracerState.UNINITIALIZED) {
             logger.warn("Trying to start an already initialized agent");
             return;
         }
-        this.lifecycleListeners.addAll(lifecycleListeners);
+        apmServerClient.start();
+        reporter.start();
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.start(this);
@@ -718,26 +667,48 @@ public class ElasticApmTracer {
         return null;
     }
 
-    public void activate(TraceContextHolder<?> holder) {
+    public void activate(AbstractSpan<?> span) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating {} on thread {}", holder, Thread.currentThread().getId());
+            logger.debug("Activating {} on thread {}", span, Thread.currentThread().getId());
         }
-        activeStack.get().push(holder);
+        span.incrementReferences();
+        List<ActivationListener> activationListeners = getActivationListeners();
+        for (int i = 0, size = activationListeners.size(); i < size; i++) {
+            try {
+                activationListeners.get(i).beforeActivate(span);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
+        activeStack.get().push(span);
     }
 
-    public void deactivate(TraceContextHolder<?> holder) {
+    public void deactivate(AbstractSpan<?> span) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating {} on thread {}", holder, Thread.currentThread().getId());
+            logger.debug("Deactivating {} on thread {}", span, Thread.currentThread().getId());
         }
-        final Deque<TraceContextHolder<?>> stack = activeStack.get();
-        assertIsActive(holder, stack.poll());
-        if (!stack.isEmpty() && !holder.isDiscard()) {
-            //noinspection ConstantConditions
-            stack.peek().setDiscard(false);
+        try {
+            final Deque<AbstractSpan<?>> stack = activeStack.get();
+            assertIsActive(span, stack.poll());
+            List<ActivationListener> activationListeners = getActivationListeners();
+            for (int i = 0, size = activationListeners.size(); i < size; i++) {
+                try {
+                    // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
+                    activationListeners.get(i).afterDeactivate(span);
+                } catch (Error e) {
+                    throw e;
+                } catch (Throwable t) {
+                    logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                }
+            }
+        } finally {
+            span.decrementReferences();
         }
     }
 
-    private void assertIsActive(TraceContextHolder<?> span, @Nullable TraceContextHolder<?> currentlyActive) {
+    private void assertIsActive(AbstractSpan<?> span, @Nullable AbstractSpan<?> currentlyActive) {
         if (span != currentlyActive) {
             logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
                 "This can happen when not properly deactivating a previous span.", span, currentlyActive);

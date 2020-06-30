@@ -27,8 +27,9 @@ package co.elastic.apm.agent.quartz.job;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 public class JobTransactionNameAdvice {
+
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);
 
@@ -44,7 +46,7 @@ public class JobTransactionNameAdvice {
     private static void setTransactionName(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
                                            @SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) {
         if (ElasticApmInstrumentation.tracer != null) {
-            TraceContextHolder<?> active = ElasticApmInstrumentation.tracer.getActive();
+            AbstractSpan<?> active = ElasticApmInstrumentation.tracer.getActive();
             if (context == null) {
                 logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
                 transaction = ElasticApmInstrumentation.tracer.startRootTransaction(clazz.getClassLoader());
@@ -62,6 +64,10 @@ public class JobTransactionNameAdvice {
                 }
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
+            }
+            if (transaction != null) {
+                transaction.setFrameworkName("Quartz");
+                transaction.setFrameworkVersion(VersionUtils.getVersion(JobExecutionContext.class, "org.quartz-scheduler", "quartz"));
             }
         }
     }

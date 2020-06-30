@@ -27,7 +27,6 @@ package co.elastic.apm.agent.logging;
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.slf4j.event.Level;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -55,7 +54,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public static final String SYSTEM_OUT = "System.out";
     static final String LOG_LEVEL_KEY = "log_level";
     static final String LOG_FILE_KEY = "log_file";
-    static final String LOG_FILE_MAX_SIZE_KEY = "log_file_max_size";
+    static final String LOG_FILE_SIZE_KEY = "log_file_size";
     static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
 
     private static final String LOGGING_CATEGORY = "Logging";
@@ -67,8 +66,16 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
 
+    /**
+     * We don't directly access most logging configuration values through the ConfigurationOption instance variables.
+     * That would require the configuration registry to be initialized already.
+     * However, the registry initializes logging by declaring a static final logger variable.
+     * In order to break up the cyclic dependency and to not accidentally initialize logging before we had the chance to configure the logging,
+     * we manually resolve these options.
+     * See {@link Log4j2ConfigurationFactory#getValue}
+     */
     @SuppressWarnings("unused")
-    public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
+    public ConfigurationOption<LogLevel> logLevel = ConfigurationOption.enumOption(LogLevel.class)
         .key(LOG_LEVEL_KEY)
         .aliasKeys(DEPRECATED_LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
@@ -76,13 +83,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This option is case-insensitive.")
         .dynamic(true)
-        .addChangeListener(new ConfigurationOption.ChangeListener<Level>() {
+        .addChangeListener(new ConfigurationOption.ChangeListener<LogLevel>() {
             @Override
-            public void onChange(ConfigurationOption<?> configurationOption, Level oldValue, Level newValue) {
+            public void onChange(ConfigurationOption<?> configurationOption, LogLevel oldValue, LogLevel newValue) {
                 setLogLevel(newValue);
             }
         })
-        .buildWithDefault(Level.INFO);
+        .buildWithDefault(LogLevel.INFO);
 
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
@@ -125,20 +132,20 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     @SuppressWarnings("unused")
     public ConfigurationOption<ByteValue> logFileMaxSize = ByteValueConverter.byteOption()
-        .key(LOG_FILE_MAX_SIZE_KEY)
+        .key(LOG_FILE_SIZE_KEY)
         .configurationCategory(LOGGING_CATEGORY)
-        .description("The max size of the log file.\n" +
+        .description("The size of the log file.\n" +
             "\n" +
-            "To support <<config-ship-agent-logs,shipping the logs>> to APM Server,\n" +
-            "the agent always keeps one history file so that the max total log file size is twice the value of this setting.\n")
+            //"To support <<config-ship-agent-logs,shipping the logs>> to APM Server,\n" +
+            "The agent always keeps one history file so that the max total log file size is twice the value of this setting.\n")
         .dynamic(false)
-        .tags("added[1.16.0]")
+        .tags("added[1.17.0]")
         .buildWithDefault(ByteValue.of(DEFAULT_MAX_SIZE));
 
     private final ConfigurationOption<Boolean> shipAgentLogs = ConfigurationOption.booleanOption()
         .key(SHIP_AGENT_LOGS)
         .configurationCategory(LOGGING_CATEGORY)
-        .description("This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.8+).\n" +
+        .description("This helps you to centralize your agent logs by automatically sending them to APM Server (requires APM Server 7.9+).\n" +
             "Use the Kibana Logs App to see the logs from all of your agents.\n" +
             "\n" +
             "If <<config-log-file,`log_file`>> is set to a real file location (as opposed to `System.out`),\n" +
@@ -146,7 +153,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "Note that <<config-log-format-file,`log_format_file`>> needs to be set to `JSON` when this option is enabled.\n" +
             "\n" +
             "If APM Server is temporarily not available, the agent will resume sending where it left off as soon as the server is back up again.\n" +
-            "The amount of logs that can be buffered is at least <<config-log-file-max-size,`log_file_max_size`>>.\n" +
+            "The amount of logs that can be buffered is at least <<config-log-file-size,`log_file_size`>>.\n" +
             "If the application crashes or APM Server is not available when shutting down,\n" +
             "the agent will resume shipping the log file when the application restarts.\n" +
             "\n" +
@@ -155,11 +162,11 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "If <<config-log-file,`log_file`>> is set to `System.out`,\n" +
             "the agent will additionally log into a temp file which is then sent to APM Server.\n" +
-            "This log's size is determined by <<config-log-file-max-size,`log_file_max_size`>> and will be deleted on shutdown.\n" +
+            "This log's size is determined by <<config-log-file-size,`log_file_size`>> and will be deleted on shutdown.\n" +
             "This means that logs that could not be sent before the application terminates are lost.")
         .dynamic(false)
-        .tags("added[1.16.0]")
-        .buildWithDefault(true);
+        .tags("added[not officially added yet]", "internal")
+        .buildWithDefault(false);
 
     @SuppressWarnings("unused")
     public ConfigurationOption<LogFormat> logFormatSout = ConfigurationOption.enumOption(LogFormat.class)
@@ -169,7 +176,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
             "where each log event is serialized as a single line.")
-        .tags("added[1.16.0]")
+        .tags("added[1.17.0]")
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     @SuppressWarnings("unused")
@@ -179,12 +186,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .description("Defines the log format when logging to a file.\n" +
             "\n" +
             "When set to `JSON`, the agent will format the logs in an https://github.com/elastic/ecs-logging-java[ECS-compliant JSON format]\n" +
-            "where each log event is serialized as a single line.\n" +
-            "\n" +
-            "If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,\n" +
-            "the value has to be `JSON`.")
-        .tags("added[1.16.0]")
-        .buildWithDefault(LogFormat.JSON);
+            "where each log event is serialized as a single line.\n"
+            //+ "\n" +
+            //"If <<config-ship-agent-logs,`ship_agent_logs`>> is enabled,\n" +
+            //"the value has to be `JSON`."
+        )
+        .tags("added[1.17.0]")
+        .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
         Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
@@ -194,9 +202,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logFile.get();
     }
 
-    private static void setLogLevel(@Nullable Level level) {
+    private static void setLogLevel(@Nullable LogLevel level) {
         if (level == null) {
-            level = Level.INFO;
+            level = LogLevel.INFO;
         }
         Configurator.setRootLevel(org.apache.logging.log4j.Level.toLevel(level.toString(), org.apache.logging.log4j.Level.INFO));
     }
@@ -211,9 +219,5 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public LogFormat getLogFormatFile() {
         return logFormatFile.get();
-    }
-
-    public long getLogFileMaxSize() {
-        return logFileMaxSize.get().getBytes();
     }
 }

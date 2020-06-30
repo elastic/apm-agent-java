@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.redis.lettuce;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -54,7 +55,7 @@ public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation 
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<RedisCommand, Span> commandToSpan = new WeakConcurrentMap.WithInlinedExpunction<RedisCommand, Span>();
+    public static final WeakConcurrentMap<RedisCommand<?, ?, ?>, Span> commandToSpan = WeakMapSupplier.createMap();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -75,7 +76,7 @@ public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation 
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand command, @Advice.Local("span") Span span) throws Exception {
+    private static void beforeDispatch(@Nullable @Advice.Argument(0) RedisCommand<?, ?, ?> command, @Advice.Local("span") Span span) throws Exception {
         if (command != null) {
             span = RedisSpanUtils.createRedisSpan(command.getType().name());
             if (span != null) {

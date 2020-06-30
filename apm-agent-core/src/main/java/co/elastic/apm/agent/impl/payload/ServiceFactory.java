@@ -41,7 +41,7 @@ public class ServiceFactory {
     }
 
     private String getAgentVersion() {
-        String version = VersionUtils.getVersionFromPomProperties(ServiceFactory.class, "co.elastic.apm", "elastic-apm-agent");
+        String version = VersionUtils.getVersion(ServiceFactory.class, "co.elastic.apm", "elastic-apm-agent");
         if (version == null) {
             return "unknown";
         }

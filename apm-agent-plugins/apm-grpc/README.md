@@ -10,8 +10,9 @@ This plugin provides instrumentation for [gRPC](https://grpc.io/) Remote Procedu
 
 Only unary method calls are instrumented, streaming (both ways) is not.
 
-Implementation have been tested against versions between 1.6.1 and 1.27.1.
+Implementation have been tested against versions between 1.6.1 and latest.
 Versions 1.5.0 and below are not supported yet.
+Latest 1.x version is checked at every build
 
 ## Implementation notes
 
@@ -32,5 +33,23 @@ as a result, we have the following folder structure:
 ```
 apm-grpc                   -> agent plugin itself + common test infrastructure
  |--apm-grpc-test-1.6.1    -> test app for gRPC 1.6.1 with generated code
- \--apm-grpc-test-1.27.1   -> test app for gRPC 1.27.1 with generated code
+ \--apm-grpc-test-latest   -> test app for gRPC latest with generated code
+```
+
+## Test applications
+
+Standalone gRPC test applications are available for testing as executable jars.
+It allows testing application behavior with/without agent outside of unit/integration tests.
+
+There is one version per test submodule
+```
+java -jar apm-grpc-test-1.6.1/target/testapp.jar
+java -jar apm-grpc-test-latest/target/testapp.jar
+```
+
+Those applications support a few command-line arguments
+```
+--port 4242    # sets server port to use
+--benchmark    # enables 'benchmark mode': adds a warm-up and disables verbose output
+--count 100    # sets number of iterations to execute
 ```

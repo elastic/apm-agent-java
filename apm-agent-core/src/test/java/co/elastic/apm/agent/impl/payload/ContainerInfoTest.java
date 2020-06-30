@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -84,6 +84,27 @@ public class ContainerInfoTest {
         String line = "1:name=systemd:/kubepods/besteffort/pod" + podId + "/" + containerId;
         SystemInfo systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+
+        // 12:pids:/kubepods/kubepods/besteffort/pod0e886e9a-3879-45f9-b44d-86ef9df03224/244a65edefdffe31685c42317c9054e71dc1193048cf9459e2a4dd35cbc1dba4
+        containerId = "244a65edefdffe31685c42317c9054e71dc1193048cf9459e2a4dd35cbc1dba4";
+        podId = "0e886e9a-3879-45f9-b44d-86ef9df03224";
+        line = "12:pids:/kubepods/kubepods/besteffort/pod" + podId + "/" + containerId;
+        systemInfo = assertContainerId(line, containerId);
+        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+
+        // 10:cpuset:/kubepods/pod5eadac96-ab58-11ea-b82b-0242ac110009/7fe41c8a2d1da09420117894f11dd91f6c3a44dfeb7d125dc594bd53468861df
+        containerId = "7fe41c8a2d1da09420117894f11dd91f6c3a44dfeb7d125dc594bd53468861df";
+        podId = "5eadac96-ab58-11ea-b82b-0242ac110009";
+        line = "10:cpuset:/kubepods/pod" + podId + "/" + containerId;
+        systemInfo = assertContainerId(line, containerId);
+        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+    }
+
+    @Test
+    void testUbuntuCgroup() {
+        String line = "1:name=systemd:/user.slice/user-1000.slice/user@1000.service/apps.slice/apps-org.gnome.Terminal" +
+            ".slice/vte-spawn-75bc72bd-6642-4cf5-b62c-0674e11bfc84.scope";
+        assertThat(createSystemInfo().parseContainerId(line).getContainerInfo()).isNull();
     }
 
     @Test
