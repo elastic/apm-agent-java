@@ -131,7 +131,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(false);
 
     @SuppressWarnings("unused")
-    public ConfigurationOption<ByteValue> logFileMaxSize = ByteValueConverter.byteOption()
+    public ConfigurationOption<ByteValue> logFileSize = ByteValueConverter.byteOption()
         .key(LOG_FILE_SIZE_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("The size of the log file.\n" +
@@ -211,6 +211,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isLogCorrelationEnabled() {
         return logCorrelationEnabled.get();
+    }
+
+    public long getLogFileSize() {
+        return logFileSize.get().getBytes();
     }
 
     public boolean isShipAgentLogs() {
