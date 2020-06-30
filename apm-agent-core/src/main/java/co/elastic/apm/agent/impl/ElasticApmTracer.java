@@ -539,27 +539,27 @@ public class ElasticApmTracer {
     }
 
     public synchronized void start() {
-        if (getConfig(CoreConfiguration.class).getDelayInitMs() > 0) {
-            startWithDelay();
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
+        if (delayInitMs > 0) {
+            startWithDelay(delayInitMs);
         } else {
             startSync();
         }
     }
 
-    private synchronized void startWithDelay() {
+    private synchronized void startWithDelay(final long delayInitMs) {
         ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
         pool.submit(new Runnable() {
             @Override
             public void run() {
                 try {
-                    long delayInitMs = coreConfiguration.getDelayInitMs();
                     logger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
                     Thread.sleep(delayInitMs);
                     logger.info("end wait");
                 } catch (InterruptedException e) {
                     logger.error(e.getMessage(), e);
                 } finally {
-                    ElasticApmTracer.this.start();
+                    ElasticApmTracer.this.startSync();
                 }
             }
         });
