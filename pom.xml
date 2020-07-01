@@ -439,11 +439,6 @@
                             <version>${version.junit-jupiter}</version>
                         </dependency>
                     </dependencies>
-                    <configuration>
-                        <includes>
-                            <include>**/*Spec.*</include>
-                        </includes>
-                    </configuration>
                 </plugin>
                 <plugin>
                     <artifactId>maven-failsafe-plugin</artifactId>
