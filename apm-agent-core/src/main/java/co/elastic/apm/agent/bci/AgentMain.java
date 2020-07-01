@@ -35,8 +35,7 @@ import java.util.jar.JarFile;
  * This class is loaded by the system classloader,
  * and adds the rest of the agent to the bootstrap class loader search.
  * <p>
- * This is required to instrument Java core classes like {@link Runnable} and to enable boot delegation in OSGi environments.
- * See {@link OsgiBootDelegationEnabler}.
+ * This is required to instrument Java core classes like {@link Runnable}.
  * </p>
  * <p>
  * Note that this relies on the fact that the system classloader is a parent-first classloader and first asks the bootstrap classloader

@@ -482,34 +482,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the higher of both thresholds will determine which spans will be discarded.")
         .buildWithDefault(TimeDuration.of("0ms"));
 
-    private final ConfigurationOption<String> appendPackagesToBootDelegationProperty = ConfigurationOption.stringOption()
-        .key("boot_delegation_packages")
-        .tags("added[1.7.0]")
-        .configurationCategory(CORE_CATEGORY)
-        .description("A comma-separated list of packages to be appended to the boot delegation system property. \n" +
-            "If set with an empty string, nothing will be appended to the boot delegation system property.\n" +
-            "Values to set in known environments:\n\n" +
-            "Nexus:\n\n" +
-            "----\n" +
-            "boot_delegation_packages=com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, sun.*," +
-            "co.elastic.apm.agent.*\n" +
-            "----\n\n" +
-            "Pentaho and RedHat JBoss Fuse:\n\n" +
-            "----\n" +
-            "boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.principal, org.apache.karaf.management.boot, " +
-            "sun.*, com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, org.apache.xerces.jaxp.datatype, " +
-            "org.apache.xerces.stax, org.apache.xerces.parsers, org.apache.xerces.jaxp, org.apache.xerces.jaxp.validation, " +
-            "org.apache.xerces.dom, co.elastic.apm.agent.*\n" +
-            "----\n")
-        .buildWithDefault("co.elastic.apm.agent.*");
-
-    private final ConfigurationOption<Boolean> atlassianNewBootDelegation = ConfigurationOption.booleanOption()
-        .key("use_atlassian_new_boot_delegation")
-        .configurationCategory(CORE_CATEGORY)
-        .tags("internal")
-        .description("In new Atlassian OSGi there is a config to append to boot delegation packages instead of overriding the default.")
-        .buildWithDefault(false);
-
     private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
         .key("central_config")
         .tags("added[1.8.0]")
@@ -688,21 +660,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getTraceMethodsDurationThreshold() {
         return traceMethodsDurationThreshold.get();
-    }
-
-    public @Nullable String getPackagesToAppendToBootdelegationProperty() {
-        String value = appendPackagesToBootDelegationProperty.get();
-        if (value != null) {
-            value = value.trim();
-            if (value.isEmpty()) {
-                value = null;
-            }
-        }
-        return value;
-    }
-
-    public boolean useAtlassianNewBootDelegationConfig() {
-        return atlassianNewBootDelegation.get();
     }
 
     public Map<String, String> getGlobalLabels() {

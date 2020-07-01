@@ -475,9 +475,6 @@ If you are seeing gaps in the span timeline and want to include additional metho
 [float]
 [[supported-technologies-caveats]]
 === Caveats
-* Certain OSGi containers need the following configuration setting in case you see exceptions like
-  `java.lang.NoClassDefFoundError: co/elastic/apm/jdbc/StatementInstrumentation`:
-  `org.osgi.framework.bootdelegation=co.elastic.apm.agent.*`
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.

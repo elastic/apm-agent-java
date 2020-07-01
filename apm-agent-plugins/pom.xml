@@ -44,7 +44,6 @@
         <module>apm-scala-concurrent-plugin</module>
         <module>apm-error-logging-plugin</module>
         <module>apm-jmx-plugin</module>
-        <module>apm-mule4-plugin</module>
         <module>apm-mongoclient-plugin</module>
         <module>apm-process-plugin</module>
         <module>apm-kafka-plugin</module>
@@ -52,6 +51,7 @@
         <module>apm-grpc</module>
         <module>apm-grails-plugin</module>
         <module>apm-dubbo-plugin</module>
+        <module>apm-bootdelegation-plugin</module>
     </modules>
 
     <dependencies>
