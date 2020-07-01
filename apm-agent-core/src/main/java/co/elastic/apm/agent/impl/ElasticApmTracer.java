@@ -102,7 +102,7 @@ public class ElasticApmTracer {
     /**
      * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
      * {@link ElasticApmTracer#getState()}, or when updated through one of the lifecycle-effecting synchronized methods
-     * {@link ElasticApmTracer#start()}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
+     * {@link ElasticApmTracer#start(boolean)}}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
      * {@link ElasticApmTracer#stop()}.
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
@@ -523,8 +523,9 @@ public class ElasticApmTracer {
     }
 
     /**
-     * As opposed to {@link ElasticApmTracer#start()}, this method does not change the tracer's state and it's purpose
+     * As opposed to {@link ElasticApmTracer#start(boolean)}, this method does not change the tracer's state and it's purpose
      * is to be called at JVM bootstrap.
+     *
      * @param lifecycleListeners Lifecycle listeners
      */
     void init(List<LifecycleListener> lifecycleListeners) {
@@ -538,13 +539,20 @@ public class ElasticApmTracer {
         }
     }
 
-    public synchronized void start() {
+    public synchronized void start(boolean premain) {
         long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
-        if (delayInitMs > 0) {
+        if (shouldDelay()) {
+            delayInitMs = Math.max(delayInitMs, 5000L);
+        }
+        if (premain && delayInitMs > 0) {
             startWithDelay(delayInitMs);
         } else {
             startSync();
         }
+    }
+
+    private boolean shouldDelay() {
+        return ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
     private synchronized void startWithDelay(final long delayInitMs) {
