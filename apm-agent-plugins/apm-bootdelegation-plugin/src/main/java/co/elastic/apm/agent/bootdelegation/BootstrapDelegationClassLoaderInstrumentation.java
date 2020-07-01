@@ -59,6 +59,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Also, if indy plugins should not work out for some reason,
  * we have already tested out this approach and thus have something to fall back to.
  * </p>
+ * <p>
+ * This approach is inspired by {@code io.opentelemetry.auto.instrumentation.javaclassloader.ClassLoaderInstrumentation},
+ * under Apache License 2.0
+ * </p>
  */
 public class BootstrapDelegationClassLoaderInstrumentation extends ElasticApmInstrumentation {
 
