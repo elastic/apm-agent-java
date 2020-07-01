@@ -79,7 +79,7 @@ public class StartupInfo extends AbstractLifecycleListener {
             }
         }
         if (configurationRegistry.getConfig(StacktraceConfiguration.class).getApplicationPackages().isEmpty()) {
-            logger.warn("To enable all features and to increase startup times, please configure {}",
+            logger.warn("To enable all features and decrease startup time, please configure {}",
                 StacktraceConfiguration.APPLICATION_PACKAGES);
         }
     }
