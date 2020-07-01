@@ -42,6 +42,7 @@ endif::[]
 * Fixes `NullPointerException` related to JAX-RS and Quartz instrumentation - {pull}1249[#1249]
 * Expanding k8s pod ID discovery to some formerly non-supported environments
 * When `recording` is set to `false`, the agent will not send captured errors anymore.
+* Fixes NPE in Dubbo instrumentation that occurs when the application is acting both as a provider and as a consumer - {pull}1260[#1260]
 * Fixes missing `jboss.as:*` MBeans on JBoss - {pull}1257[#1257]
 
 [[release-notes-1.x]]
