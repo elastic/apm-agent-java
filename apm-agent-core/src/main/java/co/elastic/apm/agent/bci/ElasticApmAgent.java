@@ -447,6 +447,7 @@ public class ElasticApmAgent {
                             .or(named("java.lang.ProcessImpl"))
                             .or(named("java.lang.Process"))
                             .or(named("java.lang.UNIXProcess"))
+                            .or(named("java.util.logging.LogManager"))
                     )
                 )
             )

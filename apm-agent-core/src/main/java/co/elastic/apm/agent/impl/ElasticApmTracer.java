@@ -559,7 +559,7 @@ public class ElasticApmTracer {
                 } catch (InterruptedException e) {
                     logger.error(e.getMessage(), e);
                 } finally {
-                    ElasticApmTracer.this.start();
+                    ElasticApmTracer.this.startSync();
                 }
             }
         });
