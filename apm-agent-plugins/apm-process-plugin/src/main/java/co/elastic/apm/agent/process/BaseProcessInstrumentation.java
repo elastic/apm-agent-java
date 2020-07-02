@@ -45,4 +45,8 @@ public abstract class BaseProcessInstrumentation extends ElasticApmInstrumentati
         return Collections.singletonList("process");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
 }

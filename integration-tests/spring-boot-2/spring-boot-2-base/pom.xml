@@ -59,11 +59,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${version.spring-boot}</version>
         </dependency>
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-            <version>${version.byte-buddy}</version>
-        </dependency>
     </dependencies>
 
 </project>

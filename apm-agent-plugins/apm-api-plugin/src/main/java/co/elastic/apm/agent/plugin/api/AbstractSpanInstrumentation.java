@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -116,10 +117,10 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
-                                        @Advice.Return(readOnly = false) Object result) {
-            result = context.createSpan();
+        public static Span doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
+            return context.createSpan();
         }
     }
 
@@ -171,12 +172,13 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                 .and(returns(String.class)));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
-                                            @Advice.Argument(0) Throwable t,
-                                            @Advice.Return(readOnly = false) String errorId) {
-            errorId = context.captureExceptionAndGetErrorId(t);
+        public static String captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
+                                            @Advice.Argument(0) Throwable t) {
+            return context.captureExceptionAndGetErrorId(t);
         }
     }
 
@@ -204,11 +206,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             super(named("getId").and(takesArguments(0)));
         }
 
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
-                                 @Advice.Return(readOnly = false) String id) {
-            id = context.getTraceContext().getId().toString();
+        public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
+            return context.getTraceContext().getId().toString();
         }
     }
 
@@ -217,11 +219,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             super(named("getTraceId").and(takesArguments(0)));
         }
 
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
-                                      @Advice.Return(readOnly = false) String traceId) {
-            traceId = context.getTraceContext().getTraceId().toString();
+        public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
+            return context.getTraceContext().getTraceId().toString();
         }
     }
 
@@ -287,11 +289,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             super(named("isSampled"));
         }
 
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context,
-                                     @Advice.Return(readOnly = false) boolean sampled) {
-            sampled = context.isSampled();
+        public static boolean isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
+            return context.isSampled();
         }
     }
 

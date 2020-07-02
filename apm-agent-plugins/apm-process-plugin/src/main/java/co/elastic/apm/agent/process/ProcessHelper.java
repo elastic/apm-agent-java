@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -38,8 +37,7 @@ import java.util.List;
  * Having direct references to {@link Process} class is safe here because those are loaded in the bootstrap classloader.
  * Thus there is no need to separate helper interface from implementation or use {@link co.elastic.apm.agent.bci.HelperClassManager}.
  */
-@VisibleForAdvice
-public class ProcessHelper {
+class ProcessHelper {
 
     private static final ProcessHelper INSTANCE = new ProcessHelper(WeakMapSupplier.<Process, Span>createMap());
 
@@ -49,13 +47,11 @@ public class ProcessHelper {
         this.inFlightSpans = inFlightSpans;
     }
 
-    @VisibleForAdvice
-    public static void startProcess(AbstractSpan<?> parentContext, Process process, List<String> command) {
+    static void startProcess(AbstractSpan<?> parentContext, Process process, List<String> command) {
         INSTANCE.doStartProcess(parentContext, process, command.get(0));
     }
 
-    @VisibleForAdvice
-    public static void endProcess(@Nonnull Process process, boolean checkTerminatedProcess) {
+    static void endProcess(@Nonnull Process process, boolean checkTerminatedProcess) {
         INSTANCE.doEndProcess(process, checkTerminatedProcess);
     }
 

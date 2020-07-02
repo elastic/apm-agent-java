@@ -77,10 +77,15 @@ public class SSLContextInstrumentation extends ElasticApmInstrumentation {
         return Collections.singleton("ssl-context");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
+
     /**
      * This will not allow using the default SSL factory from any agent thread
      */
-    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class)
+    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean skipExecutionIfAgentThread() {
         return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
     }

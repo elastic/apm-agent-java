@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.dubbo.api.impl;
 
-import co.elastic.apm.agent.dubbo.ExecutorServiceWrapper;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -64,7 +63,7 @@ public class DubboTestApiImpl implements DubboTestApi {
 
     public DubboTestApiImpl() {
         client = new OkHttpClient();
-        executorService = new ExecutorServiceWrapper(Executors.newSingleThreadExecutor());
+        executorService = Executors.newSingleThreadExecutor();
     }
 
     @Override

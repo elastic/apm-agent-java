@@ -42,15 +42,15 @@ public class ExcludedExecutorClassTest extends AbstractInstrumentationTest {
 
     @Before
     public void setUp() {
-        executor = new ExecutorServiceWrapper(Executors.newFixedThreadPool(1));
-        ExecutorInstrumentation.excludedClasses.add(ExecutorServiceWrapper.class.getName());
+        executor = Executors.newFixedThreadPool(1);
+        ExecutorInstrumentation.excludedClasses.add(executor.getClass().getName());
         transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
     }
 
     @After
     public void tearDown() {
         transaction.deactivate().end();
-        ExecutorInstrumentation.excludedClasses.remove(ExecutorServiceWrapper.class.getName());
+        ExecutorInstrumentation.excludedClasses.remove(executor.getClass().getName());
     }
 
     @Test

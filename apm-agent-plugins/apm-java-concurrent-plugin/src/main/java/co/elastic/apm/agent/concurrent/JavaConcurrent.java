@@ -29,7 +29,6 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
@@ -45,7 +44,7 @@ public class JavaConcurrent {
     private static final WeakConcurrentMap<Object, AbstractSpan<?>> contextMap = WeakMapSupplier.createMap();
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
-    private static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
+    static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
 
     private static void removeContext(Object o) {
         AbstractSpan<?> context = contextMap.remove(o);
@@ -91,12 +90,16 @@ public class JavaConcurrent {
         if (isLambda(runnable)) {
             runnable = new RunnableLambdaWrapper(runnable);
         }
-        ElasticApmAgent.ensureInstrumented(runnable.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
-        contextMap.put(runnable, active);
+        captureContext(runnable, active);
+        return runnable;
+    }
+
+    private static void captureContext(Object task, AbstractSpan<?> active) {
+        ElasticApmAgent.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
+        contextMap.put(task, active);
         active.incrementReferences();
         // Do no discard branches leading to async operations so not to break span references
         active.setNonDiscardable();
-        return runnable;
     }
 
     /**
@@ -115,9 +118,7 @@ public class JavaConcurrent {
         if (isLambda(callable)) {
             callable = new CallableLambdaWrapper<>(callable);
         }
-        ElasticApmAgent.ensureInstrumented(callable.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
-        contextMap.put(callable, active);
-        active.incrementReferences();
+        captureContext(callable, active);
         return callable;
     }
 
@@ -131,9 +132,7 @@ public class JavaConcurrent {
         if (active == null) {
             return task;
         }
-        ElasticApmAgent.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
-        contextMap.put(task, active);
-        active.incrementReferences();
+        captureContext(task, active);
         return task;
     }
 

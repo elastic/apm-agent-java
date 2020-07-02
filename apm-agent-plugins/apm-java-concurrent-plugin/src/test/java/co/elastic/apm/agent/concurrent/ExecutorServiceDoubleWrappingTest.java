@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -40,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTest {
     private static final Object TEST_OBJECT = new Object();
 
-    private final RunnableWrapperExecutorService executor = RunnableWrapperExecutorService.wrap(ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()), tracer);
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private Transaction transaction;
 
     @Before

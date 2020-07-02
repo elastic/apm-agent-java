@@ -66,6 +66,8 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
         servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        // for 16.0.0.Final
+        // servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005");
     }
 
     @Override

@@ -62,8 +62,13 @@
         </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
+            <artifactId>byte-buddy-dep</artifactId>
             <version>${version.byte-buddy}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-tree</artifactId>
+            <version>8.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.hdrhistogram</groupId>
@@ -137,6 +142,18 @@
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit</artifactId>
             <version>${version.cucumber}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+            <version>2.6.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
