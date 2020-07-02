@@ -42,6 +42,7 @@ import javax.management.MBeanServer;
 import javax.management.MBeanServerDelegate;
 import javax.management.MBeanServerFactory;
 import javax.management.MBeanServerNotification;
+import javax.management.MalformedObjectNameException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
@@ -204,13 +205,35 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             private void onMBeanAdded(ObjectName mBeanName) {
                 logger.trace("Receiving MBean registration notification for {}", mBeanName);
                 for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
-                    if (jmxMetric.getObjectName().apply(mBeanName)) {
+                    ObjectName metricName = jmxMetric.getObjectName();
+                    if (metricName.apply(mBeanName) || isValidJbossExpr(mBeanName, metricName, server)) {
                         logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
                         register(Collections.singletonList(jmxMetric), server);
                     }
                 }
             }
+
+            private boolean isValidJbossExpr(ObjectName beanName, ObjectName metricName, MBeanServer server) {
+                if (!"jboss.as.expr".equals(beanName.getDomain()) // notification is received in the 'jboss.as.expr' domain
+                    || !"jboss.as".equals(metricName.getDomain())) { // jmx metric is defined in the 'jboss.as' domain
+                    return false;
+                }
+
+                // For example, with Jboss datasources the bean that is notified is in the "jboss.as.expr" domain and does not
+                // has the 'statistics=pool' property, and the visible bean through JMX that the end-user expects
+                // is in fact published with 'statistics=pool' property and in the 'jboss.as' domain, thus we
+                // have to perform a partial match
+
+                try {
+                    ObjectName newName = new ObjectName("jboss.as", metricName.getKeyPropertyList());
+                    return server.queryMBeans(newName, null) != null;
+                } catch (MalformedObjectNameException e) {
+                    return false;
+                }
+            }
+
         };
+
         try {
             server.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener, filter, null);
         } catch (Exception e) {
