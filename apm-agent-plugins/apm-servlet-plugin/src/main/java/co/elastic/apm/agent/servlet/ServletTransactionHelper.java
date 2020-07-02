@@ -70,7 +70,7 @@ public class ServletTransactionHelper {
     }
 
     public static void determineServiceName(@Nullable String servletContextName, ClassLoader servletContextClassLoader, @Nullable String contextPath) {
-        if (GlobalTracer.get() == null || !nameInitialized.add(contextPath == null ? "null" : contextPath)) {
+        if (!nameInitialized.add(contextPath == null ? "null" : contextPath)) {
             return;
         }
 
