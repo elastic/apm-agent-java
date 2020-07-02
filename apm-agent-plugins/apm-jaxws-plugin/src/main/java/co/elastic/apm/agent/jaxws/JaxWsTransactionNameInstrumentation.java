@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.jaxws;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentation {
+public class JaxWsTransactionNameInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     private static final String FRAMEWORK_NAME = "JAX-WS";
 
@@ -61,12 +61,10 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature) {
-        if (tracer != null) {
-            final Transaction transaction = tracer.currentTransaction();
-            if (transaction != null) {
-                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
-                transaction.setFrameworkName(FRAMEWORK_NAME);
-            }
+        final Transaction transaction = tracer.currentTransaction();
+        if (transaction != null) {
+            transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
+            transaction.setFrameworkName(FRAMEWORK_NAME);
         }
     }
 

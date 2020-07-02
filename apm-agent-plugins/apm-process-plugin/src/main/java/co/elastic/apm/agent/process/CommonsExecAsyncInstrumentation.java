@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import net.bytebuddy.asm.Advice;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@code org.apache.commons.exec.DefaultExecutor#createThread(Runnable, String)} and any direct subclass
  * that overrides it.
  */
-public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
+public class CommonsExecAsyncInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     private static final String DEFAULT_EXECUTOR_CLASS = "org.apache.commons.exec.DefaultExecutor";
     // only known subclass of default implementation

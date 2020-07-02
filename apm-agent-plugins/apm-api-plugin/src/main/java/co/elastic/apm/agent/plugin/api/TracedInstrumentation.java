@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -53,7 +53,7 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class TracedInstrumentation extends ElasticApmInstrumentation {
+public class TracedInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     private final StacktraceConfiguration config;
 
@@ -71,30 +71,28 @@ public class TracedInstrumentation extends ElasticApmInstrumentation {
         @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") String action,
         @Advice.Local("span") AbstractSpan abstractSpan) {
 
-        if (tracer != null) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent != null) {
-                Span span = parent.createSpan();
-                span.withType(type.isEmpty() ? "app" : type);
-                span.withSubtype(subtype);
-                span.withAction(action);
-                span.withName(spanName.isEmpty() ? signature : spanName)
-                    .activate();
-                abstractSpan = span;
-            } else {
-                Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-                if (transaction != null) {
-                    if (spanName.isEmpty()) {
-                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                    } else {
-                        transaction.withName(spanName, PRIO_USER_SUPPLIED);
-                    }
-                    transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
-                        .activate();
-                    transaction.setFrameworkName(FRAMEWORK_NAME);
+        final AbstractSpan<?> parent = tracer.getActive();
+        if (parent != null) {
+            Span span = parent.createSpan();
+            span.withType(type.isEmpty() ? "app" : type);
+            span.withSubtype(subtype);
+            span.withAction(action);
+            span.withName(spanName.isEmpty() ? signature : spanName)
+                .activate();
+            abstractSpan = span;
+        } else {
+            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            if (transaction != null) {
+                if (spanName.isEmpty()) {
+                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                } else {
+                    transaction.withName(spanName, PRIO_USER_SUPPLIED);
                 }
-                abstractSpan = transaction;
+                transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
+                    .activate();
+                transaction.setFrameworkName(FRAMEWORK_NAME);
             }
+            abstractSpan = transaction;
         }
     }
 

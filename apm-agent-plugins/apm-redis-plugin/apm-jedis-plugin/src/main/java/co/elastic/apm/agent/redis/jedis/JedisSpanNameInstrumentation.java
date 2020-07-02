@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis.jedis;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * it would otherwise be set to the {@link redis.clients.jedis.Jedis} client method name.
  * This is good enough as a default but we want all Redis clients to produce the same span names.
  */
-public class JedisSpanNameInstrumentation extends ElasticApmInstrumentation {
+public class JedisSpanNameInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     @Advice.OnMethodEnter
     private static void setSpanNameToRedisProtocolCommand(@Advice.Argument(1) Object command) {

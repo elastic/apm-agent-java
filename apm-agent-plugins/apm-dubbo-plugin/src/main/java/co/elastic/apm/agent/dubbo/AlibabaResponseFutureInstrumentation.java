@@ -74,9 +74,6 @@ public class AlibabaResponseFutureInstrumentation extends AbstractAlibabaDubboIn
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onEnter(@Advice.Argument(value = 0, readOnly = false) ResponseCallback callback) {
-            if (tracer == null) {
-                return;
-            }
             AbstractSpan<?> active = tracer.getActive();
             if (active == null) {
                 return;

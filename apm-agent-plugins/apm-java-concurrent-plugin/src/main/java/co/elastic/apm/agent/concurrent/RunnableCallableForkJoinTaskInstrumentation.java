@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -48,7 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * {@linkplain co.elastic.apm.agent.bci.ElasticApmAgent#ensureInstrumented(Class, Collection) ensure}
  * that particular {@link Callable}, {@link Runnable} and {@link ForkJoinTask} classes are instrumented.
  */
-public class RunnableCallableForkJoinTaskInstrumentation extends ElasticApmInstrumentation {
+public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

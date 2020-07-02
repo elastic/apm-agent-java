@@ -26,8 +26,6 @@ package co.elastic.apm.agent.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
-import java.io.Closeable;
-
 /**
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
  * <p>

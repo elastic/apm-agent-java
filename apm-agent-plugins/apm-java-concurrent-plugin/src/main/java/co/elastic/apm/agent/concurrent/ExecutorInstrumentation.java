@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.util.GlobalVariables;
 import net.bytebuddy.asm.Advice;
@@ -62,7 +62,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation {
+public abstract class ExecutorInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     static final Set<String> excludedClasses = GlobalVariables.get(ExecutorInstrumentation.class, "excludedClasses", new HashSet<String>());
 

@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class AbstractOkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
+public abstract class AbstractOkHttp3ClientInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     // We can refer OkHttp types thanks to type erasure
     @VisibleForAdvice

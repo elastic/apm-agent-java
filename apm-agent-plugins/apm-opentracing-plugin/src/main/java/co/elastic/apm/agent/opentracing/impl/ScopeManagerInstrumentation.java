@@ -26,6 +26,7 @@ package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -81,9 +82,6 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object getCurrentSpan() {
-            if (tracer == null) {
-                return null;
-            }
             return tracer.getActive();
         }
 
@@ -100,9 +98,6 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object getCurrentTraceContext() {
-            if (tracer == null) {
-                return null;
-            }
             return tracer.getActive();
         }
 

@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
@@ -48,73 +46,8 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
- * <p>
- * The constructor can optionally have a {@link ElasticApmTracer} parameter.
- * </p>
  */
 public abstract class ElasticApmInstrumentation {
-
-    @Nullable
-    @VisibleForAdvice
-    public static ElasticApmTracer tracer;
-
-    /**
-     * Initializes the advice with the {@link ElasticApmTracer}
-     * <p>
-     * This enables tests to register a custom instance with a {@link co.elastic.apm.agent.impl.ElasticApmTracerBuilder#configurationRegistry}
-     * and {@link co.elastic.apm.agent.impl.ElasticApmTracerBuilder#reporter} which is specific to a particular test or test class.
-     * </p>
-     *
-     * @param tracer the tracer to use for this advice.
-     */
-    static void staticInit(ElasticApmTracer tracer) {
-        // allow re-init with a different tracer
-        ElasticApmInstrumentation.tracer = tracer;
-    }
-
-    @Nullable
-    @VisibleForAdvice
-    public static AbstractSpan<?> getActive() {
-        if (tracer != null) {
-            return tracer.getActive();
-        }
-        return null;
-    }
-
-    @Nullable
-    @VisibleForAdvice
-    public static Span getActiveSpan() {
-        if (tracer != null) {
-            final AbstractSpan<?> active = tracer.getActive();
-            if (active instanceof Span) {
-                return (Span) active;
-            }
-        }
-        return null;
-    }
-
-
-    @Nullable
-    @VisibleForAdvice
-    public static Span getActiveExitSpan() {
-        final Span span = getActiveSpan();
-        if (span != null && span.isExit()) {
-            return span;
-        }
-        return null;
-    }
-
-    @Nullable
-    @VisibleForAdvice
-    public static Span createExitSpan() {
-        final AbstractSpan<?> activeSpan = getActive();
-        if (activeSpan == null || activeSpan.isExit()) {
-            return null;
-        }
-
-       return activeSpan.createExitSpan();
-    }
-
     /**
      * Pre-select candidates solely based on the class name for the slower {@link #getTypeMatcher()},
      * at the expense of potential false negative matches.
@@ -167,7 +100,6 @@ public abstract class ElasticApmInstrumentation {
         return getClass();
     }
 
-
     /**
      * Return {@code true},
      * if this instrumentation should even be applied when
@@ -218,8 +150,7 @@ public abstract class ElasticApmInstrumentation {
      *     <li>
      *         Both the return type and the arguments of advice methods must not contain types from the agent.
      *         If you'd like to return a {@link Span} from an advice, for example, return an {@link Object} instead.
-     *         When using an {@link net.bytebuddy.asm.Advice.Enter} argument on the
-     *         {@linkplain net.bytebuddy.asm.Advice.OnMethodExit exit advice},
+     *         When using an {@link Advice.Enter} argument on the {@linkplain Advice.OnMethodExit exit advice},
      *         that argument also has to be of type {@link Object} and you have to cast it within the method body.
      *         The reason is that the return value will become a local variable in the instrumented method.
      *         Due to OSGi, those methods may not have access to agent types.

@@ -82,9 +82,6 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction) {
-            if (tracer == null) {
-                return null;
-            }
             final TraceContext traceContext = transaction.getTraceContext();
             if (traceContext.getParentId().isEmpty()) {
                 traceContext.getParentId().setToRandomValue();

@@ -65,10 +65,10 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                             @Advice.Argument(1) HttpRequestWrapper request,
                                             @Advice.Local("span") Span span) {
-            if (tracer == null || tracer.getActive() == null) {
+            AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
                 return;
             }
-            final AbstractSpan<?> parent = tracer.getActive();
             span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
             TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
             TextHeaderGetter<HttpRequest> headerGetter = headerGetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
@@ -77,8 +77,7 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
                 if (headerSetter != null) {
                     span.propagateTraceContext(request, headerSetter);
                 }
-            } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter)
-                && headerSetter != null && parent != null) {
+            } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter) && headerSetter != null) {
                 // re-adds the header on redirects
                 parent.propagateTraceContext(request, headerSetter);
             }

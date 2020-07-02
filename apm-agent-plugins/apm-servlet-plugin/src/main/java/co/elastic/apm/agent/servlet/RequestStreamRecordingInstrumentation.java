@@ -87,7 +87,7 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
         public static ServletInputStream afterGetInputStream(@Advice.Return @Nullable ServletInputStream inputStream) {
-            if (callDepth.isNestedCallAndDecrement() || tracer == null || inputStream == null) {
+            if (callDepth.isNestedCallAndDecrement() || inputStream == null) {
                 return inputStream;
             }
             final Transaction transaction = tracer.currentTransaction();

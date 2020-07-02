@@ -100,10 +100,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         public static Object onBeforeExecute(@Advice.This Statement statement,
                                              @Advice.Argument(0) String sql) {
 
-            if (tracer == null) {
-                return null;
-            }
-
             return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
@@ -150,9 +146,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
-            if (tracer == null) {
-                return null;
-            }
 
             return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
@@ -219,9 +212,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
-            if (tracer == null) {
-                return null;
-            }
             String sql = jdbcHelper.retrieveSqlForStatement(statement);
             return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
 
@@ -282,9 +272,6 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
-            if (tracer == null) {
-                return null;
-            }
 
             String sql = jdbcHelper.retrieveSqlForStatement(statement);
             return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
@@ -330,11 +317,8 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
-            if (tracer != null) {
-                @Nullable String sql = jdbcHelper.retrieveSqlForStatement(statement);
-                return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
-            }
-            return null;
+            @Nullable String sql = jdbcHelper.retrieveSqlForStatement(statement);
+            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

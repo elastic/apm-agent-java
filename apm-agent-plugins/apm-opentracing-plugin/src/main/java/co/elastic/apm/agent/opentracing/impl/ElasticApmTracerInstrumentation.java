@@ -35,9 +35,7 @@ public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrument
 
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void close() {
-        if (tracer != null) {
-            tracer.stop();
-        }
+        tracer.stop();
     }
 
     @Override

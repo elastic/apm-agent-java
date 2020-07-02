@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 
@@ -33,8 +33,8 @@ import javax.annotation.Nullable;
 public class RedisSpanUtils {
     @Nullable
     public static Span createRedisSpan(String command) {
-        if (ElasticApmInstrumentation.tracer != null) {
-            AbstractSpan<?> activeSpan = ElasticApmInstrumentation.tracer.getActive();
+        if (GlobalTracer.get() != null) {
+            AbstractSpan<?> activeSpan = GlobalTracer.get().getActive();
             if (activeSpan != null) {
                 if (activeSpan.isExit()) {
                     return null;

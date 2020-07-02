@@ -24,12 +24,12 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class AbstractDubboInstrumentation extends ElasticApmInstrumentation {
+public abstract class AbstractDubboInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

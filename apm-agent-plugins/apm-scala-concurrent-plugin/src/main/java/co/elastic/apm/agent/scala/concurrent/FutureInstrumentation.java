@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.scala.concurrent;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -40,7 +40,7 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
+public abstract class FutureInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
@@ -67,7 +67,7 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void onExit(@Advice.This Object thiz) {
-            final AbstractSpan<?> context = getActive();
+            final AbstractSpan<?> context = tracer.getActive();
             if (context != null) {
                 promisesToContext.put(thiz, context);
                 // this span might be ended before the Promise$Transformation#run method starts
@@ -94,8 +94,8 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onEnter(@Advice.This Object thiz, @Nullable @Advice.Local("context") AbstractSpan<?> context) {
             context = promisesToContext.remove(thiz);
-            if (tracer != null && context != null) {
-                tracer.activate(context);
+            if (context != null) {
+                context.activate();
                 // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
                 // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
                 context.decrementReferences();
@@ -104,8 +104,8 @@ public abstract class FutureInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void onExit(@Nullable @Advice.Local("context") AbstractSpan<?> context) {
-            if (tracer != null && context != null) {
-                tracer.deactivate(context);
+            if (context != null) {
+                context.deactivate();
             }
         }
 

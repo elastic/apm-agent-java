@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.quartz.job;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import net.bytebuddy.description.NamedElement;
@@ -44,7 +44,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation {
+public class JobTransactionNameInstrumentation extends TracerAwareElasticApmInstrumentation {
     public static final String TRANSACTION_TYPE = "scheduled";
     public static final String INSTRUMENTATION_TYPE = "quartz";
 

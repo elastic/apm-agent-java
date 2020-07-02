@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.error.logging;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import net.bytebuddy.asm.Advice;
@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class AbstractLoggerErrorCapturingInstrumentation extends ElasticApmInstrumentation {
+public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     @SuppressWarnings({"WeakerAccess"})
     @VisibleForAdvice
@@ -63,12 +63,12 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Elasti
                                     @Advice.Local("nested") boolean nested,
                                     @Advice.Origin Class<?> clazz,
                                     @Advice.Local("error") @Nullable ErrorCapture error) {
-            if (tracer == null) {
-                return;
-            }
             nested = nestedThreadLocal.get();
             if (!nested) {
-                error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader()).activate();
+                error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader());
+                if (error != null) {
+                    error.activate();
+                }
                 nestedThreadLocal.set(Boolean.TRUE);
             }
         }

@@ -75,7 +75,7 @@ public class ChannelInstrumentation extends BaseInstrumentation {
                                 @Advice.Argument(0) MethodDescriptor<?, ?> method,
                                 @Advice.Local("span") Span span) {
 
-        if (tracer == null || grpcHelperManager == null) {
+        if (grpcHelperManager == null) {
             return;
         }
 

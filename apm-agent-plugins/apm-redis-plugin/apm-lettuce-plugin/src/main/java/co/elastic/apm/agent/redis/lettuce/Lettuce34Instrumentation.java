@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -37,7 +37,7 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
-public abstract class Lettuce34Instrumentation extends ElasticApmInstrumentation {
+public abstract class Lettuce34Instrumentation extends TracerAwareElasticApmInstrumentation {
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
     public static final WeakConcurrentMap<RedisCommand<?, ?, ?>, Span> commandToSpan = WeakMapSupplier.createMap();

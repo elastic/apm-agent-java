@@ -26,6 +26,7 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -39,6 +40,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -104,7 +106,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(tracer);
+            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {

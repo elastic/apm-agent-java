@@ -22,23 +22,18 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 
-import java.util.Collection;
-import java.util.Collections;
+/**
+ * The constructor can optionally have a {@link ElasticApmTracer} parameter.
+ */
+public abstract class TracerAwareElasticApmInstrumentation extends ElasticApmInstrumentation {
 
-import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+    @VisibleForAdvice
+    public static final Tracer tracer = GlobalTracer.get();
 
-public abstract class ApiInstrumentation extends TracerAwareElasticApmInstrumentation {
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
-    }
 }

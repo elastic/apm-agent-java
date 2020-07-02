@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -51,7 +51,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *
  * The context will be propagated via the Netty instrumentation
  */
-public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation {
+public class Lettuce5StartSpanInstrumentation extends TracerAwareElasticApmInstrumentation {
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
