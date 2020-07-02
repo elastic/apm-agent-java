@@ -541,7 +541,7 @@ public class ElasticApmTracer {
 
     public synchronized void start(boolean premain) {
         long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
-        if (premain && shouldDelay()) {
+        if (premain && shouldDelayOnPremain()) {
             delayInitMs = Math.max(delayInitMs, 5000L);
         }
         if (delayInitMs > 0) {
@@ -551,8 +551,11 @@ public class ElasticApmTracer {
         }
     }
 
-    private boolean shouldDelay() {
-        return ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
+    private boolean shouldDelayOnPremain() {
+        String javaVersion = System.getProperty("java.version");
+        return javaVersion != null &&
+            javaVersion.startsWith("1.8") &&
+            ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
     private synchronized void startWithDelay(final long delayInitMs) {
