@@ -154,7 +154,7 @@ class AsyncTraceMethodInstrumentationTest {
         }
 
         private Future<?> nonBlockingMethodOnMainThread() {
-            return ExecutorServiceWrapper.wrap(Executors.newFixedThreadPool(1)).submit(TestAsyncTraceMethodsClass.this::methodOnWorkerThread);
+            return Executors.newFixedThreadPool(1).submit(TestAsyncTraceMethodsClass.this::methodOnWorkerThread);
         }
 
         private void methodOnWorkerThread() {

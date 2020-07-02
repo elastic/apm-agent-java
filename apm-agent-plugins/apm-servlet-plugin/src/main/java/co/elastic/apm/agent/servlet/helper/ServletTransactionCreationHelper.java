@@ -24,12 +24,10 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,22 +35,18 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
-@SuppressWarnings("unused")
-public class ServletTransactionCreationHelperImpl implements ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> {
+public class ServletTransactionCreationHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelperImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelper.class);
 
     private final ElasticApmTracer tracer;
-    private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
 
-    public ServletTransactionCreationHelperImpl(ElasticApmTracer tracer) {
+    public ServletTransactionCreationHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
-    @Override
     @Nullable
     public Transaction createAndActivateTransaction(HttpServletRequest request) {
         Transaction transaction = null;

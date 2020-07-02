@@ -51,7 +51,6 @@ import javax.jms.Queue;
 import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +66,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
@@ -74,11 +75,7 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QUEUE_PREFIX;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
 
 @RunWith(Parameterized.class)
@@ -96,7 +93,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     private Queue noopQ;
 
-    public JmsInstrumentationIT(BrokerFacade brokerFacade) throws Exception {
+    public JmsInstrumentationIT(BrokerFacade brokerFacade, Class<? extends BrokerFacade> clazz) throws Exception {
         this.brokerFacade = brokerFacade;
         if (staticBrokerFacade.add(brokerFacade)) {
             brokerFacade.prepareResources();
@@ -104,9 +101,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         coreConfiguration = config.getConfig(CoreConfiguration.class);
     }
 
-    @Parameterized.Parameters(name = "BrokerFacade={0}")
+    @Parameterized.Parameters(name = "BrokerFacade={1}")
     public static Iterable<Object[]> brokerFacades() {
-        return Arrays.asList(new Object[][]{{new ActiveMqFacade()}, {new ActiveMqArtemisFacade()}});
+        return Arrays.asList(new Object[][]{{new ActiveMqFacade(), ActiveMqFacade.class}, {new ActiveMqArtemisFacade(), ActiveMqArtemisFacade.class}});
     }
 
     @AfterClass
@@ -452,7 +449,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifySendListenOnNonTracedThread(String destinationName, TextMessage message, int expectedReadTransactions) throws JMSException {
-        await().atMost(1000, MILLISECONDS).until(() -> reporter.getTransactions().size() == expectedReadTransactions);
+        reporter.awaitTransactionCount(expectedReadTransactions);
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);

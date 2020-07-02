@@ -100,7 +100,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
     @Test
     void testContextAndSpanRunnableActivationInDifferentThread() throws Exception {
         final Transaction transaction = tracer.startRootTransaction(null).activate();
-        ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(() -> {
+        Executors.newSingleThreadExecutor().submit(() -> {
             assertThat(tracer.getActive()).isSameAs(transaction);
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
         }).get();
@@ -112,7 +112,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
     @Test
     void testContextAndSpanCallableActivationInDifferentThread() throws Exception {
         final Transaction transaction = tracer.startRootTransaction(null).activate();
-        Future<Transaction> transactionFuture = ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(() -> {
+        Future<Transaction> transactionFuture = Executors.newSingleThreadExecutor().submit(() -> {
             assertThat(tracer.getActive()).isSameAs(transaction);
             return tracer.currentTransaction();
         });
@@ -129,7 +129,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
             assertThat(tracer.getActive()).isSameAs(transaction);
         };
-        ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(runnable).get();
+        Executors.newSingleThreadExecutor().submit(runnable).get();
         transaction.deactivate();
 
         assertThat(tracer.getActive()).isNull();
@@ -138,7 +138,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
     @Test
     void testSpanAndContextCallableActivationInDifferentThread() throws Exception {
         final Transaction transaction = tracer.startRootTransaction(null).activate();
-        assertThat(ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()).submit(() -> {
+        assertThat(Executors.newSingleThreadExecutor().submit(() -> {
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
             return tracer.currentTransaction();
         }).get()).isSameAs(transaction);

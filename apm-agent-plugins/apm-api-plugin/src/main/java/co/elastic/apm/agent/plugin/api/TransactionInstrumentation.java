@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -76,17 +77,19 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("ensureParentId"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                          @Advice.Return(readOnly = false) String spanId) {
-            if (tracer != null) {
-                final TraceContext traceContext = transaction.getTraceContext();
-                if (traceContext.getParentId().isEmpty()) {
-                    traceContext.getParentId().setToRandomValue();
-                }
-                spanId = traceContext.getParentId().toString();
+        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction) {
+            if (tracer == null) {
+                return null;
             }
+            final TraceContext traceContext = transaction.getTraceContext();
+            if (traceContext.getParentId().isEmpty()) {
+                traceContext.getParentId().setToRandomValue();
+            }
+            return traceContext.getParentId().toString();
         }
     }
 
@@ -96,7 +99,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                            @Advice.Argument(0) String result) {
             transaction.withResult(result);
         }

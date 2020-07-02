@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -41,10 +40,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@link javax.servlet.FilterChain}s to create transactions.
  */
 public class FilterChainInstrumentation extends AbstractServletInstrumentation {
-
-    public FilterChainInstrumentation(ElasticApmTracer tracer) {
-        ServletApiAdvice.init(tracer);
-    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

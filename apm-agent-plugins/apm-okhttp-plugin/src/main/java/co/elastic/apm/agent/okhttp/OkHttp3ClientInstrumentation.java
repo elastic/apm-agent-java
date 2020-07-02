@@ -25,11 +25,13 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -57,43 +59,43 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
     @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
+        @VisibleForAdvice
+        public final static GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(OkHttpClient3ExecuteAdvice.class, "spanTls");
+
+        @Nullable
+        @AssignTo.Field(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                             @Advice.Local("span") Span span) {
+        public static Object onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
-            if (tracer == null || tracer.getActive() == null) {
-                return;
-            }
-
-            if (originalRequest == null) {
-                return;
+            if (tracer == null || tracer.getActive() == null || !(originalRequest instanceof Request)) {
+                return originalRequest;
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
 
-            if (originalRequest instanceof okhttp3.Request) {
-                okhttp3.Request request = (okhttp3.Request) originalRequest;
-                HttpUrl url = request.url();
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
-                    OkHttpClientHelper.computeHostName(url.host()), url.port());
-                if (span != null) {
-                    span.activate();
-                    if (headerSetterHelperManager != null) {
-                        TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
-                        if (headerSetter != null) {
-                            Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
-                            span.propagateTraceContext(builder, headerSetter);
-                            originalRequest = builder.build();
-                        }
+            okhttp3.Request request = (okhttp3.Request) originalRequest;
+            HttpUrl url = request.url();
+            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
+                OkHttpClientHelper.computeHostName(url.host()), url.port());
+            if (span != null) {
+                spanTls.set(span);
+                span.activate();
+                if (headerSetterHelperManager != null) {
+                    TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
+                    if (headerSetter != null) {
+                        Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
+                        span.propagateTraceContext(builder, headerSetter);
+                        return builder.build();
                     }
                 }
             }
+            return originalRequest;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Return @Nullable okhttp3.Response response,
-                                          @Advice.Local("span") @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t) {
+            final Span span = spanTls.getAndRemove();
             if (span != null) {
                 try {
                     if (response != null) {

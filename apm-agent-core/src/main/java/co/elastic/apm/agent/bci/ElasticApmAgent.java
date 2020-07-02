@@ -29,9 +29,11 @@ import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.PatchBytecodeVersionTo51Transformer;
 import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignToPostProcessorFactory;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
@@ -48,12 +50,15 @@ import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
@@ -87,11 +92,11 @@ import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
+import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
-import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -299,6 +304,7 @@ public class ElasticApmAgent {
                     }
                 }
             })
+            .transform(new PatchBytecodeVersionTo51Transformer())
             .transform(getTransformer(tracer, instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
                 @Override
@@ -312,11 +318,16 @@ public class ElasticApmAgent {
     private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmTracer tracer, final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
+            .with(new AssignToPostProcessorFactory())
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
         Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();
         if (offsetMapping != null) {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
+        }
+        if (instrumentation.indyPlugin()) {
+            validateAdvice(instrumentation.getAdviceClass().getName());
+            withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod());
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(new ElementMatcher<MethodDescription>() {
@@ -343,6 +354,50 @@ public class ElasticApmAgent {
             }, instrumentation.getAdviceClass().getName())
             .include(ClassLoader.getSystemClassLoader())
             .withExceptionHandler(PRINTING);
+    }
+
+    /**
+     * Validates invariants explained in {@link ElasticApmInstrumentation#indyPlugin()}
+     *
+     * @param adviceClassName the name of the advice class
+     */
+    private static void validateAdvice(String adviceClassName) {
+        TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
+        TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
+        for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
+            validateAdviceReturnAndParameterTypes(enterAdvice);
+
+            for (AnnotationDescription enter : enterAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodEnter.class))) {
+                if (enter.prepare(Advice.OnMethodEnter.class).load().inline()) {
+                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, enterAdvice.getName()));
+                }
+            }
+        }
+        for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
+            validateAdviceReturnAndParameterTypes(exitAdvice);
+            if (exitAdvice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
+                throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
+            }
+            for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
+                if (exit.prepare(Advice.OnMethodExit.class).load().inline()) {
+                    throw new IllegalStateException(String.format("Indy-dispatched advice %s#%s has to be declared with inline=false", adviceClassName, exitAdvice.getName()));
+                }
+            }
+        }
+        if (adviceClassName.startsWith("co.elastic.apm.agent.") && adviceClassName.split("\\.").length > 6) {
+            throw new IllegalStateException("Indy-dispatched advice class must be at the root of the instrumentation plugin.");
+        }
+    }
+
+    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice) {
+        if (advice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
+            throw new IllegalStateException("Advice return type must not be an agent type: " + advice.toGenericString());
+        }
+        for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
+            if (parameter.getType().getTypeName().startsWith("co.elastic.apm")) {
+                throw new IllegalStateException("Advice parameters must not contain an agent type: " + advice.toGenericString());
+            }
+        }
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
@@ -396,29 +451,48 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             return;
         }
-
-        if (resettableClassFileTransformer == null) {
-            throw new IllegalStateException("Reset was called before init");
+        Exception exception = null;
+        if (resettableClassFileTransformer != null) {
+            try {
+                resettableClassFileTransformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
+            } catch (Exception e) {
+                exception = e;
+            }
+            resettableClassFileTransformer = null;
         }
         dynamicallyInstrumentedClasses.clear();
-        resettableClassFileTransformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
-        resettableClassFileTransformer = null;
         for (ResettableClassFileTransformer transformer : dynamicClassFileTransformers) {
-            transformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
+            try {
+                transformer.reset(instrumentation, RedefinitionStrategy.RETRANSFORMATION);
+            } catch (Exception e) {
+                if (exception != null) {
+                    exception.addSuppressed(e);
+                } else {
+                    exception = e;
+                }
+            }
         }
         dynamicClassFileTransformers.clear();
         instrumentation = null;
+        HelperClassManager.ForIndyPlugin.clear();
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy, boolean premain) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
+                                                final AgentBuilder.DescriptionStrategy descriptionStrategy, final boolean premain) {
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
-                locationStrategy =
-                    ((AgentBuilder.LocationStrategy.ForClassLoader) locationStrategy).withFallbackTo(
-                        ClassFileLocator.ForJarFile.of(agentJarFile),
-                        new RootPackageCustomLocator("java.", ClassFileLocator.ForClassLoader.ofBootLoader())
-                    );
+                locationStrategy = new AgentBuilder.LocationStrategy.Compound(
+                    // it's important to first try loading from the agent jar and not the class loader of the instrumented class
+                    // the latter may not have access to the agent resources:
+                    // when adding the agent to the bootstrap CL (appendToBootstrapClassLoaderSearch)
+                    // the bootstrap CL can load its classes but not its resources
+                    // the application class loader may cache the fact that a resource like AbstractSpan.class can't be resolved
+                    // and also refuse to load the class
+                    new AgentBuilder.LocationStrategy.Simple(ClassFileLocator.ForJarFile.of(agentJarFile)),
+                    AgentBuilder.LocationStrategy.ForClassLoader.WEAK,
+                    new AgentBuilder.LocationStrategy.Simple(new RootPackageCustomLocator("java.", ClassFileLocator.ForClassLoader.ofBootLoader()))
+                );
             } catch (IOException e) {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
             }
@@ -428,6 +502,14 @@ public class ElasticApmAgent {
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
             .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(100))
             .with(premain ? RedefinitionStrategy.Listener.NoOp.INSTANCE : RedefinitionStrategy.Listener.Pausing.of(100, TimeUnit.MILLISECONDS))
+            .with(new RedefinitionStrategy.Listener.Adapter() {
+                @Override
+                public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
+                    logger.warn("Error while redefining classes {}", throwable.getMessage());
+                    logger.debug(throwable.getMessage(), throwable);
+                    return super.onError(index, batch, throwable, types);
+                }
+            })
             .with(descriptionStrategy)
             .with(locationStrategy)
             .with(new ErrorLoggingListener())
@@ -437,32 +519,6 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            // ideally, those bootstrap classpath inclusions should be set at plugin level, see issue #952
-            .or(nameStartsWith("java.")
-                .and(
-                    not(
-                        nameEndsWith("URLConnection")
-                            .or(nameStartsWith("java.util.concurrent."))
-                            .or(named("java.lang.ProcessBuilder"))
-                            .or(named("java.lang.ProcessImpl"))
-                            .or(named("java.lang.Process"))
-                            .or(named("java.lang.UNIXProcess"))
-                    )
-                )
-            )
-            .or(nameStartsWith("com.sun.")
-                .and(
-                    not(
-                        nameStartsWith("com.sun.faces.")
-                            .or(nameEndsWith("URLConnection"))
-                    )
-                )
-            )
-            .or(nameStartsWith("sun")
-                .and(
-                    not(nameEndsWith("URLConnection"))
-                )
-            )
             .or(nameStartsWith("co.elastic.apm.agent.shaded"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))
@@ -622,4 +678,16 @@ public class ElasticApmAgent {
         return instance;
     }
 
+    public static ClassLoader getAgentClassLoader() {
+        ClassLoader agentClassLoader = ElasticApmAgent.class.getClassLoader();
+        if (agentClassLoader == null) {
+            // currently, the agent CL is the bootstrap CL in production
+            // but resources are not loadable from the bootstrap CL, only from the system CL
+            // also, we want to return a no-null CL from here
+            return ClassLoader.getSystemClassLoader();
+        }
+        // in tests, the agent CL is the system CL
+        // in the future, the agent will be loaded from an isolated CL in production
+        return agentClassLoader;
+    }
 }

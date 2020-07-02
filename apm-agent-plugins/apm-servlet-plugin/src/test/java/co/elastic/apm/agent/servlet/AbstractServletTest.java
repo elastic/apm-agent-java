@@ -53,7 +53,7 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
 
         // because we reuse the same classloader with different servlet context names
         // we need to explicitly reset the name cache to make service name detection work as expected
-        ServletTransactionHelper.clearServiceNameCache();
+        ServletGlobalState.clearServiceNameCache();
 
         // server is not reused between tests as handler is provided from subclass
         // another alternative
@@ -68,8 +68,8 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
 
         httpClient = new OkHttpClient.Builder()
             // set to 0 for debugging
-            .readTimeout(10, TimeUnit.SECONDS)
-            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.SECONDS)
+            .connectTimeout(0, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .build();
     }

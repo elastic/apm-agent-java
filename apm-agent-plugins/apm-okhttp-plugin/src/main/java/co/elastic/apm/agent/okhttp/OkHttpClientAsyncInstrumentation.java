@@ -26,6 +26,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -38,7 +39,6 @@ import com.squareup.okhttp.Response;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,25 +78,30 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
     @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
+        @AssignTo(
+            fields = @AssignTo.Field(index = 0, value = "originalRequest"),
+            arguments = @AssignTo.Argument(index = 1, value = 0)
+        )
+        @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeEnqueue(@Advice.Origin Class<? extends Call> clazz,
-                                            @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Request originalRequest,
-                                            @Advice.Argument(value = 0, readOnly = false) @Nullable Callback callback,
-                                            @Advice.Local("span") Span span) {
+        public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
+                                               final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
+                                               final @Advice.Argument(0) @Nullable Callback originalCallback) {
             if (tracer == null || tracer.getActive() == null || callbackWrapperCreator == null) {
-                return;
+                return null;
             }
 
             final WrapperCreator<Callback> wrapperCreator = callbackWrapperCreator.getForClassLoaderOfClass(clazz);
-            if (originalRequest == null || callback == null || wrapperCreator == null) {
-                return;
+            if (originalRequest == null || originalCallback == null || wrapperCreator == null) {
+                return null;
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
 
             Request request = originalRequest;
+            Callback callback = originalCallback;
             URL url = request.url();
-            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
+            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
             if (span != null) {
                 span.activate();
@@ -105,15 +110,17 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                     if (headerSetter != null) {
                         Request.Builder builder = originalRequest.newBuilder();
                         span.propagateTraceContext(builder, headerSetter);
-                        originalRequest = builder.build();
+                        request = builder.build();
                     }
                 }
-                callback = wrapperCreator.wrap(callback, span);
+                callback = wrapperCreator.wrap(originalCallback, span);
             }
+            return new Object[] {request, callback, span};
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onAfterEnqueue(@Advice.Local("span") @Nullable Span span) {
+        public static void onAfterEnqueue(@Advice.Enter @Nullable Object[] enter) {
+            Span span = enter != null ? (Span) enter[2] : null;
             if (span != null) {
                 span.deactivate();
             }

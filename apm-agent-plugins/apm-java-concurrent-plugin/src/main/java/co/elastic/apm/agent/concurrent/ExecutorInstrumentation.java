@@ -25,7 +25,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
+import co.elastic.apm.agent.util.GlobalVariables;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -63,8 +64,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
-    public static final Set<String> excludedClasses = new HashSet<>();
+    static final Set<String> excludedClasses = GlobalVariables.get(ExecutorInstrumentation.class, "excludedClasses", new HashSet<String>());
 
     static {
         // Used in Tomcat 7
@@ -87,6 +87,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         return hasSuperType(named("java.util.concurrent.Executor"))
             // executes on same thread, no need to wrap to activate again
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
+            .and(not(nameContains("jetty")))
+            .and(not(nameContains("tomcat")))
+            .and(not(nameContains("jboss")))
+            .and(not(nameContains("undertow")))
+            .and(not(nameContains("netty")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
             .and(not(nameStartsWith("com.hazelcast")))
             .and(not(isProxy()));
@@ -97,24 +102,30 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         return Arrays.asList("concurrent", "executor");
     }
 
-    @VisibleForAdvice
-    public static boolean isExcluded(@Advice.This Executor executor) {
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
+
+    private static boolean isExcluded(@Advice.This Executor executor) {
         return excludedClasses.contains(executor.getClass().getName());
     }
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onExecute(@Advice.This Executor thiz,
-                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
+        @Nullable
+        @AssignTo.Argument(0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Runnable onExecute(@Advice.This Executor thiz,
+                                         @Advice.Argument(0) @Nullable Runnable runnable) {
             if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return;
+                return runnable;
             }
-            runnable = JavaConcurrent.withContext(runnable, tracer);
+            return JavaConcurrent.withContext(runnable, tracer);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
                                    @Advice.Argument(value = 0) @Nullable Runnable runnable) {
             JavaConcurrent.doFinally(thrown, runnable);
         }
@@ -130,26 +141,28 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("execute").and(returns(void.class)).and(takesArguments(Runnable.class))
-                .or(named("submit").and(returns(Future.class)).and(takesArguments(Runnable.class)))
-                .or(named("submit").and(returns(Future.class)).and(takesArguments(Runnable.class, Object.class)))
+                .or(named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Runnable.class)))
+                .or(named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Runnable.class, Object.class)))
                 .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Runnable.class, long.class, TimeUnit.class)));
         }
     }
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onSubmit(@Advice.This Executor thiz,
-                                    @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable) {
+        @Nullable
+        @AssignTo.Argument(0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Callable<?> onSubmit(@Advice.This Executor thiz,
+                                           @Advice.Argument(0) @Nullable Callable<?> callable) {
             if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return;
+                return callable;
             }
-            callable = JavaConcurrent.withContext(callable, tracer);
+            return JavaConcurrent.withContext(callable, tracer);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                   @Advice.Argument(value = 0) @Nullable Callable<?> callable) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                   @Advice.Argument(0) @Nullable Callable<?> callable) {
             JavaConcurrent.doFinally(thrown, callable);
         }
 
@@ -161,7 +174,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("submit").and(returns(Future.class)).and(takesArguments(Callable.class))
+            return named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Callable.class))
                 .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Callable.class, long.class, TimeUnit.class)));
         }
 
@@ -184,17 +197,19 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                 .and(isOverriddenFrom(ExecutorService.class));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static <T> void onEnter(@Advice.This Executor thiz,
-                                    @Nullable @Advice.Argument(value = 0, readOnly = false) Collection<? extends Callable<T>> callables) {
+        @Nullable
+        @AssignTo.Argument(0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static <T> Collection<? extends Callable<T>> onEnter(@Advice.This Executor thiz,
+                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<T>> callables) {
             if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return;
+                return callables;
             }
-            callables = JavaConcurrent.withContext(callables, tracer);
+            return JavaConcurrent.withContext(callables, tracer);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
                                    @Nullable @Advice.Argument(0) Collection<? extends Callable<?>> callables) {
             JavaConcurrent.doFinally(thrown, callables);
         }
@@ -212,34 +227,40 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             return hasSuperType(is(ForkJoinPool.class)).and(super.getTypeMatcher());
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onExecute(@Advice.This Executor thiz,
-                                     @Advice.Argument(value = 0, readOnly = false) @Nullable ForkJoinTask<?> task) {
-            if (ExecutorInstrumentation.isExcluded(thiz)) {
-                return;
-            }
-            task = JavaConcurrent.withContext(task, tracer);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Nullable @Advice.Thrown Throwable thrown,
-                                   @Advice.Argument(value = 0) @Nullable ForkJoinTask<?> task) {
-            JavaConcurrent.doFinally(thrown, task);
-        }
-
         /**
          * <ul>
          *     <li>{@link ForkJoinPool#execute(ForkJoinTask)}</li>
          *     <li>{@link ForkJoinPool#submit(ForkJoinTask)}</li>
          *     <li>{@link ForkJoinPool#invoke(ForkJoinTask)}</li>
          * </ul>
-         * @return
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("execute").and(returns(void.class)).and(takesArguments(ForkJoinTask.class))
                 .or(named("submit").and(returns(ForkJoinTask.class)).and(takesArguments(ForkJoinTask.class)))
                 .or(named("invoke").and(returns(Object.class)).and(takesArguments(ForkJoinTask.class)));
+        }
+
+        @Nullable
+        @AssignTo.Argument(0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static ForkJoinTask<?> onExecute(@Advice.This Executor thiz,
+                                     @Advice.Argument(0) @Nullable ForkJoinTask<?> task) {
+            if (ExecutorInstrumentation.isExcluded(thiz)) {
+                return task;
+            }
+            return JavaConcurrent.withContext(task, tracer);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+                                   @Advice.Argument(value = 0) @Nullable ForkJoinTask<?> task) {
+            JavaConcurrent.doFinally(thrown, task);
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Arrays.asList("concurrent", "fork-join");
         }
     }
 

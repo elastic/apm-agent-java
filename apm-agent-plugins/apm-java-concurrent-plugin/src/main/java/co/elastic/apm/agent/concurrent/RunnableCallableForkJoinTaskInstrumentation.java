@@ -71,18 +71,22 @@ public class RunnableCallableForkJoinTaskInstrumentation extends ElasticApmInstr
         return Arrays.asList("concurrent", "executor");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
+
     @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static AbstractSpan<?> onEnter(@Advice.This Object thiz) {
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onEnter(@Advice.This Object thiz) {
         return JavaConcurrent.restoreContext(thiz, tracer);
     }
 
-
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Thrown Throwable thrown,
-                               @Nullable @Advice.Enter AbstractSpan<?> span) {
-        if (span != null) {
-            span.deactivate();
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onExit(@Advice.Thrown Throwable thrown,
+                              @Nullable @Advice.Enter Object context) {
+        if (context instanceof AbstractSpan) {
+            ((AbstractSpan<?>) context).deactivate();
         }
     }
 }
