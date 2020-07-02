@@ -52,6 +52,7 @@ import javax.management.relation.MBeanServerNotificationFilter;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -206,16 +207,19 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 logger.trace("Receiving MBean registration notification for {}", mBeanName);
                 for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
                     ObjectName metricName = jmxMetric.getObjectName();
-                    if (metricName.apply(mBeanName) || isValidJbossExpr(mBeanName, metricName, server)) {
+                    if (metricName.apply(mBeanName) || matchesJbossStatisticsPool(mBeanName, metricName, server)) {
                         logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
                         register(Collections.singletonList(jmxMetric), server);
                     }
                 }
             }
 
-            private boolean isValidJbossExpr(ObjectName beanName, ObjectName metricName, MBeanServer server) {
-                if (!"jboss.as.expr".equals(beanName.getDomain()) // notification is received in the 'jboss.as.expr' domain
-                    || !"jboss.as".equals(metricName.getDomain())) { // jmx metric is defined in the 'jboss.as' domain
+            private boolean matchesJbossStatisticsPool(ObjectName beanName, ObjectName metricName, MBeanServer server) {
+                String exprDomain = "jboss.as.expr";
+                String asDomain = "jboss.as";
+
+                if (!exprDomain.equals(beanName.getDomain()) // notification is received in the 'jboss.as.expr' domain
+                    || !asDomain.equals(metricName.getDomain())) { // jmx metric is defined in the 'jboss.as' domain
                     return false;
                 }
 
@@ -225,8 +229,18 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 // have to perform a partial match
 
                 try {
-                    ObjectName newName = new ObjectName("jboss.as", metricName.getKeyPropertyList());
-                    return server.queryMBeans(newName, null) != null;
+                    Hashtable<String, String> metricProperties = metricName.getKeyPropertyList();
+                    Hashtable<String, String> beanProperties = beanName.getKeyPropertyList();
+                    if ("pool".equals(metricProperties.get("statistics")) && !beanProperties.containsKey("statistics")) {
+                        beanProperties.put("statistics", "pool");
+                    }
+
+                    ObjectName newName = new ObjectName(asDomain, beanProperties);
+                    boolean matches = metricName.apply(newName) && server.queryMBeans(newName, null).size() > 0;
+                    if (matches) {
+                        logger.debug("JBoss fallback detection applied for {} MBean metric registration", newName);
+                    }
+                    return matches;
                 } catch (MalformedObjectNameException e) {
                     return false;
                 }
