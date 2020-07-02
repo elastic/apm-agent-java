@@ -541,10 +541,10 @@ public class ElasticApmTracer {
 
     public synchronized void start(boolean premain) {
         long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
-        if (shouldDelay()) {
+        if (premain && shouldDelay()) {
             delayInitMs = Math.max(delayInitMs, 5000L);
         }
-        if (premain && delayInitMs > 0) {
+        if (delayInitMs > 0) {
             startWithDelay(delayInitMs);
         } else {
             startSync();
