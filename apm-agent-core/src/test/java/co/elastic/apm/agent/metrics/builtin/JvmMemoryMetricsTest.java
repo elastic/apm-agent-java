@@ -29,6 +29,12 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.Test;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -48,31 +54,22 @@ class JvmMemoryMetricsTest {
         assertThat(registry.getGaugeValue("jvm.memory.non_heap.committed", Labels.EMPTY)).isNotZero();
         assertThat(registry.getGaugeValue("jvm.memory.non_heap.max", Labels.EMPTY)).isNotZero();
 
-        final Labels edenSpaceLabel = Labels.Mutable.of("name", "G1 Eden Space");
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", edenSpaceLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", edenSpaceLabel)).isNotNaN();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", edenSpaceLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", edenSpaceLabel)).isNotNaN();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", edenSpaceLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", edenSpaceLabel)).isNotNaN();
-
-        final Labels olgGenLabel = Labels.Mutable.of("name", "G1 Old Gen");
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", olgGenLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", olgGenLabel)).isNotNaN();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", olgGenLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", olgGenLabel)).isNotNaN();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", olgGenLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", olgGenLabel)).isNotNaN();
-
-        final Labels survivorSpaceLabel = Labels.Mutable.of("name", "G1 Survivor Space");
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", survivorSpaceLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", survivorSpaceLabel)).isNotNaN();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", survivorSpaceLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", survivorSpaceLabel)).isNotNaN();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", survivorSpaceLabel)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", survivorSpaceLabel)).isNotNaN();
-
+        List<String> memoryPoolNames = getMemoryPoolNames();
+        for (String memoryPoolName : memoryPoolNames) {
+            final Labels spaceLabel = Labels.Mutable.of("name", memoryPoolName);
+            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", spaceLabel)).isNotZero();
+            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", spaceLabel)).isNotNaN();
+            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", spaceLabel)).isNotZero();
+            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", spaceLabel)).isNotNaN();
+            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", spaceLabel)).isNotZero();
+            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", spaceLabel)).isNotNaN();
+        }
         final long[] longs = new long[1000000];
         System.out.println(registry.toString());
+    }
+
+    private List<String> getMemoryPoolNames() {
+        List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
+        return memoryPoolMXBeans.stream().filter(k -> k.getType().equals(MemoryType.HEAP)).map(k -> k.getName()).collect(Collectors.toList());
     }
 }
