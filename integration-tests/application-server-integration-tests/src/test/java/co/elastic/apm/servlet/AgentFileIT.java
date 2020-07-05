@@ -67,6 +67,7 @@ public class AgentFileIT {
                     .filter(entry -> !entry.startsWith("co/"))
                     .filter(entry -> !entry.startsWith("schema/"))
                     .filter(entry -> !entry.startsWith("asyncprofiler/"))
+                    .filter(entry -> !entry.startsWith("bootstrap/"))
                     .filter(entry -> !entry.startsWith("ElasticApmLog4j-"))
                     .filter(entry -> !entry.startsWith("elasticapmlog4j2.component.properties")))
                 .isEmpty();

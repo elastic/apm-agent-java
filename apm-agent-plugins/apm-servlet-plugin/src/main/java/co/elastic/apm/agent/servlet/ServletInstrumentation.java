@@ -24,17 +24,10 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-
-import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletRequest;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -56,21 +49,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ServletInstrumentation extends AbstractServletInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
-
-    @Nullable
-    @VisibleForAdvice
-    // referring to HttpServletRequest is legal because of type erasure
-    public static HelperClassManager<ServletTransactionCreationHelper<HttpServletRequest>> servletTransactionCreationHelperManager;
-
-    public ServletInstrumentation(ElasticApmTracer tracer) {
-        ServletApiAdvice.init(tracer);
-        if (servletTransactionCreationHelperManager == null) {
-            servletTransactionCreationHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-                "co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelperImpl",
-                "co.elastic.apm.agent.servlet.helper.ServletRequestHeaderGetter"
-            );
-        }
-    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -95,9 +73,4 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
         return ServletApiAdvice.class;
     }
 
-    @VisibleForAdvice
-    public interface ServletTransactionCreationHelper<R> {
-        @Nullable
-        Transaction createAndActivateTransaction(R request);
-    }
 }

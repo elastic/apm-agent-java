@@ -58,7 +58,7 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
 
     public static class ProcessBuilderStartAdvice {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.This ProcessBuilder processBuilder,
                                   @Advice.Return Process process,
                                   @Advice.Thrown @Nullable Throwable t) {

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -64,15 +65,19 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doStartTransaction"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void doStartTransaction(@Advice.Origin Class<?> clazz, @Advice.Return(readOnly = false) Object transaction) {
-            if (tracer != null) {
-                transaction = tracer.startRootTransaction(clazz.getClassLoader());
-                if (transaction != null) {
-                    ((Transaction) transaction).setFrameworkName(FRAMEWORK_NAME);
-                }
+        public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
+            if (tracer == null) {
+                return null;
             }
+            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            if (transaction != null) {
+                transaction.setFrameworkName(FRAMEWORK_NAME);
+            }
+            return transaction;
         }
     }
 
@@ -82,29 +87,33 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doStartTransactionWithRemoteParentFunction"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void doStartTransaction(@Advice.Origin Class<?> clazz,
-                                               @Advice.Return(readOnly = false) Object transaction,
-                                               @Advice.Argument(0) MethodHandle getFirstHeader,
-                                               @Advice.Argument(1) @Nullable Object headerExtractor,
-                                               @Advice.Argument(2) MethodHandle getAllHeaders,
-                                               @Advice.Argument(3) @Nullable Object headersExtractor) {
-            if (tracer != null) {
-                if (headersExtractor != null) {
-                    HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
-                    transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
-                } else if (headerExtractor != null) {
-                    HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
-                    transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
-                } else {
-                    transaction = tracer.startRootTransaction(clazz.getClassLoader());
-                }
-                if (transaction != null) {
-                    ((Transaction) transaction).setFrameworkName(FRAMEWORK_NAME);
-                }
+        public static Transaction doStartTransaction(@Advice.Origin Class<?> clazz,
+                                                     @Advice.Argument(0) MethodHandle getFirstHeader,
+                                                     @Advice.Argument(1) @Nullable Object headerExtractor,
+                                                     @Advice.Argument(2) MethodHandle getAllHeaders,
+                                                     @Advice.Argument(3) @Nullable Object headersExtractor) {
+            if (tracer == null) {
+                return null;
             }
+            Transaction transaction = null;
+            if (headersExtractor != null) {
+                HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
+                transaction = tracer.startChildTransaction(HeadersExtractorBridge.Extractor.of(headerExtractor, headersExtractor), headersExtractorBridge, clazz.getClassLoader());
+            } else if (headerExtractor != null) {
+                HeaderExtractorBridge headersExtractorBridge = HeaderExtractorBridge.get(getFirstHeader);
+                transaction = tracer.startChildTransaction(headerExtractor, headersExtractorBridge, clazz.getClassLoader());
+            } else {
+                transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            }
+            if (transaction != null) {
+                transaction.setFrameworkName(FRAMEWORK_NAME);
+            }
+            return transaction;
         }
     }
 
@@ -113,12 +122,15 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doGetCurrentTransaction"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void doGetCurrentTransaction(@Advice.Return(readOnly = false) Object transaction) {
-            if (tracer != null) {
-                transaction = tracer.currentTransaction();
+        public static Object doGetCurrentTransaction() {
+            if (tracer == null) {
+                return null;
             }
+            return tracer.currentTransaction();
         }
     }
 
@@ -127,12 +139,15 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("doGetCurrentSpan"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
-            if (tracer != null) {
-                span = tracer.getActive();
+        public static Object doGetCurrentSpan() {
+            if (tracer == null) {
+                return null;
             }
+            return tracer.getActive();
         }
     }
 
@@ -143,7 +158,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
+        public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
             if (tracer != null) {
                 tracer.captureAndReportException(e, clazz.getClassLoader());
             }
