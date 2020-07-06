@@ -62,6 +62,7 @@
         <module>apm-opentracing</module>
         <module>integration-tests</module>
         <module>apm-agent-attach</module>
+        <module>apm-agent-plugin-sdk</module>
     </modules>
 
     <properties>

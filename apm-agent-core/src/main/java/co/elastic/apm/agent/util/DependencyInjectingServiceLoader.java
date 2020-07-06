@@ -34,6 +34,7 @@ import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -46,28 +47,30 @@ public class DependencyInjectingServiceLoader<T> {
     private final Object[] constructorArguments;
     private final Class<?>[] constructorTypes;
     private final List<T> instances = new ArrayList<>();
-    @Nullable
-    private final ClassLoader classLoader;
 
     private DependencyInjectingServiceLoader(Class<T> clazz, Object... constructorArguments) {
+        this(clazz, Collections.singletonList(clazz.getClassLoader()), constructorArguments);
+    }
+
+    private DependencyInjectingServiceLoader(Class<T> clazz, List<ClassLoader> classLoaders, Object... constructorArguments) {
         this.clazz = clazz;
         this.constructorArguments = constructorArguments;
-        this.classLoader = clazz.getClassLoader();
         List<Class<?>> types = new ArrayList<>(constructorArguments.length);
         for (Object constructorArgument : constructorArguments) {
             types.add(constructorArgument.getClass());
         }
         constructorTypes = types.toArray(new Class[]{});
         try {
-            final Enumeration<URL> resources = getServiceDescriptors(clazz);
-            Set<String> implementations = getImplementations(resources);
-            instantiate(implementations);
+            for (ClassLoader classLoader : classLoaders) {
+                final Enumeration<URL> resources = getServiceDescriptors(classLoader, clazz);
+                instantiate(classLoader, getImplementations(resources));
+            }
         } catch (IOException e) {
             throw new ServiceConfigurationError(e.getMessage(), e);
         }
     }
 
-    private Enumeration<URL> getServiceDescriptors(Class<T> clazz) throws IOException {
+    private Enumeration<URL> getServiceDescriptors(@Nullable ClassLoader classLoader, Class<T> clazz) throws IOException {
         if (classLoader != null) {
             return classLoader.getResources("META-INF/services/" + clazz.getName());
         } else {
@@ -77,6 +80,10 @@ public class DependencyInjectingServiceLoader<T> {
 
     public static <T> List<T> load(Class<T> clazz, Object... constructorArguments) {
         return new DependencyInjectingServiceLoader<>(clazz, constructorArguments).instances;
+    }
+
+    public static <T> List<T> load(Class<T> clazz, List<ClassLoader> classLoaders, Object... constructorArguments) {
+        return new DependencyInjectingServiceLoader<>(clazz, classLoaders, constructorArguments).instances;
     }
 
     private static boolean isComment(String serviceImplementationClassName) {
@@ -100,13 +107,13 @@ public class DependencyInjectingServiceLoader<T> {
         return implementations;
     }
 
-    private void instantiate(Set<String> implementations) {
+    private void instantiate(ClassLoader classLoader, Set<String> implementations) {
         for (String implementation : implementations) {
-            instances.add(instantiate(implementation));
+            instances.add(instantiate(classLoader, implementation));
         }
     }
 
-    private T instantiate(String implementation) {
+    private T instantiate(ClassLoader classLoader, String implementation) {
         try {
             final Class<?> implementationClass = Class.forName(implementation, true, classLoader);
             checkClassModifiers(implementationClass);

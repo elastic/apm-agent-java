@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.threadlocal;
+package co.elastic.apm.agent.bci.classloading;
 
-import co.elastic.apm.agent.annotation.NonnullApi;
+import co.elastic.apm.agent.sdk.NonnullApi;

@@ -509,6 +509,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 
+    private final ConfigurationOption<String> pluginsDirLocation = ConfigurationOption.stringOption()
+        .key("plugins_dir")
+        .tags("added[1.18.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal", "experimental")
+        .description("A folder that contains external agent plugins.\n" +
+            "\n" +
+            "Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.\n" +
+            "The agent will load all instrumentations that are declared in the\n" +
+            "`META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.\n" +
+            "See `integration-tests/external-plugin-test` for an example plugin.")
+        .build();
+
     private final ConfigurationOption<Boolean> useElasticTraceparentHeader = ConfigurationOption.booleanOption()
         .key("use_elastic_traceparent_header")
         .tags("added[1.14.0]")
@@ -700,6 +713,22 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         }
         if (configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+            String agentHome = ElasticApmAgent.getAgentHome();
+            if (agentHome != null) {
+                return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+            } else {
+                return null;
+            }
+        } else {
+            return configFileLocation;
+        }
+    }
+
+    @Nullable
+    public String getPluginsDir() {
+        @Nullable
+        String configFileLocation = pluginsDirLocation.get();
+        if (configFileLocation != null && configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
             String agentHome = ElasticApmAgent.getAgentHome();
             if (agentHome != null) {
                 return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);

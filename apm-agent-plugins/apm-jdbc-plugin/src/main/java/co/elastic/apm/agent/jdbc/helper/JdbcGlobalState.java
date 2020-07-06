@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.bci.GlobalState;
-import co.elastic.apm.agent.collections.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import java.sql.Connection;

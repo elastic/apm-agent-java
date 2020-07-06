@@ -10,6 +10,12 @@
 
     <artifactId>apm-agent-core</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
 
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
@@ -18,6 +24,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-plugin-sdk</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
@@ -29,11 +40,6 @@
             <version>2.1.2</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${version.slf4j}</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
@@ -49,21 +55,11 @@
             <artifactId>log4j2-ecs-layout</artifactId>
             <version>0.3.0</version>
         </dependency>
-        <dependency>
-            <groupId>com.blogspot.mydailyjava</groupId>
-            <artifactId>weak-lock-free</artifactId>
-            <version>0.15</version>
-        </dependency>
 
         <dependency>
             <groupId>org.stagemonitor</groupId>
             <artifactId>stagemonitor-configuration</artifactId>
             <version>0.87.3</version>
-        </dependency>
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy-dep</artifactId>
-            <version>${version.byte-buddy}</version>
         </dependency>
         <dependency>
             <groupId>org.ow2.asm</groupId>
