@@ -27,6 +27,7 @@ package co.elastic.apm.agent.metrics.builtin;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import org.assertj.core.api.AbstractDoubleAssert;
 import org.junit.jupiter.api.Test;
 
 import java.lang.management.ManagementFactory;
@@ -34,6 +35,7 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryType;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -47,28 +49,41 @@ class JvmMemoryMetricsTest {
         final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class));
         jvmMemoryMetrics.bindTo(registry);
 
-        assertThat(registry.getGaugeValue("jvm.memory.heap.used", Labels.EMPTY)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.committed", Labels.EMPTY)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.heap.max", Labels.EMPTY)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.non_heap.used", Labels.EMPTY)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.non_heap.committed", Labels.EMPTY)).isNotZero();
-        assertThat(registry.getGaugeValue("jvm.memory.non_heap.max", Labels.EMPTY)).isNotZero();
+        Stream.of(
+            "heap.used",
+            "heap.committed",
+            "heap.max",
+            "non_heap.used",
+            "non_heap.committed",
+            "non_heap.max")
+            .forEach(s ->
+                assertMetric(registry, "jvm.memory." + s, Labels.EMPTY)
+                    .isNotZero());
 
         List<String> memoryPoolNames = getMemoryPoolNames();
         for (String memoryPoolName : memoryPoolNames) {
             final Labels spaceLabel = Labels.Mutable.of("name", memoryPoolName);
-            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", spaceLabel)).isNotZero();
-            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.used", spaceLabel)).isNotNaN();
-            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", spaceLabel)).isNotZero();
-            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.committed", spaceLabel)).isNotNaN();
-            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", spaceLabel)).isNotZero();
-            assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", spaceLabel)).isNotNaN();
+
+            Stream.of(
+                "used",
+                "committed",
+                "max")
+                .forEach(s -> assertMetric(registry, "jvm.memory.heap.pool." + s, spaceLabel)
+                    .isNotNaN()
+                    .isGreaterThanOrEqualTo(s.equals("max") ? -1D : 0D)); // max is often not set with a short-lived JVM
         }
-        final long[] longs = new long[1000000];
+    }
+
+    private AbstractDoubleAssert<?> assertMetric(MetricRegistry registry, String name, Labels labels) {
+        return assertThat(registry.getGaugeValue(name, labels))
+            .describedAs("metric = '%s', labels = [%s]", name, labels);
     }
 
     private List<String> getMemoryPoolNames() {
-        List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
-        return memoryPoolMXBeans.stream().filter(k -> k.getType().equals(MemoryType.HEAP)).map(k -> k.getName()).collect(Collectors.toList());
+        return ManagementFactory.getMemoryPoolMXBeans()
+            .stream()
+            .filter(k -> k.getType().equals(MemoryType.HEAP))
+            .map(MemoryPoolMXBean::getName)
+            .collect(Collectors.toList());
     }
 }
