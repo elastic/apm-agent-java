@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class CallDepth {
     private static final ConcurrentMap<String, CallDepth> registry = new ConcurrentHashMap<>();
-    private final ThreadLocal<MutableInt> callDepthPerThread = new ThreadLocal<MutableInt>();
+    private final ThreadLocal<Integer> callDepthPerThread = new ThreadLocal<Integer>();
 
     private CallDepth() {
     }
@@ -68,7 +68,9 @@ public class CallDepth {
      * @return the call depth before it has been incremented
      */
     public int increment() {
-        return get().getAndIncrement();
+        int depth = get();
+        set(depth + 1);
+        return depth;
     }
 
     /**
@@ -92,7 +94,8 @@ public class CallDepth {
      * @return the call depth after it has been incremented
      */
     public int decrement() {
-        int depth = get().decrementAndGet();
+        int depth = get() - 1;
+        set(depth);
         assert depth >= 0;
         return depth;
     }
@@ -111,24 +114,16 @@ public class CallDepth {
         return decrement() != 0;
     }
 
-    private MutableInt get() {
-        MutableInt callDepthForCurrentThread = callDepthPerThread.get();
+    private int get() {
+        Integer callDepthForCurrentThread = callDepthPerThread.get();
         if (callDepthForCurrentThread == null) {
-            callDepthForCurrentThread = new MutableInt();
+            callDepthForCurrentThread = 0;
             callDepthPerThread.set(callDepthForCurrentThread);
         }
         return callDepthForCurrentThread;
     }
 
-    private static class MutableInt {
-        private int i;
-
-        public int getAndIncrement() {
-            return i++;
-        }
-
-        public int decrementAndGet() {
-            return --i;
-        }
+    private void set(int depth) {
+        callDepthPerThread.set(depth);
     }
 }
