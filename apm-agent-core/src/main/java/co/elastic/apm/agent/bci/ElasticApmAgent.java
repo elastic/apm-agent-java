@@ -102,8 +102,9 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
 
-    // Don't init logger as a static field, logging needs to be initialized first see also issue #593
-    // private static final Logger doNotUseThisLogger = LoggerFactory.getLogger(ElasticApmAgent.class);
+    // Don't eagerly create logger. Logging needs to be initialized first based on configuration. See also issue #593
+    @Nullable
+    private static Logger logger;
 
     private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
     @Nullable
@@ -161,6 +162,7 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
+        GlobalTracer.set(tracer);
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
             public void run() {
@@ -169,12 +171,11 @@ public class ElasticApmAgent {
             }
         });
         matcherTimers.clear();
-        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+        Logger logger = getLogger();
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
             return;
         }
-        GlobalTracer.set(tracer);
         // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
@@ -199,7 +200,7 @@ public class ElasticApmAgent {
             return executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    doReInitInstrumentation(loadInstrumentations(tracer), tracer);
+                    doReInitInstrumentation(loadInstrumentations(tracer));
                 }
             });
         } finally {
@@ -207,10 +208,10 @@ public class ElasticApmAgent {
         }
     }
 
-    static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations, ElasticApmTracer tracer) {
-        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+    static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations) {
+        Logger logger = getLogger();
         logger.info("Re initializing instrumentation");
-        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
+        AgentBuilder agentBuilder = initAgentBuilder(GlobalTracer.requireTracerImpl(), instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
 
         resettableClassFileTransformer = agentBuilder.patchOn(instrumentation, resettableClassFileTransformer);
     }
@@ -259,7 +260,7 @@ public class ElasticApmAgent {
 
     private static AgentBuilder applyAdvice(final ElasticApmTracer tracer, final AgentBuilder agentBuilder,
                                             final ElasticApmInstrumentation instrumentation, final ElementMatcher<? super TypeDescription> typeMatcher) {
-        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+        final Logger logger = getLogger();
         logger.debug("Applying instrumentation {}", instrumentation.getClass().getName());
         final boolean classLoadingMatchingPreFilter = tracer.getConfig(CoreConfiguration.class).isClassLoadingMatchingPreFilter();
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
@@ -313,6 +314,19 @@ public class ElasticApmAgent {
                     return builder.visit(MinimumClassFileVersionValidator.INSTANCE);
                 }
             });
+    }
+
+    private static Logger getLogger() {
+        if (logger == null) {
+            // lazily init logger to allow the tracer builder to init the logging config first
+            GlobalTracer.requireTracerImpl();
+            logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+        }
+        // re-using an existing logger avoids running into a JVM bug that leads to a segfault
+        // this happens when StackWalker runs concurrently to class redefinitions
+        // see https://bugs.openjdk.java.net/browse/JDK-8210457
+        // this crash could only be reproduced in tests so far
+        return logger;
     }
 
     private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
