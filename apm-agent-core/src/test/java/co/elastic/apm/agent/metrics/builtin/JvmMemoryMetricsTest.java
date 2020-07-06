@@ -46,7 +46,7 @@ class JvmMemoryMetricsTest {
     void testMetrics() {
         final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class));
         jvmMemoryMetrics.bindTo(registry);
-        System.out.println(registry.toString());
+
         assertThat(registry.getGaugeValue("jvm.memory.heap.used", Labels.EMPTY)).isNotZero();
         assertThat(registry.getGaugeValue("jvm.memory.heap.committed", Labels.EMPTY)).isNotZero();
         assertThat(registry.getGaugeValue("jvm.memory.heap.max", Labels.EMPTY)).isNotZero();
@@ -65,7 +65,6 @@ class JvmMemoryMetricsTest {
             assertThat(registry.getGaugeValue("jvm.memory.heap.pool.max", spaceLabel)).isNotNaN();
         }
         final long[] longs = new long[1000000];
-        System.out.println(registry.toString());
     }
 
     private List<String> getMemoryPoolNames() {
