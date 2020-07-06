@@ -87,7 +87,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
         public static Transaction beforeOnMessage(@Advice.Argument(0) @Nullable final Message message,
                                                   @Advice.Origin Class<?> clazz) {
 
-            if (message == null || tracer == null || tracer.currentTransaction() != null) {
+            if (message == null || tracer.currentTransaction() != null) {
                 return null;
             }
 

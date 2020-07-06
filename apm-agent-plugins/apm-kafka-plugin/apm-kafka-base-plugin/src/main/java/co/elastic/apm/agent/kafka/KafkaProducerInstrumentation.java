@@ -79,9 +79,6 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord record,
                                       @Advice.Argument(1) @Nullable Callback callback) {
-            if (tracer == null) {
-                return callback;
-            }
             Span span = null;
 
             //noinspection ConstantConditions
@@ -101,7 +98,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         public static void afterSend(@Advice.Argument(0) final ProducerRecord record,
                                      @Advice.This final KafkaProducer thiz,
                                      @Advice.Thrown final Throwable throwable) {
-            final Span span = getActiveExitSpan();
+            final Span span = tracer.getActiveExitSpan();
             //noinspection ConstantConditions
             KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (helper != null && span != null) {

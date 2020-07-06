@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.spring.scheduled;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -48,7 +48,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPa
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class TimerTaskInstrumentation extends ElasticApmInstrumentation {
+public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     private static final String FRAMEWORK_NAME = "TimerTask";
 
     @VisibleForAdvice
@@ -62,19 +62,17 @@ public class TimerTaskInstrumentation extends ElasticApmInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) {
-        if (tracer != null) {
-            AbstractSpan<?> active = tracer.getActive();
-            if (active == null) {
-                transaction = tracer.startRootTransaction(clazz.getClassLoader());
-                if (transaction != null) {
-                    transaction.withName(signature)
-                        .withType("scheduled")
-                        .activate();
-                    transaction.setFrameworkName(FRAMEWORK_NAME);
-                }
-            } else {
-                logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
+        AbstractSpan<?> active = tracer.getActive();
+        if (active == null) {
+            transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            if (transaction != null) {
+                transaction.withName(signature)
+                    .withType("scheduled")
+                    .activate();
+                transaction.setFrameworkName(FRAMEWORK_NAME);
             }
+        } else {
+            logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
         }
     }
 

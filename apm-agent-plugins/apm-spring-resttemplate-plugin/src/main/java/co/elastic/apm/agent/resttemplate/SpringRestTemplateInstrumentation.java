@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.resttemplate;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -55,7 +55,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation {
+public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentation {
 
     // We can refer Spring type thanks to type erasure
     @VisibleForAdvice
@@ -102,7 +102,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeExecute(@Advice.This ClientHttpRequest request,
                                           @Advice.Local("span") Span span) {
-            if (tracer == null || tracer.getActive() == null) {
+            if (tracer.getActive() == null) {
                 return;
             }
             final AbstractSpan<?> parent = tracer.getActive();

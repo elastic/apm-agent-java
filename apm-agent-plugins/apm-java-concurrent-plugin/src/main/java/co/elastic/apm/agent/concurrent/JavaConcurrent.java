@@ -27,7 +27,7 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
@@ -54,10 +54,7 @@ public class JavaConcurrent {
     }
 
     @Nullable
-    public static AbstractSpan<?> restoreContext(Object o, @Nullable ElasticApmTracer tracer) {
-        if (tracer == null) {
-            return null;
-        }
+    public static AbstractSpan<?> restoreContext(Object o, Tracer tracer) {
         // When an Executor executes directly on the current thread we need to enable this thread for context propagation again
         needsContext.set(Boolean.TRUE);
         AbstractSpan<?> context = contextMap.remove(o);
@@ -78,8 +75,8 @@ public class JavaConcurrent {
      * Instruments or wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      */
     @Nullable
-    public static Runnable withContext(@Nullable Runnable runnable, @Nullable ElasticApmTracer tracer) {
-        if (runnable instanceof RunnableLambdaWrapper || runnable == null || tracer == null || needsContext.get() == Boolean.FALSE) {
+    public static Runnable withContext(@Nullable Runnable runnable, Tracer tracer) {
+        if (runnable instanceof RunnableLambdaWrapper || runnable == null || needsContext.get() == Boolean.FALSE) {
             return runnable;
         }
         needsContext.set(Boolean.FALSE);
@@ -106,8 +103,8 @@ public class JavaConcurrent {
      * Instruments or wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      */
     @Nullable
-    public static <T> Callable<T> withContext(@Nullable Callable<T> callable, @Nullable ElasticApmTracer tracer) {
-        if (callable instanceof CallableLambdaWrapper || callable == null || tracer == null  || needsContext.get() == Boolean.FALSE) {
+    public static <T> Callable<T> withContext(@Nullable Callable<T> callable, Tracer tracer) {
+        if (callable instanceof CallableLambdaWrapper || callable == null || needsContext.get() == Boolean.FALSE) {
             return callable;
         }
         needsContext.set(Boolean.FALSE);
@@ -123,8 +120,8 @@ public class JavaConcurrent {
     }
 
     @Nullable
-    public static <T> ForkJoinTask<T> withContext(@Nullable ForkJoinTask<T> task, @Nullable ElasticApmTracer tracer) {
-        if (task == null || tracer == null  || needsContext.get() == Boolean.FALSE) {
+    public static <T> ForkJoinTask<T> withContext(@Nullable ForkJoinTask<T> task, Tracer tracer) {
+        if (task == null || needsContext.get() == Boolean.FALSE) {
             return task;
         }
         needsContext.set(Boolean.FALSE);
@@ -157,8 +154,8 @@ public class JavaConcurrent {
     }
 
     @Nullable
-    public static <T> Collection<? extends Callable<T>> withContext(@Nullable Collection<? extends Callable<T>> callables, @Nullable ElasticApmTracer tracer) {
-        if (callables == null || tracer == null) {
+    public static <T> Collection<? extends Callable<T>> withContext(@Nullable Collection<? extends Callable<T>> callables, Tracer tracer) {
+        if (callables == null) {
             return null;
         }
         if (callables.isEmpty()) {

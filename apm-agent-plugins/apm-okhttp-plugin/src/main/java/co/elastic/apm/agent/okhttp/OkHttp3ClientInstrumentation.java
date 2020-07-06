@@ -67,7 +67,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
-            if (tracer == null || tracer.getActive() == null || !(originalRequest instanceof Request)) {
+            if (tracer.getActive() == null || !(originalRequest instanceof Request)) {
                 return originalRequest;
             }
 

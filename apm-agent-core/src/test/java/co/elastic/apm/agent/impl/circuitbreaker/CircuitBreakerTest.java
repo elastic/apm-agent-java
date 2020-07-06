@@ -26,8 +26,8 @@ package co.elastic.apm.agent.impl.circuitbreaker;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import org.awaitility.core.ConditionFactory;
 import org.awaitility.core.ThrowingRunnable;
@@ -43,8 +43,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.PAUSED;
-import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.RUNNING;
+import static co.elastic.apm.agent.impl.Tracer.TracerState.PAUSED;
+import static co.elastic.apm.agent.impl.Tracer.TracerState.RUNNING;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;

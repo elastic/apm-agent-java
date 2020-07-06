@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.process;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -63,9 +64,6 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                                   @Advice.Return Process process,
                                   @Advice.Thrown @Nullable Throwable t) {
 
-            if (tracer == null) {
-                return;
-            }
             AbstractSpan<?> parentSpan = tracer.getActive();
             if (parentSpan == null) {
                 return;

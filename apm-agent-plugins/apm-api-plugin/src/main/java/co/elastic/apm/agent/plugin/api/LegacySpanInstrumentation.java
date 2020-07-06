@@ -146,9 +146,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
         public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            if (tracer == null) {
-                return null;
-            }
             return span.getTraceContext().getId().toString();
         }
     }
@@ -163,9 +160,6 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
         public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            if (tracer == null) {
-                return null;
-            }
             return span.getTraceContext().getTraceId().toString();
         }
     }

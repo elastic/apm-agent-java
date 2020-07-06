@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.AnnotationValueExtractor;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
@@ -54,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation {
+public class CaptureTransactionInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(CaptureTransactionInstrumentation.class);
@@ -71,23 +71,21 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
                                      @Advice.Local("transaction") Transaction transaction) {
-        if (tracer != null) {
-            final Object active = tracer.getActive();
-            if (active == null) {
-                transaction = tracer.startRootTransaction(clazz.getClassLoader());
-                if (transaction != null) {
-                    if (transactionName.isEmpty()) {
-                        transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                    } else {
-                        transaction.withName(transactionName, PRIO_USER_SUPPLIED);
-                    }
-                    transaction.withType(type)
-                        .activate();
-                    transaction.setFrameworkName(FRAMEWORK_NAME);
+        final Object active = tracer.getActive();
+        if (active == null) {
+            transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            if (transaction != null) {
+                if (transactionName.isEmpty()) {
+                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                } else {
+                    transaction.withName(transactionName, PRIO_USER_SUPPLIED);
                 }
-            } else {
-                logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
+                transaction.withType(type)
+                    .activate();
+                transaction.setFrameworkName(FRAMEWORK_NAME);
             }
+        } else {
+            logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
         }
     }
 

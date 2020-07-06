@@ -89,7 +89,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable okhttp3.Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
-            if (tracer == null || tracer.getActive() == null || callbackWrapperCreator == null) {
+            if (tracer.getActive() == null || callbackWrapperCreator == null) {
                 return null;
             }
 

@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-public abstract class BaseApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
+public abstract class BaseApacheHttpClientInstrumentation extends TracerAwareInstrumentation {
 
     // Referencing specific Apache HTTP client classes are allowed due to type erasure
     @VisibleForAdvice

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,8 +24,9 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
 import com.mongodb.ServerAddress;
@@ -48,7 +49,11 @@ public class ConnectionAdvice {
     public static Span onEnter(@Advice.This Connection thiz,
                                @Advice.Argument(0) Object databaseOrMongoNamespace,
                                @Advice.Argument(1) BsonDocument command) {
-        Span span = ElasticApmInstrumentation.createExitSpan();
+        Span span = null;
+        final AbstractSpan<?> activeSpan = GlobalTracer.get().getActive();
+        if (activeSpan != null && !activeSpan.isExit()) {
+            span = activeSpan.createExitSpan();
+        }
 
         if (span == null) {
             return null;

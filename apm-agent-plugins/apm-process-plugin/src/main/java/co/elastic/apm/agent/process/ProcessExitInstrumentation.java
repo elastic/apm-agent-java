@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.process;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -74,7 +75,7 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
             public static void onExit(@Advice.This Process process) {
 
-                if (tracer == null || tracer.getActive() == null) {
+                if (tracer.getActive() == null) {
                     return;
                 }
 
@@ -112,7 +113,7 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
             public static void onExit(@Advice.This Process process) {
 
-                if (tracer == null || tracer.getActive() == null) {
+                if (tracer.getActive() == null) {
                     return;
                 }
 

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.jsf;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -35,7 +35,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import javax.faces.context.FacesContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Instruments javax.faces.lifecycle.Lifecycle#execute and javax.faces.lifecycle.Lifecycle#render.
  * Code is duplicated because it is injected inline
  */
-public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentation {
+public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumentation {
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_SUBTYPE = "jsf";
     private static final String FRAMEWORK_NAME = "JavaServer Faces";
@@ -101,40 +100,38 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
             @Advice.OnMethodEnter(suppress = Throwable.class)
             public static void createExecuteSpan(@Advice.Argument(0) javax.faces.context.FacesContext facesContext,
                                                  @Advice.Local("span") Span span) {
-                if (tracer != null) {
-                    final AbstractSpan<?> parent = tracer.getActive();
-                    if (parent == null) {
+                final AbstractSpan<?> parent = tracer.getActive();
+                if (parent == null) {
+                    return;
+                }
+                if (parent instanceof Span) {
+                    Span parentSpan = (Span)parent;
+                    if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
                         return;
                     }
-                    if (parent instanceof Span) {
-                        Span parentSpan = (Span)parent;
-                        if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
-                            return;
-                        }
-                    }
-                    Transaction transaction = tracer.currentTransaction();
-                    if (transaction != null) {
-                        try {
-                            javax.faces.context.ExternalContext externalContext = facesContext.getExternalContext();
-                            if (externalContext != null) {
-                                transaction.withName(externalContext.getRequestServletPath(), PRIO_HIGH_LEVEL_FRAMEWORK);
-                                String pathInfo = externalContext.getRequestPathInfo();
-                                if (pathInfo != null) {
-                                    transaction.appendToName(pathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
-                                }
-                            }
-                            transaction.setFrameworkName(FRAMEWORK_NAME);
-                        } catch (Exception e) {
-                            // do nothing- rely on the default servlet name logic
-                        }
-                    }
-                    span = parent.createSpan()
-                        .withType(SPAN_TYPE)
-                        .withSubtype(SPAN_SUBTYPE)
-                        .withAction(SPAN_ACTION)
-                        .withName("JSF Execute");
-                    span.activate();
                 }
+                Transaction transaction = tracer.currentTransaction();
+                if (transaction != null) {
+                    try {
+                        javax.faces.context.ExternalContext externalContext = facesContext.getExternalContext();
+                        if (externalContext != null) {
+                            transaction.withName(externalContext.getRequestServletPath(), PRIO_HIGH_LEVEL_FRAMEWORK);
+                            String pathInfo = externalContext.getRequestPathInfo();
+                            if (pathInfo != null) {
+                                transaction.appendToName(pathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
+                            }
+                        }
+                        transaction.setFrameworkName(FRAMEWORK_NAME);
+                    } catch (Exception e) {
+                        // do nothing- rely on the default servlet name logic
+                    }
+                }
+                span = parent.createSpan()
+                    .withType(SPAN_TYPE)
+                    .withSubtype(SPAN_SUBTYPE)
+                    .withAction(SPAN_ACTION)
+                    .withName("JSF Execute");
+                span.activate();
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
@@ -179,24 +176,22 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
             @SuppressWarnings("Duplicates")
             @Advice.OnMethodEnter(suppress = Throwable.class)
             public static void createRenderSpan(@Advice.Local("span") Span span) {
-                if (tracer != null) {
-                    final AbstractSpan<?> parent = tracer.getActive();
-                    if (parent == null) {
+                final AbstractSpan<?> parent = tracer.getActive();
+                if (parent == null) {
+                    return;
+                }
+                if (parent instanceof Span) {
+                    Span parentSpan = (Span)parent;
+                    if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
                         return;
                     }
-                    if (parent instanceof Span) {
-                        Span parentSpan = (Span)parent;
-                        if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
-                            return;
-                        }
-                    }
-                    span = parent.createSpan()
-                        .withType(SPAN_TYPE)
-                        .withSubtype(SPAN_SUBTYPE)
-                        .withAction(SPAN_ACTION)
-                        .withName("JSF Render");
-                    span.activate();
                 }
+                span = parent.createSpan()
+                    .withType(SPAN_TYPE)
+                    .withSubtype(SPAN_SUBTYPE)
+                    .withAction(SPAN_ACTION)
+                    .withName("JSF Render");
+                span.activate();
             }
 
             @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)

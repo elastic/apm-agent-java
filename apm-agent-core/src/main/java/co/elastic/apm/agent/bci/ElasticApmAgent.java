@@ -40,6 +40,7 @@ import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
@@ -84,7 +85,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.anyMatch;
@@ -174,7 +174,7 @@ public class ElasticApmAgent {
             logger.warn("Instrumentation has already been initialized");
             return;
         }
-        ElasticApmInstrumentation.staticInit(tracer);
+        GlobalTracer.set(tracer);
         // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
@@ -190,8 +190,8 @@ public class ElasticApmAgent {
     }
 
     public static synchronized Future<?> reInitInstrumentation() {
-        final ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
-        if (tracer == null || instrumentation == null) {
+        final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }
         ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDeamonPool("apm-reinit", 1);
@@ -199,7 +199,7 @@ public class ElasticApmAgent {
             return executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    doReInitInstrumentation(loadInstrumentations(tracer));
+                    doReInitInstrumentation(loadInstrumentations(tracer), tracer);
                 }
             });
         } finally {
@@ -207,7 +207,7 @@ public class ElasticApmAgent {
         }
     }
 
-    static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations) {
+    static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations, ElasticApmTracer tracer) {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.info("Re initializing instrumentation");
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, false);
@@ -305,7 +305,7 @@ public class ElasticApmAgent {
                 }
             })
             .transform(new PatchBytecodeVersionTo51Transformer())
-            .transform(getTransformer(tracer, instrumentation, logger, methodMatcher))
+            .transform(getTransformer(instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
@@ -315,7 +315,7 @@ public class ElasticApmAgent {
             });
     }
 
-    private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmTracer tracer, final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
+    private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
             .with(new AssignToPostProcessorFactory())
@@ -574,8 +574,8 @@ public class ElasticApmAgent {
 
         if (!appliedInstrumentations.contains(instrumentationClasses)) {
             synchronized (ElasticApmAgent.class) {
-                ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
-                if (tracer == null || instrumentation == null) {
+                ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+                if (instrumentation == null) {
                     throw new IllegalStateException("Agent is not initialized");
                 }
 
@@ -666,7 +666,7 @@ public class ElasticApmAgent {
         if (constructor != null) {
             try {
                 if (withTracer) {
-                    instance = constructor.newInstance(ElasticApmInstrumentation.tracer);
+                    instance = constructor.newInstance(GlobalTracer.requireTracerImpl());
                 } else {
                     instance = constructor.newInstance();
                 }
