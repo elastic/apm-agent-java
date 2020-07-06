@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.spring.scheduled;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class ScheduledTransactionNameInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ScheduledTransactionNameInstrumentation.class);

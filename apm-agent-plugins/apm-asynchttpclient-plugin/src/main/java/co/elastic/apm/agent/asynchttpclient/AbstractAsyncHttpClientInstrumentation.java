@@ -27,12 +27,11 @@ package co.elastic.apm.agent.asynchttpclient;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
@@ -59,7 +58,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAwareInstrumentation {
 
     // Referencing specific AsyncHttpClient classes are allowed due to type erasure
     @VisibleForAdvice

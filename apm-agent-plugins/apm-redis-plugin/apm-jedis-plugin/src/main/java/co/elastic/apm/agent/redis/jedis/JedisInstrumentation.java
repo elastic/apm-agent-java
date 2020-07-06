@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis.jedis;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import net.bytebuddy.asm.Advice;
@@ -45,7 +45,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JedisInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class JedisInstrumentation extends TracerAwareInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeSendCommand(@Advice.This(typing = Assigner.Typing.DYNAMIC) BinaryJedis thiz,

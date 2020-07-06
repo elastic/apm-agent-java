@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.jsf;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -54,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Instruments javax.faces.lifecycle.Lifecycle#execute and javax.faces.lifecycle.Lifecycle#render.
  * Code is duplicated because it is injected inline
  */
-public abstract class JsfLifecycleInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumentation {
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_SUBTYPE = "jsf";
     private static final String FRAMEWORK_NAME = "JavaServer Faces";

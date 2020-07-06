@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -55,7 +55,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class SpringRestTemplateInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentation {
 
     // We can refer Spring type thanks to type erasure
     @VisibleForAdvice

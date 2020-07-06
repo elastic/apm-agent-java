@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -52,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class CaptureSpanInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);

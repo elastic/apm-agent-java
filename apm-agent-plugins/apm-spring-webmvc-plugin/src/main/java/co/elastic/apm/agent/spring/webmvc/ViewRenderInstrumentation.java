@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.spring.webmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class ViewRenderInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
 
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_ACTION = "render";

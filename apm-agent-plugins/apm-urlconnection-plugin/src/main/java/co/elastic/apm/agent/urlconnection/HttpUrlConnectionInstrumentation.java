@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.urlconnection;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class HttpUrlConnectionInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();

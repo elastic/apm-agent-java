@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -42,7 +42,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public abstract class BaseJmsInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation {
     @SuppressWarnings("WeakerAccess")
     @Nullable
     @VisibleForAdvice

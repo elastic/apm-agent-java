@@ -29,9 +29,8 @@ import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.bci.subpackage.AdviceInSubpackageInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -946,7 +945,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class UsingThreadLocal extends TracerAwareElasticApmInstrumentation {
+    public static class UsingThreadLocal extends TracerAwareInstrumentation {
 
         private static final ThreadLocal<AbstractSpan<?>> localSpan = new ThreadLocal<>() {
             @Override

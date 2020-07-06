@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.spring.scheduled;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -48,7 +48,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPa
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperClass;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class TimerTaskInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     private static final String FRAMEWORK_NAME = "TimerTask";
 
     @VisibleForAdvice

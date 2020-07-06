@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.error.logging;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import net.bytebuddy.asm.Advice;
@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings({"WeakerAccess"})
     @VisibleForAdvice

@@ -61,7 +61,7 @@ public class GlobalTracer implements Tracer {
     }
 
     public static ElasticApmTracer requireTracerImpl() {
-        return Objects.requireNonNull(getTracerImpl());
+        return Objects.requireNonNull(getTracerImpl(), "Registered tracer is not an instance of ElasticApmTracer");
     }
 
     public static void setNoop() {
@@ -72,7 +72,8 @@ public class GlobalTracer implements Tracer {
         TracerState currentTracerState = INSTANCE.tracer.getState();
         if (currentTracerState != TracerState.UNINITIALIZED && currentTracerState != TracerState.STOPPED) {
             logger.warn("Overriding running tracer");
-            //throw new IllegalStateException("Can't override tracer as current tracer is already running");
+            // TODO throw exception, requires changes in tests
+            // throw new IllegalStateException("Can't override tracer as current tracer is already running");
         }
         INSTANCE.tracer = tracer;
     }

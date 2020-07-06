@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.spring.webmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -38,7 +38,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class ExceptionHandlerInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class ExceptionHandlerInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Class<?> getAdviceClass() {

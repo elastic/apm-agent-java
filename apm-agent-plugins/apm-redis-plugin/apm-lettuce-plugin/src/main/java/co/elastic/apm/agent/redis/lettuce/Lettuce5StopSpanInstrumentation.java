@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.lettuce.core.protocol.RedisCommand;
@@ -54,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *     <li>{@link RedisCommand#cancel()}</li>
  * </ul>
  */
-public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(Lettuce5StopSpanInstrumentation.class);

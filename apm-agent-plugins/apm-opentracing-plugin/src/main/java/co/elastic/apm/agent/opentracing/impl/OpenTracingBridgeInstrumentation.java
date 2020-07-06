@@ -24,12 +24,12 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class OpenTracingBridgeInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class OpenTracingBridgeInstrumentation extends TracerAwareInstrumentation {
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;

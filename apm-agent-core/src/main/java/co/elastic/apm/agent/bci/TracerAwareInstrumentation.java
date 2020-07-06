@@ -31,7 +31,7 @@ import co.elastic.apm.agent.impl.Tracer;
 /**
  * The constructor can optionally have a {@link ElasticApmTracer} parameter.
  */
-public abstract class TracerAwareElasticApmInstrumentation extends ElasticApmInstrumentation {
+public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
     public static final Tracer tracer = GlobalTracer.get();

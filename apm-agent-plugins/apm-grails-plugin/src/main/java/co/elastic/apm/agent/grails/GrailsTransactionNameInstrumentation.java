@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.grails;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import grails.core.GrailsControllerClass;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class GrailsTransactionNameInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

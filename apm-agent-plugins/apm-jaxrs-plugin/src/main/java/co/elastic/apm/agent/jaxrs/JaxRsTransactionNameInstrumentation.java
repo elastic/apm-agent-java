@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -54,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxRsTransactionNameInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
     public static boolean useAnnotationValueForTransactionName;
 
@@ -72,7 +72,7 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareElasticApmIn
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature,
                                            @JaxRsPath @Nullable String pathAnnotationValue) {
-        final Transaction transaction = TracerAwareElasticApmInstrumentation.tracer.currentTransaction();
+        final Transaction transaction = TracerAwareInstrumentation.tracer.currentTransaction();
         if (transaction != null) {
             String transactionName = signature;
             if (useAnnotationValueForTransactionName) {

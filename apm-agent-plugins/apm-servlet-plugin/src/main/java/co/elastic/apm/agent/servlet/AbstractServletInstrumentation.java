@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -33,7 +33,7 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 
-public abstract class AbstractServletInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class AbstractServletInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

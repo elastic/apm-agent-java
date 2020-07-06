@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -44,7 +44,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 @SuppressWarnings("rawtypes")
-public abstract class BaseKafkaInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class BaseKafkaInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings({"WeakerAccess"})
     @Nullable

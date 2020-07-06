@@ -24,14 +24,14 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
 import java.util.Collection;
 import java.util.Collections;
 
 import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 
-public abstract class ApiInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class ApiInstrumentation extends TracerAwareInstrumentation {
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;

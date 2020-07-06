@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.spring.webmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
@@ -61,7 +61,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Supports Spring MVC 3.x-5.x
  * </p>
  */
-public class SpringTransactionNameInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class SpringTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
     private static final String FRAMEWORK_NAME = "Spring Web MVC";
 

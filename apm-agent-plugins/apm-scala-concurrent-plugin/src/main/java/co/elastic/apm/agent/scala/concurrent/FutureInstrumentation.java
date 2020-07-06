@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.scala.concurrent;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -38,9 +38,11 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public abstract class FutureInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")

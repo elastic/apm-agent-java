@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -36,7 +36,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 
-public abstract class MongoClientInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class MongoClientInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

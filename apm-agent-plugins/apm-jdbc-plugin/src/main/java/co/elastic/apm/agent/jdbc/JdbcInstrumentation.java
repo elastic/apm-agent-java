@@ -24,13 +24,13 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class JdbcInstrumentation extends TracerAwareElasticApmInstrumentation {
+public abstract class JdbcInstrumentation extends TracerAwareInstrumentation {
 
     private static final Collection<String> JDBC_GROUPS = Collections.singleton("jdbc");
 

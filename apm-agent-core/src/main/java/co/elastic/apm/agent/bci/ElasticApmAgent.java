@@ -38,9 +38,9 @@ import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
@@ -190,8 +190,8 @@ public class ElasticApmAgent {
     }
 
     public static synchronized Future<?> reInitInstrumentation() {
-        final ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-        if (tracer == null || instrumentation == null) {
+        final ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+        if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }
         ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDeamonPool("apm-reinit", 1);
@@ -574,8 +574,8 @@ public class ElasticApmAgent {
 
         if (!appliedInstrumentations.contains(instrumentationClasses)) {
             synchronized (ElasticApmAgent.class) {
-                ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
-                if (tracer == null || instrumentation == null) {
+                ElasticApmTracer tracer = GlobalTracer.requireTracerImpl();
+                if (instrumentation == null) {
                     throw new IllegalStateException("Agent is not initialized");
                 }
 
@@ -666,7 +666,7 @@ public class ElasticApmAgent {
         if (constructor != null) {
             try {
                 if (withTracer) {
-                    instance = constructor.newInstance(GlobalTracer.getTracerImpl());
+                    instance = constructor.newInstance(GlobalTracer.requireTracerImpl());
                 } else {
                     instance = constructor.newInstance();
                 }

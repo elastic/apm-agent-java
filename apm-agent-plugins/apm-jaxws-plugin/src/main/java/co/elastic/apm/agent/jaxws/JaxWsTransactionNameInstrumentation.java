@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.jaxws;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxWsTransactionNameInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
     private static final String FRAMEWORK_NAME = "JAX-WS";
 

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.spring.webmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -40,7 +40,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class SpringServiceNameInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

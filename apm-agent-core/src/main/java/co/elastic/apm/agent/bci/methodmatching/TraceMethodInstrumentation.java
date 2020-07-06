@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.bci.methodmatching;
 
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -55,7 +55,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class TraceMethodInstrumentation extends TracerAwareElasticApmInstrumentation {
+public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
 
     public static long traceMethodThresholdMicros;
 

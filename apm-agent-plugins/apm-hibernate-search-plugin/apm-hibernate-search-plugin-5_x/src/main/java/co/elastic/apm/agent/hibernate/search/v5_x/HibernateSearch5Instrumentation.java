@@ -24,12 +24,7 @@
  */
 package co.elastic.apm.agent.hibernate.search.v5_x;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import javax.annotation.Nullable;
-
-import co.elastic.apm.agent.bci.TracerAwareElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchConstants;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -40,6 +35,10 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.hibernate.search.query.hibernate.impl.FullTextQueryImpl;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
+
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -48,7 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class HibernateSearch5Instrumentation extends TracerAwareElasticApmInstrumentation {
+public class HibernateSearch5Instrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Class<?> getAdviceClass() {
