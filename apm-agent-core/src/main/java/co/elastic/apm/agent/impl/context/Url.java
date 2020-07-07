@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -84,6 +84,32 @@ public class Url implements Recyclable {
      */
     public StringBuilder getFull() {
         return full;
+    }
+
+    /**
+     * Updates full URL from current state of {@literal this}.
+     *
+     * @return url
+     */
+    public Url withFull(String scheme, String host, int port, String path, @Nullable String query) {
+        // inspired by org.apache.catalina.connector.Request.getRequestURL
+        if (port < 0) {
+            port = 80; // Work around java.net.URL bug
+        }
+
+        full.append(scheme);
+        full.append("://");
+        full.append(host);
+        if ((scheme.equals("http") && (port != 80))
+            || (scheme.equals("https") && (port != 443))) {
+            full.append(':');
+            full.append(port);
+        }
+        full.append(path);
+        if (query != null) {
+            full.append('?').append(query);
+        }
+        return this;
     }
 
     public Url appendToFull(CharSequence charSequence) {
