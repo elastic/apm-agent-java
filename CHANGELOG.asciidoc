@@ -39,6 +39,7 @@ endif::[]
 * Add capturing of request body in Elasticsearch queries: `_msearch`, `_count`, `_msearch/template`, `_search/template`, `_rollup_search` - {pull}1222[#1222]
 * Add <<config-enabled,`enabled`>> flag
 * Add experimental support for Scala Futures
+* The agent now collects heap memory pools metrics - {pull}1228[#1228]
 
 [float]
 ===== Bug fixes
