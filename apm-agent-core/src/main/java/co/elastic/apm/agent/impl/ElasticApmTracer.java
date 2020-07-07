@@ -101,7 +101,7 @@ public class ElasticApmTracer implements Tracer {
     /**
      * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
      * {@link ElasticApmTracer#getState()}, or when updated through one of the lifecycle-effecting synchronized methods
-     * {@link ElasticApmTracer#start()}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
+     * {@link ElasticApmTracer#start(boolean)}}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
      * {@link ElasticApmTracer#stop()}.
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
@@ -476,8 +476,9 @@ public class ElasticApmTracer implements Tracer {
     }
 
     /**
-     * As opposed to {@link ElasticApmTracer#start()}, this method does not change the tracer's state and it's purpose
+     * As opposed to {@link ElasticApmTracer#start(boolean)}, this method does not change the tracer's state and it's purpose
      * is to be called at JVM bootstrap.
+     *
      * @param lifecycleListeners Lifecycle listeners
      */
     void init(List<LifecycleListener> lifecycleListeners) {
@@ -491,28 +492,38 @@ public class ElasticApmTracer implements Tracer {
         }
     }
 
-    public synchronized void start() {
-        if (getConfig(CoreConfiguration.class).getDelayInitMs() > 0) {
-            startWithDelay();
+    public synchronized void start(boolean premain) {
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
+        if (premain && shouldDelayOnPremain()) {
+            delayInitMs = Math.max(delayInitMs, 5000L);
+        }
+        if (delayInitMs > 0) {
+            startWithDelay(delayInitMs);
         } else {
             startSync();
         }
     }
 
-    private synchronized void startWithDelay() {
+    private boolean shouldDelayOnPremain() {
+        String javaVersion = System.getProperty("java.version");
+        return javaVersion != null &&
+            javaVersion.startsWith("1.8") &&
+            ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
+    }
+
+    private synchronized void startWithDelay(final long delayInitMs) {
         ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
         pool.submit(new Runnable() {
             @Override
             public void run() {
                 try {
-                    long delayInitMs = coreConfiguration.getDelayInitMs();
                     logger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
                     Thread.sleep(delayInitMs);
                     logger.info("end wait");
                 } catch (InterruptedException e) {
                     logger.error(e.getMessage(), e);
                 } finally {
-                    ElasticApmTracer.this.start();
+                    ElasticApmTracer.this.startSync();
                 }
             }
         });

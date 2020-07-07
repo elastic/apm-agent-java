@@ -28,7 +28,7 @@ class FutureInstrumentationSpec extends FunSuite {
     coreConfiguration = config.getConfig(classOf[CoreConfiguration])
     tracer = new ElasticApmTracerBuilder().configurationRegistry(config).reporter(reporter).build
     ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install)
-    tracer.start()
+    tracer.start(false)
     transaction = tracer.startRootTransaction(getClass.getClassLoader).withName("Transaction").activate()
   }
 
