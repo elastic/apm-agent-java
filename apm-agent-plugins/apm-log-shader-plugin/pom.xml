@@ -15,7 +15,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <version.ecs.logging>0.3.0</version.ecs.logging>
+        <version.ecs.logging>0.4.0</version.ecs.logging>
     </properties>
 
     <dependencies>
@@ -26,6 +26,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.13.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>logback-ecs-encoder</artifactId>
             <version>${version.ecs.logging}</version>
@@ -33,6 +39,11 @@
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j-ecs-layout</artifactId>
+            <version>${version.ecs.logging}</version>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>log4j2-ecs-layout</artifactId>
             <version>${version.ecs.logging}</version>
         </dependency>
     </dependencies>

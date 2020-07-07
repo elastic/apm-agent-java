@@ -24,18 +24,16 @@
  */
 package co.elastic.apm.agent.log.shader;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.core.FileAppender;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -44,44 +42,59 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-class LogbackLogShadingInstrumentationTest extends AbstractInstrumentationTest {
+@RunWith(Parameterized.class)
+public class LogShadingInstrumentationTest extends AbstractInstrumentationTest {
 
     public static final String TRACE_MESSAGE = "Trace-this";
     public static final String DEBUG_MESSAGE = "Debug-this";
     public static final String WARN_MESSAGE = "Warn-this";
     public static final String ERROR_MESSAGE = "Error-this";
-    public static final String SERVICE_NAME = "LogbackTest";
 
-    private Logger logbackLogger;
-    private ObjectMapper objectMapper;
+    public static final String SERVICE_NAME = "ECS Logging Test";
 
-    @BeforeEach
-    void setup() throws IOException {
+    private final LoggerFacade logger;
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    public LogShadingInstrumentationTest(LoggerFacade logger) {
+        this.logger = logger;
+    }
+
+    @Before
+    public void setup() throws IOException {
         when(config.getConfig(CoreConfiguration.class).getServiceName()).thenReturn(SERVICE_NAME);
-        logbackLogger = (Logger) LoggerFactory.getLogger("Test-File-Logger");
-        objectMapper = new ObjectMapper();
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
     }
 
+    @Parameterized.Parameters(name = "LoggerFacade = {0}")
+    public static Iterable<LoggerFacade> brokerFacades() {
+        return Arrays.asList(new LogbackLoggerFacade(), new Log4j2LoggerFacade());
+    }
+
     @Test
-    void testSimpleLogShading() throws IOException, ParseException {
-        String traceId = "afiuawrwuehrwu";
-        MDC.put("trace.id", traceId);
-        logbackLogger.trace(TRACE_MESSAGE);
-        logbackLogger.debug(DEBUG_MESSAGE);
-        logbackLogger.warn(WARN_MESSAGE);
-        logbackLogger.error(ERROR_MESSAGE);
+    public void testSimpleLogShading() throws IOException, ParseException {
+        String traceId = UUID.randomUUID().toString();
+        logger.putTraceIdToMdc(traceId);
+        try {
+            logger.trace(TRACE_MESSAGE);
+            logger.debug(DEBUG_MESSAGE);
+            logger.warn(WARN_MESSAGE);
+            logger.error(ERROR_MESSAGE);
+        } finally {
+            logger.removeTraceIdFromMdc();
+        }
 
         ArrayList<String[]> rawLogLines;
-        try (Stream<String> stream = Files.lines(Paths.get(getLogFilePath()))) {
+        try (Stream<String> stream = Files.lines(Paths.get(logger.getLogFilePath()))) {
             rawLogLines = stream.map(line -> line.split("\\s+")).collect(Collectors.toCollection(ArrayList::new));
         }
         assertThat(rawLogLines).hasSize(4);
@@ -106,11 +119,7 @@ class LogbackLogShadingInstrumentationTest extends AbstractInstrumentationTest {
 
     @Nonnull
     private String getShadeLogFilePath() {
-        return Utils.computeShadeLogFilePath(getLogFilePath());
-    }
-
-    private String getLogFilePath() {
-        return ((FileAppender<?>) logbackLogger.getAppender("FILE")).getFile();
+        return Utils.computeShadeLogFilePath(logger.getLogFilePath());
     }
 
     private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree, String traceId) throws ParseException {
@@ -128,16 +137,16 @@ class LogbackLogShadingInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     // Disabled - very slow. Can be used for file rolling manual testing
-    // @Test
-    void testShadeLogRolling() {
+//     @Test
+    public void testShadeLogRolling() {
         when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
-        logbackLogger.trace("First line");
+        logger.trace("First line");
         sleep();
-        logbackLogger.debug("Second Line");
+        logger.debug("Second Line");
         sleep();
-        logbackLogger.trace("Third line");
+        logger.trace("Third line");
         sleep();
-        logbackLogger.debug("Fourth line");
+        logger.debug("Fourth line");
         sleep();
     }
 

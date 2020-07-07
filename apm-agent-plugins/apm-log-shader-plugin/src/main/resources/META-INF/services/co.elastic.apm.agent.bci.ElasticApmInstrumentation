@@ -1,2 +1,5 @@
 co.elastic.apm.agent.log.shader.logback.LogbackLogShadingInstrumentation$ShadingInstrumentation
 co.elastic.apm.agent.log.shader.logback.LogbackLogShadingInstrumentation$StopAppenderInstrumentation
+co.elastic.apm.agent.log.shader.log4j2.Log4j2LogShadingInstrumentation$ShadingInstrumentation
+co.elastic.apm.agent.log.shader.log4j2.Log4j2LogShadingInstrumentation$StopAppenderInstrumentation
+

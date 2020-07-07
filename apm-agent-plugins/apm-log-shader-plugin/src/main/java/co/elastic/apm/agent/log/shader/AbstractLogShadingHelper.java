@@ -33,9 +33,12 @@ import javax.annotation.Nullable;
 
 /**
  * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL)
+ *
  * @param <A> logging-framework-specific Appender type
  */
 public abstract class AbstractLogShadingHelper<A> {
+
+    private static final Object NULL_APPENDER = new Object();
 
     private final ElasticApmTracer tracer;
     private final LoggingConfiguration loggingConfiguration;
@@ -59,12 +62,13 @@ public abstract class AbstractLogShadingHelper<A> {
         if (shadeAppender == null) {
             synchronized (appenderToShadeAppender) {
                 if (!appenderToShadeAppender.containsKey(originalAppender)) {
-                    appenderToShadeAppender.put(originalAppender, createAndConfigureAppender(originalAppender));
+                    A createdAppender = createAndConfigureAppender(originalAppender);
+                    appenderToShadeAppender.put(originalAppender, createdAppender != null ? createdAppender : NULL_APPENDER);
                 }
             }
             shadeAppender = appenderToShadeAppender.get(originalAppender);
         }
-        return (A) shadeAppender;
+        return shadeAppender != NULL_APPENDER ? (A) shadeAppender : null;
     }
 
     public void stopShading(A originalAppender) {
@@ -82,8 +86,10 @@ public abstract class AbstractLogShadingHelper<A> {
      */
     protected abstract boolean isShadingAppender(A appender);
 
+    @Nullable
     protected abstract A createAndConfigureAppender(A originalAppender);
 
+    // todo: find more accurate service name
     protected String getServiceName() {
         return serviceName;
     }
