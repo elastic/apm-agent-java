@@ -74,7 +74,7 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
                                @Advice.This ServerCall<?,?> serverCall,
                                @Advice.Argument(0) Status status) {
 
-        if (tracer == null || grpcHelperManager == null) {
+        if (grpcHelperManager == null) {
             return;
         }
 

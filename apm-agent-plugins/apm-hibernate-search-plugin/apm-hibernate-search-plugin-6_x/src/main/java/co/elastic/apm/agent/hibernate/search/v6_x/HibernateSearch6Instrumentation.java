@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.hibernate.search.v6_x;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchConstants;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -48,7 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class HibernateSearch6Instrumentation extends ElasticApmInstrumentation {
+public class HibernateSearch6Instrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Class<?> getAdviceClass() {

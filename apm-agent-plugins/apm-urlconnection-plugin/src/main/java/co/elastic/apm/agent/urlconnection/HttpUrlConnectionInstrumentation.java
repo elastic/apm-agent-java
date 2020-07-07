@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.urlconnection;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -49,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrumentation {
+public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();
@@ -69,17 +69,22 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
         return hasSuperType(is(HttpURLConnection.class));
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
+
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void enter(@Advice.This HttpURLConnection thiz,
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object enter(@Advice.This HttpURLConnection thiz,
                                  @Advice.FieldValue("connected") boolean connected,
-                                 @Advice.Local("span") Span span,
                                  @Advice.Origin String signature) {
-            if (tracer == null || tracer.getActive() == null) {
-                return;
+            if (tracer.getActive() == null) {
+                return null;
             }
-            span = inFlightSpans.get(thiz);
+            Span span = inFlightSpans.get(thiz);
             if (span == null && !connected) {
                 final URL url = thiz.getURL();
                 span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
@@ -92,14 +97,16 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
             if (span != null) {
                 span.activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpURLConnection thiz,
                                 @Nullable @Advice.Thrown Throwable t,
                                 @Advice.FieldValue("responseCode") int responseCode,
-                                @Nullable @Advice.Local("span") Span span,
+                                @Nullable @Advice.Enter Object spanObject,
                                 @Advice.Origin String signature) {
+            Span span = (Span) spanObject;
             if (span == null) {
                 return;
             }
@@ -135,7 +142,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
      */
     public static class DisconnectInstrumentation extends HttpUrlConnectionInstrumentation {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
                                            @Nullable @Advice.Thrown Throwable t,
                                            @Advice.FieldValue("responseCode") int responseCode) {

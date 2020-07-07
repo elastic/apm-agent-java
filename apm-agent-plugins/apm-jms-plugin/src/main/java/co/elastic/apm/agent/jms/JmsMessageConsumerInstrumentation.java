@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -101,62 +102,60 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
             @Advice.OnMethodEnter(suppress = Throwable.class)
             @Nullable
-            public static AbstractSpan beforeReceive(@Advice.Origin Class<?> clazz,
+            public static AbstractSpan<?> beforeReceive(@Advice.Origin Class<?> clazz,
                                                      @Advice.Origin("#m") String methodName) {
 
-                AbstractSpan createdSpan = null;
+                AbstractSpan<?> createdSpan = null;
                 boolean createPollingTransaction = false;
                 boolean createPollingSpan = false;
-                if (tracer != null) {
-                    final AbstractSpan<?> parent = tracer.getActive();
-                    if (parent == null) {
-                        createPollingTransaction = true;
-                    } else {
-                        if (parent instanceof Transaction) {
-                            Transaction transaction = (Transaction) parent;
-                            if (MESSAGE_POLLING.equals(transaction.getType())) {
-                                // Avoid duplications for nested calls
-                                return null;
-                            } else if (MESSAGE_HANDLING.equals(transaction.getType())) {
-                                // A transaction created in the OnMethodExit of the poll- end it here
-                                // Type must be changed to "messaging"
-                                transaction.withType(MESSAGING_TYPE);
-                                transaction.deactivate().end();
-                                createPollingTransaction = true;
-                            } else {
-                                createPollingSpan = true;
-                            }
-                        } else if (parent instanceof Span) {
-                            Span parentSpan = (Span) parent;
-                            if (MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
-                                // Avoid duplication for nested calls
-                                return null;
-                            }
+                final AbstractSpan<?> parent = tracer.getActive();
+                if (parent == null) {
+                    createPollingTransaction = true;
+                } else {
+                    if (parent instanceof Transaction) {
+                        Transaction transaction = (Transaction) parent;
+                        if (MESSAGE_POLLING.equals(transaction.getType())) {
+                            // Avoid duplications for nested calls
+                            return null;
+                        } else if (MESSAGE_HANDLING.equals(transaction.getType())) {
+                            // A transaction created in the OnMethodExit of the poll- end it here
+                            // Type must be changed to "messaging"
+                            transaction.withType(MESSAGING_TYPE);
+                            transaction.deactivate().end();
+                            createPollingTransaction = true;
+                        } else {
                             createPollingSpan = true;
                         }
-                    }
-
-                    if (messagingConfiguration != null) {
-                        createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
-                        createPollingTransaction |= "receiveNoWait".equals(methodName);
-                    }
-
-                    if (createPollingSpan) {
-                        createdSpan = parent.createSpan()
-                            .withType(MESSAGING_TYPE)
-                            .withSubtype("jms")
-                            .withAction("receive");
-                    } else if (createPollingTransaction) {
-                        createdSpan = tracer.startRootTransaction(clazz.getClassLoader());
-                        if (createdSpan != null) {
-                            ((Transaction) createdSpan).withType(MESSAGE_POLLING);
+                    } else if (parent instanceof Span) {
+                        Span parentSpan = (Span) parent;
+                        if (MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
+                            // Avoid duplication for nested calls
+                            return null;
                         }
+                        createPollingSpan = true;
                     }
+                }
 
+                if (messagingConfiguration != null) {
+                    createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
+                    createPollingTransaction |= "receiveNoWait".equals(methodName);
+                }
+
+                if (createPollingSpan) {
+                    createdSpan = parent.createSpan()
+                        .withType(MESSAGING_TYPE)
+                        .withSubtype("jms")
+                        .withAction("receive");
+                } else if (createPollingTransaction) {
+                    createdSpan = tracer.startRootTransaction(clazz.getClassLoader());
                     if (createdSpan != null) {
-                        createdSpan.withName(RECEIVE_NAME_PREFIX);
-                        createdSpan.activate();
+                        ((Transaction) createdSpan).withType(MESSAGE_POLLING);
                     }
+                }
+
+                if (createdSpan != null) {
+                    createdSpan.withName(RECEIVE_NAME_PREFIX);
+                    createdSpan.activate();
                 }
                 return createdSpan;
             }
@@ -164,7 +163,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
             public static void afterReceive(@Advice.Origin Class<?> clazz,
                                             @Advice.Origin("#m") String methodName,
-                                            @Advice.Enter @Nullable final AbstractSpan abstractSpan,
+                                            @Advice.Enter @Nullable final AbstractSpan<?> abstractSpan,
                                             @Advice.Return @Nullable final Message message,
                                             @Advice.Thrown final Throwable throwable) {
 
@@ -220,7 +219,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 }
 
-                if (!discard && tracer != null && tracer.currentTransaction() == null && helper != null
+                if (!discard && tracer.currentTransaction() == null && helper != null
                     && message != null && messagingConfiguration != null
                     && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
@@ -261,14 +260,17 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
         public static class ListenerWrappingAdvice {
 
-            @Advice.OnMethodEnter(suppress = Throwable.class)
-            public static void beforeSetListener(@Advice.Argument(value = 0, readOnly = false) @Nullable MessageListener original) {
+            @Nullable
+            @AssignTo.Argument(0)
+            @Advice.OnMethodEnter(inline = false)
+            public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
                 //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked
                 JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
                     jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
                 if (helper != null) {
-                    original = helper.wrapLambda(original);
+                    return helper.wrapLambda(original);
                 }
+                return original;
             }
         }
     }

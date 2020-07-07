@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
@@ -73,40 +74,33 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
 
     @SuppressWarnings("rawtypes")
     public static class KafkaProducerAdvice {
-        @SuppressWarnings({"unused", "DuplicatedCode", "ParameterCanBeLocal"})
-        @Advice.OnMethodEnter(suppress = Throwable.class)
         @Nullable
-        public static Span beforeSend(@Advice.Argument(0) final ProducerRecord record,
-                                      @Advice.Argument(value = 1, readOnly = false) @Nullable Callback callback,
-                                      @Advice.Local("helper") @Nullable KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper) {
-            if (tracer == null) {
-                return null;
-            }
+        @AssignTo.Argument(1)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord record,
+                                      @Advice.Argument(1) @Nullable Callback callback) {
             Span span = null;
 
             //noinspection ConstantConditions
-            helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
+            KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
 
             if (helper != null) {
                 span = helper.onSendStart(record);
             }
             if (span == null) {
-                return null;
+                return callback;
             }
 
-            //noinspection UnusedAssignment
-            callback = helper.wrapCallback(callback, span);
-            return span;
+            return helper.wrapCallback(callback, span);
         }
 
-        @SuppressWarnings("unused")
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void afterSend(@Advice.Enter @Nullable final Span span,
-                                     @Advice.Argument(0) final ProducerRecord record,
+        public static void afterSend(@Advice.Argument(0) final ProducerRecord record,
                                      @Advice.This final KafkaProducer thiz,
-                                     @Advice.Local("helper") @Nullable KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper,
                                      @Advice.Thrown final Throwable throwable) {
-
+            final Span span = tracer.getActiveExitSpan();
+            //noinspection ConstantConditions
+            KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper = kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (helper != null && span != null) {
                 helper.onSendEnd(span, record, thiz, throwable);
             }

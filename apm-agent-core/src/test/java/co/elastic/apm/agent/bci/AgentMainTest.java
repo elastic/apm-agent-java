@@ -61,6 +61,21 @@ class AgentMainTest {
     }
 
     @Test
+    void java7HotSpotOnlySupportedAfterUpdate60() {
+        checkNotSupported(HOTSPOT_VM_NAME, Stream.of(
+            "1.7.0",
+            "1.7.0_1",
+            "1.7.0-hello",
+            "1.7.0_59"
+        ));
+        checkSupported(HOTSPOT_VM_NAME, Stream.of(
+            "1.7.0_60",
+            "1.7.0_241",
+            "1.7.0_241-hello"
+        ));
+    }
+
+    @Test
     void java8HotspotOnlySupportedAfterUpdate40() {
 
         // non-hotspot JVM will be supported by default
@@ -125,9 +140,15 @@ class AgentMainTest {
         ));
     }
 
+    @Test
+    void testIbmJava8SupportedAfterBuild2_8() {
+        assertThat(AgentMain.isJavaVersionSupported("1.8.0", "IBM J9 VM", "2.8")).isFalse();
+        assertThat(AgentMain.isJavaVersionSupported("1.8.0", "IBM J9 VM", "2.9")).isTrue();
+    }
+
     private static void checkSupported(String vmName, Stream<String> versions) {
         versions.forEach((v) -> {
-            boolean supported = AgentMain.isJavaVersionSupported(v, vmName);
+            boolean supported = AgentMain.isJavaVersionSupported(v, vmName, null);
             assertThat(supported)
                 .describedAs("java.version = '%s' java.vm.name = '%s' should be supported", v, vmName)
                 .isTrue();
@@ -136,7 +157,7 @@ class AgentMainTest {
 
     private static void checkNotSupported(String vmName, Stream<String> versions) {
         versions.forEach((v) -> {
-            boolean supported = AgentMain.isJavaVersionSupported(v, vmName);
+            boolean supported = AgentMain.isJavaVersionSupported(v, vmName, null);
             assertThat(supported)
                 .describedAs("java.version = '%s' java.vm.name = '%s' should not be supported", v, vmName)
                 .isFalse();

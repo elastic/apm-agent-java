@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -21,6 +21,10 @@
  * specific language governing permissions and limitations
  * under the License.
  * #L%
+ */
+/**
+ * This whole plugin is not loaded from a plugin class loader as the types it uses are available form the bootstrap classloader.
+ * This also makes it less weird to be used as a dependency in other plugins.
  */
 @NonnullApi
 package co.elastic.apm.agent.concurrent;

@@ -39,6 +39,7 @@ endif::[]
 * Add capturing of request body in Elasticsearch queries: `_msearch`, `_count`, `_msearch/template`, `_search/template`, `_rollup_search` - {pull}1222[#1222]
 * Add <<config-enabled,`enabled`>> flag
 * Add experimental support for Scala Futures
+* The agent now collects heap memory pools metrics - {pull}1228[#1228]
 
 [float]
 ===== Bug fixes
@@ -47,6 +48,8 @@ endif::[]
 * Expanding k8s pod ID discovery to some formerly non-supported environments
 * When `recording` is set to `false`, the agent will not send captured errors anymore.
 * Fixes NPE in Dubbo instrumentation that occurs when the application is acting both as a provider and as a consumer - {pull}1260[#1260]
+* Adding a delay by default what attaching the agent to Tomcat using the premain route to work around the JUL
+  deadlock issue - {pull}1262[#1262]
 * Fixes missing `jboss.as:*` MBeans on JBoss - {pull}1257[#1257]
 
 [[release-notes-1.x]]

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -32,6 +33,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -99,11 +102,11 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("doCreateSpan"));
         }
 
+        @AssignTo.Return
         @VisibleForAdvice
-        @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                        @Advice.Return(readOnly = false) Object result) {
-            result = span.createSpan();
+        @Advice.OnMethodExit(inline = false)
+        public static Span doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
+            return span.createSpan();
         }
     }
 
@@ -126,7 +129,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(inline = false)
         public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                         @Advice.Argument(0) Throwable t) {
             span.captureException(t);
@@ -138,13 +141,12 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("getId").and(takesArguments(0)));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
-        @Advice.OnMethodExit
-        public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                 @Advice.Return(readOnly = false) String id) {
-            if (tracer != null) {
-                id = span.getTraceContext().getId().toString();
-            }
+        @Advice.OnMethodExit(inline = false)
+        public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
+            return span.getTraceContext().getId().toString();
         }
     }
 
@@ -153,13 +155,12 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("getTraceId").and(takesArguments(0)));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
-        @Advice.OnMethodExit
-        public static void getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                      @Advice.Return(readOnly = false) String traceId) {
-            if (tracer != null) {
-                traceId = span.getTraceContext().getTraceId().toString();
-            }
+        @Advice.OnMethodExit(inline = false)
+        public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
+            return span.getTraceContext().getTraceId().toString();
         }
     }
 
@@ -193,11 +194,11 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("isSampled"));
         }
 
+        @AssignTo.Return
         @VisibleForAdvice
-        @Advice.OnMethodExit
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                  @Advice.Return(readOnly = false) boolean sampled) {
-            sampled = span.isSampled();
+        @Advice.OnMethodExit(inline = false)
+        public static boolean addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
+            return span.isSampled();
         }
     }
 }

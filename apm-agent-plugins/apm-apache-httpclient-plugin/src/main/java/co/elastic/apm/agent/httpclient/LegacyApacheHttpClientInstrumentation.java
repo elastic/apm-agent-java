@@ -62,10 +62,10 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         private static void onBeforeExecute(@Advice.Argument(0) HttpHost host,
                                             @Advice.Argument(1) HttpRequest request,
                                             @Advice.Local("span") Span span) {
-            if (tracer == null || tracer.getActive() == null) {
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
                 return;
             }
-            final AbstractSpan<?> parent = tracer.getActive();
             String method;
             if (request instanceof HttpUriRequest) {
                 HttpUriRequest uriRequest = (HttpUriRequest) request;
@@ -77,8 +77,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                     if (headerSetter != null) {
                         span.propagateTraceContext(request, headerSetter);
                     }
-                } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter)
-                    && headerSetter != null && parent != null) {
+                } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter) && headerSetter != null) {
                     // re-adds the header on redirects
                     parent.propagateTraceContext(request, headerSetter);
                 }

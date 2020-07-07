@@ -27,9 +27,8 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.collections.WeakMapSupplier;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
@@ -45,7 +44,7 @@ public class JavaConcurrent {
     private static final WeakConcurrentMap<Object, AbstractSpan<?>> contextMap = WeakMapSupplier.createMap();
     private static final List<Class<? extends ElasticApmInstrumentation>> RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION = Collections.
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
-    private static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
+    static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
 
     private static void removeContext(Object o) {
         AbstractSpan<?> context = contextMap.remove(o);
@@ -55,10 +54,7 @@ public class JavaConcurrent {
     }
 
     @Nullable
-    public static AbstractSpan<?> restoreContext(Object o, @Nullable ElasticApmTracer tracer) {
-        if (tracer == null) {
-            return null;
-        }
+    public static AbstractSpan<?> restoreContext(Object o, Tracer tracer) {
         // When an Executor executes directly on the current thread we need to enable this thread for context propagation again
         needsContext.set(Boolean.TRUE);
         AbstractSpan<?> context = contextMap.remove(o);
@@ -79,8 +75,8 @@ public class JavaConcurrent {
      * Instruments or wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      */
     @Nullable
-    public static Runnable withContext(@Nullable Runnable runnable, @Nullable ElasticApmTracer tracer) {
-        if (runnable instanceof RunnableLambdaWrapper || runnable == null || tracer == null || needsContext.get() == Boolean.FALSE) {
+    public static Runnable withContext(@Nullable Runnable runnable, Tracer tracer) {
+        if (runnable instanceof RunnableLambdaWrapper || runnable == null || needsContext.get() == Boolean.FALSE) {
             return runnable;
         }
         needsContext.set(Boolean.FALSE);
@@ -91,20 +87,24 @@ public class JavaConcurrent {
         if (isLambda(runnable)) {
             runnable = new RunnableLambdaWrapper(runnable);
         }
-        ElasticApmAgent.ensureInstrumented(runnable.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
-        contextMap.put(runnable, active);
+        captureContext(runnable, active);
+        return runnable;
+    }
+
+    private static void captureContext(Object task, AbstractSpan<?> active) {
+        ElasticApmAgent.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
+        contextMap.put(task, active);
         active.incrementReferences();
         // Do no discard branches leading to async operations so not to break span references
         active.setNonDiscardable();
-        return runnable;
     }
 
     /**
      * Instruments or wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      */
     @Nullable
-    public static <T> Callable<T> withContext(@Nullable Callable<T> callable, @Nullable ElasticApmTracer tracer) {
-        if (callable instanceof CallableLambdaWrapper || callable == null || tracer == null  || needsContext.get() == Boolean.FALSE) {
+    public static <T> Callable<T> withContext(@Nullable Callable<T> callable, Tracer tracer) {
+        if (callable instanceof CallableLambdaWrapper || callable == null || needsContext.get() == Boolean.FALSE) {
             return callable;
         }
         needsContext.set(Boolean.FALSE);
@@ -115,15 +115,13 @@ public class JavaConcurrent {
         if (isLambda(callable)) {
             callable = new CallableLambdaWrapper<>(callable);
         }
-        ElasticApmAgent.ensureInstrumented(callable.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
-        contextMap.put(callable, active);
-        active.incrementReferences();
+        captureContext(callable, active);
         return callable;
     }
 
     @Nullable
-    public static <T> ForkJoinTask<T> withContext(@Nullable ForkJoinTask<T> task, @Nullable ElasticApmTracer tracer) {
-        if (task == null || tracer == null  || needsContext.get() == Boolean.FALSE) {
+    public static <T> ForkJoinTask<T> withContext(@Nullable ForkJoinTask<T> task, Tracer tracer) {
+        if (task == null || needsContext.get() == Boolean.FALSE) {
             return task;
         }
         needsContext.set(Boolean.FALSE);
@@ -131,9 +129,7 @@ public class JavaConcurrent {
         if (active == null) {
             return task;
         }
-        ElasticApmAgent.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
-        contextMap.put(task, active);
-        active.incrementReferences();
+        captureContext(task, active);
         return task;
     }
 
@@ -158,8 +154,8 @@ public class JavaConcurrent {
     }
 
     @Nullable
-    public static <T> Collection<? extends Callable<T>> withContext(@Nullable Collection<? extends Callable<T>> callables, @Nullable ElasticApmTracer tracer) {
-        if (callables == null || tracer == null) {
+    public static <T> Collection<? extends Callable<T>> withContext(@Nullable Collection<? extends Callable<T>> callables, Tracer tracer) {
+        if (callables == null) {
             return null;
         }
         if (callables.isEmpty()) {

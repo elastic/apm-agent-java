@@ -29,7 +29,7 @@ import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
+import co.elastic.apm.agent.jdbc.helper.JdbcGlobalState;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
 import org.junit.After;
 import org.junit.Before;
@@ -161,12 +161,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
             // clear internal jdbc helper required due to metadata caching and global state about unsupported
             // JDBC driver features (based on classes instances)
-            if (JdbcInstrumentation.jdbcHelperManager != null) {
-                JdbcHelper jdbcHelper = JdbcInstrumentation.jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (jdbcHelper != null) {
-                    jdbcHelper.clearInternalStorage();
-                }
-            }
+            JdbcGlobalState.clearInternalStorage();
         }
     }
 

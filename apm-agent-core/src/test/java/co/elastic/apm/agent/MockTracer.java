@@ -25,11 +25,12 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.Reporter;
@@ -83,20 +84,20 @@ public class MockTracer {
             }))
             .build();
 
-        tracer.start();
+        tracer.start(false);
         return tracer;
     }
 
     /**
      * If an instrumentation has already been initialized by some other test, returns the static
-     * {@link co.elastic.apm.agent.bci.ElasticApmInstrumentation#tracer}.
+     * {@link GlobalTracer#getTracerImpl()}.
      * Otherwise, Creates a real tracer with a {@link MockReporter} and a mock configuration which returns default
      * values that can be customized by mocking the configuration.
      */
     public static synchronized MockInstrumentationSetup getOrCreateInstrumentationTracer() {
 
-        ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
-        if (tracer == null || tracer.getState() == ElasticApmTracer.TracerState.STOPPED ||
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
+        if (tracer == null || tracer.getState() == Tracer.TracerState.STOPPED ||
             !(tracer.getReporter() instanceof MockReporter) || !(tracer.getObjectPoolFactory() instanceof TestObjectPoolFactory)) {
 
             // use an object pool that does bookkeeping to allow for extra usage checks
@@ -133,11 +134,10 @@ public class MockTracer {
     }
 
     public static synchronized void resetTracer() {
-        ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer != null) {
             ElasticApmAgent.reset();
             tracer.stop();
-            ElasticApmInstrumentation.tracer = null;
         }
     }
 

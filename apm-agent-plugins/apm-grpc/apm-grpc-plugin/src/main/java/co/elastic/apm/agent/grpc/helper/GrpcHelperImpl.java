@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.grpc.helper;
 
 import co.elastic.apm.agent.collections.WeakMapSupplier;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -100,7 +100,7 @@ public class GrpcHelperImpl implements GrpcHelper {
 
     @Nullable
     @Override
-    public Transaction startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
+    public Transaction startTransaction(Tracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
         MethodDescriptor<?, ?> methodDescriptor = serverCall.getMethodDescriptor();
 
         // ignore non-unary method calls for now

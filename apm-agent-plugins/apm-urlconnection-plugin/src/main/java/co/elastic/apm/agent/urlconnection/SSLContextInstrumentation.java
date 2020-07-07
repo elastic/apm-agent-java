@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.urlconnection;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.util.ThreadUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -55,7 +55,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *   <li>{@link SSLSocketFactory#getDefault()}</li>
  * </ul>
  */
-public class SSLContextInstrumentation extends ElasticApmInstrumentation {
+public class SSLContextInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -77,10 +77,15 @@ public class SSLContextInstrumentation extends ElasticApmInstrumentation {
         return Collections.singleton("ssl-context");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
+
     /**
      * This will not allow using the default SSL factory from any agent thread
      */
-    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class)
+    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
     public static boolean skipExecutionIfAgentThread() {
         return Thread.currentThread().getName().startsWith(ThreadUtils.ELASTIC_APM_THREAD_PREFIX);
     }

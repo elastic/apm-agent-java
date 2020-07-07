@@ -75,7 +75,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
         tracer = mockInstrumentationSetup.getTracer();
         config = mockInstrumentationSetup.getConfig();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(tracer), new ExceptionHandlerInstrumentation()));
+            Arrays.asList(new ServletInstrumentation(), new ExceptionHandlerInstrumentation()));
     }
 
     @AfterClass

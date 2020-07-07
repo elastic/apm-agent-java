@@ -27,7 +27,6 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,10 +60,10 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Parameterized.Parameters()
     public static Iterable<Supplier<ExecutorService>> data() {
-        return Arrays.asList(() -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()),
-            () -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadScheduledExecutor()),
-            () -> ExecutorServiceWrapper.wrap(new ForkJoinPool()),
-            () -> ExecutorServiceWrapper.wrap(GlobalEventExecutor.INSTANCE));
+        return Arrays.asList(Executors::newSingleThreadExecutor,
+            Executors::newSingleThreadScheduledExecutor,
+            ForkJoinPool::new
+        );
     }
 
     @Before
@@ -75,7 +74,8 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @After
     public void tearDown() {
-        assertThat(tracer.getActive()).isNull();
+        transaction.deactivate().end();
+        assertThat(JavaConcurrent.needsContext.get()).isNotEqualTo(false);
     }
 
     @Test
@@ -87,25 +87,25 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
             }
         }).get();
 
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @Test
     public void testExecutorSubmitRunnableLambda() throws Exception {
         executor.submit(() -> createAsyncSpan()).get(1, TimeUnit.SECONDS);
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @Test
     public void testExecutorExecute() throws Exception {
         executor.execute(this::createAsyncSpan);
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @Test
     public void testExecutorSubmitRunnableWithResult() throws Exception {
         executor.submit(this::createAsyncSpan, null);
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @Test
@@ -114,7 +114,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
             createAsyncSpan();
             return null;
         }).get(1, TimeUnit.SECONDS);
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @Test
@@ -126,13 +126,13 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
             }
         }));
         futures.forEach(ThrowingConsumer.of(Future::get));
-        assertAsyncSpans(3);
+        reporter.awaitSpanCount(3);
     }
 
     @Test
     public void testNestedExecutions() throws Exception {
         currentThreadExecutor.execute(() -> executor.execute(this::createAsyncSpan));
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @Test
@@ -151,7 +151,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
                 }
             }), 1, TimeUnit.SECONDS);
         futures.forEach(ThrowingConsumer.of(Future::get));
-        assertAsyncSpans(2);
+        reporter.awaitSpanCount(2);
     }
 
     @Test
@@ -162,7 +162,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
                 return createAsyncSpan();
             }
         }));
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @Test
@@ -173,7 +173,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
                 return createAsyncSpan();
             }
         }), 1, TimeUnit.SECONDS);
-        assertAsyncSpans(1);
+        reporter.awaitSpanCount(1);
     }
 
     @FunctionalInterface
@@ -188,19 +188,6 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
             };
         }
         void accept(T t) throws Exception;
-    }
-
-
-    private void assertAsyncSpans(int expectedSpans) throws InterruptedException {
-        try {
-            // wait for the async operation to end
-            assertThat(reporter.getFirstSpan(1000)).isNotNull();
-        } finally {
-            transaction.deactivate().end();
-        }
-        assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(expectedSpans);
-       reporter.getSpans().forEach(span ->  assertThat(span.isChildOf(reporter.getFirstTransaction())).isTrue());
     }
 
     private Span createAsyncSpan() {

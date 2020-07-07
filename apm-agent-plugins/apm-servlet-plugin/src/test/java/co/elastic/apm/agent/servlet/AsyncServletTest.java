@@ -195,11 +195,11 @@ class AsyncServletTest extends AbstractServletTest {
         @Override
         public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
             assertThat(tracer.currentTransaction())
-                .describedAs("should be within a transaction at beginning of doFilter")
+                .describedAs("should be within a transaction at beginning of doFilter %s", request)
                 .isNotNull();
             chain.doFilter(request, response);
             assertThat(tracer.currentTransaction())
-                .describedAs("should be within a transaction at end of doFilter")
+                .describedAs("should be within a transaction at end of doFilter %s", request)
                 .isNotNull();
         }
 

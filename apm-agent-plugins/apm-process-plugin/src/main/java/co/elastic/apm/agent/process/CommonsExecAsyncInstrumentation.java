@@ -24,7 +24,8 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.concurrent.JavaConcurrent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -32,6 +33,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -47,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@code org.apache.commons.exec.DefaultExecutor#createThread(Runnable, String)} and any direct subclass
  * that overrides it.
  */
-public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
+public class CommonsExecAsyncInstrumentation extends TracerAwareInstrumentation {
 
     private static final String DEFAULT_EXECUTOR_CLASS = "org.apache.commons.exec.DefaultExecutor";
     // only known subclass of default implementation
@@ -86,16 +88,23 @@ public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
         return CommonsExecAdvice.class;
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
+
     public static final class CommonsExecAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Argument(value = 0, readOnly = false) Runnable runnable) {
-            runnable = JavaConcurrent.withContext(runnable, tracer);
+        @Nullable
+        @AssignTo.Argument(0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Runnable onEnter(Runnable runnable) {
+            return JavaConcurrent.withContext(runnable, tracer);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown Throwable thrown,
-                                   @Advice.Argument(value = 0) Runnable runnable) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown Throwable thrown,
+                                  @Advice.Argument(value = 0) Runnable runnable) {
             JavaConcurrent.doFinally(thrown, runnable);
         }
     }

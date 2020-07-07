@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.kafka;
 
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.asm.Advice;
@@ -67,18 +68,21 @@ public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecor
     @SuppressWarnings("rawtypes")
     public static class ConsumerRecordsAdvice {
 
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void wrapRecordList(@Nullable @Advice.Return(readOnly = false) List<ConsumerRecord> list) {
-            if (tracer == null || !tracer.isRunning() || tracer.currentTransaction() != null) {
-                return;
+        public static List<ConsumerRecord> wrapRecordList(@Nullable @Advice.Return final List<ConsumerRecord> list) {
+            if (!tracer.isRunning() || tracer.currentTransaction() != null) {
+                return list;
             }
 
             //noinspection ConstantConditions,rawtypes
             KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (list != null && kafkaInstrumentationHelper != null) {
-                list = kafkaInstrumentationHelper.wrapConsumerRecordList(list);
+                return kafkaInstrumentationHelper.wrapConsumerRecordList(list);
             }
+            return list;
         }
     }
 }

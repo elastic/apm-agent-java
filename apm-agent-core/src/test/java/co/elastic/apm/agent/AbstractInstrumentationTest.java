@@ -26,6 +26,7 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
@@ -77,7 +78,7 @@ public abstract class AbstractInstrumentationTest {
         }
     }
 
-    public static ElasticApmTracer getTracer() {
+    public static Tracer getTracer() {
         return tracer;
     }
 

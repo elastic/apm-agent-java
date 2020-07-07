@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
@@ -73,7 +73,11 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
     public static Span onEnter(@Advice.This Connection thiz,
                                @Advice.Argument(0) MongoNamespace namespace,
                                @Advice.Origin("#m") String methodName) {
-        Span span = ElasticApmInstrumentation.createExitSpan();
+        Span span = null;
+        final AbstractSpan<?> activeSpan = tracer.getActive();
+        if (activeSpan != null && !activeSpan.isExit()) {
+            span = activeSpan.createExitSpan();
+        }
 
         if (span == null) {
             return null;
