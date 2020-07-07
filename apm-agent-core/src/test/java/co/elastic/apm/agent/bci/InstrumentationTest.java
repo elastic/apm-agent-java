@@ -490,7 +490,7 @@ class InstrumentationTest {
         return "";
     }
 
-    public static class TestInstrumentation extends ElasticApmInstrumentation {
+    public static class TestInstrumentation extends TracerAwareInstrumentation {
         @AssignTo.Return
         @Advice.OnMethodExit
         public static String onMethodExit() {
@@ -511,9 +511,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class MathInstrumentation extends ElasticApmInstrumentation {
+    public static class MathInstrumentation extends TracerAwareInstrumentation {
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
         public static int onMethodExit() {
@@ -534,9 +539,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.emptyList();
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class ExceptionInstrumentation extends ElasticApmInstrumentation {
+    public static class ExceptionInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodExit
         public static void onMethodExit() {
             throw new RuntimeException("This exception should not be suppressed");
@@ -556,9 +566,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.emptyList();
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class SuppressExceptionInstrumentation extends ElasticApmInstrumentation {
+    public static class SuppressExceptionInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static String onMethodEnter() {
             throw new RuntimeException("This exception should be suppressed");
@@ -584,9 +599,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.emptyList();
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class FieldAccessInstrumentation extends ElasticApmInstrumentation {
+    public static class FieldAccessInstrumentation extends TracerAwareInstrumentation {
 
         @AssignTo.Field("privateString")
         @Advice.OnMethodEnter
@@ -608,9 +628,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class FieldAccessArrayInstrumentation extends ElasticApmInstrumentation {
+    public static class FieldAccessArrayInstrumentation extends TracerAwareInstrumentation {
 
         @AssignTo(fields = @AssignTo.Field(index = 0, value = "privateString"))
         @Advice.OnMethodEnter
@@ -632,9 +657,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class AssignToArgumentInstrumentation extends ElasticApmInstrumentation {
+    public static class AssignToArgumentInstrumentation extends TracerAwareInstrumentation {
 
         @AssignTo.Argument(0)
         @Advice.OnMethodEnter
@@ -656,9 +686,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class AssignToArgumentsInstrumentation extends ElasticApmInstrumentation {
+    public static class AssignToArgumentsInstrumentation extends TracerAwareInstrumentation {
 
         @AssignTo(arguments = {
             @AssignTo.Argument(index = 0, value = 1),
@@ -683,9 +718,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class AssignToReturnArrayInstrumentation extends ElasticApmInstrumentation {
+    public static class AssignToReturnArrayInstrumentation extends TracerAwareInstrumentation {
 
         @AssignTo(returns = @AssignTo.Return(index = 0))
         @Advice.OnMethodExit(inline = false)
@@ -707,9 +747,14 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
+
+        @Override
+        public boolean indyPlugin() {
+            return false;
+        }
     }
 
-    public static class CommonsLangInstrumentation extends TracerAwareInstrumentation {
+    public static class CommonsLangInstrumentation extends ElasticApmInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
@@ -739,13 +784,9 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
-    public static class LoggerFactoryInstrumentation extends TracerAwareInstrumentation {
+    public static class LoggerFactoryInstrumentation extends ElasticApmInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "exitCount", new AtomicInteger());
@@ -775,13 +816,9 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
-    public static class StatUtilsInstrumentation extends TracerAwareInstrumentation {
+    public static class StatUtilsInstrumentation extends ElasticApmInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(StatUtilsInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(StatUtilsInstrumentation.class, "exitCount", new AtomicInteger());
@@ -811,13 +848,9 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
-    public static class CallStackUtilsInstrumentation extends TracerAwareInstrumentation {
+    public static class CallStackUtilsInstrumentation extends ElasticApmInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "exitCount", new AtomicInteger());
@@ -847,13 +880,9 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
-    public static class ClassLoadingTestInstrumentation extends TracerAwareInstrumentation {
+    public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
 
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
@@ -876,13 +905,9 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
-    public static class InlinedIndyAdviceInstrumentation extends TracerAwareInstrumentation {
+    public static class InlinedIndyAdviceInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter
         public static void onExit() {
@@ -903,13 +928,9 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
-    public static class AgentTypeReturnInstrumentation extends TracerAwareInstrumentation {
+    public static class AgentTypeReturnInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(inline = false)
         public static Span onEnter() {
@@ -931,13 +952,9 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
-    public static class AgentTypeParameterInstrumentation extends TracerAwareInstrumentation {
+    public static class AgentTypeParameterInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(inline = false)
         public static Object onEnter() {
@@ -963,10 +980,6 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 
     public static class UsingThreadLocal extends TracerAwareInstrumentation {
@@ -1005,7 +1018,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class GetClassLoaderInstrumentation extends TracerAwareInstrumentation {
+    public static class GetClassLoaderInstrumentation extends ElasticApmInstrumentation {
 
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
@@ -1028,9 +1041,5 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-        @Override
-        public boolean indyPlugin() {
-            return true;
-        }
     }
 }
