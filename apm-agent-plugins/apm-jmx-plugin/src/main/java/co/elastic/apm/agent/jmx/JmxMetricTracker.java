@@ -228,6 +228,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                 // is in fact published with 'statistics=pool' property and in the 'jboss.as' domain, thus we
                 // have to perform a partial match
 
+                // while we haven't found a clear "why is this not reflected on JMX notifications", some
+                // references to this can be found in Jboss/Wildfly sources with the following regex: `statistics.*pool`
+
                 try {
                     Hashtable<String, String> metricProperties = metricName.getKeyPropertyList();
                     Hashtable<String, String> beanProperties = beanName.getKeyPropertyList();
