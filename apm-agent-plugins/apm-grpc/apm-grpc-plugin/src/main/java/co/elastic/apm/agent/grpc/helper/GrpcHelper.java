@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.grpc.helper;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -54,7 +54,7 @@ public interface GrpcHelper {
      * @return transaction, or {@literal null} if none has been created
      */
     @Nullable
-    Transaction startTransaction(ElasticApmTracer tracer,
+    Transaction startTransaction(Tracer tracer,
                                  ClassLoader cl,
                                  ServerCall<?, ?> serverCall,
                                  Metadata headers);
@@ -112,7 +112,7 @@ public interface GrpcHelper {
      * <br>
      * This is the first method called during a client call execution, the next is {@link #registerSpan(ClientCall, Span)}.
      *
-     * @param parent    parent transaction, or parent span provided by {@link ElasticApmTracer#getActive()}.
+     * @param parent    parent transaction, or parent span provided by {@link Tracer#getActive()}.
      * @param method    method descriptor
      * @param authority channel authority string (host+port)
      * @return client call span (activated) or {@literal null} if not within an exit span.

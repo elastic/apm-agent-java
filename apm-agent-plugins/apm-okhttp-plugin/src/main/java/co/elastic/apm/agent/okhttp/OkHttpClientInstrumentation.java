@@ -66,7 +66,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Object onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
-            if (tracer == null || tracer.getActive() == null || !(originalRequest instanceof com.squareup.okhttp.Request)) {
+            if (tracer.getActive() == null || !(originalRequest instanceof Request)) {
                 return originalRequest;
             }
 

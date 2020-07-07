@@ -106,7 +106,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                     @Advice.Argument(1) Metadata headers,
                                     @Advice.Local("span") Span span) {
 
-            if (tracer == null || grpcHelperManager == null) {
+            if (grpcHelperManager == null) {
                 return;
             }
 
@@ -172,7 +172,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         private static void onEnter(@Advice.This ClientCall.Listener<?> listener,
                                     @Advice.Local("span") Span span) {
 
-            if (tracer == null || grpcHelperManager == null) {
+            if (grpcHelperManager == null) {
                 return;
             }
 
@@ -226,7 +226,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         private static void onEnter(@Advice.This ClientCall.Listener<?> listener,
                                     @Advice.Local("span") Span span) {
 
-            if (tracer == null || grpcHelperManager == null) {
+            if (grpcHelperManager == null) {
                 return;
             }
 

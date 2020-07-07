@@ -22,17 +22,18 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.dubbo;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 
-import java.util.Arrays;
-import java.util.Collection;
+/**
+ * The constructor can optionally have a {@link ElasticApmTracer} parameter.
+ */
+public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentation {
 
-public abstract class AbstractDubboInstrumentation extends TracerAwareInstrumentation {
+    @VisibleForAdvice
+    public static final Tracer tracer = GlobalTracer.get();
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("dubbo", "experimental");
-    }
 }

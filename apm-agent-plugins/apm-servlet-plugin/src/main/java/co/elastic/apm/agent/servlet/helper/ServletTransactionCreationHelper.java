@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -39,7 +40,7 @@ public class ServletTransactionCreationHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletTransactionCreationHelper.class);
 
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
     private final WebConfiguration webConfiguration;
 
     public ServletTransactionCreationHelper(ElasticApmTracer tracer) {

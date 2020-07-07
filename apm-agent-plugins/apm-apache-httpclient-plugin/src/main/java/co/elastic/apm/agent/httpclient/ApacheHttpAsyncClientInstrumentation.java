@@ -111,10 +111,10 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
         public static Object[] onBeforeExecute(@Advice.Argument(value = 0) HttpAsyncRequestProducer requestProducer,
                                                @Advice.Argument(2) HttpContext context,
                                                @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
-            if (tracer == null || tracer.getActive() == null) {
+            AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
                 return null;
             }
-            final AbstractSpan<?> parent = tracer.getActive();
             Span span = parent.createExitSpan();
             HttpAsyncRequestProducer wrappedProducer = requestProducer;
             FutureCallback<?> wrappedFutureCallback = futureCallback;

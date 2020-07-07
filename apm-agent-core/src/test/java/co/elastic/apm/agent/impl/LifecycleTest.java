@@ -40,9 +40,9 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.PAUSED;
-import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.RUNNING;
-import static co.elastic.apm.agent.impl.ElasticApmTracer.TracerState.STOPPED;
+import static co.elastic.apm.agent.impl.Tracer.TracerState.PAUSED;
+import static co.elastic.apm.agent.impl.Tracer.TracerState.RUNNING;
+import static co.elastic.apm.agent.impl.Tracer.TracerState.STOPPED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class LifecycleTest {

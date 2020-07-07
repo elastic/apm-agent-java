@@ -84,9 +84,6 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         public static Span beforeSend(@Advice.FieldValue("apiVersions") final ApiVersions apiVersions,
                                       @Advice.Argument(0) final ProducerRecord record,
                                       @Nullable @Advice.Argument(value = 1, readOnly = false) Callback callback) {
-            if (tracer == null) {
-                return null;
-            }
             Span span = null;
 
             //noinspection ConstantConditions

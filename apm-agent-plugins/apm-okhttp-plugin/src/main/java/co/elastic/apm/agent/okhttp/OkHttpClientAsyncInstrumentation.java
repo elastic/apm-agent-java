@@ -87,7 +87,7 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
-            if (tracer == null || tracer.getActive() == null || callbackWrapperCreator == null) {
+            if (tracer.getActive() == null || callbackWrapperCreator == null) {
                 return null;
             }
 

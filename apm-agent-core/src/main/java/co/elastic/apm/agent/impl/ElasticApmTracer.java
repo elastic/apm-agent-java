@@ -34,7 +34,6 @@ import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -69,7 +68,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Note that this is a internal API, so there are no guarantees in terms of backwards compatibility.
  * </p>
  */
-public class ElasticApmTracer {
+public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = WeakMapSupplier.createMap();
@@ -151,28 +150,13 @@ public class ElasticApmTracer {
         assert assertionsEnabled = true;
     }
 
-    /**
-     * Starts a trace-root transaction
-     *
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
         return startRootTransaction(sampler, -1, initiatingClassLoader);
     }
 
-    /**
-     * Starts a trace-root transaction with a specified sampler and start timestamp
-     *
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
@@ -183,36 +167,13 @@ public class ElasticApmTracer {
         return transaction;
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                                  long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
@@ -225,36 +186,13 @@ public class ElasticApmTracer {
         return transaction;
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
                                                  Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
@@ -294,6 +232,7 @@ public class ElasticApmTracer {
         return transaction;
     }
 
+    @Override
     @Nullable
     public Transaction currentTransaction() {
         final AbstractSpan<?> bottomOfStack = activeStack.get().peekLast();
@@ -336,12 +275,7 @@ public class ElasticApmTracer {
         return span;
     }
 
-    /**
-     * Captures an exception without providing an explicit reference to a parent {@link AbstractSpan}
-     *
-     * @param e                     the exception to capture
-     * @param initiatingClassLoader the class
-     */
+    @Override
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
         ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
         if (errorCapture != null) {
@@ -349,6 +283,7 @@ public class ElasticApmTracer {
         }
     }
 
+    @Override
     @Nullable
     public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
         String id = null;
@@ -360,6 +295,7 @@ public class ElasticApmTracer {
         return id;
     }
 
+    @Override
     @Nullable
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
@@ -474,10 +410,6 @@ public class ElasticApmTracer {
         errorPool.recycle(error);
     }
 
-    /**
-     * Called when the container shuts down.
-     * Cleans up thread pools and other resources.
-     */
     public synchronized void stop() {
         tracerState = TracerState.STOPPED;
         logger.info("Tracer switched to STOPPED state");
@@ -509,9 +441,30 @@ public class ElasticApmTracer {
         return objectPoolFactory;
     }
 
+    @Override
     @Nullable
     public AbstractSpan<?> getActive() {
         return activeStack.get().peek();
+    }
+
+    @Nullable
+    @Override
+    public Span getActiveSpan() {
+        final AbstractSpan<?> active = getActive();
+        if (active instanceof Span) {
+            return (Span) active;
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Span getActiveExitSpan() {
+        final Span span = getActiveSpan();
+        if (span != null && span.isExit()) {
+            return span;
+        }
+        return null;
     }
 
     public void registerSpanListener(ActivationListener activationListener) {
@@ -649,10 +602,12 @@ public class ElasticApmTracer {
         logger.info("Tracer switched to RUNNING state");
     }
 
+    @Override
     public boolean isRunning() {
         return tracerState == TracerState.RUNNING;
     }
 
+    @Override
     public TracerState getState() {
         return tracerState;
     }
@@ -723,16 +678,7 @@ public class ElasticApmTracer {
         return metricRegistry;
     }
 
-    /**
-     * Overrides the service name for all {@link Transaction}s,
-     * {@link Span}s and {@link ErrorCapture}s which are created by the service which corresponds to the provided {@link ClassLoader}.
-     * <p>
-     * The main use case is being able to differentiate between multiple services deployed to the same application server.
-     * </p>
-     *
-     * @param classLoader the class loader which corresponds to a particular service
-     * @param serviceName the service name for this class loader
-     */
+    @Override
     public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
         // overriding the service name for the bootstrap class loader is not an actual use-case
         // null may also mean we don't know about the initiating class loader
@@ -767,31 +713,4 @@ public class ElasticApmTracer {
         return metaData;
     }
 
-    /**
-     * An enumeration used to represent the current tracer state.
-     */
-    public enum TracerState {
-        /**
-         * The agent's state before it has been started for the first time.
-         */
-        UNINITIALIZED,
-
-        /**
-         * Indicates that the agent is currently fully functional - tracing, monitoring and sending data to the APM server.
-         */
-        RUNNING,
-
-        /**
-         * The agent is mostly idle, consuming minimal resources, ready to quickly resume back to RUNNING. When the agent
-         * is PAUSED, it is not tracing and not communicating with the APM server. However, classes are still instrumented
-         * and threads are still alive.
-         */
-        PAUSED,
-
-        /**
-         * Indicates that the agent had been stopped.
-         * NOTE: this state is irreversible- the agent cannot resume if it has already been stopped.
-         */
-        STOPPED
-    }
 }

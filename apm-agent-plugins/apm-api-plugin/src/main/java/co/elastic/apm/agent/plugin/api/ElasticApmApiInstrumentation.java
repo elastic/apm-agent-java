@@ -70,9 +70,6 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
-            if (tracer == null) {
-                return null;
-            }
             Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
             if (transaction != null) {
                 transaction.setFrameworkName(FRAMEWORK_NAME);
@@ -97,9 +94,6 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                                                      @Advice.Argument(1) @Nullable Object headerExtractor,
                                                      @Advice.Argument(2) MethodHandle getAllHeaders,
                                                      @Advice.Argument(3) @Nullable Object headersExtractor) {
-            if (tracer == null) {
-                return null;
-            }
             Transaction transaction = null;
             if (headersExtractor != null) {
                 HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
@@ -127,9 +121,6 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doGetCurrentTransaction() {
-            if (tracer == null) {
-                return null;
-            }
             return tracer.currentTransaction();
         }
     }
@@ -144,9 +135,6 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static Object doGetCurrentSpan() {
-            if (tracer == null) {
-                return null;
-            }
             return tracer.getActive();
         }
     }
@@ -159,9 +147,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
-            if (tracer != null) {
-                tracer.captureAndReportException(e, clazz.getClassLoader());
-            }
+            tracer.captureAndReportException(e, clazz.getClassLoader());
         }
     }
 

@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -48,7 +50,6 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.bci.ElasticApmInstrumentation.tracer;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 import static java.lang.Boolean.FALSE;
@@ -60,8 +61,8 @@ public class ServletApiAdvice {
     private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
 
     static {
-        servletTransactionHelper = new ServletTransactionHelper(tracer);
-        servletTransactionCreationHelper = new ServletTransactionCreationHelper(tracer);
+        servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.requireTracerImpl());
+        servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
     private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
@@ -70,6 +71,7 @@ public class ServletApiAdvice {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return null;
         }
@@ -128,6 +130,7 @@ public class ServletApiAdvice {
                                             @Advice.Enter @Nullable Object transactionOrScope,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return;
         }

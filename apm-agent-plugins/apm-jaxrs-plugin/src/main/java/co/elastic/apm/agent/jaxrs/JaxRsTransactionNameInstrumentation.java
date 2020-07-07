@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -54,14 +54,16 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
+public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
     public static boolean useAnnotationValueForTransactionName;
 
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
+    private final ElasticApmTracer tracer;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
+        this.tracer = tracer;
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
         useAnnotationValueForTransactionName = configuration.isUseJaxRsPathForTransactionName();
@@ -70,19 +72,17 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature,
                                            @JaxRsPath @Nullable String pathAnnotationValue) {
-        if (tracer != null) {
-            final Transaction transaction = tracer.currentTransaction();
-            if (transaction != null) {
-                String transactionName = signature;
-                if (useAnnotationValueForTransactionName) {
-                    if (pathAnnotationValue != null) {
-                        transactionName = pathAnnotationValue;
-                    }
+        final Transaction transaction = TracerAwareInstrumentation.tracer.currentTransaction();
+        if (transaction != null) {
+            String transactionName = signature;
+            if (useAnnotationValueForTransactionName) {
+                if (pathAnnotationValue != null) {
+                    transactionName = pathAnnotationValue;
                 }
-                transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
-                transaction.setFrameworkName("JAX-RS");
-                transaction.setFrameworkVersion(VersionUtils.getVersion(javax.ws.rs.GET.class, "javax.ws.rs", "javax.ws.rs-api"));
             }
+            transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK, false);
+            transaction.setFrameworkName("JAX-RS");
+            transaction.setFrameworkVersion(VersionUtils.getVersion(javax.ws.rs.GET.class, "javax.ws.rs", "javax.ws.rs-api"));
         }
     }
 

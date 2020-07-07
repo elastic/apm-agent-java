@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
@@ -32,7 +32,7 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 
-public abstract class BaseProcessInstrumentation extends ElasticApmInstrumentation {
+public abstract class BaseProcessInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {

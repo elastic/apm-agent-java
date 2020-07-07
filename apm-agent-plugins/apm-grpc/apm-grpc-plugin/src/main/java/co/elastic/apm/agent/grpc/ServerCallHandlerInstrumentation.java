@@ -73,7 +73,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
                                 @Advice.Argument(1) Metadata headers,
                                 @Advice.Local("transaction") Transaction transaction) {
 
-        if (tracer == null || grpcHelperManager == null) {
+        if (grpcHelperManager == null) {
             return;
         }
 

@@ -64,9 +64,6 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @Nullable
         public static Span pollStart() {
-            if (tracer == null) {
-                return null;
-            }
 
             final AbstractSpan<?> activeSpan = tracer.getActive();
             if (activeSpan == null) {

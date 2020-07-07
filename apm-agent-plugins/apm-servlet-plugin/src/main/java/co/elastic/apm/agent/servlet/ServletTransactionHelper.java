@@ -24,9 +24,9 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
@@ -70,7 +70,7 @@ public class ServletTransactionHelper {
     }
 
     public static void determineServiceName(@Nullable String servletContextName, ClassLoader servletContextClassLoader, @Nullable String contextPath) {
-        if (ElasticApmInstrumentation.tracer == null || !nameInitialized.add(contextPath == null ? "null" : contextPath)) {
+        if (!nameInitialized.add(contextPath == null ? "null" : contextPath)) {
             return;
         }
 
@@ -88,7 +88,7 @@ public class ServletTransactionHelper {
             serviceName = contextPath.substring(1);
         }
         if (serviceName != null) {
-            ElasticApmInstrumentation.tracer.overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
+            GlobalTracer.get().overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
         }
     }
 
