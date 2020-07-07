@@ -311,7 +311,7 @@ public class ElasticApmAgent {
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = instrumentation.getClassLoaderMatcher();
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = instrumentation.getTypeMatcherPreFilter();
-        final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = instrumentation.getImplementationVersionPostFilter();
+        final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = instrumentation.getProtectionDomainPostFilter();
         final ElementMatcher<? super MethodDescription> methodMatcher = new ElementMatcher.Junction.Conjunction<>(instrumentation.getMethodMatcher(), not(isAbstract()));
         return agentBuilder
             .type(new AgentBuilder.RawMatcher() {
@@ -371,7 +371,9 @@ public class ElasticApmAgent {
         if (offsetMapping != null) {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
-        if (instrumentation.indyPlugin()) {
+        // external plugins are always indy plugins
+        if (!(instrumentation instanceof TracerAwareInstrumentation)
+            || ((TracerAwareInstrumentation) instrumentation).indyPlugin()) {
             validateAdvice(instrumentation.getAdviceClass());
             withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod());
         }
@@ -403,7 +405,7 @@ public class ElasticApmAgent {
     }
 
     /**
-     * Validates invariants explained in {@link ElasticApmInstrumentation#indyPlugin()}
+     * Validates invariants explained in {@link TracerAwareInstrumentation#indyPlugin()}
      *
      * @param adviceClass the advice class
      */

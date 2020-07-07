@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.AsmVisitorWrapper;
@@ -45,7 +45,7 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 
 /**
  * Patches the class file version to 51 (Java 7) in order to support injecting {@code INVOKEDYNAMIC} instructions via
- * {@link Advice.WithCustomMapping#bootstrap} which is important for {@linkplain ElasticApmInstrumentation#indyPlugin() indy plugins}.
+ * {@link Advice.WithCustomMapping#bootstrap} which is important for {@linkplain TracerAwareInstrumentation#indyPlugin() indy plugins}.
  */
 public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transformer {
     @Override

@@ -54,11 +54,6 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
         return Collections.singletonList("test-plugin");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.Origin(value = "#m") String methodName) {
         return ElasticApm.startTransaction().setName(methodName);

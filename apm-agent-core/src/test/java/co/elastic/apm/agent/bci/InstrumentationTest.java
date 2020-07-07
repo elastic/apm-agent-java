@@ -709,7 +709,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class CommonsLangInstrumentation extends ElasticApmInstrumentation {
+    public static class CommonsLangInstrumentation extends TracerAwareInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(CommonsLangInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(CommonsLangInstrumentation.class, "exitCount", new AtomicInteger());
@@ -745,7 +745,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class LoggerFactoryInstrumentation extends ElasticApmInstrumentation {
+    public static class LoggerFactoryInstrumentation extends TracerAwareInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(LoggerFactoryInstrumentation.class, "exitCount", new AtomicInteger());
@@ -781,7 +781,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class StatUtilsInstrumentation extends ElasticApmInstrumentation {
+    public static class StatUtilsInstrumentation extends TracerAwareInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(StatUtilsInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(StatUtilsInstrumentation.class, "exitCount", new AtomicInteger());
@@ -817,7 +817,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class CallStackUtilsInstrumentation extends ElasticApmInstrumentation {
+    public static class CallStackUtilsInstrumentation extends TracerAwareInstrumentation {
 
         public static AtomicInteger enterCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "enterCount", new AtomicInteger());
         public static AtomicInteger exitCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "exitCount", new AtomicInteger());
@@ -853,7 +853,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
+    public static class ClassLoadingTestInstrumentation extends TracerAwareInstrumentation {
 
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
@@ -882,7 +882,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class InlinedIndyAdviceInstrumentation extends ElasticApmInstrumentation {
+    public static class InlinedIndyAdviceInstrumentation extends TracerAwareInstrumentation {
 
         @Advice.OnMethodEnter
         public static void onExit() {
@@ -909,7 +909,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class AgentTypeReturnInstrumentation extends ElasticApmInstrumentation {
+    public static class AgentTypeReturnInstrumentation extends TracerAwareInstrumentation {
 
         @Advice.OnMethodEnter(inline = false)
         public static Span onEnter() {
@@ -937,7 +937,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class AgentTypeParameterInstrumentation extends ElasticApmInstrumentation {
+    public static class AgentTypeParameterInstrumentation extends TracerAwareInstrumentation {
 
         @Advice.OnMethodEnter(inline = false)
         public static Object onEnter() {
@@ -1005,7 +1005,7 @@ class InstrumentationTest {
         }
     }
 
-    public static class GetClassLoaderInstrumentation extends ElasticApmInstrumentation {
+    public static class GetClassLoaderInstrumentation extends TracerAwareInstrumentation {
 
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)

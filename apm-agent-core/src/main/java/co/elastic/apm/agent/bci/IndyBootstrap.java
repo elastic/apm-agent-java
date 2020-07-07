@@ -26,7 +26,6 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
-import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
@@ -53,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * When {@link ElasticApmInstrumentation#indyPlugin()} returns {@code true},
+ * When {@link TracerAwareInstrumentation#indyPlugin()} returns {@code true},
  * we instruct Byte Buddy (via {@link Advice.WithCustomMapping#bootstrap(java.lang.reflect.Method)})
  * to dispatch {@linkplain Advice.OnMethodEnter#inline() non-inlined advices} via an invokedynamic (indy) instruction.
  * The target method is linked to a dynamically created plugin class loader that is specific to an instrumentation plugin
@@ -153,10 +152,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
- *         as explained in {@link ElasticApmInstrumentation#indyPlugin()}
+ *         as explained in {@link TracerAwareInstrumentation#indyPlugin()}
  *     </li>
  * </ul>
- * @see ElasticApmInstrumentation#indyPlugin()
+ * @see TracerAwareInstrumentation#indyPlugin()
  */
 public class IndyBootstrap {
 
