@@ -231,18 +231,8 @@ public class MockReporter implements Reporter {
         awaitUntilAsserted(() -> assertThat(getNumReportedTransactions()).isEqualTo(count));
     }
 
-    public void awaitTransactionReported() {
-        awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getNumReportedTransactions()).isGreaterThan(0));
-    }
-
     public void awaitSpanCount(int count) {
         awaitUntilAsserted(() -> assertThat(getNumReportedSpans()).isEqualTo(count));
-    }
-
-    public void awaitSpanReported() {
-        awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getNumReportedSpans()).isGreaterThan(0));
     }
 
     @Override
@@ -372,20 +362,20 @@ public class MockReporter implements Reporter {
 
         awaitUntilAsserted(() -> {
             spans.forEach(s -> {
-                assertThat(hasEmptyTraceContext(s))
-                    .describedAs("should have empty trace context : %s", s)
-                    .isTrue();
                 assertThat(s.isReferenced())
                     .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
                     .isFalse();
+                assertThat(hasEmptyTraceContext(s))
+                    .describedAs("should have empty trace context : %s", s)
+                    .isTrue();
             });
             transactions.forEach(t -> {
-                assertThat(hasEmptyTraceContext(t))
-                    .describedAs("should have empty trace context : %s", t)
-                    .isTrue();
                 assertThat(t.isReferenced())
                     .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
                     .isFalse();
+                assertThat(hasEmptyTraceContext(t))
+                    .describedAs("should have empty trace context : %s", t)
+                    .isTrue();
             });
         });
 
