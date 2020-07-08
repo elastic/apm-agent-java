@@ -26,7 +26,6 @@ package co.elastic.apm.servlet.tests;
 
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.Response;
 
 import java.util.List;

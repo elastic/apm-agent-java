@@ -6,6 +6,8 @@ set -xo pipefail
 
 # Requires that $TAG_VER already be present in the env
 
+git pull
+
 $(echo ${1}|cut -f2-3 -d '.'|{ read ver; test $ver == '0.0'; })
 VER=$?
 
