@@ -50,6 +50,7 @@ endif::[]
 * Fixes NPE in Dubbo instrumentation that occurs when the application is acting both as a provider and as a consumer - {pull}1260[#1260]
 * Adding a delay by default what attaching the agent to Tomcat using the premain route to work around the JUL
   deadlock issue - {pull}1262[#1262]
+* Fixes missing `jboss.as:*` MBeans on JBoss - {pull}1257[#1257]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

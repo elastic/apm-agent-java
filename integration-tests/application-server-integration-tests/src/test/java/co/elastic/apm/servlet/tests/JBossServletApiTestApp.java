@@ -26,13 +26,13 @@ package co.elastic.apm.servlet.tests;
 
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
-public class JsfServletContainerTestApp extends TestApp {
-    public JsfServletContainerTestApp() {
-        super("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/status.html", "jsf-http-get");
-    }
+import java.util.Map;
+
+public class JBossServletApiTestApp extends ServletApiTestApp {
 
     @Override
     public void test(AbstractServletContainerIntegrationTest test) throws Exception {
-        new JsfApplicationServerTestApp().test(test);
+        super.test(test);
+        test.executeAndValidateRequest("/simple-webapp/jboss-mbeans", "Found jboss.as:* MBeans", 200, Map.of());
     }
 }

@@ -48,8 +48,8 @@ public class CdiApplicationServerTestApp extends TestApp {
         assertThat(transaction.get("context").get("service").get("framework").get("name").textValue()).isEqualTo("Servlet API");
         String transactionId = transaction.get("id").textValue();
         List<JsonNode> spans = containerIntegrationTest.assertSpansTransactionId(
-                containerIntegrationTest::getReportedSpans,
-                transactionId);
+            containerIntegrationTest::getReportedSpans,
+            transactionId);
         assertThat(spans.size()).isEqualTo(1);
         Iterator<JsonNode> iterator = spans.iterator();
         JsonNode cdiSpan1 = iterator.next();
