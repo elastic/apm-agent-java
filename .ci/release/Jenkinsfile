@@ -69,16 +69,16 @@ pipeline {
             }
           }
         }
-        stage('Check master build status') {
-          steps {
-            script {
-              // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/master/
-              if(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', 'master'], return_boolean: true)) {
-                input(message: "WARNING! The master build is not passing. Do you wish to continue?")
-              }
-            }
-          }
-        }
+        //stage('Check master build status') {
+        //  steps {
+        //    script {
+        //      // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/master/
+        //      if(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', 'master'], return_boolean: true)) {
+        //        input(message: "WARNING! The master build is not passing. Do you wish to continue?")
+        //      }
+        //    }
+        //  }
+        //}
         stage('Require confirmation that CHANGELOG.asciidoc has been updated') {
           steps {
             input(message: """
@@ -89,6 +89,7 @@ pipeline {
             Click 'Proceed' to confirm that this step has been completed or Abort to stop the build in order to complete this step.
             """
             )
+            sh(script: "git pull")
           }
         }
         stage('Review project version') {
