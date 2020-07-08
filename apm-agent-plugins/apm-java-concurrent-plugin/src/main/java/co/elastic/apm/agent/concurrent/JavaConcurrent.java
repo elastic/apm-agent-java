@@ -167,9 +167,11 @@ public class JavaConcurrent {
         } else {
             wrapped = null;
         }
+        Boolean context = needsContext.get();
         for (Callable<T> callable : callables) {
+            // restore previous state as withContext always sets to false
+            needsContext.set(context);
             final Callable<T> potentiallyWrappedCallable = withContext(callable, tracer);
-            needsContext.set(Boolean.TRUE);
             if (wrapped != null) {
                 wrapped.add(potentiallyWrappedCallable);
             }

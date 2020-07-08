@@ -60,7 +60,9 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         apmTracer = new ElasticApmTracer();
-        reporter.reset();
+        // OT always leaks the spans
+        // see co.elastic.apm.agent.opentracing.impl.ApmSpanBuilderInstrumentation.CreateSpanInstrumentation.doCreateTransactionOrSpan
+        disableRecyclingValidation();
     }
 
     @AfterEach
@@ -560,7 +562,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         spanBuilder.start().finish();
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
-        reporter.reset();
+        reporter.resetWithoutRecycling();
         return transaction;
     }
 
@@ -575,7 +577,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         final co.elastic.apm.agent.impl.transaction.Span span = reporter.getFirstSpan();
-        reporter.reset();
+        reporter.resetWithoutRecycling();
         return span;
     }
 }

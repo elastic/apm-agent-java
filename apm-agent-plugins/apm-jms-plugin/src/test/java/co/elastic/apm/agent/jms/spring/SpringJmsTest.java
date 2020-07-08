@@ -75,7 +75,6 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
 
     @Test
     public void testSendListenSpringQueue() throws JMSException, InterruptedException {
-        reporter.reset();
         try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             Transaction transaction = tracer.startRootTransaction(null).activate();

@@ -26,18 +26,16 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +47,11 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         transaction = ElasticApm.startTransaction();
+    }
+
+    @AfterEach
+    void tearDown() {
+        transaction.end();
     }
 
     @Test
@@ -118,7 +121,10 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(ElasticApm.currentTransaction().isSampled()).isFalse();
         final Transaction transaction = ElasticApm.startTransaction();
         assertThat(transaction.isSampled()).isTrue();
-        assertThat(transaction.startSpan().isSampled()).isTrue();
+        Span span = transaction.startSpan();
+        assertThat(span.isSampled()).isTrue();
+        span.end();
+        transaction.end();
     }
 
     @Test
@@ -132,6 +138,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         Span span = transaction.startSpan();
         assertContainsTracingHeaders(span);
         assertContainsTracingHeaders(transaction);
+        span.end();
     }
 
     private void assertContainsNoTracingHeaders(Span span) {
