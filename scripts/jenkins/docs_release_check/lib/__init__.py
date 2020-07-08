@@ -111,7 +111,7 @@ def sub_releases(page):
     release_candidates = soup.find_all(
         "a", id=re.compile(r"release-notes-\d+\.\d+\.\d+"))
     for candidate in release_candidates:
-        versions.append(candidate["id"].split("-").pop())
+        versions.append(candidate["id"].split("-").pop().upper())
     return versions
 
 
@@ -162,7 +162,7 @@ def entrypoint():
     if args.verbose:
         import pprint
         pprint.pprint(found_versions)
-    if args.release in found_versions:
+    if args.release.upper() in found_versions:
         console.print(":thumbs_up: Release found")
         sys.exit(0)
     else:
