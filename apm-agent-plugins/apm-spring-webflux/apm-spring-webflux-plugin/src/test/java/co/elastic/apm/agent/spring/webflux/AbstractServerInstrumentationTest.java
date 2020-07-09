@@ -147,7 +147,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     }
 
     protected Transaction getFirstTransaction() {
-        return reporter.getFirstTransaction(500);
+        return reporter.getFirstTransaction(200);
     }
 
     protected Transaction checkTransaction(Transaction transaction, String expectedName, String expectedMethod, int expectedStatus) {

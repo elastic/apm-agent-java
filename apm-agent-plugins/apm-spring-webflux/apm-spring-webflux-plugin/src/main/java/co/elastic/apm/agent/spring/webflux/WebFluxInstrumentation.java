@@ -227,19 +227,21 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
                     // no matching mapping, generates a 404 error
                     HttpStatus status = ((ResponseStatusException) t).getStatus();
 
-                    // provide naming consistent with Servlets instrumentation
-                    // should override any default name already set
-                    StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
-                    if (transactionName != null) {
-                        transactionName.append(exchange.getRequest().getMethodValue()).append(" unknown route");
+                    if (status.value() == 404) {
+                        // provide naming consistent with Servlets instrumentation
+                        // should override any default name already set
+                        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
+                        if (transactionName != null) {
+                            transactionName.append(exchange.getRequest().getMethodValue()).append(" unknown route");
+                        }
                     }
-
-                    fillRequest(transaction, exchange);
-                    fillResponse(transaction, exchange);
-
-                    transaction.captureException(t)
-                        .end();
                 }
+
+                fillRequest(transaction, exchange);
+                fillResponse(transaction, exchange);
+
+                transaction.captureException(t)
+                    .end();
             }
         }
 
