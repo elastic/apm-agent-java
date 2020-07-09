@@ -76,7 +76,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         String expectedName = client.useFunctionalEndpoint()
             ? "/functional/error-handler"
             : "GreetingAnnotated#handlerError";
-        checkTransaction(getFirstTransaction(), expectedName);
+        checkTransaction(getFirstTransaction(), expectedName, "GET", 500);
     }
 
     @Test
@@ -89,10 +89,10 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         String expectedName = client.useFunctionalEndpoint()
             ? "/functional/hello"
             : "GreetingAnnotated#getHello";
-        Transaction transaction = checkTransaction(reporter.getFirstTransaction(500), expectedName);
+        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
         Request request = transaction.getContext().getRequest();
-        assertThat(request.getMethod()).isEqualTo("GET");
+
         checkUrl(request.getUrl(), client.getPort(), client.getPathPrefix(), "hello");
 
         assertThat(request.getHeaders().getFirst("random-value"))
@@ -102,9 +102,6 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(request.getHeaders().getFirst("Accept"))
             .isEqualTo("text/plain, application/json");
 
-        // status code is not set (yet)
-        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
-        assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(200);
     }
 
     protected static void checkUrl(Url url, int port, String pathPrefix, String relativePath){
@@ -120,7 +117,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         GreetingWebClient client = getClient();
         assertThat(client.getMappingError404()).contains("Not Found");
 
-        Transaction transaction = checkTransaction(getFirstTransaction(), "GET unknown route");
+        Transaction transaction = checkTransaction(getFirstTransaction(), "GET unknown route", "GET", 404);
 
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
         assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
@@ -146,19 +143,25 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             expectedName = "GreetingAnnotated#" + methodName;
         }
 
-        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName);
-
-        assertThat(transaction.getContext().getRequest().getMethod())
-            .isEqualTo(method);
+        checkTransaction(getFirstTransaction(), expectedName, method, 200);
     }
 
     protected Transaction getFirstTransaction() {
-        return reporter.getFirstTransaction(200);
+        return reporter.getFirstTransaction(500);
     }
 
-    protected Transaction checkTransaction(Transaction transaction, String expectedName) {
+    protected Transaction checkTransaction(Transaction transaction, String expectedName, String expectedMethod, int expectedStatus) {
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(expectedName);
+
+        assertThat(transaction.getContext().getRequest().getMethod())
+            .isEqualTo(expectedMethod);
+
+        assertThat(transaction.getContext().getResponse().getStatusCode())
+            .isEqualTo(expectedStatus);
+
+        assertThat(transaction.getResult())
+            .isEqualTo(String.format("HTTP %dxx", expectedStatus / 100));
 
         return transaction;
     }

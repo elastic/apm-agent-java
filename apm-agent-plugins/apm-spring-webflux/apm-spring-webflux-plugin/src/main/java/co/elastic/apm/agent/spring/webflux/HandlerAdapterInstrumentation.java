@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.spring.webflux;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.sun.nio.sctp.HandlerResult;
 import net.bytebuddy.asm.Advice;
@@ -73,17 +74,25 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             transaction = (Transaction) attribute;
             transaction.activate();
 
+            String transactionName;
             if (handler instanceof HandlerMethod) {
                 // set name for annotated controllers
                 HandlerMethod handlerMethod = (HandlerMethod) handler;
-                transaction.withName(String.format("%s#%s", handlerMethod.getBeanType().getSimpleName(), handlerMethod.getMethod().getName()));
+                transactionName = String.format("%s#%s", handlerMethod.getBeanType().getSimpleName(), handlerMethod.getMethod().getName());
+            } else {
+                transactionName = exchange.getRequest().getPath().value();
+            }
+
+            if (transactionName != null) {
+                transaction.withName(transactionName, AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
             }
         }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Thrown Throwable thrown,
-                               @Advice.Local("transaction") @Nullable  Transaction transaction,
+    private static void onExit(@Advice.Argument(0) ServerWebExchange exchange,
+                               @Advice.Thrown Throwable thrown,
+                               @Advice.Local("transaction") @Nullable Transaction transaction,
                                @Advice.Return(readOnly = false) @Nullable Mono<HandlerResult> resultMono) {
 
         if (transaction != null) {
@@ -92,7 +101,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
 
             if (resultMono != null) {
                 // might happen when an error is triggered server-side
-                resultMono = handlerWrap(resultMono, transaction);
+                resultMono = handlerWrap(resultMono, transaction, exchange);
             }
 
         }

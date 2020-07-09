@@ -67,9 +67,6 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
             transaction.withType("request")
                 .activate();
 
-            // TODO : move this to end of exchange lifecycle to prevent reading things to early and mess app encoding
-            fillTransactionRequest(transaction, exchange);
-
             // store transaction in exchange to make it easy to retrieve from other handlers
             exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
         }
@@ -77,6 +74,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void onExit(@Advice.Local("transaction") @Nullable Transaction transaction,
+                               @Advice.Argument(0) ServerWebExchange exchange,
                                @Advice.Thrown @Nullable Throwable thrown,
                                @Advice.Return(readOnly = false) Mono<Void> returnValue) {
 
@@ -86,7 +84,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
         transaction.deactivate();
         // we need to wrap returned mono to terminate transaction
-        returnValue = dispatcherWrap(returnValue, transaction);
+        returnValue = dispatcherWrap(returnValue, transaction, exchange);
 
     }
 

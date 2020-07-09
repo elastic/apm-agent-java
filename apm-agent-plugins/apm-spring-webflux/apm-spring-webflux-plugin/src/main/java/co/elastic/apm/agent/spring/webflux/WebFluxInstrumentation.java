@@ -60,19 +60,35 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
         return Collections.singletonList("spring-webflux");
     }
 
-
+    /**
+     * Activates transaction during "dispatch" phase (before handler execution)
+     *
+     * @param <T>         mono generic type
+     * @param mono        mono to wrap
+     * @param transaction transaction
+     * @param exchange
+     * @return wrapped mono that will activate transaction when mono is used
+     */
     @VisibleForAdvice
-    public static <T> Mono<T> dispatcherWrap(Mono<T> mono, Transaction transaction) {
+    public static <T> Mono<T> dispatcherWrap(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<>(subscriber, transaction, false))
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange))
         );
     }
 
+    /**
+     * Activates transaction during "handler" phase, where request is handled
+     *
+     * @param <T>         mono generic type
+     * @param mono        mono to wrap
+     * @param transaction transaction
+     * @param exchange    exchange
+     * @return wrapped mono that will activate transaction when mono is used and terminate it on mono is completed
+     */
     @VisibleForAdvice
-    public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, Transaction transaction) {
+    public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<>(subscriber, transaction, true))
-        );
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange)));
     }
 
     @VisibleForAdvice
@@ -82,26 +98,23 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
 
                 @Override
                 public void onComplete() {
-                    subscriber.onComplete();
+                    super.onComplete();
 
-                    // set transaction name from URL pattern (if applicable)
+                    // set transaction name from URL pattern of fallback to request path
                     Transaction transaction = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
-                    if (transaction == null) {
-                        return;
+                    if (transaction != null) {
+                        PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
+                        String name = pattern != null ? pattern.getPatternString() : exchange.getRequest().getPath().value();
+                        transaction.withName(name, PRIO_HIGH_LEVEL_FRAMEWORK);
                     }
-                    PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
-                    if (pattern == null) {
-                        return;
-                    }
-                    transaction.withName(pattern.getPatternString());
+
                 }
 
             })
         );
     }
 
-    @VisibleForAdvice
-    public static void fillTransactionRequest(Transaction transaction, ServerWebExchange exchange) {
+    private static void fillRequest(Transaction transaction, ServerWebExchange exchange) {
         ServerHttpRequest serverRequest = exchange.getRequest();
         Request request = transaction.getContext().getRequest();
 
@@ -133,14 +146,18 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
             }
         }
 
-
-
-
     }
 
-    @VisibleForAdvice
-    public static void setResponseFromExchange(Transaction transaction, ServerWebExchange exchange) {
+    private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
+        HttpStatus statusCode = exchange.getResponse().getStatusCode();
+        int status = statusCode != null ? statusCode.value() : 200;
 
+        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
+
+        transaction.getContext()
+            .getResponse()
+            .withFinished(true)
+            .withStatusCode(status);
     }
 
     // TODO if used with servlets, reuse active transaction (if any)
@@ -176,11 +193,16 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
     private static class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
         private final Transaction transaction;
         private final boolean terminateTransactionOnComplete;
+        private final ServerWebExchange exchange;
 
-        public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber, Transaction transaction, boolean terminateTransactionOnComplete) {
+        public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
+                                          Transaction transaction,
+                                          boolean terminateTransactionOnComplete,
+                                          ServerWebExchange exchange) {
             super(subscriber);
             this.transaction = transaction;
             this.terminateTransactionOnComplete = terminateTransactionOnComplete;
+            this.exchange = exchange;
         }
 
         @Override
@@ -206,19 +228,16 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
                     HttpStatus status = ((ResponseStatusException) t).getStatus();
 
                     // provide naming consistent with Servlets instrumentation
-                    String httpMethod = transaction.getContext().getRequest().getMethod();
-                    StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
-                    if (transactionName != null && httpMethod != null) {
-                        transactionName.append(httpMethod).append(" unknown route");
+                    // should override any default name already set
+                    StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
+                    if (transactionName != null) {
+                        transactionName.append(exchange.getRequest().getMethodValue()).append(" unknown route");
                     }
 
-                    transaction.getContext()
-                        .getResponse()
-                        .withStatusCode(status.value())
-                        .withFinished(true);
+                    fillRequest(transaction, exchange);
+                    fillResponse(transaction, exchange);
 
                     transaction.captureException(t)
-                        .withResultIfUnset(ResultUtil.getResultByHttpStatus(status.value()))
                         .end();
                 }
             }
@@ -232,6 +251,9 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
             } finally {
                 transaction.deactivate();
                 if (terminateTransactionOnComplete) {
+                    fillRequest(transaction, exchange);
+                    fillResponse(transaction, exchange);
+
                     transaction.end();
                 }
             }
