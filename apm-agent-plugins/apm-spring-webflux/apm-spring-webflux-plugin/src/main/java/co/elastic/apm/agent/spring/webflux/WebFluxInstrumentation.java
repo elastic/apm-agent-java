@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
@@ -204,11 +205,17 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
                     // no matching mapping, generates a 404 error
                     HttpStatus status = ((ResponseStatusException) t).getStatus();
 
+                    // provide naming consistent with Servlets instrumentation
+                    String httpMethod = transaction.getContext().getRequest().getMethod();
+                    StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, false);
+                    if (transactionName != null && httpMethod != null) {
+                        transactionName.append(httpMethod).append(" unknown route");
+                    }
+
                     transaction.getContext()
                         .getResponse()
                         .withStatusCode(status.value())
                         .withFinished(true);
-
 
                     transaction.captureException(t)
                         .withResultIfUnset(ResultUtil.getResultByHttpStatus(status.value()))

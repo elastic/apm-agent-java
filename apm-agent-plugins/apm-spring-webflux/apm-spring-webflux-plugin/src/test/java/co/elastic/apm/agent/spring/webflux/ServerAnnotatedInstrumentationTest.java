@@ -24,7 +24,11 @@
  */
 package co.elastic.apm.agent.spring.webflux;
 
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrumentationTest {
 
@@ -33,5 +37,13 @@ public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrument
         return new GreetingWebClient("localhost", PORT, false);
     }
 
+    // only implemented in annotated server version, should not be really different with functional
+    @Test
+    void allowCustomTransactionName() {
+        assertThat(getClient().executeAndCheckRequest("GET", "/custom-transaction-name", 200))
+            .isEqualTo("Hello, transaction!");
 
+        Transaction transaction = getFirstTransaction();
+        assertThat(transaction.getNameAsString()).isEqualTo("user-provided-name");
+    }
 }

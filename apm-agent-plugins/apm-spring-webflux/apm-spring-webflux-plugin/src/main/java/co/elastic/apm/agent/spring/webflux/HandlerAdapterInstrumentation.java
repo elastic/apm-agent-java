@@ -76,7 +76,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             if (handler instanceof HandlerMethod) {
                 // set name for annotated controllers
                 HandlerMethod handlerMethod = (HandlerMethod) handler;
-                transaction.withName(String.format("%s#%s", handlerMethod.getBeanType().getName(), handlerMethod.getMethod().getName()));
+                transaction.withName(String.format("%s#%s", handlerMethod.getBeanType().getSimpleName(), handlerMethod.getMethod().getName()));
             }
         }
     }

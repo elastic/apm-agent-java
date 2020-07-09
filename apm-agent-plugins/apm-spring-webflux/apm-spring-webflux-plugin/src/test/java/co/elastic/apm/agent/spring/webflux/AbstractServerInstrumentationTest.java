@@ -68,6 +68,18 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     protected abstract GreetingWebClient getClient();
 
     @Test
+    void dispatchError() {
+        GreetingWebClient client = getClient();
+        String error = client.getHandlerError();
+        assertThat(error.contains("intentional handler exception"));
+
+        String expectedName = client.useFunctionalEndpoint()
+            ? "/functional/error-handler"
+            : "GreetingAnnotated#handlerError";
+        checkTransaction(getFirstTransaction(), expectedName);
+    }
+
+    @Test
     void dispatchHello() {
         GreetingWebClient client = getClient();
 
@@ -76,7 +88,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
         String expectedName = client.useFunctionalEndpoint()
             ? "/functional/hello"
-            : "co.elastic.apm.agent.spring.webflux.testapp.GreetingAnnotated#getHello";
+            : "GreetingAnnotated#getHello";
         Transaction transaction = checkTransaction(reporter.getFirstTransaction(500), expectedName);
 
         Request request = transaction.getContext().getRequest();
@@ -108,10 +120,10 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         GreetingWebClient client = getClient();
         assertThat(client.getMappingError404()).contains("Not Found");
 
-        Transaction transaction = checkTransaction(getFirstTransaction(), client.getPathPrefix() + "/error-404");// TODO might be "unknown route" like with servlets
+        Transaction transaction = checkTransaction(getFirstTransaction(), "GET unknown route");
 
         assertThat(transaction.getResult()).isEqualTo("HTTP 4xx");
-//        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
+        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(404);
     }
 
@@ -131,12 +143,13 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
                 prefix = "other";
             }
             String methodName = prefix + "Mapping";
-            expectedName = "co.elastic.apm.agent.spring.webflux.testapp.GreetingAnnotated#" + methodName;
+            expectedName = "GreetingAnnotated#" + methodName;
         }
 
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName);
 
-        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo(method);
+        assertThat(transaction.getContext().getRequest().getMethod())
+            .isEqualTo(method);
     }
 
     protected Transaction getFirstTransaction() {
