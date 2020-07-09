@@ -84,13 +84,17 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void onExit(@Advice.Thrown Throwable thrown,
                                @Advice.Local("transaction") @Nullable  Transaction transaction,
-                               @Advice.Return(readOnly = false) Mono<HandlerResult> resultMono) {
+                               @Advice.Return(readOnly = false) @Nullable Mono<HandlerResult> resultMono) {
 
         if (transaction != null) {
             transaction.captureException(thrown)
                 .deactivate();
 
-            resultMono = handlerWrap(resultMono, transaction);
+            if (resultMono != null) {
+                // might happen when an error is triggered server-side
+                resultMono = handlerWrap(resultMono, transaction);
+            }
+
         }
     }
 }

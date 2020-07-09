@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -114,9 +113,26 @@ public class ServletTransactionHelper {
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr, @Nullable String contentTypeHeader) {
 
-        final Request request = transaction.getContext().getRequest();
         startCaptureBody(transaction, method, contentTypeHeader);
-        fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr);
+
+        // fill request
+        Request request = transaction.getContext().getRequest();
+
+        request.withHttpVersion(protocol)
+            .withMethod(method);
+
+        request.getSocket()
+            .withEncrypted(secure)
+            .withRemoteAddress(remoteAddr);
+
+        request.getUrl()
+            .withProtocol(scheme)
+            .withHostname(serverName)
+            .withPort(serverPort)
+            .withPathname(requestURI)
+            .withSearch(queryString)
+            .updateFull();
+
     }
 
     private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
@@ -251,27 +267,6 @@ public class ServletTransactionHelper {
         response.withStatusCode(status);
     }
 
-    private void fillRequest(Request request, String protocol, String method, boolean secure, String scheme, String serverName,
-                             int serverPort, String requestURI, String queryString,
-                             String remoteAddr) {
-
-        request.withHttpVersion(getHttpVersion(protocol));
-        request.withMethod(method);
-
-        request.getSocket()
-            .withEncrypted(secure)
-            .withRemoteAddress(remoteAddr);
-
-        request.getUrl()
-            .withProtocol(scheme)
-            .withHostname(serverName)
-            .withPort(serverPort)
-            .withPathname(requestURI)
-            .withSearch(queryString);
-
-        fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
-    }
-
     private boolean hasBody(@Nullable String contentTypeHeader, String method) {
         return METHODS_WITH_BODY.contains(method) && contentTypeHeader != null;
     }
@@ -281,42 +276,6 @@ public class ServletTransactionHelper {
             for (Map.Entry<String, String[]> param : params.entrySet()) {
                 request.addFormUrlEncodedParameters(param.getKey(), param.getValue());
             }
-        }
-    }
-
-    // inspired by org.apache.catalina.connector.Request.getRequestURL
-    private void fillFullUrl(Url url, String scheme, int port, String serverName, String requestURI, @Nullable String queryString) {
-        // using a StringBuilder to avoid allocations when constructing the full URL
-        final StringBuilder fullUrl = url.getFull();
-        if (port < 0) {
-            port = 80; // Work around java.net.URL bug
-        }
-
-        fullUrl.append(scheme);
-        fullUrl.append("://");
-        fullUrl.append(serverName);
-        if ((scheme.equals("http") && (port != 80))
-            || (scheme.equals("https") && (port != 443))) {
-            fullUrl.append(':');
-            fullUrl.append(port);
-        }
-        fullUrl.append(requestURI);
-        if (queryString != null) {
-            fullUrl.append('?').append(queryString);
-        }
-    }
-
-    private String getHttpVersion(String protocol) {
-        // don't allocate new strings in the common cases
-        switch (protocol) {
-            case "HTTP/1.0":
-                return "1.0";
-            case "HTTP/1.1":
-                return "1.1";
-            case "HTTP/2.0":
-                return "2.0";
-            default:
-                return protocol.replace("HTTP/", "");
         }
     }
 

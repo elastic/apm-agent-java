@@ -1062,7 +1062,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(OBJECT_START);
         writeField("full", url.getFull());
         writeField("hostname", url.getHostname());
-        writeField("port", url.getPort());
+        writeField("port", Integer.toString(url.getPort())); // serialize as a string for compatibility
         writeField("pathname", url.getPathname());
         writeField("search", url.getSearch());
         writeLastField("protocol", url.getProtocol());

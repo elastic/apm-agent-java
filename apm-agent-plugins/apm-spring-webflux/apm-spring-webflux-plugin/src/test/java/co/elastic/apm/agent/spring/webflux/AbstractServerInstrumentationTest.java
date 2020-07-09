@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
@@ -68,6 +70,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @Test
     void dispatchHello() {
         GreetingWebClient client = getClient();
+
+        client.setHeader("random-value", "12345");
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
 
         String expectedName = client.useFunctionalEndpoint()
@@ -75,14 +79,28 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             : "co.elastic.apm.agent.spring.webflux.testapp.GreetingAnnotated#getHello";
         Transaction transaction = checkTransaction(reporter.getFirstTransaction(500), expectedName);
 
-        // TODO : add assertions to ensure that request/response is properly captured
+        Request request = transaction.getContext().getRequest();
+        assertThat(request.getMethod()).isEqualTo("GET");
+        checkUrl(request.getUrl(), client.getPort(), client.getPathPrefix(), "hello");
 
-        // HTTP method is not set (yet), as adding it requires to also have the full URL
-//        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo("GET");
+        assertThat(request.getHeaders().getFirst("random-value"))
+            .describedAs("non-standard request headers should be captured")
+            .isEqualTo("12345");
+
+        assertThat(request.getHeaders().getFirst("Accept"))
+            .isEqualTo("text/plain, application/json");
 
         // status code is not set (yet)
-//        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
-//        assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(200);
+        assertThat(transaction.getResult()).isEqualTo("HTTP 2xx");
+        assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(200);
+    }
+
+    protected static void checkUrl(Url url, int port, String pathPrefix, String relativePath){
+        assertThat(url.getProtocol()).isEqualTo("http");
+        assertThat(url.getHostname()).isEqualTo("localhost");
+        assertThat(url.getPathname()).isEqualTo(String.format("%s/%s", pathPrefix, relativePath));
+        assertThat(url.getPort()).isEqualTo(port);
+        assertThat(url.getFull().toString()).isEqualTo(String.format("http://localhost:%d%s/%s", port, pathPrefix, relativePath));
     }
 
     @Test
@@ -118,7 +136,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName);
 
-        // TODO : check for HTTP method in request
+        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo(method);
     }
 
     protected Transaction getFirstTransaction() {

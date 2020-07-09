@@ -26,10 +26,13 @@ package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.reactivestreams.Subscription;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
@@ -37,8 +40,13 @@ import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
+import javax.annotation.Nullable;
+import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
@@ -60,7 +68,7 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
     }
 
     @VisibleForAdvice
-    public static <T> Mono<T> handlerWrap(Mono<T> mono, Transaction transaction) {
+    public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, Transaction transaction) {
         return mono.<T>transform(
             Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<>(subscriber, transaction, true))
         );
@@ -90,6 +98,51 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
             })
         );
     }
+
+    @VisibleForAdvice
+    public static void fillTransactionRequest(Transaction transaction, ServerWebExchange exchange) {
+        ServerHttpRequest serverRequest = exchange.getRequest();
+        Request request = transaction.getContext().getRequest();
+
+        request.withMethod(serverRequest.getMethodValue());
+
+        InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
+        request.getSocket()
+            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
+            .withEncrypted(serverRequest.getSslInfo() != null);
+
+        URI uri = serverRequest.getURI();
+        request.getUrl()
+            .withProtocol(uri.getScheme())
+            .withHostname(uri.getHost())
+            .withPort(uri.getPort())
+            .withPathname(uri.getPath())
+            .withSearch(uri.getQuery())
+            .updateFull();
+
+        for (Map.Entry<String, List<String>> header : serverRequest.getHeaders().entrySet()) {
+            for (String value : header.getValue()) {
+                request.getHeaders().add(header.getKey(), value);
+            }
+        }
+
+        for (Map.Entry<String, List<HttpCookie>> cookie : serverRequest.getCookies().entrySet()) {
+            for (HttpCookie value : cookie.getValue()) {
+                request.getCookies().add(cookie.getKey(), value.getValue());
+            }
+        }
+
+
+
+
+    }
+
+    @VisibleForAdvice
+    public static void setResponseFromExchange(Transaction transaction, ServerWebExchange exchange) {
+
+    }
+
+    // TODO if used with servlets, reuse active transaction (if any)
 
     private static class SubscriberWrapper<T> implements CoreSubscriber<T> {
         private final CoreSubscriber<? super T> subscriber;

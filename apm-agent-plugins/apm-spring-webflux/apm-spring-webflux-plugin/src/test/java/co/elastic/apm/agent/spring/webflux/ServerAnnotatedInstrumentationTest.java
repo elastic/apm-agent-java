@@ -24,15 +24,7 @@
  */
 package co.elastic.apm.agent.spring.webflux;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-
-import java.util.Arrays;
-import java.util.Locale;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrumentationTest {
 

@@ -24,8 +24,10 @@
  */
 package co.elastic.apm.agent.spring.webflux.testapp;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.annotation.Nullable;
@@ -36,6 +38,8 @@ public class GreetingWebClient {
     private final String baseUri;
     private final String pathPrefix;
     private final boolean useFunctionalEndpoint;
+    private final int port;
+    private final MultiValueMap<String,String> headers;
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
@@ -44,8 +48,10 @@ public class GreetingWebClient {
     public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint) {
         this.pathPrefix = useFunctionalEndpoint ? "/functional" : "/annotated";
         this.baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
+        this.port = port;
         this.client = WebClient.create(baseUri);
         this.useFunctionalEndpoint = useFunctionalEndpoint;
+        this.headers = new HttpHeaders();
     }
 
     public String getHelloMono() {
@@ -88,6 +94,7 @@ public class GreetingWebClient {
         String result = client.method(HttpMethod.valueOf(method))
             .uri(path)
             .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
+            .headers(httpHeaders -> httpHeaders.addAll(headers))
             .exchange()// exchange or retrieve ?
             .map(r -> {
                 if (r.rawStatusCode() != expectedStatus) {
@@ -112,7 +119,15 @@ public class GreetingWebClient {
         return pathPrefix;
     }
 
+    public int getPort(){
+        return port;
+    }
+
     public boolean useFunctionalEndpoint() {
         return useFunctionalEndpoint;
+    }
+
+    public void setHeader(String name, String value) {
+        headers.add(name, value);
     }
 }

@@ -64,9 +64,11 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
         }
         transaction = tracer.startRootTransaction(clazz.getClassLoader());
         if (transaction != null) {
-            transaction.withName(exchange.getRequest().getPath().value())
-                .withType("request")
+            transaction.withType("request")
                 .activate();
+
+            // TODO : move this to end of exchange lifecycle to prevent reading things to early and mess app encoding
+            fillTransactionRequest(transaction, exchange);
 
             // store transaction in exchange to make it easy to retrieve from other handlers
             exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
