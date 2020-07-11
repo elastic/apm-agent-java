@@ -68,14 +68,18 @@ public class SystemMetrics extends AbstractLifecycleListener {
     public static final String PROC_SELF_MOUNTINFO = "/proc/self/mountinfo";
     private final OperatingSystemMXBean operatingSystemBean;
 
+    final private List<WildcardMatcher> inactiveMemoryRelevantLines = Arrays.asList(caseSensitiveMatcher("inactive_file *"));
+
     private static String CGROUP1_MAX_MEMORY = "memory.limit_in_bytes";
     private static String CGROUP1_USED_MEMORY = "memory.usage_in_bytes";
+    private static String CGROUP1_STAT_MEMORY = "memory.stat";
     private static String CGROUP2_MAX_MEMORY = "memory.max";
     private static String CGROUP2_USED_MEMORY = "memory.current";
+    private static String CGROUP2_STAT_MEMORY = "memory.stat";
     private static long UNLIMITED = 0x7FFFFFFFFFFFF000L;
 
     private Pattern MEMORY_CGROUP = Pattern.compile("^\\d+\\:memory\\:.*");
-    private Pattern CGROUP1_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup.*cgroup.*memory.*");
+    private Pattern CGROUP1_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup.*memory.*");
     private Pattern CGROUP2_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup2.*cgroup.*");
 
     @Nullable
@@ -128,14 +132,14 @@ public class SystemMetrics extends AbstractLifecycleListener {
                     CgroupFiles cgroupFilesTest = null;
                     try(BufferedReader fileMountInfoReader = new BufferedReader(new FileReader(mountInfo))) {
                         for (String mountLine = fileMountInfoReader.readLine(); mountLine != null && !mountLine.isEmpty(); mountLine = fileMountInfoReader.readLine()) {
-                            Matcher matcher = CGROUP2_MOUNT_POINT.matcher(mountLine);
-                            if (matcher.matches()) {
-                                cgroupFilesTest = verifyCgroup2Available(lineCgroup, new File(matcher.group(1)));
+                            String foundRegex = applyCgroup2Regex(mountLine);
+                            if (foundRegex != null) {
+                                cgroupFilesTest = verifyCgroup2Available(lineCgroup, new File(foundRegex));
                                 if (cgroupFilesTest != null) return cgroupFilesTest;
                             }
-                            matcher = CGROUP1_MOUNT_POINT.matcher(mountLine);
-                            if (matcher.matches()) {
-                                cgroupFilesTest = verifyCgroup1Available(new File(matcher.group(1)));
+                            foundRegex = applyCgroup1Regex(mountLine);
+                            if (foundRegex != null) {
+                                cgroupFilesTest = verifyCgroup1Available(new File(foundRegex));
                                 if (cgroupFilesTest != null) return cgroupFilesTest;
                             }
                         }
@@ -152,7 +156,20 @@ public class SystemMetrics extends AbstractLifecycleListener {
         }
         return null;
     }
-
+    String applyCgroup1Regex(String mountLine) {
+        Matcher matcher = CGROUP1_MOUNT_POINT.matcher(mountLine);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+    String applyCgroup2Regex(String mountLine) {
+        Matcher matcher = CGROUP2_MOUNT_POINT.matcher(mountLine);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
     private CgroupFiles verifyCgroup2Available(String lineCgroup, File mountDiscovered) throws IOException {
         final String[] cgroupSplit = StringUtils.split(lineCgroup, ':');
         // Checking cgroup2
@@ -162,7 +179,8 @@ public class SystemMetrics extends AbstractLifecycleListener {
                 String memMaxLine = fileReaderMem.readLine();
                 if (!"max".equalsIgnoreCase(memMaxLine)) {
                     return new CgroupFiles(maxMemory,
-                        new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_USED_MEMORY));
+                        new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_USED_MEMORY),
+                        new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_STAT_MEMORY));
                 }
             }
         }
@@ -178,7 +196,8 @@ public class SystemMetrics extends AbstractLifecycleListener {
                 long memMax = Long.parseLong(memMaxLine);
                 if (memMax < UNLIMITED) { // Cgroup1 use a contant to disabled limits
                     return new CgroupFiles(maxMemory,
-                        new File(mountDiscovered, CGROUP1_USED_MEMORY));
+                        new File(mountDiscovered, CGROUP1_USED_MEMORY),
+                        new File(mountDiscovered, CGROUP1_STAT_MEMORY));
                 }
             }
         }
@@ -188,6 +207,21 @@ public class SystemMetrics extends AbstractLifecycleListener {
     @Override
     public void start(ElasticApmTracer tracer) {
         bindTo(tracer.getMetricRegistry());
+    }
+
+    private double getInactiveMemory() {
+        try(BufferedReader fileReaderStatFile = new BufferedReader(new FileReader(cgroupFiles.getStatMemory()))) {
+            long sum = 0;
+            for (String statLine = fileReaderStatFile.readLine(); statLine != null && !statLine.isEmpty(); statLine = fileReaderStatFile.readLine()) {
+                if (WildcardMatcher.isAnyMatch(inactiveMemoryRelevantLines, statLine)) {
+                    final String[] statLineSplit = StringUtils.split(statLine, ' ');
+                    sum += Long.parseLong(statLineSplit[1]);
+                }
+            }
+            return sum;
+        } catch (Exception ignored) {
+            return Double.NaN;
+        }
     }
 
     void bindTo(MetricRegistry metricRegistry) {
@@ -207,21 +241,31 @@ public class SystemMetrics extends AbstractLifecycleListener {
         });
 
         if (cgroupFiles != null) {
-            metricRegistry.addUnlessNan("system.memory.actual.free", Labels.EMPTY, new DoubleSupplier() {
+            metricRegistry.addUnlessNan("system.process.cgroup.memory.stats.inactive_file.bytes", Labels.EMPTY, new DoubleSupplier() {
+
                 @Override
                 public double get() {
-                    try(BufferedReader fileReaderMemoryMax = new BufferedReader(new FileReader(cgroupFiles.getMaxMemory()));
-                        BufferedReader fileReaderMemoryUsed = new BufferedReader(new FileReader(cgroupFiles.getUsedMemory()))
+                    return getInactiveMemory();
+                }
+
+            });
+            metricRegistry.addUnlessNan("system.process.cgroup.memory.mem.usage.bytes", Labels.EMPTY, new DoubleSupplier() {
+                @Override
+                public double get() {
+                    try(BufferedReader fileReaderMemoryUsed = new BufferedReader(new FileReader(cgroupFiles.getUsedMemory()))
                     ) {
-                        long memMax = Long.parseLong(fileReaderMemoryMax.readLine());
                         long memUsed = Long.parseLong(fileReaderMemoryUsed.readLine());
-                        return memMax - memUsed;
+                        Double inactiveMemory = getInactiveMemory();
+                        if (!inactiveMemory.equals(Double.NaN)) {
+                            memUsed -= inactiveMemory;
+                        }
+                        return memUsed;
                     } catch (Exception ignored) {
                         return Double.NaN;
                     }
                 }
             });
-            metricRegistry.addUnlessNan("system.memory.total", Labels.EMPTY, new DoubleSupplier() {
+            metricRegistry.addUnlessNan("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY, new DoubleSupplier() {
                 @Override
                 public double get() {
                     try(BufferedReader fileReaderMemoryMax = new BufferedReader(new FileReader(cgroupFiles.getMaxMemory()))) {
@@ -233,7 +277,7 @@ public class SystemMetrics extends AbstractLifecycleListener {
                 }
             });
         }
-        else if (memInfoFile.canRead()) {
+        if (memInfoFile.canRead()) {
             metricRegistry.addUnlessNan("system.memory.actual.free", Labels.EMPTY, new DoubleSupplier() {
                 final List<WildcardMatcher> relevantLines = Arrays.asList(
                     caseSensitiveMatcher("MemAvailable:*kB"),
@@ -314,10 +358,12 @@ public class SystemMetrics extends AbstractLifecycleListener {
     public static class CgroupFiles {
         protected File maxMemory;
         protected File usedMemory;
+        protected File statMemory;
 
-        public CgroupFiles(File maxMemory, File usedMemory) {
+        public CgroupFiles(File maxMemory, File usedMemory, File statMemory) {
             this.maxMemory = maxMemory;
             this.usedMemory = usedMemory;
+            this.statMemory = statMemory;
         }
 
         public File getMaxMemory() {
@@ -326,6 +372,10 @@ public class SystemMetrics extends AbstractLifecycleListener {
 
         public File getUsedMemory() {
             return usedMemory;
+        }
+
+        public File getStatMemory() {
+            return statMemory;
         }
     }
 }
