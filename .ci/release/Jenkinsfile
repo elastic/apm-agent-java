@@ -24,7 +24,7 @@ pipeline {
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: 'master')
-    booleanParam(name: 'ignore_branch_ci_status', defaultValue: false, description: "Ignore failing tests in the master branch?")
+    booleanParam(name: 'check_branch_ci_status', defaultValue: true, description: "Check for failing tests in the master branch?")
   }
 
   stages {
@@ -70,7 +70,7 @@ pipeline {
           }
         }
         stage('Check master build status') {
-        when { expression { !params.ignore_branch_ci_status } }
+        when { expression { params.ignore_branch_ci_status } }
          steps {
            script {
              // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/master/
