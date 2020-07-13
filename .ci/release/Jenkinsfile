@@ -87,10 +87,12 @@ pipeline {
             Go over PRs or git log and add bug fixes and features.
             Move release notes from the Unreleased sub-heading to the correct [[release-notes-{major}.x]] sub-heading (Example PR for 1.13.0 release).
 
-            Click 'Proceed' to confirm that this step has been completed or Abort to stop the build in order to complete this step.
+            Click 'Proceed' to confirm that this step has been completed and changes have been pushed or Abort to stop the build.
             """
             )
-            sh(script: "git pull")
+            dir("${BASE_DIR}") {
+              git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba', url: 'git@github.com:elastic/apm-agent-java.git'
+            }
           }
         }
         stage('Review project version') {
