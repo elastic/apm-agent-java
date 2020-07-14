@@ -33,7 +33,7 @@ endif::[]
   You can remove any `org.osgi.framework.bootdelegation` related configuration.
   This release also removes the configuration option `boot_delegation_packages`.
 * Overhaul of the `ExecutorService` instrumentation that avoids issues like ``ClassCastException``s - {pull}1206[#1206]
-* Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
+* Support for `ForkJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
 * Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
 * Added support for `java.util.TimerTask` - {pull}1235[#1235]
 * Add capturing of request body in Elasticsearch queries: `_msearch`, `_count`, `_msearch/template`, `_search/template`, `_rollup_search` - {pull}1222[#1222]
@@ -69,7 +69,7 @@ endif::[]
   You can remove any `org.osgi.framework.bootdelegation` related configuration.
   This release also removes the configuration option `boot_delegation_packages`.
 * Overhaul of the `ExecutorService` instrumentation that avoids issues like ``ClassCastException``s - {pull}1206[#1206]
-* Support for `ForJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
+* Support for `ForkJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
 * Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
 * Added support for `java.util.TimerTask` - {pull}1235[#1235]
 * Add capturing of request body in Elasticsearch queries: `_msearch`, `_count`, `_msearch/template`, `_search/template`, `_rollup_search` - {pull}1222[#1222]
@@ -160,7 +160,7 @@ The latter uses https://github.com/elastic/ecs-logging-java[ecs-logging-java] to
 * Ordering of configuration sources has slightly changed, please review <<configuration>>:
 ** `elasticapm.properties` file now has higher priority over java system properties and environment variables, +
 This change allows to change dynamic options values at runtime by editing file, previously values set in java properties
-or environment variables could not be overriden, even if they were dynamic.
+or environment variables could not be overridden, even if they were dynamic.
 * Renamed some configuration options related to the experimental profiler-inferred spans feature ({pull}1084[#1084]):
 ** `profiling_spans_enabled` -> `profiling_inferred_spans_enabled`
 ** `profiling_sampling_interval` -> `profiling_inferred_spans_sampling_interval`
@@ -301,7 +301,7 @@ config option]
 ===== Features
 * Add ability to manually specify reported https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-hostname[hostname]
 * Add support for https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases[Redis Jedis client]
-* Add support for identifying target JVM to attach apm agent to using JMV property. See also the documentation of the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list[`--include` and `--exclude` flags]
+* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list[`--include` and `--exclude` flags]
 * Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
 * Improve servlet error capture {pull}812[#812]
   Among others, now also takes Spring MVC `@ExceptionHandler`s into account 
@@ -341,7 +341,7 @@ Due to that, agent 1.8.0 will silently ignore non-string labels, even if used wi
 If APM server version is <6.7 or 7.0+, this should have no effect. Otherwise, upgrade the Java agent to 1.9.0+.
 * `ApacheHttpAsyncClientInstrumentation` matching increases startup time considerably
 * Log correlation feature is active when `active==false`
-* Tomcat's memory leak prevention mechanism is causing a... memory leak. JDBC statement map is leaking in Tomcat if the application that first used it is udeployed/redeployed.
+* Tomcat's memory leak prevention mechanism is causing a... memory leak. JDBC statement map is leaking in Tomcat if the application that first used it is undeployed/redeployed.
 See https://discuss.elastic.co/t/elastic-apm-agent-jdbchelper-seems-to-use-a-lot-of-memory/195295[this related discussion].
 
 [float]
@@ -543,7 +543,7 @@ controls which `Content-Type`s should be captured.
    To create spans for all `public` methods of classes whose name ends in `Service` which are in a sub-package of `org.example.services` use this matcher:
    `public org.example.services.*.*Service#*` https://github.com/elastic/apm-agent-java/pull/398[#398]
 * Added span for `DispatcherServlet#render` https://github.com/elastic/apm-agent-java/pull/409[#409].
-* Flush reporter on shutdown to make sure all recorded Spans are sent to the server before the programm exits https://github.com/elastic/apm-agent-java/pull/397[#397]
+* Flush reporter on shutdown to make sure all recorded Spans are sent to the server before the program exits https://github.com/elastic/apm-agent-java/pull/397[#397]
 * Adds Kubernetes https://github.com/elastic/apm-agent-java/issues/383[#383] and Docker metadata to, enabling correlation with the Kibana Infra UI.
 * Improved error handling of the Servlet Async API https://github.com/elastic/apm-agent-java/issues/399[#399]
 * Support async API’s used with AsyncContext.start https://github.com/elastic/apm-agent-java/issues/388[#388]
