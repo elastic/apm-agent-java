@@ -511,11 +511,6 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
     public static class MathInstrumentation extends TracerAwareInstrumentation {
@@ -539,11 +534,6 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.emptyList();
         }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
     public static class ExceptionInstrumentation extends TracerAwareInstrumentation {
@@ -565,11 +555,6 @@ class InstrumentationTest {
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.emptyList();
-        }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
         }
     }
 
@@ -599,11 +584,6 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.emptyList();
         }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
     public static class FieldAccessInstrumentation extends TracerAwareInstrumentation {
@@ -627,11 +607,6 @@ class InstrumentationTest {
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
-        }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
         }
     }
 
@@ -657,11 +632,6 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
     public static class AssignToArgumentInstrumentation extends TracerAwareInstrumentation {
@@ -685,11 +655,6 @@ class InstrumentationTest {
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
-        }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
         }
     }
 
@@ -718,11 +683,6 @@ class InstrumentationTest {
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
         }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
-        }
     }
 
     public static class AssignToReturnArrayInstrumentation extends TracerAwareInstrumentation {
@@ -746,11 +706,6 @@ class InstrumentationTest {
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return List.of("test", "experimental");
-        }
-
-        @Override
-        public boolean indyPlugin() {
-            return false;
         }
     }
 

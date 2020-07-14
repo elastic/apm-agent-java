@@ -285,7 +285,7 @@ public abstract class HelperClassManager<T> {
          * Creates an isolated CL that has two parents: the target class loader and the agent CL.
          * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
          */
-        public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader, List<String> classesToInject, final ClassLoader parent, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
+        public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader, List<String> classesToInject, ClassLoader parent, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
             classesToInject = new ArrayList<>(classesToInject);
 
             Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);

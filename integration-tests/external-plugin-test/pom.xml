@@ -30,8 +30,20 @@
         </dependency>
 
         <!--
-        this is needed so that the apm-api-plugin instruments apm-agent-api to inject the actual implementation
-        not doing this will return noop transactions in the tests
+        Example if you'd like to include a dependency:
+        All external dependencies have to be included in the plugin jar.
+        The maven shade plugin takes care of that (see build section of this file).
+        As external plugins are loaded from an isolated class loader, you don't have to relocate the package names.
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.9</version>
+        </dependency>
+        -->
+
+        <!--
+        A test dependency on the agent is needed so that the apm-api-plugin instruments apm-agent-api to inject the actual implementation.
+        Not doing this will return noop transactions in the tests.
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -39,6 +51,10 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!--
+        The test-jar of the core plugin provides useful test helpers such as AbstractInstrumentationTest and MockReporter.
+        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>

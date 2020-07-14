@@ -79,7 +79,6 @@ import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -119,8 +118,7 @@ public class ElasticApmAgent {
     private static final WeakConcurrentMap<Class<?>, Set<Collection<Class<? extends ElasticApmInstrumentation>>>> dynamicallyInstrumentedClasses = WeakMapSupplier.createMap();
     @Nullable
     private static File agentJarFile;
-    private static final List<ClassLoader> pluginClassLoaders = new ArrayList<>();
-    private static final Map<String, ClassLoader> pluginClassLoaderByAdviceClass = new HashMap<>();
+    private static final Map<String, ClassLoader> pluginClassLoaderByAdviceClass = new ConcurrentHashMap<>();
 
     /**
      * Called reflectively by {@link AgentMain} to initialize the agent
@@ -150,6 +148,7 @@ public class ElasticApmAgent {
 
     @Nonnull
     private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
+        List<ClassLoader> pluginClassLoaders = new ArrayList<>();
         pluginClassLoaders.add(ElasticApmAgent.class.getClassLoader());
         pluginClassLoaders.addAll(createExternalPluginClassLoaders(tracer.getConfig(CoreConfiguration.class).getPluginsDir()));
         final List<ElasticApmInstrumentation> instrumentations = DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, pluginClassLoaders, tracer);
@@ -527,7 +526,6 @@ public class ElasticApmAgent {
         }
         dynamicClassFileTransformers.clear();
         instrumentation = null;
-        pluginClassLoaders.clear();
         HelperClassManager.ForIndyPlugin.clear();
     }
 
