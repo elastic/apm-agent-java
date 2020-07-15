@@ -64,7 +64,7 @@ class SystemMetricsTest {
     @ParameterizedTest
     @CsvSource({
         "/proc/meminfo,     6235127808",
-        "/proc/meminfo-3.14, 556630016",
+        "/proc/meminfo-3.14, 556630016"
     })
     void testFreeMemoryMeminfo(String file, long value) throws Exception {
         SystemMetrics systemMetrics = createUnlimitedSystemMetrics(file);
@@ -72,26 +72,28 @@ class SystemMetricsTest {
 
         assertThat(metricRegistry.getGaugeValue("system.memory.actual.free", Labels.EMPTY)).isEqualTo(value);
         assertThat(metricRegistry.getGaugeValue("system.memory.total", Labels.EMPTY)).isEqualTo(7964778496L);
+
+        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(9223372036854771712L);
     }
 
-    private SystemMetrics createUnlimitedSystemMetrics(String file) throws URISyntaxException, IOException {
-        File mountInfo = new File(getClass().getResource("/proc/cgroup").toURI());
+    private SystemMetrics createUnlimitedSystemMetrics(String memInfoFile) throws URISyntaxException, IOException {
+        File mountInfo = new File(getClass().getResource("/proc/unlimited/memory").toURI());
         File fileTmp = File.createTempFile("temp", null);
         fileTmp.deleteOnExit();
         FileWriter fw = new FileWriter(fileTmp);
         fw.write("39 30 0:35 / " + mountInfo.getAbsolutePath() + " rw,nosuid,nodev,noexec,relatime shared:10 - cgroup cgroup rw,seclabel,memory\n");
         fw.close();
 
-        return new SystemMetrics(new File(getClass().getResource(file).toURI()),
-            new File(getClass().getResource("/proc/unlimited/memory").toURI()),
+        return new SystemMetrics(new File(getClass().getResource(memInfoFile).toURI()),
+            new File(getClass().getResource("/proc/cgroup").toURI()),
             fileTmp
         );
     }
 
     @ParameterizedTest
     @CsvSource({
-        "/proc/meminfo,     954370560, /proc/cgroup, /proc/limited/memory",
-        "/proc/meminfo,     954370560, /proc/cgroup2, /proc/sys_cgroup2"
+        "/proc/meminfo,     964778496, /proc/cgroup, /proc/limited/memory",
+        "/proc/meminfo,     964778496, /proc/cgroup2, /proc/sys_cgroup2"
     })
     void testFreeCgroupMemoryMeminfo(String file, long value, String selfCGroup, String sysFsGroup) throws Exception {
         File mountInfo = new File(getClass().getResource(sysFsGroup).toURI());
@@ -121,9 +123,12 @@ class SystemMetricsTest {
         "39 30 0:36 / /sys/fs/cgroup/memory rw,nosuid,nodev,noexec,relatime shared:10 - cgroup cgroup rw,seclabel,memory|/sys/fs/cgroup/memory",
     })
     void testCgroup1Regex(String testString) throws Exception {
-        String [] split = testString.split("\\|");
+        String[] split = testString.split("\\|");
         SystemMetrics systemMetrics = createUnlimitedSystemMetrics("/proc/meminfo");
-        assertThat(systemMetrics.applyCgroup1Regex(split[0])).isEqualTo(split[1]);
+        assertThat(systemMetrics.applyCgroupRegex(SystemMetrics.CGROUP1_MOUNT_POINT, split[0])).isEqualTo(split[1]);
+
+        systemMetrics.bindTo(metricRegistry);
+        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(9223372036854771712L);
     }
 
     @ParameterizedTest
@@ -133,7 +138,7 @@ class SystemMetricsTest {
     void testCgroup2Regex(String testString) throws Exception {
         String [] split = testString.split("\\|");
         SystemMetrics systemMetrics = createUnlimitedSystemMetrics("/proc/meminfo");
-        assertThat(systemMetrics.applyCgroup2Regex(split[0])).isEqualTo(split[1]);
+        assertThat(systemMetrics.applyCgroupRegex(SystemMetrics.CGROUP2_MOUNT_POINT, split[0])).isEqualTo(split[1]);
     }
 
     private void consumeCpu() {

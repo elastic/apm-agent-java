@@ -31,6 +31,8 @@ import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.util.JmxUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;
@@ -63,24 +65,24 @@ import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
  * under Apache License 2.0
  */
 public class SystemMetrics extends AbstractLifecycleListener {
+
     public static final String PROC_SELF_CGROUP = "/proc/self/cgroup";
-    public static final String SYS_FS_CGROUP = "/sys/fs/cgroup";
     public static final String PROC_SELF_MOUNTINFO = "/proc/self/mountinfo";
+    public static final String DEFAULT_SYS_FS_CGROUP = "/sys/fs/cgroup";
+
+    static final String CGROUP1_MAX_MEMORY = "memory.limit_in_bytes";
+    static final String CGROUP1_USED_MEMORY = "memory.usage_in_bytes";
+    static final String CGROUP2_MAX_MEMORY = "memory.max";
+    static final String CGROUP2_USED_MEMORY = "memory.current";
+    static final String CGROUP_MEMORY_STAT = "memory.stat";
+
+    static final Pattern MEMORY_CGROUP = Pattern.compile("^\\d+\\:memory\\:.*");
+    static final Pattern CGROUP1_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup.*memory.*");
+    static final Pattern CGROUP2_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup2.*cgroup.*");
+
+    private static final Logger logger = LoggerFactory.getLogger(SystemMetrics.class);
+
     private final OperatingSystemMXBean operatingSystemBean;
-
-    final private List<WildcardMatcher> inactiveMemoryRelevantLines = Arrays.asList(caseSensitiveMatcher("inactive_file *"));
-
-    private static String CGROUP1_MAX_MEMORY = "memory.limit_in_bytes";
-    private static String CGROUP1_USED_MEMORY = "memory.usage_in_bytes";
-    private static String CGROUP1_STAT_MEMORY = "memory.stat";
-    private static String CGROUP2_MAX_MEMORY = "memory.max";
-    private static String CGROUP2_USED_MEMORY = "memory.current";
-    private static String CGROUP2_STAT_MEMORY = "memory.stat";
-    private static long UNLIMITED = 0x7FFFFFFFFFFFF000L;
-
-    private Pattern MEMORY_CGROUP = Pattern.compile("^\\d+\\:memory\\:.*");
-    private Pattern CGROUP1_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup.*memory.*");
-    private Pattern CGROUP2_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup2.*cgroup.*");
 
     @Nullable
     private final Method systemCpuUsage;
@@ -113,93 +115,136 @@ public class SystemMetrics extends AbstractLifecycleListener {
         this.virtualProcessMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getCommittedVirtualMemorySize");
         this.memInfoFile = memInfoFile;
 
-        cgroupFiles = verifyCgroupEnabled(procSelfCgroup, mountInfo);
+        cgroupFiles = findCgroupFiles(procSelfCgroup, mountInfo);
     }
 
-    public CgroupFiles verifyCgroupEnabled(File procSelfCgroup, File mountInfo) {
-        if (procSelfCgroup.canRead() && mountInfo.canRead()) {
-            try(BufferedReader fileReader = new BufferedReader(new FileReader(procSelfCgroup))) {
-                String lineCgroup = null;
-                for (String cgroupLine = fileReader.readLine(); cgroupLine != null && !cgroupLine.isEmpty(); cgroupLine = fileReader.readLine()) {
-                    if (lineCgroup == null && cgroupLine.startsWith("0:")) {
-                        lineCgroup = cgroupLine;
+    /**
+     * Implementing the cgroup metrics spec - https://github.com/elastic/apm/blob/master/docs/agents/agent-development.md#cgroup-metrics
+     *
+     * @param procSelfCgroup /proc/self/cgroup file
+     * @param mountInfo      /proc/self/mountinfo file
+     * @return a holder for the memory cgroup files if found or {@code null} if not found
+     */
+    @Nullable
+    public CgroupFiles findCgroupFiles(File procSelfCgroup, File mountInfo) {
+        if (procSelfCgroup.canRead()) {
+            String cgroupLine = null;
+            try (BufferedReader fileReader = new BufferedReader(new FileReader(procSelfCgroup))) {
+                String currentLine = fileReader.readLine();
+                while (currentLine != null) {
+                    if (cgroupLine == null && currentLine.startsWith("0:")) {
+                        cgroupLine = currentLine;
                     }
-                    if (MEMORY_CGROUP.matcher(cgroupLine).matches()) {
-                        lineCgroup = cgroupLine;
+                    if (MEMORY_CGROUP.matcher(currentLine).matches()) {
+                        cgroupLine = currentLine;
+                        break;
                     }
+                    currentLine = fileReader.readLine();
                 }
-                if (lineCgroup != null) {
-                    CgroupFiles cgroupFilesTest = null;
-                    try(BufferedReader fileMountInfoReader = new BufferedReader(new FileReader(mountInfo))) {
-                        for (String mountLine = fileMountInfoReader.readLine(); mountLine != null && !mountLine.isEmpty(); mountLine = fileMountInfoReader.readLine()) {
-                            String foundRegex = applyCgroup2Regex(mountLine);
-                            if (foundRegex != null) {
-                                cgroupFilesTest = verifyCgroup2Available(lineCgroup, new File(foundRegex));
-                                if (cgroupFilesTest != null) return cgroupFilesTest;
-                            }
-                            foundRegex = applyCgroup1Regex(mountLine);
-                            if (foundRegex != null) {
-                                cgroupFilesTest = verifyCgroup1Available(new File(foundRegex));
-                                if (cgroupFilesTest != null) return cgroupFilesTest;
-                            }
-                        }
-                    }
-                    // Fall back to /sys/fs/cgroup if not found on mountinfo
-                    cgroupFilesTest = verifyCgroup2Available(lineCgroup, new File(SYS_FS_CGROUP));
-                    if (cgroupFilesTest != null) return cgroupFilesTest;
-                    cgroupFilesTest = verifyCgroup1Available( new File(SYS_FS_CGROUP + File.pathSeparator + "memory"));
-                    if (cgroupFilesTest != null) return cgroupFilesTest;
 
+                if (cgroupLine != null) {
+                    CgroupFiles cgroupFiles;
+
+                    // Try to discover the cgroup fs path from the mountinfo file
+                    if (mountInfo.canRead()) {
+                        String mountLine = null;
+                        try (BufferedReader fileMountInfoReader = new BufferedReader(new FileReader(mountInfo))) {
+                            mountLine = fileMountInfoReader.readLine();
+                            while (mountLine != null) {
+                                // cgroup v2
+                                String rootCgroupFsPath = applyCgroupRegex(CGROUP2_MOUNT_POINT, mountLine);
+                                if (rootCgroupFsPath != null) {
+                                    cgroupFiles = createCgroup2Files(cgroupLine, new File(rootCgroupFsPath));
+                                    if (cgroupFiles != null) {
+                                        return cgroupFiles;
+                                    }
+                                }
+
+                                // cgroup v1
+                                String memoryMountPath = applyCgroupRegex(CGROUP1_MOUNT_POINT, mountLine);
+                                if (memoryMountPath != null) {
+                                    cgroupFiles = createCgroup1Files(
+                                        new File(memoryMountPath)
+                                    );
+                                    if (cgroupFiles != null) {
+                                        return cgroupFiles;
+                                    }
+                                }
+
+                                mountLine = fileMountInfoReader.readLine();
+                            }
+                        } catch (Exception e) {
+                            logger.info("Failed to discover memory mount files path based on mountinfo line '{}'.", mountLine);
+                        }
+                    } else {
+                        logger.info("Failed to find/read /proc/self/mountinfo file. Looking for memory files in /sys/fs/cgroup.");
+                    }
+
+                    // Failed to auto-discover the cgroup fs path from mountinfo, fall back to /sys/fs/cgroup
+                    // cgroup v2
+                    cgroupFiles = createCgroup2Files(cgroupLine, new File(DEFAULT_SYS_FS_CGROUP));
+                    if (cgroupFiles != null) {
+                        return cgroupFiles;
+                    }
+                    // cgroup v2
+                    cgroupFiles = createCgroup1Files(new File(DEFAULT_SYS_FS_CGROUP + File.pathSeparator + "memory"));
+                    if (cgroupFiles != null) {
+                        return cgroupFiles;
+                    }
+                } else {
+                    logger.warn("No /proc/self/cgroup file line matched the tested patterns. Cgroup metrics will not be reported.");
                 }
             } catch (Exception e) {
+                logger.error("Failed to discover memory mount files path based on cgroup line '" + cgroupLine +
+                    "'. Cgroup metrics will not be reported,", e);
             }
-        }
-        return null;
-    }
-    String applyCgroup1Regex(String mountLine) {
-        Matcher matcher = CGROUP1_MOUNT_POINT.matcher(mountLine);
-        if (matcher.matches()) {
-            return matcher.group(1);
-        }
-        return null;
-    }
-    String applyCgroup2Regex(String mountLine) {
-        Matcher matcher = CGROUP2_MOUNT_POINT.matcher(mountLine);
-        if (matcher.matches()) {
-            return matcher.group(1);
-        }
-        return null;
-    }
-    private CgroupFiles verifyCgroup2Available(String lineCgroup, File mountDiscovered) throws IOException {
-        final String[] cgroupSplit = StringUtils.split(lineCgroup, ':');
-        // Checking cgroup2
-        File maxMemory = new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_MAX_MEMORY);
-        if (maxMemory.canRead()) {
-            try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
-                String memMaxLine = fileReaderMem.readLine();
-                if (!"max".equalsIgnoreCase(memMaxLine)) {
-                    return new CgroupFiles(maxMemory,
-                        new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_USED_MEMORY),
-                        new File(mountDiscovered, cgroupSplit[cgroupSplit.length - 1] + "/" + CGROUP2_STAT_MEMORY));
-                }
-            }
+        } else {
+            logger.debug("Cannot find/read /proc/self/cgroup file. Cgroup metrics will not be reported.");
         }
         return null;
     }
 
-    private CgroupFiles verifyCgroup1Available(File mountDiscovered) throws IOException {
-        // Checking cgroup1
-        File maxMemory = new File(mountDiscovered, CGROUP1_MAX_MEMORY);
-        if (maxMemory.canRead()) {
-            try(BufferedReader fileReaderMem = new BufferedReader(new FileReader(maxMemory))) {
-                String memMaxLine = fileReaderMem.readLine();
-                long memMax = Long.parseLong(memMaxLine);
-                if (memMax < UNLIMITED) { // Cgroup1 use a contant to disabled limits
-                    return new CgroupFiles(maxMemory,
-                        new File(mountDiscovered, CGROUP1_USED_MEMORY),
-                        new File(mountDiscovered, CGROUP1_STAT_MEMORY));
+    @Nullable
+    String applyCgroupRegex(Pattern regex, String mountLine) {
+        Matcher matcher = regex.matcher(mountLine);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    @Nullable
+    private CgroupFiles createCgroup2Files(String cgroupLine, File rootCgroupFsPath) throws IOException {
+        final String[] cgroupLineParts = StringUtils.split(cgroupLine, ':');
+        String sliceSubdir = cgroupLineParts[cgroupLineParts.length - 1];
+        File maxMemoryFile = new File(rootCgroupFsPath, sliceSubdir + File.separatorChar + CGROUP2_MAX_MEMORY);
+        if (maxMemoryFile.canRead()) {
+            try (BufferedReader maxFileReader = new BufferedReader(new FileReader(maxMemoryFile))) {
+                String memMaxLine = maxFileReader.readLine();
+                if ("max".equalsIgnoreCase(memMaxLine)) {
+                    // Make sure we don't send the max metric when cgroup is not bound to a memory limit
+                    maxMemoryFile = null;
                 }
             }
+            return new CgroupFiles(
+                maxMemoryFile,
+                new File(rootCgroupFsPath, sliceSubdir + File.separator + CGROUP2_USED_MEMORY),
+                new File(rootCgroupFsPath, sliceSubdir + File.separator + CGROUP_MEMORY_STAT)
+            );
+        }
+        return null;
+    }
+
+    @Nullable
+    private CgroupFiles createCgroup1Files(File memeoryMountPath) {
+        File maxMemoryFile = new File(memeoryMountPath, SystemMetrics.CGROUP1_MAX_MEMORY);
+        if (maxMemoryFile.canRead()) {
+            // No need for special treatment for the special "unlimited" value (0x7ffffffffffff000) - omitted by the UI
+            return new CgroupFiles(
+                maxMemoryFile,
+                new File(memeoryMountPath, SystemMetrics.CGROUP1_USED_MEMORY),
+                new File(memeoryMountPath, SystemMetrics.CGROUP_MEMORY_STAT)
+            );
         }
         return null;
     }
@@ -207,21 +252,6 @@ public class SystemMetrics extends AbstractLifecycleListener {
     @Override
     public void start(ElasticApmTracer tracer) {
         bindTo(tracer.getMetricRegistry());
-    }
-
-    private double getInactiveMemory() {
-        try(BufferedReader fileReaderStatFile = new BufferedReader(new FileReader(cgroupFiles.getStatMemory()))) {
-            long sum = 0;
-            for (String statLine = fileReaderStatFile.readLine(); statLine != null && !statLine.isEmpty(); statLine = fileReaderStatFile.readLine()) {
-                if (WildcardMatcher.isAnyMatch(inactiveMemoryRelevantLines, statLine)) {
-                    final String[] statLineSplit = StringUtils.split(statLine, ' ');
-                    sum += Long.parseLong(statLineSplit[1]);
-                }
-            }
-            return sum;
-        } catch (Exception ignored) {
-            return Double.NaN;
-        }
     }
 
     void bindTo(MetricRegistry metricRegistry) {
@@ -242,41 +272,59 @@ public class SystemMetrics extends AbstractLifecycleListener {
 
         if (cgroupFiles != null) {
             metricRegistry.addUnlessNan("system.process.cgroup.memory.stats.inactive_file.bytes", Labels.EMPTY, new DoubleSupplier() {
-
                 @Override
                 public double get() {
-                    return getInactiveMemory();
+                    try (BufferedReader fileReaderStatFile = new BufferedReader(new FileReader(cgroupFiles.getStatMemoryFile()))) {
+                        String statLine = fileReaderStatFile.readLine();
+                        String inactiveBytes = null;
+                        while (statLine != null) {
+                            final String[] statLineSplit = StringUtils.split(statLine, ' ');
+                            if (statLineSplit.length > 1) {
+                                if ("total_inactive_file".equals(statLineSplit[0])) {
+                                    inactiveBytes = statLineSplit[1];
+                                    break;
+                                } else if ("inactive_file".equals(statLineSplit[0])) {
+                                    inactiveBytes = statLineSplit[1];
+                                }
+                            }
+                            statLine = fileReaderStatFile.readLine();
+                        }
+                        return inactiveBytes != null ? Long.parseLong(inactiveBytes) : Double.NaN;
+                    } catch (Exception e) {
+                        logger.debug("Failed to read " + cgroupFiles.getStatMemoryFile().getAbsolutePath() + " file", e);
+                        return Double.NaN;
+                    }
                 }
-
             });
+
             metricRegistry.addUnlessNan("system.process.cgroup.memory.mem.usage.bytes", Labels.EMPTY, new DoubleSupplier() {
                 @Override
                 public double get() {
-                    try(BufferedReader fileReaderMemoryUsed = new BufferedReader(new FileReader(cgroupFiles.getUsedMemory()))
-                    ) {
-                        long memUsed = Long.parseLong(fileReaderMemoryUsed.readLine());
-                        Double inactiveMemory = getInactiveMemory();
-                        if (!inactiveMemory.equals(Double.NaN)) {
-                            memUsed -= inactiveMemory;
+                    try (BufferedReader fileReaderMemoryUsed = new BufferedReader(new FileReader(cgroupFiles.getUsedMemoryFile()))) {
+                        return Long.parseLong(fileReaderMemoryUsed.readLine());
+                    } catch (Exception e) {
+                        logger.debug("Failed to read " + cgroupFiles.getUsedMemoryFile().getAbsolutePath() + " file", e);
+                        return Double.NaN;
+                    }
+                }
+            });
+
+            final File maxMemoryFile = cgroupFiles.getMaxMemoryFile();
+            if (maxMemoryFile != null) {
+                metricRegistry.addUnlessNan("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY, new DoubleSupplier() {
+                    @Override
+                    public double get() {
+                        try (BufferedReader fileReaderMemoryMax = new BufferedReader(new FileReader(maxMemoryFile))) {
+                            return Long.parseLong(fileReaderMemoryMax.readLine());
+                        } catch (Exception e) {
+                            logger.debug("Failed to read " + maxMemoryFile + " file", e);
+                            return Double.NaN;
                         }
-                        return memUsed;
-                    } catch (Exception ignored) {
-                        return Double.NaN;
                     }
-                }
-            });
-            metricRegistry.addUnlessNan("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY, new DoubleSupplier() {
-                @Override
-                public double get() {
-                    try(BufferedReader fileReaderMemoryMax = new BufferedReader(new FileReader(cgroupFiles.getMaxMemory()))) {
-                        long memMax = Long.parseLong(fileReaderMemoryMax.readLine());
-                        return memMax;
-                    } catch (Exception ignored) {
-                        return Double.NaN;
-                    }
-                }
-            });
+                });
+            }
         }
+
         if (memInfoFile.canRead()) {
             metricRegistry.addUnlessNan("system.memory.actual.free", Labels.EMPTY, new DoubleSupplier() {
                 final List<WildcardMatcher> relevantLines = Arrays.asList(
@@ -356,26 +404,29 @@ public class SystemMetrics extends AbstractLifecycleListener {
     }
 
     public static class CgroupFiles {
-        protected File maxMemory;
-        protected File usedMemory;
-        protected File statMemory;
 
-        public CgroupFiles(File maxMemory, File usedMemory, File statMemory) {
-            this.maxMemory = maxMemory;
-            this.usedMemory = usedMemory;
-            this.statMemory = statMemory;
+        @Nullable // may be null if memory mount is found for the cgroup, but memory is unlimited
+        protected File maxMemoryFile;
+        protected File usedMemoryFile;
+        protected File statMemoryFile;
+
+        public CgroupFiles(@Nullable File maxMemoryFile, File usedMemoryFile, File statMemoryFile) {
+            this.maxMemoryFile = maxMemoryFile;
+            this.usedMemoryFile = usedMemoryFile;
+            this.statMemoryFile = statMemoryFile;
         }
 
-        public File getMaxMemory() {
-            return maxMemory;
+        @Nullable
+        public File getMaxMemoryFile() {
+            return maxMemoryFile;
         }
 
-        public File getUsedMemory() {
-            return usedMemory;
+        public File getUsedMemoryFile() {
+            return usedMemoryFile;
         }
 
-        public File getStatMemory() {
-            return statMemory;
+        public File getStatMemoryFile() {
+            return statMemoryFile;
         }
     }
 }
