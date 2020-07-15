@@ -206,6 +206,16 @@ public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
         }
 
         @Override
+        public void onSubscribe(Subscription s) {
+            transaction.activate();
+            try {
+                super.onSubscribe(s);
+            } finally {
+                transaction.deactivate();
+            }
+        }
+
+        @Override
         public void onNext(T next) {
             transaction.activate();
             try {
