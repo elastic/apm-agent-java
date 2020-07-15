@@ -36,7 +36,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -45,23 +44,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
-    // TODO support random port for easier testing (without any spring-related test).
-    public static final int PORT = 8081;
-
-    private static ConfigurableApplicationContext context;
+    protected static WebFluxApplication.App app;
 
     @BeforeAll
     static void startApp() {
-        context = WebFluxApplication.run(PORT);
+        app = WebFluxApplication.run(-1);
     }
 
     @AfterAll
     static void stopApp() {
-        context.close();
+        app.close();
     }
 
     @BeforeEach
-    void beforeEach(){
+    void beforeEach() {
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
@@ -104,7 +100,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     }
 
-    protected static void checkUrl(Url url, int port, String pathPrefix, String relativePath){
+    protected static void checkUrl(Url url, int port, String pathPrefix, String relativePath) {
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getHostname()).isEqualTo("localhost");
         assertThat(url.getPathname()).isEqualTo(String.format("%s/%s", pathPrefix, relativePath));

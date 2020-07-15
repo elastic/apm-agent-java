@@ -33,7 +33,7 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
 
     @Override
     protected GreetingWebClient getClient() {
-        return new GreetingWebClient("localhost", PORT, true);
+        return app.getClient(true);
     }
 
     @ParameterizedTest
