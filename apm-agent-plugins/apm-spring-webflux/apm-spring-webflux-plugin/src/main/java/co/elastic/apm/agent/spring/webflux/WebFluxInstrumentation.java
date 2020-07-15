@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
@@ -51,7 +52,7 @@ import java.util.Map;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
-public abstract class WebFluxInstrumentation extends ElasticApmInstrumentation {
+public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
     public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
 

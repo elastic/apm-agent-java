@@ -1,8 +1,11 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Only for bugs that have been confimed in the [Discuss forum](https://discuss.elastic.co/c/apm)
 
 ---
+
+We kindly ask to post all questions and issues on the [Discuss forum](https://discuss.elastic.co/c/apm) first. In addition to awesome, knowledgeable community contributors, core APM developers are on the forums every single day to help you out as well, so your questions will reach a wider audience there. If we confirm that there is a bug, then you can open an issue in this repo.
+
 
 ## Describe the bug
 <!--
@@ -37,4 +40,3 @@ about how to enable debug logging.
 replace this line with your debug logs
 ```
 </details>
-

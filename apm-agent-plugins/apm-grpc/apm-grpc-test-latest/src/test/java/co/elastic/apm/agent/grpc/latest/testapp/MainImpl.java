@@ -24,11 +24,13 @@
  */
 package co.elastic.apm.agent.grpc.latest.testapp;
 
+import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.Main;
 
 public class MainImpl extends Main {
 
     public static void main(String[] args) {
-        doMain(GrpcAppProviderImpl.INSTANCE.getGrpcApp("localhost", parsePort(args)));
+        GrpcApp app = GrpcAppProviderImpl.INSTANCE.getGrpcApp("localhost", parsePort(args));
+        doMain(app, args);
     }
 }

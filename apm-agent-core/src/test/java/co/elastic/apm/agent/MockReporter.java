@@ -113,6 +113,9 @@ public class MockReporter implements Reporter {
     }
 
     @Override
+    public void start() {}
+
+    @Override
     public synchronized void report(Transaction transaction) {
         if (closed) {
             return;
@@ -236,6 +239,16 @@ public class MockReporter implements Reporter {
             .untilAsserted(() -> assertThat(getSpans()).isEmpty());
 
         assertNoSpan();
+    }
+
+    public void awaitTransactionCount(int count) {
+        awaitTimeout(1000)
+            .untilAsserted(() -> assertThat(getTransactions()).hasSize(count));
+    }
+
+    public void awaitSpanCount(int count) {
+        awaitTimeout(1000)
+            .untilAsserted(() -> assertThat(getSpans()).hasSize(count));
     }
 
     @Override

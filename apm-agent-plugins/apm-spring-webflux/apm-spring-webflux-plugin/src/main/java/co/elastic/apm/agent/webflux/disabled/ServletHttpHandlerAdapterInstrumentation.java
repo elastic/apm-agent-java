@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.webflux.disabled;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -47,7 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@link org.springframework.http.server.reactive.ServletHttpHandlerAdapter#service(ServletRequest, ServletResponse)}
  * to create transactions for annotated controllers.
  */
-public class ServletHttpHandlerAdapterInstrumentation extends ElasticApmInstrumentation {
+public class ServletHttpHandlerAdapterInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ServletHttpHandlerAdapterInstrumentation.class);
 

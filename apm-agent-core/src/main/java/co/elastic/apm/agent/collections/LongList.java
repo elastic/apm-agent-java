@@ -27,6 +27,7 @@ package co.elastic.apm.agent.collections;
 import java.util.Arrays;
 
 public class LongList {
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
     private static final int DEFAULT_CAPACITY = 16;
     private long[] longs;
     private int size;
@@ -58,9 +59,20 @@ public class LongList {
         size += other.size;
     }
 
-    private void ensureCapacity(int size) {
-        if (longs.length < size) {
-            longs = Arrays.copyOf(longs, longs.length * 2);
+    private void ensureCapacity(long minCapacity) {
+        if (longs.length < minCapacity) {
+            longs = Arrays.copyOf(longs, newCapacity(minCapacity, longs.length));
+        }
+    }
+
+    static int newCapacity(long minCapacity, long oldCapacity) {
+        long growBy50Percent = oldCapacity + (oldCapacity >> 1);
+        if (minCapacity <= growBy50Percent) {
+            return (int) growBy50Percent;
+        } else if (minCapacity <= MAX_ARRAY_SIZE) {
+            return (int) minCapacity;
+        } else {
+            throw new OutOfMemoryError();
         }
     }
 

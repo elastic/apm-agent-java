@@ -24,10 +24,9 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
@@ -40,32 +39,23 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.servlet.ServletGlobalState.nameInitialized;
 
-/**
- * This class must not import classes from {@code javax.servlet} due to class loader issues.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- */
-@VisibleForAdvice
 public class ServletTransactionHelper {
 
-    @VisibleForAdvice
     public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
 
-    @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
 
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
     private static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
-    private static final Set<String> nameInitialized = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -73,20 +63,13 @@ public class ServletTransactionHelper {
     private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
 
-    @VisibleForAdvice
     public ServletTransactionHelper(ElasticApmTracer tracer) {
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
-    // visible for testing as clearing cache is required between tests execution
-    static void clearServiceNameCache() {
-        nameInitialized.clear();
-    }
-
-    @VisibleForAdvice
     public static void determineServiceName(@Nullable String servletContextName, ClassLoader servletContextClassLoader, @Nullable String contextPath) {
-        if (ElasticApmInstrumentation.tracer == null || !nameInitialized.add(contextPath == null ? "null" : contextPath)) {
+        if (!nameInitialized.add(contextPath == null ? "null" : contextPath)) {
             return;
         }
 
@@ -104,11 +87,10 @@ public class ServletTransactionHelper {
             serviceName = contextPath.substring(1);
         }
         if (serviceName != null) {
-            ElasticApmInstrumentation.tracer.overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
+            GlobalTracer.get().overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
         }
     }
 
-    @VisibleForAdvice
     public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr, @Nullable String contentTypeHeader) {
@@ -160,7 +142,6 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
     public static void setUsernameIfUnset(@Nullable String userName, TransactionContext context) {
         // only set username if not manually set
         if (context.getUser().getUsername() == null) {
@@ -168,7 +149,6 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status,
                         boolean overrideStatusCodeOnThrowable, String method, @Nullable Map<String, String[]> parameterMap,
                         @Nullable String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader, boolean deactivate) {
@@ -252,7 +232,6 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
     public boolean captureParameters(String method, @Nullable String contentTypeHeader) {
         return contentTypeHeader != null
             && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
@@ -279,7 +258,6 @@ public class ServletTransactionHelper {
         }
     }
 
-    @VisibleForAdvice
     public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction) {
         if (servletClass == null) {
             return;

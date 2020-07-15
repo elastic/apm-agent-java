@@ -312,10 +312,10 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
         return httpClient.newCall(new Request.Builder()
-                .post(postBody)
-                .url(getBaseUrl() + pathToTest)
-                .build())
-                .execute();
+            .post(postBody)
+            .url(getBaseUrl() + pathToTest)
+            .build())
+            .execute();
     }
 
     public Response executeRequest(String pathToTest, Map<String, String> headersMap) throws IOException {

@@ -43,4 +43,14 @@ public class TracerInternalApiUtils {
     public static void resumeTracer(ElasticApmTracer tracer) {
         tracer.resume();
     }
+
+    public static void runWithoutAssertions(ElasticApmTracer tracer, Runnable runnable) {
+        boolean assertionsEnabled = tracer.assertionsEnabled;
+        try {
+            tracer.assertionsEnabled = false;
+            runnable.run();
+        } finally {
+            tracer.assertionsEnabled = assertionsEnabled;
+        }
+    }
 }

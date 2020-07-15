@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -71,7 +72,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+        private static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                            @Advice.Argument(0) long finishMicros) {
             if (span != null) {
                 doFinishInternal(span, finishMicros);
@@ -290,12 +291,11 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             super(named("getTraceContext"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan,
-                                           @Advice.Return(readOnly = false) Object traceContext) {
-            if (abstractSpan != null) {
-                traceContext = abstractSpan;
-            }
+        public static Object getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan) {
+            return abstractSpan;
         }
     }
 

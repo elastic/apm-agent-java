@@ -5,7 +5,7 @@
     <parent>
         <artifactId>spring-boot-2</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.16.1-SNAPSHOT</version>
+        <version>1.17.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>spring-boot-2-base</artifactId>
@@ -58,11 +58,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${version.spring-boot}</version>
-        </dependency>
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-            <version>${version.byte-buddy}</version>
         </dependency>
     </dependencies>
 

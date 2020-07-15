@@ -381,15 +381,15 @@ class SpanTypeBreakdownTest {
     void testBreakdown_spanStartedAfterParentEnded() {
         final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
-            .withType("request");
-        final Runnable runnable = transaction.withActive(() -> {
-            final AbstractSpan<?> active = tracer.getActive();
-            assertThat(active).isSameAs(transaction);
-            assertThat(transaction.getTraceContext().getId().isEmpty()).isFalse();
-            active.createSpan(20).withType("db").withSubtype("mysql").end(30);
-        });
+            .withType("request")
+            .activate();
         transaction.end(10);
-        runnable.run();
+
+        final AbstractSpan<?> active = tracer.getActive();
+        assertThat(active).isSameAs(transaction);
+        assertThat(transaction.getTraceContext().getId().isEmpty()).isFalse();
+        active.createSpan(20).withType("db").withSubtype("mysql").end(30);
+        transaction.deactivate();
 
         reporter.assertRecycledAfterDecrementingReferences();
 

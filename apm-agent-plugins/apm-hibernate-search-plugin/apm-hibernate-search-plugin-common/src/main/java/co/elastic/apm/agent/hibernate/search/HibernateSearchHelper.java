@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.hibernate.search;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 
@@ -37,29 +37,26 @@ public final class HibernateSearchHelper {
     }
 
     @VisibleForAdvice
-    public static Span createAndActivateSpan(final ElasticApmTracer tracer, final String methodName,
+    public static Span createAndActivateSpan(final Tracer tracer, final String methodName,
                                              final String query) {
-        Span span = null;
 
-        if (tracer != null) {
-            AbstractSpan<?> active = tracer.getActive();
-            // avoid creating the same span twice for example, when an instrumented API is wrapped
-            if (active == null || active instanceof Span && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
-                .equals(((Span) active).getSubtype())) {
-                return null;
-            }
-
-            span = active.createSpan().activate();
-
-            span.withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE)
-                    .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                    .withAction(methodName);
-            span.getContext().getDb()
-                    .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                    .withStatement(query);
-            span.withName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME)
-                    .appendToName(" ").appendToName(methodName).appendToName("()");
+        AbstractSpan<?> active = tracer.getActive();
+        // avoid creating the same span twice for example, when an instrumented API is wrapped
+        if (active == null || active instanceof Span && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
+            .equals(((Span) active).getSubtype())) {
+            return null;
         }
+
+        Span span = active.createSpan().activate();
+
+        span.withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE)
+                .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
+                .withAction(methodName);
+        span.getContext().getDb()
+                .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
+                .withStatement(query);
+        span.withName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME)
+                .appendToName(" ").appendToName(methodName).appendToName("()");
         return span;
     }
 }

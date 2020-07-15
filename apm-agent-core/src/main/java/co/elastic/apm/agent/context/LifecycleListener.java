@@ -26,8 +26,6 @@ package co.elastic.apm.agent.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
-import java.io.Closeable;
-
 /**
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
  * <p>
@@ -39,6 +37,16 @@ import java.io.Closeable;
  * </p>
  */
 public interface LifecycleListener {
+
+    /**
+     * Callback for tracer initialization. As opposed to {@link LifecycleListener#start(ElasticApmTracer)}, which may
+     * be called in a delay, this callback is called at the bootstrap of the JVM, before anything else start.
+     * This may be useful for listeners that need to operate very early on, for example such that setup class loading
+     * requirement to support OSGi systems.
+     * @param tracer the tracer
+     * @throws Exception
+     */
+    void init(ElasticApmTracer tracer) throws Exception;
 
     /**
      * Callback for when the {@link ElasticApmTracer} starts.

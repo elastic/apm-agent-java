@@ -44,27 +44,28 @@ the agent does not capture transactions.
 |Vendor |Supported versions | Notes
 
 |Oracle JDK
-|7, 8, 9, 10, 11
+|7u60+, 8u40+, 9, 10, 11
 |`--module-path` has not been tested yet
 
 |Open JDK
-|7, 8, 9, 10, 11
+|7u60+, 8u40+, 9, 10, 11
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
-|8
+|8 service refresh 5+
 |
+|===
 
 NOTE: Early Java 8 versions before update 40 are *not supported* because they have
 several bugs that might result in JVM crashes when a java agent is active,
 thus agent *will not start* on those versions.
+Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to invokedynamic.
 
 Here is an example of the message displayed when this happens.
 ```
 Failed ot start agent - JVM version not supported: 1.8.0_31
 ```
 
-|===
 
 [float]
 [[supported-web-frameworks]]
@@ -116,6 +117,11 @@ rendering
 
  Note: JAX-WS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>> and when using the HTTP binding.
 |1.4.0
+
+|Grails
+|3+
+|
+|1.17.0
 
 |===
 
@@ -262,6 +268,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 1.7.0
 
+|Apache Dubbo
+| 2.5+, except for 2.7.0, 2.7.1, and 2.7.2
+| This is an experimental plugin. Remove `experimental` from <<config-disable-instrumentations,`disable_instrumentations`>> to enable.
+| 1.17.0
+
 |===
 
 
@@ -276,10 +287,28 @@ This section lists all supported asynchronous frameworks.
 |===
 |Framework |Supported versions | Description | Since
 
-|ExecutorService
+|`ExecutorService`
 |
-|The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
+|The agent propagates the context for ``ExecutorService``s.
 |1.4.0
+
+|`ScheduledExecutorService`
+|
+|The agent propagates the context for `ScheduledExecutorService#schedule` (this does not include `scheduleAtFixedRate` or `scheduleWithFixedDelay`.
+|1.17.0
+
+|`ForkJoinPool`
+|
+|The agent propagates the context for ``ForkJoinPool``s.
+|1.17.0
+
+|Scala Future
+|2.13.x
+|The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.
+It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, ...
+
+NOTE: To enable Scala Future support, you need to enable experimental plugins.
+|1.18.0
 
 |===
 
@@ -338,6 +367,12 @@ When using a scheduling framework a transaction for every execution will be crea
 
 NOTE: only classes from the quartz-jobs dependency will be instrumented automatically. For the instrumentation of other jobs the package must be added to the <<config-application-packages>> parameter.
 |1.8.0
+
+|TimerTask
+|
+|The agent instruments the `run` method in a package configured in <<config-application-packages>> of any class extending `java.util.TimerTask`, and creates a transaction with the type `scheduled`, representing the job execution
+|1.18.0
+
 |===
 
 [float]
@@ -364,7 +399,9 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
 
-|1.13.0 (log correlation via `ThreadContext`)
+Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+|1.13.0
 
 
 |log4j
@@ -373,9 +410,7 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
 See the <<config-enable-log-correlation>> configuration option for more details.
 
-Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
-|1.11.0 (error capturing), 1.13.0 (log correlation via log4j's MDC)
+|1.13.0
 
 |===
 
@@ -440,9 +475,6 @@ If you are seeing gaps in the span timeline and want to include additional metho
 [float]
 [[supported-technologies-caveats]]
 === Caveats
-* Certain OSGi containers need the following configuration setting in case you see exceptions like
-  `java.lang.NoClassDefFoundError: co/elastic/apm/jdbc/StatementInstrumentation`:
-  `org.osgi.framework.bootdelegation=co.elastic.apm.agent.*`
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.webflux.disabled;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -46,7 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@link HandlerFunctionWrapper#handle(ServerRequest)} to create transaction for
  * functional routes definition
  */
-public class HandlerFunctionInstrumentation extends ElasticApmInstrumentation {
+public class HandlerFunctionInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(HandlerFunctionInstrumentation.class);
 

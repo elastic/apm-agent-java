@@ -99,6 +99,7 @@ Click on a key to get more information.
 ** <<config-stress-monitor-system-cpu-relief-threshold>>
 * <<config-core>>
 ** <<config-recording>>
+** <<config-enabled>>
 ** <<config-instrument>>
 ** <<config-service-name>>
 ** <<config-service-node-name>>
@@ -117,7 +118,6 @@ Click on a key to get more information.
 ** <<config-classes-excluded-from-instrumentation>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
-** <<config-boot-delegation-packages>>
 ** <<config-central-config>>
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
@@ -178,7 +178,7 @@ NOTE: This feature is currently experimental, which means it is disabled by defa
 A boolean specifying whether the circuit breaker should be enabled or not. 
 When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-<<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+<<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 agent will resume and become fully functional.
@@ -362,7 +362,10 @@ monitor to decide that the CPU stress has been relieved.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-recording]]
-==== `recording`
+==== `recording` (added[1.15.0])
+
+NOTE: This option was available in older versions through the `active` key. The old key is still 
+supported in newer versions, but it is now deprecated.
 
 A boolean specifying if the agent should be recording or not.
 When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
@@ -372,8 +375,6 @@ As this is a reversible switch, agent threads are not being killed when inactiva
 mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
-
-The key of this option used to be `active`. The old key still works but is now deprecated.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -389,6 +390,30 @@ The key of this option used to be `active`. The old key still works but is now d
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.recording` | `recording` | `ELASTIC_APM_RECORDING`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-enabled]]
+==== `enabled` (added[1.18.0])
+
+Setting to false will completely disable the agent, including instrumentation and remote config polling.
+If you want to dynamically change the status of the agent, use <<config-recording,`recording`>> instead.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enabled` | `enabled` | `ELASTIC_APM_ENABLED`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -670,7 +695,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -1001,44 +1026,6 @@ The default unit for this option is `ms`.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
-|============
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
-[[config-boot-delegation-packages]]
-==== `boot_delegation_packages` (added[1.7.0])
-
-A comma-separated list of packages to be appended to the boot delegation system property. 
-If set with an empty string, nothing will be appended to the boot delegation system property.
-Values to set in known environments:
-
-Nexus:
-
-----
-boot_delegation_packages=com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, sun.*,co.elastic.apm.agent.*
-----
-
-Pentaho and RedHat JBoss Fuse:
-
-----
-boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.principal, org.apache.karaf.management.boot, sun.*, com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, org.apache.xerces.jaxp.datatype, org.apache.xerces.stax, org.apache.xerces.parsers, org.apache.xerces.jaxp, org.apache.xerces.jaxp.validation, org.apache.xerces.dom, co.elastic.apm.agent.*
-----
-
-
-
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `co.elastic.apm.agent.*` | String | false
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2287,7 +2274,7 @@ The default unit for this option is `ms`.
 # A boolean specifying whether the circuit breaker should be enabled or not. 
 # When enabled, the agent periodically polls stress monitors to detect system/process/JVM stress state. 
 # If ANY of the monitors detects a stress indication, the agent will become inactive, as if the 
-# <<config-recording>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
+# <<config-recording,`recording`>> configuration option has been set to `false`, thus reducing resource consumption to a minimum. 
 # When inactive, the agent continues polling the same monitors in order to detect whether the stress state 
 # has been relieved. If ALL monitors approve that the system/process/JVM is not under stress anymore, the 
 # agent will resume and become fully functional.
@@ -2368,6 +2355,9 @@ The default unit for this option is `ms`.
 # Core                                     #
 ############################################
 
+# NOTE: This option was available in older versions through the `active` key. The old key is still 
+# supported in newer versions, but it is now deprecated.
+# 
 # A boolean specifying if the agent should be recording or not.
 # When recording, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
 # When not recording, the agent works as a noop, not collecting data and not communicating with the APM sever,
@@ -2376,14 +2366,21 @@ The default unit for this option is `ms`.
 # mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
-# 
-# The key of this option used to be `active`. The old key still works but is now deprecated.
 #
 # This setting can be changed at runtime
 # Type: Boolean
 # Default value: true
 #
 # recording=true
+
+# Setting to false will completely disable the agent, including instrumentation and remote config polling.
+# If you want to dynamically change the status of the agent, use <<config-recording,`recording`>> instead.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# enabled=true
 
 # A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 # 
@@ -2528,7 +2525,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `experimental`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2729,29 +2726,6 @@ The default unit for this option is `ms`.
 # Default value: 0ms
 #
 # trace_methods_duration_threshold=0ms
-
-# A comma-separated list of packages to be appended to the boot delegation system property. 
-# If set with an empty string, nothing will be appended to the boot delegation system property.
-# Values to set in known environments:
-# 
-# Nexus:
-# 
-# ----
-# boot_delegation_packages=com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, sun.*,co.elastic.apm.agent.*
-# ----
-# 
-# Pentaho and RedHat JBoss Fuse:
-# 
-# ----
-# boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.principal, org.apache.karaf.management.boot, sun.*, com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, org.apache.xerces.jaxp.datatype, org.apache.xerces.stax, org.apache.xerces.parsers, org.apache.xerces.jaxp, org.apache.xerces.jaxp.validation, org.apache.xerces.dom, co.elastic.apm.agent.*
-# ----
-# 
-#
-# This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: String
-# Default value: co.elastic.apm.agent.*
-#
-# boot_delegation_packages=co.elastic.apm.agent.*
 
 # When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
 #

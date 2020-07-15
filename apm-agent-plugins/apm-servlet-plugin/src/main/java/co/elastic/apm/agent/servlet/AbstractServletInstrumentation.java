@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -33,7 +33,7 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 
-public abstract class AbstractServletInstrumentation extends ElasticApmInstrumentation {
+public abstract class AbstractServletInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -41,10 +41,15 @@ public abstract class AbstractServletInstrumentation extends ElasticApmInstrumen
     }
 
     @Override
-    public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         // this class has been introduced in servlet spec 3.0
         // choice of class name to use for this test does not work as expected across all application servers
         // for example, 'javax.servlet.annotation.WebServlet' annotation is not working as expected on Payara
         return CustomElementMatchers.classLoaderCanLoadClass("javax.servlet.AsyncContext");
+    }
+
+    @Override
+    public boolean indyPlugin() {
+        return true;
     }
 }

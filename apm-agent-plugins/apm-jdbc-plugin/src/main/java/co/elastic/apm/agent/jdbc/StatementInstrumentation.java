@@ -24,10 +24,8 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -55,8 +53,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
-    StatementInstrumentation(ElasticApmTracer tracer, ElementMatcher<? super MethodDescription> methodMatcher) {
-        super(tracer);
+    StatementInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
         this.methodMatcher = methodMatcher;
     }
 
@@ -91,7 +88,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
     public static class ExecuteWithQueryInstrumentation extends StatementInstrumentation {
 
         public ExecuteWithQueryInstrumentation(ElasticApmTracer tracer) {
-            super(tracer,
+            super(
                 named("execute").or(named("executeQuery"))
                     .and(takesArgument(0, String.class))
                     .and(isPublic())
@@ -99,34 +96,23 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Nullable
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Span onBeforeExecute(@Advice.This Statement statement,
-                                           @Advice.Argument(0) String sql) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(@Advice.This Statement statement,
+                                             @Advice.Argument(0) String sql) {
 
-            if (tracer == null || jdbcHelperManager == null) {
-                return null;
-            }
-
-            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-            if (helperImpl == null) {
-                return null;
-            }
-
-            return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), false);
+            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
 
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.This Statement statement,
-                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span == null) {
                 return;
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
 
@@ -149,7 +135,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
     public static class ExecuteUpdateWithQueryInstrumentation extends StatementInstrumentation {
 
         public ExecuteUpdateWithQueryInstrumentation(ElasticApmTracer tracer) {
-            super(tracer,
+            super(
                 named("executeUpdate").or(named("executeLargeUpdate"))
                     .and(takesArgument(0, String.class))
                     .and(isPublic())
@@ -157,25 +143,15 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Nullable
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Span onBeforeExecute(@Advice.This Statement statement,
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
-            if (tracer == null || jdbcHelperManager == null) {
-                return null;
-            }
 
-            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-            if (helperImpl == null) {
-                return null;
-            }
-
-            return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), false);
+            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
             if (span == null) {
@@ -183,12 +159,12 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             }
 
             if (t == null) {
-                span.getContext()
+                ((Span) span).getContext()
                     .getDb()
                     .withAffectedRowsCount(returnValue);
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -200,23 +176,16 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
     public static class AddBatchInstrumentation extends StatementInstrumentation {
 
         public AddBatchInstrumentation(ElasticApmTracer tracer) {
-            super(tracer,
+            super(
                 nameStartsWith("addBatch")
                     .and(takesArgument(0, String.class))
                     .and(isPublic())
             );
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void storeSql(@Advice.This Statement statement, @Advice.Argument(0) String sql) {
-            if (jdbcHelperManager == null) {
-                return;
-            }
-
-            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-            if (helperImpl != null) {
-                helperImpl.mapStatementToSql(statement, sql);
-            }
+            jdbcHelper.mapStatementToSql(statement, sql);
         }
     }
 
@@ -231,7 +200,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class ExecuteBatchInstrumentation extends StatementInstrumentation {
         public ExecuteBatchInstrumentation(ElasticApmTracer tracer) {
-            super(tracer,
+            super(
                 named("executeBatch").or(named("executeLargeBatch"))
                     .and(takesArguments(0))
                     .and(isPublic())
@@ -240,24 +209,16 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
-        public static Span onBeforeExecute(@Advice.This Statement statement) {
-            if (tracer == null || jdbcHelperManager == null) {
-                return null;
-            }
-            JdbcHelper helper = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-            if (helper == null) {
-                return null;
-            }
-
-            String sql = helper.retrieveSqlForStatement(statement);
-            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+        public static Object onBeforeExecute(@Advice.This Statement statement) {
+            String sql = jdbcHelper.retrieveSqlForStatement(statement);
+            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
 
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown Throwable t,
                                           @Advice.Return Object returnValue) {
             if (span == null) {
@@ -280,11 +241,11 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                     affectedCount += array[i];
                 }
             }
-            span.getContext()
+            ((Span) span).getContext()
                 .getDb()
                 .withAffectedRowsCount(affectedCount);
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -300,7 +261,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class ExecuteUpdateNoQueryInstrumentation extends StatementInstrumentation {
         public ExecuteUpdateNoQueryInstrumentation(ElasticApmTracer tracer) {
-            super(tracer,
+            super(
                 named("executeUpdate").or(named("executeLargeUpdate"))
                     .and(takesArguments(0))
                     .and(isPublic())
@@ -308,24 +269,16 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
-        public static Span onBeforeExecute(@Advice.This Statement statement) {
-            if (tracer == null || jdbcHelperManager == null) {
-                return null;
-            }
+        public static Object onBeforeExecute(@Advice.This Statement statement) {
 
-            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-            if (helperImpl == null) {
-                return null;
-            }
-
-            String sql = helperImpl.retrieveSqlForStatement(statement);
-            return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), true);
+            String sql = jdbcHelper.retrieveSqlForStatement(statement);
+            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
             if (span == null) {
@@ -333,12 +286,12 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
             }
 
             if (t == null) {
-                span.getContext()
+                ((Span) span).getContext()
                     .getDb()
                     .withAffectedRowsCount(returnValue);
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -353,7 +306,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
      */
     public static class ExecutePreparedStatementInstrumentation extends StatementInstrumentation {
         public ExecutePreparedStatementInstrumentation(ElasticApmTracer tracer) {
-            super(tracer,
+            super(
                 named("execute").or(named("executeQuery"))
                     .and(takesArguments(0))
                     .and(isPublic())
@@ -361,29 +314,23 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
-        public static Span onBeforeExecute(@Advice.This Statement statement) {
-            if (tracer != null && jdbcHelperManager != null) {
-                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
-                if (helperImpl != null) {
-                    @Nullable String sql = helperImpl.retrieveSqlForStatement(statement);
-                    return helperImpl.createJdbcSpan(sql, statement, tracer.getActive(), true);
-                }
-            }
-            return null;
+        public static Object onBeforeExecute(@Advice.This Statement statement) {
+            @Nullable String sql = jdbcHelper.retrieveSqlForStatement(statement);
+            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.This Statement statement,
-                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
 
             if (span == null) {
                 return;
             }
 
-            span.captureException(t)
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }

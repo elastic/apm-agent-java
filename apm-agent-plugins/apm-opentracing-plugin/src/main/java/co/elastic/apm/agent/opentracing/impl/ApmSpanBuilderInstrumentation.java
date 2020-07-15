@@ -25,11 +25,14 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -44,6 +47,8 @@ import java.util.Map;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentation {
+
+    private static final String FRAMEWORK_NAME = "OpenTracing";
 
     private static final Logger logger = LoggerFactory.getLogger(ApmSpanBuilderInstrumentation.class);
 
@@ -69,15 +74,16 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
             super(named("createSpan"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> parentContext,
+        public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> parentContext,
                                       @Advice.Origin Class<?> spanBuilderClass,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
                                       @Advice.FieldValue(value = "microseconds") long microseconds,
-                                      @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage,
-                                      @Advice.Return(readOnly = false) Object span) {
-            span = doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
+                                      @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage) {
+            return doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
         }
 
         @Nullable
@@ -87,6 +93,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                                                                 String operationName, long microseconds,
                                                                 @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
             AbstractSpan<?> result = null;
+            ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
             if (tracer != null) {
                 if (parentContext == null) {
                     result = createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
@@ -127,7 +134,11 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
+                Transaction transaction = tracer.startChildTransaction(baggage, OpenTracingTextMapBridge.instance(), sampler, microseconds, classLoader);
+                if (transaction != null) {
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
+                }
+                return transaction;
             }
         }
     }

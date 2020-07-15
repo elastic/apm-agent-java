@@ -64,7 +64,7 @@ public class RouterFunctionInstrumentation extends WebFluxInstrumentation {
     private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                                @Advice.Argument(0) ServerRequest request,
                                @Advice.Return(readOnly = false) Mono<HandlerFunction<?>> returnValue) {
-        if (tracer == null || thrown != null) {
+        if (thrown != null) {
             return;
         }
 

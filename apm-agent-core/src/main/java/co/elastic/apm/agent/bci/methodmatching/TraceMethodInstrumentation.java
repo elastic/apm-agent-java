@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.bci.methodmatching;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -55,33 +55,33 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
+public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
 
     public static long traceMethodThresholdMicros;
 
     protected final MethodMatcher methodMatcher;
+    private final CoreConfiguration config;
 
     public TraceMethodInstrumentation(ElasticApmTracer tracer, MethodMatcher methodMatcher) {
         this.methodMatcher = methodMatcher;
-        traceMethodThresholdMicros = tracer.getConfig(CoreConfiguration.class).getTraceMethodsDurationThreshold().getMillis() * 1000;
+        config = tracer.getConfig(CoreConfiguration.class);
+        traceMethodThresholdMicros = config.getTraceMethodsDurationThreshold().getMillis() * 1000;
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(@Advice.Origin Class<?> clazz,
                                      @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
                                      @Advice.Local("span") AbstractSpan<?> span) {
-        if (tracer != null) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                span = tracer.startRootTransaction(clazz.getClassLoader());
-                if (span != null) {
-                    span.withName(signature).activate();
-                }
-            } else if (parent.isSampled()) {
-                span = parent.createSpan()
-                    .withName(signature)
-                    .activate();
+        final AbstractSpan<?> parent = tracer.getActive();
+        if (parent == null) {
+            span = tracer.startRootTransaction(clazz.getClassLoader());
+            if (span != null) {
+                span.withName(signature).activate();
             }
+        } else if (parent.isSampled()) {
+            span = parent.createSpan()
+                .withName(signature)
+                .activate();
         }
     }
 
@@ -117,9 +117,8 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         ElementMatcher.Junction<? super MethodDescription> matcher = matches(methodMatcher.getMethodMatcher());
 
-        final List<WildcardMatcher> methodsExcludedFromInstrumentation =
-            (tracer != null)? tracer.getConfig(CoreConfiguration.class).getMethodsExcludedFromInstrumentation(): null;
-        if (methodsExcludedFromInstrumentation != null && !methodsExcludedFromInstrumentation.isEmpty()) {
+        final List<WildcardMatcher> methodsExcludedFromInstrumentation = config.getMethodsExcludedFromInstrumentation();
+        if (!methodsExcludedFromInstrumentation.isEmpty()) {
             matcher = matcher.and(not(new ElementMatcher<MethodDescription>() {
                 @Override
                 public boolean matches(MethodDescription target) {

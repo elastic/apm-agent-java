@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.16.1-SNAPSHOT</version>
+        <version>1.17.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -46,7 +46,17 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-bootdelegation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-error-logging-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-grails-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -146,11 +156,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mule4-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-okhttp-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -217,6 +222,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-process-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-dubbo-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-scala-concurrent-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -317,6 +332,10 @@
                                     <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>org.objectweb.asm</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.asm</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>com.dslplatform</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
                                 </relocation>
@@ -346,6 +365,11 @@
                                     <!-- makes sure we don't pollute the system classloader with Log4j2-{charsets.properties|*.xsd} files-->
                                     <pattern>Log4j-</pattern>
                                     <shadedPattern>ElasticApmLog4j-</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- makes sure that direct link to resources in meta-inf are also relocated, otherwise will load log4j plugins from app -->
+                                    <pattern>META-INF/org/apache/logging</pattern>
+                                    <shadedPattern>META-INF/co/elastic/apm/agent/shaded/logging</shadedPattern>
                                 </relocation>
 
                                 <relocation>
@@ -397,6 +421,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
+                    <source>8</source>
                 </configuration>
                 <executions>
                     <execution>

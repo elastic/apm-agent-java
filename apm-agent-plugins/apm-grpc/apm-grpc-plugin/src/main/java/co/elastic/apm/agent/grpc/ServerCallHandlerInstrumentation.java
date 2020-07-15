@@ -38,7 +38,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -54,8 +53,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc")
-            .and(nameContains("Unary"));
+        return nameStartsWith("io.grpc");
     }
 
     @Override
@@ -75,7 +73,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
                                 @Advice.Argument(1) Metadata headers,
                                 @Advice.Local("transaction") Transaction transaction) {
 
-        if (tracer == null || grpcHelperManager == null) {
+        if (grpcHelperManager == null) {
             return;
         }
 
@@ -86,18 +84,23 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Thrown Throwable thrown,
+    private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                                @Advice.Argument(0) ServerCall<?, ?> serverCall,
                                @Advice.Return ServerCall.Listener<?> listener,
                                @Advice.Local("transaction") @Nullable Transaction transaction) {
 
-        if (tracer == null || grpcHelperManager == null || transaction == null) {
+        if (transaction == null) {
+            return;
+        }
+        if (thrown != null) {
+            // terminate transaction in case of exception as it won't be stored
+            transaction.deactivate().end();
             return;
         }
 
         GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
         if (helper != null) {
-            helper.registerTransactionAndDeactivate(transaction, serverCall, listener);
+            helper.registerTransaction(serverCall, listener, transaction);
         }
 
     }

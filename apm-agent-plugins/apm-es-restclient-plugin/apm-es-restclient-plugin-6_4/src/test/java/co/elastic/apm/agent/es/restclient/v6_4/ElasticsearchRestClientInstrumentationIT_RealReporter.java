@@ -26,8 +26,8 @@ package co.elastic.apm.agent.es.restclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
@@ -139,6 +139,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
@@ -146,11 +147,12 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             new MetaData(title, service, system, Collections.emptyMap()),
             apmServerClient);
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
+        realReporter.start();
 
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(realReporter)
-            .build();
+            .buildAndStart();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 

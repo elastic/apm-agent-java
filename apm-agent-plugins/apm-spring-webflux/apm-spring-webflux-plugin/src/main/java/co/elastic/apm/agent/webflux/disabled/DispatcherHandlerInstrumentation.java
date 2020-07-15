@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.webflux.disabled;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -49,7 +50,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 /**
  * Instruments {@link DispatcherHandler#handleResult(ServerWebExchange, HandlerResult)} to capture end of transaction
  */
-public class DispatcherHandlerInstrumentation extends ElasticApmInstrumentation {
+public class DispatcherHandlerInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(DispatcherHandlerInstrumentation.class);
 

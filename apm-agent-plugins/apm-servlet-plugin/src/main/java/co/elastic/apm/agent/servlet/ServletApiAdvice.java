@@ -24,13 +24,15 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -50,53 +52,36 @@ import java.util.Map;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
+import static java.lang.Boolean.FALSE;
 
-/**
- * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
- * {@code javax.servlet}, as these are inlined into the matching methods.
- * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- */
 public class ServletApiAdvice {
 
-    @Nullable
-    @VisibleForAdvice
-    public static ServletTransactionHelper servletTransactionHelper;
+    private static final String FRAMEWORK_NAME = "Servlet API";
+    private static final ServletTransactionHelper servletTransactionHelper;
+    private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
 
-    @Nullable
-    @VisibleForAdvice
-    public static ElasticApmTracer tracer;
-
-    @VisibleForAdvice
-    public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return Boolean.FALSE;
-        }
-    };
-
-    @VisibleForAdvice
-    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
-
-    static void init(ElasticApmTracer tracer) {
-        ServletApiAdvice.tracer = tracer;
-        servletTransactionHelper = new ServletTransactionHelper(tracer);
+    static {
+        servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.requireTracerImpl());
+        servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
-                                             @Advice.Local("transaction") Transaction transaction,
-                                             @Advice.Local("scope") Scope scope) {
+    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
+    private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
+
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
-            return;
+            return null;
         }
+        Transaction transaction = null;
         // re-activate transactions for async requests
         final Transaction transactionAttr = (Transaction) servletRequest.getAttribute(TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
-            scope = transactionAttr.activateInScope();
+            return transactionAttr.activateInScope();
         }
         if (tracer.isRunning() &&
-            servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(excluded.get())) {
@@ -108,18 +93,12 @@ public class ServletApiAdvice {
             }
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            if (ServletInstrumentation.servletTransactionCreationHelperManager != null) {
-                ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> helper =
-                    ServletInstrumentation.servletTransactionCreationHelperManager.getForClassLoaderOfClass(HttpServletRequest.class);
-                if (helper != null) {
-                    transaction = helper.createAndActivateTransaction(request);
-                }
-            }
+            transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
 
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 excluded.set(Boolean.TRUE);
-                return;
+                return null;
             }
             final Request req = transaction.getContext().getRequest();
             if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
@@ -136,24 +115,34 @@ public class ServletApiAdvice {
                     }
                 }
             }
+            transaction.setFrameworkName(FRAMEWORK_NAME);
 
             servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
                 request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
                 request.getRemoteAddr(), request.getHeader("Content-Type"));
         }
+        return transaction;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                             @Advice.Argument(1) ServletResponse servletResponse,
-                                            @Advice.Local("transaction") @Nullable Transaction transaction,
-                                            @Advice.Local("scope") @Nullable Scope scope,
+                                            @Advice.Enter @Nullable Object transactionOrScope,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return;
         }
-        excluded.set(Boolean.FALSE);
+        Transaction transaction = null;
+        Scope scope = null;
+        if (transactionOrScope instanceof Transaction) {
+            transaction = (Transaction) transactionOrScope;
+        } else if (transactionOrScope instanceof Scope) {
+            scope = (Scope) transactionOrScope;
+        }
+
+        excluded.set(FALSE);
         if (scope != null) {
             scope.close();
         }
@@ -166,8 +155,7 @@ public class ServletApiAdvice {
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }
         }
-        if (servletTransactionHelper != null &&
-            transaction != null &&
+        if (transaction != null &&
             servletRequest instanceof HttpServletRequest &&
             servletResponse instanceof HttpServletResponse) {
 

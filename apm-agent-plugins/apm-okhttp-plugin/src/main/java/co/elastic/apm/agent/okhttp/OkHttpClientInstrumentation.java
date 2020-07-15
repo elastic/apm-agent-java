@@ -25,11 +25,13 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
 import net.bytebuddy.asm.Advice;
@@ -56,43 +58,43 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
 
     @VisibleForAdvice
     public static class OkHttpClientExecuteAdvice {
+        @VisibleForAdvice
+        public final static GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(OkHttpClientExecuteAdvice.class, "spanTls");
 
+        @Nullable
+        @AssignTo.Field(value = "originalRequest", typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(@Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                            @Advice.Local("span") Span span) {
+        public static Object onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
 
-            if (tracer == null || tracer.getActive() == null) {
-                return;
+            if (tracer.getActive() == null || !(originalRequest instanceof Request)) {
+                return originalRequest;
             }
+
             final AbstractSpan<?> parent = tracer.getActive();
 
-            if (originalRequest == null) {
-                return;
-            }
-
-            if (originalRequest instanceof com.squareup.okhttp.Request) {
-                com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
-                HttpUrl httpUrl = request.httpUrl();
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
-                    OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
-                if (span != null) {
-                    span.activate();
-                    if (headerSetterHelperManager != null) {
-                        TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
-                        if (headerSetter != null) {
-                            Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
-                            span.propagateTraceContext(builder, headerSetter);
-                            originalRequest = builder.build();
-                        }
+            com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
+            HttpUrl httpUrl = request.httpUrl();
+            Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
+                OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
+            if (span != null) {
+                spanTls.set(span);
+                span.activate();
+                if (headerSetterHelperManager != null) {
+                    TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
+                    if (headerSetter != null) {
+                        Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();
+                        span.propagateTraceContext(builder, headerSetter);
+                        return builder.build();
                     }
                 }
             }
+            return originalRequest;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.Return @Nullable com.squareup.okhttp.Response response,
-                                          @Advice.Local("span") @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t) {
+            Span span = spanTls.getAndRemove();
             if (span != null) {
                 try {
                     if (response != null) {

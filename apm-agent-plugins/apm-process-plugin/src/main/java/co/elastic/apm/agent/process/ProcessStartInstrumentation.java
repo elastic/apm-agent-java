@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.process;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -58,14 +59,11 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
 
     public static class ProcessBuilderStartAdvice {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.This ProcessBuilder processBuilder,
                                   @Advice.Return Process process,
                                   @Advice.Thrown @Nullable Throwable t) {
 
-            if (tracer == null) {
-                return;
-            }
             AbstractSpan<?> parentSpan = tracer.getActive();
             if (parentSpan == null) {
                 return;

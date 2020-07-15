@@ -1,8 +1,8 @@
-<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
-         http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
-         version="3.1">
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+         http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         version="3.0">
     <display-name>Simple Web App</display-name>
 
     <servlet>
@@ -79,5 +79,14 @@
     <servlet-mapping>
         <servlet-name>ExecuteCmdServlet</servlet-name>
         <url-pattern>/execute-cmd-servlet</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>JBossMBeanTestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.JBossMBeanTestServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>JBossMBeanTestServlet</servlet-name>
+        <url-pattern>/jboss-mbeans</url-pattern>
     </servlet-mapping>
 </web-app>

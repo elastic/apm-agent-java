@@ -24,7 +24,9 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -102,7 +104,7 @@ public class TraceContext implements Recyclable {
     /**
      * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
      */
-    private static final WeakConcurrentMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private static final WeakConcurrentMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = WeakMapSupplier.createMap();
     private static final ChildContextCreator<TraceContext> FROM_PARENT_CONTEXT = new ChildContextCreator<TraceContext>() {
         @Override
         public boolean asChildOf(TraceContext child, TraceContext parent) {
@@ -169,9 +171,9 @@ public class TraceContext implements Recyclable {
                 return false;
             }
         };
-    private static final ChildContextCreator<ElasticApmTracer> FROM_ACTIVE = new ChildContextCreator<ElasticApmTracer>() {
+    private static final ChildContextCreator<Tracer> FROM_ACTIVE = new ChildContextCreator<Tracer>() {
         @Override
-        public boolean asChildOf(TraceContext child, ElasticApmTracer tracer) {
+        public boolean asChildOf(TraceContext child, Tracer tracer) {
             final AbstractSpan<?> active = tracer.getActive();
             if (active != null) {
                 return fromParent().asChildOf(child, active);
@@ -280,7 +282,7 @@ public class TraceContext implements Recyclable {
         return (ChildContextCreatorTwoArg<C, BinaryHeaderGetter<C>>) FROM_TRACE_CONTEXT_BINARY_HEADERS;
     }
 
-    public static ChildContextCreator<ElasticApmTracer> fromActive() {
+    public static ChildContextCreator<Tracer> fromActive() {
         return FROM_ACTIVE;
     }
 
@@ -783,5 +785,4 @@ public class TraceContext implements Recyclable {
         copy.copyFrom(this);
         return copy;
     }
-
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.servlet.helper;
 
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -48,7 +49,7 @@ public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncC
 
     private final ObjectPool<ApmAsyncListener> asyncListenerObjectPool;
     private final ServletTransactionHelper servletTransactionHelper;
-    private final ElasticApmTracer tracer;
+    private final Tracer tracer;
 
     public AsyncContextAdviceHelperImpl(ElasticApmTracer tracer) {
         this.tracer = tracer;

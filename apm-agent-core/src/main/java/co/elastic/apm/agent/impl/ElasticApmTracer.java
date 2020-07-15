@@ -24,18 +24,16 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.LifecycleListener;
-import co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper;
-import co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -48,6 +46,7 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,10 +57,9 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadPoolExecutor;
 
 
 /**
@@ -70,17 +68,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Note that this is a internal API, so there are no guarantees in terms of backwards compatibility.
  * </p>
  */
-public class ElasticApmTracer {
+public class ElasticApmTracer implements Tracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
-    /**
-     * The number of required {@link Runnable} wrappers does not depend on the size of the disruptor
-     * but rather on the amount of application threads.
-     * The requirement increases if the application tends to wrap multiple {@link Runnable}s.
-     */
-    private static final int MAX_POOLED_RUNNABLES = 256;
-
-    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = WeakMapSupplier.createMap();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -89,8 +80,6 @@ public class ElasticApmTracer {
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
-    private final ObjectPool<SpanInScopeRunnableWrapper> runnableSpanWrapperObjectPool;
-    private final ObjectPool<SpanInScopeCallableWrapper<?>> callableSpanWrapperObjectPool;
     private final Reporter reporter;
     private final ObjectPoolFactory objectPoolFactory;
     // Maintains a stack of all the activated spans
@@ -103,13 +92,6 @@ public class ElasticApmTracer {
         }
     };
 
-    private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return Boolean.TRUE;
-        }
-    };
-
     private final CoreConfiguration coreConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
@@ -119,7 +101,7 @@ public class ElasticApmTracer {
     /**
      * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
      * {@link ElasticApmTracer#getState()}, or when updated through one of the lifecycle-effecting synchronized methods
-     * {@link ElasticApmTracer#start(List)}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
+     * {@link ElasticApmTracer#start(boolean)}}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
      * {@link ElasticApmTracer#stop()}.
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
@@ -153,9 +135,6 @@ public class ElasticApmTracer {
         // we are assuming that we don't need as many errors as spans or transactions
         errorPool = poolFactory.createErrorPool(maxPooledElements / 2, this);
 
-        runnableSpanWrapperObjectPool = poolFactory.createRunnableWrapperPool(MAX_POOLED_RUNNABLES, this);
-        callableSpanWrapperObjectPool = poolFactory.createCallableWrapperPool(MAX_POOLED_RUNNABLES, this);
-
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
             @Override
@@ -171,28 +150,13 @@ public class ElasticApmTracer {
         assert assertionsEnabled = true;
     }
 
-    /**
-     * Starts a trace-root transaction
-     *
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
         return startRootTransaction(sampler, -1, initiatingClassLoader);
     }
 
-    /**
-     * Starts a trace-root transaction with a specified sampler and start timestamp
-     *
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @return a transaction that will be the root of the current trace if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public Transaction startRootTransaction(Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction = null;
@@ -203,36 +167,13 @@ public class ElasticApmTracer {
         return transaction;
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param textHeadersGetter     provides the trace context headers required in order to create a child transaction
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
                                                  long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
@@ -245,36 +186,13 @@ public class ElasticApmTracer {
         return transaction;
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
-    /**
-     * Starts a transaction as a child of the context headers obtained through the provided {@link HeaderGetter}.
-     * If the created transaction cannot be started as a child transaction (for example - if no parent context header is
-     * available), then it will be started as the root transaction of the trace.
-     *
-     * @param headerCarrier         the Object from which context headers can be obtained, typically a request or a message
-     * @param binaryHeadersGetter   provides the trace context headers required in order to create a child transaction
-     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
-     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
-     *                              for log correlation.
-     * @return a transaction which is a child of the provided parent if the agent is currently RUNNING; null otherwise
-     */
+    @Override
     @Nullable
     public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
                                                  Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
@@ -301,18 +219,6 @@ public class ElasticApmTracer {
         }
     }
 
-    public void avoidWrappingOnThread() {
-        allowWrappingOnThread.set(Boolean.FALSE);
-    }
-
-    public void allowWrappingOnThread() {
-        allowWrappingOnThread.set(Boolean.TRUE);
-    }
-
-    public boolean isWrappingAllowedOnThread() {
-        return allowWrappingOnThread.get() == Boolean.TRUE;
-    }
-
     public Transaction noopTransaction() {
         return createTransaction().startNoop();
     }
@@ -326,6 +232,7 @@ public class ElasticApmTracer {
         return transaction;
     }
 
+    @Override
     @Nullable
     public Transaction currentTransaction() {
         final AbstractSpan<?> bottomOfStack = activeStack.get().peekLast();
@@ -368,12 +275,7 @@ public class ElasticApmTracer {
         return span;
     }
 
-    /**
-     * Captures an exception without providing an explicit reference to a parent {@link AbstractSpan}
-     *
-     * @param e                     the exception to capture
-     * @param initiatingClassLoader the class
-     */
+    @Override
     public void captureAndReportException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
         ErrorCapture errorCapture = captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
         if (errorCapture != null) {
@@ -381,6 +283,7 @@ public class ElasticApmTracer {
         }
     }
 
+    @Override
     @Nullable
     public String captureAndReportException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent) {
         String id = null;
@@ -392,6 +295,7 @@ public class ElasticApmTracer {
         return id;
     }
 
+    @Override
     @Nullable
     public ErrorCapture captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         return captureException(System.currentTimeMillis() * 1000, e, parent, initiatingClassLoader);
@@ -399,6 +303,9 @@ public class ElasticApmTracer {
 
     @Nullable
     private ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        if (!isRunning()) {
+            return null;
+        }
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
@@ -503,32 +410,6 @@ public class ElasticApmTracer {
         errorPool.recycle(error);
     }
 
-    public Runnable wrapRunnable(Runnable delegate, AbstractSpan<?> span) {
-        if (delegate instanceof SpanInScopeRunnableWrapper) {
-            return delegate;
-        }
-        return runnableSpanWrapperObjectPool.createInstance().wrap(delegate, span);
-    }
-
-    public void recycle(SpanInScopeRunnableWrapper wrapper) {
-        runnableSpanWrapperObjectPool.recycle(wrapper);
-    }
-
-    public <V> Callable<V> wrapCallable(Callable<V> delegate, AbstractSpan<?> span) {
-        if (delegate instanceof SpanInScopeCallableWrapper) {
-            return delegate;
-        }
-        return ((SpanInScopeCallableWrapper<V>) callableSpanWrapperObjectPool.createInstance()).wrap(delegate, span);
-    }
-
-    public void recycle(SpanInScopeCallableWrapper<?> wrapper) {
-        callableSpanWrapperObjectPool.recycle(wrapper);
-    }
-
-    /**
-     * Called when the container shuts down.
-     * Cleans up thread pools and other resources.
-     */
     public synchronized void stop() {
         tracerState = TracerState.STOPPED;
         logger.info("Tracer switched to STOPPED state");
@@ -560,9 +441,30 @@ public class ElasticApmTracer {
         return objectPoolFactory;
     }
 
+    @Override
     @Nullable
     public AbstractSpan<?> getActive() {
         return activeStack.get().peek();
+    }
+
+    @Nullable
+    @Override
+    public Span getActiveSpan() {
+        final AbstractSpan<?> active = getActive();
+        if (active instanceof Span) {
+            return (Span) active;
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Span getActiveExitSpan() {
+        final Span span = getActiveSpan();
+        if (span != null && span.isExit()) {
+            return span;
+        }
+        return null;
     }
 
     public void registerSpanListener(ActivationListener activationListener) {
@@ -573,12 +475,68 @@ public class ElasticApmTracer {
         return activationListeners;
     }
 
-    synchronized void start(List<LifecycleListener> lifecycleListeners) {
+    /**
+     * As opposed to {@link ElasticApmTracer#start(boolean)}, this method does not change the tracer's state and it's purpose
+     * is to be called at JVM bootstrap.
+     *
+     * @param lifecycleListeners Lifecycle listeners
+     */
+    void init(List<LifecycleListener> lifecycleListeners) {
+        this.lifecycleListeners.addAll(lifecycleListeners);
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            try {
+                lifecycleListener.init(this);
+            } catch (Exception e) {
+                logger.error("Failed to init " + lifecycleListener.getClass().getName(), e);
+            }
+        }
+    }
+
+    public synchronized void start(boolean premain) {
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
+        if (premain && shouldDelayOnPremain()) {
+            delayInitMs = Math.max(delayInitMs, 5000L);
+        }
+        if (delayInitMs > 0) {
+            startWithDelay(delayInitMs);
+        } else {
+            startSync();
+        }
+    }
+
+    private boolean shouldDelayOnPremain() {
+        String javaVersion = System.getProperty("java.version");
+        return javaVersion != null &&
+            javaVersion.startsWith("1.8") &&
+            ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
+    }
+
+    private synchronized void startWithDelay(final long delayInitMs) {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    logger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
+                    Thread.sleep(delayInitMs);
+                    logger.info("end wait");
+                } catch (InterruptedException e) {
+                    logger.error(e.getMessage(), e);
+                } finally {
+                    ElasticApmTracer.this.startSync();
+                }
+            }
+        });
+        pool.shutdown();
+    }
+
+    private synchronized void startSync() {
         if (tracerState != TracerState.UNINITIALIZED) {
             logger.warn("Trying to start an already initialized agent");
             return;
         }
-        this.lifecycleListeners.addAll(lifecycleListeners);
+        apmServerClient.start();
+        reporter.start();
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.start(this);
@@ -655,10 +613,12 @@ public class ElasticApmTracer {
         logger.info("Tracer switched to RUNNING state");
     }
 
+    @Override
     public boolean isRunning() {
         return tracerState == TracerState.RUNNING;
     }
 
+    @Override
     public TracerState getState() {
         return tracerState;
     }
@@ -700,7 +660,7 @@ public class ElasticApmTracer {
             assertIsActive(span, stack.poll());
             List<ActivationListener> activationListeners = getActivationListeners();
             for (int i = 0, size = activationListeners.size(); i < size; i++) {
-                    try {
+                try {
                     // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
                     activationListeners.get(i).afterDeactivate(span);
                 } catch (Error e) {
@@ -729,16 +689,7 @@ public class ElasticApmTracer {
         return metricRegistry;
     }
 
-    /**
-     * Overrides the service name for all {@link Transaction}s,
-     * {@link Span}s and {@link ErrorCapture}s which are created by the service which corresponds to the provided {@link ClassLoader}.
-     * <p>
-     * The main use case is being able to differentiate between multiple services deployed to the same application server.
-     * </p>
-     *
-     * @param classLoader the class loader which corresponds to a particular service
-     * @param serviceName the service name for this class loader
-     */
+    @Override
     public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
         // overriding the service name for the bootstrap class loader is not an actual use-case
         // null may also mean we don't know about the initiating class loader
@@ -773,31 +724,4 @@ public class ElasticApmTracer {
         return metaData;
     }
 
-    /**
-     * An enumeration used to represent the current tracer state.
-     */
-    public enum TracerState {
-        /**
-         * The agent's state before it has been started for the first time.
-         */
-        UNINITIALIZED,
-
-        /**
-         * Indicates that the agent is currently fully functional - tracing, monitoring and sending data to the APM server.
-         */
-        RUNNING,
-
-        /**
-         * The agent is mostly idle, consuming minimal resources, ready to quickly resume back to RUNNING. When the agent
-         * is PAUSED, it is not tracing and not communicating with the APM server. However, classes are still instrumented
-         * and threads are still alive.
-         */
-        PAUSED,
-
-        /**
-         * Indicates that the agent had been stopped.
-         * NOTE: this state is irreversible- the agent cannot resume if it has already been stopped.
-         */
-        STOPPED
-    }
 }

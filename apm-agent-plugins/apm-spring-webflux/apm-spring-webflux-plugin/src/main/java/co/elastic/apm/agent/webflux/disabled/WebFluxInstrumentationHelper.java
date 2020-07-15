@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.webflux.disabled;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -39,7 +40,7 @@ public class WebFluxInstrumentationHelper {
     public static final String TRANSACTION_TYPE = "request";
     public static final String CONTENT_LENGTH = "Content-Length";
 
-    public static Transaction createAndActivateTransaction(final ElasticApmTracer tracer, final ServerRequest serverRequest) {
+    public static Transaction createAndActivateTransaction(final Tracer tracer, final ServerRequest serverRequest) {
         final HttpMethod method = serverRequest.method();
         final String name = method == null ? serverRequest.path() : method.name() + " " + serverRequest.path();
         final Transaction transaction = tracer.startRootTransaction(serverRequest.getClass().getClassLoader())
@@ -54,7 +55,7 @@ public class WebFluxInstrumentationHelper {
     }
 
     // TODO: 23/06/2020 not sure if it's required as serlvet plugin should already take care of transaction
-    public static Transaction createAndActivateTransaction(ElasticApmTracer tracer, ServletRequest servletRequest) {
+    public static Transaction createAndActivateTransaction(Tracer tracer, ServletRequest servletRequest) {
         if (!(servletRequest instanceof HttpServletRequest)) {
             return null;
         }

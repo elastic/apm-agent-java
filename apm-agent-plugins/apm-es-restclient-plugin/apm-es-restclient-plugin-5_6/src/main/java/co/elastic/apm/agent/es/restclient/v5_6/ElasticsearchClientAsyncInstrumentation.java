@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,10 +24,13 @@
  */
 package co.elastic.apm.agent.es.restclient.v5_6;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -73,40 +76,33 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
     }
 
 
-    private static class ElasticsearchRestClientAsyncAdvice {
+    public static class ElasticsearchRestClientAsyncAdvice {
+        @VisibleForAdvice
+        public static final GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
+        @AssignTo.Argument(5)
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(@Advice.Argument(0) String method,
-                                            @Advice.Argument(1) String endpoint,
-                                            @Advice.Argument(3) @Nullable HttpEntity entity,
-                                            @Advice.Argument(value = 5, readOnly = false) ResponseListener responseListener,
-                                            @Advice.Local("span") Span span,
-                                            @Advice.Local("wrapped") boolean wrapped,
-                                            @Advice.Local("helper") ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper) {
+        public static ResponseListener onBeforeExecute(@Advice.Argument(0) String method,
+                                                       @Advice.Argument(1) String endpoint,
+                                                       @Advice.Argument(3) @Nullable HttpEntity entity,
+                                                       @Advice.Argument(5) ResponseListener responseListener) {
 
-            helper = esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
+            ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper = esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
             if (helper != null) {
-                span = helper.createClientSpan(method, endpoint, entity);
+                Span span = helper.createClientSpan(method, endpoint, entity);
+                spanTls.set(span);
                 if (span != null) {
-                    responseListener = helper.<ResponseListener>wrapResponseListener(responseListener, span);
-                    wrapped = true;
+                    return helper.<ResponseListener>wrapResponseListener(responseListener, span);
                 }
             }
+            return responseListener;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onAfterExecute(@Advice.Argument(5) ResponseListener responseListener,
-                                           @Advice.Local("span") @Nullable Span span,
-                                           @Advice.Local("wrapped") boolean wrapped,
-                                           @Advice.Local("helper") @Nullable ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper,
-                                           @Advice.Thrown @Nullable Throwable t) {
+        public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t) {
+            final Span span = spanTls.getAndRemove();
             if (span != null) {
                 // Deactivate in this thread. Span will be ended and reported by the listener
                 span.deactivate();
-
-                if (!wrapped) {
-                    // Listener is not wrapped- we need to end the span so to avoid leak and report error if occurred during method invocation
-                    helper.finishClientSpan(null, span, t);
-                }
             }
         }
     }

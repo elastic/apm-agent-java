@@ -26,8 +26,8 @@ package co.elastic.apm.agent.impl.circuitbreaker;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,7 +66,7 @@ class SystemCpuStressMonitorTest {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)
             .reporter(new MockReporter())
-            .build();
+            .buildAndStart();
         getNextValueMethod = MBeanMock.class.getDeclaredMethod("getNextValue");
     }
 
