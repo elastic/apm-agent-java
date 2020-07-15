@@ -57,10 +57,37 @@ endif::[]
 === Java Agent version 1.x
 
 [[release-notes-1.18.0.rc1]]
-==== 1.18.0.RC1 - 2020/07/08
+==== 1.18.0.RC1 - YYYY/MM/DD
+
+This release candidate adds some highly anticipated features:
+It’s now possible to attach the agent at runtime in more cases than before.
+Most notably, it enables runtime attachment on JBoss, WildFly, Glassfish/Payara,
+and other OSGi runtimes such as Atlassian Jira and Confluence.
+
+To make this and other significant features, such as https://github.com/elastic/apm-agent-java/issues/937[external plugins], possible,
+we have implemented major changes to the architecture of the agent.
+The agent now relies on the `invokedynamic` bytecode instruction to make plugin development easier, safer, and more efficient.
+As early versions of Java 7 and Java 8 have unreliable support for invokedynamic,
+we now require a minimum update level of 60 for Java 7 (7u60+) in addition to the existing minimum update level of 40 for Java 8 (8u40+).
+
+We’re looking for users who would like to try this out to give feedback.
+If we see that the `invokedynamic`-based approach (https://github.com/elastic/apm-agent-java/pull/1230[indy plugins]) works well, we can continue and migrate the rest of the plugins.
+After the migration has completed, we can move forward with external plugins and remove the experimental label from runtime attachment.
+
+If all works like in our testing, you would not see `NoClassDefFoundError` s anymore when, for example, trying to attach the agent at runtime to an OSGi container or a JBoss server.
+Also, non-standard OSGi containers, such as Atlassian Jira and other technologies with restrictive class loading policies, such as MuleSoft ESB, will benefit from this change.
+
+In the worst case, there might be JVM crashes due to `invokedynamic`-related JVM bugs.
+However, we already disable the agent when attached to JVM versions that are known to be problematic.
+Another potentially problematic area is that we now dynamically raise the bytecode version of instrumented classes to be at least bytecode version 51 (Java 7).
+This is needed in order to be able to use the `invokedynamic` instruction.
+This requires re-computation of stack map frames which makes instrumentation a bit slower.
+We don't anticipate notable slowdowns unless you extensively (over-)use <<config-trace-methods, `trace_methods`>>.
 
 [float]
 ===== Breaking changes
+* Early Java 7 versions, prior to update 60, are not supported anymore.
+  When trying to attach to a non-supported version, the agent will disable itself and not apply any instrumentations.
 
 [float]
 ===== Features
