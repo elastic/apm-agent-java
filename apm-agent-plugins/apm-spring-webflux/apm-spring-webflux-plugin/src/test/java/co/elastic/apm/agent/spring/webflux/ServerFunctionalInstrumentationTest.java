@@ -39,7 +39,7 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     @ParameterizedTest
     @CsvSource({"/hello", "/hello2"})
     void shouldInstrumentSimpleGetRequest(String path) {
-        getClient().executeAndCheckRequest("GET", path, 200);
+        client.executeAndCheckRequest("GET", path, 200);
 
         checkTransaction(getFirstTransaction(), "/functional" + path, "GET", 200);
     }
@@ -47,14 +47,14 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     @ParameterizedTest
     @CsvSource({"GET", "POST"})
     void shouldInstrumentNestedRoutes(String method) {
-        getClient().executeAndCheckRequest(method, "/nested", 200);
+        client.executeAndCheckRequest(method, "/nested", 200);
 
         checkTransaction(getFirstTransaction(), "/functional/nested", method, 200);
     }
 
     @Test
     void shouldInstrumentPathWithParameters() {
-        getClient().withPathParameter("1234");
+        client.withPathParameter("1234");
 
         checkTransaction(getFirstTransaction(), "/functional/with-parameters/{id}", "GET", 200);
 

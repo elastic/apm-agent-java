@@ -88,6 +88,10 @@ public class GreetingWebClient {
         return executeAndCheckRequest(method, "/nested", 200);
     }
 
+    public String duration(long durationMillis) {
+        return executeAndCheckRequest("GET", "/duration?duration=" + durationMillis, 200);
+    }
+
     public String executeAndCheckRequest(String method, String path, int expectedStatus) {
         System.out.println(String.format("%s %s%s", method, baseUri, path));
 

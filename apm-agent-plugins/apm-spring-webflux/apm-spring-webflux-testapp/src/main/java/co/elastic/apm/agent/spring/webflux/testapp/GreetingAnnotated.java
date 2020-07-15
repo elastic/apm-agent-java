@@ -136,4 +136,9 @@ public class GreetingAnnotated {
         return greetingHandler.helloMessage("transaction=" + ElasticApm.currentTransaction().getId());
     }
 
+    @GetMapping("/duration")
+    public Mono<String> duration(@RequestParam("duration") int durationMillis) {
+        return greetingHandler.duration(durationMillis);
+    }
+
 }

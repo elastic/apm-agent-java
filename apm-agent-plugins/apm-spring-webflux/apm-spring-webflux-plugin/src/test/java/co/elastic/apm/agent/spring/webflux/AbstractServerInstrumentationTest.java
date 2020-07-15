@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public abstract class AbstractServerInstrumentationTest extends AbstractInstrumentationTest {
 
     protected static WebFluxApplication.App app;
+    protected GreetingWebClient client;
 
     @BeforeAll
     static void startApp() {
@@ -59,13 +61,13 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @BeforeEach
     void beforeEach() {
         assertThat(reporter.getTransactions()).isEmpty();
+        client = getClient();
     }
 
     protected abstract GreetingWebClient getClient();
 
     @Test
     void dispatchError() {
-        GreetingWebClient client = getClient();
         String error = client.getHandlerError();
         assertThat(error.contains("intentional handler exception"));
 
@@ -77,8 +79,6 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void dispatchHello() {
-        GreetingWebClient client = getClient();
-
         client.setHeader("random-value", "12345");
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
 
@@ -110,7 +110,6 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void dispatch404() {
-        GreetingWebClient client = getClient();
         assertThat(client.getMappingError404()).contains("Not Found");
 
         Transaction transaction = checkTransaction(getFirstTransaction(), "GET unknown route", "GET", 404);
@@ -123,12 +122,12 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @ParameterizedTest
     @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
     void methodMapping(String method) {
-        assertThat(getClient().methodMapping(method))
+        assertThat(client.methodMapping(method))
             .isEqualTo("HEAD".equals(method) ? "" : String.format("Hello, %s!", method));
 
         String expectedName;
 
-        if (getClient().useFunctionalEndpoint()) {
+        if (client.useFunctionalEndpoint()) {
             expectedName = "/functional/hello-mapping";
         } else {
             String prefix = method.toLowerCase(Locale.ENGLISH);
@@ -140,6 +139,20 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         }
 
         checkTransaction(getFirstTransaction(), expectedName, method, 200);
+    }
+
+    @Test
+    void transactionDuration() {
+        // while we can't accurately measure how long transaction takes, we need to ensure that what we measure is
+        // at least somehow consistent, thus we test with a comfortable 10% margin
+        long duration = 1000;
+        assertThat(client.duration(duration))
+            .isEqualTo(String.format("Hello, duration=%d!", duration));
+
+        String expectedName = client.useFunctionalEndpoint() ? "/functional/duration" : "GreetingAnnotated#duration";
+        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+        assertThat(transaction.getDurationMs())
+            .isCloseTo(duration * 1d, Offset.offset(100d));
     }
 
     protected Transaction getFirstTransaction() {

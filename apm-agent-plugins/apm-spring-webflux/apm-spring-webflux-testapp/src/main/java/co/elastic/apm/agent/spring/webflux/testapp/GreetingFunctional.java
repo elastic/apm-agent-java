@@ -70,6 +70,11 @@ public class GreetingFunctional {
             .GET("/functional/error-handler", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.throwException())
             .GET("/functional/error-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoError())
             .GET("/functional/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
+            // with known transaction duration
+            .GET("/functional/duration", accept(MediaType.TEXT_PLAIN), request -> {
+                Long duration = request.queryParam("duration").map(Long::parseLong).orElse(0L);
+                return response(greetingHandler.duration(duration));
+            })
             // error handler
             .onError(
                 e -> true, (e, request) -> ServerResponse
@@ -86,8 +91,12 @@ public class GreetingFunctional {
     }
 
     private Mono<ServerResponse> helloGreeting(GreetingHandler greetingHandler, Optional<String> name) {
-        return ServerResponse.ok()
+        return response(greetingHandler.helloMessage(name.orElse(null)));
+    }
+
+    private Mono<ServerResponse> response(Mono<String> value) {
+        return value.flatMap(s -> ServerResponse.ok()
             .contentType(MediaType.TEXT_PLAIN)
-            .body(BodyInserters.fromValue(greetingHandler.helloMessage(name.orElse(null)).block()));
+            .body(BodyInserters.fromValue(s)));
     }
 }

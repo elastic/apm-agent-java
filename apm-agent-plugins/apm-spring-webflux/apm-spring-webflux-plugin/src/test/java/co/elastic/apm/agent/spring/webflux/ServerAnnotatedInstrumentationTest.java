@@ -43,7 +43,7 @@ public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrument
     @Disabled
     // TODO not yet supported, transaction is not seen as active during processing
     void allowCustomTransactionName() {
-        assertThat(getClient().executeAndCheckRequest("GET", "/custom-transaction-name", 200))
+        assertThat(client.executeAndCheckRequest("GET", "/custom-transaction-name", 200))
             .isEqualTo("Hello, transaction!");
 
         Transaction transaction = getFirstTransaction();

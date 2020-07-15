@@ -29,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
+import java.time.Duration;
 import java.util.Optional;
 
 @Component
@@ -38,7 +39,7 @@ public class GreetingHandler {
         return Mono.just(String.format("Hello, %s!", Optional.ofNullable(name).orElse("Spring")));
     }
 
-    public <T> Mono<T> throwException(){
+    public <T> Mono<T> throwException() {
         throw new RuntimeException("intentional handler exception");
     }
 
@@ -50,12 +51,19 @@ public class GreetingHandler {
         return Mono.empty();
     }
 
-    public String exceptionMessage(Throwable t){
+    public String exceptionMessage(Throwable t) {
         return "error handler: " + t.getMessage();
     }
 
     public Flux<String> helloFlux(int count) {
         return Flux.range(1, count)
             .map(i -> String.format("Hello flux %d", i));
+    }
+
+    // Emulates a transaction that takes a known amount of time
+    // the whole transaction duration should include the delay
+    public Mono<String> duration(long durationMillis) {
+        return helloMessage(String.format("duration=%d", durationMillis))
+            .delayElement(Duration.ofMillis(durationMillis));
     }
 }
