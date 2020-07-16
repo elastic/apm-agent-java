@@ -204,7 +204,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         reporter.reset();
         DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
-
     }
 
     @Test

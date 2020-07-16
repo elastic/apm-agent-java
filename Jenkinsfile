@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i).*(?:jenkins\\W+)?run\\W+(?:the\\W+)?tests(?:\\W+please)?.*')
+    issueCommentTrigger('(?i).*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:benchmark\\W+)?tests(?:\\W+please)?.*')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn', description: 'Additional maven options.')
@@ -44,7 +44,7 @@ pipeline {
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -112,7 +112,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -145,7 +145,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -175,7 +175,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -206,7 +206,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
@@ -217,8 +217,9 @@ pipeline {
                 branch 'master'
                 branch "\\d+\\.\\d+"
                 branch "v\\d?"
-                tag "v\\d+\\.\\d+\\.\\d+*"
+                tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
                 expression { return params.Run_As_Master_Branch }
+                expression { return env.GITHUB_COMMENT?.contains('benchmark tests') }
               }
               expression { return params.bench_ci }
             }
@@ -255,7 +256,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -304,18 +305,6 @@ pipeline {
         tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
       }
       stages {
-        stage('Docker push') {
-          when {
-            beforeAgent true
-            expression { return params.push_docker }
-          }
-          steps {
-            sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
-            // Get Docker registry credentials
-            dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
-            sh(label: "Push Docker image", script: "scripts/jenkins/push_docker.sh")
-          }
-        }
         stage('Opbeans') {
           environment {
             REPO_NAME = "${OPBEANS_REPO}"

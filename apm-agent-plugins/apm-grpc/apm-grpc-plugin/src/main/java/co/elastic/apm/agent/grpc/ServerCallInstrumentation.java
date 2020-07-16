@@ -74,13 +74,13 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
                                @Advice.This ServerCall<?,?> serverCall,
                                @Advice.Argument(0) Status status) {
 
-        if (tracer == null || grpcHelperManager == null) {
+        if (grpcHelperManager == null) {
             return;
         }
 
         GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
         if (helper != null) {
-            helper.endTransaction(status, thrown, serverCall);
+            helper.setTransactionStatus(status, thrown, serverCall);
         }
     }
 }

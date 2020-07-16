@@ -100,6 +100,7 @@ class ApmServerReporterIntegrationTest {
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
@@ -107,6 +108,7 @@ class ApmServerReporterIntegrationTest {
             new MetaData(title, service, system, Collections.emptyMap()),
             apmServerClient);
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
+        reporter.start();
     }
 
     @Test

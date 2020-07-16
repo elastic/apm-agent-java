@@ -57,7 +57,7 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttp
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void onAfterExecute(@Advice.Argument(value = 0) HttpRequest original,
                                            @Advice.Return(typing = Assigner.Typing.DYNAMIC) @Nullable HttpRequest redirect) {
-            if (tracer == null || redirect == null) {
+            if (redirect == null) {
                 return;
             }
             // org.apache.http.HttpMessage#containsHeader implementations do not allocate iterator since 4.0.1

@@ -29,6 +29,7 @@ import co.elastic.apm.agent.grpc.v1_6_1.testapp.generated.HelloGrpc;
 import co.elastic.apm.agent.grpc.v1_6_1.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.v1_6_1.testapp.generated.HelloRequest;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -47,9 +48,10 @@ class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
 
     private HelloClientImpl(ManagedChannel channel) {
         super(channel);
-        this.blockingStub = HelloGrpc.newBlockingStub(channel);
-        this.futureStub = HelloGrpc.newFutureStub(channel);
-        this.stub = HelloGrpc.newStub(channel);
+        ClientInterceptor interceptor = getClientInterceptor();
+        this.blockingStub = HelloGrpc.newBlockingStub(channel).withInterceptors(interceptor);
+        this.futureStub = HelloGrpc.newFutureStub(channel).withInterceptors(interceptor);
+        this.stub = HelloGrpc.newStub(channel).withInterceptors(interceptor);
     }
 
     @Override
@@ -65,28 +67,38 @@ class HelloClientImpl extends HelloClient<HelloRequest, HelloReply> {
 
     @Override
     public HelloReply executeBlocking(HelloRequest request) {
-        return blockingStub.sayHello(request);
+        return blockingStub
+            .withDeadline(getDeadline())
+            .sayHello(request);
     }
 
     @Override
     public ListenableFuture<HelloReply> executeAsync(HelloRequest request) {
-        return futureStub.sayHello(request);
+        return futureStub
+            .withDeadline(getDeadline())
+            .sayHello(request);
     }
 
 
     @Override
     protected StreamObserver<HelloRequest> doSayManyHello(StreamObserver<HelloReply> responseObserver) {
-        return stub.sayManyHello(responseObserver);
+        return stub
+            .withDeadline(getDeadline())
+            .sayManyHello(responseObserver);
     }
 
     @Override
     protected void doSayHelloMany(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
-        stub.sayHelloMany(request, responseObserver);
+        stub
+            .withDeadline(getDeadline())
+            .sayHelloMany(request, responseObserver);
     }
 
     @Override
     protected StreamObserver<HelloRequest> doSayHelloManyMany(StreamObserver<HelloReply> responseObserver) {
-        return stub.sayHelloStream(responseObserver);
+        return stub
+            .withDeadline(getDeadline())
+            .sayHelloStream(responseObserver);
     }
 
     @Override

@@ -49,7 +49,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     private final String elasticApmVersion;
 
     public StartupInfo() {
-        final String version = VersionUtils.getVersionFromPomProperties(getClass(), "co.elastic.apm", "elastic-apm-agent");
+        final String version = VersionUtils.getVersion(getClass(), "co.elastic.apm", "elastic-apm-agent");
         if (version != null) {
             elasticApmVersion = version;
         } else {
@@ -58,12 +58,15 @@ public class StartupInfo extends AbstractLifecycleListener {
     }
 
     private static String getJvmAndOsVersionString() {
-        return "Java " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ") " +
+        return "Java " + System.getProperty("java.version") +
+            " Runtime version: "+ System.getProperty("java.runtime.version") +
+            " VM version: "+ System.getProperty("java.vm.version") +
+            " (" + System.getProperty("java.vendor") + ") " +
             System.getProperty("os.name") + " " + System.getProperty("os.version");
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void init(ElasticApmTracer tracer) {
         ConfigurationRegistry configurationRegistry = tracer.getConfigurationRegistry();
         logConfiguration(configurationRegistry, logger);
     }
@@ -79,7 +82,7 @@ public class StartupInfo extends AbstractLifecycleListener {
             }
         }
         if (configurationRegistry.getConfig(StacktraceConfiguration.class).getApplicationPackages().isEmpty()) {
-            logger.warn("To enable all features and to increase startup times, please configure {}",
+            logger.warn("To enable all features and decrease startup time, please configure {}",
                 StacktraceConfiguration.APPLICATION_PACKAGES);
         }
     }

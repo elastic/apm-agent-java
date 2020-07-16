@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -52,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
+public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);
@@ -71,16 +71,14 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
         @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
         @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action,
         @Advice.Local("span") Span span) {
-        if (tracer != null) {
-            final AbstractSpan<?> parent = tracer.getActive();
-            if (parent != null) {
-                span = parent.createSpan();
-                span.setType(type, subtype, action);
-                span.withName(spanName.isEmpty() ? signature : spanName)
-                    .activate();
-            } else {
-                logger.debug("Not creating span for {} because there is no currently active span.", signature);
-            }
+        final AbstractSpan<?> parent = tracer.getActive();
+        if (parent != null) {
+            span = parent.createSpan();
+            span.setType(type, subtype, action);
+            span.withName(spanName.isEmpty() ? signature : spanName)
+                .activate();
+        } else {
+            logger.debug("Not creating span for {} because there is no currently active span.", signature);
         }
 
     }

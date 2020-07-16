@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.ELASTICSEARCH;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SEARCH_QUERY_PATH_SUFFIX;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_ACTION;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,6 +57,9 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     protected static final String FOO = "foo";
     protected static final String BAR = "bar";
     protected static final String BAZ = "baz";
+    protected static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
+    protected static final String MSEARCH_QUERY_PATH_SUFFIX = "_msearch";
+    protected static final String COUNT_QUERY_PATH_SUFFIX = "_count";
 
     protected boolean async;
 
@@ -99,10 +101,8 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
         assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
         assertThat(span.getNameAsString()).isEqualTo(expectedName);
-
         assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
-
-        if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
+        if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(MSEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(COUNT_QUERY_PATH_SUFFIX)) {
             assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
         }
     }

@@ -25,8 +25,8 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.util.Version;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -84,9 +84,10 @@ public class ApmServerClientTest {
         doReturn(List.of(url1, url2)).when(reporterConfiguration).getServerUrls();
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
-            .build();
+            .buildAndStart();
 
-        apmServerClient = new ApmServerClient(reporterConfiguration, tracer.getConfig(ReporterConfiguration.class).getServerUrls());
+        apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start(tracer.getConfig(ReporterConfiguration.class).getServerUrls());
     }
 
     @Test
@@ -197,7 +198,8 @@ public class ApmServerClientTest {
 
     @Test
     public void testWithEmptyServerUrlList() {
-        ApmServerClient client = new ApmServerClient(reporterConfiguration, Collections.emptyList());
+        ApmServerClient client = new ApmServerClient(reporterConfiguration);
+        client.start(Collections.emptyList());
         Exception exception = null;
         try {
             client.execute("/irrelevant", connection -> null);

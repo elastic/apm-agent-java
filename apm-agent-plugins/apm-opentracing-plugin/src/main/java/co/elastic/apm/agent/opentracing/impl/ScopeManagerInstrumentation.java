@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -61,7 +63,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
             if (span != null) {
                 span.activate();
@@ -75,12 +77,12 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
             super(named("getCurrentSpan"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getCurrentSpan(@Advice.Return(readOnly = false) Object span) {
-            if (tracer != null) {
-                span = tracer.getActive();
-            }
+        public static Object getCurrentSpan() {
+            return tracer.getActive();
         }
 
     }
@@ -91,12 +93,12 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
             super(named("getCurrentTraceContext"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getCurrentTraceContext(@Advice.Return(readOnly = false) Object traceContext) {
-            if (tracer != null) {
-                traceContext = tracer.getActive();
-            }
+        public static Object getCurrentTraceContext() {
+            return tracer.getActive();
         }
 
     }

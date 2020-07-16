@@ -42,6 +42,7 @@ import javax.management.MBeanServer;
 import javax.management.MBeanServerDelegate;
 import javax.management.MBeanServerFactory;
 import javax.management.MBeanServerNotification;
+import javax.management.MalformedObjectNameException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
@@ -51,6 +52,7 @@ import javax.management.relation.MBeanServerNotificationFilter;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -102,9 +104,10 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         // otherwise WildFly fails to start with a IllegalStateException:
         // WFLYLOG0078: The logging subsystem requires the log manager to be org.jboss.logmanager.LogManager
         if (setsCustomLogManager()) {
-            if (!MBeanServerFactory.findMBeanServer(null).isEmpty()) {
+            List<MBeanServer> servers = MBeanServerFactory.findMBeanServer(null);
+            if (!servers.isEmpty()) {
                 // platform MBean server is already initialized
-                init(MBeanServerFactory.findMBeanServer(null).get(0));
+                init(servers.get(0));
             } else {
                 deferInit();
             }
@@ -131,8 +134,13 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted() || timeout <= System.currentTimeMillis()) {
-                    if (System.getProperty("java.util.logging.manager") != null || !MBeanServerFactory.findMBeanServer(null).isEmpty()) {
-                        init(getPlatformMBeanServerThreadSafely());
+                    List<MBeanServer> servers = MBeanServerFactory.findMBeanServer(null);
+                    if (!servers.isEmpty()) {
+                        // avoid actively creating a platform mbean server
+                        // because JBoss sets the javax.management.builder.initial system property
+                        // this makes Java create a JBoss specific mbean server that can only be loaded
+                        // when the module class loader is set as the current thread's context class loader
+                        init(servers.get(0));
                         return;
                     }
                     try {
@@ -186,20 +194,66 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         listener = new NotificationListener() {
             @Override
             public void handleNotification(Notification notification, Object handback) {
-                if (notification instanceof MBeanServerNotification) {
-                    ObjectName mBeanName = ((MBeanServerNotification) notification).getMBeanName();
-                    for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
-                        if (jmxMetric.getObjectName().apply(mBeanName)) {
-                            logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
-                            register(Collections.singletonList(jmxMetric), server);
-                        }
+                try {
+                    if (notification instanceof MBeanServerNotification) {
+                        onMBeanAdded(((MBeanServerNotification) notification).getMBeanName());
+                    }
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                }
+            }
+
+            private void onMBeanAdded(ObjectName mBeanName) {
+                logger.trace("Receiving MBean registration notification for {}", mBeanName);
+                for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
+                    ObjectName metricName = jmxMetric.getObjectName();
+                    if (metricName.apply(mBeanName) || matchesJbossStatisticsPool(mBeanName, metricName, server)) {
+                        logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
+                        register(Collections.singletonList(jmxMetric), server);
                     }
                 }
             }
+
+            private boolean matchesJbossStatisticsPool(ObjectName beanName, ObjectName metricName, MBeanServer server) {
+                String exprDomain = "jboss.as.expr";
+                String asDomain = "jboss.as";
+
+                if (!exprDomain.equals(beanName.getDomain()) // notification is received in the 'jboss.as.expr' domain
+                    || !asDomain.equals(metricName.getDomain())) { // jmx metric is defined in the 'jboss.as' domain
+                    return false;
+                }
+
+                // For example, with Jboss datasources the bean that is notified is in the "jboss.as.expr" domain and does not
+                // has the 'statistics=pool' property, and the visible bean through JMX that the end-user expects
+                // is in fact published with 'statistics=pool' property and in the 'jboss.as' domain, thus we
+                // have to perform a partial match
+
+                // while we haven't found a clear "why is this not reflected on JMX notifications", some
+                // references to this can be found in Jboss/Wildfly sources with the following regex: `statistics.*pool`
+
+                try {
+                    Hashtable<String, String> metricProperties = metricName.getKeyPropertyList();
+                    Hashtable<String, String> beanProperties = beanName.getKeyPropertyList();
+                    if ("pool".equals(metricProperties.get("statistics")) && !beanProperties.containsKey("statistics")) {
+                        beanProperties.put("statistics", "pool");
+                    }
+
+                    ObjectName newName = new ObjectName(asDomain, beanProperties);
+                    boolean matches = metricName.apply(newName) && server.queryMBeans(newName, null).size() > 0;
+                    if (matches) {
+                        logger.debug("JBoss fallback detection applied for {} MBean metric registration", newName);
+                    }
+                    return matches;
+                } catch (MalformedObjectNameException e) {
+                    return false;
+                }
+            }
+
         };
+
         try {
             server.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener, filter, null);
-        } catch (InstanceNotFoundException e) {
+        } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
     }
@@ -233,7 +287,11 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
         Set<ObjectInstance> mbeans = server.queryMBeans(jmxMetric.getObjectName(), null);
-        logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
+        if (!mbeans.isEmpty()) {
+            logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
+        } else {
+            logger.debug("Found no mbeans for object name {}. Listening for mbeans added later.", jmxMetric.getObjectName());
+        }
         for (ObjectInstance mbean : mbeans) {
             for (JmxMetric.Attribute attribute : jmxMetric.getAttributes()) {
                 final ObjectName objectName = mbean.getObjectName();

@@ -1,5 +1,4 @@
 co.elastic.apm.agent.configuration.StartupInfo
-co.elastic.apm.agent.bci.OsgiBootDelegationEnabler
 co.elastic.apm.agent.bci.MatcherTimerLifecycleListener
 co.elastic.apm.agent.metrics.builtin.JvmMemoryMetrics
 co.elastic.apm.agent.metrics.builtin.SystemMetrics
@@ -7,3 +6,4 @@ co.elastic.apm.agent.metrics.builtin.CGroupMetrics
 co.elastic.apm.agent.metrics.builtin.JvmGcMetrics
 co.elastic.apm.agent.metrics.builtin.ThreadMetrics
 co.elastic.apm.agent.impl.circuitbreaker.CircuitBreaker
+co.elastic.apm.agent.collections.WeakMapCleaner
