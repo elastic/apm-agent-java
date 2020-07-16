@@ -24,16 +24,19 @@
  */
 package co.elastic.apm.agent.spring.webflux;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.reactivestreams.Subscription;
 import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
@@ -55,6 +58,8 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.M
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
     public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
+    public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".bean_name";
+    public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -67,13 +72,13 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
      * @param <T>         mono generic type
      * @param mono        mono to wrap
      * @param transaction transaction
-     * @param exchange
+     * @param exchange    exchange
      * @return wrapped mono that will activate transaction when mono is used
      */
     @VisibleForAdvice
     public static <T> Mono<T> dispatcherWrap(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange))
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange))
         );
     }
 
@@ -89,76 +94,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     @VisibleForAdvice
     public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange)));
-    }
-
-    @VisibleForAdvice
-    public static <T> Mono<T> setNameOnComplete(Mono<T> mono, ServerWebExchange exchange) {
-        return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new SubscriberWrapper<T>(subscriber) {
-
-                @Override
-                public void onComplete() {
-                    super.onComplete();
-
-                    // set transaction name from URL pattern of fallback to request path
-                    Transaction transaction = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
-                    if (transaction != null) {
-                        PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
-                        String name = pattern != null ? pattern.getPatternString() : exchange.getRequest().getPath().value();
-                        transaction.withName(name, PRIO_HIGH_LEVEL_FRAMEWORK);
-                    }
-
-                }
-
-            })
-        );
-    }
-
-    private static void fillRequest(Transaction transaction, ServerWebExchange exchange) {
-        ServerHttpRequest serverRequest = exchange.getRequest();
-        Request request = transaction.getContext().getRequest();
-
-        request.withMethod(serverRequest.getMethodValue());
-
-        InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
-        request.getSocket()
-            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
-            .withEncrypted(serverRequest.getSslInfo() != null);
-
-        URI uri = serverRequest.getURI();
-        request.getUrl()
-            .withProtocol(uri.getScheme())
-            .withHostname(uri.getHost())
-            .withPort(uri.getPort())
-            .withPathname(uri.getPath())
-            .withSearch(uri.getQuery())
-            .updateFull();
-
-        for (Map.Entry<String, List<String>> header : serverRequest.getHeaders().entrySet()) {
-            for (String value : header.getValue()) {
-                request.getHeaders().add(header.getKey(), value);
-            }
-        }
-
-        for (Map.Entry<String, List<HttpCookie>> cookie : serverRequest.getCookies().entrySet()) {
-            for (HttpCookie value : cookie.getValue()) {
-                request.getCookies().add(cookie.getKey(), value.getValue());
-            }
-        }
-
-    }
-
-    private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
-        HttpStatus statusCode = exchange.getResponse().getStatusCode();
-        int status = statusCode != null ? statusCode.value() : 200;
-
-        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
-
-        transaction.getContext()
-            .getResponse()
-            .withFinished(true)
-            .withStatusCode(status);
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange)));
     }
 
     // TODO if used with servlets, reuse active transaction (if any)
@@ -234,25 +170,13 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             } finally {
                 transaction.deactivate();
 
+                boolean is404 = false;
                 if (t instanceof ResponseStatusException) {
                     // no matching mapping, generates a 404 error
-                    HttpStatus status = ((ResponseStatusException) t).getStatus();
-
-                    if (status.value() == 404) {
-                        // provide naming consistent with Servlets instrumentation
-                        // should override any default name already set
-                        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
-                        if (transactionName != null) {
-                            transactionName.append(exchange.getRequest().getMethodValue()).append(" unknown route");
-                        }
-                    }
+                    is404 = ((ResponseStatusException) t).getStatus().value() == 404;
                 }
 
-                fillRequest(transaction, exchange);
-                fillResponse(transaction, exchange);
-
-                transaction.captureException(t)
-                    .end();
+                endTransaction(is404, t);
             }
         }
 
@@ -264,11 +188,94 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             } finally {
                 transaction.deactivate();
                 if (terminateTransactionOnComplete) {
-                    fillRequest(transaction, exchange);
-                    fillResponse(transaction, exchange);
-
-                    transaction.end();
+                    endTransaction(false, null);
                 }
+            }
+        }
+
+        private void endTransaction(boolean is404, @Nullable Throwable thrown) {
+            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
+            if (transactionName != null) {
+                if (is404) {
+                    // provide naming consistent with Servlets instrumentation
+                    // should override any default name already set
+                    transactionName.append(exchange.getRequest().getMethodValue()).append(" unknown route");
+                } else {
+                    // should be set for annotated methods
+                    String beanName = exchange.getAttribute(ANNOTATED_BEAN_NAME_ATTRIBUTE);
+                    String methodName = exchange.getAttribute(ANNOTATED_METHOD_NAME_ATTRIBUTE);
+
+                    PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
+                    if (beanName != null && methodName != null) {
+                        transactionName.append(beanName).append("#").append(methodName);
+                    } else if (pattern != null) {
+                        transactionName.append(pattern.getPatternString());
+                    } else {
+                        transactionName.append(exchange.getRequest().getPath().value());
+                    }
+                }
+            }
+
+            fillRequest(transaction, exchange);
+            fillResponse(transaction, exchange);
+
+            transaction
+                .captureException(thrown)
+                .end();
+        }
+    }
+
+    private static void fillRequest(Transaction transaction, ServerWebExchange exchange) {
+        ServerHttpRequest serverRequest = exchange.getRequest();
+        Request request = transaction.getContext().getRequest();
+
+        request.withMethod(serverRequest.getMethodValue());
+
+        InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
+        request.getSocket()
+            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
+            .withEncrypted(serverRequest.getSslInfo() != null);
+
+        URI uri = serverRequest.getURI();
+        request.getUrl()
+            .withProtocol(uri.getScheme())
+            .withHostname(uri.getHost())
+            .withPort(uri.getPort())
+            .withPathname(uri.getPath())
+            .withSearch(uri.getQuery())
+            .updateFull();
+
+        copyHeaders(serverRequest.getHeaders(), request.getHeaders());
+
+        for (Map.Entry<String, List<HttpCookie>> cookie : serverRequest.getCookies().entrySet()) {
+            for (HttpCookie value : cookie.getValue()) {
+                request.getCookies().add(cookie.getKey(), value.getValue());
+            }
+        }
+
+    }
+
+    private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
+        ServerHttpResponse serverResponse = exchange.getResponse();
+        HttpStatus statusCode = serverResponse.getStatusCode();
+        int status = statusCode != null ? statusCode.value() : 200;
+
+        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
+
+        Response response = transaction.getContext().getResponse();
+
+        copyHeaders(serverResponse.getHeaders(), response.getHeaders());
+
+        response
+            .withFinished(true)
+            .withStatusCode(status);
+
+    }
+
+    private static void copyHeaders(HttpHeaders source, PotentiallyMultiValuedMap destination) {
+        for (Map.Entry<String, List<String>> header : source.entrySet()) {
+            for (String value : header.getValue()) {
+                destination.add(header.getKey(), value);
             }
         }
     }

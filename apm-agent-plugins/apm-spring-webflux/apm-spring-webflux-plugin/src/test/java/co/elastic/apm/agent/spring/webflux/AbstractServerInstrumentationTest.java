@@ -153,6 +153,25 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
         assertThat(transaction.getDurationMs())
             .isCloseTo(duration * 1d, Offset.offset(100d));
+
+        checkUrl(transaction, "/duration?duration=" + duration);
+    }
+
+    @Test
+    void shouldInstrumentPathWithParameters() {
+        client.withPathParameter("1234");
+
+        String expectedName = client.useFunctionalEndpoint() ? client.getPathPrefix() + "/with-parameters/{id}" : "GreetingAnnotated#withParameters";
+
+        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+
+        checkUrl(transaction, "/with-parameters/1234");
+
+    }
+
+    private void checkUrl(Transaction transaction, String pathAndQuery){
+        assertThat(transaction.getContext().getRequest().getUrl().getFull().toString())
+            .isEqualTo(String.format("http://localhost:%d%s%s", client.getPort(), client.getPathPrefix(), pathAndQuery));
     }
 
     protected Transaction getFirstTransaction() {

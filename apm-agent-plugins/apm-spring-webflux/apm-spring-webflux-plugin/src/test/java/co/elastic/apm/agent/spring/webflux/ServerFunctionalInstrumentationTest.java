@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.spring.webflux;
 
 import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -52,12 +51,5 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
         checkTransaction(getFirstTransaction(), "/functional/nested", method, 200);
     }
 
-    @Test
-    void shouldInstrumentPathWithParameters() {
-        client.withPathParameter("1234");
 
-        checkTransaction(getFirstTransaction(), "/functional/with-parameters/{id}", "GET", 200);
-
-        // TODO : add assertions to make sure request URL contains path variables
-    }
 }

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.spring.webflux;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.sun.nio.sctp.HandlerResult;
 import net.bytebuddy.asm.Advice;
@@ -74,17 +73,11 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             transaction = (Transaction) attribute;
             transaction.activate();
 
-            String transactionName;
             if (handler instanceof HandlerMethod) {
-                // set name for annotated controllers
+                // store name for annotated controllers
                 HandlerMethod handlerMethod = (HandlerMethod) handler;
-                transactionName = String.format("%s#%s", handlerMethod.getBeanType().getSimpleName(), handlerMethod.getMethod().getName());
-            } else {
-                transactionName = exchange.getRequest().getPath().value();
-            }
-
-            if (transactionName != null) {
-                transaction.withName(transactionName, AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+                exchange.getAttributes().put(ANNOTATED_BEAN_NAME_ATTRIBUTE, handlerMethod.getBeanType().getSimpleName());
+                exchange.getAttributes().put(ANNOTATED_METHOD_NAME_ATTRIBUTE, handlerMethod.getMethod().getName());
             }
         }
     }
