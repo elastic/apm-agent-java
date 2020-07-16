@@ -61,7 +61,8 @@ class CGroupMetricsTest {
     @CsvSource({
         "964778496, /proc/cgroup, /proc/limited/memory, 7964778496",
         "964778496, /proc/cgroup2, /proc/sys_cgroup2, 7964778496",
-        "964778496, /proc/cgroup2, /proc/sys_cgroup2_unlimited, NaN"
+        "964778496, /proc/cgroup2_only_0, /proc/sys_cgroup2_unlimited, NaN",   // stat have different values to inactive_file and total_inactive_file
+        "964778496, /proc/cgroup2_only_memory, /proc/sys_cgroup2_unlimited_stat_different_order, NaN"    // stat have different values to inactive_file and total_inactive_file different order
     })
     void testFreeCgroupMemory(long value, String selfCGroup, String sysFsGroup, String memLimit) throws Exception {
         File mountInfo = new File(getClass().getResource(sysFsGroup).toURI());

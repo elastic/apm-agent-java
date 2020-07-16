@@ -10,6 +10,7 @@ pgpgin 234465
 pgpgout 41732
 pgfault 233838
 pgmajfault 0
+total_inactive_file 10407936
 inactive_anon 0
 active_anon 778702848
 inactive_file 500
@@ -31,7 +32,6 @@ total_pgfault 233838
 total_pgmajfault 0
 total_inactive_anon 0
 total_active_anon 778702848
-total_inactive_file 10407936
 total_active_file 0
 total_unevictable 0
 recent_rotated_anon 231947
