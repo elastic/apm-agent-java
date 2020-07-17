@@ -45,6 +45,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.ObjectUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
@@ -204,7 +205,9 @@ public class ElasticApmAgent {
             return;
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
-            pluginClassLoaderByAdviceClass.put(apmInstrumentation.getAdviceClass().getName(), apmInstrumentation.getClass().getClassLoader());
+            pluginClassLoaderByAdviceClass.put(
+                apmInstrumentation.getAdviceClass().getName(),
+                ObjectUtils.systemClassLoaderIfNull(apmInstrumentation.getClass().getClassLoader()));
         }
         Runtime.getRuntime().addShutdownHook(new Thread(ThreadUtils.addElasticApmThreadPrefix("init-instrumentation-shutdown-hook")) {
             @Override
@@ -645,7 +648,9 @@ public class ElasticApmAgent {
                         .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
                     AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID, false);
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
-                        pluginClassLoaderByAdviceClass.put(instrumentationClass.getName(), instrumentationClass.getClassLoader());
+                        pluginClassLoaderByAdviceClass.put(
+                            instrumentationClass.getName(),
+                            ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
@@ -732,25 +737,18 @@ public class ElasticApmAgent {
     }
 
     public static ClassLoader getAgentClassLoader() {
-        ClassLoader agentClassLoader = ElasticApmAgent.class.getClassLoader();
-        if (agentClassLoader == null) {
-            // currently, the agent CL is the bootstrap CL in production
-            // but resources are not loadable from the bootstrap CL, only from the system CL
-            // also, we want to return a no-null CL from here
-            return ClassLoader.getSystemClassLoader();
-        }
+        // currently, the agent CL is the bootstrap CL in production
+        // but resources are not loadable from the bootstrap CL, only from the system CL
+        // also, we want to return a no-null CL from here
         // in tests, the agent CL is the system CL
         // in the future, the agent will be loaded from an isolated CL in production
-        return agentClassLoader;
+        return ObjectUtils.systemClassLoaderIfNull(ElasticApmAgent.class.getClassLoader());
     }
 
     public static ClassLoader getClassLoader(String adviceClass) {
-        if (!pluginClassLoaderByAdviceClass.containsKey(adviceClass)) {
-            throw new IllegalStateException("There's no mapping for key " + adviceClass);
-        }
         ClassLoader classLoader = pluginClassLoaderByAdviceClass.get(adviceClass);
         if (classLoader == null) {
-            return ClassLoader.getSystemClassLoader();
+            throw new IllegalStateException("There's no mapping for key " + adviceClass);
         }
         return classLoader;
     }
