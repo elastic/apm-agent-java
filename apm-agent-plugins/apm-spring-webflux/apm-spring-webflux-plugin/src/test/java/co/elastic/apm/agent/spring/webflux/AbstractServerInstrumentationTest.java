@@ -50,7 +50,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @BeforeAll
     static void startApp() {
-        app = WebFluxApplication.run(-1);
+        app = WebFluxApplication.run(-1, "netty");
     }
 
     @AfterAll
@@ -72,7 +72,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(error.contains("intentional handler exception"));
 
         String expectedName = client.useFunctionalEndpoint()
-            ? "/functional/error-handler"
+            ? "GET /functional/error-handler"
             : "GreetingAnnotated#handlerError";
         checkTransaction(getFirstTransaction(), expectedName, "GET", 500);
     }
@@ -83,13 +83,13 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
 
         String expectedName = client.useFunctionalEndpoint()
-            ? "/functional/hello"
+            ? "GET /functional/hello"
             : "GreetingAnnotated#getHello";
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
         Request request = transaction.getContext().getRequest();
 
-        checkUrl(request.getUrl(), client.getPort(), client.getPathPrefix(), "hello");
+        checkUrl(transaction, "/hello");
 
         assertThat(request.getHeaders().getFirst("random-value"))
             .describedAs("non-standard request headers should be captured")
@@ -98,14 +98,6 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(request.getHeaders().getFirst("Accept"))
             .isEqualTo("text/plain, application/json");
 
-    }
-
-    protected static void checkUrl(Url url, int port, String pathPrefix, String relativePath) {
-        assertThat(url.getProtocol()).isEqualTo("http");
-        assertThat(url.getHostname()).isEqualTo("localhost");
-        assertThat(url.getPathname()).isEqualTo(String.format("%s/%s", pathPrefix, relativePath));
-        assertThat(url.getPort()).isEqualTo(port);
-        assertThat(url.getFull().toString()).isEqualTo(String.format("http://localhost:%d%s/%s", port, pathPrefix, relativePath));
     }
 
     @Test
@@ -128,7 +120,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         String expectedName;
 
         if (client.useFunctionalEndpoint()) {
-            expectedName = "/functional/hello-mapping";
+            expectedName = method + " /functional/hello-mapping";
         } else {
             String prefix = method.toLowerCase(Locale.ENGLISH);
             if (Arrays.asList("head", "options", "trace").contains((prefix))) {
@@ -144,15 +136,15 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @Test
     void transactionDuration() {
         // while we can't accurately measure how long transaction takes, we need to ensure that what we measure is
-        // at least somehow consistent, thus we test with a comfortable 10% margin
+        // at least somehow consistent, thus we test with a comfortable 20% margin
         long duration = 1000;
         assertThat(client.duration(duration))
             .isEqualTo(String.format("Hello, duration=%d!", duration));
 
-        String expectedName = client.useFunctionalEndpoint() ? "/functional/duration" : "GreetingAnnotated#duration";
+        String expectedName = client.useFunctionalEndpoint() ? "GET /functional/duration" : "GreetingAnnotated#duration";
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
         assertThat(transaction.getDurationMs())
-            .isCloseTo(duration * 1d, Offset.offset(100d));
+            .isCloseTo(duration * 1d, Offset.offset(200d));
 
         checkUrl(transaction, "/duration?duration=" + duration);
     }
@@ -161,7 +153,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     void shouldInstrumentPathWithParameters() {
         client.withPathParameter("1234");
 
-        String expectedName = client.useFunctionalEndpoint() ? client.getPathPrefix() + "/with-parameters/{id}" : "GreetingAnnotated#withParameters";
+        String expectedName = client.useFunctionalEndpoint() ? "GET " + client.getPathPrefix() + "/with-parameters/{id}" : "GreetingAnnotated#withParameters";
 
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
@@ -169,16 +161,37 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     }
 
-    private void checkUrl(Transaction transaction, String pathAndQuery){
-        assertThat(transaction.getContext().getRequest().getUrl().getFull().toString())
+    static void checkUrl(GreetingWebClient client, Transaction transaction, String pathAndQuery) {
+        Url url = transaction.getContext().getRequest().getUrl();
+
+        assertThat(url.getProtocol()).isEqualTo("http");
+        assertThat(url.getHostname()).isEqualTo("localhost");
+
+        String path = client.getPathPrefix() + pathAndQuery;
+        String query = null;
+        int queryIndex = path.indexOf('?');
+        if (queryIndex >= 0) {
+            query = path.substring(queryIndex + 1);
+            path = path.substring(0, queryIndex);
+        }
+
+        assertThat(url.getPathname()).isEqualTo(path);
+        assertThat(url.getSearch()).isEqualTo(query);
+        assertThat(url.getPort()).isEqualTo(client.getPort());
+
+        assertThat(url.getFull().toString())
             .isEqualTo(String.format("http://localhost:%d%s%s", client.getPort(), client.getPathPrefix(), pathAndQuery));
+    }
+
+    private void checkUrl(Transaction transaction, String pathAndQuery) {
+        checkUrl(client, transaction, pathAndQuery);
     }
 
     protected Transaction getFirstTransaction() {
         return reporter.getFirstTransaction(200);
     }
 
-    protected Transaction checkTransaction(Transaction transaction, String expectedName, String expectedMethod, int expectedStatus) {
+    static Transaction checkTransaction(Transaction transaction, String expectedName, String expectedMethod, int expectedStatus) {
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getNameAsString()).isEqualTo(expectedName);
 

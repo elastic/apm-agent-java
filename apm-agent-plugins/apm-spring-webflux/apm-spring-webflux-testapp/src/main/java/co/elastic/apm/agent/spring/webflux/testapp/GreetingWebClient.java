@@ -27,6 +27,7 @@ package co.elastic.apm.agent.spring.webflux.testapp;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -49,7 +50,10 @@ public class GreetingWebClient {
         this.pathPrefix = useFunctionalEndpoint ? "/functional" : "/annotated";
         this.baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
         this.port = port;
-        this.client = WebClient.create(baseUri);
+        this.client = WebClient.builder()
+            .baseUrl(baseUri)
+            .clientConnector(new ReactorClientHttpConnector()) // allows to use either netty/reactor or jetty client
+            .build();
         this.useFunctionalEndpoint = useFunctionalEndpoint;
         this.headers = new HttpHeaders();
     }

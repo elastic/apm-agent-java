@@ -6,7 +6,6 @@ This plugin provides instrumentation for [Spring WebFlux](https://docs.spring.io
 
 Short term:
 - [ ] cleanup existing TODOs in codebase
-- [ ] capture data from HTTP response
 - [ ] test & document sample application
     - run with agent CLI -> should instrument and cover all requests
     - run with agent attach -> should have similar behavior as above.
@@ -15,13 +14,13 @@ Short term:
     - testing for general context propagation with reactor hooks ?
     - what about limit coverage and use hooks for that ?
 
-- [ ] Integrate with Servlet transaction when deployed to a servlet container
 - [ ] Performance benchmarks & optimization
 - [ ] Context propagation for Flux/Mono (reactor)
 - [ ] Context propagation: capture upstream transaction HTTP headers (if any)
-- [ ] Webflux client instrumentation
+- [ ] Webflux client instrumentation >> delegate to another PR
     - [ ] create spans to wrap HTTP request execution
     - [ ] send current transaction/span IDs to HTTP headers
+    - instrument all sub-classes of `ClientHttpConnector` seems a good start
 
 ## Implementation notes
 
@@ -38,5 +37,9 @@ In order to run it, you can:
 - package it as an executable jar and run it
     ```
     mvn package
-    java -jar ./target/apm-spring-webflux-testapp.jar
+    java -jar ./target/apm-spring-webflux-testapp-standalone.jar
     ```
+
+Optional parameters
+- `--port 8080` set server port, use `-1` for a random port
+- `--server netty` set server implementation, valid values are `netty` and `tomcat`

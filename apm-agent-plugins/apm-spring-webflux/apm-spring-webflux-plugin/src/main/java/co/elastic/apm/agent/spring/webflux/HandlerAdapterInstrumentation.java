@@ -94,7 +94,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
 
             if (resultMono != null) {
                 // might happen when an error is triggered server-side
-                resultMono = handlerWrap(resultMono, transaction, exchange);
+                resultMono = handlerWrap(resultMono, transaction, exchange, "handler-adapter");
             }
 
         }

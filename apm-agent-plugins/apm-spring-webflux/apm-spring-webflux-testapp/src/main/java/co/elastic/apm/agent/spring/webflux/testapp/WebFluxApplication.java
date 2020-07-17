@@ -44,8 +44,9 @@ public class WebFluxApplication {
 
     public static void main(String[] args) {
         List<String> arguments = Arrays.asList(args);
-        int port = parseIntOption(arguments, "--port", DEFAULT_PORT);
-        run(port);
+        int port = Integer.parseInt(parseOption(arguments, "--port", Integer.toString(DEFAULT_PORT)));
+        String server = parseOption(arguments, "--server", "netty");
+        run(port, server);
     }
 
     /**
@@ -76,26 +77,25 @@ public class WebFluxApplication {
      * @param port port to use
      * @return application context
      */
-    public static App run(int port) {
+    public static App run(int port, String server) {
         if (port < 0) {
             port = getAvailableRandomPort();
         }
 
         SpringApplication app = new SpringApplication(WebFluxApplication.class);
-        app.setDefaultProperties(Map.of("server.port", port));
+        app.setDefaultProperties(Map.of(
+            "server.port", port,
+            "server", server
+        ));
         return new App(port, app.run());
     }
 
-    private static int parseIntOption(List<String> arguments, String option, int defaultValue) {
-        int value = defaultValue;
-
-        int portOptionIndex = arguments.indexOf(option);
-        try {
-            value = Integer.parseInt(arguments.get(portOptionIndex + 1));
-        } catch (RuntimeException e) {
-            // silently ignored
+    private static String parseOption(List<String> arguments, String option, String defaultValue) {
+        int index = arguments.indexOf(option);
+        if (index < 0 || arguments.size() <= index) {
+            return defaultValue;
         }
-        return value;
+        return arguments.get(index + 1);
     }
 
     private static int getAvailableRandomPort() {

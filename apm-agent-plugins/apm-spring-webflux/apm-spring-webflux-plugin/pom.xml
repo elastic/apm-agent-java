@@ -41,18 +41,10 @@
             <version>${version.spring}</version>
         </dependency>
 
-        <!-- TODO : not sure if it's required as servlet plugin should already activate any transaction -->
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
-        </dependency>
-        <!-- TODO : only required for testing, we should be able to test with spring webflux client -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.12</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -67,6 +59,21 @@
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-api-plugin</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- required to test integration with servlet instrumentation -->
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-servlet-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${version.spring}</version>
             <scope>test</scope>
         </dependency>
 

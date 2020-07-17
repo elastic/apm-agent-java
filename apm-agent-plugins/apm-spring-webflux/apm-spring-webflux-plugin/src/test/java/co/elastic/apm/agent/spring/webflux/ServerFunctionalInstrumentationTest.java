@@ -40,7 +40,7 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     void shouldInstrumentSimpleGetRequest(String path) {
         client.executeAndCheckRequest("GET", path, 200);
 
-        checkTransaction(getFirstTransaction(), "/functional" + path, "GET", 200);
+        checkTransaction(getFirstTransaction(), "GET /functional" + path, "GET", 200);
     }
 
     @ParameterizedTest
@@ -48,7 +48,7 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     void shouldInstrumentNestedRoutes(String method) {
         client.executeAndCheckRequest(method, "/nested", 200);
 
-        checkTransaction(getFirstTransaction(), "/functional/nested", method, 200);
+        checkTransaction(getFirstTransaction(), method + " /functional/nested", method, 200);
     }
 
 

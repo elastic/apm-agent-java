@@ -35,9 +35,9 @@ import org.reactivestreams.Subscription;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
 import reactor.core.CoreSubscriber;
@@ -45,6 +45,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
 import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletRequest;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Collection;
@@ -58,12 +59,59 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.M
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
     public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
+    public static final String SERVLET_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".servlet";
     public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".bean_name";
     public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("spring-webflux");
+    }
+
+    @Nullable
+    @VisibleForAdvice
+    public static Transaction getOrCreateTransaction(Class<?> clazz, ServerWebExchange exchange) {
+
+        Transaction transaction = getServletTransaction(exchange);
+        boolean isServlet = transaction != null;
+
+        if (transaction == null) {
+            transaction = tracer.startRootTransaction(clazz.getClassLoader());
+        }
+
+        if (transaction == null) {
+            return null;
+        }
+
+        transaction.withType("request")
+            .activate();
+
+        // store transaction in exchange to make it easy to retrieve from other handlers
+        exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
+        exchange.getAttributes().put(SERVLET_ATTRIBUTE, isServlet);
+
+        return transaction;
+    }
+
+    @Nullable
+    private static Transaction getServletTransaction(ServerWebExchange exchange) {
+        // see ServletHttpHandlerAdapter and sub-classes for implementation details
+        Transaction transaction = null;
+        try {
+            ServerHttpRequest exchangeRequest = exchange.getRequest();
+            if (exchangeRequest instanceof AbstractServerHttpRequest) {
+                Object nativeRequest = ((AbstractServerHttpRequest) exchangeRequest).getNativeRequest();
+                if (nativeRequest instanceof HttpServletRequest) {
+                    transaction = (Transaction) ((HttpServletRequest) nativeRequest)
+                        // adding a dependency to servlet instrumentation plugin is not worth for such a simple string
+                        // but it's fine as long as we have tests for this
+                        .getAttribute("co.elastic.apm.agent.servlet.ServletApiAdvice.transaction");
+                }
+            }
+        } catch (Throwable ignored) {
+            return null;
+        }
+        return transaction;
     }
 
     /**
@@ -78,7 +126,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     @VisibleForAdvice
     public static <T> Mono<T> dispatcherWrap(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange))
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange, "dispatcher"))
         );
     }
 
@@ -89,41 +137,54 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
      * @param mono        mono to wrap
      * @param transaction transaction
      * @param exchange    exchange
+     * @param name
      * @return wrapped mono that will activate transaction when mono is used and terminate it on mono is completed
      */
     @VisibleForAdvice
-    public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
+    public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, Transaction transaction, ServerWebExchange exchange, String name) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange)));
+            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange, name)));
     }
 
     // TODO if used with servlets, reuse active transaction (if any)
 
     private static class SubscriberWrapper<T> implements CoreSubscriber<T> {
         private final CoreSubscriber<? super T> subscriber;
+        protected String name;
 
-        public SubscriberWrapper(CoreSubscriber<? super T> subscriber) {
+        public SubscriberWrapper(CoreSubscriber<? super T> subscriber, String name) {
             this.subscriber = subscriber;
+            this.name = name;
+        }
+
+        private void debug(Runnable task, String method) {
+            System.out.println(String.format("%s [enter] %s()", name, method));
+            try {
+                task.run();
+            } finally {
+                System.out.println(String.format("%s [exit]  %s()", name, method));
+            }
         }
 
         @Override
         public void onSubscribe(Subscription s) {
-            subscriber.onSubscribe(s);
+            debug(() -> subscriber.onSubscribe(s), "onSubscribe");
+
         }
 
         @Override
         public void onNext(T t) {
-            subscriber.onNext(t);
+            debug(() -> subscriber.onNext(t), "onNext");
         }
 
         @Override
         public void onError(Throwable t) {
-            subscriber.onError(t);
+            debug(() -> subscriber.onError(t), "onError");
         }
 
         @Override
         public void onComplete() {
-            subscriber.onComplete();
+            debug(subscriber::onComplete, "onComplete");
         }
     }
 
@@ -135,8 +196,8 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
                                           Transaction transaction,
                                           boolean terminateTransactionOnComplete,
-                                          ServerWebExchange exchange) {
-            super(subscriber);
+                                          ServerWebExchange exchange, String name) {
+            super(subscriber, name);
             this.transaction = transaction;
             this.terminateTransactionOnComplete = terminateTransactionOnComplete;
             this.exchange = exchange;
@@ -170,13 +231,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             } finally {
                 transaction.deactivate();
 
-                boolean is404 = false;
-                if (t instanceof ResponseStatusException) {
-                    // no matching mapping, generates a 404 error
-                    is404 = ((ResponseStatusException) t).getStatus().value() == 404;
-                }
-
-                endTransaction(is404, t);
+                endTransaction(t);
             }
         }
 
@@ -188,40 +243,48 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             } finally {
                 transaction.deactivate();
                 if (terminateTransactionOnComplete) {
-                    endTransaction(false, null);
+                    endTransaction(null);
                 }
             }
         }
 
-        private void endTransaction(boolean is404, @Nullable Throwable thrown) {
+        private void endTransaction(@Nullable Throwable thrown) {
             StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
             if (transactionName != null) {
-                if (is404) {
-                    // provide naming consistent with Servlets instrumentation
-                    // should override any default name already set
-                    transactionName.append(exchange.getRequest().getMethodValue()).append(" unknown route");
-                } else {
-                    // should be set for annotated methods
-                    String beanName = exchange.getAttribute(ANNOTATED_BEAN_NAME_ATTRIBUTE);
-                    String methodName = exchange.getAttribute(ANNOTATED_METHOD_NAME_ATTRIBUTE);
+                String httpMethod = exchange.getRequest().getMethodValue();
 
-                    PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
-                    if (beanName != null && methodName != null) {
-                        transactionName.append(beanName).append("#").append(methodName);
-                    } else if (pattern != null) {
+                // bean name & method should be set for annotated methods
+                String beanName = exchange.getAttribute(ANNOTATED_BEAN_NAME_ATTRIBUTE);
+                String methodName = exchange.getAttribute(ANNOTATED_METHOD_NAME_ATTRIBUTE);
+
+                PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
+
+                if (beanName != null && methodName != null) {
+                    transactionName.append(beanName)
+                        .append('#')
+                        .append(methodName);
+                } else {
+                    transactionName.append(httpMethod).append(' ');
+                    if (pattern != null) {
                         transactionName.append(pattern.getPatternString());
                     } else {
-                        transactionName.append(exchange.getRequest().getPath().value());
+                        transactionName.append("unknown route");
                     }
                 }
             }
 
-            fillRequest(transaction, exchange);
-            fillResponse(transaction, exchange);
+            transaction.captureException(thrown);
 
-            transaction
-                .captureException(thrown)
-                .end();
+            // when transaction has been created by servlet, we let servlet instrumentation handle request/response
+            // and ending the transaction properly
+            if (exchange.getAttribute(SERVLET_ATTRIBUTE) == null) {
+                fillRequest(transaction, exchange);
+                fillResponse(transaction, exchange);
+
+                transaction.end();
+            }
+
+
         }
     }
 

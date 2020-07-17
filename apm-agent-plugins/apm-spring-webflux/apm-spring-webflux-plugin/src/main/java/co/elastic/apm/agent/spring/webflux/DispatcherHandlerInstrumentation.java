@@ -59,14 +59,7 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
                                 @Advice.Argument(0) ServerWebExchange exchange,
                                 @Advice.Local("transaction") Transaction transaction) {
 
-        transaction = tracer.startRootTransaction(clazz.getClassLoader());
-        if (transaction != null) {
-            transaction.withType("request")
-                .activate();
-
-            // store transaction in exchange to make it easy to retrieve from other handlers
-            exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
-        }
+        transaction = getOrCreateTransaction(clazz, exchange);
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
