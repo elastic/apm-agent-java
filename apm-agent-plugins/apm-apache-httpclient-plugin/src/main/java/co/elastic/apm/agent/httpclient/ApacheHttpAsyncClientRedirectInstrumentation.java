@@ -91,7 +91,7 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttp
      * @return a matcher for LTE 4.3.2
      */
     @Override
-    public ElementMatcher.Junction<ProtectionDomain> getImplementationVersionPostFilter() {
+    public ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
         return implementationVersionLte("4.3.2");
     }
 

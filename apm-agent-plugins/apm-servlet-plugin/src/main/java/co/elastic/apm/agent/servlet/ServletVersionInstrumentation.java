@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.util.GlobalVariables;
+import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;

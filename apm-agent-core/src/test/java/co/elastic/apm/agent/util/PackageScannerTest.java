@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import net.bytebuddy.ByteBuddy;
 import org.junit.jupiter.api.Test;
 
@@ -33,21 +34,21 @@ class PackageScannerTest {
 
     @Test
     void getClassNames() throws Exception {
-        assertThat(PackageScanner.getClassNames(getClass().getPackageName()))
+        assertThat(PackageScanner.getClassNames(getClass().getPackageName(), ElasticApmAgent.getAgentClassLoader()))
             .contains(PackageScanner.class.getName());
     }
 
     @Test
     void testScanJar() throws Exception {
-        assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName()))
+        assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName(), ElasticApmAgent.getAgentClassLoader()))
             .contains(ByteBuddy.class.getName());
         // scan again to see verify there's no FileSystemAlreadyExistsException
-        assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName()))
+        assertThat(PackageScanner.getClassNames(ByteBuddy.class.getPackageName(), ElasticApmAgent.getAgentClassLoader()))
             .contains(ByteBuddy.class.getName());
     }
 
     @Test
     void getClassNamesOfNonExistentPackage() throws Exception {
-        assertThat(PackageScanner.getClassNames("foo.bar")).isEmpty();
+        assertThat(PackageScanner.getClassNames("foo.bar", ElasticApmAgent.getAgentClassLoader())).isEmpty();
     }
 }

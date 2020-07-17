@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.cache;
 
-import co.elastic.apm.agent.collections.WeakMapSupplier;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.grpc.helper;
 
-import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
@@ -33,6 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;

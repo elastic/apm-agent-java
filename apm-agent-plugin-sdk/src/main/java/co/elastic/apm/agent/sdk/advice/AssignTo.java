@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci.bytebuddy.postprocessor;
+package co.elastic.apm.agent.sdk.advice;
 
 import net.bytebuddy.dynamic.TargetType;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
@@ -36,25 +36,24 @@ import java.lang.annotation.Target;
  * A limitation of non-{@linkplain net.bytebuddy.asm.Advice.OnMethodEnter#inline() inlined advices} is that the {@code readOnly} property
  * of annotations that bind values to advice method parameters cannot be used.
  * <p>
- * Because we make heavy use of non-inlined advices for
- * {@linkplain co.elastic.apm.agent.bci.ElasticApmInstrumentation#indyPlugin() indy plugins},
- * this package provides alternative means to bind values:
+ * Because we make heavy use of non-inlined advices for indy plugins,
+ * this class and it's subclasses provide alternative means to bind values:
  * </p>
  * <ul>
  *     <li>
- *         {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo.Argument}:
+ *         {@link AssignTo.Argument}:
  *         Substitute of {@link net.bytebuddy.asm.Advice.Argument#readOnly()}.
  *     </li>
  *     <li>
- *         {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo.Field}:
+ *         {@link AssignTo.Field}:
  *         Substitute of {@link net.bytebuddy.asm.Advice.FieldValue#readOnly()}.
  *     </li>
  *     <li>
- *         {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo.Return}:
+ *         {@link AssignTo.Return}:
  *         Substitute of {@link net.bytebuddy.asm.Advice.Return#readOnly()}.
  *     </li>
  *     <li>
- *         {@link co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo}:
+ *         {@link AssignTo}:
  *         Substitute of binding multiple values in a single method.
  *         Works by returning an {@code Object[]} from the advice method.
  *     </li>

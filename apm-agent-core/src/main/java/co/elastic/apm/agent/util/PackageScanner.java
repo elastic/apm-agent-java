@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -49,28 +47,31 @@ public class PackageScanner {
      * Returns all class names within a package and sub-packages
      *
      * @param basePackage the package to scan
+     * @param classLoader
      * @return all class names within a package and sub-packages
      * @throws IOException
      * @throws URISyntaxException
      */
-    public static List<String> getClassNames(final String basePackage) throws IOException, URISyntaxException {
+    public static List<String> getClassNames(final String basePackage, ClassLoader classLoader) throws IOException, URISyntaxException {
         String baseFolderResource = basePackage.replace('.', '/');
         final List<String> classNames = new ArrayList<>();
-        Enumeration<URL> resources = ElasticApmAgent.getAgentClassLoader().getResources(baseFolderResource);
+        Enumeration<URL> resources = classLoader.getResources(baseFolderResource);
         while (resources.hasMoreElements()) {
             URL resource = resources.nextElement();
             URI uri = resource.toURI();
+            List<String> result;
             if (uri.getScheme().equals("jar")) {
                 // avoids FileSystemAlreadyExistsException
                 synchronized (PackageScanner.class) {
                     try (FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap())) {
                         final Path basePath  = fileSystem.getPath(baseFolderResource).toAbsolutePath();
-                        classNames.addAll(listClassNames(basePackage, basePath));
+                        result = listClassNames(basePackage, basePath);
                     }
                 }
             } else {
-                classNames.addAll(listClassNames(basePackage, Paths.get(uri)));
+                result = listClassNames(basePackage, Paths.get(uri));
             }
+            classNames.addAll(result);
         }
         return classNames;
     }
