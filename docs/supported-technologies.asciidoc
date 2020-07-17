@@ -289,7 +289,7 @@ This section lists all supported asynchronous frameworks.
 
 |`ExecutorService`
 |
-|The agent propagates the context for ``ExecutorService``s.
+|The agent propagates the context for `ExecutorService` s.
 |1.4.0
 
 |`ScheduledExecutorService`
@@ -299,7 +299,7 @@ This section lists all supported asynchronous frameworks.
 
 |`ForkJoinPool`
 |
-|The agent propagates the context for ``ForkJoinPool``s.
+|The agent propagates the context for `ForkJoinPool` s.
 |1.17.0
 
 |Scala Future
