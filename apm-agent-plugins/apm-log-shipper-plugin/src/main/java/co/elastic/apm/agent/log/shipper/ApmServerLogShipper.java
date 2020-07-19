@@ -62,7 +62,7 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
             if (connection == null) {
                 connection = startRequest(LOGS_ENDPOINT);
             }
-            if (os != null) {
+            if (connection != null && os != null) {
                 File file = tailableFile.getFile();
                 if (!file.equals(currentFile)) {
                     currentFile = file;
@@ -118,6 +118,7 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
     }
 
     @Override
+    @Nullable
     protected HttpURLConnection startRequest(String endpoint) throws IOException {
         HttpURLConnection connection = super.startRequest(endpoint);
         httpRequestClosingThreshold = System.currentTimeMillis() + reporterConfiguration.getApiRequestTime().getMillis();

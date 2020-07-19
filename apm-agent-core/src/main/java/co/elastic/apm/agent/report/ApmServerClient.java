@@ -115,8 +115,13 @@ public class ApmServerClient {
         return copy;
     }
 
+    @Nullable
     HttpURLConnection startRequest(String relativePath) throws IOException {
-        return startRequestToUrl(appendPathToCurrentUrl(relativePath));
+        URL url = appendPathToCurrentUrl(relativePath);
+        if (url == null) {
+            return null;
+        }
+        return startRequestToUrl(url);
     }
 
     @Nonnull
@@ -166,9 +171,13 @@ public class ApmServerClient {
         }
     }
 
-    @Nonnull
+    @Nullable
     URL appendPathToCurrentUrl(String apmServerPath) throws MalformedURLException {
-        return appendPath(getCurrentUrl(), apmServerPath);
+        URL currentUrl = getCurrentUrl();
+        if (currentUrl == null) {
+            return null;
+        }
+        return appendPath(currentUrl, apmServerPath);
     }
 
     @Nonnull
@@ -274,8 +283,12 @@ public class ApmServerClient {
         return results;
     }
 
+    @Nullable
     URL getCurrentUrl() {
         List<URL> serverUrls = getServerUrls();
+        if (serverUrls.isEmpty()) {
+            return null;
+        }
         return serverUrls.get(errorCount.get() % serverUrls.size());
     }
 

@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.util.Version;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,6 +45,7 @@ import java.net.URLConnection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder.okForJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -91,8 +93,15 @@ public class ApmServerClientTest {
     }
 
     @Test
+    public void testGetCurrentUrlWithEmptyUrls() {
+        // tests setting server_urls to an empty string in configuration
+        apmServerClient.start(Lists.emptyList());
+        assertThat(apmServerClient.getCurrentUrl()).isNull();
+    }
+
+    @Test
     public void testInitialCurrentUrlIsFirstUrl() throws Exception {
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
 
         apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
 
@@ -103,7 +112,7 @@ public class ApmServerClientTest {
     @Test
     public void testUseNextUrlOnError() throws Exception {
         apmServerClient.incrementAndGetErrorCount(0);
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer2.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer2.port());
 
         apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
 
@@ -124,7 +133,7 @@ public class ApmServerClientTest {
     @Test
     public void testRetry() throws Exception {
         assertThat(apmServerClient.<String>execute("/test", conn -> new String(conn.getInputStream().readAllBytes()))).isEqualTo("hello from server 2");
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer2.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer2.port());
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/test")));
         assertThat(apmServerClient.getErrorCount()).isEqualTo(1);
@@ -138,7 +147,7 @@ public class ApmServerClientTest {
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         // two failures -> urls wrap
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
         assertThat(apmServerClient.getErrorCount()).isEqualTo(2);
     }
 
@@ -151,7 +160,7 @@ public class ApmServerClientTest {
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         // no failures -> urls in initial state
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
         assertThat(apmServerClient.getErrorCount()).isZero();
     }
 
