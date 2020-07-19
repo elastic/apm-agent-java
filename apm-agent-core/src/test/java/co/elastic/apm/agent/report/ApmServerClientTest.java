@@ -93,10 +93,12 @@ public class ApmServerClientTest {
     }
 
     @Test
-    public void testGetCurrentUrlWithEmptyUrls() {
+    public void testGetCurrentUrlWithEmptyUrls() throws IOException {
         // tests setting server_urls to an empty string in configuration
         apmServerClient.start(Lists.emptyList());
         assertThat(apmServerClient.getCurrentUrl()).isNull();
+        assertThat(apmServerClient.appendPathToCurrentUrl("/path")).isNull();
+        assertThat(apmServerClient.startRequest("/whatever")).isNull();
     }
 
     @Test
