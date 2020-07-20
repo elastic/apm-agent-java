@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.spring.webflux.testapp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -35,12 +37,14 @@ import javax.annotation.Nullable;
 
 public class GreetingWebClient {
 
+    private static final Logger logger = LoggerFactory.getLogger(GreetingWebClient.class);
+
     private final WebClient client;
     private final String baseUri;
     private final String pathPrefix;
     private final boolean useFunctionalEndpoint;
     private final int port;
-    private final MultiValueMap<String,String> headers;
+    private final MultiValueMap<String, String> headers;
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
@@ -97,7 +101,7 @@ public class GreetingWebClient {
     }
 
     public String executeAndCheckRequest(String method, String path, int expectedStatus) {
-        System.out.println(String.format("%s %s%s", method, baseUri, path));
+        logger.info("execute request : {} {}{}", method, baseUri, path);
 
         String result = client.method(HttpMethod.valueOf(method))
             .uri(path)
@@ -114,7 +118,7 @@ public class GreetingWebClient {
             .blockOptional()
             .orElse("");
 
-        System.out.println(result);
+        logger.info("result = {}", result);
         return result;
     }
 
@@ -127,7 +131,7 @@ public class GreetingWebClient {
         return pathPrefix;
     }
 
-    public int getPort(){
+    public int getPort() {
         return port;
     }
 

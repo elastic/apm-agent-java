@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.spring.webflux.testapp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -39,6 +41,8 @@ import java.util.Map;
 
 @SpringBootApplication
 public class WebFluxApplication {
+
+    private static final Logger logger = LoggerFactory.getLogger(WebFluxApplication.class);
 
     private static final int DEFAULT_PORT = 8080;
 
@@ -56,10 +60,8 @@ public class WebFluxApplication {
 
     private static boolean doSampleRequests(App app, int count) {
         for (int i = 0; i < count; i++) {
-            System.out.println(String.format("-- sample request %d / %d", i + 1, count));
             for (Boolean functional : Arrays.asList(true, false)) {
-
-                System.out.println(String.format("sample requests for [%s] endpoint", functional ? "functional" : "annotated"));
+                logger.info("sample request {} / {} ({} endpoint)", i + 1, count, functional ? "functional" : "annotated");
 
                 GreetingWebClient client = app.getClient(functional);
                 client.getHelloMono();
