@@ -70,6 +70,9 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
                 }
                 write(os, line, offset, length, eol);
                 return true;
+            } else {
+                logger.debug("Cannot establish connection to APM server, backing off log shipping.");
+                onConnectionError(null, currentlyTransmitting, 0);
             }
         } catch (Exception e) {
             endRequest();

@@ -203,6 +203,10 @@ public class AbstractIntakeApiHandler {
         return dropped;
     }
 
+    public int getErrorCount() {
+        return errorCount;
+    }
+
     public void close() {
         shutDown = true;
         synchronized (WAIT_LOCK) {

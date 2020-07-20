@@ -46,7 +46,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -324,6 +327,14 @@ public class ApmServerClient {
 
     public boolean supportsLogsEndpoint() {
         return isAtLeast(VERSION_7_9);
+    }
+
+    @Nullable
+    Version getApmServerVersion(long timeout, TimeUnit timeUnit) throws InterruptedException, ExecutionException, TimeoutException {
+        if (apmServerVersion != null) {
+            return apmServerVersion.get(timeout, timeUnit);
+        }
+        return null;
     }
 
     public boolean isAtLeast(Version apmServerVersion) {

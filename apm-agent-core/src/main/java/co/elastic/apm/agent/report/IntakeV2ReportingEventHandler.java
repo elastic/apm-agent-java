@@ -100,14 +100,16 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 if (logger.isDebugEnabled()) {
                     logger.debug("Failed to get APM server connection, dropping event {}", event);
                 }
-                endEvent(event);
+                handleNonWrittenEvent(event);
+                dropped++;
             }
         } catch (Exception e) {
             logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
             logger.debug("Event handling failure", e);
             endRequest();
             onConnectionError(null, currentlyTransmitting + 1, 0);
-            endEvent(event);
+        } finally {
+            event.close();
         }
 
         if (shouldEndRequest()) {
@@ -128,28 +130,25 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         if (event.getTransaction() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeTransactionNdJson(event.getTransaction());
-            event.getTransaction().decrementReferences();
         } else if (event.getSpan() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeSpanNdJson(event.getSpan());
-            event.getSpan().decrementReferences();
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
-            event.getError().recycle();
         } else if (event.getMetricRegistry() != null) {
             payloadSerializer.serializeMetrics(event.getMetricRegistry());
         }
     }
 
-    private void endEvent(ReportingEvent event) {
-        if (event.getTransaction() != null) {
-            event.getTransaction().decrementReferences();
-        } else if (event.getSpan() != null) {
-            event.getSpan().decrementReferences();
-        } else if (event.getError() != null) {
-            event.getError().recycle();
-        } else if (event.getMetricRegistry() != null) {
+    /**
+     * Should be called whenever {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)} is not called for
+     * an event that should normally be written.
+     *
+     * @param event the event to end
+     */
+    private void handleNonWrittenEvent(ReportingEvent event) {
+        if (event.getMetricRegistry() != null) {
             event.getMetricRegistry().resetBuffers();
         }
     }
