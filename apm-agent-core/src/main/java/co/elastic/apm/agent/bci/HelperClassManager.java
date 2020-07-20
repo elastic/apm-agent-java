@@ -24,14 +24,13 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import net.bytebuddy.dynamic.loading.ClassInjector;
-import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
@@ -286,7 +285,7 @@ public abstract class HelperClassManager<T> {
          * Creates an isolated CL that has two parents: the target class loader and the agent CL.
          * The agent class loader is currently the bootstrap CL but in the future it will be an isolated CL that is a child of the bootstrap CL.
          */
-        public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader, List<String> classesToInject, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
+        public synchronized static ClassLoader getOrCreatePluginClassLoader(@Nullable ClassLoader targetClassLoader, List<String> classesToInject, ClassLoader parent, ElementMatcher<? super TypeDescription> exclusionMatcher) throws Exception {
             classesToInject = new ArrayList<>(classesToInject);
 
             Map<Collection<String>, WeakReference<ClassLoader>> injectedClasses = getOrCreateInjectedClasses(targetClassLoader);
@@ -300,7 +299,7 @@ public abstract class HelperClassManager<T> {
             }
 
             List<String> classesToInjectCopy = new ArrayList<>(classesToInject.size());
-            TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.ofSystemLoader(), TypePool.Default.ReaderMode.FAST);
+            TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(parent), TypePool.Default.ReaderMode.FAST);
             for (Iterator<String> iterator = classesToInject.iterator(); iterator.hasNext(); ) {
                 String className = iterator.next();
                 if (!exclusionMatcher.matches(pool.describe(className).resolve())) {
@@ -309,18 +308,9 @@ public abstract class HelperClassManager<T> {
             }
             logger.debug("Creating plugin class loader for {} containing {}", targetClassLoader, classesToInjectCopy);
 
-            ClassLoader parent = getPluginClassLoaderParent(targetClassLoader);
-            Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy);
+            Map<String, byte[]> typeDefinitions = getTypeDefinitions(classesToInjectCopy, parent);
             // child first semantics are important here as the plugin CL contains classes that are also present in the agent CL
-            ClassLoader pluginClassLoader = new ByteArrayClassLoader.ChildFirst(parent, true, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST) {
-                @Override
-                protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-                    if (name.equals("java.lang.ThreadLocal")) {
-                        throw new ClassNotFoundException("The usage of ThreadLocals is not allowed in instrumentation plugins. Use GlobalThreadLocal instead.");
-                    }
-                    return super.loadClass(name, resolve);
-                }
-            };
+            ClassLoader pluginClassLoader = new IndyPluginClassLoader(targetClassLoader, parent, typeDefinitions);
             injectedClasses.put(classesToInject, new WeakReference<>(pluginClassLoader));
 
             return pluginClassLoader;
@@ -335,17 +325,10 @@ public abstract class HelperClassManager<T> {
             return injectedClasses;
         }
 
-        private static ClassLoader getPluginClassLoaderParent(@Nullable ClassLoader targetClassLoader) {
-            ClassLoader agentClassLoader = ElasticApmAgent.getAgentClassLoader();
-            // the plugin class loader has both, the agent class loader and the target class loader as the parent
-            // this is important so that the plugin class loader has direct access to the agent class loader
-            // otherwise, filtering class loaders (like OSGi) have a chance to interfere
-            return new MultipleParentClassLoader(Arrays.asList(agentClassLoader, targetClassLoader));
-        }
-
         public synchronized static void clear() {
             alreadyInjected.clear();
         }
+
     }
 
     static Class injectClass(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
@@ -364,7 +347,7 @@ public abstract class HelperClassManager<T> {
             classInjector = new ClassInjector.UsingReflection(targetClassLoader, pd, PackageDefinitionStrategy.NoOp.INSTANCE,
                 true);
         }
-        final byte[] classBytes = getAgentClassBytes(className);
+        final byte[] classBytes = ClassFileLocator.ForClassLoader.of(ElasticApmAgent.getAgentClassLoader()).locate(className).resolve();
         final TypeDescription typeDesc =
             new TypeDescription.Latent(className, 0, null, Collections.<TypeDescription.Generic>emptyList());
         Map<TypeDescription, byte[]> typeMap = new HashMap<>();
@@ -375,7 +358,7 @@ public abstract class HelperClassManager<T> {
     private static <T> T createHelper(@Nullable ClassLoader targetClassLoader, ElasticApmTracer tracer, String implementation,
                                       String... additionalHelpers) {
         try {
-            final Map<String, byte[]> typeDefinitions = getTypeDefinitions(asList(implementation, additionalHelpers));
+            final Map<String, byte[]> typeDefinitions = getTypeDefinitions(asList(implementation, additionalHelpers), ElasticApmAgent.getAgentClassLoader());
             Class<? extends T> helperClass;
             try {
                 helperClass = loadHelperClass(targetClassLoader, implementation, typeDefinitions);
@@ -410,17 +393,13 @@ public abstract class HelperClassManager<T> {
         return (Class<T>) helperCL.loadClass(implementation);
     }
 
-    private static Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames) throws IOException {
+    private static Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames, ClassLoader classLoader) throws IOException {
         Map<String, byte[]> typeDefinitions = new HashMap<>();
         for (final String helperName : helperClassNames) {
-            final byte[] classBytes = getAgentClassBytes(helperName);
+            final byte[] classBytes = ClassFileLocator.ForClassLoader.of(classLoader).locate(helperName).resolve();
             typeDefinitions.put(helperName, classBytes);
         }
         return typeDefinitions;
     }
 
-    private static byte[] getAgentClassBytes(String className) throws IOException {
-        final ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(ElasticApmAgent.getAgentClassLoader());
-        return locator.locate(className).resolve();
-    }
 }

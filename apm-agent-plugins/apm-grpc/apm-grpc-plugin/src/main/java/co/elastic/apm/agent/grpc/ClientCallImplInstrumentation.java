@@ -24,12 +24,12 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.grpc.helper.GrpcHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import io.grpc.ClientCall;
 import io.grpc.Metadata;
 import io.grpc.Status;
@@ -110,7 +110,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                 return;
             }
 
-            ElasticApmAgent.ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
+            DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
 
             GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
             if (helper != null) {
@@ -144,7 +144,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
         }
 
         /**
-         * Overridden in {@link ElasticApmAgent#ensureInstrumented(Class, Collection)},
+         * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
          * based on the type of the {@linkplain ClientCall.Listener} implementation class.
          */
         @Override

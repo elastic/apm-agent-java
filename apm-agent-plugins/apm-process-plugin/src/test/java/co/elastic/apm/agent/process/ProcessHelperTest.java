@@ -26,7 +26,6 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.TransactionUtils;
-import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
-
 import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.webflux.disabled;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.spring.webflux.WebFluxInstrumentation;
@@ -41,7 +41,7 @@ import java.util.Collections;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class AbstractErrorWebExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
+public class AbstractErrorWebExceptionHandlerInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter

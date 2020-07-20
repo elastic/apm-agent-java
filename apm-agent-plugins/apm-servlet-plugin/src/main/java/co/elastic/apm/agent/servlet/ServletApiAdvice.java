@@ -31,8 +31,8 @@ import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
-import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;

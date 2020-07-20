@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.webflux.disabled;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.springframework.http.HttpMethod;

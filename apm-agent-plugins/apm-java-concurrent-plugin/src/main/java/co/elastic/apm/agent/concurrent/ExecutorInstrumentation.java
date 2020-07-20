@@ -25,8 +25,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
-import co.elastic.apm.agent.util.GlobalVariables;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;

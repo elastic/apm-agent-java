@@ -25,12 +25,12 @@
 package co.elastic.apm.agent.es.restclient.v6_4;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.threadlocal.GlobalThreadLocal;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.collections;
+package co.elastic.apm.agent.sdk.weakmap;
 
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
@@ -46,7 +46,7 @@ public class WeakMapSupplier {
      * Avoids that the maps take unnecessary space for the {@link java.util.Map.Entry}, the {@link java.lang.ref.WeakReference} and the value.
      * Failing to call this does not mean the keys cannot be collected.
      */
-    static void expungeStaleEntries() {
+    public static void expungeStaleEntries() {
         for (WeakConcurrentMap<?, ?> weakMap : registeredMaps) {
             weakMap.expungeStaleEntries();
         }

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.webflux.disabled;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -39,7 +39,7 @@ import java.util.Collections;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class FunctionalHandlerInstrumentation extends ElasticApmInstrumentation {
+public class FunctionalHandlerInstrumentation extends TracerAwareInstrumentation {
 
     @SuppressWarnings("unused")
     @Advice.OnMethodEnter(suppress = Throwable.class)

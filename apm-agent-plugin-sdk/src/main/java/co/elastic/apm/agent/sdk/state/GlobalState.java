@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci;
+package co.elastic.apm.agent.sdk.state;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -41,7 +41,7 @@ import java.lang.annotation.Target;
  * The effect of that is that state added to static variables in one class loader does not affect the static variable in other class loaders.
  * </p>
  * <p>
- * An alternative to this is {@link co.elastic.apm.agent.util.GlobalVariables} which can be used to make individual variables scoped globally.
+ * An alternative to this is {@link GlobalVariables} which can be used to make individual variables scoped globally.
  * </p>
  */
 @Retention(RetentionPolicy.RUNTIME)

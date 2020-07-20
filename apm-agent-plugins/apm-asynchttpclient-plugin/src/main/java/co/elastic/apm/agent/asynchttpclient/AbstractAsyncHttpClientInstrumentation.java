@@ -24,17 +24,17 @@
  */
 package co.elastic.apm.agent.asynchttpclient;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -112,7 +112,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             if (parent == null) {
                 return;
             }
-            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
+            DynamicTransformer.Accessor.get().ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
 
             Uri uri = request.getUri();
             span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
@@ -166,7 +166,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
         }
 
         /**
-         * Overridden in {@link ElasticApmAgent#ensureInstrumented(Class, Collection)},
+         * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
          * based on the type of the {@linkplain AsyncHandler} implementation class.
          */
         @Override
