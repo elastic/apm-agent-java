@@ -44,11 +44,15 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         timer.scheduleAtFixedRate(timerTask, 0, 10L);
 
         reporter.awaitUntilAsserted(1000L, () -> {
-            timer.cancel();
             assertThat(reporter.getTransactions()).isNotEmpty();
         });
 
-        assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
+        timer.cancel();
+
+        reporter.awaitUntilAsserted(1000L, () -> {
+            assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
+        });
+
         Transaction firstTransaction = reporter.getTransactions().get(0);
         assertThat(firstTransaction.getNameAsString()).isEqualTo("TestTimerTask#run");
         assertThat(firstTransaction.getFrameworkName()).isEqualTo("TimerTask");
@@ -62,11 +66,15 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
         timer.schedule(timerTask, 1L, 10L);
 
         reporter.awaitUntilAsserted(1000L, () -> {
-            timer.cancel();
             assertThat(reporter.getTransactions()).isNotEmpty();
         });
 
-        assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
+        timer.cancel();
+
+        reporter.awaitUntilAsserted(1000L, () -> {
+            assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
+        });
+
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
     }
 
