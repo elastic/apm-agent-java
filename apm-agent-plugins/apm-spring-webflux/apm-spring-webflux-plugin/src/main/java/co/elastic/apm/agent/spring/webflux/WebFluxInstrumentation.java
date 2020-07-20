@@ -96,6 +96,10 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     @Nullable
     private static Transaction getServletTransaction(ServerWebExchange exchange) {
         // see ServletHttpHandlerAdapter and sub-classes for implementation details
+
+        // While the active transaction is the one created by Servlet, it would rely on the fact that we are on the
+        // same thread as the one that created the transaction, which is an implementation detail. While not really
+        // elegant, this solution seems the most reliable for now.
         Transaction transaction = null;
         try {
             ServerHttpRequest exchangeRequest = exchange.getRequest();
@@ -145,8 +149,6 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         return mono.<T>transform(
             Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange, name)));
     }
-
-    // TODO if used with servlets, reuse active transaction (if any)
 
     private static class SubscriberWrapper<T> implements CoreSubscriber<T> {
         private final CoreSubscriber<? super T> subscriber;
@@ -277,7 +279,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
 
             // when transaction has been created by servlet, we let servlet instrumentation handle request/response
             // and ending the transaction properly
-            if (exchange.getAttribute(SERVLET_ATTRIBUTE) == null) {
+            if (!Boolean.TRUE.equals(exchange.getAttribute(SERVLET_ATTRIBUTE))) {
                 fillRequest(transaction, exchange);
                 fillResponse(transaction, exchange);
 
