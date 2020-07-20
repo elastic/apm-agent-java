@@ -46,7 +46,35 @@ public class WebFluxApplication {
         List<String> arguments = Arrays.asList(args);
         int port = Integer.parseInt(parseOption(arguments, "--port", Integer.toString(DEFAULT_PORT)));
         String server = parseOption(arguments, "--server", "netty");
-        run(port, server);
+        int count = Integer.parseInt(parseOption(arguments, "--count", "0"));
+        App app = run(port, server);
+        if (doSampleRequests(app, count)) {
+            // shutdown app when using sample requests, otherwise let it run like a regular spring boot app
+            app.close();
+        }
+    }
+
+    private static boolean doSampleRequests(App app, int count) {
+        for (int i = 0; i < count; i++) {
+            System.out.println(String.format("-- sample request %d / %d", i + 1, count));
+            for (Boolean functional : Arrays.asList(true, false)) {
+
+                System.out.println(String.format("sample requests for [%s] endpoint", functional ? "functional" : "annotated"));
+
+                GreetingWebClient client = app.getClient(functional);
+                client.getHelloMono();
+                client.getMappingError404();
+                client.getHandlerError();
+                client.getMonoError();
+                client.getMonoEmpty();
+
+                for (String method : Arrays.asList("GET", "POST", "PUT", "DELETE")) {
+                    client.methodMapping(method);
+                }
+                client.withPathParameter("12345");
+            }
+        }
+        return count > 0;
     }
 
     /**

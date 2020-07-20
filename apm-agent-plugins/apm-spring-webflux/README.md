@@ -2,14 +2,24 @@
 
 This plugin provides instrumentation for [Spring WebFlux](https://docs.spring.io/spring/docs/current/spring-framework-reference/web-reactive.html) framework.
 
+## Features
+
+Server-side transactions instrumentation with support for:
+- Annotated controllers
+- Functional routes
+
+Supports both Servlet deployments and using other embedded servers.
+
 ## TODO
 
-Short term:
-- [ ] cleanup existing TODOs in codebase
-- [ ] test & document sample application
+- cleanup existing TODOs in codebase
+- test & document sample application
     - run with agent CLI -> should instrument and cover all requests
     - run with agent attach -> should have similar behavior as above.
     - add benchmark mode (might not be required yet)
+
+Short term:
+
 - [ ] transaction activation during request processing
     - testing for general context propagation with reactor hooks ?
     - what about limit coverage and use hooks for that ?
@@ -24,8 +34,15 @@ Short term:
 
 ## Implementation notes
 
-
 ## Test application
+
+### Features
+
+- The embedded server (netty or tomcat) can be set at startup
+- Endpoints definition with two variants: annotated and functional routes
+- Provides a client API to call itself, which relies on Webflux client
+
+### Build and run
 
 The `apm-spring-webflux-testapp` module provides a standalone spring boot application.
 
@@ -43,3 +60,4 @@ In order to run it, you can:
 Optional parameters
 - `--port 8080` set server port, use `-1` for a random port
 - `--server netty` set server implementation, valid values are `netty` and `tomcat`
+- `--count N` execute `N` sets of sample requests against application, defaults to `0`
