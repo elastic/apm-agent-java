@@ -80,6 +80,7 @@ public class MockReporter implements Reporter {
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
+    private final List<byte[]> bytes = Collections.synchronizedList(new ArrayList<>());
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
     private boolean closed;
@@ -273,6 +274,14 @@ public class MockReporter implements Reporter {
     }
 
     @Override
+    public synchronized void report(byte[] bytes) {
+        if (closed) {
+            return;
+        }
+        this.bytes.add(bytes);
+    }
+
+    @Override
     public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
         // noop
     }
@@ -301,6 +310,10 @@ public class MockReporter implements Reporter {
             .describedAs("at least one error expected, none have been reported")
             .isNotEmpty();
         return errors.iterator().next();
+    }
+
+    public synchronized List<byte[]> getBytes() {
+        return bytes;
     }
 
     @Override
@@ -352,6 +365,7 @@ public class MockReporter implements Reporter {
         transactions.clear();
         spans.clear();
         errors.clear();
+        bytes.clear();
     }
 
     /**

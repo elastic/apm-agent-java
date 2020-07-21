@@ -256,6 +256,13 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         return jw;
     }
 
+    @Override
+    public void writeBytes(byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            jw.writeByte(bytes[i]);
+        }
+    }
+
     private void serializeErrors(List<ErrorCapture> errors) {
         writeFieldName("errors");
         jw.writeByte(ARRAY_START);
@@ -1248,7 +1255,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeLastField(fieldName, value, replaceBuilder, jw);
     }
 
-    static void writeLastField(final String fieldName, @Nullable final CharSequence value, StringBuilder replaceBuilder, final JsonWriter jw) {
+    public static void writeLastField(final String fieldName, @Nullable final CharSequence value, StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName(fieldName, jw);
         if (value != null && value.length() > 0) {
             writeStringValue(value, replaceBuilder, jw);

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,6 +31,7 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.BYTES;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.FLUSH;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.METRICS;
@@ -49,6 +50,8 @@ public class ReportingEvent {
     private Span span;
     @Nullable
     private MetricRegistry metricRegistry;
+    @Nullable
+    private byte[] bytes;
 
     public void resetState() {
         this.transaction = null;
@@ -56,6 +59,7 @@ public class ReportingEvent {
         this.error = null;
         this.span = null;
         this.metricRegistry = null;
+        this.bytes = null;
     }
 
     @Nullable
@@ -111,7 +115,17 @@ public class ReportingEvent {
         return metricRegistry;
     }
 
+    public void setBytes(byte[] bytes) {
+        this.bytes = bytes;
+        this.type = BYTES;
+    }
+
+    @Nullable
+    public byte[] getBytes() {
+        return bytes;
+    }
+
     enum ReportingEventType {
-        FLUSH, TRANSACTION, SPAN, ERROR, METRICS, SHUTDOWN
+        FLUSH, TRANSACTION, SPAN, ERROR, METRICS, SHUTDOWN, BYTES
     }
 }

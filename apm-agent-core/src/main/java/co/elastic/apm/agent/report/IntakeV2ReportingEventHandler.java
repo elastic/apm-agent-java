@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.util.ThreadUtils;
+import com.dslplatform.json.JsonWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,6 +131,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             event.getError().recycle();
         } else if (event.getMetricRegistry() != null) {
             payloadSerializer.serializeMetrics(event.getMetricRegistry());
+        } else if (event.getBytes() != null) {
+            payloadSerializer.writeBytes(event.getBytes());
         }
     }
 

@@ -72,4 +72,6 @@ public interface PayloadSerializer {
     void serializeFileMetaData(File file);
 
     JsonWriter getJsonWriter();
+
+    void writeBytes(byte[] bytes);
 }

@@ -84,6 +84,12 @@ public class ApmServerReporter implements Reporter {
             event.setError(error);
         }
     };
+    private static final EventTranslatorOneArg<ReportingEvent, byte[]> BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
+            event.setBytes(bytes);
+        }
+    };
     private static final EventTranslator<ReportingEvent> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence) {
@@ -248,6 +254,14 @@ public class ApmServerReporter implements Reporter {
         if (!tryAddEventToRingBuffer(error, ERROR_EVENT_TRANSLATOR)) {
             error.recycle();
         }
+        if (syncReport) {
+            waitForFlush();
+        }
+    }
+
+    @Override
+    public void report(byte[] bytes) {
+        tryAddEventToRingBuffer(bytes, BYTES_EVENT_TRANSLATOR);
         if (syncReport) {
             waitForFlush();
         }
