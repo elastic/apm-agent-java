@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.18.0.RC1</version>
+        <version>1.18.1.RC1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-scheduled-annotation-plugin</artifactId>
