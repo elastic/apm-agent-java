@@ -35,11 +35,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -80,18 +77,11 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(app.sayHello("bob", 1))
             .isEqualTo("nested(1)->hello(bob)");
 
-        await()
-            .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(200, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> {
-                List<Transaction> transactions = getReporter().getTransactions();
-                assertThat(transactions).hasSize(2);
+        reporter.awaitTransactionCount(2);
 
-                for (Transaction transaction : transactions) {
-                    checkUnaryTransaction(transaction, "OK");
-                }
-            });
-
+        for (Transaction transaction : reporter.getTransactions()) {
+            checkUnaryTransaction(transaction, "OK");
+        }
     }
 
     @Test
@@ -186,12 +176,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         String s = app.sayHello("bob", 0);
         assertThat(s).isEqualTo("hello(bob)");
 
-        reporter.awaitUntilAsserted(200, () -> {
-            assertThat(reporter.getTransactions())
-                .describedAs("exactly one transaction is expected")
-                .hasSize(1);
-        });
-
+        reporter.awaitTransactionCount(1);
     }
 
     private static void checkUnaryTransaction(Transaction transaction, String expectedResult) {
