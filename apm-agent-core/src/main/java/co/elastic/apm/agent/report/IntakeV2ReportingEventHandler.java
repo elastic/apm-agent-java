@@ -98,7 +98,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 writeEvent(event);
             } else {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to get APM server connection, dropping event {}", event);
+                    logger.debug("Failed to get APM server connection, dropping event: {}", event);
                 }
                 handleNonWrittenEvent(event);
                 dropped++;

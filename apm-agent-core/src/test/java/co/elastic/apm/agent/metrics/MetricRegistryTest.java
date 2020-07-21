@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,6 +30,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,5 +78,36 @@ class MetricRegistryTest {
         metricRegistry.report(metricSets -> assertThat(metricSets).hasSize(1000));
         // the active and inactive metricSets are now switched, also check the size of the previously inactive metricSets
         metricRegistry.report(metricSets -> assertThat(metricSets).hasSize(1000));
+    }
+
+    @Test
+    void testBuffersRotation() throws ExecutionException, InterruptedException {
+        final CompletableFuture<Map<? extends Labels, MetricSet>> originalMetricSets = new CompletableFuture<>();
+        metricRegistry.report(originalMetricSets::complete);
+
+        final CompletableFuture<Map<? extends Labels, MetricSet>> firstRotationMetricSets = new CompletableFuture<>();
+        metricRegistry.report(firstRotationMetricSets::complete);
+        assertThat(firstRotationMetricSets.get()).isNotSameAs(originalMetricSets.get());
+
+        final CompletableFuture<Map<? extends Labels, MetricSet>> secondRotationMetricSets = new CompletableFuture<>();
+        metricRegistry.report(secondRotationMetricSets::complete);
+        assertThat(secondRotationMetricSets.get()).isNotSameAs(firstRotationMetricSets.get());
+        assertThat(secondRotationMetricSets.get()).isSameAs(originalMetricSets.get());
+    }
+
+    @Test
+    void testResetBuffers() throws ExecutionException, InterruptedException {
+        final CompletableFuture<Map<? extends Labels, MetricSet>> originalMetricSets = new CompletableFuture<>();
+        metricRegistry.report(originalMetricSets::complete);
+        metricRegistry.resetBuffers();
+
+        final CompletableFuture<Map<? extends Labels, MetricSet>> firstRotationMetricSets = new CompletableFuture<>();
+        metricRegistry.report(firstRotationMetricSets::complete);
+        assertThat(firstRotationMetricSets.get()).isNotSameAs(originalMetricSets.get());
+
+        final CompletableFuture<Map<? extends Labels, MetricSet>> secondRotationMetricSets = new CompletableFuture<>();
+        metricRegistry.report(secondRotationMetricSets::complete);
+        assertThat(secondRotationMetricSets.get()).isNotSameAs(firstRotationMetricSets.get());
+        assertThat(secondRotationMetricSets.get()).isNotSameAs(originalMetricSets.get());
     }
 }

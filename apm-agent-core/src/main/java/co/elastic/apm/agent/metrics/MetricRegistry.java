@@ -172,12 +172,14 @@ public class MetricRegistry {
         }
     }
 
+    /**
+     * Replace the active metrics container with a new one in a thread-safe manner.
+     */
     public void resetBuffers() {
         try {
             phaser.readerLock();
-            ConcurrentMap<Labels.Immutable, MetricSet> temp = inactiveMetricSets;
             inactiveMetricSets = activeMetricSets;
-            activeMetricSets = temp;
+            activeMetricSets = new ConcurrentHashMap<>();
             phaser.flipPhase();
         } finally {
             phaser.readerUnlock();

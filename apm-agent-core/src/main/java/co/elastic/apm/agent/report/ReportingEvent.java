@@ -106,6 +106,18 @@ public class ReportingEvent {
         this.type = SHUTDOWN;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder description = new StringBuilder();
+        description.append("Type: ").append(type);
+        if (transaction != null) {
+            description.append(", ").append(transaction.toString());
+        } else if (span != null) {
+            description.append(", ").append(span.toString());
+        }
+        return description.toString();
+    }
+
     @Nullable
     public MetricRegistry getMetricRegistry() {
         return metricRegistry;
