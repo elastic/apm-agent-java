@@ -97,33 +97,35 @@ pipeline {
         }
         stage('Review project version') {
           steps {
-            script {
-              def ver = mvnVersion(showQualifiers: true)
-              def should_continue = input(message: "Current version is ${ver}", parameters: [
-                [
-                  $class: 'ChoiceParameterDefinition',
-                  name: "You are about to release version ${ver - '-SNAPSHOT'}. Do you wish to update the version?",
-                  "choices": ["Yes", "No"],
-                  description: "Selecting 'Yes' will allow you to select the new version in the next step."
-                ]
-              ])
-              if (should_continue == 'Yes'){
-                def new_version = input(message: "Please enter version to change to:", parameters:
+            dir("${BASE_DIR}"){
+              script {
+                def ver = mvnVersion(showQualifiers: true)
+                def should_continue = input(message: "Current version is ${ver}", parameters: [
                   [
-                    [
-                      $class: 'StringParameterDefinition',
-                      defaultValue: "${ver}",
-                      description: 'We will update the project version in all pom.xml files. Set this to your desired <release-version>-SNAPSHOT (for example 1.2.3-SNAPSHOT if you want to release version 1.2.3).', name: 'New Version'
-                    ]
+                    $class: 'ChoiceParameterDefinition',
+                    name: "You are about to release version ${ver - '-SNAPSHOT'}. Do you wish to update the version?",
+                    "choices": ["Yes", "No"],
+                    description: "Selecting 'Yes' will allow you to select the new version in the next step."
                   ]
-                )
-                sh(name: "mavenVersionUpdate", script: "mvn --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
-                withGitRelease() {
-                  sh(script: "git commit -a -m 'Version bump'")
-                  gitPush()
+                ])
+                if (should_continue == 'Yes'){
+                  def new_version = input(message: "Please enter version to change to:", parameters:
+                    [
+                      [
+                        $class: 'StringParameterDefinition',
+                        defaultValue: "${ver}",
+                        description: 'We will update the project version in all pom.xml files. Set this to your desired <release-version>-SNAPSHOT (for example 1.2.3-SNAPSHOT if you want to release version 1.2.3).', name: 'New Version'
+                      ]
+                    ]
+                  )
+                  sh(name: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
+                  withGitRelease() {
+                    sh(script: "git commit -a -m 'Version bump'")
+                    gitPush()
+                  }
+                } else {
+                  echo "Skipping version update"
                 }
-              } else {
-                echo "Skipping version update"
               }
             }
           }
