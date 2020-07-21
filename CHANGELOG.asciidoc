@@ -40,6 +40,8 @@ endif::[]
 * Add <<config-enabled,`enabled`>> flag
 * Add experimental support for Scala Futures
 * The agent now collects heap memory pools metrics - {pull}1228[#1228]
+* Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
+  an empty string - {pull}1295[#1295]
 
 [float]
 ===== Bug fixes
@@ -52,6 +54,7 @@ endif::[]
   deadlock issue - {pull}1262[#1262]
 * Fixes missing `jboss.as:*` MBeans on JBoss - {pull}1257[#1257]
 * Fixes a `NoClassDefFoundError` in the JMS instrumentation of `MessageListener` - {pull}1287[#1287]
+* Fix `/ by zero` error message when setting `server_urls` with an empty string - {pull}1295[#1295]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
