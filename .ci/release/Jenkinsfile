@@ -140,7 +140,7 @@ pipeline {
         stage('Nexus release') {
           steps {
             script {
-              def spid = getVault('nexus')["staging-profile-id"]
+              def spid = getVaultSecret('nexus')["staging-profile-id"]
               dir("${BASE_DIR}"){
                 withEnvMask(vars: [[var: "SPID", password: spid]]){
                   def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
