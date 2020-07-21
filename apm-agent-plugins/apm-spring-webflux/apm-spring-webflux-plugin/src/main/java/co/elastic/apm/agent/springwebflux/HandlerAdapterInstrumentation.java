@@ -22,9 +22,10 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.sun.nio.sctp.HandlerResult;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -63,14 +64,14 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             .and(takesArgument(1, Object.class));
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onEnter(@Advice.Argument(0) ServerWebExchange exchange,
-                                @Advice.Argument(1) Object handler,
-                                @Advice.Local("transaction") Transaction transaction) {
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange,
+                                  @Advice.Argument(1) Object handler) {
 
         Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
         if (attribute instanceof Transaction) {
-            transaction = (Transaction) attribute;
+            Transaction transaction = (Transaction) attribute;
             transaction.activate();
 
             if (handler instanceof HandlerMethod) {
@@ -80,15 +81,20 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                 exchange.getAttributes().put(ANNOTATED_METHOD_NAME_ATTRIBUTE, handlerMethod.getMethod().getName());
             }
         }
+
+        return attribute;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Argument(0) ServerWebExchange exchange,
-                               @Advice.Thrown Throwable thrown,
-                               @Advice.Local("transaction") @Nullable Transaction transaction,
-                               @Advice.Return(readOnly = false) @Nullable Mono<HandlerResult> resultMono) {
+    @Nullable
+    @AssignTo.Return
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static Mono<HandlerResult> onExit(@Advice.Argument(0) ServerWebExchange exchange,
+                                             @Advice.Thrown Throwable thrown,
+                                             @Advice.Enter @Nullable Object enterTransaction,
+                                             @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
 
-        if (transaction != null) {
+        if (enterTransaction instanceof Transaction) {
+            Transaction transaction = (Transaction) enterTransaction;
             transaction.captureException(thrown)
                 .deactivate();
 
@@ -98,5 +104,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             }
 
         }
+
+        return resultMono;
     }
 }

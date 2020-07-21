@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
@@ -62,6 +62,11 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     public static final String SERVLET_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".servlet";
     public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".bean_name";
     public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
+
+    @Override
+    public boolean indyPlugin() {
+        return true;
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

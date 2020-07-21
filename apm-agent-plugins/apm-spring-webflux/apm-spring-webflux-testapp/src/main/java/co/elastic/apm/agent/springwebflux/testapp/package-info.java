@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.spring.webflux.testapp;
+package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

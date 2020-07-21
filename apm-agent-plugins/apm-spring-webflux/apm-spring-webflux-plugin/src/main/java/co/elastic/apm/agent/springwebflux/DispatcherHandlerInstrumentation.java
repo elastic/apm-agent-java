@@ -22,9 +22,10 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -54,28 +55,30 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
             .and(takesArgument(0, named("org.springframework.web.server.ServerWebExchange")));
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onEnter(@Advice.Origin Class<?> clazz,
-                                @Advice.Argument(0) ServerWebExchange exchange,
-                                @Advice.Local("transaction") Transaction transaction) {
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onEnter(@Advice.Origin Class<?> clazz,
+                                 @Advice.Argument(0) ServerWebExchange exchange) {
 
-        transaction = getOrCreateTransaction(clazz, exchange);
+        return getOrCreateTransaction(clazz, exchange);
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Local("transaction") @Nullable Transaction transaction,
-                               @Advice.Argument(0) ServerWebExchange exchange,
-                               @Advice.Thrown @Nullable Throwable thrown,
-                               @Advice.Return(readOnly = false) Mono<Void> returnValue) {
+    @AssignTo.Return
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static Mono<?> onExit(@Advice.Enter @Nullable Object enterTransaction,
+                                 @Advice.Argument(0) ServerWebExchange exchange,
+                                 @Advice.Thrown @Nullable Throwable thrown,
+                                 @Advice.Return Mono<?> returnValue) {
 
-        if (null == transaction || thrown != null) {
-            return;
+        if (!(enterTransaction instanceof Transaction) || thrown != null) {
+            return returnValue;
         }
+        Transaction transaction = (Transaction) enterTransaction;
 
         transaction.deactivate();
-        // we need to wrap returned mono to terminate transaction
-        returnValue = dispatcherWrap(returnValue, transaction, exchange);
 
+        // we need to wrap returned mono to terminate transaction
+        return dispatcherWrap((Mono<?>) returnValue, transaction, exchange);
     }
 
 }

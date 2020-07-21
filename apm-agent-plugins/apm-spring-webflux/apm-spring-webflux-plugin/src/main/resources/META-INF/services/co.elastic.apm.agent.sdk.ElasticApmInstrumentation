@@ -1,5 +1,5 @@
-co.elastic.apm.agent.spring.webflux.DispatcherHandlerInstrumentation
-co.elastic.apm.agent.spring.webflux.HandlerAdapterInstrumentation
+co.elastic.apm.agent.springwebflux.DispatcherHandlerInstrumentation
+co.elastic.apm.agent.springwebflux.HandlerAdapterInstrumentation
 
 # other implementation for review
 #co.elastic.apm.agent.webflux.disabled.AbstractErrorWebExceptionHandlerInstrumentation

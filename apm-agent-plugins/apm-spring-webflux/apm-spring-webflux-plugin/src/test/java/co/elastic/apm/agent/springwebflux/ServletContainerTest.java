@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,18 +22,16 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
-import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
+import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
+import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import static co.elastic.apm.agent.spring.webflux.AbstractServerInstrumentationTest.checkTransaction;
-import static co.elastic.apm.agent.spring.webflux.AbstractServerInstrumentationTest.checkUrl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ServletContainerTest extends AbstractInstrumentationTest {
@@ -66,10 +64,10 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
         Transaction transaction = reporter.getFirstTransaction(200);
 
         // transaction naming should be set by webflux instrumentation
-        checkTransaction(transaction, "GET /functional/with-parameters/{id}", "GET", 200);
+        AbstractServerInstrumentationTest.checkTransaction(transaction, "GET /functional/with-parameters/{id}", "GET", 200);
 
         // transaction HTTP part should be provided by servlet instrumentation
-        checkUrl(client, transaction, "/with-parameters/42");
+        AbstractServerInstrumentationTest.checkUrl(client, transaction, "/with-parameters/42");
 
         Thread.sleep(200);
 

@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux.testapp;
+package co.elastic.apm.agent.springwebflux.testapp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

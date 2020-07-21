@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux.testapp;
+package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.api.ElasticApm;
 import org.springframework.beans.factory.annotation.Autowired;

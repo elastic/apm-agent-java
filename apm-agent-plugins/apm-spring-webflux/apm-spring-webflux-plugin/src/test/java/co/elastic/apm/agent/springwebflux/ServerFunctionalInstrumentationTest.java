@@ -22,9 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
+import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 

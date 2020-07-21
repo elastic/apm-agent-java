@@ -22,10 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
+import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +44,7 @@ public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrument
     @Disabled
     // TODO not yet supported, transaction is not seen as active during processing
     void allowCustomTransactionName() {
-        assertThat(client.executeAndCheckRequest("GET", "/custom-transaction-name", 200))
+        Assertions.assertThat(client.executeAndCheckRequest("GET", "/custom-transaction-name", 200))
             .isEqualTo("Hello, transaction!");
 
         Transaction transaction = getFirstTransaction();

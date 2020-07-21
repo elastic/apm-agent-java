@@ -22,14 +22,14 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webflux;
+package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.spring.webflux.testapp.GreetingWebClient;
-import co.elastic.apm.agent.spring.webflux.testapp.WebFluxApplication;
+import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
+import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -136,7 +136,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @Test
     void transactionDuration() {
         // while we can't accurately measure how long transaction takes, we need to ensure that what we measure is
-        // at least somehow consistent, thus we test with a comfortable 20% margin
+        // at least somehow consistent, thus we test with a comfortable 25% margin
         long duration = 1000;
         assertThat(client.duration(duration))
             .isEqualTo(String.format("Hello, duration=%d!", duration));
@@ -144,7 +144,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         String expectedName = client.useFunctionalEndpoint() ? "GET /functional/duration" : "GreetingAnnotated#duration";
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
         assertThat(transaction.getDurationMs())
-            .isCloseTo(duration * 1d, Offset.offset(200d));
+            .isCloseTo(duration * 1d, Offset.offset(250d));
 
         checkUrl(transaction, "/duration?duration=" + duration);
     }
