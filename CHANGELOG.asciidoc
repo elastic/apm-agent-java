@@ -57,7 +57,7 @@ endif::[]
 === Java Agent version 1.x
 
 [[release-notes-1.18.0.rc1]]
-==== 1.18.0.RC1 - YYYY/MM/DD
+==== 1.18.0.RC1 - 2020/07/21
 
 This release candidate adds some highly anticipated features:
 It’s now possible to attach the agent at runtime in more cases than before.
