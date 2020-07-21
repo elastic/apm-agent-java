@@ -26,7 +26,6 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
@@ -35,9 +34,7 @@ import co.elastic.apm.api.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
