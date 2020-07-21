@@ -29,6 +29,7 @@ import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -63,12 +64,12 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
         return getOrCreateTransaction(clazz, exchange);
     }
 
-    @AssignTo.Return
+    @AssignTo.Return(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static Mono<?> onExit(@Advice.Enter @Nullable Object enterTransaction,
-                                 @Advice.Argument(0) ServerWebExchange exchange,
-                                 @Advice.Thrown @Nullable Throwable thrown,
-                                 @Advice.Return Mono<?> returnValue) {
+    public static Object onExit(@Advice.Enter @Nullable Object enterTransaction,
+                                @Advice.Argument(0) ServerWebExchange exchange,
+                                @Advice.Thrown @Nullable Throwable thrown,
+                                @Advice.Return Mono<?> returnValue) {
 
         if (!(enterTransaction instanceof Transaction) || thrown != null) {
             return returnValue;

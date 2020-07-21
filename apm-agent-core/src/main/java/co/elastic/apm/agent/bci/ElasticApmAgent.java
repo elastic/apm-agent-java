@@ -444,9 +444,6 @@ public class ElasticApmAgent {
         }
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
             validateAdviceReturnAndParameterTypes(exitAdvice, adviceClassName);
-            if (exitAdvice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
-                throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
-            }
             for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
                 checkInline(exitAdvice, adviceClassName, exit.prepare(Advice.OnMethodExit.class).load().inline());
             }
@@ -464,23 +461,31 @@ public class ElasticApmAgent {
         }
     }
 
-    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice, String adviceClassName) {
+    private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice, String adviceClass) {
+        String adviceMethod = advice.getInternalName();
         try {
-            if (advice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
-                throw new IllegalStateException("Advice return type must not be an agent type: " + advice.toGenericString());
-            }
+            checkNotAgentType(advice.getReturnType(), "return type", adviceClass, adviceMethod);
+
             for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
-                if (parameter.getType().getTypeName().startsWith("co.elastic.apm")) {
-                    throw new IllegalStateException("Advice parameters must not contain an agent type: " + advice.toGenericString());
-                }
+                checkNotAgentType(parameter.getType(), "parameter", adviceClass, adviceMethod);
+
                 AnnotationDescription.Loadable<Advice.Return> returnAnnotation = parameter.getDeclaredAnnotations().ofType(Advice.Return.class);
                 if (returnAnnotation != null && !returnAnnotation.load().readOnly()) {
-                    throw new IllegalStateException("Advice parameter must not use , use @AssignTo.Return instead");
+                    throw new IllegalStateException("Advice parameter must not use '@Advice.Return(readOnly=false)', use @AssignTo.Return instead");
                 }
             }
-        } catch (Throwable e) {
-            // using @Advice.Return(readOnly=false) will make type resolution fail, which prevents having a decent error message
-            throw new IllegalStateException(String.format("unable to validate advice defined in %s#%s", adviceClassName, advice.getInternalName()), e);
+        } catch (Exception e) {
+            // Because types are lazily resolved, unexpected things are expected
+            throw new IllegalStateException(String.format("unable to validate advice defined in %s#%s", adviceClass, adviceMethod), e);
+        }
+    }
+
+    private static void checkNotAgentType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
+        // we have to use 'raw' type to avoid trying to resolve classes that are not visible in bootstrap classloader
+        // for example, a plugin may use framework types in advice signature
+        String name = type.asRawType().getTypeName();
+        if (name.startsWith("co.elastic.apm")) {
+            throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
         }
     }
 

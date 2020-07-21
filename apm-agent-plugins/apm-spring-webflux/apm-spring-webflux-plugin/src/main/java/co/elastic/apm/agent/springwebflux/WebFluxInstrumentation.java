@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
-import org.reactivestreams.Subscription;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -39,8 +38,6 @@ import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.util.pattern.PathPattern;
-import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
@@ -52,9 +49,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
@@ -155,199 +149,6 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange, name)));
     }
 
-    private static class SubscriberWrapper<T> implements CoreSubscriber<T> {
-        private final CoreSubscriber<? super T> subscriber;
-        protected String name;
 
-        public SubscriberWrapper(CoreSubscriber<? super T> subscriber, String name) {
-            this.subscriber = subscriber;
-            this.name = name;
-        }
-
-        private void debug(Runnable task, String method) {
-            System.out.println(String.format("%s [enter] %s()", name, method));
-            try {
-                task.run();
-            } finally {
-                System.out.println(String.format("%s [exit]  %s()", name, method));
-            }
-        }
-
-        @Override
-        public void onSubscribe(Subscription s) {
-            debug(() -> subscriber.onSubscribe(s), "onSubscribe");
-
-        }
-
-        @Override
-        public void onNext(T t) {
-            debug(() -> subscriber.onNext(t), "onNext");
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            debug(() -> subscriber.onError(t), "onError");
-        }
-
-        @Override
-        public void onComplete() {
-            debug(subscriber::onComplete, "onComplete");
-        }
-    }
-
-    private static class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
-        private final Transaction transaction;
-        private final boolean terminateTransactionOnComplete;
-        private final ServerWebExchange exchange;
-
-        public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
-                                          Transaction transaction,
-                                          boolean terminateTransactionOnComplete,
-                                          ServerWebExchange exchange, String name) {
-            super(subscriber, name);
-            this.transaction = transaction;
-            this.terminateTransactionOnComplete = terminateTransactionOnComplete;
-            this.exchange = exchange;
-        }
-
-        @Override
-        public void onSubscribe(Subscription s) {
-            transaction.activate();
-            try {
-                super.onSubscribe(s);
-            } finally {
-                transaction.deactivate();
-            }
-        }
-
-        @Override
-        public void onNext(T next) {
-            transaction.activate();
-            try {
-                super.onNext(next);
-            } finally {
-                transaction.deactivate();
-            }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            transaction.activate();
-            try {
-                super.onError(t);
-            } finally {
-                transaction.deactivate();
-
-                endTransaction(t);
-            }
-        }
-
-        @Override
-        public void onComplete() {
-            transaction.activate();
-            try {
-                super.onComplete();
-            } finally {
-                transaction.deactivate();
-                if (terminateTransactionOnComplete) {
-                    endTransaction(null);
-                }
-            }
-        }
-
-        private void endTransaction(@Nullable Throwable thrown) {
-            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
-            if (transactionName != null) {
-                String httpMethod = exchange.getRequest().getMethodValue();
-
-                // bean name & method should be set for annotated methods
-                String beanName = exchange.getAttribute(ANNOTATED_BEAN_NAME_ATTRIBUTE);
-                String methodName = exchange.getAttribute(ANNOTATED_METHOD_NAME_ATTRIBUTE);
-
-                PathPattern pattern = exchange.getAttribute(MATCHING_PATTERN_ATTRIBUTE);
-
-                if (beanName != null && methodName != null) {
-                    transactionName.append(beanName)
-                        .append('#')
-                        .append(methodName);
-                } else {
-                    transactionName.append(httpMethod).append(' ');
-                    if (pattern != null) {
-                        transactionName.append(pattern.getPatternString());
-                    } else {
-                        transactionName.append("unknown route");
-                    }
-                }
-            }
-
-            transaction.captureException(thrown);
-
-            // when transaction has been created by servlet, we let servlet instrumentation handle request/response
-            // and ending the transaction properly
-            if (!Boolean.TRUE.equals(exchange.getAttribute(SERVLET_ATTRIBUTE))) {
-                fillRequest(transaction, exchange);
-                fillResponse(transaction, exchange);
-
-                transaction.end();
-            }
-
-
-        }
-    }
-
-    private static void fillRequest(Transaction transaction, ServerWebExchange exchange) {
-        ServerHttpRequest serverRequest = exchange.getRequest();
-        Request request = transaction.getContext().getRequest();
-
-        request.withMethod(serverRequest.getMethodValue());
-
-        InetSocketAddress remoteAddress = serverRequest.getRemoteAddress();
-        request.getSocket()
-            .withRemoteAddress(remoteAddress == null ? null : remoteAddress.getAddress().getHostAddress())
-            .withEncrypted(serverRequest.getSslInfo() != null);
-
-        URI uri = serverRequest.getURI();
-        request.getUrl()
-            .withProtocol(uri.getScheme())
-            .withHostname(uri.getHost())
-            .withPort(uri.getPort())
-            .withPathname(uri.getPath())
-            .withSearch(uri.getQuery())
-            .updateFull();
-
-        copyHeaders(serverRequest.getHeaders(), request.getHeaders());
-
-        for (Map.Entry<String, List<HttpCookie>> cookie : serverRequest.getCookies().entrySet()) {
-            for (HttpCookie value : cookie.getValue()) {
-                request.getCookies().add(cookie.getKey(), value.getValue());
-            }
-        }
-
-    }
-
-    private static void fillResponse(Transaction transaction, ServerWebExchange exchange) {
-        ServerHttpResponse serverResponse = exchange.getResponse();
-        HttpStatus statusCode = serverResponse.getStatusCode();
-        int status = statusCode != null ? statusCode.value() : 200;
-
-        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
-
-        Response response = transaction.getContext().getResponse();
-
-        copyHeaders(serverResponse.getHeaders(), response.getHeaders());
-
-        response
-            .withFinished(true)
-            .withStatusCode(status);
-
-    }
-
-    private static void copyHeaders(HttpHeaders source, PotentiallyMultiValuedMap destination) {
-        for (Map.Entry<String, List<String>> header : source.entrySet()) {
-            for (String value : header.getValue()) {
-                destination.add(header.getKey(), value);
-            }
-        }
-    }
 
 }
