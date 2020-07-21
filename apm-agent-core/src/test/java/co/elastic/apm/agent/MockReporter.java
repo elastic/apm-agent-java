@@ -185,6 +185,10 @@ public class MockReporter implements Reporter {
         return Collections.unmodifiableList(transactions);
     }
 
+    public synchronized int getNumReportedTransactions() {
+        return transactions.size();
+    }
+
     public synchronized Transaction getFirstTransaction() {
         assertThat(transactions)
             .describedAs("at least one transaction expected, none have been reported (yet)")
@@ -241,12 +245,22 @@ public class MockReporter implements Reporter {
 
     public void awaitTransactionCount(int count) {
         awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getTransactions()).hasSize(count));
+            .untilAsserted(() -> assertThat(getNumReportedTransactions()).isEqualTo(count));
+    }
+
+    public void awaitTransactionReported() {
+        awaitTimeout(1000)
+            .untilAsserted(() -> assertThat(getNumReportedTransactions()).isGreaterThan(0));
     }
 
     public void awaitSpanCount(int count) {
         awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getSpans()).hasSize(count));
+            .untilAsserted(() -> assertThat(getNumReportedSpans()).isEqualTo(count));
+    }
+
+    public void awaitSpanReported() {
+        awaitTimeout(1000)
+            .untilAsserted(() -> assertThat(getNumReportedSpans()).isGreaterThan(0));
     }
 
     @Override
@@ -272,6 +286,10 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Span> getSpans() {
         return Collections.unmodifiableList(spans);
+    }
+
+    public synchronized int getNumReportedSpans() {
+        return spans.size();
     }
 
     public synchronized List<ErrorCapture> getErrors() {

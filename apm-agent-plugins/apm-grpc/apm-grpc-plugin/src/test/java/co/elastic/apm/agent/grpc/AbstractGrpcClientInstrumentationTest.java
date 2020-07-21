@@ -29,6 +29,7 @@ import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
