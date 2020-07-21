@@ -26,12 +26,15 @@ package co.elastic.apm.agent.bci;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.FileSystems;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
+import java.util.Enumeration;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
@@ -207,6 +210,43 @@ public class AgentMain {
         if (!agentJar.getName().endsWith(".jar")) {
             throw new IllegalStateException("Agent is not a jar file: " + agentJar);
         }
-        return agentJar.getAbsoluteFile();
+        // verify agent shading at runtime, because tests might not have been always executed (when creating plugin)
+        // and failure to properly shade will create unexpected and complex behavior that is hard to diagnose and
+        // debug, thus the cost of doing this at runtime is worth it.
+        return verifyProperAgentShading(agentJar.getAbsoluteFile());
+    }
+
+    public static File verifyProperAgentShading(File file) {
+        JarFile jarFile = null;
+        try {
+            jarFile = new JarFile(file);
+            Enumeration<JarEntry> entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                String name = entry.getName();
+                int ignore = entry.isDirectory() ? 1 : 0;
+                ignore += name.startsWith("META-INF/") ? 1 : 0;
+                ignore += name.startsWith("co/elastic/apm/agent/") ? 1 : 0;
+                ignore += name.startsWith("schema/") ? 1 : 0;
+                ignore += name.startsWith("asyncprofiler/") ? 1 : 0;
+                ignore += name.startsWith("bootstrap/") ? 1 : 0;
+                ignore += name.startsWith("ElasticApmLog4j-") ? 1 : 0;
+                ignore += name.startsWith("elasticapmlog4j2.component.properties") ? 1 : 0;
+                if (ignore == 0) {
+                    throw new IllegalStateException(String.format("unexpected file shaded in agent '%s', please check agent/plugin packaging", name));
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(String.format("unable to load agent jar file : %s", file.getAbsolutePath()), e);
+        } finally {
+            if (jarFile != null) {
+                try {
+                    jarFile.close();
+                } catch (IOException e) {
+                    // silently ignored
+                }
+            }
+        }
+        return file;
     }
 }
