@@ -61,10 +61,12 @@ pipeline {
         stage('Check oss.sonatype.org') {
           steps {
             // If this fails, an exception should be thrown and execution will halt
-            script {
-              def r = sh(label: "Check Maven status", script: "scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
-              if (r == 1) {
-                error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
+            dir("${BASE_DIR}"){
+              script {
+                def r = sh(label: "Check Maven status", script: "./scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
+                if (r == 1) {
+                  error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
+                }
               }
             }
           }
@@ -185,15 +187,17 @@ pipeline {
         }
         stage('Wait for artifact to be available in Maven Central') {
           steps {
-            script {
-              def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ")
-              echo "Sleeping for ten minutes to wait for Sonatype"
-              sleep(time: 10, unit: "MINUTES")
-              waitUntil(initialRecurrencePeriod: 60000) {
-                script {
-                  def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
-                  echo "Waiting for the artifacts to be published on Sonatype"
-                  return ret == 0
+            dir("${BASE_DIR}"){
+              script {
+                def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ")
+                echo "Sleeping for ten minutes to wait for Sonatype"
+                sleep(time: 10, unit: "MINUTES")
+                waitUntil(initialRecurrencePeriod: 60000) {
+                  script {
+                    def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
+                    echo "Waiting for the artifacts to be published on Sonatype"
+                    return ret == 0
+                  }
                 }
               }
             }
@@ -214,10 +218,12 @@ pipeline {
         stage('Publish release on GitHub') {
           steps {
             waitUntil(initialRecurrencePeriod: 60000) {
-              script {
-                echo "Waiting for the release notes to be available"
-                def ret = sh(script: "scripts/jenkins/docs_check.sh $TAG_VER")
-                return ret == 0
+              dir("${BASE_DIR}"){
+                script {
+                  echo "Waiting for the release notes to be available"
+                  def ret = sh(script: "./scripts/jenkins/docs_check.sh $TAG_VER")
+                  return ret == 0
+                }
               }
             }
             githubReleasePublish(id: "${env.RELEASE_ID}")
@@ -225,10 +231,12 @@ pipeline {
         }
         stage('Build and push Docker images') {
           steps {
-            sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
-            // Get Docker registry credentials
-            dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
-            sh(label: "Push Docker image", script: "scripts/jenkins/push_docker.sh")
+            dir("${BASE_DIR}"){
+              sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+              // Get Docker registry credentials
+              dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
+              sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+            }
           }
         }
       }
