@@ -174,7 +174,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         assertNoSpan();
     }
 
-//    @Test
+    @Test
     void serverStreamingCallShouldBeIgnored() {
         String s = app.sayHelloServerStreaming("alice", 5);
         assertThat(s)
