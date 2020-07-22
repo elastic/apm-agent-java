@@ -49,7 +49,7 @@ public class AgentFileIT {
     @Nullable
     private static String getTargetJar(String project, String classifier) {
         File agentBuildDir = new File("../../" + project + "/target/");
-        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(-SNAPSHOT)?" + classifier + ".jar");
+        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + classifier + ".jar");
         return Arrays.stream(agentBuildDir.listFiles(fileFilter)).findFirst()
             .map(File::getAbsolutePath)
             .orElse(null);
