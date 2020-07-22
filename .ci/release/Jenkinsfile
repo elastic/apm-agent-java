@@ -118,7 +118,7 @@ pipeline {
                       ]
                     ]
                   )
-                  sh(name: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
+                  sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
                   withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
                     withGitRelease() {
                       sh(script: "git commit -a -m 'Version bump'")
