@@ -38,6 +38,7 @@ import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 @SpringBootApplication
 public class WebFluxApplication {
@@ -51,19 +52,31 @@ public class WebFluxApplication {
         int port = Integer.parseInt(parseOption(arguments, "--port", Integer.toString(DEFAULT_PORT)));
         String server = parseOption(arguments, "--server", "netty");
         int count = Integer.parseInt(parseOption(arguments, "--count", "0"));
-        App app = run(port, server);
-        if (doSampleRequests(app, count)) {
-            // shutdown app when using sample requests, otherwise let it run like a regular spring boot app
-            app.close();
+
+        boolean isClient = arguments.contains("--client");
+
+        if (isClient) {
+            if (count <= 0) {
+                // execute at least once, otherwise it's useless
+                count = 1;
+            }
+            doSampleRequests(useFunc -> new GreetingWebClient("localhost", port, useFunc), count);
+        } else {
+            // start the whole server & client
+            App app = run(port, server);
+            if (doSampleRequests(app::getClient, count)) {
+                // shutdown app when using sample requests, otherwise let it run like a regular spring boot app
+                app.close();
+            }
         }
     }
 
-    private static boolean doSampleRequests(App app, int count) {
+    private static boolean doSampleRequests(Function<Boolean,GreetingWebClient> clientProvider, int count) {
         for (int i = 0; i < count; i++) {
             for (Boolean functional : Arrays.asList(true, false)) {
                 logger.info("sample request {} / {} ({} endpoint)", i + 1, count, functional ? "functional" : "annotated");
 
-                GreetingWebClient client = app.getClient(functional);
+                GreetingWebClient client = clientProvider.apply(functional);
                 client.getHelloMono();
                 client.getMappingError404();
                 client.getHandlerError();

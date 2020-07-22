@@ -41,6 +41,7 @@ Short term:
 - The embedded server (netty or tomcat) can be set at startup
 - Endpoints definition with two variants: annotated and functional routes
 - Provides a client API to call itself, which relies on Webflux client
+- Provides a CLI client to execute a set of sample requests
 
 ### Build and run
 
@@ -61,3 +62,4 @@ Optional parameters
 - `--port 8080` set server port, use `-1` for a random port
 - `--server netty` set server implementation, valid values are `netty` and `tomcat`
 - `--count N` execute `N` sets of sample requests against application, defaults to `0`
+- `--client` execute client sample requests against an already-started server, implies `--count 1` if not set explicitly
