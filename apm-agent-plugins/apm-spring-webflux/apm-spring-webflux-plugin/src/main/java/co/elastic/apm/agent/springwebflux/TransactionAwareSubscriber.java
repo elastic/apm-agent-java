@@ -48,7 +48,8 @@ import java.util.Map;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
-public class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
+public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
+    private final CoreSubscriber<? super T> subscriber;
     private final Transaction transaction;
     private final boolean terminateTransactionOnComplete;
     private final ServerWebExchange exchange;
@@ -57,17 +58,17 @@ public class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
                                       Transaction transaction,
                                       boolean terminateTransactionOnComplete,
                                       ServerWebExchange exchange, String name) {
-        super(subscriber, name);
         this.transaction = transaction;
         this.terminateTransactionOnComplete = terminateTransactionOnComplete;
         this.exchange = exchange;
+        this.subscriber = subscriber;
     }
 
     @Override
     public void onSubscribe(Subscription s) {
         transaction.activate();
         try {
-            super.onSubscribe(s);
+            subscriber.onSubscribe(s);
         } finally {
             transaction.deactivate();
         }
@@ -77,7 +78,7 @@ public class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
     public void onNext(T next) {
         transaction.activate();
         try {
-            super.onNext(next);
+            subscriber.onNext(next);
         } finally {
             transaction.deactivate();
         }
@@ -87,7 +88,7 @@ public class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
     public void onError(Throwable t) {
         transaction.activate();
         try {
-            super.onError(t);
+            subscriber.onError(t);
         } finally {
             transaction.deactivate();
 
@@ -99,7 +100,7 @@ public class TransactionAwareSubscriber<T> extends SubscriberWrapper<T> {
     public void onComplete() {
         transaction.activate();
         try {
-            super.onComplete();
+            subscriber.onComplete();
         } finally {
             transaction.deactivate();
             if (terminateTransactionOnComplete) {
