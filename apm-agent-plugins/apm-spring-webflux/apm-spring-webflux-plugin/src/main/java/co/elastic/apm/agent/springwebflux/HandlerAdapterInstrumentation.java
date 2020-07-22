@@ -67,7 +67,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange,
-                                  @Advice.Argument(1) Object handler) {
+                                 @Advice.Argument(1) Object handler) {
 
         Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
         if (attribute instanceof Transaction) {

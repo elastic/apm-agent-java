@@ -26,29 +26,17 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.context.Request;
-import co.elastic.apm.agent.impl.context.Response;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
-import org.springframework.http.HttpCookie;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
-import java.net.InetSocketAddress;
-import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
@@ -148,7 +136,6 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         return mono.<T>transform(
             Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange, name)));
     }
-
 
 
 }
