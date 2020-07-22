@@ -136,15 +136,17 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
         transaction.captureException(thrown);
 
-        // when transaction has been created by servlet, we let servlet instrumentation handle request/response
-        // and ending the transaction properly
-        if (!Boolean.TRUE.equals(exchange.getAttribute(WebFluxInstrumentation.SERVLET_ATTRIBUTE))) {
+        // when transaction has been created by servlet (or any other low-level HTTP instrumentation), we let
+        // this other instrumentation handle request/response capture and end the transaction lifecycle
+        //
+        // This assumes that request details have been already captured, if not, we might terminate transaction
+        // a bit early as if it was created by webflux instrumentation.
+        if (!transaction.getContext().getRequest().hasContent()) {
             fillRequest(transaction, exchange);
             fillResponse(transaction, exchange);
 
             transaction.end();
         }
-
 
     }
 

@@ -60,7 +60,6 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     public static Transaction getOrCreateTransaction(Class<?> clazz, ServerWebExchange exchange) {
 
         Transaction transaction = getServletTransaction(exchange);
-        boolean isServlet = transaction != null;
 
         if (transaction == null) {
             transaction = tracer.startRootTransaction(clazz.getClassLoader());
@@ -75,7 +74,6 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
 
         // store transaction in exchange to make it easy to retrieve from other handlers
         exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
-        exchange.getAttributes().put(SERVLET_ATTRIBUTE, isServlet);
 
         return transaction;
     }

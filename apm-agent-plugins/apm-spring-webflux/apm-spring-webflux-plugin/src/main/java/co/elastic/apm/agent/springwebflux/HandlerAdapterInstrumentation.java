@@ -37,24 +37,27 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments {@link org.springframework.web.reactive.HandlerAdapter#handle(ServerWebExchange, Object)} that handles
- * annotation based controllers execution & naming
+ * Instruments known implementations of {@link org.springframework.web.reactive.HandlerAdapter#handle(ServerWebExchange, Object)}
+ * that handle annotation based controllers execution & naming
+ * <ul>
+ *     <li>{@link org.springframework.web.reactive.function.server.support.HandlerFunctionAdapter}</li>
+ *     <li>{@link org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerAdapter}</li>
+ *     <li>{@link org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter}</li>
+ *     <li>{@link org.springframework.web.reactive.result.SimpleHandlerAdapter}</li>
+ * </ul>
  */
 public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("org.springframework.web.reactive")
-            .and(hasSuperType(named("org.springframework.web.reactive.HandlerAdapter")))
-            .and(not(isInterface()));
+        return named("org.springframework.web.reactive.function.server.support.HandlerFunctionAdapter")
+            .or(named("org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerAdapter"))
+            .or(named("org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter"))
+            .or(named("org.springframework.web.reactive.result.SimpleHandlerAdapter"));
     }
 
     @Override
