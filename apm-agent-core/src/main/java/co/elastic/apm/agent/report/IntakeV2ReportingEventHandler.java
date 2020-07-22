@@ -109,7 +109,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             endRequest();
             onConnectionError(null, currentlyTransmitting + 1, 0);
         } finally {
-            event.close();
+            event.end();
         }
 
         if (shouldEndRequest()) {
@@ -149,7 +149,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
      */
     private void handleNonWrittenEvent(ReportingEvent event) {
         if (event.getMetricRegistry() != null) {
-            event.getMetricRegistry().resetBuffers();
+            event.getMetricRegistry().switchBuffersAndReport(null);
         }
     }
 

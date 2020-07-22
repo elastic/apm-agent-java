@@ -159,28 +159,30 @@ public class MetricRegistry {
         return null;
     }
 
-    public void report(MetricsReporter metricsReporter) {
+    /**
+     * Executes the following steps within a single read-operation critical section:
+     * <ul>
+     *     <li>Switch between active and inactive MetricSet buffers</li>
+     *     <li>Report the inactivated buffer (optional)</li>
+     *     <li>Reset the inactivated buffer</li>
+     * </ul>
+     *
+     * @param metricsReporter a reporter to be used for reporting the inactivated metrics buffer. May be {@code null}
+     *                        if reporting is not required.
+     */
+    public void switchBuffersAndReport(@Nullable MetricsReporter metricsReporter) {
         try {
             phaser.readerLock();
             ConcurrentMap<Labels.Immutable, MetricSet> temp = inactiveMetricSets;
             inactiveMetricSets = activeMetricSets;
             activeMetricSets = temp;
             phaser.flipPhase();
-            metricsReporter.report(inactiveMetricSets);
-        } finally {
-            phaser.readerUnlock();
-        }
-    }
-
-    /**
-     * Replace the active metrics container with a new one in a thread-safe manner.
-     */
-    public void resetBuffers() {
-        try {
-            phaser.readerLock();
-            inactiveMetricSets = activeMetricSets;
-            activeMetricSets = new ConcurrentHashMap<>();
-            phaser.flipPhase();
+            if (metricsReporter != null) {
+                metricsReporter.report(inactiveMetricSets);
+            }
+            for (MetricSet metricSet : inactiveMetricSets.values()) {
+                metricSet.resetState();
+            }
         } finally {
             phaser.readerUnlock();
         }

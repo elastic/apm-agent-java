@@ -123,7 +123,7 @@ public class ReportingEvent {
         return metricRegistry;
     }
 
-    public void close() {
+    public void end() {
         if (transaction != null) {
             transaction.decrementReferences();
         } else if (span != null) {
