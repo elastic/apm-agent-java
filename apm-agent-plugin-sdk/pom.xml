@@ -57,7 +57,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>${project.groupId}.plugin-sdk</Automatic-Module-Name>
+                            <Automatic-Module-Name>${project.groupId}.pluginsdk</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
