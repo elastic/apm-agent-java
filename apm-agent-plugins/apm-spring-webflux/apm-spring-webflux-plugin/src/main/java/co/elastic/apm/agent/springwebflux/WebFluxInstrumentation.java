@@ -30,6 +30,8 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.CoreSubscriber;
+import reactor.core.Scannable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
@@ -37,6 +39,7 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.function.BiFunction;
 
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
@@ -113,9 +116,14 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
      * @return wrapped mono that will activate transaction when mono is used
      */
     @VisibleForAdvice
-    public static <T> Mono<T> dispatcherWrap(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
+    public static <T> Mono<T> dispatcherWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange, "dispatcher"))
+            Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
+                @Override
+                public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
+                    return new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange, "dispatcher");
+                }
+            })
         );
     }
 
@@ -130,9 +138,14 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
      * @return wrapped mono that will activate transaction when mono is used and terminate it on mono is completed
      */
     @VisibleForAdvice
-    public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, Transaction transaction, ServerWebExchange exchange, String name) {
+    public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String name) {
         return mono.<T>transform(
-            Operators.lift((scannable, subscriber) -> new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange, name)));
+            Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
+                @Override
+                public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
+                    return new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange, name);
+                }
+            }));
     }
 
 
