@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 case  $1  in
     bare)
-        git tag | sort -V | tail -1 | tr -d '\n'
+        git tag | sort --version-sort | tail -1 | tr -d '\n'
         ;;
     ver)
         git tag | sort -V | tail -1 | sed s/v// | tr -d '\n'
