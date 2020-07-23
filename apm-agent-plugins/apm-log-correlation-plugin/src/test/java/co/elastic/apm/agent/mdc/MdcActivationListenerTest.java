@@ -85,8 +85,10 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
                 try (Scope grandchildScope = grandchild.activateInScope()) {
                     assertMdcIsSet(grandchild);
                 }
+                grandchild.end();
                 assertMdcIsSet(child);
             }
+            child.end();
             assertMdcIsSet(transaction);
         }
         assertMdcIsEmpty();
@@ -114,6 +116,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
             try (Scope childScope = child.activateInScope()) {
                 assertMdcIsSet(transaction);
             }
+            child.end();
             assertMdcIsSet(transaction);
         }
         assertMdcIsEmpty();
@@ -248,6 +251,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
                 }).get();
                 assertMdcIsSet(child);
             }
+            child.end();
             assertMdcIsSet(transaction);
         }
         assertMdcIsEmpty();

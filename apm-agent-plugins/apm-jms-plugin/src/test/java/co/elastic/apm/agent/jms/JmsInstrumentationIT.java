@@ -118,7 +118,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     public void startTransaction() throws Exception {
         receiveNoWaitFlow.set(false);
         expectNoTraces.set(false);
-        reporter.reset();
         startAndActivateTransaction(null);
         brokerFacade.beforeTest();
         noopQ = brokerFacade.createQueue("NOOP");
@@ -147,7 +146,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             currentTransaction.deactivate().end();
         }
         brokerFacade.afterTest();
-        reporter.reset();
     }
 
     @Test

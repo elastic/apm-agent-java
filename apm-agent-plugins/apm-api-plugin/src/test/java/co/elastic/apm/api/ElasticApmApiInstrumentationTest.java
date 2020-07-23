@@ -41,8 +41,10 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testCreateTransaction() {
-        assertThat(ElasticApm.startTransaction()).isNotSameAs(NoopTransaction.INSTANCE);
+        Transaction transaction = ElasticApm.startTransaction();
+        assertThat(transaction).isNotSameAs(NoopTransaction.INSTANCE);
         assertThat(ElasticApm.currentTransaction()).isSameAs(NoopTransaction.INSTANCE);
+        transaction.end();
     }
 
     @Test
@@ -52,14 +54,22 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testLegacyTransactionCreateSpan() {
-        assertThat(ElasticApm.startTransaction().createSpan()).isNotSameAs(NoopSpan.INSTANCE);
+        Transaction transaction = ElasticApm.startTransaction();
+        Span span = transaction.createSpan();
+        assertThat(span).isNotSameAs(NoopSpan.INSTANCE);
         assertThat(ElasticApm.currentSpan()).isSameAs(NoopSpan.INSTANCE);
+        span.end();
+        transaction.end();
     }
 
     @Test
     void testStartSpan() {
-        assertThat(ElasticApm.startTransaction().startSpan()).isNotSameAs(NoopSpan.INSTANCE);
+        Transaction transaction = ElasticApm.startTransaction();
+        Span span = transaction.startSpan();
+        assertThat(span).isNotSameAs(NoopSpan.INSTANCE);
         assertThat(ElasticApm.currentSpan()).isSameAs(NoopSpan.INSTANCE);
+        span.end();
+        transaction.end();
     }
 
     @Test
@@ -242,6 +252,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
             assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(rumTransactionId);
             assertThat(transaction.ensureParentId()).isEqualTo(rumTransactionId);
         }
+        transaction.end();
     }
 
     @Test
@@ -252,6 +263,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         parent.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(headerMap::get).end();
         assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
+        parent.end();
     }
 
     @Test
@@ -262,6 +274,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         parent.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(headerMap::get, key -> Collections.singletonList(headerMap.get(key))).end();
         assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
+        parent.end();
     }
 
     @Test
@@ -272,6 +285,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         parent.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(headerMap.get(key))).end();
         assertThat(reporter.getFirstTransaction().isChildOf(parent)).isTrue();
+        parent.end();
     }
 
     @Test

@@ -75,19 +75,8 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
                 .end();
         }
 
-        try {
-            // make sure we do not leave anything behind
-            reporter.assertRecycledAfterDecrementingReferences();
-
-            // use a try/finally block here to make sure that if the assertion above fails
-            // we do not have a side effect on other tests execution by leaving app running.
-        } finally {
-            reporter.reset();
-            app.stop();
-        }
-
+        app.stop();
     }
-
 
     @Test
     public void simpleCall() {

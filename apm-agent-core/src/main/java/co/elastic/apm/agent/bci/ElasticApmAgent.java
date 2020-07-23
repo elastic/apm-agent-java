@@ -205,7 +205,7 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
-        GlobalTracer.set(tracer);
+        GlobalTracer.init(tracer);
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             pluginClassLoaderByAdviceClass.put(
                 apmInstrumentation.getAdviceClass().getName(),
@@ -520,6 +520,8 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             return;
         }
+        GlobalTracer.get().stop();
+        GlobalTracer.setNoop();
         Exception exception = null;
         if (resettableClassFileTransformer != null) {
             try {

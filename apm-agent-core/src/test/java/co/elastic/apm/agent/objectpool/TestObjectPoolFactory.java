@@ -69,6 +69,10 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
         }
     }
 
+    public void reset() {
+        createdPools.forEach(BookkeeperObjectPool::reset);
+    }
+
     @Override
     public ObjectPool<Transaction> createTransactionPool(int maxCapacity, ElasticApmTracer tracer) {
         transactionPool = (BookkeeperObjectPool<Transaction>) super.createTransactionPool(maxCapacity, tracer);

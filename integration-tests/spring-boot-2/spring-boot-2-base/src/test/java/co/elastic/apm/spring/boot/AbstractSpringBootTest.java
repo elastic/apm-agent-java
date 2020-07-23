@@ -27,12 +27,11 @@ package co.elastic.apm.spring.boot;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.api.ElasticApm;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -75,7 +74,7 @@ public abstract class AbstractSpringBootTest {
 
     @BeforeClass
     public static void beforeClass() {
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         config = mockInstrumentationSetup.getConfig();
         reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());

@@ -26,15 +26,14 @@ package co.elastic.apm.agent.dubbo.api.impl;
 
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import org.apache.dubbo.rpc.AsyncContext;
 import org.apache.dubbo.rpc.RpcContext;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -135,21 +134,10 @@ public class DubboTestApiImpl implements DubboTestApi {
         return null;
     }
 
-    private void invokeHttp() {
-        Request request = new Request.Builder()
-            .url("http://localhost:" + server.port() + "/")
-            .build();
-        try {
-            client.newCall(request).execute().body().close();
-        } catch (IOException e) {
-
-        }
-    }
-
     private void doSomething() {
         try {
             Thread.sleep(10);
-            invokeHttp();
+            GlobalTracer.get().getActive().createSpan().withName("doSomething").end();
         } catch (InterruptedException e) {
         }
     }

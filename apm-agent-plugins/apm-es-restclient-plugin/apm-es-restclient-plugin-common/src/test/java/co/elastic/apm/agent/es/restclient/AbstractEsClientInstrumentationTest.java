@@ -25,10 +25,10 @@
 package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
@@ -78,13 +78,9 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @After
     public void endTransaction() {
-        try {
-            Transaction currentTransaction = tracer.currentTransaction();
-            if (currentTransaction != null) {
-                currentTransaction.deactivate().end();
-            }
-        } finally {
-            reporter.reset();
+        Transaction currentTransaction = tracer.currentTransaction();
+        if (currentTransaction != null) {
+            currentTransaction.deactivate().end();
         }
     }
 

@@ -65,7 +65,7 @@ class TraceMethodInstrumentationTest {
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         reporter = mockInstrumentationSetup.getReporter();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
         ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
