@@ -44,7 +44,6 @@ import java.util.function.BiFunction;
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
     public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
-    public static final String SERVLET_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".servlet";
     public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".bean_name";
     public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
 

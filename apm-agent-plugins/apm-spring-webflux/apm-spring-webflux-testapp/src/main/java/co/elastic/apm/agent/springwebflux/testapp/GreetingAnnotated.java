@@ -80,7 +80,7 @@ public class GreetingAnnotated {
     }
 
     @ExceptionHandler
-    public ResponseEntity<String> handleException(RuntimeException e){
+    public ResponseEntity<String> handleException(RuntimeException e) {
         e.printStackTrace(System.err);
         return ResponseEntity.status(500)
             .body(greetingHandler.exceptionMessage(e));
@@ -122,7 +122,7 @@ public class GreetingAnnotated {
     }
 
     @GetMapping("/flux")
-    public Flux<String> getFlux(@RequestParam(value = "count", required = false, defaultValue = "3") int count){
+    public Flux<String> getFlux(@RequestParam(value = "count", required = false, defaultValue = "3") int count) {
         return greetingHandler.helloFlux(count);
     }
 

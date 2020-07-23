@@ -71,7 +71,7 @@ public class WebFluxApplication {
         }
     }
 
-    private static boolean doSampleRequests(Function<Boolean,GreetingWebClient> clientProvider, int count) {
+    private static boolean doSampleRequests(Function<Boolean, GreetingWebClient> clientProvider, int count) {
         for (int i = 0; i < count; i++) {
             for (Boolean functional : Arrays.asList(true, false)) {
                 logger.info("sample request {} / {} ({} endpoint)", i + 1, count, functional ? "functional" : "annotated");
