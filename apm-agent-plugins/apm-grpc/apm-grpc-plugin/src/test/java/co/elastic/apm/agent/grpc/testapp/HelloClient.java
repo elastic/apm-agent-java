@@ -61,8 +61,8 @@ public abstract class HelloClient<Req, Rep> {
         this.exeptionMethod = new AtomicReference<>();
     }
 
-    protected static Deadline getDeadline() {
-        return Deadline.after(10, TimeUnit.SECONDS);
+    protected Deadline getDeadline() {
+        return Deadline.after(3, TimeUnit.SECONDS);
     }
 
     public abstract Req buildRequest(String user, int depth);
@@ -253,10 +253,14 @@ public abstract class HelloClient<Req, Rep> {
     protected abstract StreamObserver<Req> doSayHelloManyMany(StreamObserver<Rep> streamObserver);
 
     private static void awaitLatch(CountDownLatch latch) {
+        long startWait = System.currentTimeMillis();
         try {
-            boolean await = latch.await(1, TimeUnit.SECONDS);
+            boolean await = latch.await(2, TimeUnit.SECONDS);
+            long waitedTime = System.currentTimeMillis() - startWait;
             if (!await) {
-                throw new IllegalStateException("giving up waiting for latch, something is wrong");
+                throw new IllegalStateException(String.format("giving up waiting for latch (%d ms), something is wrong", waitedTime));
+            } else {
+                logger.debug("waited {} ms for latch", waitedTime);
             }
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
@@ -267,6 +271,7 @@ public abstract class HelloClient<Req, Rep> {
         return new StreamObserver<>() {
             @Override
             public void onNext(Rep rep) {
+                logger.debug("onNext");
                 if (sb.length() > 0) {
                     sb.append(" ");
                 }
@@ -275,12 +280,14 @@ public abstract class HelloClient<Req, Rep> {
 
             @Override
             public void onError(Throwable throwable) {
+                logger.debug("onError");
                 errorCount.incrementAndGet();
                 throw new IllegalStateException("unexpected error", throwable);
             }
 
             @Override
             public void onCompleted() {
+                logger.debug("onCompleted");
                 // server terminated call
                 latch.countDown();
             }
@@ -302,5 +309,4 @@ public abstract class HelloClient<Req, Rep> {
         channel.awaitTermination(1, TimeUnit.SECONDS);
         logger.info("client channel has been properly shut down");
     }
-
 }

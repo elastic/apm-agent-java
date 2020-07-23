@@ -72,7 +72,8 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
         Transaction transaction1 = createRootTransaction();
         try {
 
-            assertThat(app.sayHello("oscar", 0)).isEqualTo("hello(oscar)");
+            assertThat(app.sayHello("oscar", 0))
+                .isEqualTo("hello(oscar)");
 
         } finally {
             endRootTransaction(transaction1);

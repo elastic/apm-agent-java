@@ -174,13 +174,16 @@ public abstract class AbstractGrpcAppTest {
             // in case of stopped channel, future is not cancelled but should fail with a timeout
             assertThat(msg).isNotCancelled();
 
-            boolean isThrown = false;
+            Throwable thrown = null;
+            String result = null;
             try {
-                msg.get(20, TimeUnit.MILLISECONDS);
+                result = msg.get(20, TimeUnit.MILLISECONDS);
             } catch (TimeoutException | ExecutionException e) {
-                isThrown = e instanceof TimeoutException;
+                thrown = e;
             }
-            assertThat(isThrown).isTrue();
+            assertThat(thrown)
+                .describedAs("future should have thrown a timeout, result = %s", result)
+                .isInstanceOf(TimeoutException.class);
         }
 
         endBarrier.await();
@@ -213,7 +216,7 @@ public abstract class AbstractGrpcAppTest {
         } catch (ExecutionException e) {
             if (e.getCause() != null && e.getCause().getClass().getName().contains("StatusRuntimeException")) {
                 logger.error("server error", e.getCause());
-                return; // silently ignore TODO : add logging for server error
+                return;
             }
             throw new RuntimeException(e);
         }
