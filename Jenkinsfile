@@ -34,8 +34,8 @@ pipeline {
     string(name: 'MAVEN_CONFIG', defaultValue: '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn', description: 'Additional maven options.')
     booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
-    booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
-    booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
+    booleanParam(name: 'smoketests_ci', defaultValue: false, description: 'Enable Smoke tests')
+    booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
     booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
   }
 
