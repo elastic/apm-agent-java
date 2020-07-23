@@ -126,7 +126,8 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw test
+                cd apm-agent-plugins/apm-grpc
+                ../../mvnw test
                 """
               }
             }
