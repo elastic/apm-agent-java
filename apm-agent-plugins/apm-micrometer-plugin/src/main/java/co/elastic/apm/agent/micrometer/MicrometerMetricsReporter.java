@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,18 +33,19 @@ import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MicrometerMetricsReporter implements Runnable {
 
-    private final WeakConcurrentSet<MeterRegistry> meterRegistries = WeakMapSupplier.createSet();
+    private final WeakConcurrentSet<MeterRegistry> nonCompositeMeterRegistries = WeakMapSupplier.createSet();
+    private final WeakConcurrentSet<CompositeMeterRegistry> compositeMeterRegistries = WeakMapSupplier.createSet();
     private final StringBuilder replaceBuilder = new StringBuilder();
     private final JsonWriter jsonWriter = new DslJson<>().newWriter();
     private final Reporter reporter;
     private final ElasticApmTracer tracer;
-    private final AtomicBoolean scheduledReporting = new AtomicBoolean(false);
+    private boolean scheduledReporting = false;
 
     public MicrometerMetricsReporter(ElasticApmTracer tracer) {
         this.tracer = tracer;
@@ -52,13 +53,22 @@ public class MicrometerMetricsReporter implements Runnable {
     }
 
     public void registerMeterRegistry(MeterRegistry meterRegistry) {
-        boolean added = meterRegistries.add(meterRegistry);
-        if (added && scheduledReporting.compareAndSet(false, true)) {
+        boolean added;
+        if (meterRegistry instanceof CompositeMeterRegistry) {
+            added = compositeMeterRegistries.add((CompositeMeterRegistry) meterRegistry);
+        } else {
+            added = nonCompositeMeterRegistries.add(meterRegistry);
+        }
+        if (added) {
             scheduleReporting();
         }
     }
 
-    private void scheduleReporting() {
+    private synchronized void scheduleReporting() {
+        if (scheduledReporting) {
+            return;
+        }
+        scheduledReporting = true;
         long metricsIntervalMs = tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs();
         if (metricsIntervalMs > 0) {
             // called for every class loader that loaded micrometer
@@ -67,7 +77,7 @@ public class MicrometerMetricsReporter implements Runnable {
     }
 
     void clear() {
-        meterRegistries.clear();
+        nonCompositeMeterRegistries.clear();
     }
 
     // guaranteed to be invoked by a single thread
@@ -77,12 +87,28 @@ public class MicrometerMetricsReporter implements Runnable {
             return;
         }
         final long timestamp = System.currentTimeMillis() * 1000;
-        for (MeterRegistry meterRegistry : meterRegistries) {
-            MicrometerMeterRegistrySerializer.serialize(meterRegistry, timestamp, replaceBuilder, jsonWriter);
-        }
+        report(timestamp, nonCompositeMeterRegistries);
+        report(timestamp, compositeMeterRegistries);
         if (jsonWriter.size() > 0) {
             reporter.report(jsonWriter.toByteArray());
             jsonWriter.reset();
         }
+    }
+
+    private void report(long timestamp, WeakConcurrentSet<? extends MeterRegistry> nonCompositeMeterRegistries) {
+        for (MeterRegistry meterRegistry : nonCompositeMeterRegistries) {
+            if (!isRegisteredInCompositeMeterRegistry(meterRegistry)) {
+                MicrometerMeterRegistrySerializer.serialize(meterRegistry, timestamp, replaceBuilder, jsonWriter);
+            }
+        }
+    }
+
+    private boolean isRegisteredInCompositeMeterRegistry(MeterRegistry meterRegistry) {
+        for (CompositeMeterRegistry compositeMeterRegistry : compositeMeterRegistries) {
+            if (compositeMeterRegistry.getRegistries().contains(meterRegistry)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

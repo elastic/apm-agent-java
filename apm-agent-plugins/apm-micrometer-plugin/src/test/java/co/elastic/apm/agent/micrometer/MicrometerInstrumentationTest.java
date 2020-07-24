@@ -31,6 +31,7 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.FunctionTimer;
@@ -39,6 +40,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.MockClock;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.simple.CountingMode;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,12 +64,16 @@ class MicrometerInstrumentationTest {
 
     @BeforeEach
     void setUp() {
-        meterRegistry = new SimpleMeterRegistry();
+        SimpleMeterRegistry simpleMeterRegistry = new SimpleMeterRegistry();
+        CompositeMeterRegistry nestedCompositeMeterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(simpleMeterRegistry));
+        meterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(nestedCompositeMeterRegistry));
         reporter = new MockReporter();
         ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
         when(tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs()).thenReturn(0L);
         metricsReporter = new MicrometerMetricsReporter(tracer);
         metricsReporter.registerMeterRegistry(meterRegistry);
+        metricsReporter.registerMeterRegistry(nestedCompositeMeterRegistry);
+        metricsReporter.registerMeterRegistry(simpleMeterRegistry);
     }
 
     @Test
