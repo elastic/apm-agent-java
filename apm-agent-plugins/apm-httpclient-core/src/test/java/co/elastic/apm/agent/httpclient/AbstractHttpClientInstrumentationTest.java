@@ -195,9 +195,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getErrors()).hasSize(1);
-        assertThat(reporter.getFirstError().getException()).isNotNull();
-        assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
+        assertCircularRedirect();
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
 
         verifyTraceContextHeaders(reporter.getFirstSpan(), "/circular-redirect");
@@ -238,5 +236,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 }
             }
         }
+    }
+
+    protected void assertCircularRedirect() {
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException()).isNotNull();
+        assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
     }
 }

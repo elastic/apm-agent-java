@@ -3,11 +3,12 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -32,10 +33,11 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
         public final static GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(HttpClient11Advice.class, "spanTls");
 
         @Nullable
+        @AssignTo.Argument(value = 0, typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onBeforeExecute(@Advice.Argument(0) HttpRequest httpRequest) {
+        public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
             if (tracer.getActive() == null) {
-                return;
+                return httpRequest;
             }
             final AbstractSpan<?> parent = tracer.getActive();
             URI uri = httpRequest.uri();
@@ -44,10 +46,22 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
             if (span != null) {
                 spanTls.set(span);
                 span.activate();
-                if (!TraceContext.containsTraceContextTextHeaders(httpRequest, HttpClientRequestPropertyAccessor.instance())) {
-                    span.propagateTraceContext(httpRequest, HttpClientRequestPropertyAccessor.instance());
+                HttpRequest.Builder builder = HttpRequest.newBuilder(httpRequest.uri())
+                    .method(httpRequest.method(), httpRequest.bodyPublisher().orElse(HttpRequest.BodyPublishers.noBody()))
+                    .expectContinue(httpRequest.expectContinue());
+                if (httpRequest.timeout().isPresent()) {
+                    builder = builder.timeout(httpRequest.timeout().get());
                 }
+                if (httpRequest.version().isPresent()) {
+                    builder = builder.version(httpRequest.version().get());
+                }
+                for (String header : httpRequest.headers().map().keySet()) {
+                    builder.header(header, httpRequest.headers().firstValue(header).orElse(null));
+                }
+                span.propagateTraceContext(builder, HttpClientRequestPropertyAccessor.instance());
+                return builder.build();
             }
+            return httpRequest;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
