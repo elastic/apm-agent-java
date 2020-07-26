@@ -149,7 +149,7 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
      */
     private void handleNonWrittenEvent(ReportingEvent event) {
         if (event.getMetricRegistry() != null) {
-            event.getMetricRegistry().switchBuffersAndReport(null);
+            event.getMetricRegistry().flipPhaseAndReport(null);
         }
     }
 

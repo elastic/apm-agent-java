@@ -169,7 +169,7 @@ class JmxMetricTrackerTest {
 
     private void printMetricSets() {
         DslJsonSerializer metricsReporter = new DslJsonSerializer(mock(StacktraceConfiguration.class), mock(ApmServerClient.class));
-        metricRegistry.switchBuffersAndReport(metricsReporter);
+        metricRegistry.flipPhaseAndReport(metricsReporter);
         System.out.println(metricsReporter.toString());
     }
 

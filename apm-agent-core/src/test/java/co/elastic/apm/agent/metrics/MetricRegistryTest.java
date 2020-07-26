@@ -59,15 +59,15 @@ class MetricRegistryTest {
         metricRegistry.addUnlessNegative("jvm.gc.count", Labels.EMPTY, problematicMetric);
         metricRegistry.addUnlessNan("jvm.gc.count", Labels.EMPTY, problematicMetric);
         metricRegistry.add("jvm.gc.count", Labels.EMPTY, problematicMetric);
-        metricRegistry.switchBuffersAndReport(metricSets -> assertThat(metricSets).isEmpty());
+        metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets).isEmpty());
     }
 
     @Test
     void testReportGaugeTwice() {
         metricRegistry.add("foo", Labels.EMPTY, () -> 42);
-        metricRegistry.switchBuffersAndReport(metricSets -> assertThat(metricSets.get(Labels.EMPTY).getGauge("foo").get()).isEqualTo(42));
+        metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets.get(Labels.EMPTY).getGauge("foo").get()).isEqualTo(42));
         // the active and inactive metricSets are now switched, verify that the previous inactive metricSets also contain the same gauges
-        metricRegistry.switchBuffersAndReport(metricSets -> assertThat(metricSets.get(Labels.EMPTY).getGauge("foo").get()).isEqualTo(42));
+        metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets.get(Labels.EMPTY).getGauge("foo").get()).isEqualTo(42));
     }
 
     @Test
@@ -75,10 +75,10 @@ class MetricRegistryTest {
         Labels.Mutable labels = Labels.Mutable.of("foo", "bar");
         metricRegistry.updateTimer("timer", labels, 20);
         metricRegistry.updateTimer("timer", labels, 22);
-        metricRegistry.switchBuffersAndReport(metricSets -> verifyTimer(metricSets.get(labels), 2, 42));
-        metricRegistry.switchBuffersAndReport(null);
+        metricRegistry.flipPhaseAndReport(metricSets -> verifyTimer(metricSets.get(labels), 2, 42));
+        metricRegistry.flipPhaseAndReport(null);
         // Now we get the original buffer back
-        metricRegistry.switchBuffersAndReport(metricSets -> verifyTimer(metricSets.get(labels), 0, 0));
+        metricRegistry.flipPhaseAndReport(metricSets -> verifyTimer(metricSets.get(labels), 0, 0));
     }
 
     @Test
@@ -86,10 +86,10 @@ class MetricRegistryTest {
         Labels.Mutable labels = Labels.Mutable.of("foo", "bar");
         metricRegistry.updateTimer("timer", labels, 20);
         metricRegistry.updateTimer("timer", labels, 22);
-        metricRegistry.switchBuffersAndReport(null);
-        metricRegistry.switchBuffersAndReport(null);
+        metricRegistry.flipPhaseAndReport(null);
+        metricRegistry.flipPhaseAndReport(null);
         // Now we get the original buffer back
-        metricRegistry.switchBuffersAndReport(metricSets -> verifyTimer(metricSets.get(labels), 0, 0));
+        metricRegistry.flipPhaseAndReport(metricSets -> verifyTimer(metricSets.get(labels), 0, 0));
     }
 
     private void verifyTimer(MetricSet metricSet, int expectedCount, int expectedTotalDurationUs) {
@@ -108,10 +108,10 @@ class MetricRegistryTest {
         Labels.Mutable labels = Labels.Mutable.of("foo", "bar");
         metricRegistry.incrementCounter("counter", labels);
         metricRegistry.incrementCounter("counter", labels);
-        metricRegistry.switchBuffersAndReport(metricSets -> verifyCounter(metricSets.get(labels), 2));
-        metricRegistry.switchBuffersAndReport(null);
+        metricRegistry.flipPhaseAndReport(metricSets -> verifyCounter(metricSets.get(labels), 2));
+        metricRegistry.flipPhaseAndReport(null);
         // Now we get the original buffer back
-        metricRegistry.switchBuffersAndReport(metricSets -> verifyCounter(metricSets.get(labels), 0));
+        metricRegistry.flipPhaseAndReport(metricSets -> verifyCounter(metricSets.get(labels), 0));
     }
 
     @Test
@@ -119,10 +119,10 @@ class MetricRegistryTest {
         Labels.Mutable labels = Labels.Mutable.of("foo", "bar");
         metricRegistry.incrementCounter("counter", labels);
         metricRegistry.incrementCounter("counter", labels);
-        metricRegistry.switchBuffersAndReport(null);
-        metricRegistry.switchBuffersAndReport(null);
+        metricRegistry.flipPhaseAndReport(null);
+        metricRegistry.flipPhaseAndReport(null);
         // Now we get the original buffer back
-        metricRegistry.switchBuffersAndReport(metricSets -> verifyCounter(metricSets.get(labels), 0));
+        metricRegistry.flipPhaseAndReport(metricSets -> verifyCounter(metricSets.get(labels), 0));
     }
 
     private void verifyCounter(MetricSet metricSet, int expectedCount) {
@@ -139,22 +139,22 @@ class MetricRegistryTest {
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("foo", Integer.toString(i)), 1));
         IntStream.range(1, 505).forEach(i -> metricRegistry.updateTimer("timer" + i, Labels.Mutable.of("bar", Integer.toString(i)), 1));
 
-        metricRegistry.switchBuffersAndReport(metricSets -> assertThat(metricSets).hasSize(1000));
+        metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets).hasSize(1000));
         // the active and inactive metricSets are now switched, also check the size of the previously inactive metricSets
-        metricRegistry.switchBuffersAndReport(metricSets -> assertThat(metricSets).hasSize(1000));
+        metricRegistry.flipPhaseAndReport(metricSets -> assertThat(metricSets).hasSize(1000));
     }
 
     @Test
     void testBuffersRotationWithReport() throws ExecutionException, InterruptedException {
         final CompletableFuture<Map<? extends Labels, MetricSet>> originalMetricSets = new CompletableFuture<>();
-        metricRegistry.switchBuffersAndReport(originalMetricSets::complete);
+        metricRegistry.flipPhaseAndReport(originalMetricSets::complete);
 
         final CompletableFuture<Map<? extends Labels, MetricSet>> firstRotationMetricSets = new CompletableFuture<>();
-        metricRegistry.switchBuffersAndReport(firstRotationMetricSets::complete);
+        metricRegistry.flipPhaseAndReport(firstRotationMetricSets::complete);
         assertThat(firstRotationMetricSets.get()).isNotSameAs(originalMetricSets.get());
 
         final CompletableFuture<Map<? extends Labels, MetricSet>> secondRotationMetricSets = new CompletableFuture<>();
-        metricRegistry.switchBuffersAndReport(secondRotationMetricSets::complete);
+        metricRegistry.flipPhaseAndReport(secondRotationMetricSets::complete);
         assertThat(secondRotationMetricSets.get()).isNotSameAs(firstRotationMetricSets.get());
         assertThat(secondRotationMetricSets.get()).isSameAs(originalMetricSets.get());
     }
@@ -162,12 +162,12 @@ class MetricRegistryTest {
     @Test
     void testBuffersRotationWithoutReport() throws ExecutionException, InterruptedException {
         final CompletableFuture<Map<? extends Labels, MetricSet>> originalMetricSets = new CompletableFuture<>();
-        metricRegistry.switchBuffersAndReport(originalMetricSets::complete);
+        metricRegistry.flipPhaseAndReport(originalMetricSets::complete);
 
-        metricRegistry.switchBuffersAndReport(null);
+        metricRegistry.flipPhaseAndReport(null);
 
         final CompletableFuture<Map<? extends Labels, MetricSet>> firstRotationMetricSets = new CompletableFuture<>();
-        metricRegistry.switchBuffersAndReport(firstRotationMetricSets::complete);
+        metricRegistry.flipPhaseAndReport(firstRotationMetricSets::complete);
         assertThat(firstRotationMetricSets.get()).isSameAs(originalMetricSets.get());
     }
 }

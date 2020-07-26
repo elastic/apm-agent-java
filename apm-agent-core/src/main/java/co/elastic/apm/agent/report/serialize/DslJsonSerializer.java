@@ -230,7 +230,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     @Override
     public void serializeMetrics(MetricRegistry metricRegistry) {
-        metricRegistry.switchBuffersAndReport(this);
+        metricRegistry.flipPhaseAndReport(this);
     }
 
     @Override
