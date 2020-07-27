@@ -144,6 +144,7 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
+        GlobalTracer.init(tracer);
         // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
     }
@@ -197,6 +198,7 @@ public class ElasticApmAgent {
 
     public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                                         Iterable<ElasticApmInstrumentation> instrumentations) {
+        GlobalTracer.init(tracer);
         initInstrumentation(tracer, instrumentation, instrumentations, false);
     }
 
@@ -205,7 +207,6 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
-        GlobalTracer.init(tracer);
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             pluginClassLoaderByAdviceClass.put(
                 apmInstrumentation.getAdviceClass().getName(),

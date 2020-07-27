@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -79,7 +80,7 @@ public class MockReporter implements Reporter {
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
-    private final List<byte[]> bytes = Collections.synchronizedList(new ArrayList<>());
+    private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
     private boolean closed;

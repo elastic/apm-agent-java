@@ -27,7 +27,6 @@ package co.elastic.apm.agent.micrometer;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -39,10 +38,14 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class MicrometerInstrumentation extends TracerAwareInstrumentation {
+
+    private static final MicrometerMetricsReporter reporter = new MicrometerMetricsReporter(GlobalTracer.requireTracerImpl());
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -56,7 +59,7 @@ public class MicrometerInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isPublic();
+        return isPublic().and(not(isStatic()));
     }
 
     @Override
@@ -74,17 +77,9 @@ public class MicrometerInstrumentation extends TracerAwareInstrumentation {
         return true;
     }
 
-    public static class MicrometerAdvice {
-
-        private static final MicrometerMetricsReporter reporter = new MicrometerMetricsReporter(GlobalTracer.requireTracerImpl());
-
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void onExit(@Advice.This MeterRegistry meterRegistry) {
-            if (!(meterRegistry instanceof CompositeMeterRegistry)) {
-                reporter.registerMeterRegistry(meterRegistry);
-            }
-        }
-
+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+    public static void onExit(@Advice.This MeterRegistry meterRegistry) {
+        reporter.registerMeterRegistry(meterRegistry);
     }
 
 }

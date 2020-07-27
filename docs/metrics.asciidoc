@@ -23,6 +23,7 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-system>>
 * <<metrics-jvm>>
 * <<metrics-application>>
+* <<metrics-micrometer>>
 
 [float]
 [[metrics-system]]
@@ -217,7 +218,11 @@ in bytes, allocated in heap memory.
 
 [float]
 [[metrics-application]]
-=== Application Metrics
+=== Built-in application metrics
+
+To power the {apm-app-ref}/transactions.html[Time spent by span type] graph,
+the agent collects summarized metrics about the timings of spans and transactions,
+broken down by span type.
 
 *`transaction.duration`*::
 +
@@ -228,7 +233,7 @@ This timer tracks the duration of transactions and allows for the creation of gr
 
 Fields:
 
-* `sum`: The sum of all transaction durations in ms since the last report (the delta)
+* `sum.us`: The sum of all transaction durations in ms since the last report (the delta)
 * `count`: The count of all transactions since the last report (the delta)
 
 You can filter and group by these dimensions:
@@ -266,7 +271,7 @@ This timer tracks the span self-times and is the basis of the transaction breakd
 
 Fields:
 
-* `sum`: The sum of all span self-times in ms since the last report (the delta)
+* `sum.us`: The sum of all span self-times in ms since the last report (the delta)
 * `count`: The count of all span self-times since the last report (the delta)
 
 You can filter and group by these dimensions:
@@ -276,4 +281,174 @@ You can filter and group by these dimensions:
 * `span.type`: The type of the span, for example `app`, `template` or `db`
 * `span.subtype`: The sub-type of the span, for example `mysql` (optional)
 
+--
+
+
+[float]
+[[metrics-micrometer]]
+=== Custom metrics using Micrometer
+
+The Elastic APM Java agent lets you use the popular metrics collection framework https://micrometer.io/[Micrometer] to track custom application metrics.
+
+Some use cases for tracking custom metrics from your application include monitoring performance-related things like cache statistics, thread pools, or page hits.
+However, you can also track business-related metrics such as revenue and correlate them with performance metrics.
+Metrics registered to a Micrometer `MeterRegistry` are aggregated in memory and reported every <<config-metrics-interval, `metrics_interval`>>.
+Based on the metadata about the service and the timestamp, you can correlate metrics with traces.
+However, you won't be able to attribute a value to a specific transaction or to a user.
+If you'd like to do that, have a look at the <<api-transaction-add-tag>> API method instead.
+The advantage is that the metrics won't be affected by the
+<<config-transaction-sample-rate, sampling rate>> and that they usually take up less space.
+That is because not every event is stored individually.
+
+[float]
+[[metrics-micrometer-get-started-existing]]
+==== Get started with existing Micrometer setup
+
+You only have to attach the agent, and you're done.
+The agent automatically detects all `MeterRegistry` instances and reports all metrics to APM Server in addition to where they originally report.
+When attaching the agent after the application has already started,
+the agent detects a `MeterRegistry` when calling any public method on it.
+If you are using multiple registries within a `CompoundMeterRegistry`,
+the agent makes sure to only report the metrics once.
+
+[float]
+[[metrics-micrometer-get-started-from-scratch]]
+==== Get started from scratch
+
+Declare a dependency to Micrometer:
+```xml
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-core</artifactId>
+    <version>${micrometer.version}</version>
+</dependency>
+```
+
+Create a Micrometer `MeterRegistry`.
+```java
+MeterRegistry registry = new SimpleMeterRegistry(new SimpleConfig() {
+
+        @Override
+        public CountingMode mode() {
+            // to report the delta since the last report
+            // this makes building dashbaords a bit easier
+            return CountingMode.STEP;
+        }
+
+        @Override
+        public Duration step() {
+            // the duration should match metrics_interval, which defaults to 30s
+            return Duration.ofSeconds(30);
+        }
+
+        @Override
+        public String get(String key) {
+            return null;
+        }
+    }, Clock.SYSTEM);
+
+```
+
+When using Spring Boot, you can use the `management.metrics.export.simple` prefix to configure via `application.properties`
+
+```
+management.metrics.export.simple.enabled=true
+management.metrics.export.simple.step=1m
+management.metrics.export.simple.mode=STEP
+```
+
+[float]
+[[metrics-micrometer-fields]]
+==== Supported Meters
+
+This section lists all supported Micrometer `Meter` s and describes how they are mapped to Elasticsearch documents.
+
+Micrometer tags are nested under `labels`. Example:
+
+[source,json]
+----
+"labels": {
+  "tagKey1": "tagLabel1",
+  "tagKey2": "tagLabel2",
+}
+----
+
+Labels are great to break down metrics by different dimensions.
+Although there is no upper limit, note that a high number of distinct values per label (aka high cardinality) may lead to higher memory usage,
+higher index sizes, and slower queries.
+Also make sure that the number of distinct tag keys is limited to avoid {ref}/mapping.html#mapping-limit-settings[mapping explosions].
+
+*`Timer`*::
++
+--
+Fields:
+
+* `${name}.sum.us`: The total time of recorded events (the delta when using `CountingMode.STEP`).
+  This is equivalent to `timer.totalTime(TimeUnit.MICROSECONDS)`.
+* `${name}.count`: The number of times that stop has been called on this timer (the delta when using `CountingMode.STEP`).
+  This is equivalent to `timer.count()`.
+
+--
+
+
+*`FunctionTimer`*::
++
+--
+Fields:
+
+* `${name}.sum.us`: The total time of all occurrences of the timed event (the delta when using `CountingMode.STEP`).
+  This is equivalent to `functionTimer.totalTime(TimeUnit.MICROSECONDS)`.
+* `${name}.count`: The total number of occurrences of the timed event (the delta when using `CountingMode.STEP`).
+  This is equivalent to `functionTimer.count()`.
+--
+
+
+*`LongTaskTimer`*::
++
+--
+Fields:
+
+* `${name}.sum.us`: The cumulative duration of all current tasks (the delta when using `CountingMode.STEP`).
+  This is equivalent to `longTaskTimer.totalTime(TimeUnit.MICROSECONDS)`.
+* `${name}.count`: The current number of tasks being executed (the delta when using `CountingMode.STEP`)
+  This is equivalent to `longTaskTimer.activeTasks()`.
+--
+
+
+*`DistributionSummary`*::
++
+--
+Fields:
+
+* `${name}.sum`: The total amount of all recorded events (the delta when using `CountingMode.STEP`).
+  This is equivalent to `distributionSummary.totalAmount()`.
+* `${name}.count`: The number of times that record has been called (the delta when using `CountingMode.STEP`).
+  This is equivalent to `distributionSummary.count()`.
+--
+
+
+*`Gauge`*::
++
+--
+Fields:
+
+* `${name}`: The value of `gauge.value()`.
+--
+
+
+*`Counter`*::
++
+--
+Fields:
+
+* `${name}`: The value of `counter.count()` (the delta when using `CountingMode.STEP`).
+--
+
+
+*`FunctionCounter`*::
++
+--
+Fields:
+
+* `${name}`: The value of `functionCounter.count()` (the delta when using `CountingMode.STEP`).
 --

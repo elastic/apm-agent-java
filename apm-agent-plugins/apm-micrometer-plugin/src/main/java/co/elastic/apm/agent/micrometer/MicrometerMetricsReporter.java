@@ -34,11 +34,14 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
 public class MicrometerMetricsReporter implements Runnable {
 
+    private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
     private final WeakConcurrentSet<MeterRegistry> nonCompositeMeterRegistries = WeakMapSupplier.createSet();
     private final WeakConcurrentSet<CompositeMeterRegistry> compositeMeterRegistries = WeakMapSupplier.createSet();
     private final StringBuilder replaceBuilder = new StringBuilder();
@@ -60,6 +63,7 @@ public class MicrometerMetricsReporter implements Runnable {
             added = nonCompositeMeterRegistries.add(meterRegistry);
         }
         if (added) {
+            logger.info("Registering Micrometer MeterRegistry: {}", meterRegistry);
             scheduleReporting();
         }
     }
@@ -74,10 +78,6 @@ public class MicrometerMetricsReporter implements Runnable {
             // called for every class loader that loaded micrometer
             tracer.getSharedSingleThreadedPool().scheduleAtFixedRate(this, metricsIntervalMs, metricsIntervalMs, TimeUnit.MILLISECONDS);
         }
-    }
-
-    void clear() {
-        nonCompositeMeterRegistries.clear();
     }
 
     // guaranteed to be invoked by a single thread
@@ -97,7 +97,12 @@ public class MicrometerMetricsReporter implements Runnable {
 
     private void report(long timestamp, WeakConcurrentSet<? extends MeterRegistry> nonCompositeMeterRegistries) {
         for (MeterRegistry meterRegistry : nonCompositeMeterRegistries) {
-            if (!isRegisteredInCompositeMeterRegistry(meterRegistry)) {
+            if (isRegisteredInCompositeMeterRegistry(meterRegistry)) {
+                logger.debug("Not reporting Micrometer MeterRegistry as it's registered within a CompositeMeterRegistry");
+            } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Reporting Micrometer MeterRegistry {} (size {})", meterRegistry, meterRegistry.getMeters().size());
+                }
                 MicrometerMeterRegistrySerializer.serialize(meterRegistry, timestamp, replaceBuilder, jsonWriter);
             }
         }
