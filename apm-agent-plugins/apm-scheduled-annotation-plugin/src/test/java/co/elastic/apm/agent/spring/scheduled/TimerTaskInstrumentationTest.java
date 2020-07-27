@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.scheduled;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 
@@ -38,82 +39,68 @@ public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTimerTask_scheduleWithFixedRate() {
-        reporter.reset();
-        TestTimerTask timerTask = new TestTimerTask();
-        Timer timer = new Timer(true);
-        timer.scheduleAtFixedRate(timerTask, 0, 10L);
+        new Timer(true)
+            .scheduleAtFixedRate(new TestTimerTask(2), 1, 1);
 
-        reporter.awaitTransactionReported();
-        timer.cancel();
+        reporter.awaitTransactionCount(2);
 
-        reporter.awaitUntilAsserted(1000L, () -> {
-            assertThat(reporter.getNumReportedTransactions()).isEqualTo(timerTask.getInvocationCount());
-        });
-
-        Transaction firstTransaction = reporter.getTransactions().get(0);
-        assertThat(firstTransaction.getNameAsString()).isEqualTo("TestTimerTask#run");
-        assertThat(firstTransaction.getFrameworkName()).isEqualTo("TimerTask");
+        assertThat(reporter.getTransactions()
+            .stream()
+            .map(AbstractSpan::getNameAsString))
+            .containsExactly("TestTimerTask#run", "TestTimerTask#run");
+        assertThat(reporter.getTransactions()
+            .stream()
+            .map(Transaction::getFrameworkName))
+            .containsExactly("TimerTask", "TimerTask");
     }
 
     @Test
     void testTimerTask_scheduleWithFixedDelay() {
-        reporter.reset();
-        TestTimerTask timerTask = new TestTimerTask();
-        Timer timer = new Timer("Timer");
-        timer.schedule(timerTask, 1L, 10L);
+        new Timer("Timer")
+            .schedule(new TestTimerTask(2), 1, 1);
 
-        reporter.awaitTransactionReported();
-        timer.cancel();
+        reporter.awaitTransactionCount(2);
 
-        reporter.awaitUntilAsserted(1000L, () -> {
-            assertThat(reporter.getNumReportedTransactions()).isEqualTo(timerTask.getInvocationCount());
-        });
-
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
+        assertThat(reporter.getTransactions()
+            .stream()
+            .map(AbstractSpan::getNameAsString))
+            .containsExactly("TestTimerTask#run", "TestTimerTask#run");
     }
 
     @Test
     void testTimerTask_scheduleOnce() {
-        reporter.reset();
-        TestTimerTask timerTask = new TestTimerTask();
-        Timer timer = new Timer("Timer");
-        long delay = 50L;
-        timer.schedule(timerTask, delay);
+        new Timer("Timer")
+            .schedule(new TestTimerTask(1), 1);
 
-        reporter.awaitTransactionReported();
-        assertThat(reporter.getTransactions().size()).isEqualTo(1);
+        reporter.awaitTransactionCount(1);
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
     }
 
     @Test
     void testTimerTask_withAnonymousClass() {
-        reporter.reset();
-        AtomicInteger count = new AtomicInteger(0);
+        new Timer("Timer")
+            .schedule(new TimerTask() {
+                public void run() {
+                    cancel();
+                }
+            }, 1);
 
-        TimerTask repeatedTask = new TimerTask() {
-            public void run() {
-                count.incrementAndGet();
-            }
-        };
-        Timer timer = new Timer("Timer");
-        long delay = 50L;
-        timer.schedule(repeatedTask, delay);
-
-        reporter.awaitTransactionReported();
-        assertThat(reporter.getTransactions().size()).isEqualTo(1);
+        reporter.awaitTransactionCount(1);
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("1#run");
     }
 
     public static class TestTimerTask extends TimerTask {
-        private AtomicInteger count = new AtomicInteger(0);
+        private final AtomicInteger credits;
+
+        public TestTimerTask(int maxInvocations) {
+            credits = new AtomicInteger(maxInvocations);
+        }
 
         @Override
         public void run() {
-            this.count.incrementAndGet();
-        }
-
-        public int getInvocationCount() {
-            return this.count.get();
+            if (credits.decrementAndGet() == 0) {
+                cancel();
+            }
         }
     }
 }

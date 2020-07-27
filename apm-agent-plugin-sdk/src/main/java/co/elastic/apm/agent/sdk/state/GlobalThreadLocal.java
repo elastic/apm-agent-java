@@ -74,6 +74,14 @@ public class GlobalThreadLocal<T> extends DetachedThreadLocal<T> {
         return value;
     }
 
+    public T get(T defaultValue) {
+        T value = get();
+        if (value != null) {
+            return value;
+        }
+        return defaultValue;
+    }
+
     @Override
     @Nullable
     protected T initialValue(Thread thread) {

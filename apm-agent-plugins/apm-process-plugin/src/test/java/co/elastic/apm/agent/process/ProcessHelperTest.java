@@ -97,6 +97,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         assertThat(storageMap.get(process))
             .describedAs("initial span should not be overwritten")
             .isSameAs(span);
+        helper.doEndProcess(process, true);
     }
 
     @Test

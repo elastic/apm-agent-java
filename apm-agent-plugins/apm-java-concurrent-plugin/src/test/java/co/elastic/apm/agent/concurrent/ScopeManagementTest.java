@@ -51,8 +51,8 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
         runTestWithAssertionsDisabled(() -> {
             final Transaction transaction = tracer.startRootTransaction(null).activate();
             final Span span = transaction.createSpan().activate();
-            transaction.deactivate();
-            span.deactivate();
+            transaction.deactivate().end();
+            span.deactivate().end();
 
             assertThat(tracer.getActive()).isNull();
         });
@@ -63,7 +63,8 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
         runTestWithAssertionsDisabled(() -> {
             tracer.startRootTransaction(null)
                 .activate().activate()
-                .deactivate().deactivate();
+                .deactivate().deactivate()
+                .end();
 
             assertThat(tracer.getActive()).isNull();
         });
@@ -71,12 +72,13 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
 
     @Test
     void testRedundantActivation() {
+        disableRecyclingValidation();
         runTestWithAssertionsDisabled(() -> {
             final Transaction transaction = tracer.startRootTransaction(null).activate();
-            transaction.createSpan().activate();
+            transaction.createSpan().activate().end();
             transaction.deactivate();
             assertThat(tracer.getActive()).isEqualTo(transaction);
-            transaction.deactivate();
+            transaction.deactivate().end();
             assertThat(tracer.getActive()).isNull();
         });
     }
@@ -91,7 +93,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            transaction.deactivate();
+            transaction.deactivate().end();
 
             assertThat(tracer.getActive()).isNull();
         });
@@ -104,7 +106,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
             assertThat(tracer.getActive()).isSameAs(transaction);
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
         }).get();
-        transaction.deactivate();
+        transaction.deactivate().end();
 
         assertThat(tracer.getActive()).isNull();
     }
@@ -117,7 +119,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
             return tracer.currentTransaction();
         });
         assertThat(transactionFuture.get()).isSameAs(transaction);
-        transaction.deactivate();
+        transaction.deactivate().end();
 
         assertThat(tracer.getActive()).isNull();
     }
@@ -130,7 +132,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
             assertThat(tracer.getActive()).isSameAs(transaction);
         };
         Executors.newSingleThreadExecutor().submit(runnable).get();
-        transaction.deactivate();
+        transaction.deactivate().end();
 
         assertThat(tracer.getActive()).isNull();
     }
@@ -142,7 +144,7 @@ class ScopeManagementTest extends AbstractInstrumentationTest {
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
             return tracer.currentTransaction();
         }).get()).isSameAs(transaction);
-        transaction.deactivate();
+        transaction.deactivate().end();
 
         assertThat(tracer.getActive()).isNull();
     }

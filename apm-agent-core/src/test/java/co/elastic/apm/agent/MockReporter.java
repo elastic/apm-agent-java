@@ -42,7 +42,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
-import org.awaitility.core.ConditionFactory;
 import org.awaitility.core.ThrowingRunnable;
 
 import java.io.IOException;
@@ -56,10 +55,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -198,8 +197,7 @@ public class MockReporter implements Reporter {
     }
 
     public Transaction getFirstTransaction(long timeoutMs) {
-        awaitTimeout(timeoutMs)
-            .untilAsserted(() -> assertThat(getTransactions()).isNotEmpty());
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getTransactions()).isNotEmpty());
         return getFirstTransaction();
     }
 
@@ -210,24 +208,11 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoTransaction(long timeoutMs) {
-        awaitTimeout(timeoutMs)
-            .untilAsserted(this::assertNoTransaction);
-    }
-
-    public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable assertion){
-        awaitTimeout(timeoutMs)
-            .untilAsserted(assertion);
-    }
-
-    private static ConditionFactory awaitTimeout(long timeoutMs) {
-        return await()
-            .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(timeoutMs, TimeUnit.MILLISECONDS);
+        awaitUntilAsserted(timeoutMs, this::assertNoTransaction);
     }
 
     public Span getFirstSpan(long timeoutMs) {
-        awaitTimeout(timeoutMs)
-            .untilAsserted(() -> assertThat(getSpans()).isNotEmpty());
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getSpans()).isNotEmpty());
         return getFirstSpan();
     }
 
@@ -238,30 +223,17 @@ public class MockReporter implements Reporter {
     }
 
     public void assertNoSpan(long timeoutMs) {
-        awaitTimeout(timeoutMs)
-            .untilAsserted(() -> assertThat(getSpans()).isEmpty());
+        awaitUntilAsserted(timeoutMs, () -> assertThat(getSpans()).isEmpty());
 
         assertNoSpan();
     }
 
     public void awaitTransactionCount(int count) {
-        awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getNumReportedTransactions()).isEqualTo(count));
-    }
-
-    public void awaitTransactionReported() {
-        awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getNumReportedTransactions()).isGreaterThan(0));
+        awaitUntilAsserted(() -> assertThat(getNumReportedTransactions()).isEqualTo(count));
     }
 
     public void awaitSpanCount(int count) {
-        awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getNumReportedSpans()).isEqualTo(count));
-    }
-
-    public void awaitSpanReported() {
-        awaitTimeout(1000)
-            .untilAsserted(() -> assertThat(getNumReportedSpans()).isGreaterThan(0));
+        awaitUntilAsserted(() -> assertThat(getNumReportedSpans()).isEqualTo(count));
     }
 
     @Override
@@ -362,6 +334,11 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized void reset() {
+        assertRecycledAfterDecrementingReferences();
+        resetWithoutRecycling();
+    }
+
+    public synchronized void resetWithoutRecycling() {
         transactions.clear();
         spans.clear();
         errors.clear();
@@ -397,32 +374,61 @@ public class MockReporter implements Reporter {
         transactionsToFlush.forEach(Transaction::decrementReferences);
         spansToFlush.forEach(Span::decrementReferences);
 
-        // transactions might be active after they have already been reported
-        // after a short amount of time, all transactions and spans should have been recycled
-        await()
-            .timeout(1, TimeUnit.SECONDS)
-            .untilAsserted(() -> transactions.forEach(t -> {
-                assertThat(hasEmptyTraceContext(t))
-                    .describedAs("should have empty trace context : %s", t)
-                    .isTrue();
-                assertThat(t.isReferenced())
-                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
-                    .isFalse();
-            }));
-        await()
-            .timeout(1, TimeUnit.SECONDS)
-            .untilAsserted(() -> spans.forEach(s -> {
-                assertThat(hasEmptyTraceContext(s))
-                    .describedAs("should have empty trace context : %s", s)
-                    .isTrue();
+        awaitUntilAsserted(() -> {
+            spans.forEach(s -> {
                 assertThat(s.isReferenced())
                     .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
                     .isFalse();
-            }));
+                assertThat(hasEmptyTraceContext(s))
+                    .describedAs("should have empty trace context : %s", s)
+                    .isTrue();
+            });
+            transactions.forEach(t -> {
+                assertThat(t.isReferenced())
+                    .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                    .isFalse();
+                assertThat(hasEmptyTraceContext(t))
+                    .describedAs("should have empty trace context : %s", t)
+                    .isTrue();
+            });
+        });
 
         // errors are recycled directly because they have no reference counter
         errors.forEach(ErrorCapture::recycle);
     }
+
+    /**
+     * Uses a timeout of 1s
+     *
+     * @see #awaitUntilAsserted(long, ThrowingRunnable)
+     */
+    public void awaitUntilAsserted(ThrowingRunnable runnable) {
+        awaitUntilAsserted(1000, runnable);
+    }
+
+    /**
+     * This is deliberately not using {@link org.awaitility.Awaitility} as it uses an {@link java.util.concurrent.Executor} for polling.
+     * This is an issue when testing instrumentations that instrument {@link java.util.concurrent.Executor}.
+     *
+     * @param timeoutMs the timeout of the condition
+     * @param runnable  a runnable that trows an exception if the condition is not met
+     */
+    public void awaitUntilAsserted(long timeoutMs, ThrowingRunnable runnable) {
+        Throwable thrown = null;
+        for (int i = 0; i < timeoutMs; i += 5) {
+            try {
+                runnable.run();
+                thrown = null;
+            } catch (Throwable e) {
+                thrown = e;
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
+            }
+        }
+        if (thrown != null) {
+            throw new RuntimeException(String.format("Condition not fulfilled within %d ms", timeoutMs), thrown);
+        }
+    }
+
 
     private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
         return item.getTraceContext().getId().isEmpty();

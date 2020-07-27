@@ -52,16 +52,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     @AfterEach
     void afterEach() throws Exception {
-        try {
-            // make sure we do not leave anything behind
-            reporter.assertRecycledAfterDecrementingReferences();
-
-            // use a try/finally block here to make sure that if the assertion above fails
-            // we do not have a side effect on other tests execution by leaving app running.
-        } finally {
-            app.stop();
-            reporter.reset();
-        }
+        app.stop();
     }
 
     @Test

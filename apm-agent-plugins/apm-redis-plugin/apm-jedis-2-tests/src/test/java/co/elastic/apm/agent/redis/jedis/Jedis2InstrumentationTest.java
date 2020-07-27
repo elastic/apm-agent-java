@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.redis.jedis;
 
-import co.elastic.apm.agent.impl.Scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,20 +54,16 @@ class Jedis2InstrumentationTest extends Jedis1InstrumentationTest {
 
     @Test
     void testShardedJedis() {
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            shardedJedis.set("foo", "bar");
-            assertThat(shardedJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
-        }
+        shardedJedis.set("foo", "bar");
+        assertThat(shardedJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
     @Test
     void testBinaryJedis() {
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            binaryJedis.set("foo".getBytes(), "bar".getBytes());
-            assertThat(binaryJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
-        }
+        binaryJedis.set("foo".getBytes(), "bar".getBytes());
+        assertThat(binaryJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
         assertTransactionWithRedisSpans("SET", "GET");
     }

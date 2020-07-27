@@ -46,9 +46,9 @@ pipeline {
             stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
             dir("${BASE_DIR}") {
               script {
-                env.TAG_BARE = sh(script: "git tag | tail -1", returnStdout: true)
-                env.TAG_VER = sh(script: "git tag | tail -1 | sed s/v//", returnStdout: true)
-                env.TAG_DOT_X = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
+                env.TAG_BARE = sh(script: "./scripts/jenkins/tags.sh bare", returnStdout: true)
+                env.TAG_VER = sh(script: "./scripts/jenkins/tags.sh ver", returnStdout: true)
+                env.TAG_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
               }
             }
           }
@@ -118,10 +118,12 @@ pipeline {
                       ]
                     ]
                   )
-                  sh(name: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
-                  withGitRelease() {
-                    sh(script: "git commit -a -m 'Version bump'")
-                    gitPush()
+                  sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
+                  withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
+                    withGitRelease() {
+                      sh(script: "git commit -a -m 'Version bump'")
+                      gitPush()
+                    }
                   }
                 } else {
                   echo "Skipping version update"
@@ -138,7 +140,7 @@ pipeline {
         stage('Nexus release') {
           steps {
             script {
-              def spid = getVault('nexus')["staging-profile-id"]
+              def spid = getVaultSecret('nexus')["staging-profile-id"]
               dir("${BASE_DIR}"){
                 withEnvMask(vars: [[var: "SPID", password: spid]]){
                   def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
@@ -210,9 +212,11 @@ pipeline {
             deleteDir()
             unstash 'source'
             dir("${BASE_DIR}"){
-              withGitRelease() {
-                sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
-                gitPush()
+              withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
+                withGitRelease() {
+                  sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
+                  gitPush()
+                }
               }
             }
           }
