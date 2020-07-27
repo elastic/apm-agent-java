@@ -46,9 +46,9 @@ pipeline {
             stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
             dir("${BASE_DIR}") {
               script {
-                env.TAG_BARE = sh(script: "git tag | tail -1", returnStdout: true)
-                env.TAG_VER = sh(script: "git tag | tail -1 | sed s/v//", returnStdout: true)
-                env.TAG_DOT_X = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
+                env.TAG_BARE = sh(script: "./scripts/jenkins/tags.sh bare", returnStdout: true)
+                env.TAG_VER = sh(script: "./scripts/jenkins/tags.sh ver", returnStdout: true)
+                env.TAG_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
               }
             }
           }
