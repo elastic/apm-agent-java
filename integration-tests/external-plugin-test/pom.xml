@@ -45,7 +45,11 @@
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <!--
+            TODO use this artifact when we don't shade anymore
             <artifactId>elastic-apm-agent</artifactId>
+            -->
+            <artifactId>apm-api-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
