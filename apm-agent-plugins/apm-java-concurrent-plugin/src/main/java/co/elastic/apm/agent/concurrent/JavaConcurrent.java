@@ -24,11 +24,11 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
@@ -92,7 +92,7 @@ public class JavaConcurrent {
     }
 
     private static void captureContext(Object task, AbstractSpan<?> active) {
-        ElasticApmAgent.ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
+        DynamicTransformer.Accessor.get().ensureInstrumented(task.getClass(), RUNNABLE_CALLABLE_FJTASK_INSTRUMENTATION);
         contextMap.put(task, active);
         active.incrementReferences();
         // Do no discard branches leading to async operations so not to break span references
@@ -167,9 +167,11 @@ public class JavaConcurrent {
         } else {
             wrapped = null;
         }
+        Boolean context = needsContext.get();
         for (Callable<T> callable : callables) {
+            // restore previous state as withContext always sets to false
+            needsContext.set(context);
             final Callable<T> potentiallyWrappedCallable = withContext(callable, tracer);
-            needsContext.set(Boolean.TRUE);
             if (wrapped != null) {
                 wrapped.add(potentiallyWrappedCallable);
             }

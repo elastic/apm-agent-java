@@ -115,4 +115,9 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     public int getRequestedObjectCount() {
         return objectCounter.get();
     }
+
+    public void reset() {
+        objectCounter.set(0);
+        toReturn.clear();
+    }
 }

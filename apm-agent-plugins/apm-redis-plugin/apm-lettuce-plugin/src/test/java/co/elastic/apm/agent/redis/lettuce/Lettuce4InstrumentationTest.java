@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,12 +24,10 @@
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.api.StatefulRedisConnection;
 import com.lambdaworks.redis.api.async.RedisAsyncCommands;
-import com.lambdaworks.redis.api.rx.RedisReactiveCommands;
 import com.lambdaworks.redis.api.sync.RedisCommands;
 import org.junit.After;
 import org.junit.Before;
@@ -52,29 +50,24 @@ public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTes
     @Test
     public void testClusterCommand() {
         RedisCommands<String, String> sync = connection.sync();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            sync.set("foo", "bar");
-            assertThat(sync.get("foo")).isEqualTo("bar");
-        }
+        sync.set("foo", "bar");
+        assertThat(sync.get("foo")).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
+
     @Test
     public void testSyncLettuce() {
         RedisCommands<String, String> sync = connection.sync();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            sync.set("foo", "bar");
-            assertThat(sync.get("foo")).isEqualTo("bar");
-        }
+        sync.set("foo", "bar");
+        assertThat(sync.get("foo")).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
     @Test
     public void testAsyncLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            async.set("foo", "bar").get();
-            assertThat(async.get("foo").get()).isEqualTo("bar");
-        }
+        async.set("foo", "bar").get();
+        assertThat(async.get("foo").get()).isEqualTo("bar");
         assertTransactionWithRedisSpans("SET", "GET");
     }
 

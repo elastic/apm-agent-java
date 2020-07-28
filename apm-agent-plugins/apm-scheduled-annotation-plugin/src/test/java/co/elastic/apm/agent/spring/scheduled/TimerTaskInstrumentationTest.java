@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.scheduled;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 
@@ -37,87 +38,69 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TimerTaskInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
-    void testTimerTask_scheduleWithFixedRate() throws InterruptedException {
-        reporter.reset();
-        TestTimerTask timerTask = new TestTimerTask();
-        Timer timer = new Timer(true);
-        timer.scheduleAtFixedRate(timerTask, 0, 10L);
+    void testTimerTask_scheduleWithFixedRate() {
+        new Timer(true)
+            .scheduleAtFixedRate(new TestTimerTask(2), 1, 1);
 
-        reporter.awaitUntilAsserted(1000L, () -> {
-            timer.cancel();
-            assertThat(reporter.getTransactions()).isNotEmpty();
-        });
+        reporter.awaitTransactionCount(2);
 
-        assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
-        Transaction firstTransaction = reporter.getTransactions().get(0);
-        assertThat(firstTransaction.getNameAsString()).isEqualTo("TestTimerTask#run");
-        assertThat(firstTransaction.getFrameworkName()).isEqualTo("TimerTask");
+        assertThat(reporter.getTransactions()
+            .stream()
+            .map(AbstractSpan::getNameAsString))
+            .containsExactly("TestTimerTask#run", "TestTimerTask#run");
+        assertThat(reporter.getTransactions()
+            .stream()
+            .map(Transaction::getFrameworkName))
+            .containsExactly("TimerTask", "TimerTask");
     }
 
     @Test
-    void testTimerTask_scheduleWithFixedDelay() throws InterruptedException {
-        reporter.reset();
-        TestTimerTask timerTask = new TestTimerTask();
-        Timer timer = new Timer("Timer");
-        timer.schedule(timerTask, 1L, 10L);
+    void testTimerTask_scheduleWithFixedDelay() {
+        new Timer("Timer")
+            .schedule(new TestTimerTask(2), 1, 1);
 
-        reporter.awaitUntilAsserted(1000L, () -> {
-            timer.cancel();
-            assertThat(reporter.getTransactions()).isNotEmpty();
-        });
+        reporter.awaitTransactionCount(2);
 
-        assertThat(reporter.getTransactions().size()).isEqualTo(timerTask.getInvocationCount());
+        assertThat(reporter.getTransactions()
+            .stream()
+            .map(AbstractSpan::getNameAsString))
+            .containsExactly("TestTimerTask#run", "TestTimerTask#run");
+    }
+
+    @Test
+    void testTimerTask_scheduleOnce() {
+        new Timer("Timer")
+            .schedule(new TestTimerTask(1), 1);
+
+        reporter.awaitTransactionCount(1);
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
     }
 
     @Test
-    void testTimerTask_scheduleOnce() throws InterruptedException {
-        reporter.reset();
-        TestTimerTask timerTask = new TestTimerTask();
-        Timer timer = new Timer("Timer");
-        long delay = 50L;
-        timer.schedule(timerTask, delay);
+    void testTimerTask_withAnonymousClass() {
+        new Timer("Timer")
+            .schedule(new TimerTask() {
+                public void run() {
+                    cancel();
+                }
+            }, 1);
 
-        reporter.awaitUntilAsserted(1000L, () -> {
-            assertThat(reporter.getTransactions()).isNotEmpty();
-        });
-
-        assertThat(reporter.getTransactions().size()).isEqualTo(1);
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("TestTimerTask#run");
-    }
-
-    @Test
-    void testTimerTask_withAnonymousClass() throws InterruptedException {
-        reporter.reset();
-        AtomicInteger count = new AtomicInteger(0);
-
-        TimerTask repeatedTask = new TimerTask() {
-            public void run() {
-                count.incrementAndGet();
-            }
-        };
-        Timer timer = new Timer("Timer");
-        long delay = 50L;
-        timer.schedule(repeatedTask, delay);
-
-        reporter.awaitUntilAsserted(1000L, () -> {
-            assertThat(reporter.getTransactions()).isNotEmpty();
-        });
-
-        assertThat(reporter.getTransactions().size()).isEqualTo(1);
+        reporter.awaitTransactionCount(1);
         assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("1#run");
     }
 
     public static class TestTimerTask extends TimerTask {
-        private AtomicInteger count = new AtomicInteger(0);
+        private final AtomicInteger credits;
+
+        public TestTimerTask(int maxInvocations) {
+            credits = new AtomicInteger(maxInvocations);
+        }
 
         @Override
         public void run() {
-            this.count.incrementAndGet();
-        }
-
-        public int getInvocationCount() {
-            return this.count.get();
+            if (credits.decrementAndGet() == 0) {
+                cancel();
+            }
         }
     }
 }

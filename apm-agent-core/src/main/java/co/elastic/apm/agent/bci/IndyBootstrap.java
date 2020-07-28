@@ -24,6 +24,9 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
+import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassInjector;
@@ -31,12 +34,14 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.ConstantCallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * When {@link ElasticApmInstrumentation#indyPlugin()} returns {@code true},
+ * When {@link TracerAwareInstrumentation#indyPlugin()} returns {@code true},
  * we instruct Byte Buddy (via {@link Advice.WithCustomMapping#bootstrap(java.lang.reflect.Method)})
  * to dispatch {@linkplain Advice.OnMethodEnter#inline() non-inlined advices} via an invokedynamic (indy) instruction.
  * The target method is linked to a dynamically created plugin class loader that is specific to an instrumentation plugin
@@ -60,17 +65,17 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * <pre>
  *   Bootstrap CL ←──────────────────────────── Agent CL
  *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ─→ └ {@link IndyBootstrap#bootstrap}
- *     Ext/Platform CL               ↑          │       ╷
- *       ↑                           ╷          │       ↓
- *     System CL                     ╷          │ {@link HelperClassManager.ForIndyPlugin#getOrCreatePluginClassLoader}
- *       ↑                           ╷          │       ╷
- *     Common               linking of CallSite │       ╷
- *     ↑    ↑             (on first invocation) │    creates
- * WebApp1  WebApp2                  ╷          │       ╷
- *          ↑ - InstrumentedClass    ╷          │       ╷
- *          │                ╷       ╷          │       ╷
- *          │                INVOKEDYNAMIC      │       ↓
- *          └────────────────┼──────────────────Plugin CL
+ *     Ext/Platform CL               ↑          │                        ╷
+ *       ↑                           ╷          │                        ↓
+ *     System CL                     ╷          │        {@link HelperClassManager.ForIndyPlugin#getOrCreatePluginClassLoader}
+ *       ↑                           ╷          │                        ╷
+ *     Common               linking of CallSite {@link ExternalPluginClassLoader}
+ *     ↑    ↑             (on first invocation) ↑ ├ AdviceClass          ╷
+ * WebApp1  WebApp2                  ╷          │ ├ AdviceHelper      creates
+ *          ↑ - InstrumentedClass    ╷          │ └ GlobalState          ╷
+ *          │                ╷       ╷          │                        ╷
+ *          │                INVOKEDYNAMIC      │                        ↓
+ *          └────────────────┼──────────────────{@link IndyPluginClassLoader}
  *                           └╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶→ ├ AdviceClass
  *                                              └ AdviceHelper
  * Legend:
@@ -147,10 +152,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
- *         as explained in {@link ElasticApmInstrumentation#indyPlugin()}
+ *         as explained in {@link TracerAwareInstrumentation#indyPlugin()}
  *     </li>
  * </ul>
- * @see ElasticApmInstrumentation#indyPlugin()
+ * @see TracerAwareInstrumentation#indyPlugin()
  */
 public class IndyBootstrap {
 
@@ -264,15 +269,18 @@ public class IndyBootstrap {
             Class<?> instrumentedType = (Class<?>) args[2];
             String instrumentedMethodName = (String) args[3];
             MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
-            String packageName = adviceClassName.substring(0, adviceClassName.lastIndexOf('.'));
-            List<String> pluginClasses = classesByPackage.get(packageName);
-            if (pluginClasses == null) {
-                classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName));
-                pluginClasses = classesByPackage.get(packageName);
+
+            ClassLoader adviceClassLoader = ElasticApmAgent.getClassLoader(adviceClassName);
+            List<String> pluginClasses;
+            if (adviceClassLoader instanceof ExternalPluginClassLoader) {
+                pluginClasses = ((ExternalPluginClassLoader) adviceClassLoader).getClassNames();
+            } else {
+                pluginClasses = getClassNamesFromBundledPlugin(adviceClassName, adviceClassLoader);
             }
             ClassLoader pluginClassLoader = HelperClassManager.ForIndyPlugin.getOrCreatePluginClassLoader(
                 lookup.lookupClass().getClassLoader(),
                 pluginClasses,
+                adviceClassLoader,
                 isAnnotatedWith(named(GlobalState.class.getName()))
                     // no plugin CL necessary as all types are available form bootstrap CL
                     // also, this plugin is used as a dependency in other plugins
@@ -286,4 +294,16 @@ public class IndyBootstrap {
             return null;
         }
     }
+
+    private static List<String> getClassNamesFromBundledPlugin(String adviceClassName, ClassLoader adviceClassLoader) throws IOException, URISyntaxException {
+        List<String> pluginClasses;
+        String packageName = adviceClassName.substring(0, adviceClassName.lastIndexOf('.'));
+        pluginClasses = classesByPackage.get(packageName);
+        if (pluginClasses == null) {
+            classesByPackage.putIfAbsent(packageName, PackageScanner.getClassNames(packageName, adviceClassLoader));
+            pluginClasses = classesByPackage.get(packageName);
+        }
+        return pluginClasses;
+    }
+
 }

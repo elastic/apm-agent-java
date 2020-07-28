@@ -71,17 +71,13 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @After
     public void endTransaction() throws Exception {
-        try {
-            reporter.reset();
-            dropCollection();
-            assertThat(reporter.getSpans()).hasSize(1);
-            assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.testcollection.drop");
-            Transaction currentTransaction = tracer.currentTransaction();
-            if (currentTransaction != null) {
-                currentTransaction.deactivate().end();
-            }
-        } finally {
-            reporter.reset();
+        reporter.reset();
+        dropCollection();
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.testcollection.drop");
+        Transaction currentTransaction = tracer.currentTransaction();
+        if (currentTransaction != null) {
+            currentTransaction.deactivate().end();
         }
     }
 

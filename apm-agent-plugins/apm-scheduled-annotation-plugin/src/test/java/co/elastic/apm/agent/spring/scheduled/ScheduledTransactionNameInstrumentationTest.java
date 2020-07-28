@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,14 +24,13 @@
  */
 package co.elastic.apm.agent.spring.scheduled;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.ejb.Schedule;
-
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.Schedules;
+
+import javax.ejb.Schedule;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,7 +39,6 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
 
     @Test
     void testSpringScheduledAnnotatedMethodsAreTraced() {
-        reporter.reset();
         SpringCounter springCounter = new SpringCounter();
         springCounter.scheduled();
         springCounter.scheduled();
@@ -50,7 +48,6 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
 
     @Test
     void testSpringJ8RepeatableScheduledAnnotatedMethodsAreTraced() {
-        reporter.reset();
         SpringCounter springCounter = new SpringCounter();
         springCounter.scheduledJava8Repeatable();
         springCounter.scheduledJava8Repeatable();
@@ -60,7 +57,6 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
 
     @Test
     void testSpringJ7RepeatableScheduledAnnotatedMethodsAreTraced() {
-        reporter.reset();
         SpringCounter springCounter = new SpringCounter();
         springCounter.scheduledJava7Repeatable();
         springCounter.scheduledJava7Repeatable();
@@ -70,7 +66,6 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
 
     @Test
     void testJeeScheduledAnnotatedMethodsAreTraced() {
-        reporter.reset();
         JeeCounter jeeCounter = new JeeCounter();
         jeeCounter.scheduled();
         jeeCounter.scheduled();
@@ -80,7 +75,6 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
 
     @Test
     void testJeeJ7RepeatableScheduledAnnotatedMethodsAreTraced() {
-        reporter.reset();
         JeeCounter jeeCounter = new JeeCounter();
         jeeCounter.scheduledJava7Repeatable();
         jeeCounter.scheduledJava7Repeatable();

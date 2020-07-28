@@ -22,10 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.sdk.state;
 
-
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -34,7 +32,7 @@ import java.util.concurrent.ConcurrentMap;
  * As the classes of an instrumentation plugins may be loaded from multiple plugin class loaders,
  * there's a need to share global state between those class loaders.
  * <p>
- * An alternative to this is {@link co.elastic.apm.agent.bci.GlobalState} which can be used to make a whole class scoped globally.
+ * An alternative to this is {@link GlobalState} which can be used to make a whole class scoped globally.
  * </p>
  */
 public class GlobalVariables {
@@ -51,7 +49,7 @@ public class GlobalVariables {
      */
     public static <T> T get(Class<?> adviceClass, String key, T defaultValue) {
         key = adviceClass.getName() + "." + key;
-        if (defaultValue.getClass().getClassLoader() != null && !defaultValue.getClass().getName().startsWith(ElasticApmTracer.class.getPackage().getName())) {
+        if (defaultValue.getClass().getClassLoader() != null && !defaultValue.getClass().getName().startsWith("co.elastic.apm.agent")) {
             throw new IllegalArgumentException("Registering types specific to an instrumentation plugin would lead to class loader leaks: " + defaultValue);
         }
         T value = (T) registry.get(key);

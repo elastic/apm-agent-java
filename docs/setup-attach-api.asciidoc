@@ -17,7 +17,7 @@ which is part of the JDK distribution and does not typically come with the JRE d
 [[setup-attach-api-caveats]]
 ==== Caveats
 
-The approach to mitigate ``NoClassDefFoundError``s when used in OSGi containers (which includes most application servers) is experimental.
+The approach to mitigate `NoClassDefFoundError` s when used in OSGi containers (which includes most application servers) is experimental.
 Versions prior to 1.18.0 don't support OSGi containers.
 
 There can only be one agent instance with one configuration per JVM.

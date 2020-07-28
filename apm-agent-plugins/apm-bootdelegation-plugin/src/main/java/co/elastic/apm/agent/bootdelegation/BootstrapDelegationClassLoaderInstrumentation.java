@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.bootdelegation;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -64,7 +64,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * under Apache License 2.0
  * </p>
  */
-public class BootstrapDelegationClassLoaderInstrumentation extends ElasticApmInstrumentation {
+public class BootstrapDelegationClassLoaderInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {

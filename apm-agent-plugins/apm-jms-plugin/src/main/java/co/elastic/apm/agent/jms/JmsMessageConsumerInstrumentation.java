@@ -25,12 +25,12 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.postprocessor.AssignTo;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -262,7 +262,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
             @Nullable
             @AssignTo.Argument(0)
-            @Advice.OnMethodEnter(inline = false)
+            @Advice.OnMethodEnter()
             public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
                 //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked
                 JmsInstrumentationHelper<Destination, Message, MessageListener> helper =

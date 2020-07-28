@@ -136,7 +136,6 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() {
-        reporter.reset();
         Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("Kafka-Test Transaction");
         transaction.withType("request");

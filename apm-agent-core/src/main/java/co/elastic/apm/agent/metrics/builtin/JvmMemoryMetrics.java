@@ -29,11 +29,17 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
+import java.util.List;
 
 public class JvmMemoryMetrics extends AbstractLifecycleListener {
+    private static final Logger logger = LoggerFactory.getLogger(JvmMemoryMetrics.class);
 
     @Override
     public void start(ElasticApmTracer tracer) {
@@ -78,5 +84,36 @@ public class JvmMemoryMetrics extends AbstractLifecycleListener {
                 return platformMXBean.getNonHeapMemoryUsage().getMax();
             }
         });
+
+        List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
+
+        for (final MemoryPoolMXBean memoryPoolMXBean : memoryPoolMXBeans) {
+            if (memoryPoolMXBean.getType() != MemoryType.HEAP) {
+                continue;
+            }
+            final Labels memoryPoolTags = Labels.Mutable.of("name", memoryPoolMXBean.getName());
+            try {
+                registry.add("jvm.memory.heap.pool.used", memoryPoolTags, new DoubleSupplier() {
+                    @Override
+                    public double get() {
+                        return memoryPoolMXBean.getUsage().getUsed();
+                    }
+                });
+                registry.add("jvm.memory.heap.pool.committed", memoryPoolTags, new DoubleSupplier() {
+                    @Override
+                    public double get() {
+                        return memoryPoolMXBean.getUsage().getCommitted();
+                    }
+                });
+                registry.add("jvm.memory.heap.pool.max", memoryPoolTags, new DoubleSupplier() {
+                    @Override
+                    public double get() {
+                        return memoryPoolMXBean.getUsage().getMax();
+                    }
+                });
+            } catch (Exception e) {
+                logger.error("Cannot fetch memory metrics of memory pool " + memoryPoolMXBean.getName(), e);
+            }
+        }
     }
 }

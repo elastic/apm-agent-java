@@ -71,11 +71,13 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
             .port(redisPort)
             .build();
         server.start();
+        tracer.startRootTransaction(null).activate();
     }
 
     @After
     @AfterEach
     public final void stopRedis() {
+        tracer.currentTransaction().deactivate().end();
         server.stop();
     }
 

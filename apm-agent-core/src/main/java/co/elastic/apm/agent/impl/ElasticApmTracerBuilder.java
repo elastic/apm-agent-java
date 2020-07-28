@@ -120,6 +120,11 @@ public class ElasticApmTracerBuilder {
         return build(false);
     }
 
+    /**
+     * NOTE: THIS IS A CONVENIENCE METHOD ONLY TO BE USED WITHIN TESTS
+     *
+     * @return the built and started tracer
+     */
     public ElasticApmTracer buildAndStart() {
         return build(true);
     }
@@ -159,7 +164,7 @@ public class ElasticApmTracerBuilder {
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.init(lifecycleListeners);
         if (startTracer) {
-            tracer.start();
+            tracer.start(false);
         }
         return tracer;
     }
