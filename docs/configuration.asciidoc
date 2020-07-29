@@ -125,7 +125,7 @@ Click on a key to get more information.
 ** <<config-span-min-duration>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
-** <<config-ignore-urls>>
+** <<config-transaction-ignore-urls>>
 ** <<config-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
@@ -1201,8 +1201,8 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-ignore-urls]]
-==== `ignore_urls`
+[[config-transaction-ignore-urls]]
+==== `transaction_ignore_urls`
 
 Used to restrict requests to certain URLs from being instrumented.
 
@@ -1229,7 +1229,7 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.ignore_urls` | `ignore_urls` | `ELASTIC_APM_IGNORE_URLS`
+| `elastic.apm.transaction_ignore_urls` | `transaction_ignore_urls` | `ELASTIC_APM_TRANSACTION_IGNORE_URLS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2825,7 +2825,7 @@ The default unit for this option is `ms`.
 # Type: comma separated list
 # Default value: /VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
 #
-# ignore_urls=/VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
+# transaction_ignore_urls=/VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
 
 # Used to restrict requests from certain User-Agents from being instrumented.
 # 
