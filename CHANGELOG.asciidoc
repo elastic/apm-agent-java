@@ -42,6 +42,9 @@ endif::[]
 * The agent now collects heap memory pools metrics - {pull}1228[#1228]
 * Deprecating `ignore_urls` config in favour of <<config-transaction-ignore-urls, `transaction_ignore_urls`>> to align
   with other agents, while still allowing the old config name for backward compatibility - {pull}1315[#1315]
+* Enabling instrumentation of classes compiled with Java 1.4. This is reverting the restriction of instrumenting only
+  bytecode of Java 1.5 or higher ({pull}320[#320]), which was added due to potential `VerifyError`. Such errors should be
+  avoided now by the usage of `TypeConstantAdjustment` - {pull}1317[#1317]
 
 [float]
 ===== Bug fixes
