@@ -223,4 +223,4 @@ you can disable the recording of events by setting <<config-recording,`recording
 
 If that doesn't work, you can completely disable the agent by setting
 <<config-enabled,`enabled`>> to `false`.
-You'll need to restart your application for the changes to take effect.
+You'll need to restart your application for this change to take effect.
