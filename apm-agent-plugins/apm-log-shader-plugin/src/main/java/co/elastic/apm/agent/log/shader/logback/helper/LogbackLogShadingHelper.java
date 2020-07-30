@@ -38,29 +38,28 @@ import co.elastic.logging.logback.EcsEncoder;
 
 public class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILoggingEvent>> {
 
-    private static final LoggerContext defaultLoggerContext = new LoggerContext();;
+    private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
     public LogbackLogShadingHelper(ElasticApmTracer tracer) {
         super(tracer);
     }
 
     @Override
-    protected boolean isShadingAppender(FileAppender<ILoggingEvent> appender) {
-        return appender.getContext() == defaultLoggerContext;
+    protected String getAppenderName(FileAppender<ILoggingEvent> appender) {
+        return appender.getName();
     }
 
     @Override
-    protected FileAppender<ILoggingEvent> createAndConfigureAppender(FileAppender<ILoggingEvent> originalAppender) {
+    protected FileAppender<ILoggingEvent> createAndConfigureAppender(FileAppender<ILoggingEvent> originalAppender, String appenderName) {
         RollingFileAppender<ILoggingEvent> shadeAppender = new RollingFileAppender<>();
         String shadeFile = Utils.computeShadeLogFilePath(originalAppender.getFile());
         shadeAppender.setFile(shadeFile);
 
         EcsEncoder ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(getServiceName());
-        // todo read from configuration??
         ecsEncoder.setIncludeMarkers(false);
         ecsEncoder.setIncludeOrigin(false);
-        ecsEncoder.setStackTraceAsArray(true);
+        ecsEncoder.setStackTraceAsArray(false);
         shadeAppender.setEncoder(ecsEncoder);
 
         FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
@@ -81,7 +80,8 @@ public class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppend
         shadeAppender.setContext(defaultLoggerContext);
         shadeAppender.setImmediateFlush(originalAppender.isImmediateFlush());
         shadeAppender.setAppend(true);
-        // todo see if there are other configs/settings we want to get from the originalAppender
+        shadeAppender.setName(appenderName);
+
         shadeAppender.start();
         return shadeAppender;
     }

@@ -27,6 +27,7 @@ package co.elastic.apm.agent.log.shader;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
@@ -38,19 +39,19 @@ import javax.annotation.Nullable;
  */
 public abstract class AbstractLogShadingHelper<A> {
 
+    public static final String ECS_SHADE_APPENDER_NAME = "EcsShadeAppender";
+
     private static final Object NULL_APPENDER = new Object();
 
     private final ElasticApmTracer tracer;
     private final LoggingConfiguration loggingConfiguration;
-    private final String serviceName;
 
     public AbstractLogShadingHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
-        serviceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
     }
 
-    private static final WeakConcurrentMap<Object, Object> appenderToShadeAppender = new WeakConcurrentMap.WithInlinedExpunction<Object, Object>();
+    private static final WeakConcurrentMap<Object, Object> appenderToShadeAppender = WeakMapSupplier.createMap();
 
     @Nullable
     public A getOrCreateShadeAppenderFor(A originalAppender) {
@@ -62,7 +63,7 @@ public abstract class AbstractLogShadingHelper<A> {
         if (shadeAppender == null) {
             synchronized (appenderToShadeAppender) {
                 if (!appenderToShadeAppender.containsKey(originalAppender)) {
-                    A createdAppender = createAndConfigureAppender(originalAppender);
+                    A createdAppender = createAndConfigureAppender(originalAppender, ECS_SHADE_APPENDER_NAME);
                     appenderToShadeAppender.put(originalAppender, createdAppender != null ? createdAppender : NULL_APPENDER);
                 }
             }
@@ -82,15 +83,24 @@ public abstract class AbstractLogShadingHelper<A> {
 
     /**
      * Checks whether the given appender is a shading appender, so to avoid recursive shading
+     *
      * @return true if the provide appender is a shading appender; false otherwise
      */
-    protected abstract boolean isShadingAppender(A appender);
+    private boolean isShadingAppender(A appender) {
+        //noinspection StringEquality
+        return getAppenderName(appender) == ECS_SHADE_APPENDER_NAME;
+    }
+
+    protected abstract String getAppenderName(A appender);
 
     @Nullable
-    protected abstract A createAndConfigureAppender(A originalAppender);
+    protected abstract A createAndConfigureAppender(A originalAppender, String appenderName);
 
-    // todo: find more accurate service name
     protected String getServiceName() {
+        String serviceName = tracer.getMetaData().getService().getName();
+        if (serviceName == null) {
+            serviceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
+        }
         return serviceName;
     }
 

@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.log.shader.log4j2;
+package co.elastic.apm.agent.log.shader.log4j1;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

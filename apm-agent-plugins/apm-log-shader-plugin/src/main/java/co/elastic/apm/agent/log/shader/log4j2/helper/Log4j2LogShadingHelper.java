@@ -44,8 +44,6 @@ import java.lang.reflect.Method;
 
 public class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStreamAppender<?>> {
 
-    public static final String ECS_SHADE_APPENDER = "EcsShadeAppender";
-
     private static final Logger logger = LoggerFactory.getLogger(Log4j2LogShadingHelper.class);
 
     public Log4j2LogShadingHelper(ElasticApmTracer tracer) {
@@ -53,14 +51,13 @@ public class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOut
     }
 
     @Override
-    protected boolean isShadingAppender(AbstractOutputStreamAppender<?> appender) {
-        //noinspection StringEquality
-        return appender.getName() == ECS_SHADE_APPENDER;
+    protected String getAppenderName(AbstractOutputStreamAppender<?> appender) {
+        return appender.getName();
     }
 
     @Override
     @Nullable
-    protected AbstractOutputStreamAppender<?> createAndConfigureAppender(AbstractOutputStreamAppender<?> originalAppender) {
+    protected AbstractOutputStreamAppender<?> createAndConfigureAppender(AbstractOutputStreamAppender<?> originalAppender, String appenderName) {
 
         String logFile = null;
 
@@ -89,7 +86,7 @@ public class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOut
             .setServiceName(getServiceName())
             .setIncludeMarkers(false)
             .setIncludeOrigin(false)
-            .setStackTraceAsArray(true)
+            .setStackTraceAsArray(false)
             .build();
 
         RolloverStrategy rolloverStrategy = DefaultRolloverStrategy.newBuilder()
@@ -107,7 +104,7 @@ public class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOut
             .withStrategy(rolloverStrategy)
             .withPolicy(triggeringPolicy)
             .withAppend(true)
-            .withName(ECS_SHADE_APPENDER)
+            .withName(appenderName)
             .withLayout(ecsLayout)
             .build();
 

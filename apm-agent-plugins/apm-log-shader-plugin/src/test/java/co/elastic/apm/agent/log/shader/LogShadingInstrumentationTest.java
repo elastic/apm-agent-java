@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -60,8 +59,6 @@ public class LogShadingInstrumentationTest extends AbstractInstrumentationTest {
     public static final String WARN_MESSAGE = "Warn-this";
     public static final String ERROR_MESSAGE = "Error-this";
 
-    public static final String SERVICE_NAME = "ECS Logging Test";
-
     private final LoggerFacade logger;
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -71,13 +68,12 @@ public class LogShadingInstrumentationTest extends AbstractInstrumentationTest {
 
     @Before
     public void setup() throws IOException {
-        when(config.getConfig(CoreConfiguration.class).getServiceName()).thenReturn(SERVICE_NAME);
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
     }
 
     @Parameterized.Parameters(name = "LoggerFacade = {0}")
     public static Iterable<LoggerFacade> brokerFacades() {
-        return Arrays.asList(new LogbackLoggerFacade(), new Log4j2LoggerFacade());
+        return Arrays.asList(new LogbackLoggerFacade(), new Log4j2LoggerFacade(), new Log4j1LoggerFacade());
     }
 
     @Test
@@ -132,12 +128,17 @@ public class LogShadingInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(splitRawLogLine[2]).isEqualTo(ecsLogLineTree.get("log.level").textValue());
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
-        assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(SERVICE_NAME);
+        assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(tracer.getMetaData().getService().getName());
         assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
     }
 
-    // Disabled - very slow. Can be used for file rolling manual testing
-//     @Test
+    /**
+     * Disabled by default, as this is a very slow test. Can be used for manual testing of shade file rolling.
+     * Note: logback and log4j2 rollover before appending an event, which means the two log files will contain messages.
+     * As opposed to those, log4j1 rolls over after appending an event, which means that the active log file (log4j1.log)
+     * will be empty when the test ends.
+     */
+    // @Test
     public void testShadeLogRolling() {
         when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
         logger.trace("First line");

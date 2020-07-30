@@ -25,4 +25,4 @@
 @NonnullApi
 package co.elastic.apm.agent.log.shader.log4j2.helper;
 
-import co.elastic.apm.agent.annotation.NonnullApi;
+import co.elastic.apm.agent.sdk.NonnullApi;
