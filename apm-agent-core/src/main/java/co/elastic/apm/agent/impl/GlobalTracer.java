@@ -31,15 +31,11 @@ import co.elastic.apm.agent.impl.transaction.BinaryHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
 
 public class GlobalTracer implements Tracer {
-
-    private static final Logger logger = LoggerFactory.getLogger(GlobalTracer.class);
 
     private static final GlobalTracer INSTANCE = new GlobalTracer();
     private volatile Tracer tracer = NoopTracer.INSTANCE;
@@ -64,18 +60,23 @@ public class GlobalTracer implements Tracer {
         return Objects.requireNonNull(getTracerImpl(), "Registered tracer is not an instance of ElasticApmTracer");
     }
 
-    public static void setNoop() {
-        set(NoopTracer.INSTANCE);
-    }
-
-    public static void set(Tracer tracer) {
+    public static synchronized void setNoop() {
         TracerState currentTracerState = INSTANCE.tracer.getState();
         if (currentTracerState != TracerState.UNINITIALIZED && currentTracerState != TracerState.STOPPED) {
-            logger.warn("Overriding running tracer");
-            // TODO throw exception, requires changes in tests
-            // throw new IllegalStateException("Can't override tracer as current tracer is already running");
+             throw new IllegalStateException("Can't override tracer as current tracer is already running");
+        }
+        INSTANCE.tracer = NoopTracer.INSTANCE;
+    }
+
+    public static synchronized void init(Tracer tracer) {
+        if (!isNoop()) {
+             throw new IllegalStateException("Tracer is already initialized");
         }
         INSTANCE.tracer = tracer;
+    }
+
+    public static boolean isNoop() {
+        return INSTANCE.tracer == NoopTracer.INSTANCE;
     }
 
     @Nullable

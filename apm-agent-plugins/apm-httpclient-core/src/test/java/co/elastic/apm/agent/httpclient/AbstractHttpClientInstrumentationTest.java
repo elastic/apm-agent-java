@@ -73,7 +73,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
         final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
-        transaction.withType("request").activate();
+        transaction.withName("parent of http span").withType("request").activate();
     }
 
     @After

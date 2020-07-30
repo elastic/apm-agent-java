@@ -53,6 +53,7 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.TypeConstantAdjustment;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.method.MethodDescription;
@@ -205,7 +206,7 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
-        GlobalTracer.set(tracer);
+        GlobalTracer.init(tracer);
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             pluginClassLoaderByAdviceClass.put(
                 apmInstrumentation.getAdviceClass().getName(),
@@ -359,7 +360,9 @@ public class ElasticApmAgent {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
                                                         ClassLoader classLoader, JavaModule module) {
-                    return builder.visit(MinimumClassFileVersionValidator.INSTANCE);
+                    return builder.visit(MinimumClassFileVersionValidator.V1_4)
+                        // As long as we allow 1.4 bytecode, we need to add this constant pool adjustment as well
+                        .visit(TypeConstantAdjustment.INSTANCE);
                 }
             });
     }
@@ -520,6 +523,8 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             return;
         }
+        GlobalTracer.get().stop();
+        GlobalTracer.setNoop();
         Exception exception = null;
         if (resettableClassFileTransformer != null) {
             try {

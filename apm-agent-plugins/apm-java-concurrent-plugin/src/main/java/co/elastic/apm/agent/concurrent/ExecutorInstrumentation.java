@@ -74,6 +74,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         excludedClasses.add("org.apache.tomcat.util.threads.ThreadPoolExecutor");
     }
 
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("Execut")

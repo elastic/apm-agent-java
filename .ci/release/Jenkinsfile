@@ -46,9 +46,9 @@ pipeline {
             stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
             dir("${BASE_DIR}") {
               script {
-                env.TAG_BARE = sh(script: "git tag | tail -1", returnStdout: true)
-                env.TAG_VER = sh(script: "git tag | tail -1 | sed s/v//", returnStdout: true)
-                env.TAG_DOT_X = sh(script: 'git tag|tail -1|sed s/v//|cut -f1 -d "."|awk \'{print $1".x"}\'', returnStdout: true)
+                env.TAG_BARE = sh(script: "./scripts/jenkins/tags.sh bare", returnStdout: true)
+                env.TAG_VER = sh(script: "./scripts/jenkins/tags.sh ver", returnStdout: true)
+                env.TAG_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
               }
             }
           }
@@ -61,10 +61,12 @@ pipeline {
         stage('Check oss.sonatype.org') {
           steps {
             // If this fails, an exception should be thrown and execution will halt
-            script {
-              def r = sh(label: "Check Maven status", script: "scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
-              if (r == 1) {
-                error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
+            dir("${BASE_DIR}"){
+              script {
+                def r = sh(label: "Check Maven status", script: "./scripts/jenkins/check_maven.sh -u https://status.maven.org/api/v2/summary.json --component OSSRH", returnStatus: true)
+                if (r == 1) {
+                  error("Failing release build because Maven is the OSSRH component is not fully operational. See https://status.maven.org/ for more details.")
+                }
               }
             }
           }
@@ -95,33 +97,37 @@ pipeline {
         }
         stage('Review project version') {
           steps {
-            script {
-              def ver = mvnVersion(showQualifiers: true)
-              def should_continue = input(message: "Current version is ${ver}", parameters: [
-                [
-                  $class: 'ChoiceParameterDefinition',
-                  name: "You are about to release version ${ver - '-SNAPSHOT'}. Do you wish to update the version?",
-                  "choices": ["Yes", "No"],
-                  description: "Selecting 'Yes' will allow you to select the new version in the next step."
-                ]
-              ])
-              if (should_continue == 'Yes'){
-                def new_version = input(message: "Please enter version to change to:", parameters:
+            dir("${BASE_DIR}"){
+              script {
+                def ver = mvnVersion(showQualifiers: true)
+                def should_continue = input(message: "Current version is ${ver}", parameters: [
                   [
-                    [
-                      $class: 'StringParameterDefinition',
-                      defaultValue: "${ver}",
-                      description: 'We will update the project version in all pom.xml files. Set this to your desired <release-version>-SNAPSHOT (for example 1.2.3-SNAPSHOT if you want to release version 1.2.3).', name: 'New Version'
-                    ]
+                    $class: 'ChoiceParameterDefinition',
+                    name: "You are about to release version ${ver - '-SNAPSHOT'}. Do you wish to update the version?",
+                    "choices": ["Yes", "No"],
+                    description: "Selecting 'Yes' will allow you to select the new version in the next step."
                   ]
-                )
-                sh(name: "mavenVersionUpdate", script: "mvn --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
-                withGitRelease() {
-                  sh(script: "git commit -a -m 'Version bump'")
-                  gitPush()
+                ])
+                if (should_continue == 'Yes'){
+                  def new_version = input(message: "Please enter version to change to:", parameters:
+                    [
+                      [
+                        $class: 'StringParameterDefinition',
+                        defaultValue: "${ver}",
+                        description: 'We will update the project version in all pom.xml files. Set this to your desired <release-version>-SNAPSHOT (for example 1.2.3-SNAPSHOT if you want to release version 1.2.3).', name: 'New Version'
+                      ]
+                    ]
+                  )
+                  sh(label: "mavenVersionUpdate", script: "./mvnw --batch-mode release:update-versions -DdevelopmentVersion=${new_version}")
+                  withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
+                    withGitRelease() {
+                      sh(script: "git commit -a -m 'Version bump'")
+                      gitPush()
+                    }
+                  }
+                } else {
+                  echo "Skipping version update"
                 }
-              } else {
-                echo "Skipping version update"
               }
             }
           }
@@ -134,7 +140,7 @@ pipeline {
         stage('Nexus release') {
           steps {
             script {
-              def spid = getVault('nexus')["staging-profile-id"]
+              def spid = getVaultSecret('nexus')["staging-profile-id"]
               dir("${BASE_DIR}"){
                 withEnvMask(vars: [[var: "SPID", password: spid]]){
                   def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
@@ -174,7 +180,7 @@ pipeline {
                 def curVer = mvnVersion(showQualifiers: false)
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
-                def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${curVer}", , returnStdout: true)
+                def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${curVer}", returnStdout: true)
                 def ret = githubReleaseCreate(draft: true, name: "Release ${curVer}", body: "[Release Notes for ${curVer}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
@@ -185,15 +191,17 @@ pipeline {
         }
         stage('Wait for artifact to be available in Maven Central') {
           steps {
-            script {
-              def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ")
-              echo "Sleeping for ten minutes to wait for Sonatype"
-              sleep(time: 10, unit: "MINUTES")
-              waitUntil(initialRecurrencePeriod: 60000) {
-                script {
-                  def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
-                  echo "Waiting for the artifacts to be published on Sonatype"
-                  return ret == 0
+            dir("${BASE_DIR}"){
+              script {
+                def fullUrl = sh(script: "./scripts/jenkins/maven_artifact_url.sh ")
+                echo "Sleeping for ten minutes to wait for Sonatype"
+                sleep(time: 10, unit: "MINUTES")
+                waitUntil(initialRecurrencePeriod: 60000) {
+                  script {
+                    def ret = sh(script: "curl -fs $fullUrl >/dev/null 2>&1", returnStatus: true)
+                    echo "Waiting for the artifacts to be published on Sonatype"
+                    return ret == 0
+                  }
                 }
               }
             }
@@ -204,9 +212,11 @@ pipeline {
             deleteDir()
             unstash 'source'
             dir("${BASE_DIR}"){
-              withGitRelease() {
-                sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
-                gitPush()
+              withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
+                withGitRelease() {
+                  sh(script: "./scripts/jenkins/update_cloudfoundry.sh")
+                  gitPush()
+                }
               }
             }
           }
@@ -214,10 +224,12 @@ pipeline {
         stage('Publish release on GitHub') {
           steps {
             waitUntil(initialRecurrencePeriod: 60000) {
-              script {
-                echo "Waiting for the release notes to be available"
-                def ret = sh(script: "scripts/jenkins/docs_check.sh $TAG_VER")
-                return ret == 0
+              dir("${BASE_DIR}"){
+                script {
+                  echo "Waiting for the release notes to be available"
+                  def ret = sh(script: "./scripts/jenkins/docs_check.sh $TAG_VER")
+                  return ret == 0
+                }
               }
             }
             githubReleasePublish(id: "${env.RELEASE_ID}")
@@ -225,10 +237,12 @@ pipeline {
         }
         stage('Build and push Docker images') {
           steps {
-            sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
-            // Get Docker registry credentials
-            dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
-            sh(label: "Push Docker image", script: "scripts/jenkins/push_docker.sh")
+            dir("${BASE_DIR}"){
+              sh(label: "Build Docker image", script: "./scripts/jenkins/build_docker.sh")
+              // Get Docker registry credentials
+              dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
+              sh(label: "Push Docker image", script: "./scripts/jenkins/push_docker.sh")
+            }
           }
         }
       }

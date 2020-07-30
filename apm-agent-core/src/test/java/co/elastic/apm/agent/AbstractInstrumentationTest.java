@@ -26,19 +26,17 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,11 +46,12 @@ public abstract class AbstractInstrumentationTest {
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
     protected static TestObjectPoolFactory objectPoolFactory;
+    private boolean validateRecycling = true;
 
     @BeforeAll
     @BeforeClass
     public static synchronized void beforeAll() {
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         tracer = mockInstrumentationSetup.getTracer();
         config = mockInstrumentationSetup.getConfig();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
@@ -67,15 +66,8 @@ public abstract class AbstractInstrumentationTest {
         ElasticApmAgent.reset();
     }
 
-    public static synchronized void staticReset() {
-        SpyConfiguration.reset(config);
-        reporter.reset();
-
-        // resume tracer in case it has been paused
-        // otherwise the 1st test that pauses tracer will have side effects on others
-        if (!tracer.isRunning()) {
-            TracerInternalApiUtils.resumeTracer(tracer);
-        }
+    protected void disableRecyclingValidation() {
+        validateRecycling = false;
     }
 
     public static Tracer getTracer() {
@@ -90,15 +82,25 @@ public abstract class AbstractInstrumentationTest {
         return config;
     }
 
-    @Before
-    @BeforeEach
-    public final void reset() {
-        staticReset();
-    }
-
     @After
     @AfterEach
     public final void cleanUp() {
+        SpyConfiguration.reset(config);
+        try {
+            if (validateRecycling) {
+                reporter.assertRecycledAfterDecrementingReferences();
+                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+            }
+        } finally {
+            // one faulty test should not affect others
+            reporter.resetWithoutRecycling();
+            objectPoolFactory.reset();
+            // resume tracer in case it has been paused
+            // otherwise the 1st test that pauses tracer will have side effects on others
+            if (!tracer.isRunning()) {
+                TracerInternalApiUtils.resumeTracer(tracer);
+            }
+        }
         tracer.resetServiceNameOverrides();
 
         assertThat(tracer.getActive())

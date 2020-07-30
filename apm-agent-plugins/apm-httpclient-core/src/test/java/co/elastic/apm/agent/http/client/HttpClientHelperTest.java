@@ -51,7 +51,6 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
     @AfterEach
     void afterTest() {
         tracer.currentTransaction().deactivate().end();
-        reporter.reset();
     }
 
     @Test

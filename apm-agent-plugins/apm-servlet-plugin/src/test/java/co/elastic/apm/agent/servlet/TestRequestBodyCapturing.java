@@ -32,7 +32,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -110,15 +109,6 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
         streamConsumer = is -> is.readLine(BUFFER, 0, BUFFER.length);
         streamCloser = InputStream::close;
 
-    }
-
-    @AfterEach
-    void tearDown() {
-        Transaction transaction = reporter.getFirstTransaction();
-        reporter.assertRecycledAfterDecrementingReferences();
-        assertThat(transaction.getContext().getRequest().getRawBody()).isNull();
-        assertThat(transaction.getContext().getRequest().getBody()).isNull();
-        assertThat((CharSequence) transaction.getContext().getRequest().getBodyBufferForSerialization()).isNull();
     }
 
     @ParameterizedTest
