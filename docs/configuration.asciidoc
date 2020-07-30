@@ -702,6 +702,7 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
