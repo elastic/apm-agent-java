@@ -66,6 +66,8 @@ public class CGroupMetrics extends AbstractLifecycleListener {
     static final String CGROUP2_MAX_MEMORY = "memory.max";
     static final String CGROUP2_USED_MEMORY = "memory.current";
     static final String CGROUP_MEMORY_STAT = "memory.stat";
+    static final String CGROUP1_UNLIMITED = "9223372036854771712";
+    static final String CGROUP2_UNLIMITED = "max";
 
     static final Pattern MEMORY_CGROUP = Pattern.compile("^\\d+\\:memory\\:.*");
     static final Pattern CGROUP1_MOUNT_POINT = Pattern.compile("^\\d+? \\d+? .+? .+? (.*?) .*cgroup.*memory.*");
@@ -186,13 +188,7 @@ public class CGroupMetrics extends AbstractLifecycleListener {
         String sliceSubdir = cgroupLineParts[cgroupLineParts.length - 1];
         File maxMemoryFile = new File(rootCgroupFsPath, sliceSubdir + File.separatorChar + CGROUP2_MAX_MEMORY);
         if (maxMemoryFile.canRead()) {
-            try (BufferedReader maxFileReader = new BufferedReader(new FileReader(maxMemoryFile))) {
-                String memMaxLine = maxFileReader.readLine();
-                if ("max".equalsIgnoreCase(memMaxLine)) {
-                    // Make sure we don't send the max metric when cgroup is not bound to a memory limit
-                    maxMemoryFile = null;
-                }
-            }
+            maxMemoryFile = checkUnlimitedMemory(maxMemoryFile, CGROUP2_UNLIMITED);
             return new CgroupFiles(
                 maxMemoryFile,
                 new File(rootCgroupFsPath, sliceSubdir + File.separator + CGROUP2_USED_MEMORY),
@@ -203,10 +199,10 @@ public class CGroupMetrics extends AbstractLifecycleListener {
     }
 
     @Nullable
-    private CgroupFiles createCgroup1Files(File memoryMountPath) {
+    private CgroupFiles createCgroup1Files(File memoryMountPath) throws IOException {
         File maxMemoryFile = new File(memoryMountPath, CGroupMetrics.CGROUP1_MAX_MEMORY);
         if (maxMemoryFile.canRead()) {
-            // No need for special treatment for the special "unlimited" value (0x7ffffffffffff000) - omitted by the UI
+            maxMemoryFile = checkUnlimitedMemory(maxMemoryFile, CGROUP1_UNLIMITED);
             return new CgroupFiles(
                 maxMemoryFile,
                 new File(memoryMountPath, CGroupMetrics.CGROUP1_USED_MEMORY),
@@ -214,6 +210,17 @@ public class CGroupMetrics extends AbstractLifecycleListener {
             );
         }
         return null;
+    }
+
+    private File checkUnlimitedMemory(File maxMemoryFile, String cgroupUnlimitedConstant) throws IOException {
+        try(BufferedReader maxFileReader = new BufferedReader(new FileReader(maxMemoryFile))) {
+            String memMaxLine = maxFileReader.readLine();
+            if (cgroupUnlimitedConstant.equalsIgnoreCase(memMaxLine)) {
+                // Make sure we don't send the max metric when cgroup is not bound to a memory limit
+                maxMemoryFile = null;
+            }
+        }
+        return maxMemoryFile;
     }
 
     @Override

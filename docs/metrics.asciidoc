@@ -277,3 +277,36 @@ You can filter and group by these dimensions:
 * `span.subtype`: The sub-type of the span, for example `mysql` (optional)
 
 --
+
+
+*`system.process.cgroup.memory.mem.limit.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+Total memory reserved in current cgroup slice.
+--
+
+
+*`system.process.cgroup.memory.mem.usage.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+Memory usage in current cgroup slice.
+--
+
+
+*`system.process.cgroup.memory.stats.inactive_file.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+Inactive memory in current cgroup slice.
+--

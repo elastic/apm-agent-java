@@ -96,7 +96,7 @@ class CGroupMetricsTest {
         assertThat(cgroupMetrics.applyCgroupRegex(CGroupMetrics.CGROUP1_MOUNT_POINT, split[0])).isEqualTo(split[1]);
 
         cgroupMetrics.bindTo(metricRegistry);
-        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(9223372036854771712L);
+        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(Double.NaN);
     }
 
     @ParameterizedTest
@@ -114,7 +114,7 @@ class CGroupMetricsTest {
         CGroupMetrics cgroupMetrics = createUnlimitedSystemMetrics();
         cgroupMetrics.bindTo(metricRegistry);
 
-        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(9223372036854771712L);
+        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(Double.NaN);
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.usage.bytes", Labels.EMPTY)).isEqualTo(964778496);
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.stats.inactive_file.bytes", Labels.EMPTY)).isEqualTo(10407936L);
     }
@@ -124,7 +124,7 @@ class CGroupMetricsTest {
         CGroupMetrics cgroupMetrics = createUnlimitedSystemMetrics();
         cgroupMetrics.bindTo(metricRegistry);
 
-        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(9223372036854771712L);
+        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(Double.NaN);
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.usage.bytes", Labels.EMPTY)).isEqualTo(964778496);
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.stats.inactive_file.bytes", Labels.EMPTY)).isEqualTo(10407936L);
     }
