@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,9 +24,9 @@
  */
 package co.elastic.apm.agent.dubbo;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter;
 import net.bytebuddy.asm.Advice;
@@ -63,7 +63,7 @@ public class AlibabaRpcContextInstrumentation extends AbstractAlibabaDubboInstru
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onEnter(@Advice.Argument(0) Future<?> future) {
         if (future instanceof FutureAdapter) {
-            ElasticApmAgent.ensureInstrumented(((FutureAdapter<?>) future).getFuture().getClass(), RESPONSE_FUTURE_INSTRUMENTATION);
+            DynamicTransformer.Accessor.get().ensureInstrumented(((FutureAdapter<?>) future).getFuture().getClass(), RESPONSE_FUTURE_INSTRUMENTATION);
         }
     }
 }

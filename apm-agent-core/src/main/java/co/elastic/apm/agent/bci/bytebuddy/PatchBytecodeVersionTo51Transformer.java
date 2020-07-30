@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.AsmVisitorWrapper;
@@ -45,7 +45,7 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 
 /**
  * Patches the class file version to 51 (Java 7) in order to support injecting {@code INVOKEDYNAMIC} instructions via
- * {@link Advice.WithCustomMapping#bootstrap} which is important for {@linkplain ElasticApmInstrumentation#indyPlugin() indy plugins}.
+ * {@link Advice.WithCustomMapping#bootstrap} which is important for {@linkplain TracerAwareInstrumentation#indyPlugin() indy plugins}.
  */
 public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transformer {
     @Override

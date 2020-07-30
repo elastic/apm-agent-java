@@ -40,6 +40,13 @@ endif::[]
 * Add <<config-enabled,`enabled`>> flag
 * Add experimental support for Scala Futures
 * The agent now collects heap memory pools metrics - {pull}1228[#1228]
+* Deprecating `ignore_urls` config in favour of <<config-transaction-ignore-urls, `transaction_ignore_urls`>> to align
+  with other agents, while still allowing the old config name for backward compatibility - {pull}1315[#1315]
+* Enabling instrumentation of classes compiled with Java 1.4. This is reverting the restriction of instrumenting only
+  bytecode of Java 1.5 or higher ({pull}320[#320]), which was added due to potential `VerifyError`. Such errors should be
+  avoided now by the usage of `TypeConstantAdjustment` - {pull}1317[#1317]
+* Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
+  an empty string - {pull}1295[#1295]
 
 [float]
 ===== Bug fixes
@@ -52,12 +59,13 @@ endif::[]
   deadlock issue - {pull}1262[#1262]
 * Fixes missing `jboss.as:*` MBeans on JBoss - {pull}1257[#1257]
 * Fixes a `NoClassDefFoundError` in the JMS instrumentation of `MessageListener` - {pull}1287[#1287]
+* Fix `/ by zero` error message when setting `server_urls` with an empty string - {pull}1295[#1295]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
 [[release-notes-1.18.0.rc1]]
-==== 1.18.0.RC1 - YYYY/MM/DD
+==== 1.18.0.RC1 - 2020/07/22
 
 This release candidate adds some highly anticipated features:
 It’s now possible to attach the agent at runtime in more cases than before.

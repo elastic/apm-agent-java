@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.threadlocal;
+package co.elastic.apm.agent.sdk.state;
 
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * Allows registering a globally shared instance of a {@link DetachedThreadLocal} that optionally allows for removal on get.
- * Similar to {@link co.elastic.apm.agent.util.GlobalVariables} and {@link co.elastic.apm.agent.bci.GlobalState},
+ * Similar to {@link GlobalVariables} and {@link GlobalState},
  * this allows to get thread locals whose state is shared across plugin class loaders.
  *
  * @param <T>
@@ -72,6 +72,14 @@ public class GlobalThreadLocal<T> extends DetachedThreadLocal<T> {
             clear();
         }
         return value;
+    }
+
+    public T get(T defaultValue) {
+        T value = get();
+        if (value != null) {
+            return value;
+        }
+        return defaultValue;
     }
 
     @Override

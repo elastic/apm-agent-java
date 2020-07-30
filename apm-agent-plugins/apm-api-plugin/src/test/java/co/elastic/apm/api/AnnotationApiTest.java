@@ -99,7 +99,6 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
     @Test
     void testMissingSubtype() {
-        reporter.reset();
         AnnotationTestClass.transactionForMissingSpanSubtype();
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();

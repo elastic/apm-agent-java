@@ -31,12 +31,12 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -56,28 +56,30 @@ import static org.mockito.Mockito.when;
  */
 public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
-    private static ElasticApmTracer tracer;
-    private static MockReporter reporter;
-    private static ConfigurationRegistry config;
+    private ElasticApmTracer tracer;
+    private MockReporter reporter;
+    private ConfigurationRegistry config;
+    private TestObjectPoolFactory objectPoolFactory;
 
-    @BeforeClass
-    public static void beforeClass() {
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+    @Before
+    public void before() {
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         reporter = mockInstrumentationSetup.getReporter();
         config = mockInstrumentationSetup.getConfig();
         tracer = mockInstrumentationSetup.getTracer();
+        objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
     }
 
     @After
     public void after() {
-        //reset after each method to test different non-dynamic parameters
-        ElasticApmAgent.reset();
-    }
-
-    @Before
-    public void before() {
-        SpyConfiguration.reset(config);
-        reporter.reset();
+        try {
+            reporter.assertRecycledAfterDecrementingReferences();
+            objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+        } finally {
+            reporter.reset();
+            objectPoolFactory.reset();
+            ElasticApmAgent.reset();
+        }
     }
 
     @Test

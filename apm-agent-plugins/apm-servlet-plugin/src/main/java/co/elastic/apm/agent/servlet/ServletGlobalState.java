@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.GlobalState;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 
 import java.util.Collections;
 import java.util.Set;

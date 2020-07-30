@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;

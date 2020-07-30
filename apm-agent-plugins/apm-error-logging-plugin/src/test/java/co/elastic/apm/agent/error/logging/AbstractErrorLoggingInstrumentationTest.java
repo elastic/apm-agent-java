@@ -33,19 +33,17 @@ import static org.junit.Assert.assertEquals;
 
 abstract class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumentationTest {
 
+    private Transaction transaction;
+
     @BeforeEach
     void startTransaction() {
-        reporter.reset();
-        tracer.startRootTransaction(null).activate();
+        transaction = tracer.startRootTransaction(null);
+        transaction.activate();
     }
 
     @AfterEach
     void endTransaction() {
-        Transaction currentTransaction = tracer.currentTransaction();
-        if (currentTransaction != null) {
-            currentTransaction.deactivate().end();
-        }
-        reporter.reset();
+        transaction.deactivate().end();
     }
 
     void verifyThatExceptionCaptured(int errorCount, String exceptionMessage, Class exceptionClass) {

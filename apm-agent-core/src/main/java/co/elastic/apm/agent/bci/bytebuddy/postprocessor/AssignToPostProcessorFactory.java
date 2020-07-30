@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy.postprocessor;
 
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.annotation.AnnotationList;

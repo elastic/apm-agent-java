@@ -67,7 +67,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .sensitive()
         .build();
 
-    private final ConfigurationOption<List<URL>> serverUrl = ConfigurationOption.urlsOption()
+    private final ConfigurationOption<List<URL>> serverUrls = ConfigurationOption.urlsOption()
         .key("server_urls")
         .aliasKeys("server_url")
         .configurationCategory(REPORTER_CATEGORY)
@@ -77,6 +77,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Fails over to the next APM Server URL in the event of connection errors.\n" +
             "Achieves load-balancing by shuffling the list of configured URLs.\n" +
             "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.\n" +
+            "\n" +
+            "If set to an empty string, the agent will work as usual, except from any task requiring communication with \n" +
+            "the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. \n" +
             "\n" +
             "If outgoing HTTP traffic has to go through a proxy," +
             "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
@@ -192,7 +195,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<URL> getServerUrls() {
-        return serverUrl.get();
+        return serverUrls.get();
     }
 
     public TimeDuration getServerTimeout() {
@@ -232,7 +235,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     }
 
     public ConfigurationOption<List<URL>> getServerUrlsOption() {
-        return this.serverUrl;
+        return this.serverUrls;
     }
 
 }

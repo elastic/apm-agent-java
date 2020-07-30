@@ -24,9 +24,9 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
-import co.elastic.apm.agent.collections.WeakMapSupplier;
 import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.Version;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;

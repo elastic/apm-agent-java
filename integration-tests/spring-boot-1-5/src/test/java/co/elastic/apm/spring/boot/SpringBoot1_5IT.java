@@ -64,7 +64,7 @@ public class SpringBoot1_5IT {
 
     @Before
     public void setUp() {
-        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.getOrCreateInstrumentationTracer();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         config = mockInstrumentationSetup.getConfig();
         reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());
