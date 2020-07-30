@@ -110,6 +110,18 @@ public class ReportingEvent {
         this.type = SHUTDOWN;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder description = new StringBuilder();
+        description.append("Type: ").append(type);
+        if (transaction != null) {
+            description.append(", ").append(transaction.toString());
+        } else if (span != null) {
+            description.append(", ").append(span.toString());
+        }
+        return description.toString();
+    }
+
     @Nullable
     public MetricRegistry getMetricRegistry() {
         return metricRegistry;
@@ -123,6 +135,16 @@ public class ReportingEvent {
     @Nullable
     public byte[] getBytes() {
         return bytes;
+    }
+
+    public void end() {
+        if (transaction != null) {
+            transaction.decrementReferences();
+        } else if (span != null) {
+            span.decrementReferences();
+        } else if (error != null) {
+            error.recycle();
+        }
     }
 
     enum ReportingEventType {

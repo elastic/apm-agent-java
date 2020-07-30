@@ -99,20 +99,23 @@ public class AbstractIntakeApiHandler {
         return endRequest;
     }
 
+    @Nullable
     protected HttpURLConnection startRequest(String endpoint) throws IOException {
         final HttpURLConnection connection = apmServerClient.startRequest(endpoint);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Starting new request to {}", connection.getURL());
+        if (connection != null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Starting new request to {}", connection.getURL());
+            }
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
+            connection.setRequestProperty("Content-Encoding", "deflate");
+            connection.setRequestProperty("Content-Type", "application/x-ndjson");
+            connection.setUseCaches(false);
+            connection.connect();
+            os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
+            os.write(metaData);
         }
-        connection.setRequestMethod("POST");
-        connection.setDoOutput(true);
-        connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
-        connection.setRequestProperty("Content-Encoding", "deflate");
-        connection.setRequestProperty("Content-Type", "application/x-ndjson");
-        connection.setUseCaches(false);
-        connection.connect();
-        os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
-        os.write(metaData);
         return connection;
     }
 
@@ -142,6 +145,7 @@ public class AbstractIntakeApiHandler {
             } finally {
                 HttpUtils.consumeAndClose(connection);
                 connection = null;
+                os = null;
                 deflater.reset();
                 currentlyTransmitting = 0;
             }
@@ -197,6 +201,10 @@ public class AbstractIntakeApiHandler {
 
     public long getDropped() {
         return dropped;
+    }
+
+    public int getErrorCount() {
+        return errorCount;
     }
 
     public void close() {

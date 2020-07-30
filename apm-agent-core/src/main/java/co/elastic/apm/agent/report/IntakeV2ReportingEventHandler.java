@@ -95,13 +95,24 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             if (connection == null) {
                 connection = startRequest(INTAKE_V2_URL);
             }
-            writeEvent(event);
+            if (connection != null) {
+                writeEvent(event);
+            } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Failed to get APM server connection, dropping event: {}", event);
+                }
+                handleNonWrittenEvent(event);
+                dropped++;
+            }
         } catch (Exception e) {
             logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
             logger.debug("Event handling failure", e);
             endRequest();
             onConnectionError(null, currentlyTransmitting + 1, 0);
+        } finally {
+            event.end();
         }
+
         if (shouldEndRequest()) {
             endRequest();
         }
@@ -120,19 +131,28 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         if (event.getTransaction() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeTransactionNdJson(event.getTransaction());
-            event.getTransaction().decrementReferences();
         } else if (event.getSpan() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeSpanNdJson(event.getSpan());
-            event.getSpan().decrementReferences();
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
-            event.getError().recycle();
         } else if (event.getMetricRegistry() != null) {
             payloadSerializer.serializeMetrics(event.getMetricRegistry());
         } else if (event.getBytes() != null) {
             payloadSerializer.writeBytes(event.getBytes());
+        }
+    }
+
+    /**
+     * Should be called whenever {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)} is not called for
+     * an event that should normally be written.
+     *
+     * @param event the event to end
+     */
+    private void handleNonWrittenEvent(ReportingEvent event) {
+        if (event.getMetricRegistry() != null) {
+            event.getMetricRegistry().flipPhaseAndReport(null);
         }
     }
 
@@ -144,17 +164,20 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     }
 
     @Override
+    @Nullable
     protected HttpURLConnection startRequest(String endpoint) throws IOException {
         HttpURLConnection connection = super.startRequest(endpoint);
-        if (os != null) {
-            payloadSerializer.setOutputStream(os);
-        }
-        if (reporter != null) {
-            timeoutTask = new IntakeV2ReportingEventHandler.FlushOnTimeoutTimerTask(reporter);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
+        if (connection != null) {
+            if (os != null) {
+                payloadSerializer.setOutputStream(os);
             }
-            timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
+            if (reporter != null) {
+                timeoutTask = new FlushOnTimeoutTimerTask(reporter);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
+                }
+                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
+            }
         }
         return connection;
     }
