@@ -119,6 +119,6 @@ public class ApmServerHealthChecker implements Callable<Version> {
         if (!versions.isEmpty()) {
             return Collections.min(versions);
         }
-        return null;
+        return Version.UNKNOWN_VERSION;
     }
 }

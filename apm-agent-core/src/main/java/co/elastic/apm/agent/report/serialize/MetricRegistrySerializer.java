@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -44,7 +44,6 @@ public class MetricRegistrySerializer {
         for (MetricSet metricSet : metricSets.values()) {
             if (metricSet.hasContent()) {
                 serializeMetricSet(metricSet, timestamp, replaceBuilder, jw);
-                metricSet.onAfterReport();
                 jw.writeByte(NEW_LINE);
             }
         }
@@ -167,7 +166,6 @@ public class MetricRegistrySerializer {
         serializeValueStart(key, "", jw);
         NumberConverter.serialize(value.get(), jw);
         jw.writeByte(JsonWriter.OBJECT_END);
-        value.set(0);
     }
 
     private static boolean isValid(double value) {
@@ -178,7 +176,6 @@ public class MetricRegistrySerializer {
         serializeValue(key, ".count", timer.getCount(), jw);
         jw.writeByte(JsonWriter.COMMA);
         serializeValue(key, ".sum.us", timer.getTotalTimeUs(), jw);
-        timer.resetState();
     }
 
     private static void serializeValue(String key, double value, JsonWriter jw) {

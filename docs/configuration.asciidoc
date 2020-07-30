@@ -1923,6 +1923,9 @@ Fails over to the next APM Server URL in the event of connection errors.
 Achieves load-balancing by shuffling the list of configured URLs.
 When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
 
+If set to an empty string, the agent will work as usual, except from any task requiring communication with 
+the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+
 If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
 
@@ -3220,6 +3223,9 @@ The default unit for this option is `ms`.
 # Fails over to the next APM Server URL in the event of connection errors.
 # Achieves load-balancing by shuffling the list of configured URLs.
 # When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+# 
+# If set to an empty string, the agent will work as usual, except from any task requiring communication with 
+# the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
 # 
 # If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 # See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
