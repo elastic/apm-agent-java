@@ -32,18 +32,22 @@ import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class MicrometerMetricsReporter implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
-    private final WeakConcurrentSet<MeterRegistry> nonCompositeMeterRegistries = WeakMapSupplier.createSet();
-    private final WeakConcurrentSet<CompositeMeterRegistry> compositeMeterRegistries = WeakMapSupplier.createSet();
+
+    private final WeakConcurrentSet<MeterRegistry> meterRegistries = WeakMapSupplier.createSet();
     private final StringBuilder replaceBuilder = new StringBuilder();
     private final JsonWriter jsonWriter = new DslJson<>().newWriter();
     private final Reporter reporter;
@@ -56,12 +60,10 @@ public class MicrometerMetricsReporter implements Runnable {
     }
 
     public void registerMeterRegistry(MeterRegistry meterRegistry) {
-        boolean added;
         if (meterRegistry instanceof CompositeMeterRegistry) {
-            added = compositeMeterRegistries.add((CompositeMeterRegistry) meterRegistry);
-        } else {
-            added = nonCompositeMeterRegistries.add(meterRegistry);
+            return;
         }
+        boolean added = meterRegistries.add(meterRegistry);
         if (added) {
             logger.info("Registering Micrometer MeterRegistry: {}", meterRegistry);
             scheduleReporting();
@@ -87,33 +89,24 @@ public class MicrometerMetricsReporter implements Runnable {
             return;
         }
         final long timestamp = System.currentTimeMillis() * 1000;
-        report(timestamp, nonCompositeMeterRegistries);
-        report(timestamp, compositeMeterRegistries);
+        MeterMapConsumer meterConsumer = new MeterMapConsumer();
+        for (MeterRegistry registry : meterRegistries) {
+            registry.forEachMeter(meterConsumer);
+        }
+        logger.debug("Reporting {} meters", meterConsumer.meters.size());
+        MicrometerMeterRegistrySerializer.serialize(meterConsumer.meters, timestamp, replaceBuilder, jsonWriter);
         if (jsonWriter.size() > 0) {
             reporter.report(jsonWriter.toByteArray());
             jsonWriter.reset();
         }
     }
 
-    private void report(long timestamp, WeakConcurrentSet<? extends MeterRegistry> nonCompositeMeterRegistries) {
-        for (MeterRegistry meterRegistry : nonCompositeMeterRegistries) {
-            if (isRegisteredInCompositeMeterRegistry(meterRegistry)) {
-                logger.debug("Not reporting Micrometer MeterRegistry as it's registered within a CompositeMeterRegistry");
-            } else {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Reporting Micrometer MeterRegistry {} (size {})", meterRegistry, meterRegistry.getMeters().size());
-                }
-                MicrometerMeterRegistrySerializer.serialize(meterRegistry, timestamp, replaceBuilder, jsonWriter);
-            }
-        }
-    }
+    private static class MeterMapConsumer implements Consumer<Meter> {
+        final Map<Meter.Id, Meter> meters = new HashMap<>();
 
-    private boolean isRegisteredInCompositeMeterRegistry(MeterRegistry meterRegistry) {
-        for (CompositeMeterRegistry compositeMeterRegistry : compositeMeterRegistries) {
-            if (compositeMeterRegistry.getRegistries().contains(meterRegistry)) {
-                return true;
-            }
+        @Override
+        public void accept(Meter meter) {
+            meters.put(meter.getId(), meter);
         }
-        return false;
     }
 }

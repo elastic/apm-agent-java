@@ -54,7 +54,7 @@ public class SamplingProfilerReplay {
         jfrFile.deleteOnExit();
         MockReporter reporter = new MockReporter();
         SamplingProfiler samplingProfiler = new SamplingProfiler(MockTracer.createRealTracer(reporter),
-            ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
+            ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler"),
             new SystemNanoClock(),
             activationEventsFile,
             jfrFile);

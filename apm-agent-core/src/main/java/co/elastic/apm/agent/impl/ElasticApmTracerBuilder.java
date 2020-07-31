@@ -170,7 +170,7 @@ public class ElasticApmTracerBuilder {
     }
 
     private LifecycleListener scheduleReloadAtRate(final ConfigurationRegistry configurationRegistry, final int rate, TimeUnit seconds) {
-        final ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDeamonPool("configuration-reloader");
+        final ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDaemonPool("configuration-reloader");
         configurationReloader.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

@@ -245,7 +245,7 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }
-        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDeamonPool("apm-reinit", 1);
+        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDaemonPool("apm-reinit", 1);
         try {
             return executor.submit(new Runnable() {
                 @Override

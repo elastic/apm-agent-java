@@ -44,7 +44,7 @@ public class WeakMapCleaner extends AbstractLifecycleListener implements Runnabl
     private final ScheduledThreadPoolExecutor scheduler;
 
     public WeakMapCleaner() {
-        this.scheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("weak-map-cleaner");
+        this.scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("weak-map-cleaner");
     }
 
     @Override

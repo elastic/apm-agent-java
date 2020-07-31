@@ -34,9 +34,7 @@ import io.micrometer.core.instrument.FunctionTimer;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
-import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
 
 import java.util.ArrayList;
@@ -44,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
@@ -54,27 +51,24 @@ public class MicrometerMeterRegistrySerializer {
 
     private static final byte NEW_LINE = (byte) '\n';
 
-    public static void serialize(final MeterRegistry meterRegistry, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
-        final Map<Tags, List<Meter>> metersGroupedByTags = new HashMap<>();
-        meterRegistry.forEachMeter(new Consumer<Meter>() {
-            @Override
-            public void accept(Meter meter) {
-                Tags tags = Tags.of(meter.getId().getTagsAsIterable());
-                List<Meter> meters = metersGroupedByTags.get(tags);
-                if (meters == null) {
-                    meters = new ArrayList<>(1);
-                    metersGroupedByTags.put(tags, meters);
-                }
-                meters.add(meter);
+    public static void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
+        final Map<List<Tag>, List<Meter>> metersGroupedByTags = new HashMap<>();
+        for (Map.Entry<Meter.Id, Meter> entry : metersById.entrySet()) {
+            List<Tag> tags = entry.getKey().getTags();
+            List<Meter> meters = metersGroupedByTags.get(tags);
+            if (meters == null) {
+                meters = new ArrayList<>(1);
+                metersGroupedByTags.put(tags, meters);
             }
-        });
-        for (Map.Entry<Tags, List<Meter>> entry : metersGroupedByTags.entrySet()) {
+            meters.add(entry.getValue());
+        }
+        for (Map.Entry<List<Tag>, List<Meter>> entry : metersGroupedByTags.entrySet()) {
             serializeMetricSet(entry.getKey(), entry.getValue(), epochMicros, replaceBuilder, jw);
             jw.writeByte(NEW_LINE);
         }
     }
 
-    static void serializeMetricSet(Tags tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+    static void serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
         jw.writeByte(JsonWriter.OBJECT_START);
         {
             DslJsonSerializer.writeFieldName("metricset", jw);
@@ -133,12 +127,15 @@ public class MicrometerMeterRegistrySerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeTags(Tags tags, StringBuilder replaceBuilder, JsonWriter jw) {
+    private static void serializeTags(List<Tag> tags, StringBuilder replaceBuilder, JsonWriter jw) {
+        if (tags.isEmpty()) {
+            return;
+        }
         DslJsonSerializer.writeFieldName("tags", jw);
         jw.writeByte(OBJECT_START);
-        int i = 0;
-        for (Tag tag : tags) {
-            if (i++ > 0) {
+        for (int i = 0, tagsSize = tags.size(); i < tagsSize; i++) {
+            Tag tag = tags.get(i);
+            if (i > 0) {
                 jw.writeByte(COMMA);
             }
             DslJsonSerializer.writeLastField(tag.getKey(), tag.getValue(), replaceBuilder, jw);

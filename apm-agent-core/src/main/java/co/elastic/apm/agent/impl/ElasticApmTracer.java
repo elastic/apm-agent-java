@@ -26,7 +26,6 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
-import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.ExecutorServiceShutdownLifecycleListener;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -57,15 +56,12 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -151,7 +147,7 @@ public class ElasticApmTracer implements Tracer {
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs(), this);
-        sharedPool = ExecutorUtils.createSingleThreadSchedulingDeamonPool("shared");
+        sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
         lifecycleListeners.add(new ExecutorServiceShutdownLifecycleListener(sharedPool));
 
         // sets the assertionsEnabled flag to true if indeed enabled
@@ -521,7 +517,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private synchronized void startWithDelay(final long delayInitMs) {
-        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("tracer-initializer", 1);
         pool.submit(new Runnable() {
             @Override
             public void run() {

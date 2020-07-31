@@ -58,7 +58,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 
-class MicrometerReporterTest {
+class MicrometerMetricsReporterTest {
 
     private MeterRegistry meterRegistry;
     private MicrometerMetricsReporter metricsReporter;
@@ -137,14 +137,14 @@ class MicrometerReporterTest {
             public String get(@Nonnull String key) {
                 return null;
             }
-        }, Clock.SYSTEM);
+        }, clock);
         metricsReporter.registerMeterRegistry(meterRegistry);
         meterRegistry.counter("counter").increment();
 
-        clock.addSeconds(60);
+        clock.addSeconds(30);
         assertThat(getSingleMetricSet().get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(1);
 
-        clock.addSeconds(60);
+        clock.addSeconds(30);
         assertThat(getSingleMetricSet().get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(0);
     }
 

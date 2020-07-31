@@ -376,7 +376,7 @@ Micrometer tags are nested under `labels`. Example:
 Labels are great to break down metrics by different dimensions.
 Although there is no upper limit, note that a high number of distinct values per label (aka high cardinality) may lead to higher memory usage,
 higher index sizes, and slower queries.
-Also make sure that the number of distinct tag keys is limited to avoid {ref}/mapping.html#mapping-limit-settings[mapping explosions].
+Also, make sure the number of distinct tag keys is limited to avoid {ref}/mapping.html#mapping-limit-settings[mapping explosions].
 
 *`Timer`*::
 +
