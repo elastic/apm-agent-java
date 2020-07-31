@@ -56,7 +56,6 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 
 class MicrometerMetricsReporterTest {
@@ -73,7 +72,7 @@ class MicrometerMetricsReporterTest {
         meterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(nestedCompositeMeterRegistry));
         reporter = new MockReporter();
         ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
-        doReturn(0L).when(tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
+        doReturn(0L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
         metricsReporter = new MicrometerMetricsReporter(tracer);
         metricsReporter.registerMeterRegistry(meterRegistry);
         metricsReporter.registerMeterRegistry(nestedCompositeMeterRegistry);
