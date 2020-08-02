@@ -26,7 +26,9 @@ package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -195,7 +197,23 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
-        Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
+        // The initialization of log4j may produce errors if the traced application uses log4j settings (for
+        // example - through file in the classpath or System properties) that configures specific properties for
+        // loading classes by name. Since we shade our usage of log4j, such non-shaded classes may not (and should not)
+        // be found on the classpath.
+        // All handled Exceptions should not prevent us from using log4j further, as the system falls back to a default
+        // which we expect anyway. We take a calculated risk of ignoring such errors only through initialization time,
+        // assuming that errors that will make the logging system non-usable won't be handled.
+        System.setProperty("log4j2.StatusLogger.level", "OFF");
+        System.setProperty("org.apache.logging.log4j.simplelog.StatusLogger.level", "OFF");
+        System.setProperty("Log4jDefaultStatusLevel", "OFF");
+        try {
+            Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
+        } catch (Throwable throwable) {
+            System.err.println("Failure during initialization of agent's log4j system: " + throwable.getMessage());
+        } finally {
+            StatusLogger.getLogger().setLevel(Level.ERROR);
+        }
     }
 
     public String getLogFile() {
