@@ -1,10 +1,14 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -15,9 +19,13 @@ import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrumentation {
 
@@ -25,6 +33,9 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
     public Class<?> getAdviceClass() {
         return HttpClient11Advice.class;
     }
+
+    @VisibleForAdvice
+    public static final WeakConcurrentMap<CompletableFuture<?>, Span> handlerSpanMap = WeakMapSupplier.createMap();
 
     @VisibleForAdvice
     public static class HttpClient11Advice {
@@ -96,4 +107,50 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
     public boolean indyPlugin() {
         return true;
     }
+
+    public abstract static class AbstractCompletableFutureInstrumentation extends HttpClientAsyncInstrumentation {
+        private final ElementMatcher<? super MethodDescription> methodMatcher;
+
+        protected AbstractCompletableFutureInstrumentation(ElasticApmTracer tracer, ElementMatcher<? super MethodDescription> methodMatcher) {
+            this.methodMatcher = methodMatcher;
+        }
+
+        /**
+         * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
+         * based on the type of the {@linkplain java.util.concurrent.CompletableFuture} implementation class.
+         */
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return any();
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return methodMatcher;
+        }
+    }
+
+    public static class CompletableFutureReportGetInstrumentation extends AbstractCompletableFutureInstrumentation {
+
+        public CompletableFutureReportGetInstrumentation(ElasticApmTracer tracer) {
+            super(tracer, named("reportGet").and(takesArguments(Throwable.class)));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onMethodEnter(@Advice.This CompletableFuture<?> completableFuture, @Advice.Local("span") Span span) {
+            span = handlerSpanMap.remove(completableFuture);
+            if (span != null) {
+                span.activate();
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit(@Nullable @Advice.Local("span") Span span, @Advice.Argument(0) Throwable t) {
+            if (span != null) {
+                span.captureException(t).end();
+                span.deactivate();
+            }
+        }
+    }
+
 }
