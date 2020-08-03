@@ -60,7 +60,7 @@ endif::[]
 * Fixes missing `jboss.as:*` MBeans on JBoss - {pull}1257[#1257]
 * Fixes a `NoClassDefFoundError` in the JMS instrumentation of `MessageListener` - {pull}1287[#1287]
 * Fix `/ by zero` error message when setting `server_urls` with an empty string - {pull}1295[#1295]
-* Fix `ClassNotFoundException` in some cases where special log4j configurations are used - {pull}1322[#1322]
+* Fix `ClassNotFoundException` or `ClassCastException` in some cases where special log4j configurations are used - {pull}1322[#1322]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
