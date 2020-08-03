@@ -66,7 +66,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String DEFAULT_MAX_SIZE = "50mb";
     static final String SHIP_AGENT_LOGS = "ship_agent_logs";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
-    static final String LOG_FORMAT_FILE_KEY = "log_format_file";
+    public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
     static final String INITIAL_LISTENERS_LEVEL = "log4j2.StatusLogger.level";
     static final String INITIAL_STATUS_LOGGER_LEVEL = "org.apache.logging.log4j.simplelog.StatusLogger.level";
     static final String DEFAULT_LISTENER_LEVEL = "Log4jDefaultStatusLevel";
