@@ -26,11 +26,9 @@ package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.util.JmxUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.StringUtils;
@@ -40,17 +38,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 
 /**
  * Record metrics related to the CGroup Usage.
@@ -83,7 +72,7 @@ public class CGroupMetrics extends AbstractLifecycleListener {
         this(new File(PROC_SELF_CGROUP), new File(PROC_SELF_MOUNTINFO));
     }
 
-    CGroupMetrics( File procSelfCgroup, File mountInfo) {
+    CGroupMetrics(File procSelfCgroup, File mountInfo) {
         cgroupFiles = findCgroupFiles(procSelfCgroup, mountInfo);
     }
 
@@ -212,6 +201,7 @@ public class CGroupMetrics extends AbstractLifecycleListener {
         return null;
     }
 
+    @Nullable
     private File checkUnlimitedMemory(File maxMemoryFile, String cgroupUnlimitedConstant) throws IOException {
         try(BufferedReader maxFileReader = new BufferedReader(new FileReader(maxMemoryFile))) {
             String memMaxLine = maxFileReader.readLine();

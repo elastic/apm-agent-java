@@ -21,6 +21,7 @@ Starting in Java agent version 1.11.0, it is possible to manually configure a un
 When multiple JVMs are running on the same host and report data for the same service, this configuration is required in order to be able to view metrics at the JVM level.
 
 * <<metrics-system>>
+* <<metrics-cgroup, cgroup metrics>>
 * <<metrics-jvm>>
 * <<metrics-application>>
 
@@ -28,7 +29,7 @@ When multiple JVMs are running on the same host and report data for the same ser
 [[metrics-system]]
 === System metrics
 
-As of version 6.6, these metrics will be visualized in the APM app.
+Host metrics. As of version 6.6, these metrics will be visualized in the APM app.
 
 For more system metrics, consider installing {metricbeat-ref}/index.html[metricbeat] on your hosts.
 
@@ -88,6 +89,44 @@ type: long
 format: bytes
 
 The total virtual memory the process has.
+--
+
+[float]
+[[metrics-cgroup]]
+=== cgroup metrics (added in 1.18.0)
+
+Linux's cgroup metrics.
+
+*`system.process.cgroup.memory.mem.limit.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+Memory limit for current cgroup slice.
+--
+
+
+*`system.process.cgroup.memory.mem.usage.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+Memory usage in current cgroup slice.
+--
+
+
+*`system.process.cgroup.memory.stats.inactive_file.bytes`*::
++
+--
+type: long
+
+format: bytes
+
+Inactive memory in current cgroup slice.
 --
 
 [float]
@@ -276,37 +315,4 @@ You can filter and group by these dimensions:
 * `span.type`: The type of the span, for example `app`, `template` or `db`
 * `span.subtype`: The sub-type of the span, for example `mysql` (optional)
 
---
-
-
-*`system.process.cgroup.memory.mem.limit.bytes`*::
-+
---
-type: long
-
-format: bytes
-
-Total memory reserved in current cgroup slice.
---
-
-
-*`system.process.cgroup.memory.mem.usage.bytes`*::
-+
---
-type: long
-
-format: bytes
-
-Memory usage in current cgroup slice.
---
-
-
-*`system.process.cgroup.memory.stats.inactive_file.bytes`*::
-+
---
-type: long
-
-format: bytes
-
-Inactive memory in current cgroup slice.
 --
