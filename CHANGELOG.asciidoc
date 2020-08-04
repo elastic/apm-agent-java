@@ -61,6 +61,7 @@ endif::[]
 * Fixes a `NoClassDefFoundError` in the JMS instrumentation of `MessageListener` - {pull}1287[#1287]
 * Fix `/ by zero` error message when setting `server_urls` with an empty string - {pull}1295[#1295]
 * Fix `ClassNotFoundException` or `ClassCastException` in some cases where special log4j configurations are used - {pull}1322[#1322]
+* Fix `NumberFormatException` when using early access Java version - {pull}1325[#1325]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
