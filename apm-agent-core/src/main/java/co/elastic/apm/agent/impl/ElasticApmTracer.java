@@ -696,7 +696,7 @@ public class ElasticApmTracer implements Tracer {
         if (classLoader == null
             || serviceName == null || serviceName.isEmpty()
             // if the service name is set explicitly, don't override it
-            || !coreConfiguration.getServiceNameConfig().isDefault()) {
+            || coreConfiguration.getServiceNameConfig().getUsedKey() != null) {
             return;
         }
         if (!serviceNameByClassLoader.containsKey(classLoader)) {

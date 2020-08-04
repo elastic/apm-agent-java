@@ -26,7 +26,9 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -425,6 +427,44 @@ class ElasticApmTracerTest {
         tracer.startRootTransaction(getClass().getClassLoader()).end();
 
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
+    }
+
+    @Test
+    void testNotOverrideServiceNameWhenServiceNameConfigured() {
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties"));
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.startRootTransaction(getClass().getClassLoader()).end();
+
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
+    }
+
+    @Test
+    void testNotOverrideServiceNameWhenDefaultServiceNameConfigured() {
+        // In-explicitly affecting the discovered default service name
+        String command = System.setProperty("sun.java.command", "TEST_SERVICE_NAME");
+
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
+            new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties")
+        );
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        tracer.startRootTransaction(getClass().getClassLoader()).end();
+
+        CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
+        assertThat(ServiceNameUtil.getDefaultServiceName()).isEqualTo(coreConfig.getServiceName());
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
+        if (command != null) {
+            System.setProperty("sun.java.command", command);
+        } else {
+            System.clearProperty("sun.java.command");
+        }
     }
 
     @Test

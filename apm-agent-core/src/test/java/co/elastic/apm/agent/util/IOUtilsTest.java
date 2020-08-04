@@ -160,10 +160,10 @@ class IOUtilsTest  {
 
     @Test
     void exportResourceToTemp() throws UnsupportedEncodingException, URISyntaxException {
-        File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", UUID.randomUUID().toString(), "tmp");
+        File tmp = IOUtils.exportResourceToTemp("test.elasticapm.properties", UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
 
-        Path referenceFile = Paths.get(IOUtilsTest.class.getResource("/elasticapm.properties").toURI());
+        Path referenceFile = Paths.get(IOUtilsTest.class.getResource("/test.elasticapm.properties").toURI());
 
         assertThat(tmp)
             .hasSameContentAs(referenceFile.toFile());
@@ -173,11 +173,11 @@ class IOUtilsTest  {
     void exportResourceToTempIdempotence() throws InterruptedException
     {
         String destination = UUID.randomUUID().toString();
-        File tmp = IOUtils.exportResourceToTemp("elasticapm.properties", destination, "tmp");
+        File tmp = IOUtils.exportResourceToTemp("test.elasticapm.properties", destination, "tmp");
         tmp.deleteOnExit();
         long actual = tmp.lastModified();
         Thread.sleep(1000);
-        File after = IOUtils.exportResourceToTemp("elasticapm.properties", destination, "tmp");
+        File after = IOUtils.exportResourceToTemp("test.elasticapm.properties", destination, "tmp");
         assertThat(actual).isEqualTo(after.lastModified());
     }
 
@@ -199,7 +199,7 @@ class IOUtilsTest  {
             futureList.add(executorService.submit(() -> {
                 countDownLatch.countDown();
                 countDownLatch.await();
-                File file = IOUtils.exportResourceToTemp("elasticapm.properties", tempFileNamePrefix, "tmp");
+                File file = IOUtils.exportResourceToTemp("test.elasticapm.properties", tempFileNamePrefix, "tmp");
                 file.deleteOnExit();
                 return file;
             }));
