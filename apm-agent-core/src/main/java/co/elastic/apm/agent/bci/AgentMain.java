@@ -127,7 +127,12 @@ public class AgentMain {
         if (version.startsWith("1.")) {
             major = Character.digit(version.charAt(2), 10);
         } else {
-            major = Integer.parseInt(version.split("\\.")[0]);
+            String majorAsString = version.split("\\.")[0];
+            int indexOfSlash = majorAsString.indexOf('-');
+            if (indexOfSlash > 0) {
+                majorAsString = majorAsString.substring(0, indexOfSlash);
+            }
+            major = Integer.parseInt(majorAsString);
         }
 
         boolean isHotSpot = vmName.contains("HotSpot(TM)") || vmName.contains("OpenJDK");
