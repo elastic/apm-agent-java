@@ -128,9 +128,9 @@ public class AgentMain {
             major = Character.digit(version.charAt(2), 10);
         } else {
             String majorAsString = version.split("\\.")[0];
-            int indexOfSlash = majorAsString.indexOf('-');
-            if (indexOfSlash > 0) {
-                majorAsString = majorAsString.substring(0, indexOfSlash);
+            int indexOfDash = majorAsString.indexOf('-');
+            if (indexOfDash > 0) {
+                majorAsString = majorAsString.substring(0, indexOfDash);
             }
             major = Integer.parseInt(majorAsString);
         }
