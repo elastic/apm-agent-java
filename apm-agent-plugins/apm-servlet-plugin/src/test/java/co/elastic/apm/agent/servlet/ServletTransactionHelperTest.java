@@ -100,6 +100,9 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
         assertThat(transaction.getNameAsString()).isEqualTo("GET /foo/bar/*");
     }
 
+    /**
+     * Tests a scenario of un-deploying a webapp and then re-deploying it on a Servlet container
+     */
     @Test
     void testServiceNameConsistencyAcrossDifferentClassLoaders() {
         final String testContext = "test-context";

@@ -63,6 +63,7 @@ endif::[]
 * Fix `ClassNotFoundException` or `ClassCastException` in some cases where special log4j configurations are used - {pull}1322[#1322]
 * Fix `NumberFormatException` when using early access Java version - {pull}1325[#1325]
 * Fix `service_name` config being ignored when set to the same auto-discovered default value - {pull}1324[#1324]
+* Fix service name error when updating a web app on a Servlet container - {pull}1326[#1326]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
