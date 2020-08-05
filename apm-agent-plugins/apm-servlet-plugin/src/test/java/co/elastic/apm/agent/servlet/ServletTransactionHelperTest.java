@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
@@ -36,12 +37,14 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-class ServletTransactionHelperTest {
+class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     private ServletTransactionHelper servletTransactionHelper;
     private WebConfiguration webConfig;
@@ -95,6 +98,25 @@ class ServletTransactionHelperTest {
         ServletTransactionHelper.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction);
         servletTransactionHelper.applyDefaultTransactionName("GET", "/foo/bar/baz", null, transaction);
         assertThat(transaction.getNameAsString()).isEqualTo("GET /foo/bar/*");
+    }
+
+    @Test
+    void testServiceNameConsistencyAcrossDifferentClassLoaders() {
+        final String testContext = "test-context";
+        final String testContextPath = "test-context-path";
+
+        URLClassLoader cl1 = new URLClassLoader(new URL[0]);
+        ServletTransactionHelper.determineServiceName(testContext, cl1, testContextPath);
+        tracer.startRootTransaction(cl1).end();
+
+        URLClassLoader cl2 = new URLClassLoader(new URL[0]);
+        ServletTransactionHelper.determineServiceName(testContext, cl2, testContextPath);
+        tracer.startRootTransaction(cl2).end();
+
+        assertThat(reporter.getTransactions().stream()
+            .filter(transaction -> testContext.equals(transaction.getTraceContext().getServiceName()))
+            .count()
+        ).isEqualTo(2);
     }
 
     @Nonnull

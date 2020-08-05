@@ -69,8 +69,8 @@ public class ServletTransactionHelper {
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
-    public static void determineServiceName(@Nullable String servletContextName, ClassLoader servletContextClassLoader, @Nullable String contextPath) {
-        if (!nameInitialized.add(contextPath == null ? "null" : contextPath)) {
+    public static void determineServiceName(@Nullable String servletContextName, @Nullable ClassLoader servletContextClassLoader, @Nullable String contextPath) {
+        if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
         }
 
