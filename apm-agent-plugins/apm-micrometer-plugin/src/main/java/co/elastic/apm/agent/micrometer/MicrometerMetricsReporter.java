@@ -49,7 +49,7 @@ public class MicrometerMetricsReporter implements Runnable {
 
     private final WeakConcurrentSet<MeterRegistry> meterRegistries = WeakMapSupplier.createSet();
     private final StringBuilder replaceBuilder = new StringBuilder();
-    private final JsonWriter jsonWriter = new DslJson<>().newWriter();
+    private final JsonWriter jsonWriter = new DslJson<>(new DslJson.Settings<>()).newWriter();
     private final Reporter reporter;
     private final ElasticApmTracer tracer;
     private boolean scheduledReporting = false;
