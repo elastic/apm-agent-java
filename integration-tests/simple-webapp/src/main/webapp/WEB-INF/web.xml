@@ -89,4 +89,36 @@
         <servlet-name>JBossMBeanTestServlet</servlet-name>
         <url-pattern>/jboss-mbeans</url-pattern>
     </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ForwardingServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ForwardingServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ForwardingServlet</servlet-name>
+        <url-pattern>/forward</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>IncludingServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.IncludingServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>IncludingServlet</servlet-name>
+        <url-pattern>/include</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>ErrorServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ErrorServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ErrorServlet</servlet-name>
+        <url-pattern>/error</url-pattern>
+    </servlet-mapping>
+    <error-page>
+        <error-code>404</error-code>
+        <location>/error</location>
+    </error-page>
 </web-app>
