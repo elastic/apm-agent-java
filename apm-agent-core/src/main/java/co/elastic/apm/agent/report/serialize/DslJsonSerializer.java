@@ -258,9 +258,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     @Override
     public void writeBytes(byte[] bytes) {
-        for (int i = 0; i < bytes.length; i++) {
-            jw.writeByte(bytes[i]);
-        }
+        jw.writeAscii(bytes);
     }
 
     private void serializeErrors(List<ErrorCapture> errors) {
