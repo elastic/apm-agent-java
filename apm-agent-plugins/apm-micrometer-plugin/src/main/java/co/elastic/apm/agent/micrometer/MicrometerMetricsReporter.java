@@ -49,7 +49,7 @@ public class MicrometerMetricsReporter implements Runnable {
 
     private final WeakConcurrentSet<MeterRegistry> meterRegistries = WeakMapSupplier.createSet();
     private final StringBuilder replaceBuilder = new StringBuilder();
-    private final JsonWriter jsonWriter = new DslJson<>(new DslJson.Settings<>()).newWriter();
+    private final MicrometerMeterRegistrySerializer serializer = new MicrometerMeterRegistrySerializer();
     private final Reporter reporter;
     private final ElasticApmTracer tracer;
     private boolean scheduledReporting = false;
@@ -94,10 +94,9 @@ public class MicrometerMetricsReporter implements Runnable {
             registry.forEachMeter(meterConsumer);
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
-        MicrometerMeterRegistrySerializer.serialize(meterConsumer.meters, timestamp, replaceBuilder, jsonWriter);
-        if (jsonWriter.size() > 0) {
-            reporter.report(jsonWriter.toByteArray());
-            jsonWriter.reset();
+        byte[] serialized = serializer.serialize(meterConsumer.meters, timestamp, replaceBuilder);
+        if (serialized != null) {
+            reporter.report(serialized);
         }
     }
 

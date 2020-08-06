@@ -25,7 +25,9 @@
 package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
+import com.dslplatform.json.Nullable;
 import com.dslplatform.json.NumberConverter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
@@ -50,8 +52,20 @@ import static com.dslplatform.json.JsonWriter.OBJECT_START;
 public class MicrometerMeterRegistrySerializer {
 
     private static final byte NEW_LINE = (byte) '\n';
+    private final JsonWriter jsonWriter = new DslJson<>(new DslJson.Settings<>()).newWriter();
 
-    public static void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    @Nullable
+    public byte[] serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder) {
+        serialize(metersById, epochMicros, replaceBuilder, jsonWriter);
+        if (jsonWriter.size() == 0) {
+            return null;
+        }
+        byte[] bytes = jsonWriter.toByteArray();
+        jsonWriter.reset();
+        return bytes;
+    }
+
+    static void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
         final Map<List<Tag>, List<Meter>> metersGroupedByTags = new HashMap<>();
         for (Map.Entry<Meter.Id, Meter> entry : metersById.entrySet()) {
             List<Tag> tags = entry.getKey().getTags();
