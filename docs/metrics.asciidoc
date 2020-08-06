@@ -294,11 +294,16 @@ Some use cases for tracking custom metrics from your application include monitor
 However, you can also track business-related metrics such as revenue and correlate them with performance metrics.
 Metrics registered to a Micrometer `MeterRegistry` are aggregated in memory and reported every <<config-metrics-interval, `metrics_interval`>>.
 Based on the metadata about the service and the timestamp, you can correlate metrics with traces.
-However, you won't be able to attribute a value to a specific transaction or to a user.
-If you'd like to do that, have a look at the <<api-transaction-add-tag>> API method instead.
 The advantage is that the metrics won't be affected by the
 <<config-transaction-sample-rate, sampling rate>> and that they usually take up less space.
 That is because not every event is stored individually.
+
+The limitation of tracking metrics is that you won't be able to attribute a value to a specific transaction.
+If you'd like to do that, <<api-transaction-add-tag, add labels>> to your transaction instead of tracking the metric with micrometer.
+The tradeoff here is that you either have to do 100% sampling or account for the missing events.
+The reason for that is that if you set your sampling rate to 10%, for example,
+you'll only be storing one out of 10 requests.
+The labels you set on non-sampled transactions will be lost.
 
 [float]
 [[metrics-micrometer-get-started-existing]]
