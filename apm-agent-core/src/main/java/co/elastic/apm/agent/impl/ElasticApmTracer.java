@@ -146,7 +146,6 @@ public class ElasticApmTracer implements Tracer {
             }
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
-        reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs(), this);
         sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
         lifecycleListeners.add(new ExecutorServiceShutdownLifecycleListener(sharedPool));
 

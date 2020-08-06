@@ -28,7 +28,6 @@ import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import com.dslplatform.json.JsonWriter;
 
 import java.io.File;
@@ -66,8 +65,6 @@ public interface PayloadSerializer {
      * @return the number of bytes which are currently buffered
      */
     int getBufferSize();
-
-    void serializeMetrics(MetricRegistry metricRegistry);
 
     void serializeFileMetaData(File file);
 

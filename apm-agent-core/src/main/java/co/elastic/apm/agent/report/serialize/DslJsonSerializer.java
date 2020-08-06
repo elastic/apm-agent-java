@@ -55,8 +55,6 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
-import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
@@ -89,7 +87,7 @@ import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
 import static com.dslplatform.json.JsonWriter.QUOTE;
 
-public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.MetricsReporter {
+public class DslJsonSerializer implements PayloadSerializer {
 
     /**
      * Matches default ZLIB buffer size.
@@ -221,16 +219,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     @Override
     public int getBufferSize() {
         return jw.size();
-    }
-
-    @Override
-    public void report(Map<? extends Labels, MetricSet> metricSets) {
-        MetricRegistrySerializer.serialize(metricSets, replaceBuilder, jw);
-    }
-
-    @Override
-    public void serializeMetrics(MetricRegistry metricRegistry) {
-        metricRegistry.flipPhaseAndReport(this);
     }
 
     @Override

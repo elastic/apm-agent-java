@@ -24,13 +24,10 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
 import com.lmax.disruptor.EventFactory;
@@ -42,9 +39,7 @@ import com.lmax.disruptor.dsl.ProducerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -102,8 +97,6 @@ public class ApmServerReporter implements Reporter {
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
-    @Nullable
-    private ScheduledThreadPoolExecutor metricsReportingScheduler;
 
     public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
                              ReportingEventHandler reportingEventHandler) {
@@ -244,9 +237,6 @@ public class ApmServerReporter implements Reporter {
             logger.warn("Timeout while shutting down disruptor");
         }
         reportingEventHandler.close();
-        if (metricsReportingScheduler != null) {
-            metricsReportingScheduler.shutdown();
-        }
     }
 
     @Override
@@ -264,27 +254,6 @@ public class ApmServerReporter implements Reporter {
         tryAddEventToRingBuffer(bytes, BYTES_EVENT_TRANSLATOR);
         if (syncReport) {
             waitForFlush();
-        }
-    }
-
-    @Override
-    public void scheduleMetricReporting(final MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
-        if (intervalMs > 0 && metricsReportingScheduler == null) {
-            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("metrics-reporter");
-            metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    if (!tracer.isRunning()) {
-                        return;
-                    }
-                    disruptor.getRingBuffer().tryPublishEvent(new EventTranslatorOneArg<ReportingEvent, MetricRegistry>() {
-                        @Override
-                        public void translateTo(ReportingEvent event, long sequence, MetricRegistry metricRegistry) {
-                            event.reportMetrics(metricRegistry);
-                        }
-                    }, metricRegistry);
-                }
-            }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
         }
     }
 

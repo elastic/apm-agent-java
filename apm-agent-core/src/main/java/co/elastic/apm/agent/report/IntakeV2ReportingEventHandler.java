@@ -28,7 +28,6 @@ import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.util.ThreadUtils;
-import com.dslplatform.json.JsonWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +100,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 if (logger.isDebugEnabled()) {
                     logger.debug("Failed to get APM server connection, dropping event: {}", event);
                 }
-                handleNonWrittenEvent(event);
                 dropped++;
             }
         } catch (Exception e) {
@@ -137,22 +135,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
-        } else if (event.getMetricRegistry() != null) {
-            payloadSerializer.serializeMetrics(event.getMetricRegistry());
         } else if (event.getBytes() != null) {
             payloadSerializer.writeBytes(event.getBytes());
-        }
-    }
-
-    /**
-     * Should be called whenever {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)} is not called for
-     * an event that should normally be written.
-     *
-     * @param event the event to end
-     */
-    private void handleNonWrittenEvent(ReportingEvent event) {
-        if (event.getMetricRegistry() != null) {
-            event.getMetricRegistry().flipPhaseAndReport(null);
         }
     }
 

@@ -53,9 +53,10 @@ public class MicrometerMeterRegistrySerializer {
 
     private static final byte NEW_LINE = (byte) '\n';
     private final JsonWriter jsonWriter = new DslJson<>(new DslJson.Settings<>()).newWriter();
+    private final StringBuilder replaceBuilder = new StringBuilder();
 
     @Nullable
-    public byte[] serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder) {
+    public byte[] serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
         serialize(metersById, epochMicros, replaceBuilder, jsonWriter);
         if (jsonWriter.size() == 0) {
             return null;

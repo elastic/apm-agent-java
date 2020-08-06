@@ -30,8 +30,6 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
-import com.dslplatform.json.DslJson;
-import com.dslplatform.json.JsonWriter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
@@ -48,7 +46,6 @@ public class MicrometerMetricsReporter implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
 
     private final WeakConcurrentSet<MeterRegistry> meterRegistries = WeakMapSupplier.createSet();
-    private final StringBuilder replaceBuilder = new StringBuilder();
     private final MicrometerMeterRegistrySerializer serializer = new MicrometerMeterRegistrySerializer();
     private final Reporter reporter;
     private final ElasticApmTracer tracer;
@@ -94,7 +91,7 @@ public class MicrometerMetricsReporter implements Runnable {
             registry.forEachMeter(meterConsumer);
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
-        byte[] serialized = serializer.serialize(meterConsumer.meters, timestamp, replaceBuilder);
+        byte[] serialized = serializer.serialize(meterConsumer.meters, timestamp);
         if (serialized != null) {
             reporter.report(serialized);
         }

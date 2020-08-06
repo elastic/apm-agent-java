@@ -24,20 +24,74 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
+import com.dslplatform.json.Nullable;
 import com.dslplatform.json.NumberConverter;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MetricRegistrySerializer {
+public class MetricRegistryReporter extends AbstractLifecycleListener implements MetricRegistry.MetricsReporter, Runnable {
 
     private static final byte NEW_LINE = '\n';
+
+    private final JsonWriter jsonWriter = new DslJson<>(new DslJson.Settings<>()).newWriter();
+    private final StringBuilder replaceBuilder = new StringBuilder();
+    private final Reporter reporter;
+    private final ElasticApmTracer tracer;
+    private final MetricRegistry metricRegistry;
+
+    public MetricRegistryReporter(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+        this.reporter = tracer.getReporter();
+        this.metricRegistry = tracer.getMetricRegistry();
+    }
+
+    @Override
+    public void start(ElasticApmTracer tracer) {
+        long intervalMs = tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs();
+        if (intervalMs > 0) {
+            tracer.getSharedSingleThreadedPool().scheduleAtFixedRate(this, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    @Override
+    public void run() {
+        if (tracer.isRunning()) {
+            metricRegistry.flipPhaseAndReport(this);
+        } else {
+            metricRegistry.flipPhaseAndReport(null);
+        }
+    }
+
+    @Override
+    public void report(Map<? extends Labels, MetricSet> metricSets) {
+        byte[] serialized = serialize(metricSets);
+        if (serialized != null) {
+            reporter.report(serialized);
+        }
+    }
+
+    @Nullable
+    public byte[] serialize(Map<? extends Labels, MetricSet> metricSets) {
+        serialize(metricSets, replaceBuilder, jsonWriter);
+        if (jsonWriter.size() == 0) {
+            return null;
+        }
+        return jsonWriter.toByteArray();
+    }
 
     public static void serialize(Map<? extends Labels, MetricSet> metricSets, StringBuilder replaceBuilder, JsonWriter jw) {
         final long timestamp = System.currentTimeMillis() * 1000;

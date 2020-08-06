@@ -27,14 +27,12 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.BYTES;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.FLUSH;
-import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.METRICS;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
@@ -49,8 +47,6 @@ public class ReportingEvent {
     @Nullable
     private Span span;
     @Nullable
-    private MetricRegistry metricRegistry;
-    @Nullable
     private byte[] bytes;
 
     public void resetState() {
@@ -58,7 +54,6 @@ public class ReportingEvent {
         this.type = null;
         this.error = null;
         this.span = null;
-        this.metricRegistry = null;
         this.bytes = null;
     }
 
@@ -101,11 +96,6 @@ public class ReportingEvent {
         this.type = SPAN;
     }
 
-    public void reportMetrics(MetricRegistry metricRegistry) {
-        this.metricRegistry = metricRegistry;
-        this.type = METRICS;
-    }
-
     public void shutdownEvent() {
         this.type = SHUTDOWN;
     }
@@ -120,11 +110,6 @@ public class ReportingEvent {
             description.append(", ").append(span.toString());
         }
         return description.toString();
-    }
-
-    @Nullable
-    public MetricRegistry getMetricRegistry() {
-        return metricRegistry;
     }
 
     public void setBytes(byte[] bytes) {
@@ -148,6 +133,6 @@ public class ReportingEvent {
     }
 
     enum ReportingEventType {
-        FLUSH, TRANSACTION, SPAN, ERROR, METRICS, SHUTDOWN, BYTES
+        FLUSH, TRANSACTION, SPAN, ERROR, SHUTDOWN, BYTES
     }
 }

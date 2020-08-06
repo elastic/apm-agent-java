@@ -24,14 +24,12 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
@@ -252,11 +250,6 @@ public class MockReporter implements Reporter {
             return;
         }
         this.bytes.add(bytes);
-    }
-
-    @Override
-    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
-        // noop
     }
 
     public synchronized Span getFirstSpan() {

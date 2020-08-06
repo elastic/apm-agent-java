@@ -177,7 +177,7 @@ class MetricSetSerializationTest {
 
     @Nonnull
     private JsonNode reportAsJson(Labels labels) throws IOException {
-        registry.flipPhaseAndReport(metricSets -> MetricRegistrySerializer.serializeMetricSet(metricSets.get(labels), System.currentTimeMillis() * 1000, new StringBuilder(), jw));
+        registry.flipPhaseAndReport(metricSets -> MetricRegistryReporter.serializeMetricSet(metricSets.get(labels), System.currentTimeMillis() * 1000, new StringBuilder(), jw));
         final String jsonString = jw.toString();
         System.out.println(jsonString);
         final JsonNode json = objectMapper.readTree(jsonString);
