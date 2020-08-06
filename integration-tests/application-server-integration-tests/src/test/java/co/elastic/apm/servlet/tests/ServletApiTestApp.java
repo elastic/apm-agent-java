@@ -85,14 +85,10 @@ public class ServletApiTestApp extends TestApp {
         test.executeAndValidateRequest(pathToTest, "Hello World", 200, null);
 
         JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
-        List<JsonNode> reportedSpans = test.getReportedSpans();
-        assertThat(reportedSpans.size()).isEqualTo(2);
 
-        List<JsonNode> h2dbSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("db.h2.query")).collect(Collectors.toList());
-        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("servlet.request-dispatcher.forward")).collect(Collectors.toList());
-        assertThat(h2dbSpans.size()).isEqualTo(1);
+        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").textValue().equals("servlet.request-dispatcher.forward")).collect(Collectors.toList());
         assertThat(forwardSpans.size()).isEqualTo(1);
-        assertThat(forwardSpans.get(0).get("name")).isEqualTo("FORWARD /servlet");
+        assertThat(forwardSpans.get(0).get("name").textValue()).isEqualTo("FORWARD /servlet");
     }
 
     private void testTransactionReportingWithInclude(AbstractServletContainerIntegrationTest test) throws Exception {
@@ -102,14 +98,10 @@ public class ServletApiTestApp extends TestApp {
         test.executeAndValidateRequest(pathToTest, "Hello World", 200, null);
 
         JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
-        List<JsonNode> reportedSpans = test.getReportedSpans();
-        assertThat(reportedSpans.size()).isEqualTo(2);
 
-        List<JsonNode> h2dbSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("db.h2.query")).collect(Collectors.toList());
-        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").equals("servlet.request-dispatcher.include")).collect(Collectors.toList());
-        assertThat(h2dbSpans.size()).isEqualTo(1);
+        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").textValue().equals("servlet.request-dispatcher.include")).collect(Collectors.toList());
         assertThat(forwardSpans.size()).isEqualTo(1);
-        assertThat(forwardSpans.get(0).get("name")).isEqualTo("INCLUDE /servlet");
+        assertThat(forwardSpans.get(0).get("name").textValue()).isEqualTo("INCLUDE /servlet");
     }
 
     private void testExecutorService(AbstractServletContainerIntegrationTest test) throws Exception {

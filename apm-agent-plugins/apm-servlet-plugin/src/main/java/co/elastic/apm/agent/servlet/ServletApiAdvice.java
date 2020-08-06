@@ -52,6 +52,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
@@ -78,7 +79,6 @@ public class ServletApiAdvice {
 
     private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
-    private static final GlobalThreadLocal<Boolean> isNeedCloseSpan = GlobalThreadLocal.get(ServletApiAdvice.class, "isNeedCloseSpan", false);
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -94,50 +94,50 @@ public class ServletApiAdvice {
             return transactionAttr.activateInScope();
         }
         if (tracer.isRunning() &&
-            servletRequest instanceof HttpServletRequest &&
-            !Boolean.TRUE.equals(excluded.get())) {
+            servletRequest instanceof HttpServletRequest) {
             if (servletRequest.getDispatcherType() == DispatcherType.REQUEST) {
-                ServletContext servletContext = servletRequest.getServletContext();
-                if (servletContext != null) {
-                    // this makes sure service name discovery also works when attaching at runtime
-                    determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
-                }
+                if (!Boolean.TRUE.equals(excluded.get())) {
+                    ServletContext servletContext = servletRequest.getServletContext();
+                    if (servletContext != null) {
+                        // this makes sure service name discovery also works when attaching at runtime
+                        determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
+                    }
 
-                final HttpServletRequest request = (HttpServletRequest) servletRequest;
-                transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
+                    final HttpServletRequest request = (HttpServletRequest) servletRequest;
+                    transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
 
-                if (transaction == null) {
-                    // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
-                    excluded.set(Boolean.TRUE);
-                    return null;
-                }
-                final Request req = transaction.getContext().getRequest();
-                if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
-                    if (request.getCookies() != null) {
-                        for (Cookie cookie : request.getCookies()) {
-                            req.addCookie(cookie.getName(), cookie.getValue());
+                    if (transaction == null) {
+                        // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
+                        excluded.set(Boolean.TRUE);
+                        return null;
+                    }
+                    final Request req = transaction.getContext().getRequest();
+                    if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
+                        if (request.getCookies() != null) {
+                            for (Cookie cookie : request.getCookies()) {
+                                req.addCookie(cookie.getName(), cookie.getValue());
+                            }
+                        }
+                        final Enumeration<String> headerNames = request.getHeaderNames();
+                        if (headerNames != null) {
+                            while (headerNames.hasMoreElements()) {
+                                final String headerName = headerNames.nextElement();
+                                req.addHeader(headerName, request.getHeaders(headerName));
+                            }
                         }
                     }
-                    final Enumeration<String> headerNames = request.getHeaderNames();
-                    if (headerNames != null) {
-                        while (headerNames.hasMoreElements()) {
-                            final String headerName = headerNames.nextElement();
-                            req.addHeader(headerName, request.getHeaders(headerName));
-                        }
-                    }
-                }
-                transaction.setFrameworkName(FRAMEWORK_NAME);
+                    transaction.setFrameworkName(FRAMEWORK_NAME);
 
-                servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
-                    request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
-                    request.getRemoteAddr(), request.getHeader("Content-Type"));
+                    servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
+                        request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
+                        request.getRemoteAddr(), request.getHeader("Content-Type"));
+                }
             } else if (servletRequest.getDispatcherType() != DispatcherType.ASYNC) {
                 final AbstractSpan<?> parent = tracer.getActive();
                 Span span = null;
                 if (parent != null) {
                     final HttpServletRequest request = (HttpServletRequest) servletRequest;
                     DispatcherType dispatcherType = request.getDispatcherType();
-                    boolean isSpannableDispatcherType = false;
                     span = parent.createSpan()
                         .withType(SPAN_TYPE)
                         .withSubtype(SPAN_SUBTYPE);
@@ -149,7 +149,6 @@ public class ServletApiAdvice {
                             span.appendToName(request.getPathInfo());
                         }
                         span.withAction(FORWARD_SPAN_ACTION);
-                        isSpannableDispatcherType = true;
                     } else if (dispatcherType == DispatcherType.INCLUDE) {
                         Object pathInfo = request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
                         Object includeServletPath = request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
@@ -161,7 +160,6 @@ public class ServletApiAdvice {
                             span.appendToName((String) pathInfo);
                         }
                         span.withAction(INCLUDE_SPAN_ACTION);
-                        isSpannableDispatcherType = true;
                     } else if (dispatcherType == DispatcherType.ERROR) {
                         Object servletPath = request.getServletPath();
                         span.appendToName(ERROR);
@@ -169,10 +167,15 @@ public class ServletApiAdvice {
                             span.appendToName((String) servletPath);
                         }
                         span.withAction(ERROR_SPAN_ACTION);
-                        isSpannableDispatcherType = true;
                     }
-                    if (isSpannableDispatcherType && !parent.getNameAsString().equals(span.getNameAsString())) {
-                        isNeedCloseSpan.set(Boolean.TRUE);
+                    if (parent instanceof Span) {
+                        Span parentSpan = (Span) parent;
+                        if (!Objects.equals(span.getType(), parentSpan.getType()) && !Objects.equals(span.getSubtype(), parentSpan.getSubtype()) && !Objects.equals(span.getAction(), parentSpan.getAction())) {
+                            span.activate();
+                        } else {
+                            span.requestDiscarding();
+                        }
+                    } else {
                         span.activate();
                     }
                     return span;
@@ -267,11 +270,10 @@ public class ServletApiAdvice {
                 );
             }
         }
-        if (span != null && Boolean.TRUE.equals(isNeedCloseSpan.get())) {
-            isNeedCloseSpan.set(FALSE);
+        if (span != null) {
             span.captureException(t)
                 .deactivate()
                 .end();
         }
-     }
+    }
 }
