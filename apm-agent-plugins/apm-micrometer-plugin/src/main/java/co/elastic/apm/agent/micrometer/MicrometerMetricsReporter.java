@@ -109,4 +109,8 @@ public class MicrometerMetricsReporter implements Runnable {
             meters.put(meter.getId(), meter);
         }
     }
+
+    WeakConcurrentSet<MeterRegistry> getMeterRegistries() {
+        return meterRegistries;
+    }
 }
