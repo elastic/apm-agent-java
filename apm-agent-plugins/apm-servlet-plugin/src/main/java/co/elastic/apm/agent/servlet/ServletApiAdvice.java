@@ -52,7 +52,6 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
@@ -138,46 +137,46 @@ public class ServletApiAdvice {
                 if (parent != null) {
                     final HttpServletRequest request = (HttpServletRequest) servletRequest;
                     DispatcherType dispatcherType = request.getDispatcherType();
-                    span = parent.createSpan()
-                        .withType(SPAN_TYPE)
-                        .withSubtype(SPAN_SUBTYPE);
 
+                    StringBuilder spanName = new StringBuilder();
+                    String action = null;
                     if (dispatcherType == DispatcherType.FORWARD) {
-                        span.appendToName(FORWARD)
-                            .appendToName(request.getServletPath());
+                        spanName.append(FORWARD).append(request.getServletPath());
                         if (request.getPathInfo() != null) {
-                            span.appendToName(request.getPathInfo());
+                            spanName.append(request.getPathInfo());
                         }
-                        span.withAction(FORWARD_SPAN_ACTION);
+                        action = FORWARD_SPAN_ACTION;
                     } else if (dispatcherType == DispatcherType.INCLUDE) {
                         Object pathInfo = request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
                         Object includeServletPath = request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
-                        span.appendToName(INCLUDE);
+                        spanName.append(INCLUDE);
                         if (includeServletPath != null) {
-                            span.appendToName((String) includeServletPath);
+                            spanName.append((String) includeServletPath);
                         }
                         if (pathInfo != null) {
-                            span.appendToName((String) pathInfo);
+                            spanName.append((String) pathInfo);
                         }
-                        span.withAction(INCLUDE_SPAN_ACTION);
+                        action = INCLUDE_SPAN_ACTION;
                     } else if (dispatcherType == DispatcherType.ERROR) {
                         Object servletPath = request.getServletPath();
-                        span.appendToName(ERROR);
+                        spanName.append(ERROR);
                         if (servletPath != null) {
-                            span.appendToName((String) servletPath);
+                            spanName.append((String) servletPath);
                         }
-                        span.withAction(ERROR_SPAN_ACTION);
+                        action = ERROR_SPAN_ACTION;
                     }
                     if (parent instanceof Span) {
                         Span parentSpan = (Span) parent;
-                        if (!Objects.equals(span.getType(), parentSpan.getType()) && !Objects.equals(span.getSubtype(), parentSpan.getSubtype()) && !Objects.equals(span.getAction(), parentSpan.getAction())) {
-                            span.activate();
-                        } else {
-                            span.requestDiscarding();
+                        if (parentSpan.getNameForSerialization().indexOf(spanName.toString()) != -1) {
+                            return null;
                         }
-                    } else {
-                        span.activate();
                     }
+                    span = parent.createSpan()
+                        .appendToName(spanName)
+                        .withAction(action)
+                        .withType(SPAN_TYPE)
+                        .withSubtype(SPAN_SUBTYPE)
+                        .activate();
                     return span;
                 }
             }
