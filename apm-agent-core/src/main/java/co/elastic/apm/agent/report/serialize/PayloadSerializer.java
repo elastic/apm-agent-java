@@ -70,5 +70,5 @@ public interface PayloadSerializer {
 
     JsonWriter getJsonWriter();
 
-    void writeBytes(byte[] bytes);
+    void writeBytes(byte[] bytes, int len);
 }

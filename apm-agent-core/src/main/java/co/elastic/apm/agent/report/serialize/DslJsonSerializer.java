@@ -245,8 +245,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     @Override
-    public void writeBytes(byte[] bytes) {
-        jw.writeAscii(bytes);
+    public void writeBytes(byte[] bytes, int len) {
+        jw.writeAscii(bytes, len);
     }
 
     private void serializeErrors(List<ErrorCapture> errors) {

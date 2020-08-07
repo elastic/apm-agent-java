@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
 import co.elastic.apm.agent.util.MathUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
+import com.dslplatform.json.JsonWriter;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
@@ -79,10 +80,10 @@ public class ApmServerReporter implements Reporter {
             event.setError(error);
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, byte[]> BYTES_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, byte[]>() {
+    private static final EventTranslatorOneArg<ReportingEvent, JsonWriter> JSON_WRITER_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, JsonWriter>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, byte[] bytes) {
-            event.setBytes(bytes);
+        public void translateTo(ReportingEvent event, long sequence, JsonWriter jsonWriter) {
+            event.setJsonWriter(jsonWriter);
         }
     };
     private static final EventTranslator<ReportingEvent> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
@@ -250,8 +251,11 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void report(byte[] bytes) {
-        tryAddEventToRingBuffer(bytes, BYTES_EVENT_TRANSLATOR);
+    public void report(JsonWriter jsonWriter) {
+        if (jsonWriter.size() == 0) {
+            return;
+        }
+        tryAddEventToRingBuffer(jsonWriter, JSON_WRITER_EVENT_TRANSLATOR);
         if (syncReport) {
             waitForFlush();
         }

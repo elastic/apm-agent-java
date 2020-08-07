@@ -52,18 +52,15 @@ import static com.dslplatform.json.JsonWriter.OBJECT_START;
 public class MicrometerMeterRegistrySerializer {
 
     private static final byte NEW_LINE = (byte) '\n';
-    private final JsonWriter jsonWriter = new DslJson<>(new DslJson.Settings<>()).newWriter();
+    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final StringBuilder replaceBuilder = new StringBuilder();
+    private int previousSize = 512;
 
-    @Nullable
-    public byte[] serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
-        serialize(metersById, epochMicros, replaceBuilder, jsonWriter);
-        if (jsonWriter.size() == 0) {
-            return null;
-        }
-        byte[] bytes = jsonWriter.toByteArray();
-        jsonWriter.reset();
-        return bytes;
+    public JsonWriter serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
+        JsonWriter jw = dslJson.newWriter((int) (previousSize * 1.25));
+        serialize(metersById, epochMicros, replaceBuilder, jw);
+        previousSize = jw.size();
+        return jw;
     }
 
     static void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {

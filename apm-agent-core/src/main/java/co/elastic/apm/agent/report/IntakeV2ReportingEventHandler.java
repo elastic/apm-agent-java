@@ -135,8 +135,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
-        } else if (event.getBytes() != null) {
-            payloadSerializer.writeBytes(event.getBytes());
+        } else if (event.getJsonWriter() != null) {
+            payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
         }
     }
 

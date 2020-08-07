@@ -29,7 +29,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.report.serialize.MetricRegistryReporter;
+import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -165,7 +165,7 @@ class JmxMetricTrackerTest {
     }
 
     private void printMetricSets() {
-        metricRegistry.flipPhaseAndReport(metricSets -> System.out.println(new String(new MetricRegistryReporter(MockTracer.create()).serialize(metricSets))));
+        metricRegistry.flipPhaseAndReport(metricSets -> System.out.println(new MetricRegistrySerializer().serialize(metricSets).toString()));
     }
 
     private void setConfig(JmxMetric... jmxMetric) throws java.io.IOException {

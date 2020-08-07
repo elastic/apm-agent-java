@@ -27,6 +27,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.dslplatform.json.JsonWriter;
 
 import java.io.Closeable;
 import java.util.concurrent.Future;
@@ -41,7 +42,7 @@ public interface Reporter extends Closeable {
 
     void report(ErrorCapture error);
 
-    void report(byte[] bytes);
+    void report(JsonWriter jsonWriter);
 
     long getDropped();
 

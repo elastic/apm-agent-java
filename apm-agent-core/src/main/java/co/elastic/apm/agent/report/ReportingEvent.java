@@ -27,12 +27,13 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.BYTES;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.JSON_WRITER;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
@@ -47,14 +48,14 @@ public class ReportingEvent {
     @Nullable
     private Span span;
     @Nullable
-    private byte[] bytes;
+    private JsonWriter jsonWriter;
 
     public void resetState() {
         this.transaction = null;
         this.type = null;
         this.error = null;
         this.span = null;
-        this.bytes = null;
+        this.jsonWriter = null;
     }
 
     @Nullable
@@ -112,14 +113,14 @@ public class ReportingEvent {
         return description.toString();
     }
 
-    public void setBytes(byte[] bytes) {
-        this.bytes = bytes;
-        this.type = BYTES;
+    @Nullable
+    public JsonWriter getJsonWriter() {
+        return jsonWriter;
     }
 
-    @Nullable
-    public byte[] getBytes() {
-        return bytes;
+    public void setJsonWriter(@Nullable JsonWriter jsonWriter) {
+        this.jsonWriter = jsonWriter;
+        this.type = JSON_WRITER;
     }
 
     public void end() {
@@ -133,6 +134,6 @@ public class ReportingEvent {
     }
 
     enum ReportingEventType {
-        FLUSH, TRANSACTION, SPAN, ERROR, SHUTDOWN, BYTES
+        FLUSH, TRANSACTION, SPAN, ERROR, SHUTDOWN, JSON_WRITER
     }
 }

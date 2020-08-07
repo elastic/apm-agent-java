@@ -35,6 +35,7 @@ import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -245,11 +246,11 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public synchronized void report(byte[] bytes) {
+    public synchronized void report(JsonWriter jsonWriter) {
         if (closed) {
             return;
         }
-        this.bytes.add(bytes);
+        this.bytes.add(jsonWriter.toByteArray());
     }
 
     public synchronized Span getFirstSpan() {

@@ -75,6 +75,8 @@ public class MicrometerMetricsReporter implements Runnable {
         long metricsIntervalMs = tracer.getConfig(ReporterConfiguration.class).getMetricsIntervalMs();
         if (metricsIntervalMs > 0) {
             // called for every class loader that loaded micrometer
+            // that's because a new MicrometerMetricsReporter instance is created in every IndyPluginClassLoader
+            // for example if multiple webapps use potentially different versions of Micrometer
             tracer.getSharedSingleThreadedPool().scheduleAtFixedRate(this, metricsIntervalMs, metricsIntervalMs, TimeUnit.MILLISECONDS);
         }
     }
@@ -91,10 +93,7 @@ public class MicrometerMetricsReporter implements Runnable {
             registry.forEachMeter(meterConsumer);
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
-        byte[] serialized = serializer.serialize(meterConsumer.meters, timestamp);
-        if (serialized != null) {
-            reporter.report(serialized);
-        }
+        reporter.report(serializer.serialize(meterConsumer.meters, timestamp));
     }
 
     private static class MeterMapConsumer implements Consumer<Meter> {

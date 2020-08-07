@@ -36,6 +36,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -240,7 +242,9 @@ class IntakeV2ReportingEventHandlerTest {
 
     private void reportBytes(byte[] bytes) {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setBytes(bytes);
+        JsonWriter jw = new DslJson<>().newWriter();
+        jw.writeAscii(bytes);
+        reportingEvent.setJsonWriter(jw);
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
