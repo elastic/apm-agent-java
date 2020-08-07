@@ -24,7 +24,11 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Envelope;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -66,18 +70,24 @@ public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
-        public static Object onHandleDelivery(@Advice.Origin Class<?> originClazz) {
+        public static Object onHandleDelivery(@Advice.Origin Class<?> originClazz,
+                                                   @Advice.Argument(value = 0) String consumerTag,
+                                                   @Advice.Argument(value = 1) Envelope envelope,
+                                                   @Advice.Argument(value = 2) AMQP.BasicProperties properties) {
             if (!tracer.isRunning() || tracer.currentTransaction() != null) {
                 return null;
             }
 
-            Transaction transaction = tracer.startRootTransaction(originClazz.getClassLoader());
+            final TextHeaderGetter<AMQP.BasicProperties> textHeaderGetter = new RabbitMQTextHeaderGetter(); // TODO: Singleton?
+            Transaction transaction = tracer.startChildTransaction(properties, textHeaderGetter, originClazz.getClassLoader());
 
             if (transaction == null) {
                 return null;
             }
 
             transaction.withType("messaging").withName("RabbitMQ message received");
+
+            // TODO: Transaction context
 
             return transaction.activate();
         }
