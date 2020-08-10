@@ -470,6 +470,11 @@ If you are seeing gaps in the span timeline and want to include additional metho
 |Set the configuration option <<config-capture-jmx-metrics, `capture_jmx_metrics`>> in order to monitor any JMX metric.
 |1.11.0
 
+|Micrometer
+|Automatically detects and reports the metrics of each `MeterRegistry`.
+ See <<metrics-micrometer>> for more details.
+|1.18.0
+
 |===
 
 [float]

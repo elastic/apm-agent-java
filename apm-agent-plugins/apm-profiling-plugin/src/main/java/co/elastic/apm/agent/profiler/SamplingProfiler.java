@@ -176,7 +176,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
-            ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
+            ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler"),
             nanoClock,
             File.createTempFile("apm-activation-events-", ".bin"),
             File.createTempFile("apm-traces-", ".jfr"));

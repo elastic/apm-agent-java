@@ -47,6 +47,7 @@ endif::[]
   avoided now by the usage of `TypeConstantAdjustment` - {pull}1317[#1317]
 * Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
   an empty string - {pull}1295[#1295]
+* Add <<metrics-micrometer, micrometer support>> - {pull}1303[#1303]
 
 [float]
 ===== Bug fixes

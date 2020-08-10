@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,9 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -34,18 +37,27 @@ import java.nio.file.Paths;
 import java.util.ServiceLoader;
 
 import static co.elastic.apm.agent.configuration.ConfigurationExporterTest.renderDocumentation;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ConfigurationExporter {
 
     public static void main(String[] args) throws Exception {
-        ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
-            .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
-            .build();
-        Path path = Paths.get("docs/configuration.asciidoc");
-        if (!path.toFile().canWrite()) {
-            throw new IllegalStateException(path + " does not exist");
+        ElasticApmTracer tracer = mock(ElasticApmTracer.class);
+        when(tracer.getState()).thenReturn(Tracer.TracerState.UNINITIALIZED);
+        GlobalTracer.init(tracer);
+        try {
+            ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
+                .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
+                .build();
+            Path path = Paths.get("docs/configuration.asciidoc");
+            if (!path.toFile().canWrite()) {
+                throw new IllegalStateException(path + " does not exist");
+            }
+            Files.write(path, renderDocumentation(configurationRegistry).getBytes(StandardCharsets.UTF_8));
+        } finally {
+            GlobalTracer.setNoop();
         }
-        Files.write(path, renderDocumentation(configurationRegistry).getBytes(StandardCharsets.UTF_8));
     }
 
 }

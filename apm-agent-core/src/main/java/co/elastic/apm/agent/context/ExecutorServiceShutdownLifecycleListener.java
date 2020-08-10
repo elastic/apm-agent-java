@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,34 +22,21 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.report;
+package co.elastic.apm.agent.context;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import com.dslplatform.json.JsonWriter;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import java.io.Closeable;
-import java.util.concurrent.Future;
+public class ExecutorServiceShutdownLifecycleListener extends AbstractLifecycleListener {
+    private final ExecutorService executor;
 
-public interface Reporter extends Closeable {
-
-    void start();
-
-    void report(Transaction transaction);
-
-    void report(Span span);
-
-    void report(ErrorCapture error);
-
-    void report(JsonWriter jsonWriter);
-
-    long getDropped();
-
-    long getReported();
-
-    Future<Void> flush();
+    public ExecutorServiceShutdownLifecycleListener(ExecutorService executor) {
+        this.executor = executor;
+    }
 
     @Override
-    void close();
+    public void stop() throws Exception {
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.SECONDS);
+    }
 }
