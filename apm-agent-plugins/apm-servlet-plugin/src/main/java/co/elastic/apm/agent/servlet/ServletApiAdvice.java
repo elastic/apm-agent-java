@@ -52,7 +52,6 @@ import java.util.Map;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
-import static java.lang.Boolean.FALSE;
 
 public class ServletApiAdvice {
 
@@ -65,7 +64,7 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
-    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
+    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded");
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable
@@ -84,7 +83,7 @@ public class ServletApiAdvice {
         if (tracer.isRunning() &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
-            !Boolean.TRUE.equals(excluded.get())) {
+            Boolean.TRUE != excluded.get()) {
 
             ServletContext servletContext = servletRequest.getServletContext();
             if (servletContext != null) {
@@ -142,7 +141,7 @@ public class ServletApiAdvice {
             scope = (Scope) transactionOrScope;
         }
 
-        excluded.set(FALSE);
+        excluded.clear();
         if (scope != null) {
             scope.close();
         }
