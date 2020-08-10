@@ -80,6 +80,11 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
         return Arrays.asList("servlet-api", "jsf");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class JsfLifecycleExecuteInstrumentation extends JsfLifecycleInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {

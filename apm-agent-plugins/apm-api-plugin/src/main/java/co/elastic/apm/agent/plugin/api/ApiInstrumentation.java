@@ -41,4 +41,9 @@ public abstract class ApiInstrumentation extends TracerAwareInstrumentation {
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

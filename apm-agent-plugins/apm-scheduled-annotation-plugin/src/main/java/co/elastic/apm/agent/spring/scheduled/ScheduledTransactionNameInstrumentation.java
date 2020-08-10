@@ -106,4 +106,9 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("concurrent", "scheduled");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

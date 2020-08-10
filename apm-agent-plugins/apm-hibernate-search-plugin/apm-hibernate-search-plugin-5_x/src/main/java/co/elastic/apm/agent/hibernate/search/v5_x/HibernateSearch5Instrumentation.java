@@ -83,6 +83,11 @@ public class HibernateSearch5Instrumentation extends TracerAwareInstrumentation 
         return Collections.singleton(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class HibernateSearch5ExecuteAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)

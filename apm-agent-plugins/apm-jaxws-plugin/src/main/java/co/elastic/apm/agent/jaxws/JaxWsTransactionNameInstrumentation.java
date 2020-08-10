@@ -101,4 +101,9 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("jax-ws");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

@@ -77,11 +77,6 @@ public class SSLContextInstrumentation extends TracerAwareInstrumentation {
         return Collections.singleton("ssl-context");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
     /**
      * This will not allow using the default SSL factory from any agent thread
      */

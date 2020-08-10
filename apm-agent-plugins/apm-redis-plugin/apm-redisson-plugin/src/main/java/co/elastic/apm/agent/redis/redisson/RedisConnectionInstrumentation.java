@@ -99,4 +99,9 @@ public class RedisConnectionInstrumentation extends TracerAwareInstrumentation {
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("redis", "redisson");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

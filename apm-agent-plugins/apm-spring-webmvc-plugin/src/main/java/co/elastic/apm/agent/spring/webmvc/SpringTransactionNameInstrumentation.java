@@ -103,6 +103,11 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
         return Collections.singleton("spring-mvc");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     @VisibleForAdvice
     public static class HandlerAdapterAdvice {
 

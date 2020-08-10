@@ -82,6 +82,11 @@ public class HibernateSearch6Instrumentation extends TracerAwareInstrumentation 
         return Arrays.asList(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, "experimental");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class Hibernate6ExecuteAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)

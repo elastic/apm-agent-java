@@ -56,4 +56,9 @@ public abstract class AbstractOkHttpClientInstrumentation extends TracerAwareIns
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("http-client", "okhttp");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }
