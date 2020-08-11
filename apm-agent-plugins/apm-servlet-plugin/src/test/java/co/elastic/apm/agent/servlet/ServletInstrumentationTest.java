@@ -71,6 +71,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
         handler.addServlet(TestServletWithPathInfo.class, "/test/path/*");
         handler.addFilter(TestFilter.class, "/filter/*", EnumSet.of(DispatcherType.REQUEST));
         handler.addServlet(ErrorServlet.class, "/error");
+        handler.addServlet(ServletWithRuntimeException.class, "/throw-error");
         ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
         errorHandler.addErrorPage(404, "/error");
         handler.setErrorHandler(errorHandler);
@@ -120,6 +121,8 @@ class ServletInstrumentationTest extends AbstractServletTest {
         assertThat(span.getSubtype()).isEqualTo(SPAN_SUBTYPE);
         assertThat(span.getAction()).isEqualTo(ERROR.getAction());
         assertThat(span.getNameAsString()).isEqualTo("ERROR /error");
+        assertThat(reporter.getErrors().size()).isEqualTo(1);
+        assertThat(reporter.getFirstError().getException()).isInstanceOf(ErrorServlet.HelloException.class);
     }
 
     @Test
@@ -219,9 +222,21 @@ class ServletInstrumentationTest extends AbstractServletTest {
     public static class ErrorServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            System.out.println("SERVLET = ErrorServlet");
+            req.setAttribute(RequestDispatcher.ERROR_EXCEPTION, new HelloException());
             PrintWriter out = resp.getWriter();
             out.print("Hello Error!");
             out.close();
+        }
+
+        private static class HelloException extends RuntimeException {
+        }
+    }
+
+    public static class ServletWithRuntimeException extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            throw new RuntimeException("Some exception thrown");
         }
     }
 
