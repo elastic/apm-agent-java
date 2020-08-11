@@ -48,6 +48,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.EnumSet;
 
+import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.ERROR;
+import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.FORWARD;
+import static co.elastic.apm.agent.servlet.RequestDispatcherSpanType.INCLUDE;
+import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_SUBTYPE;
+import static co.elastic.apm.agent.servlet.ServletApiAdvice.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ServletInstrumentationTest extends AbstractServletTest {
@@ -111,6 +116,9 @@ class ServletInstrumentationTest extends AbstractServletTest {
         callServlet(1, "/unknown", "Hello Error!", 404);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
         Span span = reporter.getFirstSpan();
+        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
+        assertThat(span.getSubtype()).isEqualTo(SPAN_SUBTYPE);
+        assertThat(span.getAction()).isEqualTo(ERROR.getAction());
         assertThat(span.getNameAsString()).isEqualTo("ERROR /error");
     }
 
@@ -123,14 +131,22 @@ class ServletInstrumentationTest extends AbstractServletTest {
     void testForwardWithPathInfo_verifyThatSpanNameContainsOriginalServletPathAndPathInfo() throws Exception {
         callServlet(1, "/forward/path", "Hello World! /forward-path-info", 200);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("FORWARD /test/path/forward-path-info");
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
+        assertThat(span.getSubtype()).isEqualTo(SPAN_SUBTYPE);
+        assertThat(span.getAction()).isEqualTo(FORWARD.getAction());
+        assertThat(span.getNameAsString()).isEqualTo("FORWARD /test/path/forward-path-info");
     }
 
     @Test
     void testIncludeWithPathInfo_verifyThatSpanNameContainsOriginalServletPathAndPathInfo() throws Exception {
         callServlet(1, "/include/path", "Hello World! /include-path-info", 200);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("INCLUDE /test/path/include-path-info");
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
+        assertThat(span.getSubtype()).isEqualTo(SPAN_SUBTYPE);
+        assertThat(span.getAction()).isEqualTo(INCLUDE.getAction());
+        assertThat(span.getNameAsString()).isEqualTo("INCLUDE /test/path/include-path-info");
     }
 
     private void callServlet(int expectedTransactions, String path) throws IOException, InterruptedException {
