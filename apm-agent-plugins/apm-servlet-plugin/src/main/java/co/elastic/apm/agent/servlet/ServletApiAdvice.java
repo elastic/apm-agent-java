@@ -60,14 +60,8 @@ import static java.lang.Boolean.FALSE;
 public class ServletApiAdvice {
 
     private static final String FRAMEWORK_NAME = "Servlet API";
-    private static final String SPAN_TYPE = "servlet";
-    private static final String SPAN_SUBTYPE = "request-dispatcher";
-    private static final String FORWARD_SPAN_ACTION = "forward";
-    private static final String INCLUDE_SPAN_ACTION = "include";
-    private static final String ERROR_SPAN_ACTION = "error";
-    private static final String FORWARD = "FORWARD ";
-    private static final String INCLUDE = "INCLUDE ";
-    private static final String ERROR = "ERROR ";
+    static final String SPAN_TYPE = "servlet";
+    static final String SPAN_SUBTYPE = "request-dispatcher";
     private static final ServletTransactionHelper servletTransactionHelper;
     private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
 
@@ -77,6 +71,9 @@ public class ServletApiAdvice {
     }
 
     private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
+    private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(ServletApiAdvice.class, "servletPath", null);
+    private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(ServletApiAdvice.class, "pathInfo", null);
+
     private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable
@@ -86,15 +83,18 @@ public class ServletApiAdvice {
         if (tracer == null) {
             return null;
         }
-        Transaction transaction = null;
+        AbstractSpan<?> ret = null;
         // re-activate transactions for async requests
         final Transaction transactionAttr = (Transaction) servletRequest.getAttribute(TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
             return transactionAttr.activateInScope();
         }
-        if (tracer.isRunning() &&
-            servletRequest instanceof HttpServletRequest) {
-            if (servletRequest.getDispatcherType() == DispatcherType.REQUEST) {
+
+        if (tracer.isRunning() && servletRequest instanceof HttpServletRequest) {
+            final HttpServletRequest request = (HttpServletRequest) servletRequest;
+            DispatcherType dispatcherType = servletRequest.getDispatcherType();
+
+            if (dispatcherType == DispatcherType.REQUEST) {
                 if (!Boolean.TRUE.equals(excluded.get())) {
                     ServletContext servletContext = servletRequest.getServletContext();
                     if (servletContext != null) {
@@ -102,86 +102,84 @@ public class ServletApiAdvice {
                         determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
                     }
 
-                    final HttpServletRequest request = (HttpServletRequest) servletRequest;
-                    transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
+                    Transaction transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
 
                     if (transaction == null) {
                         // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                         excluded.set(Boolean.TRUE);
-                        return null;
-                    }
-                    final Request req = transaction.getContext().getRequest();
-                    if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
-                        if (request.getCookies() != null) {
-                            for (Cookie cookie : request.getCookies()) {
-                                req.addCookie(cookie.getName(), cookie.getValue());
+                    } else {
+                        final Request req = transaction.getContext().getRequest();
+                        if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
+                            if (request.getCookies() != null) {
+                                for (Cookie cookie : request.getCookies()) {
+                                    req.addCookie(cookie.getName(), cookie.getValue());
+                                }
+                            }
+                            final Enumeration<String> headerNames = request.getHeaderNames();
+                            if (headerNames != null) {
+                                while (headerNames.hasMoreElements()) {
+                                    final String headerName = headerNames.nextElement();
+                                    req.addHeader(headerName, request.getHeaders(headerName));
+                                }
                             }
                         }
-                        final Enumeration<String> headerNames = request.getHeaderNames();
-                        if (headerNames != null) {
-                            while (headerNames.hasMoreElements()) {
-                                final String headerName = headerNames.nextElement();
-                                req.addHeader(headerName, request.getHeaders(headerName));
-                            }
-                        }
-                    }
-                    transaction.setFrameworkName(FRAMEWORK_NAME);
+                        transaction.setFrameworkName(FRAMEWORK_NAME);
 
-                    servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
-                        request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
-                        request.getRemoteAddr(), request.getHeader("Content-Type"));
+                        servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
+                            request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
+                            request.getRemoteAddr(), request.getHeader("Content-Type"));
+
+                        ret = transaction;
+                    }
                 }
             } else if (servletRequest.getDispatcherType() != DispatcherType.ASYNC) {
                 final AbstractSpan<?> parent = tracer.getActive();
-                Span span = null;
                 if (parent != null) {
-                    final HttpServletRequest request = (HttpServletRequest) servletRequest;
-                    DispatcherType dispatcherType = request.getDispatcherType();
-
-                    StringBuilder spanName = new StringBuilder();
-                    String action = null;
+                    Object servletPath = null;
+                    Object pathInfo = null;
+                    RequestDispatcherSpanType spanType = null;
                     if (dispatcherType == DispatcherType.FORWARD) {
-                        spanName.append(FORWARD).append(request.getServletPath());
-                        if (request.getPathInfo() != null) {
-                            spanName.append(request.getPathInfo());
-                        }
-                        action = FORWARD_SPAN_ACTION;
+                        spanType = RequestDispatcherSpanType.FORWARD;
+                        servletPath = request.getServletPath();
+                        pathInfo = request.getPathInfo();
                     } else if (dispatcherType == DispatcherType.INCLUDE) {
-                        Object pathInfo = request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
-                        Object includeServletPath = request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
-                        spanName.append(INCLUDE);
-                        if (includeServletPath != null) {
-                            spanName.append((String) includeServletPath);
+                        spanType = RequestDispatcherSpanType.INCLUDE;
+                        servletPath = request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
+                        pathInfo = request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
+                    } else if (dispatcherType == DispatcherType.ERROR) {
+                        spanType = RequestDispatcherSpanType.ERROR;
+                        servletPath = request.getServletPath();
+                    }
+
+                    if (spanType != null && (areNotEqual(servletPathTL.get(), servletPath) || areNotEqual(pathInfoTL.get(), pathInfo))) {
+                        ret = parent.createSpan()
+                            .appendToName(spanType.getNamePrefix())
+                            .withAction(spanType.getAction())
+                            .withType(SPAN_TYPE)
+                            .withSubtype(SPAN_SUBTYPE);
+
+                        if (servletPath != null) {
+                            ret.appendToName(servletPath.toString());
+                            servletPathTL.set(servletPath);
                         }
                         if (pathInfo != null) {
-                            spanName.append((String) pathInfo);
+                            ret.appendToName(pathInfo.toString());
+                            pathInfoTL.set(pathInfo);
                         }
-                        action = INCLUDE_SPAN_ACTION;
-                    } else if (dispatcherType == DispatcherType.ERROR) {
-                        Object servletPath = request.getServletPath();
-                        spanName.append(ERROR);
-                        if (servletPath != null) {
-                            spanName.append((String) servletPath);
-                        }
-                        action = ERROR_SPAN_ACTION;
+                        ret.activate();
                     }
-                    if (parent instanceof Span) {
-                        Span parentSpan = (Span) parent;
-                        if (parentSpan.getNameForSerialization().indexOf(spanName.toString()) != -1) {
-                            return null;
-                        }
-                    }
-                    span = parent.createSpan()
-                        .appendToName(spanName)
-                        .withAction(action)
-                        .withType(SPAN_TYPE)
-                        .withSubtype(SPAN_SUBTYPE)
-                        .activate();
-                    return span;
                 }
             }
         }
-        return transaction;
+        return ret;
+    }
+
+    private static boolean areNotEqual(@Nullable Object first, @Nullable Object second) {
+        if (first == null) {
+            return second != null;
+        } else {
+            return !first.equals(second);
+        }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -270,6 +268,8 @@ public class ServletApiAdvice {
             }
         }
         if (span != null) {
+            servletPathTL.clear();
+            pathInfoTL.clear();
             span.captureException(t)
                 .deactivate()
                 .end();
