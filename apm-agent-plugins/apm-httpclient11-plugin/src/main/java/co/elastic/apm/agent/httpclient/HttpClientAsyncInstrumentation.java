@@ -69,7 +69,6 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
                 for (String header : httpRequest.headers().map().keySet()) {
                     builder.header(header, httpRequest.headers().firstValue(header).orElse(null));
                 }
-                span.propagateTraceContext(builder, HttpClientRequestPropertyAccessor.instance());
                 return builder.build();
             }
             return httpRequest;

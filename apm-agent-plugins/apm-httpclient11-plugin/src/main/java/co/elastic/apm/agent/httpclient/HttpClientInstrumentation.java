@@ -3,11 +3,9 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -28,35 +26,16 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
     @VisibleForAdvice
     public static class HttpClient11Advice {
 
-        @Nullable
-        @AssignTo.Argument(value = 0, typing = Assigner.Typing.DYNAMIC)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
+        public static void onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
             if (tracer.getActive() == null) {
-                return httpRequest;
+                return;
             }
             final AbstractSpan<?> parent = tracer.getActive();
             URI uri = httpRequest.uri();
-            Span span = co.elastic.apm.agent.http.client.HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
-                HttpClientHelper.computeHostName(uri.getHost()), uri.getPort());
-            if (span != null) {
-                span.activate();
-                HttpRequest.Builder builder = HttpRequest.newBuilder(httpRequest.uri())
-                    .method(httpRequest.method(), httpRequest.bodyPublisher().orElse(HttpRequest.BodyPublishers.noBody()))
-                    .expectContinue(httpRequest.expectContinue());
-                if (httpRequest.timeout().isPresent()) {
-                    builder = builder.timeout(httpRequest.timeout().get());
-                }
-                if (httpRequest.version().isPresent()) {
-                    builder = builder.version(httpRequest.version().get());
-                }
-                for (String header : httpRequest.headers().map().keySet()) {
-                    builder.header(header, httpRequest.headers().firstValue(header).orElse(null));
-                }
-                span.propagateTraceContext(builder, HttpClientRequestPropertyAccessor.instance());
-                return builder.build();
-            }
-            return httpRequest;
+            co.elastic.apm.agent.http.client.HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
+                HttpClientHelper.computeHostName(uri.getHost()), uri.getPort())
+                .activate();
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
