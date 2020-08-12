@@ -48,6 +48,7 @@ endif::[]
 * Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
   an empty string - {pull}1295[#1295]
 * Add <<metrics-micrometer, micrometer support>> - {pull}1303[#1303]
+* Create spans for Servlet dispatches to FORWARD, INCLUDE and ERROR - {pull}1212[#1212]
 
 [float]
 ===== Bug fixes

@@ -71,7 +71,6 @@ public class ServletApiAdvice {
     }
 
     private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
-    private static final GlobalThreadLocal<Boolean> isExceptionAttributeCaptured = GlobalThreadLocal.get(ServletApiAdvice.class, "isExceptionAttributeCaptured", false);
     private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(ServletApiAdvice.class, "servletPath", null);
     private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(ServletApiAdvice.class, "pathInfo", null);
 
@@ -256,10 +255,6 @@ public class ServletApiAdvice {
                             t2 = (Throwable) throwable;
                             if (!attributeName.equals(RequestDispatcher.ERROR_EXCEPTION)) {
                                 overrideStatusCodeOnThrowable = false;
-                            } else {
-                                if (Boolean.TRUE.equals(isExceptionAttributeCaptured.get())) {
-                                    t2 = null;
-                                }
                             }
                             break;
                         }
@@ -270,25 +265,13 @@ public class ServletApiAdvice {
                     overrideStatusCodeOnThrowable, request.getMethod(), parameterMap, request.getServletPath(),
                     request.getPathInfo(), contentTypeHeader, true
                 );
-                isExceptionAttributeCaptured.set(FALSE);
             }
         }
         if (span != null) {
             servletPathTL.clear();
             pathInfoTL.clear();
-            if (t == null && servletRequest instanceof HttpServletRequest) {
-                HttpServletRequest request = (HttpServletRequest) servletRequest;
-                Object errorExceptionAttribute = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
-                if (errorExceptionAttribute instanceof Throwable) {
-                    if (span.getParent() != null) {
-                        span.getParent().captureException((Throwable) errorExceptionAttribute);
-                        isExceptionAttributeCaptured.set(Boolean.TRUE);
-                    }
-                }
-            } else {
-                span.captureException(t);
-            }
-            span.deactivate()
+            span.captureException(t)
+                .deactivate()
                 .end();
         }
     }

@@ -74,6 +74,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
         handler.addServlet(ServletWithRuntimeException.class, "/throw-error");
         ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
         errorHandler.addErrorPage(404, "/error");
+        errorHandler.addErrorPage(500, "/error");
         handler.setErrorHandler(errorHandler);
     }
 
@@ -113,7 +114,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
     }
 
     @Test
-    void testError() throws Exception {
+    void testClientError() throws Exception {
         callServlet(1, "/unknown", "Hello Error!", 404);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
         Span span = reporter.getFirstSpan();
@@ -123,6 +124,16 @@ class ServletInstrumentationTest extends AbstractServletTest {
         assertThat(span.getNameAsString()).isEqualTo("ERROR /error");
         assertThat(reporter.getErrors().size()).isEqualTo(1);
         assertThat(reporter.getFirstError().getException()).isInstanceOf(ErrorServlet.HelloException.class);
+    }
+
+    @Test
+    void testServerError() throws Exception {
+        callServlet(1, "/throw-error", "Hello Error!", 500);
+        // Because the servlet itself throws an Exception, the server ends the transaction before it delegates to the
+        // error page in this case, so we don't create a span
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(reporter.getErrors().size()).isEqualTo(1);
+        assertThat(reporter.getFirstError().getException()).isInstanceOf(ServletWithRuntimeException.HelloRuntimeException.class);
     }
 
     @Test
@@ -236,7 +247,10 @@ class ServletInstrumentationTest extends AbstractServletTest {
     public static class ServletWithRuntimeException extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            throw new RuntimeException("Some exception thrown");
+            throw new HelloRuntimeException();
+        }
+
+        private static class HelloRuntimeException extends RuntimeException {
         }
     }
 
