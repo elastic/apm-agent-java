@@ -4,6 +4,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
@@ -45,6 +47,11 @@ public class HttpRequestHeadersInstrumentation extends AbstractHttpClientInstrum
             span.propagateTraceContext(headersMap, HttpClientRequestPropertyAccessor.instance());
             return HttpHeaders.of(headersMap, (x, y) -> true);
         }
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("HttpRequest");
     }
 
     @Override

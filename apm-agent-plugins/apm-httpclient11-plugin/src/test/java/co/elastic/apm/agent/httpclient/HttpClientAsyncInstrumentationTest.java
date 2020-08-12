@@ -23,9 +23,7 @@ public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstru
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(path))
             .build();
-        client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-            .thenApply(HttpResponse::body)
-            .get();
+        client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get();
     }
 
     @Override

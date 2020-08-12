@@ -1,13 +1,12 @@
-package co.elastic.apm.agent.httpclient;
-
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+package co.elastic.apm.agent.httpclient.helper;
 
 import javax.annotation.Nullable;
 
-@VisibleForAdvice
 public class HttpClientHelper {
 
-    @VisibleForAdvice
+    private HttpClientHelper() {
+    }
+
     @Nullable
     public static CharSequence computeHostName(@Nullable String originalHostName) {
         CharSequence hostName = originalHostName;

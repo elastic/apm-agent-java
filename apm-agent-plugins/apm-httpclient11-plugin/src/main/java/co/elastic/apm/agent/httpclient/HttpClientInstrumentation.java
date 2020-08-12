@@ -1,9 +1,11 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.httpclient.helper.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -13,6 +15,8 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
@@ -33,9 +37,11 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
             }
             final AbstractSpan<?> parent = tracer.getActive();
             URI uri = httpRequest.uri();
-            co.elastic.apm.agent.http.client.HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
-                HttpClientHelper.computeHostName(uri.getHost()), uri.getPort())
-                .activate();
+            Span span = co.elastic.apm.agent.http.client.HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
+                HttpClientHelper.computeHostName(uri.getHost()), uri.getPort());
+            if (span != null) {
+                span.activate();
+            }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -57,8 +63,13 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("HttpClient");
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("jdk.internal.net.http.HttpClientImpl");
+        return hasSuperType(named("java.net.http.HttpClient"));
     }
 
     @Override
