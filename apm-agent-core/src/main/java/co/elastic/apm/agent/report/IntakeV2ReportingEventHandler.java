@@ -100,7 +100,6 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
                 if (logger.isDebugEnabled()) {
                     logger.debug("Failed to get APM server connection, dropping event: {}", event);
                 }
-                handleNonWrittenEvent(event);
                 dropped++;
             }
         } catch (Exception e) {
@@ -136,20 +135,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
-        } else if (event.getMetricRegistry() != null) {
-            payloadSerializer.serializeMetrics(event.getMetricRegistry());
-        }
-    }
-
-    /**
-     * Should be called whenever {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)} is not called for
-     * an event that should normally be written.
-     *
-     * @param event the event to end
-     */
-    private void handleNonWrittenEvent(ReportingEvent event) {
-        if (event.getMetricRegistry() != null) {
-            event.getMetricRegistry().flipPhaseAndReport(null);
+        } else if (event.getJsonWriter() != null) {
+            payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
         }
     }
 

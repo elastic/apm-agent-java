@@ -33,11 +33,18 @@ import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
  */
 public class WeakMapSupplier {
     private static final WeakConcurrentSet<WeakConcurrentMap<?, ?>> registeredMaps = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
+    private static final WeakConcurrentSet<WeakConcurrentSet<?>> registeredSets = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
 
     public static <K, V> WeakConcurrentMap<K, V> createMap() {
         WeakConcurrentMap<K, V> result = new WeakConcurrentMap<>(false);
         registeredMaps.add(result);
         return result;
+    }
+
+    public static <V> WeakConcurrentSet<V> createSet() {
+        WeakConcurrentSet<V> weakSet = new WeakConcurrentSet<V>(WeakConcurrentSet.Cleaner.MANUAL);
+        registeredSets.add(weakSet);
+        return weakSet;
     }
 
     /**
@@ -49,6 +56,9 @@ public class WeakMapSupplier {
     public static void expungeStaleEntries() {
         for (WeakConcurrentMap<?, ?> weakMap : registeredMaps) {
             weakMap.expungeStaleEntries();
+        }
+        for (WeakConcurrentSet<?> weakSet : registeredSets) {
+            weakSet.expungeStaleEntries();
         }
     }
 }

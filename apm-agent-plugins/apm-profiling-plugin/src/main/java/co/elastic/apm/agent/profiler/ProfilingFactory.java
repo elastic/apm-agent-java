@@ -46,7 +46,7 @@ public class ProfilingFactory extends AbstractLifecycleListener {
         activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
         jfrFile = File.createTempFile("apm-traces-", ".jfr");
         profiler = new SamplingProfiler(tracer,
-            ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
+            ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler"),
             nanoClock,
             activationEventsFile,
             jfrFile);

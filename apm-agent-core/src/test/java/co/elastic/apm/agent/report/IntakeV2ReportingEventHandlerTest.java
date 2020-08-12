@@ -36,6 +36,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -147,16 +149,18 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
+        reportBytes("{\"foo\":\"bar\"}\n".getBytes());
         assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
         reportingEventHandler.endRequest();
         assertThat(reportingEventHandler.getBufferSize()).isEqualTo(0);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
-        assertThat(ndJsonNodes).hasSize(4);
+        assertThat(ndJsonNodes).hasSize(5);
         assertThat(ndJsonNodes.get(0).get("metadata")).isNotNull();
         assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
         assertThat(ndJsonNodes.get(2).get("span")).isNotNull();
         assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
+        assertThat(ndJsonNodes.get(4).get("foo").textValue()).isEqualTo("bar");
     }
 
     @Test
@@ -232,6 +236,15 @@ class IntakeV2ReportingEventHandlerTest {
     private void reportError() {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setError(new ErrorCapture(MockTracer.create()));
+
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
+    }
+
+    private void reportBytes(byte[] bytes) {
+        final ReportingEvent reportingEvent = new ReportingEvent();
+        JsonWriter jw = new DslJson<>().newWriter();
+        jw.writeAscii(bytes);
+        reportingEvent.setJsonWriter(jw);
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }

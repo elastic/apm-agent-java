@@ -24,6 +24,10 @@
  */
 package co.elastic.apm.agent.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -35,18 +39,31 @@ import java.util.concurrent.TimeUnit;
 
 public final class ExecutorUtils {
 
+    private static final Logger logger = LoggerFactory.getLogger(ExecutorUtils.class);
+
     private ExecutorUtils() {
         // don't instantiate
     }
 
-    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDeamonPool(final String threadPurpose) {
-        final ThreadFactory daemonThreadFactory = new NamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, daemonThreadFactory);
+    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDaemonPool(final String threadPurpose) {
+        final NamedThreadFactory daemonThreadFactory = new NamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, daemonThreadFactory) {
+            @Override
+            public String toString() {
+                return super.toString() + "(thread name = " + daemonThreadFactory.threadName + ")";
+            }
+
+            @Override
+            protected void afterExecute(Runnable r, Throwable t) {
+                super.afterExecute(r, t);
+                logException(r, t);
+            }
+        };
         executor.setMaximumPoolSize(1);
         return executor;
     }
 
-    public static ThreadPoolExecutor createSingleThreadDeamonPool(final String threadPurpose, int queueCapacity) {
+    public static ThreadPoolExecutor createSingleThreadDaemonPool(final String threadPurpose, int queueCapacity) {
         String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
         final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadName);
         return new NamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
@@ -81,32 +98,35 @@ public final class ExecutorUtils {
             return super.toString() + "(thread name = " + threadName + ")";
         }
 
-        /**
-         * Overriding this method makes sure that exceptions thrown by a task are not silently swallowed.
-         * <p>
-         * Thanks to nos for this solution: http://stackoverflow.com/a/2248203/1125055
-         * </p>
-         */
         @Override
         protected void afterExecute(Runnable r, Throwable t) {
             super.afterExecute(r, t);
-            if (t == null && r instanceof Future<?>) {
-                try {
-                    Future<?> future = (Future<?>) r;
-                    if (future.isDone()) {
-                        future.get();
-                    }
-                } catch (CancellationException ce) {
-                    t = ce;
-                } catch (ExecutionException ee) {
-                    t = ee.getCause();
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt(); // ignore/reset
+            logException(r, t);
+        }
+    }
+
+    /**
+     * Overriding this method makes sure that exceptions thrown by a task are not silently swallowed.
+     *
+     * @see ThreadPoolExecutor#afterExecute(Runnable, Throwable)
+     */
+    private static void logException(Runnable r, @Nullable Throwable t) {
+        if (t == null && r instanceof Future<?>) {
+            try {
+                Future<?> future = (Future<?>) r;
+                if (future.isDone()) {
+                    future.get();
                 }
+            } catch (CancellationException ce) {
+                t = ce;
+            } catch (ExecutionException ee) {
+                t = ee.getCause();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt(); // ignore/reset
             }
-            if (t != null) {
-                t.printStackTrace();
-            }
+        }
+        if (t != null) {
+            logger.error(t.getMessage(), t);
         }
     }
 }

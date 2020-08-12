@@ -28,6 +28,7 @@ import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
+import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 
@@ -38,6 +39,17 @@ import java.util.concurrent.atomic.AtomicLong;
 public class MetricRegistrySerializer {
 
     private static final byte NEW_LINE = '\n';
+
+    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
+    private final StringBuilder replaceBuilder = new StringBuilder();
+    private int lastSize = 512;
+
+    public JsonWriter serialize(Map<? extends Labels, MetricSet> metricSets) {
+        JsonWriter jw = dslJson.newWriter((int) (lastSize * 1.25));
+        serialize(metricSets, replaceBuilder, jw);
+        lastSize = jw.size();
+        return jw;
+    }
 
     public static void serialize(Map<? extends Labels, MetricSet> metricSets, StringBuilder replaceBuilder, JsonWriter jw) {
         final long timestamp = System.currentTimeMillis() * 1000;

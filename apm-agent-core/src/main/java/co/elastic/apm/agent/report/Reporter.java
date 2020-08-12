@@ -24,11 +24,10 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
+import com.dslplatform.json.JsonWriter;
 
 import java.io.Closeable;
 import java.util.concurrent.Future;
@@ -43,6 +42,8 @@ public interface Reporter extends Closeable {
 
     void report(ErrorCapture error);
 
+    void report(JsonWriter jsonWriter);
+
     long getDropped();
 
     long getReported();
@@ -51,6 +52,4 @@ public interface Reporter extends Closeable {
 
     @Override
     void close();
-
-    void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer);
 }
