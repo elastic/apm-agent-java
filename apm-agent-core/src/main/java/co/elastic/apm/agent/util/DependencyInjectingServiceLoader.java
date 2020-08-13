@@ -24,6 +24,9 @@
  */
 package co.elastic.apm.agent.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -43,6 +46,7 @@ import java.util.Set;
 
 public class DependencyInjectingServiceLoader<T> {
 
+    private static final Logger logger = LoggerFactory.getLogger(DependencyInjectingServiceLoader.class);
     private final Class<T> clazz;
     private final Object[] constructorArguments;
     private final Class<?>[] constructorTypes;
@@ -109,10 +113,14 @@ public class DependencyInjectingServiceLoader<T> {
 
     private void instantiate(ClassLoader classLoader, Set<String> implementations) {
         for (String implementation : implementations) {
-            instances.add(instantiate(classLoader, implementation));
+            T instance = instantiate(classLoader, implementation);
+            if (instance != null) {
+                instances.add(instance);
+            }
         }
     }
 
+    @Nullable
     private T instantiate(ClassLoader classLoader, String implementation) {
         try {
             final Class<?> implementationClass = Class.forName(implementation, true, classLoader);
@@ -131,7 +139,8 @@ public class DependencyInjectingServiceLoader<T> {
             throw new ServiceConfigurationError(msg, e);
         } catch(UnsupportedClassVersionError e) {
             String msg = String.format("unable to instantiate '%s', unsupported class version error", implementation);
-            throw new ServiceConfigurationError(msg, e);
+            logger.error(msg, e);
+            return null;
         } catch (Exception e) {
             throw new ServiceConfigurationError(e.getMessage(), e);
         }
