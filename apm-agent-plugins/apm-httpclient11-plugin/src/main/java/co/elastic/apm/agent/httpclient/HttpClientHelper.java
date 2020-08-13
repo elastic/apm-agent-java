@@ -1,4 +1,4 @@
-package co.elastic.apm.agent.httpclient.helper;
+package co.elastic.apm.agent.httpclient;
 
 import javax.annotation.Nullable;
 
@@ -8,7 +8,7 @@ public class HttpClientHelper {
     }
 
     @Nullable
-    public static CharSequence computeHostName(@Nullable String originalHostName) {
+    protected static CharSequence computeHostName(@Nullable String originalHostName) {
         CharSequence hostName = originalHostName;
         if (originalHostName != null && originalHostName.contains(":") && !originalHostName.startsWith("[")) {
             StringBuilder sb = new StringBuilder();

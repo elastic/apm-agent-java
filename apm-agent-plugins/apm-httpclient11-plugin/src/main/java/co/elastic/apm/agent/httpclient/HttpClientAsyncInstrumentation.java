@@ -1,8 +1,5 @@
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.httpclient.helper.AsyncCallbackCreator;
-import co.elastic.apm.agent.httpclient.helper.AsyncCallbackCreatorImpl;
-import co.elastic.apm.agent.httpclient.helper.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -13,7 +10,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -51,9 +50,19 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
                 return;
             }
             activeSpan.deactivate();
-            AsyncCallbackCreator callbackCreator = new AsyncCallbackCreatorImpl();
+            BiConsumer<HttpResponse, Throwable> callback = (response, throwable) -> {
+                try {
+                    if (response != null) {
+                        int statusCode = response.statusCode();
+                        activeSpan.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                    activeSpan.captureException(throwable);
+                } finally {
+                    activeSpan.end();
+                }
+            };
             if (completableFuture != null) {
-                completableFuture.whenComplete(callbackCreator.create(activeSpan));
+                completableFuture.whenComplete(callback);
             } else {
                 activeSpan.captureException(t)
                     .end();
