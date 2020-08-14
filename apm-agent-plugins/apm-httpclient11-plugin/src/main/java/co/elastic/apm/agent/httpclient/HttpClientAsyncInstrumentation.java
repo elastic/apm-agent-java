@@ -74,19 +74,18 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
                 return;
             }
             activeSpan.deactivate();
-            BiConsumer<HttpResponse, Throwable> callback = (response, throwable) -> {
-                try {
-                    if (response != null) {
-                        int statusCode = response.statusCode();
-                        activeSpan.getContext().getHttp().withStatusCode(statusCode);
-                    }
-                    activeSpan.captureException(throwable);
-                } finally {
-                    activeSpan.end();
-                }
-            };
             if (completableFuture != null) {
-                completableFuture.whenComplete(callback);
+                completableFuture.whenComplete((response, throwable) -> {
+                    try {
+                        if (response != null) {
+                            int statusCode = response.statusCode();
+                            activeSpan.getContext().getHttp().withStatusCode(statusCode);
+                        }
+                        activeSpan.captureException(throwable);
+                    } finally {
+                        activeSpan.end();
+                    }
+                });
             } else {
                 activeSpan.captureException(t)
                     .end();
