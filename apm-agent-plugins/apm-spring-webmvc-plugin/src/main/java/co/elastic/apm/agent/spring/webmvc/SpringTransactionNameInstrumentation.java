@@ -24,22 +24,9 @@
  */
 package co.elastic.apm.agent.spring.webmvc;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.util.VersionUtils;
-import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.web.method.HandlerMethod;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -48,13 +35,30 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+import java.util.Collection;
+import java.util.Collections;
+
+import javax.annotation.Nullable;
+
+import org.springframework.web.method.HandlerMethod;
+
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.VersionUtils;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
+
 /**
- * This instrumentation sets the {@link Transaction#name} according to the handler responsible for this request.
+ * This instrumentation sets the {@link Transaction#name} according to the
+ * handler responsible for this request.
  * <p>
- * If the handler is a {@link org.springframework.stereotype.Controller}, the {@link Transaction#name} is set to
- * {@code ControllerName#methodName}.
- * If it is a different kind of handler,
- * like a {@link org.springframework.web.servlet.resource.ResourceHttpRequestHandler},
+ * If the handler is a {@link org.springframework.stereotype.Controller}, the
+ * {@link Transaction#name} is set to {@code ControllerName#methodName}. If it
+ * is a different kind of handler, like a
+ * {@link org.springframework.web.servlet.resource.ResourceHttpRequestHandler},
  * the request name is set to the simple class name of the handler.
  * </p>
  * <p>
@@ -63,79 +67,81 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class SpringTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
-    private static final String FRAMEWORK_NAME = "Spring Web MVC";
+	private static final String FRAMEWORK_NAME = "Spring Web MVC";
 
-    /**
-     * Instrumenting well defined interfaces like {@link org.springframework.web.servlet.HandlerAdapter}
-     * is preferred over instrumenting private methods like
-     * {@link org.springframework.web.servlet.DispatcherServlet#getHandler(javax.servlet.http.HttpServletRequest)},
-     * as interfaces should be more stable.
-     */
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("org.springframework.web.servlet")
-            .and(hasSuperType(named("org.springframework.web.servlet.HandlerAdapter")))
-            .and(not(isInterface()));
-    }
+	/**
+	 * Instrumenting well defined interfaces like
+	 * {@link org.springframework.web.servlet.HandlerAdapter} is preferred over
+	 * instrumenting private methods like
+	 * {@link org.springframework.web.servlet.DispatcherServlet#getHandler(javax.servlet.http.HttpServletRequest)},
+	 * as interfaces should be more stable.
+	 */
+	@Override
+	public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+		return nameStartsWith("org.springframework.web.servlet")
+				.and(hasSuperType(named("org.springframework.web.servlet.HandlerAdapter"))).and(not(isInterface()));
+	}
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handle")
-            .and(returns(named("org.springframework.web.servlet.ModelAndView")))
-            .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")))
-            .and(takesArgument(2, Object.class));
-    }
+	@Override
+	public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+		return named("handle").and(returns(named("org.springframework.web.servlet.ModelAndView")))
+				.and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
+				.and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")))
+				.and(takesArgument(2, Object.class));
+	}
 
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        // introduced in spring-web 3.1
-        return classLoaderCanLoadClass("org.springframework.web.method.HandlerMethod");
-    }
+	@Override
+	public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+		// introduced in spring-web 3.1
+		return classLoaderCanLoadClass("org.springframework.web.method.HandlerMethod");
+	}
 
-    @Override
-    public Class<?> getAdviceClass() {
-        return HandlerAdapterAdvice.class;
-    }
+	@Override
+	public Class<?> getAdviceClass() {
+		return HandlerAdapterAdvice.class;
+	}
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("spring-mvc");
-    }
+	@Override
+	public Collection<String> getInstrumentationGroupNames() {
+		return Collections.singleton("spring-mvc");
+	}
 
-    @VisibleForAdvice
-    public static class HandlerAdapterAdvice {
+	@VisibleForAdvice
+	public static class HandlerAdapterAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        static void setTransactionName(@Advice.Argument(2) Object handler) {
-            final Transaction transaction = tracer.currentTransaction();
-            if (transaction == null) {
-                return;
-            }
-            final String className;
-            final String methodName;
-            if (handler instanceof HandlerMethod) {
-                HandlerMethod handlerMethod = ((HandlerMethod) handler);
-                className = handlerMethod.getBeanType().getSimpleName();
-                methodName = handlerMethod.getMethod().getName();
-            } else {
-                className = handler.getClass().getSimpleName();
-                methodName = null;
-            }
-            setName(transaction, className, methodName);
-            transaction.setFrameworkName(FRAMEWORK_NAME);
-            transaction.setFrameworkVersion(VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "spring-web"));
-        }
+		@Advice.OnMethodEnter(suppress = Throwable.class)
+		static void setTransactionName(@Advice.Argument(2) Object handler) {
+			final Transaction transaction = tracer.currentTransaction();
+			if (transaction == null) {
+				return;
+			}
+			final String className;
+			final String methodName;
+			if (handler instanceof HandlerMethod) {
+				HandlerMethod handlerMethod = ((HandlerMethod) handler);
+				className = handlerMethod.getBeanType().getSimpleName();
+				methodName = handlerMethod.getMethod().getName();
+			} else {
+				className = handler.getClass().getSimpleName();
+				methodName = null;
+			}
+			setName(transaction, className, methodName);
+			transaction.setFrameworkName(FRAMEWORK_NAME);
+			transaction.setFrameworkVersion(
+					VersionUtils.getVersion(HandlerMethod.class, "org.springframework", "spring-web"));
+		}
 
-        @VisibleForAdvice
-        public static void setName(Transaction transaction, String className, @Nullable String methodName) {
-            final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
-            if (name != null) {
-                name.append(className);
-                if (methodName != null) {
-                    name.append('#').append(methodName);
-                }
-            }
-        }
-    }
+		@VisibleForAdvice
+		public static void setName(Transaction transaction, String className, @Nullable String methodName) {
+			final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
+			if (name != null) {
+				name.append(className);
+				if (methodName != null) {
+					name.append('#').append(methodName);
+				} else {
+					name.append("#").append(transaction.withName(className, PRIO_LOW_LEVEL_FRAMEWORK + 1));
+				}
+			}
+		}
+	}
 }
