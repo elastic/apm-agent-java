@@ -134,7 +134,7 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
                 name.append(className);
                 if (methodName != null) {
                     name.append('#').append(methodName);
-                } else {
+                } else { 
                 	name.append("#").append(transaction.withName(className, PRIO_LOW_LEVEL_FRAMEWORK + 1));
                 }
             }
