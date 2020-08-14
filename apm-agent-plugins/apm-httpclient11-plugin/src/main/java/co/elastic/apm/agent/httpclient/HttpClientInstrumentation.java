@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -61,7 +61,7 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
             final AbstractSpan<?> parent = tracer.getActive();
             URI uri = httpRequest.uri();
             Span span = co.elastic.apm.agent.http.client.HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
-                HttpClientHelper.computeHostName(uri.getHost()), uri.getPort());
+                    HttpClientHelper.computeHostName(uri.getHost()), uri.getPort());
             if (span != null) {
                 span.activate();
             }
@@ -71,16 +71,17 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
         public static void onAfterExecute(@Advice.Return @Nullable HttpResponse response,
                                           @Advice.Thrown @Nullable Throwable t) {
             final Span span = tracer.getActiveExitSpan();
-            if (span != null) {
-                try {
-                    if (response != null) {
-                        int statusCode = response.statusCode();
-                        span.getContext().getHttp().withStatusCode(statusCode);
-                    }
-                    span.captureException(t);
-                } finally {
-                    span.deactivate().end();
+            if (span == null) {
+                return;
+            }
+            try {
+                if (response != null) {
+                    int statusCode = response.statusCode();
+                    span.getContext().getHttp().withStatusCode(statusCode);
                 }
+                span.captureException(t);
+            } finally {
+                span.deactivate().end();
             }
         }
     }
