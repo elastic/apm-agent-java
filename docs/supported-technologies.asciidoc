@@ -273,6 +273,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | This is an experimental plugin. Remove `experimental` from <<config-disable-instrumentations,`disable_instrumentations`>> to enable.
 | 1.17.0
 
+|JDK 11 HttpClient
+|
+|
+| 1.18.0
+
 |===
 
 

@@ -48,6 +48,7 @@ endif::[]
 * Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
   an empty string - {pull}1295[#1295]
 * Add <<metrics-micrometer, micrometer support>> - {pull}1303[#1303]
+* Support sync, async calls made by JDK 11 HTTPClient - {pull}1307[#1307]
 
 [float]
 ===== Bug fixes
