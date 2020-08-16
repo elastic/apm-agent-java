@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
+import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -58,8 +59,8 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
             }
             final AbstractSpan<?> parent = tracer.getActive();
             URI uri = httpRequest.uri();
-            Span span = co.elastic.apm.agent.http.client.HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
-                HttpClientHelper.computeHostName(uri.getHost()), uri.getPort());
+            Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
+                HttpClient11Helper.computeHostName(uri.getHost()), uri.getPort());
             if (span != null) {
                 span.activate();
             }
