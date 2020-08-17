@@ -549,7 +549,7 @@ public class ElasticApmAgent {
         }
         dynamicClassFileTransformers.clear();
         instrumentation = null;
-        HelperClassManager.ForIndyPlugin.clear();
+        IndyPluginClassLoaderFactory.clear();
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,

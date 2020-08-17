@@ -67,6 +67,11 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
         return SpringServiceNameAdvice.class;
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class SpringServiceNameAdvice {
 
         @Advice.OnMethodExit(suppress = Throwable.class)

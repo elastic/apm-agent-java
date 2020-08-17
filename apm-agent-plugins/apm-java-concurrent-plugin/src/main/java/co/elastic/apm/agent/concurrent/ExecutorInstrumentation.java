@@ -103,11 +103,6 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         return Arrays.asList("concurrent", "executor");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
     private static boolean isExcluded(@Advice.This Executor executor) {
         return excludedClasses.contains(executor.getClass().getName());
     }

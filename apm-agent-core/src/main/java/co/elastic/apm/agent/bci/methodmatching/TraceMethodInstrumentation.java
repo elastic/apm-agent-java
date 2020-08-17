@@ -160,4 +160,9 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("method-matching");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

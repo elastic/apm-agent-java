@@ -48,4 +48,9 @@ public abstract class MongoClientInstrumentation extends TracerAwareInstrumentat
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("mongodb-client");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

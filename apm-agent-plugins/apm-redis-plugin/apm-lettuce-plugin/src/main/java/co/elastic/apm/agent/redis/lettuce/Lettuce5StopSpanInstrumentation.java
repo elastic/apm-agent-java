@@ -74,6 +74,11 @@ public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareInstrum
         return Arrays.asList("redis", "lettuce");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class OnComplete extends Lettuce5StopSpanInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)

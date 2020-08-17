@@ -45,6 +45,11 @@ public class ExceptionHandlerInstrumentation extends TracerAwareInstrumentation 
         return ExceptionHandlerAdviceService.class;
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class ExceptionHandlerAdviceService {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)

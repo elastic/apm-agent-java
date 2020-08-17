@@ -119,4 +119,8 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

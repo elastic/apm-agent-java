@@ -57,4 +57,9 @@ public abstract class Lettuce34Instrumentation extends TracerAwareInstrumentatio
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("redis", "lettuce");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

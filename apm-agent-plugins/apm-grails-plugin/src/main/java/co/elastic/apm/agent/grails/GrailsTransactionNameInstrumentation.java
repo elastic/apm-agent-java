@@ -85,6 +85,11 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
         return Collections.singletonList("grails");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     @VisibleForAdvice
     public static class HandlerAdapterAdvice {
 
