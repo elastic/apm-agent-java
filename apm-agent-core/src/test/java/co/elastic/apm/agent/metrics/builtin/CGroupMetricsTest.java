@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 
 class CGroupMetricsTest {
 
-    private MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
+    private final MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
 
     private CGroupMetrics createUnlimitedSystemMetrics() throws URISyntaxException, IOException {
         File mountInfo = new File(getClass().getResource("/proc/unlimited/memory").toURI());
