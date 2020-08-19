@@ -1874,7 +1874,7 @@ If unset, the value of the "java.io.tmpdir" System property will be used.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | Optional | false
+| `<none>` | String | false
 |============
 
 
@@ -3222,7 +3222,7 @@ The default unit for this option is `ms`.
 # If unset, the value of the "java.io.tmpdir" System property will be used.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Optional
+# Type: String
 # Default value: 
 #
 # profiling_inferred_spans_lib_directory=
