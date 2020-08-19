@@ -24,50 +24,16 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import org.apache.http.HttpRequest;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
 public abstract class BaseApacheHttpClientInstrumentation extends TracerAwareInstrumentation {
-
-    // Referencing specific Apache HTTP client classes are allowed due to type erasure
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderGetter<HttpRequest>> headerGetterHelperClassManager;
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderSetter<HttpRequest>> headerSetterHelperClassManager;
-
-    public BaseApacheHttpClientInstrumentation(ElasticApmTracer tracer) {
-        if (headerGetterHelperClassManager == null) {
-            synchronized (BaseApacheHttpClientInstrumentation.class) {
-                if (headerGetterHelperClassManager == null) {
-                    headerGetterHelperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                        "co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor"
-                    );
-                    headerSetterHelperClassManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                        "co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor"
-                    );
-                }
-            }
-        }
-    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("http-client", "apache-httpclient");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }

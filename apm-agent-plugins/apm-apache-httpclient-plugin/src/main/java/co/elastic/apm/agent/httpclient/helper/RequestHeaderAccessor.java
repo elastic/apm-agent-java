@@ -33,6 +33,9 @@ import javax.annotation.Nullable;
 
 @SuppressWarnings("unused")
 public class RequestHeaderAccessor implements TextHeaderGetter<HttpRequest>, TextHeaderSetter<HttpRequest> {
+
+    public static final RequestHeaderAccessor INSTANCE = new RequestHeaderAccessor();
+
     @Override
     public void setHeader(String headerName, String headerValue, HttpRequest request) {
         request.setHeader(headerName, headerValue);
