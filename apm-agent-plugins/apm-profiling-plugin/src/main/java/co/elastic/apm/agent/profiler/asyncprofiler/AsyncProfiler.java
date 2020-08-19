@@ -75,7 +75,7 @@ public class AsyncProfiler {
                 try {
                     loadNativeLibrary(config.getProfilerLibDirectory());
                 } catch (UnsatisfiedLinkError e) {
-                    throw new IllegalStateException(String.format("Is is likely that %s is not an executable location. Consider setting " +
+                    throw new IllegalStateException(String.format("It is likely that %s is not an executable location. Consider setting " +
                         "the profiling_inferred_spans_lib_directory property to a directory on a partition that allows execution",
                         config.getProfilerLibDirectory()), e);
                 }
