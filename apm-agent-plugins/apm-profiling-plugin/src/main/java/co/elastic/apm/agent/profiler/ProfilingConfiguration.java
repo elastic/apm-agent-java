@@ -34,6 +34,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.min;
@@ -163,6 +164,19 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.15.0]", "internal")
         .buildWithDefault(TimeDuration.of("5s"));
 
+    private final ConfigurationOption<Optional<String>> profilerLibDirectory = ConfigurationOption.<String>stringOption()
+        .key("profiling_inferred_spans_lib_directory")
+        .description("Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library " +
+            "is exported to a temporary location and loaded by the JVM.\n" +
+            "The partition backing this location must be executable, however in some server-hardened environments, " +
+            "noexec may be set on the standard /tmp partition, leading to java.lang.UnsatisfiedLinkError errors.\n" +
+            "Set this property to an alternative directory (e.g. '/var/tmp') to resolve this.\n" +
+            "If unset, the value of the \"java.io.tmpdir\" System property will be used.")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(false)
+        .tags("added[1.18.0]")
+        .buildOptional();
+
     public boolean isProfilingEnabled() {
         return profilingEnabled.get();
     }
@@ -205,5 +219,9 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isBackupDiagnosticFiles() {
         return backupDiagnosticFiles.get();
+    }
+
+    public String getProfilerLibDirectory() {
+        return profilerLibDirectory.get().orElse(System.getProperty("java.io.tmpdir"));
     }
 }

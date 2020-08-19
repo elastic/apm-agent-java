@@ -214,13 +214,14 @@ public class IOUtils {
      * Why it's synchronized : if the same JVM try to lock file, we got an java.nio.channels.OverlappingFileLockException.
      * So we need to block until the file is totally written.
      */
-    public static synchronized File exportResourceToTemp(String resource, String tempFileNamePrefix, String tempFileNameExtension) {
+    public static synchronized File exportResourceToDirectory(String resource, String parentDirectory, String tempFileNamePrefix,
+                                                              String tempFileNameExtension) {
         try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
             if (resourceStream == null) {
                 throw new IllegalStateException(resource + " not found");
             }
             String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
-            File tempFile = new File(System.getProperty("java.io.tmpdir"), tempFileNamePrefix + "-" + hash + tempFileNameExtension);
+            File tempFile = new File(parentDirectory, tempFileNamePrefix + "-" + hash + tempFileNameExtension);
             if (!tempFile.exists()) {
                 try (FileOutputStream out = new FileOutputStream(tempFile)) {
                     FileChannel channel = out.getChannel();
