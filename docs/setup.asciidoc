@@ -22,6 +22,12 @@ There are three different ways to set up the Elastic APM Java Agent:
 Once you've set up the Agent,
 see the <<configuration,configuration guide>> on how to configure Elastic APM.
 
+[[ssl-configuration]]
+=== SSL/TLS communication with APM Server
+
+If {apm-server-ref-v}/secure-communication-agents.html#ssl-setup[SSL/TLS communication] is enabled on
+the APM Server, make sure to check out the <<ssl-configuration, SSL setup guide>>.
+
 [float]
 [[supported-technologies]]
 === Supported technologies

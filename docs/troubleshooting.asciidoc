@@ -212,6 +212,21 @@ The correct jar file to be pointing at should be in the form of `elastic-apm-age
 further information about how to download this file can be found <<setup-javaagent, in the manual setup instructions.>>
 
 [float]
+[[trouble-shooting-communication]]
+==== Communication with APM Server ====
+
+`unable to find valid certification path to requested target` - server authentication fails. Check out
+<<ssl-server-authentication>>.
+
+`java.net.SocketException: Broken pipe` - one option is that client authentication fails. Check out
+<<ssl-client-authentication>>.
+
+For other SSL/TLS related problems, - check out
+https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#Troubleshooting[the JSSE
+troubleshooting section].
+You can add `-Djavax.net.debug=all` to the JVM cmd line to get more details about your problem.
+
+[float]
 [[disable-agent]]
 === Disable the Agent
 
