@@ -52,8 +52,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
-    public static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
-
     @Override
     public Class<?> getAdviceClass() {
         return ApacheHttpAsyncClientAdvice.class;
@@ -86,6 +84,8 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
     }
 
     public static class ApacheHttpAsyncClientAdvice {
+        public static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
+
         @AssignTo(arguments = {
             @AssignTo.Argument(index = 0, value = 0),
             @AssignTo.Argument(index = 1, value = 3)
