@@ -39,7 +39,6 @@
  */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
-import co.elastic.apm.agent.profiler.ProfilingConfiguration;
 import co.elastic.apm.agent.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -49,7 +48,7 @@ import java.io.IOException;
 /**
  * Java API for in-process profiling. Serves as a wrapper around
  * async-profiler native library. This class is a singleton.
- * The first call to {@link #getInstance(ProfilingConfiguration config)} initiates loading of
+ * The first call to {@link #getInstance(String profilerLibDirectory)} initiates loading of
  * libasyncProfiler.so.
  * <p>
  * This is based on https://github.com/jvm-profiling-tools/async-profiler/blob/master/src/java/one/profiler/AsyncProfiler.java,
@@ -65,7 +64,7 @@ public class AsyncProfiler {
     private AsyncProfiler() {
     }
 
-    public static AsyncProfiler getInstance(ProfilingConfiguration config) {
+    public static AsyncProfiler getInstance(String profilerLibDirectory) {
         AsyncProfiler result = AsyncProfiler.instance;
         if (result != null) {
             return result;
@@ -73,16 +72,22 @@ public class AsyncProfiler {
         synchronized (AsyncProfiler.class) {
             if (instance == null) {
                 try {
-                    loadNativeLibrary(config.getProfilerLibDirectory());
+                    loadNativeLibrary(profilerLibDirectory);
                 } catch (UnsatisfiedLinkError e) {
                     throw new IllegalStateException(String.format("It is likely that %s is not an executable location. Consider setting " +
                         "the profiling_inferred_spans_lib_directory property to a directory on a partition that allows execution",
-                        config.getProfilerLibDirectory()), e);
+                        profilerLibDirectory), e);
                 }
 
                 instance = new AsyncProfiler();
             }
             return instance;
+        }
+    }
+
+    static void reset() {
+        synchronized (AsyncProfiler.class) {
+            instance = null;
         }
     }
 

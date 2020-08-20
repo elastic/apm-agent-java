@@ -1864,9 +1864,9 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 ==== `profiling_inferred_spans_lib_directory` (added[1.18.0])
 
 Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library is exported to a temporary location and loaded by the JVM.
-The partition backing this location must be executable, however in some server-hardened environments, noexec may be set on the standard /tmp partition, leading to java.lang.UnsatisfiedLinkError errors.
-Set this property to an alternative directory (e.g. '/var/tmp') to resolve this.
-If unset, the value of the "java.io.tmpdir" System property will be used.
+The partition backing this location must be executable, however in some server-hardened environments, noexec may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.
+Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.
+If unset, the value of the `java.io.tmpdir` System property will be used.
 
 
 
@@ -3217,9 +3217,9 @@ The default unit for this option is `ms`.
 # profiling_inferred_spans_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*
 
 # Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library is exported to a temporary location and loaded by the JVM.
-# The partition backing this location must be executable, however in some server-hardened environments, noexec may be set on the standard /tmp partition, leading to java.lang.UnsatisfiedLinkError errors.
-# Set this property to an alternative directory (e.g. '/var/tmp') to resolve this.
-# If unset, the value of the "java.io.tmpdir" System property will be used.
+# The partition backing this location must be executable, however in some server-hardened environments, noexec may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.
+# Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.
+# If unset, the value of the `java.io.tmpdir` System property will be used.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
