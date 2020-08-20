@@ -170,7 +170,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "The partition backing this location must be executable, however in some server-hardened environments, " +
             "noexec may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.\n" +
             "Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.\n" +
-            "If unset, the value of the `java.io.tmpdir` System property will be used.")
+            "If unset, the value of the `java.io.tmpdir` system property will be used.")
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(false)
         .tags("added[1.18.0]")

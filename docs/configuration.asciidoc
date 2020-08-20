@@ -1866,7 +1866,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library is exported to a temporary location and loaded by the JVM.
 The partition backing this location must be executable, however in some server-hardened environments, noexec may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.
 Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.
-If unset, the value of the `java.io.tmpdir` System property will be used.
+If unset, the value of the `java.io.tmpdir` system property will be used.
 
 
 
@@ -3219,7 +3219,7 @@ The default unit for this option is `ms`.
 # Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library is exported to a temporary location and loaded by the JVM.
 # The partition backing this location must be executable, however in some server-hardened environments, noexec may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.
 # Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.
-# If unset, the value of the `java.io.tmpdir` System property will be used.
+# If unset, the value of the `java.io.tmpdir` system property will be used.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
