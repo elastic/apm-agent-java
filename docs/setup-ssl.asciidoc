@@ -13,9 +13,10 @@ of the APM Server by authenticating its certificate. It is not recommended to ch
 however it is possible through the <<config-verify-server-cert>> configuration.
 
 If the certificate used by the APM Server is self-signed, you would need to add the same certificate
+(or the root certificate of the custom CA that signed it)
 to the JVM's truststore. You can find which truststore is used by setting `-Djavax.net.debug=all`
 in the command line. Typically, it would be `$JAVA_HOME/jre/lib/security/cacerts`.
-Following is an example of using `keytool` to import a certificate into the truststore:
+For example, you can use `keytool` to import a certificate into the truststore:
 `keytool -import -alias apm-server-cert -file /path/to/certificate.crt -keystore /path/to/truststore`
 
 [float]
