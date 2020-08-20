@@ -1,12 +1,12 @@
 [[ssl-configuration]]
-== SSL/TLS communication with APM Server
+=== SSL/TLS communication with APM Server
 
 If {apm-server-ref-v}/secure-communication-agents.html[SSL/TLS communication] is enabled on
 the APM Server, use the `https` protocol when configuring <<config-server-urls,`server_urls`>>.
 
 [float]
 [[ssl-server-authentication]]
-=== APM Server certificate authentication
+==== APM Server certificate authentication
 
 By default, when using HTTPS to communicate with APM Server, the agents will verify the identity
 of the APM Server by authenticating its certificate. It is not recommended to change this default,
@@ -20,7 +20,7 @@ Following is an example of using `keytool` to import a certificate into the trus
 
 [float]
 [[ssl-client-authentication]]
-=== Agent certificate authentication
+==== Agent certificate authentication
 
 If {apm-server-ref-v}/secure-communication-agents.html[SSL client authentication]
 is enabled on the APM server, the agent will be required to send a proper certificate as part of the
