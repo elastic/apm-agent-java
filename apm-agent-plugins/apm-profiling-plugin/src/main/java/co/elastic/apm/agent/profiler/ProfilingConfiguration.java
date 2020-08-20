@@ -168,7 +168,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .description("Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library " +
             "is exported to a temporary location and loaded by the JVM.\n" +
             "The partition backing this location must be executable, however in some server-hardened environments, " +
-            "noexec may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.\n" +
+            "`noexec` may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.\n" +
             "Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.\n" +
             "If unset, the value of the `java.io.tmpdir` system property will be used.")
         .configurationCategory(PROFILING_CATEGORY)

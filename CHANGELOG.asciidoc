@@ -50,7 +50,7 @@ endif::[]
   an empty string - {pull}1295[#1295]
 * Add <<metrics-micrometer, micrometer support>> - {pull}1303[#1303]
 * Add `profiling_inferred_spans_lib_directory` option to override the default temp directory used for exporting the async-profiler library.
-  This is useful for server-hardened environments where /tmp is often configured with noexec, leading to java.lang.UnsatisfiedLinkError errors - {pull}1350[#1350]
+  This is useful for server-hardened environments where `/tmp` is often configured with `noexec`, leading to `java.lang.UnsatisfiedLinkError` errors - {pull}1350[#1350]
 
 [float]
 ===== Bug fixes
