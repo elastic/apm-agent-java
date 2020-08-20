@@ -1,7 +1,7 @@
 [[ssl-configuration]]
 == SSL/TLS communication with APM Server
 
-If {apm-server-ref-v}/secure-communication-agents.html#ssl-setup[SSL/TLS communication] is enabled on
+If {apm-server-ref-v}/secure-communication-agents.html[SSL/TLS communication] is enabled on
 the APM Server, use the `https` protocol when configuring <<config-server-urls,`server_urls`>>.
 
 [float]
@@ -22,7 +22,7 @@ Following is an example of using `keytool` to import a certificate into the trus
 [[ssl-client-authentication]]
 === Agent certificate authentication
 
-If {apm-server-ref-v}/secure-communication-agents.html#ssl-client-authentication[SSL client authentication]
+If {apm-server-ref-v}/secure-communication-agents.html[SSL client authentication]
 is enabled on the APM server, the agent will be required to send a proper certificate as part of the
 HTTPS handshake. There is currently no configuration on the Java agent that supports that and
 no one straightforward option to do that that is suitable for all cases.
