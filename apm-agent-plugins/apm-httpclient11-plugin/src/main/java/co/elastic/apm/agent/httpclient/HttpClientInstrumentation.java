@@ -61,8 +61,7 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
             }
             final AbstractSpan<?> parent = tracer.getActive();
             URI uri = httpRequest.uri();
-            Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri.toString(), uri.getScheme(),
-                HttpClient11Helper.computeHostName(uri.getHost()), uri.getPort());
+            Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
             if (span != null) {
                 span.activate();
             }
