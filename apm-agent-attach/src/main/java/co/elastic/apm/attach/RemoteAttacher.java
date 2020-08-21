@@ -60,7 +60,8 @@ public class RemoteAttacher {
             arguments = Arguments.parse(args);
             if (!arguments.getIncludes().isEmpty() || !arguments.getExcludes().isEmpty()) {
                 if (!JvmDiscoverer.Jps.INSTANCE.isAvailable()) {
-                    throw new IllegalStateException("Matching JVMs with --include or --exclude requires jps to be installed");
+                    String jpsPath = JvmDiscoverer.getJpsPath(System.getProperties()).toString();
+                    throw new IllegalStateException("Matching JVMs with --include or --exclude requires jps, unable to execute " + jpsPath);
                 }
             }
         } catch (IllegalArgumentException e) {
