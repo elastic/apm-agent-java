@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.proxysupport.AuthenticatorInstrumentation;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import org.slf4j.Logger;
@@ -112,7 +113,12 @@ public class AbstractIntakeApiHandler {
             connection.setRequestProperty("Content-Encoding", "deflate");
             connection.setRequestProperty("Content-Type", "application/x-ndjson");
             connection.setUseCaches(false);
-            connection.connect();
+            try {
+                AuthenticatorInstrumentation.toggleFallback(true);
+                connection.connect();
+            } finally {
+                AuthenticatorInstrumentation.toggleFallback(false);
+            }
             os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
             os.write(metaData);
         }
