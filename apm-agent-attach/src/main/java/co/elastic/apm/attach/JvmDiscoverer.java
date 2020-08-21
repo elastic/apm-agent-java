@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -117,37 +118,49 @@ public interface JvmDiscoverer {
         }
 
         private static Process runJps() throws IOException {
-            return new ProcessBuilder(getJpsPath(System.getProperties()).toString(), "-lv").start();
+            return new ProcessBuilder(JpsFinder.getJpsPath(System.getProperties()).toString(), "-lv").start();
         }
 
     }
 
-    // package protected for testing
-    static Path getJpsPath(Properties systemProperties) {
-        String javaHome = systemProperties.getProperty("java.home");
+    class JpsFinder {
+        // package protected for testing
+        static Path getJpsPath(Properties systemProperties) {
+            String javaHome = systemProperties.getProperty("java.home");
 
-        // give priority to `JAVA_HOME` environment variable when set
-        // as the `${JAVA_HOME}/bin/java` binary might be symlinked to `${JAVA_HOME}/jre/bin/java` which makes the
-        // `java.home` set to a JRE folder, where `jps` binary can't be found
-        String javaHomeEnv = System.getenv("JAVA_HOME");
-        if (null != javaHomeEnv && !javaHomeEnv.equals(javaHome)) {
-            javaHome = javaHomeEnv;
-        }
+            // give priority to `JAVA_HOME` environment variable when set as 'java.home' might point to a JRE
+            String javaHomeEnv = System.getenv("JAVA_HOME");
+            if (null != javaHomeEnv && !javaHomeEnv.equals(javaHome)) {
+                javaHome = javaHomeEnv;
+            }
 
-        String os = systemProperties.getProperty("os.name");
-        Path binaryPath;
-        if (os != null && os.startsWith("Windows")) {
-            binaryPath = Paths.get("jps.exe");
-        } else {
-            binaryPath = Paths.get("jps");
+            String os = systemProperties.getProperty("os.name");
+            Path binaryName;
+            if (os != null && os.startsWith("Windows")) {
+                binaryName = Paths.get("jps.exe");
+            } else {
+                binaryName = Paths.get("jps");
+            }
+            Path binaryPath = binaryName;
+            if (javaHome != null) {
+                binaryPath = Paths.get(javaHome)
+                    .toAbsolutePath()
+                    .resolve("bin")
+                    .resolve(binaryName);
+
+                if (!Files.isExecutable(binaryPath)) {
+                    // in case 'java.home' or JAVA_HOME are set to a JRE
+                    // we try to use the one in the folder up, which is usually where the JDK is
+                    binaryPath = Paths.get(javaHome)
+                        .toAbsolutePath()
+                        .resolve("..")
+                        .resolve("bin")
+                        .resolve(binaryName);
+                }
+
+            }
+            return binaryPath;
         }
-        if (javaHome != null) {
-            binaryPath = Paths.get(javaHome)
-                .toAbsolutePath()
-                .resolve("bin")
-                .resolve(binaryPath);
-        }
-        return binaryPath;
     }
 
     enum Unavailable implements JvmDiscoverer {

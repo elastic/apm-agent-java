@@ -61,7 +61,7 @@ class JvmDiscovererTest {
     @Test
     void getJpsPathNoJavaHome() {
         Properties sysProperties = new Properties();
-        Path path = JvmDiscoverer.getJpsPath(sysProperties);
+        Path path = JvmDiscoverer.JpsFinder.getJpsPath(sysProperties);
         assertThat(path).asString()
             .describedAs("should use binary in path as fallback")
             .isEqualTo("jps");
@@ -71,14 +71,14 @@ class JvmDiscovererTest {
     void getJpsPathWindows() {
         Properties sysProperties = new Properties();
         sysProperties.put("os.name", "Windows ME"); // the best one ever !
-        Path path = JvmDiscoverer.getJpsPath(sysProperties);
+        Path path = JvmDiscoverer.JpsFinder.getJpsPath(sysProperties);
         assertThat(path).asString().isEqualTo("jps.exe");
         // note: we can't really test both windows+java.home set as it relies on absolute path resolution
     }
 
     @Test
     void getJpsPathCurrentJvm() {
-        Path path = JvmDiscoverer.getJpsPath(System.getProperties());
+        Path path = JvmDiscoverer.JpsFinder.getJpsPath(System.getProperties());
         assertThat(Files.isExecutable(path)).isTrue();
     }
 
