@@ -126,14 +126,6 @@ public interface JvmDiscoverer {
     class JpsFinder {
         // package protected for testing
         static Path getJpsPath(Properties systemProperties) {
-            String javaHome = systemProperties.getProperty("java.home");
-
-            // give priority to `JAVA_HOME` environment variable when set as 'java.home' might point to a JRE
-            String javaHomeEnv = System.getenv("JAVA_HOME");
-            if (null != javaHomeEnv && !javaHomeEnv.equals(javaHome)) {
-                javaHome = javaHomeEnv;
-            }
-
             String os = systemProperties.getProperty("os.name");
             Path binaryName;
             if (os != null && os.startsWith("Windows")) {
@@ -141,14 +133,19 @@ public interface JvmDiscoverer {
             } else {
                 binaryName = Paths.get("jps");
             }
-            Path binaryPath = binaryName;
-            if (javaHome != null) {
-                binaryPath = Paths.get(javaHome)
-                    .toAbsolutePath()
-                    .resolve("bin")
-                    .resolve(binaryName);
 
-                if (!Files.isExecutable(binaryPath)) {
+            for (String javaHome : Arrays.asList(System.getenv("JAVA_HOME"), systemProperties.getProperty("java.home"))) {
+                Path binaryPath;
+                if (javaHome != null) {
+                    binaryPath = Paths.get(javaHome)
+                        .toAbsolutePath()
+                        .resolve("bin")
+                        .resolve(binaryName);
+
+                    if (Files.isExecutable(binaryPath)) {
+                        return binaryPath;
+                    }
+
                     // in case 'java.home' or JAVA_HOME are set to a JRE
                     // we try to use the one in the folder up, which is usually where the JDK is
                     binaryPath = Paths.get(javaHome)
@@ -156,10 +153,16 @@ public interface JvmDiscoverer {
                         .resolve("..")
                         .resolve("bin")
                         .resolve(binaryName);
-                }
 
+                    if (Files.isExecutable(binaryPath)) {
+                        return binaryPath;
+                    }
+
+                }
             }
-            return binaryPath;
+
+            // fallback to the simple binary name
+            return binaryName;
         }
     }
 
