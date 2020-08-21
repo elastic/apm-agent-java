@@ -40,9 +40,4 @@ public abstract class JdbcInstrumentation extends TracerAwareInstrumentation {
     public final Collection<String> getInstrumentationGroupNames() {
         return JDBC_GROUPS;
     }
-
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
 }

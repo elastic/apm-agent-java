@@ -98,6 +98,11 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
             .and(classLoaderCanLoadClass("org.asynchttpclient.AsyncHandler"));
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class AsyncHttpClientInstrumentation extends AbstractAsyncHttpClientInstrumentation {
 
         public AsyncHttpClientInstrumentation(ElasticApmTracer tracer) {

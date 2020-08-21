@@ -109,4 +109,9 @@ public class BootstrapDelegationClassLoaderInstrumentation extends TracerAwareIn
             }
         }
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

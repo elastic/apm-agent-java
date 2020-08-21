@@ -55,7 +55,6 @@ import java.util.Map;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
-import static java.lang.Boolean.FALSE;
 
 public class ServletApiAdvice {
 
@@ -70,11 +69,11 @@ public class ServletApiAdvice {
         servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
-    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded", false);
-    private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(ServletApiAdvice.class, "servletPath", null);
-    private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(ServletApiAdvice.class, "pathInfo", null);
+    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded");
+    private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(ServletApiAdvice.class, "servletPath");
+    private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(ServletApiAdvice.class, "pathInfo");
 
-    private static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
+    private static final List<String> requestExceptionAttributes = Arrays.asList(RequestDispatcher.ERROR_EXCEPTION, "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -95,7 +94,7 @@ public class ServletApiAdvice {
             DispatcherType dispatcherType = servletRequest.getDispatcherType();
 
             if (dispatcherType == DispatcherType.REQUEST) {
-                if (!Boolean.TRUE.equals(excluded.get())) {
+                if (Boolean.TRUE != excluded.get()) {
                     ServletContext servletContext = servletRequest.getServletContext();
                     if (servletContext != null) {
                         // this makes sure service name discovery also works when attaching at runtime
@@ -203,7 +202,7 @@ public class ServletApiAdvice {
             span = (Span) transactionOrScopeOrSpan;
         }
 
-        excluded.set(FALSE);
+        excluded.clear();
         if (scope != null) {
             scope.close();
         }

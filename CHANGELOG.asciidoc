@@ -48,6 +48,8 @@ endif::[]
 * Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
   an empty string - {pull}1295[#1295]
 * Add <<metrics-micrometer, micrometer support>> - {pull}1303[#1303]
+* Add `profiling_inferred_spans_lib_directory` option to override the default temp directory used for exporting the async-profiler library.
+  This is useful for server-hardened environments where `/tmp` is often configured with `noexec`, leading to `java.lang.UnsatisfiedLinkError` errors - {pull}1350[#1350]
 * Create spans for Servlet dispatches to FORWARD, INCLUDE and ERROR - {pull}1212[#1212]
 
 [float]

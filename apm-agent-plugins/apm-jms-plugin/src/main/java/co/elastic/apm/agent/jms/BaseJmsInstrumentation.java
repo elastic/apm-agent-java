@@ -78,4 +78,9 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("javax.jms.Message"));
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

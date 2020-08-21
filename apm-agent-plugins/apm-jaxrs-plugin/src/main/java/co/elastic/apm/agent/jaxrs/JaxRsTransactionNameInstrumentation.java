@@ -142,4 +142,9 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
     public Advice.OffsetMapping.Factory<?> getOffsetMapping() {
         return new JaxRsOffsetMappingFactory(tracer);
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

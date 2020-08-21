@@ -79,29 +79,23 @@ public class ServletApiTestApp extends TestApp {
     }
 
     private void testTransactionReportingWithForward(AbstractServletContainerIntegrationTest test) throws Exception {
-        String pathToTest = "/simple-webapp" + "/forward";
-        test.clearMockServerLog();
-
-        test.executeAndValidateRequest(pathToTest, "Hello World", 200, null);
-
-        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
-
-        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").textValue().equals("servlet.request-dispatcher.forward")).collect(Collectors.toList());
-        assertThat(forwardSpans.size()).isEqualTo(1);
-        assertThat(forwardSpans.get(0).get("name").textValue()).isEqualTo("FORWARD /servlet");
+        testTransactionReportingWithForwardSpan(test,"/simple-webapp/forward", "servlet.request-dispatcher.forward", "FORWARD /servlet");
     }
 
     private void testTransactionReportingWithInclude(AbstractServletContainerIntegrationTest test) throws Exception {
-        String pathToTest = "/simple-webapp" + "/include";
+        testTransactionReportingWithForwardSpan(test,"/simple-webapp/include", "servlet.request-dispatcher.include", "INCLUDE /servlet");
+    }
+
+    private void testTransactionReportingWithForwardSpan(AbstractServletContainerIntegrationTest test, String path, String expectedSpanType, String expectedSpanName) throws Exception {
         test.clearMockServerLog();
 
-        test.executeAndValidateRequest(pathToTest, "Hello World", 200, null);
+        test.executeAndValidateRequest(path, "Hello World", 200, null);
 
-        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+        JsonNode transaction = test.assertTransactionReported(path, 200);
 
-        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").textValue().equals("servlet.request-dispatcher.include")).collect(Collectors.toList());
+        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").textValue().equals(expectedSpanType)).collect(Collectors.toList());
         assertThat(forwardSpans.size()).isEqualTo(1);
-        assertThat(forwardSpans.get(0).get("name").textValue()).isEqualTo("INCLUDE /servlet");
+        assertThat(forwardSpans.get(0).get("name").textValue()).isEqualTo(expectedSpanName);
     }
 
     private void testExecutorService(AbstractServletContainerIntegrationTest test) throws Exception {

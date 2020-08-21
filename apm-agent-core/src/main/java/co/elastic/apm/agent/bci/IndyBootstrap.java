@@ -67,7 +67,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *       ↑ └java.lang.IndyBootstrapDispatcher ─ ↑ ─→ └ {@link IndyBootstrap#bootstrap}
  *     Ext/Platform CL               ↑          │                        ╷
  *       ↑                           ╷          │                        ↓
- *     System CL                     ╷          │        {@link HelperClassManager.ForIndyPlugin#getOrCreatePluginClassLoader}
+ *     System CL                     ╷          │        {@link IndyPluginClassLoaderFactory#getOrCreatePluginClassLoader}
  *       ↑                           ╷          │                        ╷
  *     Common               linking of CallSite {@link ExternalPluginClassLoader}
  *     ↑    ↑             (on first invocation) ↑ ├ AdviceClass          ╷
@@ -277,7 +277,7 @@ public class IndyBootstrap {
             } else {
                 pluginClasses = getClassNamesFromBundledPlugin(adviceClassName, adviceClassLoader);
             }
-            ClassLoader pluginClassLoader = HelperClassManager.ForIndyPlugin.getOrCreatePluginClassLoader(
+            ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
                 lookup.lookupClass().getClassLoader(),
                 pluginClasses,
                 adviceClassLoader,

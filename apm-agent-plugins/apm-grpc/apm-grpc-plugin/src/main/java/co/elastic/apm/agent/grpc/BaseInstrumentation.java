@@ -68,4 +68,8 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return Collections.singleton(GrpcHelper.GRPC);
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

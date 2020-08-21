@@ -92,4 +92,8 @@ public class Lettuce5StartSpanInstrumentation extends TracerAwareInstrumentation
         }
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }
