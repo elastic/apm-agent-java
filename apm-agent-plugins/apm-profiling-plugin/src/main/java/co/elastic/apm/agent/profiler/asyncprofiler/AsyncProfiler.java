@@ -48,7 +48,7 @@ import java.io.IOException;
 /**
  * Java API for in-process profiling. Serves as a wrapper around
  * async-profiler native library. This class is a singleton.
- * The first call to {@link #getInstance()} initiates loading of
+ * The first call to {@link #getInstance(String profilerLibDirectory)} initiates loading of
  * libasyncProfiler.so.
  * <p>
  * This is based on https://github.com/jvm-profiling-tools/async-profiler/blob/master/src/java/one/profiler/AsyncProfiler.java,
@@ -64,14 +64,20 @@ public class AsyncProfiler {
     private AsyncProfiler() {
     }
 
-    public static AsyncProfiler getInstance() {
+    public static AsyncProfiler getInstance(String profilerLibDirectory) {
         AsyncProfiler result = AsyncProfiler.instance;
         if (result != null) {
             return result;
         }
         synchronized (AsyncProfiler.class) {
             if (instance == null) {
-                loadNativeLibrary();
+                try {
+                    loadNativeLibrary(profilerLibDirectory);
+                } catch (UnsatisfiedLinkError e) {
+                    throw new IllegalStateException(String.format("It is likely that %s is not an executable location. Consider setting " +
+                        "the profiling_inferred_spans_lib_directory property to a directory on a partition that allows execution",
+                        profilerLibDirectory), e);
+                }
 
                 instance = new AsyncProfiler();
             }
@@ -79,9 +85,16 @@ public class AsyncProfiler {
         }
     }
 
-    private static void loadNativeLibrary() {
+    static void reset() {
+        synchronized (AsyncProfiler.class) {
+            instance = null;
+        }
+    }
+
+    private static void loadNativeLibrary(String libraryDirectory) {
         String libraryName = getLibraryFileName();
-        File file = IOUtils.exportResourceToTemp("asyncprofiler/" + libraryName + ".so", libraryName, ".so");
+        File file = IOUtils.exportResourceToDirectory("asyncprofiler/" + libraryName + ".so", libraryDirectory,
+            libraryName, ".so");
         System.load(file.getAbsolutePath());
     }
 

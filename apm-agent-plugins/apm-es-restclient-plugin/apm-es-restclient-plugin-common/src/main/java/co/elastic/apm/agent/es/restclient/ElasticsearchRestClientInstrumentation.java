@@ -59,4 +59,9 @@ public abstract class ElasticsearchRestClientInstrumentation extends TracerAware
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("elasticsearch-restclient");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }
