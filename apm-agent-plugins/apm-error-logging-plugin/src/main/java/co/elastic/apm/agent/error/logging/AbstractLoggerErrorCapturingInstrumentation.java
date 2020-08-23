@@ -56,6 +56,11 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
         return LoggingAdvice.class;
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class LoggingAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)

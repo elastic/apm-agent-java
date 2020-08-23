@@ -24,19 +24,18 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -51,6 +50,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -79,6 +79,7 @@ public class MockReporter implements Reporter {
     private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
     private final List<Span> spans = Collections.synchronizedList(new ArrayList<>());
     private final List<ErrorCapture> errors = Collections.synchronizedList(new ArrayList<>());
+    private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
     private boolean closed;
@@ -245,8 +246,11 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs, final ElasticApmTracer tracer) {
-        // noop
+    public synchronized void report(JsonWriter jsonWriter) {
+        if (closed) {
+            return;
+        }
+        this.bytes.add(jsonWriter.toByteArray());
     }
 
     public synchronized Span getFirstSpan() {
@@ -273,6 +277,10 @@ public class MockReporter implements Reporter {
             .describedAs("at least one error expected, none have been reported")
             .isNotEmpty();
         return errors.iterator().next();
+    }
+
+    public synchronized List<byte[]> getBytes() {
+        return bytes;
     }
 
     @Override
@@ -329,6 +337,7 @@ public class MockReporter implements Reporter {
         transactions.clear();
         spans.clear();
         errors.clear();
+        bytes.clear();
     }
 
     /**

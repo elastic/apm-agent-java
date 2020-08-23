@@ -58,11 +58,6 @@ public class ForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("concurrent", "fork-join");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static void onExecute(@Advice.This ForkJoinTask<?> thiz) {
         JavaConcurrent.withContext(thiz, tracer);

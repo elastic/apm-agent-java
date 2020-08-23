@@ -204,9 +204,38 @@ Updating them to a more recent version should resolve the problem.
 [[trouble-shooting-incorrect-manual-jar-file]]
 ==== Failed to find Premain-Class manifest attribute ====
 
-If you are using a manual setup with a `-javaagent` flag against an application server and are seeing the 
+If you are using a manual setup with a `-javaagent` flag against an application server and are seeing the
 `Failed to find Premain-Class manifest attribute` error and a failure to start, then you might be pointing
 at the incorrect jar file.
 
-The correct jar file to be pointing at should be in the form of `elastic-apm-agent-<version>.jar` and 
+The correct jar file to be pointing at should be in the form of `elastic-apm-agent-<version>.jar` and
 further information about how to download this file can be found <<setup-javaagent, in the manual setup instructions.>>
+
+[float]
+[[trouble-shooting-communication]]
+==== Communication with APM Server ====
+
+`unable to find valid certification path to requested target` - server authentication fails. Check out
+<<ssl-server-authentication>>.
+
+`java.net.SocketException: Broken pipe` - one option is that client authentication fails. Check out
+<<ssl-client-authentication>>.
+
+For other SSL/TLS related problems, - check out
+https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#Troubleshooting[the JSSE
+troubleshooting section].
+You can add `-Djavax.net.debug=all` to the JVM cmd line to get more details about your problem.
+
+[float]
+[[disable-agent]]
+=== Disable the Agent
+
+In the unlikely event the agent causes disruptions to a production application,
+you can disable the agent while you troubleshoot.
+
+Using <<configuration-dynamic,dynamic configuration>>,
+you can disable the recording of events by setting <<config-recording,`recording`>> to `false`.
+
+If that doesn't work, you can completely disable the agent by setting
+<<config-enabled,`enabled`>> to `false`.
+You'll need to restart your application for this change to take effect.

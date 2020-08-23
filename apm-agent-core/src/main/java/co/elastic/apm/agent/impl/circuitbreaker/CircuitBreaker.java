@@ -52,7 +52,7 @@ public class CircuitBreaker extends AbstractLifecycleListener {
         this.tracer = tracer;
         circuitBreakerConfiguration = tracer.getConfig(CircuitBreakerConfiguration.class);
         pollInterval = circuitBreakerConfiguration.getStressMonitoringPollingIntervalMillis();
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("circuit-breaker", 1);
+        threadPool = ExecutorUtils.createSingleThreadDaemonPool("circuit-breaker", 1);
     }
 
     @Override

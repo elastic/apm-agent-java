@@ -76,6 +76,8 @@ Failed ot start agent - JVM version not supported: 1.8.0_31
 |Servlet API
 |3+
 |A transaction will be created for all incoming HTTP requests to your Servlet API-based application.
+ Starting in version 1.18.0, additional spans are created if the servlet dispatches execution to another servlet through the `forward` or
+ `include` APIs, or to an error page.
  See also <<supported-app-servers>>
 |1.0.0
 
@@ -469,6 +471,11 @@ If you are seeing gaps in the span timeline and want to include additional metho
 |JMX
 |Set the configuration option <<config-capture-jmx-metrics, `capture_jmx_metrics`>> in order to monitor any JMX metric.
 |1.11.0
+
+|Micrometer
+|Automatically detects and reports the metrics of each `MeterRegistry`.
+ See <<metrics-micrometer>> for more details.
+|1.18.0
 
 |===
 

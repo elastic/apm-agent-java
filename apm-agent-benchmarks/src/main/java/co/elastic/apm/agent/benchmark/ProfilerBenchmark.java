@@ -58,7 +58,7 @@ public class ProfilerBenchmark extends AbstractMockApmServerBenchmark {
     @Setup
     public void setUp() throws Exception {
         samplingProfiler = new SamplingProfiler(tracer,
-            ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
+            ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler"),
             new SystemNanoClock(),
             new File(getClass().getClassLoader().getResource("apm-activation-events.bin").toURI()),
             new File(getClass().getClassLoader().getResource("apm-traces.jfr").toURI()));

@@ -39,4 +39,9 @@ public abstract class OpenTracingBridgeInstrumentation extends TracerAwareInstru
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("opentracing");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

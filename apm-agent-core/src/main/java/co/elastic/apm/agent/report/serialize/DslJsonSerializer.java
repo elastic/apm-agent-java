@@ -55,8 +55,6 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
-import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
@@ -89,7 +87,7 @@ import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
 import static com.dslplatform.json.JsonWriter.QUOTE;
 
-public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.MetricsReporter {
+public class DslJsonSerializer implements PayloadSerializer {
 
     /**
      * Matches default ZLIB buffer size.
@@ -224,16 +222,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
     @Override
-    public void report(Map<? extends Labels, MetricSet> metricSets) {
-        MetricRegistrySerializer.serialize(metricSets, replaceBuilder, jw);
-    }
-
-    @Override
-    public void serializeMetrics(MetricRegistry metricRegistry) {
-        metricRegistry.report(this);
-    }
-
-    @Override
     public void serializeFileMetaData(File file) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("metadata");
@@ -254,6 +242,11 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     @Override
     public JsonWriter getJsonWriter() {
         return jw;
+    }
+
+    @Override
+    public void writeBytes(byte[] bytes, int len) {
+        jw.writeAscii(bytes, len);
     }
 
     private void serializeErrors(List<ErrorCapture> errors) {
@@ -1248,7 +1241,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeLastField(fieldName, value, replaceBuilder, jw);
     }
 
-    static void writeLastField(final String fieldName, @Nullable final CharSequence value, StringBuilder replaceBuilder, final JsonWriter jw) {
+    public static void writeLastField(final String fieldName, @Nullable final CharSequence value, StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName(fieldName, jw);
         if (value != null && value.length() > 0) {
             writeStringValue(value, replaceBuilder, jw);

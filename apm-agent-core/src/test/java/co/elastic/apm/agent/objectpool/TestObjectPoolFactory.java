@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.objectpool;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
@@ -43,6 +44,7 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
     private final List<BookkeeperObjectPool<?>> createdPools = new ArrayList<BookkeeperObjectPool<?>>();
     private BookkeeperObjectPool<Transaction> transactionPool;
     private BookkeeperObjectPool<Span> spanPool;
+    private BookkeeperObjectPool<ErrorCapture> errorPool;
 
     @Override
     protected <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
@@ -85,11 +87,21 @@ public class TestObjectPoolFactory extends ObjectPoolFactory {
         return spanPool;
     }
 
+    @Override
+    public ObjectPool<ErrorCapture> createErrorPool(int maxCapacity, ElasticApmTracer tracer) {
+        errorPool = (BookkeeperObjectPool<ErrorCapture>) super.createErrorPool(maxCapacity, tracer);
+        return errorPool;
+    }
+
     public BookkeeperObjectPool<Transaction> getTransactionPool() {
         return transactionPool;
     }
 
     public BookkeeperObjectPool<Span> getSpanPool() {
         return spanPool;
+    }
+
+    public BookkeeperObjectPool<ErrorCapture> getErrorPool() {
+        return errorPool;
     }
 }

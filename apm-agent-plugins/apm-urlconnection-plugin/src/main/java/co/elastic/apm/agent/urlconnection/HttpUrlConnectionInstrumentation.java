@@ -69,11 +69,6 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         return hasSuperType(is(HttpURLConnection.class));
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
         @Nullable

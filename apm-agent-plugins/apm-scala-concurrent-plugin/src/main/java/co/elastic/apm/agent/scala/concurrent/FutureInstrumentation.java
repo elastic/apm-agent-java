@@ -55,6 +55,11 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("scala-future", "experimental");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class ConstructorInstrumentation extends FutureInstrumentation {
 
         @Override

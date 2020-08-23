@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import java.util.Collections;
 import java.util.Set;
@@ -33,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @GlobalState
 public class ServletGlobalState {
 
-    public static final Set<String> nameInitialized = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    public static final WeakConcurrentMap<ClassLoader, Boolean> nameInitialized = WeakMapSupplier.createMap();
 
     // visible for testing as clearing cache is required between tests execution
     static void clearServiceNameCache() {

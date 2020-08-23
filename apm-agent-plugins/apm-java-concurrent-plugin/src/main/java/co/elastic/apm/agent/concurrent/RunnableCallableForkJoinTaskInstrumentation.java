@@ -72,11 +72,6 @@ public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInst
         return Arrays.asList("concurrent", "executor");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.This Object thiz) {

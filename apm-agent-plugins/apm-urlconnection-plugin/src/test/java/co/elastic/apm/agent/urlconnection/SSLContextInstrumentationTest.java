@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SSLContextInstrumentationTest extends AbstractInstrumentationTest {
 
     private static Field defaultSSLSocketFactoryField;
-    private static ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDeamonPool("HttpsUrlConnection-Test");
+    private static ThreadPoolExecutor elasticApmThreadPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("HttpsUrlConnection-Test");
 
     @BeforeAll
     static void setup() throws Exception {

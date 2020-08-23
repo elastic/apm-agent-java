@@ -29,6 +29,9 @@ package co.elastic.apm.agent.util;
  * This code was released into the public domain by Brian Guertin on July 8, 2016 citing, verbatim the unlicense.
  */
 public class Version implements Comparable<Version> {
+
+    public static final Version UNKNOWN_VERSION = of("1.0.0");
+
     private final int[] numbers;
 
     public static Version of(String version) {

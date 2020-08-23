@@ -47,9 +47,4 @@ public abstract class AbstractServletInstrumentation extends TracerAwareInstrume
         // for example, 'javax.servlet.annotation.WebServlet' annotation is not working as expected on Payara
         return CustomElementMatchers.classLoaderCanLoadClass("javax.servlet.AsyncContext");
     }
-
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
 }

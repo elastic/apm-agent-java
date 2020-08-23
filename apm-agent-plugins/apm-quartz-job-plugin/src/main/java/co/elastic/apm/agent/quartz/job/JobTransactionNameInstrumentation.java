@@ -77,4 +77,9 @@ public class JobTransactionNameInstrumentation extends TracerAwareInstrumentatio
     public Class<?> getAdviceClass() {
         return JobTransactionNameAdvice.class;
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

@@ -101,4 +101,9 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("timer-task");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

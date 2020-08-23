@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.sdk;
 
+import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -44,6 +46,55 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
+ * For internal plugins, the whole package (starting at the {@linkplain #getAdviceClass() advice's} package)
+ * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the class this instruments as
+ * parents.
+ * This class loader is also known as the {@code IndyPluginClassLoader}.
+ * For external plugin, the whole jar will be loaded from the indy plugin class loader.
+ * <p>
+ * The advice methods will be dispatched via an {@code INVOKEDYNAMIC} instruction.
+ * Upon first invocation of an instrumented method,
+ * this will call {@code IndyBootstrap#bootstrap} to determine the target {@link java.lang.invoke.ConstantCallSite}.
+ * </p>
+ * <p>
+ * Things to watch out for when using indy plugins:
+ * </p>
+ * <ul>
+ *     <li>
+ *         Set {@link Advice.OnMethodEnter#inline()} and {@link Advice.OnMethodExit#inline()} to {@code false} on all advices.
+ *         As the {@code readOnly} flag in Byte Buddy annotations such as {@link Advice.Return#readOnly()} cannot be used with non
+ *         {@linkplain Advice.OnMethodEnter#inline() inlined advices},
+ *         use {@link AssignTo} and friends.
+ *     </li>
+ *     <li>
+ *         Both the return type and the arguments of advice methods must not contain types from the agent.
+ *         If you'd like to return a span from an advice, for example, return an {@link Object} instead.
+ *         When using an {@link Advice.Enter} argument on the {@linkplain Advice.OnMethodExit exit advice},
+ *         that argument also must not be an agent type.
+ *         Use {@link Object} and cast within the method body instead.
+ *         The reason is that the return value will become a local variable in the instrumented method.
+ *         Due to OSGi, those methods may not have access to agent types.
+ *         Another case is when the instrumented class is inside the bootstrap classloader.
+ *     </li>
+ *     <li>
+ *         When an advice instruments classes in multiple class loaders, the plugin classes will be loaded form multiple class loaders.
+ *         In order to still share state across those plugin class loaders,
+ *         use {@link co.elastic.apm.agent.sdk.state.GlobalVariables} or {@link co.elastic.apm.agent.sdk.state.GlobalState}.
+ *         That's necessary as static variables are scoped to the class loader they are defined in.
+ *     </li>
+ *     <li>
+ *         Don't use {@link ThreadLocal}s as it can lead to class loader leaks.
+ *         Use {@link GlobalThreadLocal} instead.
+ *     </li>
+ *     <li>
+ *         This applies to internal plugins only:
+ *         Due to the automatic plugin classloader creation that is based on package scanning,
+ *         plugins need be in their own uniquely named package.
+ *         As the package of the {@link #getAdviceClass()} is used as the root,
+ *         all advices have to be at the top level of the plugin.
+ *     </li>
+ * </ul>
+ *
  */
 public abstract class ElasticApmInstrumentation {
     /**

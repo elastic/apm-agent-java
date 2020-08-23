@@ -98,6 +98,11 @@ public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentatio
         return Arrays.asList("http-client", "spring-resttemplate");
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class SpringRestTemplateAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeExecute(@Advice.This ClientHttpRequest request,

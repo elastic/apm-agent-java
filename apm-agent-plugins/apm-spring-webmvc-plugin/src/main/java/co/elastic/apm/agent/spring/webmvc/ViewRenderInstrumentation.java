@@ -58,6 +58,11 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
         return ViewRenderAdviceService.class;
     }
 
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
+
     public static class ViewRenderAdviceService {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)

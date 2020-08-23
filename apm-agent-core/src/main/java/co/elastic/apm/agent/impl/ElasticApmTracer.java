@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.context.ExecutorServiceShutdownLifecycleListener;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -59,6 +60,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 
@@ -95,6 +97,7 @@ public class ElasticApmTracer implements Tracer {
     private final CoreConfiguration coreConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
+    private final ScheduledThreadPoolExecutor sharedPool;
     private Sampler sampler;
     boolean assertionsEnabled = false;
 
@@ -143,7 +146,8 @@ public class ElasticApmTracer implements Tracer {
             }
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
-        reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs(), this);
+        sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
+        lifecycleListeners.add(new ExecutorServiceShutdownLifecycleListener(sharedPool));
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
@@ -507,12 +511,12 @@ public class ElasticApmTracer implements Tracer {
     private boolean shouldDelayOnPremain() {
         String javaVersion = System.getProperty("java.version");
         return javaVersion != null &&
-            javaVersion.startsWith("1.8") &&
+            (javaVersion.startsWith("1.7") || javaVersion.startsWith("1.8")) &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
     private synchronized void startWithDelay(final long delayInitMs) {
-        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("tracer-initializer", 1);
         pool.submit(new Runnable() {
             @Override
             public void run() {
@@ -696,7 +700,7 @@ public class ElasticApmTracer implements Tracer {
         if (classLoader == null
             || serviceName == null || serviceName.isEmpty()
             // if the service name is set explicitly, don't override it
-            || !coreConfiguration.getServiceNameConfig().isDefault()) {
+            || coreConfiguration.getServiceNameConfig().getUsedKey() != null) {
             return;
         }
         if (!serviceNameByClassLoader.containsKey(classLoader)) {
@@ -724,4 +728,7 @@ public class ElasticApmTracer implements Tracer {
         return metaData;
     }
 
+    public ScheduledThreadPoolExecutor getSharedSingleThreadedPool() {
+        return sharedPool;
+    }
 }

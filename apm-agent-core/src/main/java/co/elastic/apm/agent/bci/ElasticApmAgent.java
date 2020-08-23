@@ -145,6 +145,7 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
+        GlobalTracer.init(tracer);
         // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
     }
@@ -198,6 +199,7 @@ public class ElasticApmAgent {
 
     public static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                                         Iterable<ElasticApmInstrumentation> instrumentations) {
+        GlobalTracer.init(tracer);
         initInstrumentation(tracer, instrumentation, instrumentations, false);
     }
 
@@ -206,7 +208,6 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
-        GlobalTracer.init(tracer);
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             pluginClassLoaderByAdviceClass.put(
                 apmInstrumentation.getAdviceClass().getName(),
@@ -244,7 +245,7 @@ public class ElasticApmAgent {
         if (instrumentation == null) {
             throw new IllegalStateException("Can't re-init agent before it has been initialized");
         }
-        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDeamonPool("apm-reinit", 1);
+        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDaemonPool("apm-reinit", 1);
         try {
             return executor.submit(new Runnable() {
                 @Override
@@ -447,7 +448,7 @@ public class ElasticApmAgent {
         }
         for (MethodDescription.InDefinedShape exitAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodExit.class)))) {
             validateAdviceReturnAndParameterTypes(exitAdvice);
-            if (exitAdvice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
+            if (exitAdvice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
                 throw new IllegalStateException("Advice return type must be visible from the bootstrap class loader and must not be an agent type.");
             }
             for (AnnotationDescription exit : exitAdvice.getDeclaredAnnotations().filter(ElementMatchers.annotationType(Advice.OnMethodExit.class))) {
@@ -462,11 +463,11 @@ public class ElasticApmAgent {
     }
 
     private static void validateAdviceReturnAndParameterTypes(MethodDescription.InDefinedShape advice) {
-        if (advice.getReturnType().getTypeName().startsWith("co.elastic.apm")) {
+        if (advice.getReturnType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
             throw new IllegalStateException("Advice return type must not be an agent type: " + advice.toGenericString());
         }
         for (ParameterDescription.InDefinedShape parameter : advice.getParameters()) {
-            if (parameter.getType().getTypeName().startsWith("co.elastic.apm")) {
+            if (parameter.getType().asRawType().getTypeName().startsWith("co.elastic.apm")) {
                 throw new IllegalStateException("Advice parameters must not contain an agent type: " + advice.toGenericString());
             }
         }
@@ -548,7 +549,7 @@ public class ElasticApmAgent {
         }
         dynamicClassFileTransformers.clear();
         instrumentation = null;
-        HelperClassManager.ForIndyPlugin.clear();
+        IndyPluginClassLoaderFactory.clear();
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,

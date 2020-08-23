@@ -65,4 +65,9 @@ public abstract class BaseApacheHttpClientInstrumentation extends TracerAwareIns
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("http-client", "apache-httpclient");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }
