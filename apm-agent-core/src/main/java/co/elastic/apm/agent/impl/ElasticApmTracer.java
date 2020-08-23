@@ -511,7 +511,7 @@ public class ElasticApmTracer implements Tracer {
     private boolean shouldDelayOnPremain() {
         String javaVersion = System.getProperty("java.version");
         return javaVersion != null &&
-            javaVersion.startsWith("1.8") &&
+            (javaVersion.startsWith("1.7") || javaVersion.startsWith("1.8")) &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 

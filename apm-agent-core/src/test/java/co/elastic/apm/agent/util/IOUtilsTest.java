@@ -56,6 +56,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class IOUtilsTest  {
 
+    private final String tempDirectory = System.getProperty("java.io.tmpdir");
+
     @Test
     void readUtf8Stream() throws IOException {
         final CharBuffer charBuffer = CharBuffer.allocate(8);
@@ -159,8 +161,8 @@ class IOUtilsTest  {
     }
 
     @Test
-    void exportResourceToTemp() throws UnsupportedEncodingException, URISyntaxException {
-        File tmp = IOUtils.exportResourceToTemp("test.elasticapm.properties", UUID.randomUUID().toString(), "tmp");
+    void exportResourceToDirectory() throws UnsupportedEncodingException, URISyntaxException {
+        File tmp = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
 
         Path referenceFile = Paths.get(IOUtilsTest.class.getResource("/test.elasticapm.properties").toURI());
@@ -170,24 +172,24 @@ class IOUtilsTest  {
     }
 
     @Test
-    void exportResourceToTempIdempotence() throws InterruptedException
+    void exportResourceToDirectoryIdempotence() throws InterruptedException
     {
         String destination = UUID.randomUUID().toString();
-        File tmp = IOUtils.exportResourceToTemp("test.elasticapm.properties", destination, "tmp");
+        File tmp = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, destination, "tmp");
         tmp.deleteOnExit();
         long actual = tmp.lastModified();
         Thread.sleep(1000);
-        File after = IOUtils.exportResourceToTemp("test.elasticapm.properties", destination, "tmp");
+        File after = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, destination, "tmp");
         assertThat(actual).isEqualTo(after.lastModified());
     }
 
     @Test
-    void exportResourceToTemp_throwExceptionIfNotFound() {
-        assertThatThrownBy(() -> IOUtils.exportResourceToTemp("nonexist", UUID.randomUUID().toString(), "tmp")).hasMessage("nonexist not found");
+    void exportResourceToDirectory_throwExceptionIfNotFound() {
+        assertThatThrownBy(() -> IOUtils.exportResourceToDirectory("nonexist", tempDirectory, UUID.randomUUID().toString(), "tmp")).hasMessage("nonexist not found");
     }
 
     @Test
-    void exportResourceToTempInMultipleThreads() throws InterruptedException, ExecutionException, IOException
+    void exportResourceToDirectoryInMultipleThreads() throws InterruptedException, ExecutionException, IOException
     {
         final int nbThreads = 10;
         final ExecutorService executorService = Executors.newFixedThreadPool(nbThreads);
@@ -199,7 +201,7 @@ class IOUtilsTest  {
             futureList.add(executorService.submit(() -> {
                 countDownLatch.countDown();
                 countDownLatch.await();
-                File file = IOUtils.exportResourceToTemp("test.elasticapm.properties", tempFileNamePrefix, "tmp");
+                File file = IOUtils.exportResourceToDirectory("test.elasticapm.properties", tempDirectory, tempFileNamePrefix, "tmp");
                 file.deleteOnExit();
                 return file;
             }));
