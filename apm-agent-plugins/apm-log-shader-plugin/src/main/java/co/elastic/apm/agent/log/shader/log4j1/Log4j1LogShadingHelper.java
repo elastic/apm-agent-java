@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.log.shader.log4j1.helper;
+package co.elastic.apm.agent.log.shader.log4j1;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 
@@ -38,14 +37,17 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-
-public class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
+class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
 
     private static final Logger logger = LoggerFactory.getLogger(Log4j1LogShadingHelper.class);
 
-    public Log4j1LogShadingHelper(ElasticApmTracer tracer) {
-        super(tracer);
+    private static final Log4j1LogShadingHelper INSTANCE = new Log4j1LogShadingHelper();
+
+    static Log4j1LogShadingHelper instance() {
+        return INSTANCE;
     }
+
+    Log4j1LogShadingHelper() {}
 
     @Override
     protected String getAppenderName(WriterAppender appender) {

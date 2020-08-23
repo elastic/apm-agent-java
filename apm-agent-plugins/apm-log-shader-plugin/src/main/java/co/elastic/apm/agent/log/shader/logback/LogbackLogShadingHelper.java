@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.log.shader.logback.helper;
+package co.elastic.apm.agent.log.shader.logback;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -31,18 +31,21 @@ import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.util.FileSize;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.logback.EcsEncoder;
 
-public class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILoggingEvent>> {
+class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILoggingEvent>> {
 
     private static final LoggerContext defaultLoggerContext = new LoggerContext();
 
-    public LogbackLogShadingHelper(ElasticApmTracer tracer) {
-        super(tracer);
+    private static final LogbackLogShadingHelper INSTANCE = new LogbackLogShadingHelper();
+
+    static LogbackLogShadingHelper instance() {
+        return INSTANCE;
     }
+
+    private LogbackLogShadingHelper() {}
 
     @Override
     protected String getAppenderName(FileAppender<ILoggingEvent> appender) {

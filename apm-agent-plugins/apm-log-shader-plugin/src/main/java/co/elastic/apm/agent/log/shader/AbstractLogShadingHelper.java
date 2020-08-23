@@ -26,17 +26,22 @@ package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
 
 /**
- * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL)
+ * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL).
+ * Annotated with {@link GlobalState} because it holds the global mapping from original appender to corresponding
+ * shade-appender.
  *
  * @param <A> logging-framework-specific Appender type
  */
+@GlobalState
 public abstract class AbstractLogShadingHelper<A> {
 
     public static final String ECS_SHADE_APPENDER_NAME = "EcsShadeAppender";
@@ -46,8 +51,8 @@ public abstract class AbstractLogShadingHelper<A> {
     private final ElasticApmTracer tracer;
     private final LoggingConfiguration loggingConfiguration;
 
-    public AbstractLogShadingHelper(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+    public AbstractLogShadingHelper() {
+        this.tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
     }
 

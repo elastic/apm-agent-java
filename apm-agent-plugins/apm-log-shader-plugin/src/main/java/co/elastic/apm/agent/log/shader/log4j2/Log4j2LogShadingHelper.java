@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.log.shader.log4j2.helper;
+package co.elastic.apm.agent.log.shader.log4j2;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.log4j2.EcsLayout;
@@ -42,13 +41,17 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 
 
-public class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStreamAppender<?>> {
+class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStreamAppender<?>> {
 
     private static final Logger logger = LoggerFactory.getLogger(Log4j2LogShadingHelper.class);
 
-    public Log4j2LogShadingHelper(ElasticApmTracer tracer) {
-        super(tracer);
+    private static final Log4j2LogShadingHelper INSTANCE = new Log4j2LogShadingHelper();
+
+    static Log4j2LogShadingHelper instance() {
+        return INSTANCE;
     }
+
+    private Log4j2LogShadingHelper() {}
 
     @Override
     protected String getAppenderName(AbstractOutputStreamAppender<?> appender) {
