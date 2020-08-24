@@ -1950,15 +1950,15 @@ Fails over to the next APM Server URL in the event of connection errors.
 Achieves load-balancing by shuffling the list of configured URLs.
 When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
 
-If set to an empty string, the agent will work as usual, except from any task requiring communication with
-the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set.
+If set to an empty string, the agent will work as usual, except from any task requiring communication with 
+the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
 
-If SSL is enabled on the APM Server, use the `https` protocol. For more information, see
+If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 <<ssl-configuration>>.
 
 If outgoing HTTP traffic has to go through a proxy,
 you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation]
+See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
 for more information.
 
 NOTE: This configuration can only be reloaded dynamically as of 1.8.0
@@ -3228,7 +3228,7 @@ The default unit for this option is `ms`.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value:
+# Default value: 
 #
 # profiling_inferred_spans_lib_directory=
 
@@ -3267,15 +3267,15 @@ The default unit for this option is `ms`.
 # Achieves load-balancing by shuffling the list of configured URLs.
 # When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
 # 
-# If set to an empty string, the agent will work as usual, except from any task requiring communication with
-# the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set.
-#
-# If SSL is enabled on the APM Server, use the `https` protocol. For more information, see
+# If set to an empty string, the agent will work as usual, except from any task requiring communication with 
+# the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+# 
+# If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 # <<ssl-configuration>>.
-#
+# 
 # If outgoing HTTP traffic has to go through a proxy,
 # you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation]
+# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
 # for more information.
 # 
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
