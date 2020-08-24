@@ -26,13 +26,18 @@ package co.elastic.apm.attach;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 
 class JvmDiscovererTest {
 
@@ -60,26 +65,81 @@ class JvmDiscovererTest {
 
     @Test
     void getJpsPathNoJavaHome() {
-        Properties sysProperties = new Properties();
-        Path path = JvmDiscoverer.JpsFinder.getJpsPath(sysProperties);
-        assertThat(path).asString()
-            .describedAs("should use binary in path as fallback")
-            .isEqualTo("jps");
+        checkExpectedJpsPaths(new Properties(), new HashMap<String, String>(), Paths.get("jps"));
     }
+
+    @Test
+    void getJpsPathJavaHomeProperties() {
+        Properties sysProperties = new Properties();
+        Map<String,String> env = new HashMap<String,String>();
+
+        Path javaHomeProperties = Paths.get("java", "home");
+        sysProperties.put("java.home", javaHomeProperties.toString());
+
+        checkExpectedJpsPaths(sysProperties, env,
+            javaHomeProperties.resolve("bin").resolve("jps"),
+            javaHomeProperties.resolve("..").resolve("bin").resolve("jps"),
+            Paths.get("jps"));
+    }
+
+    @Test
+    void getJpsPathJavaHomeEnv() {
+        Properties sysProperties = new Properties();
+        Map<String,String> env = new HashMap<String,String>();
+
+        Path javaHomeEnv = Paths.get("usr", "local", "java");
+        env.put("JAVA_HOME", javaHomeEnv.toString());
+
+        checkExpectedJpsPaths(sysProperties, env,
+            javaHomeEnv.resolve("bin").resolve("jps"),
+            javaHomeEnv.resolve("..").resolve("bin").resolve("jps"),
+            Paths.get("jps"));
+    }
+
+    @Test
+    void getJpsPathJavaHomeEnvAndProperties() {
+        Properties sysProperties = new Properties();
+        Map<String, String> env = new HashMap<String, String>();
+
+        Path javaHomeEnv = Paths.get("usr", "local", "java");
+        env.put("JAVA_HOME", javaHomeEnv.toString());
+
+        Path javaHomeProperties = Paths.get("java", "home");
+        sysProperties.put("java.home", javaHomeProperties.toString());
+
+        checkExpectedJpsPaths(sysProperties, env,
+            javaHomeEnv.resolve("bin").resolve("jps"),
+            javaHomeEnv.resolve("..").resolve("bin").resolve("jps"),
+            javaHomeProperties.resolve("bin").resolve("jps"),
+            javaHomeProperties.resolve("..").resolve("bin").resolve("jps"),
+            Paths.get("jps"));
+    }
+
 
     @Test
     void getJpsPathWindows() {
         Properties sysProperties = new Properties();
         sysProperties.put("os.name", "Windows ME"); // the best one ever !
-        Path path = JvmDiscoverer.JpsFinder.getJpsPath(sysProperties);
-        assertThat(path).asString().isEqualTo("jps.exe");
+
+        checkExpectedJpsPaths(sysProperties, new HashMap<String,String>(), Paths.get("jps.exe"));
         // note: we can't really test both windows+java.home set as it relies on absolute path resolution
     }
 
     @Test
+    void getJpsNotFound() {
+        assertThrows(IllegalStateException.class, () -> JvmDiscoverer.JpsFinder.getJpsPath(new Properties(), new HashMap<String, String>()));
+    }
+
+    @Test
     void getJpsPathCurrentJvm() {
-        Path path = JvmDiscoverer.JpsFinder.getJpsPath(System.getProperties());
+        Path path = JvmDiscoverer.JpsFinder.getJpsPath(System.getProperties(), System.getenv());
         assertThat(Files.isExecutable(path)).isTrue();
+    }
+
+    void checkExpectedJpsPaths(Properties sysProperties, Map<String, String> env, Path... expectedPaths) {
+        List<Path> paths = JvmDiscoverer.JpsFinder.getJpsPaths(sysProperties, env);
+        assertThat(paths)
+            .containsExactly(expectedPaths);
     }
 
 }
