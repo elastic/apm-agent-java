@@ -68,6 +68,7 @@ endif::[]
 * Fix `NumberFormatException` when using early access Java version - {pull}1325[#1325]
 * Fix `service_name` config being ignored when set to the same auto-discovered default value - {pull}1324[#1324]
 * Fix service name error when updating a web app on a Servlet container - {pull}1326[#1326]
+* Fix remote attach 'jps' executable not found when 'java' binary is symlinked ot a JRE - {pull}1352[#1352]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
