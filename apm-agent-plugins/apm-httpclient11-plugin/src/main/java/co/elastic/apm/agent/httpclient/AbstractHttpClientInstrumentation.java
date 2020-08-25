@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,7 +25,12 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 
+import java.net.URI;
+import java.net.http.HttpRequest;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -36,4 +41,16 @@ public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstr
         return Arrays.asList("http-client", "httpclient11");
     }
 
+    protected static void startSpan(HttpRequest httpRequest) {
+        final AbstractSpan<?> parent = tracer.getActive();
+        if (parent == null) {
+            return;
+        }
+
+        URI uri = httpRequest.uri();
+        Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
+        if (span != null) {
+            span.activate();
+        }
+    }
 }
