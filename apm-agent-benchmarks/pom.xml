@@ -12,12 +12,9 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jmh.version>1.21</jmh.version>
-        <javac.target>1.8</javac.target>
         <uberjar.name>benchmarks</uberjar.name>
-        <maven.compiler.target>9</maven.compiler.target>
-        <maven.compiler.testTarget>9</maven.compiler.testTarget>
+        <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
         <maven.compiler.showWarnings>false</maven.compiler.showWarnings>
         <maven.compiler.errorprone>false</maven.compiler.errorprone>
         <animal.sniffer.skip>true</animal.sniffer.skip>
