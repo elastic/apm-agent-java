@@ -38,7 +38,7 @@ public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstr
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "httpclient11");
+        return Arrays.asList("http-client", "jdk-httpclient");
     }
 
     protected static void startSpan(HttpRequest httpRequest) {

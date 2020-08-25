@@ -10,7 +10,7 @@
         <version>1.18.1.RC1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-httpclient11-plugin</artifactId>
+    <artifactId>apm-jdk-httpclient-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
