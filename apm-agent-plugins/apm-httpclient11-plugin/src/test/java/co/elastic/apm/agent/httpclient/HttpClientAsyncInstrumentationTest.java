@@ -48,12 +48,7 @@ public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstru
     }
 
     @Override
-    protected boolean isIpv6Supported() {
-        return true;
-    }
-
-    @Override
-    public void testHttpCallCircularRedirect() {
-        // skip
+    protected boolean isErrorOnCircularRedirectSupported() {
+        return false;
     }
 }

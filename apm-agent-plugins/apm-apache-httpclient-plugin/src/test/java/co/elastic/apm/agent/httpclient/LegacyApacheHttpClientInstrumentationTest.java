@@ -32,9 +32,11 @@ import org.junit.BeforeClass;
 
 public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
+    @SuppressWarnings("deprecation")
     private static DefaultHttpClient client;
 
     @BeforeClass
+    @SuppressWarnings("deprecation")
     public static void setUp() {
         client = new DefaultHttpClient();
     }

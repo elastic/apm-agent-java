@@ -36,7 +36,9 @@ public class HttpClientInstrumentationTest extends AbstractHttpClientInstrumenta
 
     @Before
     public void setUp() {
-        client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
+        client = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
     }
 
     @Override
@@ -44,16 +46,18 @@ public class HttpClientInstrumentationTest extends AbstractHttpClientInstrumenta
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(path))
             .build();
+
         client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     @Override
-    protected boolean isIpv6Supported() {
-        return true;
+    protected boolean isErrorOnCircularRedirectSupported() {
+        // skip circular redirect test
+        //
+        // this http client just gives up after a fixed amount of redirects
+        // this value can be set with the 'jdk.httpclient.redirects.retrylimit' and defaults to 5.
+        // there is no exception thrown, the response provided to the user is just a redirect response
+        return false;
     }
 
-    @Override
-    public void testHttpCallCircularRedirect() {
-        // skip
-    }
 }
