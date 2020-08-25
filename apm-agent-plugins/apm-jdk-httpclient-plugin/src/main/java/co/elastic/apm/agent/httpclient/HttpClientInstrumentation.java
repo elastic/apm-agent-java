@@ -24,67 +24,59 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nonnull;
-import java.net.http.HttpHeaders;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public class HttpRequestHeadersInstrumentation extends AbstractHttpClientInstrumentation {
-
-    @Override
-    public Class<?> getAdviceClass() {
-        return HttpRequestHeadersAdvice.class;
-    }
-
-    @VisibleForAdvice
-    public static class HttpRequestHeadersAdvice {
-
-        @Nonnull
-        @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static HttpHeaders onAfterExecute(@Advice.Return @Nonnull final HttpHeaders httpHeaders) {
-            Span span = tracer.getActiveSpan();
-            if (span == null) {
-                return httpHeaders;
-            }
-            Map<String, List<String>> headersMap = new LinkedHashMap<>(httpHeaders.map());
-            span.propagateTraceContext(headersMap, HttpClientRequestPropertyAccessor.instance());
-            return HttpHeaders.of(headersMap, (x, y) -> true);
-        }
-    }
+public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("HttpRequest");
+        return nameContains("HttpClient");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("java.net.http.HttpRequest"));
+        return hasSuperType(named("java.net.http.HttpClient"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("headers").and(returns(named("java.net.http.HttpHeaders")));
+        return named("send").and(returns(named("java.net.http.HttpResponse")));
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
+        startSpan(httpRequest);
     }
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onAfterExecute(@Advice.Return @Nullable HttpResponse<?> response,
+                                      @Advice.Thrown @Nullable Throwable t) {
+        final Span span = tracer.getActiveExitSpan();
+        if (span == null) {
+            return;
+        }
+        if (response != null) {
+            int statusCode = response.statusCode();
+            span.getContext().getHttp().withStatusCode(statusCode);
+        }
+        span.captureException(t)
+            .deactivate()
+            .end();
+    }
+
+
 }

@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -33,7 +31,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
@@ -44,53 +41,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrumentation {
-
-    @Override
-    public Class<?> getAdviceClass() {
-        return HttpClient11Advice.class;
-    }
-
-    public static class HttpClient11Advice {
-
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
-            if (tracer.getActive() == null) {
-                return;
-            }
-            final AbstractSpan<?> parent = tracer.getActive();
-            URI uri = httpRequest.uri();
-            Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
-            if (span != null) {
-                span.activate();
-            }
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Return @Nullable CompletableFuture<HttpResponse> completableFuture,
-                                          @Advice.Thrown @Nullable Throwable t) {
-            final Span activeSpan = tracer.getActiveExitSpan();
-            if (activeSpan == null) {
-                return;
-            }
-            activeSpan.deactivate();
-            if (completableFuture != null) {
-                completableFuture.whenComplete((response, throwable) -> {
-                    try {
-                        if (response != null) {
-                            int statusCode = response.statusCode();
-                            activeSpan.getContext().getHttp().withStatusCode(statusCode);
-                        }
-                        activeSpan.captureException(throwable);
-                    } finally {
-                        activeSpan.end();
-                    }
-                });
-            } else {
-                activeSpan.captureException(t)
-                    .end();
-            }
-        }
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -104,8 +54,36 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
             .and(takesArguments(3));
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
+        startSpan(httpRequest);
     }
+
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onAfterExecute(@Advice.Return @Nullable CompletableFuture<HttpResponse<?>> completableFuture,
+                                      @Advice.Thrown @Nullable Throwable t) {
+        final Span span = tracer.getActiveExitSpan();
+        if (span == null) {
+            return;
+        }
+        span.deactivate();
+        if (completableFuture == null) {
+            span.captureException(t)
+                .end();
+            return;
+        }
+
+        completableFuture.whenComplete((response, throwable) -> {
+            if (response != null) {
+                int statusCode = response.statusCode();
+                span.getContext().getHttp().withStatusCode(statusCode);
+            }
+            span.captureException(throwable)
+                .end();
+        });
+
+    }
+
+
+
 }

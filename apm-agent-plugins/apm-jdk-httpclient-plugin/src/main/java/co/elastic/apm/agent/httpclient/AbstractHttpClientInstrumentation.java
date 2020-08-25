@@ -24,36 +24,33 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import org.junit.Before;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.util.Arrays;
+import java.util.Collection;
 
-public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstrumentationTest {
-    private HttpClient client;
-
-    @Before
-    public void setUp() {
-        client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
-    }
+public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstrumentation {
 
     @Override
-    protected void performGet(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(path))
-            .build();
-        client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get();
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("http-client", "jdk-httpclient");
     }
 
-    @Override
-    protected boolean isIpv6Supported() {
-        return true;
-    }
+    protected static void startSpan(HttpRequest httpRequest) {
+        final AbstractSpan<?> parent = tracer.getActive();
+        if (parent == null) {
+            return;
+        }
 
-    @Override
-    public void testHttpCallCircularRedirect() {
-        // skip
+        URI uri = httpRequest.uri();
+        Span span = HttpClientHelper.startHttpClientSpan(parent, httpRequest.method(), uri, uri.getHost());
+        if (span != null) {
+            span.activate();
+        }
     }
 }

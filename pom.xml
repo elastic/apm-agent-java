@@ -68,7 +68,11 @@
     <properties>
 
         <maven.compiler.target>7</maven.compiler.target>
-        <maven.compiler.testTarget>9</maven.compiler.testTarget>
+        <maven.compiler.testTarget>11</maven.compiler.testTarget>
+        
+        <maven.compiler.source>${maven.compiler.target}</maven.compiler.source>
+        <maven.compiler.testSource>${maven.compiler.testTarget}</maven.compiler.testSource>
+
         <animal.sniffer.skip>false</animal.sniffer.skip>
         <!--
         mockserver-client does not work with the latest jackson version
@@ -76,6 +80,10 @@
         -->
         <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
         <maven.compiler.errorprone>true</maven.compiler.errorprone>
+
+        <!-- do not use javax.tools and use javac instead, work around https://bugs.openjdk.java.net/browse/JDK-8216202 -->
+        <maven.compiler.forceJavacCompilerUse>true</maven.compiler.forceJavacCompilerUse>
+
         <!--
         By default, artifacts are part of the deployment (mvn deploy:deploy).
         But the artifacts of some projects should not be deployed (to maven central for example).
@@ -122,7 +130,8 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <maven.compiler.target>10</maven.compiler.target>
+                <!-- use same java version as tests -->
+                <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
             </properties>
         </profile>
         <profile>
@@ -160,21 +169,6 @@
                     <name>!maven.compiler.errorprone</name>
                 </property>
             </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <showWarnings>${maven.compiler.showWarnings}</showWarnings>
-                            <source>${maven.compiler.target}</source>
-                            <target>${maven.compiler.target}</target>
-                            <testSource>${maven.compiler.testTarget}</testSource>
-                            <testTarget>${maven.compiler.testTarget}</testTarget>
-                            <encoding>UTF-8</encoding>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
         <profile>
             <id>errorprone</id>
@@ -187,13 +181,6 @@
                         <artifactId>maven-compiler-plugin</artifactId>
                         <configuration>
                             <compilerId>javac-with-errorprone</compilerId>
-                            <forceJavacCompilerUse>true</forceJavacCompilerUse>
-                            <showWarnings>${maven.compiler.showWarnings}</showWarnings>
-                            <source>${maven.compiler.target}</source>
-                            <target>${maven.compiler.target}</target>
-                            <testSource>${maven.compiler.testTarget}</testSource>
-                            <testTarget>${maven.compiler.testTarget}</testTarget>
-                            <encoding>UTF-8</encoding>
                             <annotationProcessorPaths>
                                 <path>
                                     <groupId>com.uber.nullaway</groupId>

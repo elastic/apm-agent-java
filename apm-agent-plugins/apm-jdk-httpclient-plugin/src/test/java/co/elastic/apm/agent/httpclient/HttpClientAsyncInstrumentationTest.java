@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,16 +24,31 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import org.junit.Before;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
-public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstrumentation {
+public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+    private HttpClient client;
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "httpclient11");
+    @Before
+    public void setUp() {
+        client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     }
 
+    @Override
+    protected void performGet(String path) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(path))
+            .build();
+        client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get();
+    }
+
+    @Override
+    protected boolean isErrorOnCircularRedirectSupported() {
+        return false;
+    }
 }
