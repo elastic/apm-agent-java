@@ -66,6 +66,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jdk-httpclient-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-java-concurrent-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -422,6 +427,7 @@
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
                     <source>8</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
                 </configuration>
                 <executions>
                     <execution>

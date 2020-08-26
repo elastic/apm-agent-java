@@ -24,32 +24,22 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 
-public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-    @SuppressWarnings("deprecation")
-    private static DefaultHttpClient client;
+public class HttpClientRequestPropertyAccessor implements TextHeaderSetter<Map<String, List<String>>> {
 
-    @BeforeClass
-    @SuppressWarnings("deprecation")
-    public static void setUp() {
-        client = new DefaultHttpClient();
-    }
+    private static final HttpClientRequestPropertyAccessor INSTANCE = new HttpClientRequestPropertyAccessor();
 
-    @AfterClass
-    public static void close() {
-        client.close();
+    public static HttpClientRequestPropertyAccessor instance() {
+        return INSTANCE;
     }
 
     @Override
-    protected void performGet(String path) throws Exception {
-        CloseableHttpResponse response = client.execute(new HttpGet(path));
-        response.getStatusLine().getStatusCode();
-        response.close();
+    public void setHeader(String headerName, String headerValue, Map<String, List<String>> headersMap) {
+        headersMap.put(headerName, Collections.singletonList(headerValue));
     }
 }

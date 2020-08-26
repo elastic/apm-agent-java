@@ -24,32 +24,31 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 
-public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
-    @SuppressWarnings("deprecation")
-    private static DefaultHttpClient client;
+public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+    private HttpClient client;
 
-    @BeforeClass
-    @SuppressWarnings("deprecation")
-    public static void setUp() {
-        client = new DefaultHttpClient();
-    }
-
-    @AfterClass
-    public static void close() {
-        client.close();
+    @Before
+    public void setUp() {
+        client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     }
 
     @Override
     protected void performGet(String path) throws Exception {
-        CloseableHttpResponse response = client.execute(new HttpGet(path));
-        response.getStatusLine().getStatusCode();
-        response.close();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(path))
+            .build();
+        client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get();
+    }
+
+    @Override
+    protected boolean isErrorOnCircularRedirectSupported() {
+        return false;
     }
 }
