@@ -262,6 +262,7 @@
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
                     <source>8</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
                 </configuration>
                 <executions>
                     <execution>
@@ -443,19 +444,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.1.1</version>
-                    <dependencies>
-                        <!--
-                        The transitive dependency has version 3.5,
-                        which is not compatible with Java 10.
-                        TODO Remove this when updating the javadoc plugin version.
-                        -->
-                        <dependency>
-                            <groupId>org.apache.commons</groupId>
-                            <artifactId>commons-lang3</artifactId>
-                            <version>3.7</version>
-                        </dependency>
-                    </dependencies>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>

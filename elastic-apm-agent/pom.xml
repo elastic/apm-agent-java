@@ -427,6 +427,7 @@
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
                     <source>8</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
                 </configuration>
                 <executions>
                     <execution>
