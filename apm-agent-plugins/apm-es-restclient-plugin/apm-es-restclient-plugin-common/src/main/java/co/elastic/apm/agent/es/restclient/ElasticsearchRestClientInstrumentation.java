@@ -24,44 +24,16 @@
  */
 package co.elastic.apm.agent.es.restclient;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import org.apache.http.HttpEntity;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseListener;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
 
 public abstract class ElasticsearchRestClientInstrumentation extends TracerAwareInstrumentation {
 
-    @Nullable
-    @VisibleForAdvice
-    // Referencing ES classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
-    public static HelperClassManager<ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener>> esClientInstrHelperManager;
-
-    public ElasticsearchRestClientInstrumentation(ElasticApmTracer tracer) {
-        synchronized (ElasticsearchRestClientInstrumentation.class) {
-            if (esClientInstrHelperManager == null) {
-                esClientInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    "co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl",
-                    "co.elastic.apm.agent.es.restclient.ResponseListenerWrapper",
-                    "co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl$ResponseListenerAllocator");
-            }
-        }
-    }
-
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("elasticsearch-restclient");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
     }
 }

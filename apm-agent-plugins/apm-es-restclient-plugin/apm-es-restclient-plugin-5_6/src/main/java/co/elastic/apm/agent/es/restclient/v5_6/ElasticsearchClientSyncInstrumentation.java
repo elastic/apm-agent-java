@@ -26,7 +26,6 @@ package co.elastic.apm.agent.es.restclient.v5_6;
 
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -34,7 +33,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.HttpEntity;
 import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
 
@@ -46,31 +44,28 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestClientInstrumentation {
 
-    public ElasticsearchClientSyncInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
+    @Override
+    public Class<?> getAdviceClass() {
+        return ElasticsearchRestClientAdvice.class;
     }
 
     public static class ElasticsearchRestClientAdvice {
+        public static ElasticsearchRestClientInstrumentationHelper helper = new ElasticsearchRestClientInstrumentationHelper();
+
         @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Span onBeforeExecute(@Advice.Argument(0) String method,
-                                            @Advice.Argument(1) String endpoint,
-                                            @Advice.Argument(3) @Nullable HttpEntity entity) {
-            ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper =
-                esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
-            if (helper == null) {
-                return null;
-            }
-            return helper.createClientSpan(method, endpoint, entity);
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(@Advice.Argument(0) String method,
+                                             @Advice.Argument(1) String endpoint,
+                                             @Advice.Argument(3) @Nullable HttpEntity entity) {
+            return helper.createClientSpan(tracer.getActive(), method, endpoint, entity);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
-                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Enter @Nullable Object objSpan,
                                           @Advice.Thrown @Nullable Throwable t) {
-            ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper =
-                esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
-            if (helper != null && span != null) {
+            if (objSpan instanceof Span) {
+                Span span = (Span) objSpan;
                 try {
                     helper.finishClientSpan(response, span, t);
                 } finally {
@@ -78,11 +73,6 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
                 }
             }
         }
-    }
-
-    @Override
-    public Class<?> getAdviceClass() {
-        return ElasticsearchRestClientAdvice.class;
     }
 
     @Override
