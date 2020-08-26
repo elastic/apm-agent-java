@@ -26,6 +26,7 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -36,11 +37,17 @@ import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrumentation {
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("HttpClient");
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
