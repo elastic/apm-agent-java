@@ -57,25 +57,26 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
         return named("send").and(returns(named("java.net.http.HttpResponse")));
     }
 
+    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
-        startSpan(httpRequest);
+    public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
+        return startSpan(httpRequest);
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onAfterExecute(@Advice.Return @Nullable HttpResponse<?> response,
+                                      @Advice.Enter @Nullable Object spanObj,
                                       @Advice.Thrown @Nullable Throwable t) {
-        final Span span = tracer.getActiveExitSpan();
-        if (span == null) {
-            return;
+        if (spanObj instanceof Span) {
+            final Span span = (Span) spanObj;
+            if (response != null) {
+                int statusCode = response.statusCode();
+                span.getContext().getHttp().withStatusCode(statusCode);
+            }
+            span.captureException(t)
+                .deactivate()
+                .end();
         }
-        if (response != null) {
-            int statusCode = response.statusCode();
-            span.getContext().getHttp().withStatusCode(statusCode);
-        }
-        span.captureException(t)
-            .deactivate()
-            .end();
     }
 
 

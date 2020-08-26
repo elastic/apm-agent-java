@@ -61,36 +61,32 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
             .and(takesArguments(3));
     }
 
+    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
-        startSpan(httpRequest);
+    public static Object onBeforeExecute(@Advice.Argument(value = 0) HttpRequest httpRequest) {
+        return startSpan(httpRequest);
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onAfterExecute(@Advice.Return @Nullable CompletableFuture<HttpResponse<?>> completableFuture,
+                                      @Advice.Enter @Nullable Object spanObj,
                                       @Advice.Thrown @Nullable Throwable t) {
-        final Span span = tracer.getActiveExitSpan();
-        if (span == null) {
-            return;
-        }
-        span.deactivate();
-        if (completableFuture == null) {
-            span.captureException(t)
-                .end();
-            return;
-        }
-
-        completableFuture.whenComplete((response, throwable) -> {
-            if (response != null) {
-                int statusCode = response.statusCode();
-                span.getContext().getHttp().withStatusCode(statusCode);
+        if (spanObj instanceof Span) {
+            final Span span = (Span) spanObj;
+            span.deactivate();
+            if (completableFuture == null) {
+                span.captureException(t)
+                    .end();
             }
-            span.captureException(throwable)
-                .end();
-        });
 
+            completableFuture.whenComplete((response, throwable) -> {
+                if (response != null) {
+                    int statusCode = response.statusCode();
+                    span.getContext().getHttp().withStatusCode(statusCode);
+                }
+                span.captureException(throwable)
+                    .end();
+            });
+        }
     }
-
-
-
 }

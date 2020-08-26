@@ -29,6 +29,7 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 
+import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.util.Arrays;
@@ -41,10 +42,11 @@ public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstr
         return Arrays.asList("http-client", "jdk-httpclient");
     }
 
-    protected static void startSpan(HttpRequest httpRequest) {
+    @Nullable
+    protected static Span startSpan(HttpRequest httpRequest) {
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent == null) {
-            return;
+            return null;
         }
 
         URI uri = httpRequest.uri();
@@ -52,5 +54,6 @@ public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstr
         if (span != null) {
             span.activate();
         }
+        return span;
     }
 }
