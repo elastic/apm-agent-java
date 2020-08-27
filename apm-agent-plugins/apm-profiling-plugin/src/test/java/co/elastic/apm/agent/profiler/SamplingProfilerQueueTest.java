@@ -38,6 +38,7 @@ public class SamplingProfilerQueueTest {
         ElasticApmTracer tracer = MockTracer.create();
 
         SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock());
+
         profiler.setProfilingSessionOngoing(true);
         TraceContext traceContext = TraceContext.with64BitId(tracer);
 
@@ -45,7 +46,7 @@ public class SamplingProfilerQueueTest {
         long timeAfterFirstEvent = System.nanoTime();
         Thread.sleep(1);
 
-        for (int i = 0; i < SamplingProfiler.RING_BUFFER_SIZE -1; i++) {
+        for (int i = 0; i < SamplingProfiler.RING_BUFFER_SIZE - 1; i++) {
             assertThat(profiler.onActivation(traceContext, null)).isTrue();
         }
 
