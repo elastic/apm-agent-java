@@ -182,10 +182,27 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     private final ObjectPool<CallTree> callTreePool;
     private final TraceContext contextForLogging;
 
-    public SamplingProfiler(final ElasticApmTracer tracer, NanoClock nanoClock) {
+    /**
+     * Creates a sampling profiler using temporary files
+     *
+     * @param tracer    tracer
+     * @param nanoClock clock
+     */
+    public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) {
         this(tracer, nanoClock, null, null);
     }
 
+    /**
+     * Creates a sampling profiler, optionally relying on existing files.
+     * <p>
+     * <br/>
+     * This constructor is most likely used for tests that rely on a known set of files
+     *
+     * @param tracer               tracer
+     * @param nanoClock            clock
+     * @param activationEventsFile activation events file, if {@literal null} a temp file will be used
+     * @param jfrFile              java flight recorder file, if {@literal null} a temp file will be used instead
+     */
     public SamplingProfiler(final ElasticApmTracer tracer, NanoClock nanoClock, @Nullable File activationEventsFile, @Nullable File jfrFile) {
         this.tracer = tracer;
         this.config = tracer.getConfig(ProfilingConfiguration.class);
