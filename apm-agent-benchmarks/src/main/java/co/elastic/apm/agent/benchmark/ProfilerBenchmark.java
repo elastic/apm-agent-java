@@ -26,6 +26,7 @@ package co.elastic.apm.agent.benchmark;
 
 import co.elastic.apm.agent.profiler.SamplingProfiler;
 import co.elastic.apm.agent.profiler.SystemNanoClock;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -37,6 +38,7 @@ import org.openjdk.jmh.annotations.TearDown;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.SampleTime)
@@ -58,6 +60,7 @@ public class ProfilerBenchmark extends AbstractMockApmServerBenchmark {
     public void setUp() throws Exception {
         samplingProfiler = new SamplingProfiler(tracer,
             new SystemNanoClock(),
+            ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler"),
             new File(getClass().getClassLoader().getResource("apm-activation-events.bin").toURI()),
             new File(getClass().getClassLoader().getResource("apm-traces.jfr").toURI()));
     }

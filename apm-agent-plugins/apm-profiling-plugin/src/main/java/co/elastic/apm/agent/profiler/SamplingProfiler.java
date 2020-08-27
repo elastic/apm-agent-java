@@ -150,8 +150,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     private final ProfilingConfiguration config;
     private final CoreConfiguration coreConfig;
-    @Nullable
-    private ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService scheduler;
     private final Long2ObjectHashMap<CallTree.Root> profiledThreads = new Long2ObjectHashMap<>();
     private final RingBuffer<ActivationEvent> eventBuffer;
     private volatile boolean profilingSessionOngoing = false;
@@ -188,8 +187,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param tracer    tracer
      * @param nanoClock clock
      */
-    public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) {
-        this(tracer, nanoClock, null, null);
+    public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock, ScheduledExecutorService scheduler) {
+        this(tracer, nanoClock, scheduler, null, null);
     }
 
     /**
@@ -203,10 +202,11 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * @param activationEventsFile activation events file, if {@literal null} a temp file will be used
      * @param jfrFile              java flight recorder file, if {@literal null} a temp file will be used instead
      */
-    public SamplingProfiler(final ElasticApmTracer tracer, NanoClock nanoClock, @Nullable File activationEventsFile, @Nullable File jfrFile) {
+    public SamplingProfiler(final ElasticApmTracer tracer, NanoClock nanoClock, ScheduledExecutorService scheduler, @Nullable File activationEventsFile, @Nullable File jfrFile) {
         this.tracer = tracer;
         this.config = tracer.getConfig(ProfilingConfiguration.class);
         this.coreConfig = tracer.getConfig(CoreConfiguration.class);
+        this.scheduler = scheduler;
         this.nanoClock = nanoClock;
         this.eventBuffer = createRingBuffer();
         this.sequence = new Sequence();
@@ -331,13 +331,15 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     @Override
     public void run() {
-        if (config.isProfilingDisabled() || !tracer.isRunning()) {
+        if (!config.isProfilingEnabled() || !tracer.isRunning()) {
             if (jfrParser != null) {
                 jfrParser = null;
                 rootPool.clear();
                 callTreePool.clear();
             }
-            scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
+            if (scheduler.isShutdown()) {
+                scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
+            }
             return;
         }
 
@@ -445,6 +447,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     EventPoller.PollState consumeActivationEventsFromRingBufferAndWriteToFile() throws Exception {
+        createFilesIfRequired();
         return poller.poll(writeActivationEventToFileHandler);
     }
 
@@ -455,6 +458,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         if (Thread.currentThread().isInterrupted()) {
             return;
         }
+        createFilesIfRequired();
+
         long eof = startProcessingActivationEventsFile();
         if (eof == 0 && activationEventsBuffer.limit() == 0 && profiledThreads.isEmpty()) {
             logger.debug("No activation events during this period. Skip processing stack traces.");
@@ -632,6 +637,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     void copyFromFiles(Path activationEvents, Path traces) throws IOException {
+        createFilesIfRequired();
+
         FileChannel otherActivationsChannel = FileChannel.open(activationEvents, READ);
         activationEventsFileChannel.transferFrom(otherActivationsChannel, 0, otherActivationsChannel.size());
         activationEventsFileChannel.position(otherActivationsChannel.size());
@@ -640,21 +647,15 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     @Override
-    public synchronized void start(ElasticApmTracer tracer) {
-        if (scheduler == null) {
-            scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler");
-        }
+    public void start(ElasticApmTracer tracer) {
         scheduler.submit(this);
     }
 
     @Override
-    public synchronized void stop() throws Exception {
+    public void stop() throws Exception {
         // cancels/interrupts the profiling thread
         // implicitly clears profiled threads
-        if (scheduler != null) {
-            ExecutorUtils.shutdown(scheduler);
-        }
-        scheduler = null;
+        ExecutorUtils.shutdown(scheduler);
 
         if (activationEventsFileChannel != null) {
             activationEventsFileChannel.close();

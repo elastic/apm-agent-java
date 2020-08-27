@@ -26,8 +26,10 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.util.ExecutorUtils;
 
 import java.io.IOException;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class ProfilingFactory extends AbstractLifecycleListener {
 
@@ -39,7 +41,8 @@ public class ProfilingFactory extends AbstractLifecycleListener {
         // in unit tests, where assertions are enabled, this envTest is true
         assert envTest = true;
         nanoClock = envTest ? new FixedNanoClock() : new SystemNanoClock();
-        profiler = new SamplingProfiler(tracer, nanoClock);
+        ScheduledThreadPoolExecutor scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler");
+        profiler = new SamplingProfiler(tracer, nanoClock, scheduler);
     }
 
     @Override

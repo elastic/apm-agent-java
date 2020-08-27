@@ -76,7 +76,7 @@ class SamplingProfilerTest {
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         tracer.stop();
     }
 
