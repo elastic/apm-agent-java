@@ -53,6 +53,7 @@
         <module>apm-dubbo-plugin</module>
         <module>apm-bootdelegation-plugin</module>
         <module>apm-micrometer-plugin</module>
+        <module>apm-jdk-httpclient-plugin</module>
     </modules>
 
     <dependencies>

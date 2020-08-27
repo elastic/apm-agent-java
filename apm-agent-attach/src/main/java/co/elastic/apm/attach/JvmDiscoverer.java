@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -100,7 +102,7 @@ public interface JvmDiscoverer {
             for (String s : jpsOutput.split("\n")) {
                 JvmInfo parse = JvmInfo.parse(s);
                 // ignore jps command that we just started as it's already terminated and not relevant for attachment
-                if(!parse.packageOrPathOrJvmProperties.contains(".Jps")){
+                if (!parse.packageOrPathOrJvmProperties.contains(".Jps")) {
                     set.add(parse);
                 }
             }
@@ -117,26 +119,60 @@ public interface JvmDiscoverer {
         }
 
         private static Process runJps() throws IOException {
-            return new ProcessBuilder(getJpsPath(System.getProperties()).toString(), "-lv").start();
+            return new ProcessBuilder(JpsFinder.getJpsPath().toString(), "-lv").start();
         }
 
+    }
+
+    class JpsFinder {
         // package protected for testing
-        static Path getJpsPath(Properties systemProperties) {
-            String javaHome = systemProperties.getProperty("java.home");
+        static List<Path> getJpsPaths(Properties systemProperties, Map<String,String> env) {
+
+            List<Path> list = new ArrayList<Path>();
+
             String os = systemProperties.getProperty("os.name");
-            Path binaryPath;
+            Path binaryName;
             if (os != null && os.startsWith("Windows")) {
-                binaryPath = Paths.get("jps.exe");
+                binaryName = Paths.get("jps.exe");
             } else {
-                binaryPath = Paths.get("jps");
+                binaryName = Paths.get("jps");
             }
-            if (javaHome != null) {
-                binaryPath = Paths.get(javaHome)
-                    .toAbsolutePath()
-                    .resolve("bin")
-                    .resolve(binaryPath);
+
+
+            for (String javaHome : Arrays.asList(env.get("JAVA_HOME"), systemProperties.getProperty("java.home"))) {
+                if (javaHome != null) {
+                    list.add(Paths.get(javaHome)
+                        .resolve("bin")
+                        .resolve(binaryName));
+
+                    // in case 'java.home' or JAVA_HOME are set to a JRE
+                    // we try to use the one in the folder up, which is usually where the JDK is
+                    list.add(Paths.get(javaHome)
+                        .resolve("..")
+                        .resolve("bin")
+                        .resolve(binaryName));
+
+                }
             }
-            return binaryPath;
+
+            // fallback to the simple binary name
+            list.add(binaryName);
+
+            return list;
+        }
+
+        static Path getJpsPath(Properties systemProperties, Map<String,String> env) {
+            List<Path> locations = getJpsPaths(systemProperties, env);
+            for (Path path : locations) {
+                if (Files.isExecutable(path)) {
+                    return path;
+                }
+            }
+            throw new IllegalStateException("unable to locate jps executable, searched locations : " + locations);
+        }
+
+        static Path getJpsPath() {
+            return getJpsPath(System.getProperties(), System.getenv());
         }
     }
 

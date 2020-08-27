@@ -37,6 +37,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -57,6 +58,8 @@ public class ServletApiTestApp extends TestApp {
         testHttpUrlConnection(test);
         testCaptureBody(test);
         testJmxMetrics(test);
+        testTransactionReportingWithForward(test);
+        testTransactionReportingWithInclude(test);
     }
 
     private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
@@ -73,6 +76,26 @@ public class ServletApiTestApp extends TestApp {
             final JsonNode transaction = test.assertTransactionReported("/simple-webapp/echo", 200);
             assertThat(transaction.get("context").get("request").get("body").textValue()).isEqualTo("{foo}\n{bar}");
         }
+    }
+
+    private void testTransactionReportingWithForward(AbstractServletContainerIntegrationTest test) throws Exception {
+        testTransactionReportingWithForwardSpan(test,"/simple-webapp/forward", "servlet.request-dispatcher.forward", "FORWARD /servlet");
+    }
+
+    private void testTransactionReportingWithInclude(AbstractServletContainerIntegrationTest test) throws Exception {
+        testTransactionReportingWithForwardSpan(test,"/simple-webapp/include", "servlet.request-dispatcher.include", "INCLUDE /servlet");
+    }
+
+    private void testTransactionReportingWithForwardSpan(AbstractServletContainerIntegrationTest test, String path, String expectedSpanType, String expectedSpanName) throws Exception {
+        test.clearMockServerLog();
+
+        test.executeAndValidateRequest(path, "Hello World", 200, null);
+
+        JsonNode transaction = test.assertTransactionReported(path, 200);
+
+        List<JsonNode> forwardSpans = test.getReportedSpans().stream().filter(k -> k.get("type").textValue().equals(expectedSpanType)).collect(Collectors.toList());
+        assertThat(forwardSpans.size()).isEqualTo(1);
+        assertThat(forwardSpans.get(0).get("name").textValue()).isEqualTo(expectedSpanName);
     }
 
     private void testExecutorService(AbstractServletContainerIntegrationTest test) throws Exception {
