@@ -53,7 +53,9 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             {"8.5-jre8-slim"},
             {"9-jre9-slim"},
             {"9-jre10-slim"},
-            {"9-jre11-slim"}
+            {"9-jre11-slim"},
+            {"9-jre14-slim"}
+            
         });
     }
 
