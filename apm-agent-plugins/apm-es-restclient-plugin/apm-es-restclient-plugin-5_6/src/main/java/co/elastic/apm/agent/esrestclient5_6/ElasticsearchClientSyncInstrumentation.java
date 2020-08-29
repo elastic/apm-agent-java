@@ -22,21 +22,23 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient.v6_4;
+package co.elastic.apm.agent.esrestclient5_6;
 
-import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
-import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.elasticsearch.client.Request;
+import org.apache.http.HttpEntity;
 import org.elasticsearch.client.Response;
 
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -44,36 +46,26 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
 
     @Override
     public Class<?> getAdviceClass() {
-        return ElasticsearchRestClientSyncAdvice.class;
+        return ElasticsearchRestClientAdvice.class;
     }
 
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.elasticsearch.client.RestClient");
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("performRequest")
-            .and(takesArguments(1)
-                .and(takesArgument(0, named("org.elasticsearch.client.Request"))));
-    }
-
-    public static class ElasticsearchRestClientSyncAdvice {
+    public static class ElasticsearchRestClientAdvice {
         public static ElasticsearchRestClientInstrumentationHelper helper = new ElasticsearchRestClientInstrumentationHelper();
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(0) Request request) {
-            return helper.createClientSpan(tracer.getActive(), request.getMethod(), request.getEndpoint(), request.getEntity());
+        public static Object onBeforeExecute(@Advice.Argument(0) String method,
+                                             @Advice.Argument(1) String endpoint,
+                                             @Advice.Argument(3) @Nullable HttpEntity entity) {
+            return helper.createClientSpan(tracer.getActive(), method, endpoint, entity);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable Response response,
-                                          @Advice.Enter @Nullable Object spanObj,
+                                          @Advice.Enter @Nullable Object objSpan,
                                           @Advice.Thrown @Nullable Throwable t) {
-            if (spanObj instanceof Span) {
-                Span span = (Span) spanObj;
+            if (objSpan instanceof Span) {
+                Span span = (Span) objSpan;
                 try {
                     helper.finishClientSpan(response, span, t);
                 } finally {
@@ -81,5 +73,21 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
                 }
             }
         }
+    }
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("org.elasticsearch.client.RestClient").
+            and(not(
+                declaresMethod(named("performRequest")
+                    .and(takesArguments(1)
+                        .and(takesArgument(0, named("org.elasticsearch.client.Request")))))));
+    }
+
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("performRequest")
+            .and(takesArguments(6)
+                .and(takesArgument(4, named("org.elasticsearch.client.HttpAsyncResponseConsumerFactory"))));
     }
 }

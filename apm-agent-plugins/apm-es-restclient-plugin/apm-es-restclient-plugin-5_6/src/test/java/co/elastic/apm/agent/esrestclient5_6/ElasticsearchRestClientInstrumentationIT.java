@@ -22,9 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient.v5_6;
+package co.elastic.apm.agent.esrestclient5_6;
 
-import co.elastic.apm.agent.es.restclient.AbstractEsClientInstrumentationTest;
+import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;

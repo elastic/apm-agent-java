@@ -22,10 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient.v6_4;
+package co.elastic.apm.agent.esrestclient5_6;
 
-import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
-import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentation;
+import co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
@@ -33,12 +34,14 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.elasticsearch.client.Request;
+import org.apache.http.HttpEntity;
 import org.elasticsearch.client.ResponseListener;
 
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -51,28 +54,36 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.elasticsearch.client.RestClient");
+        return named("org.elasticsearch.client.RestClient").
+            and(not(
+                declaresMethod(named("performRequestAsync")
+                    .and(takesArguments(2)
+                        .and(takesArgument(0, named("org.elasticsearch.client.Request")))))));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("performRequestAsync")
-            .and(takesArguments(2)
-                .and(takesArgument(0, named("org.elasticsearch.client.Request")))
-                .and(takesArgument(1, named("org.elasticsearch.client.ResponseListener"))));
+            .and(takesArguments(7)
+                .and(takesArgument(4, named("org.elasticsearch.client.HttpAsyncResponseConsumerFactory")))
+                .and(takesArgument(5, named("org.elasticsearch.client.ResponseListener"))));
     }
+
 
     public static class ElasticsearchRestClientAsyncAdvice {
         public static ElasticsearchRestClientInstrumentationHelper helper = new ElasticsearchRestClientInstrumentationHelper();
         public static final GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
 
-        @AssignTo.Argument(1)
+        @AssignTo.Argument(5)
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static ResponseListener onBeforeExecute(@Advice.Argument(0) Request request,
-                                                       @Advice.Argument(1) ResponseListener responseListener) {
-            Span span = helper.createClientSpan(tracer.getActive(), request.getMethod(), request.getEndpoint(), request.getEntity());
+        public static ResponseListener onBeforeExecute(@Advice.Argument(0) String method,
+                                                       @Advice.Argument(1) String endpoint,
+                                                       @Advice.Argument(3) @Nullable HttpEntity entity,
+                                                       @Advice.Argument(5) ResponseListener responseListener) {
+            AbstractSpan<?> activeSpan = tracer.getActive();
+            Span span = helper.createClientSpan(activeSpan, method, endpoint, entity);
+            spanTls.set(span);
             if (span != null) {
-                spanTls.set(span);
                 return helper.<ResponseListener>wrapResponseListener(responseListener, span);
             }
             return responseListener;

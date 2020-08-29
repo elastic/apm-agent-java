@@ -22,13 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient.v6_4;
+package co.elastic.apm.agent.esrestclient7_1;
 
+import co.elastic.apm.agent.esrestclient6_4.AbstractEs6_4ClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -42,33 +40,32 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
 
-    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:6.7.0";
+    private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:7.1.0";
 
-    public ElasticsearchRestClientInstrumentationIT(boolean async) {
-        this.async = async;
-    }
+    public ElasticsearchRestClientInstrumentationIT(boolean async) { this.async = async; }
 
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
-        // Start the container
         container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
         container.start();
 
-        // Create the client
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
         RestClientBuilder builder = RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+
         client = new RestHighLevelClient(builder);
 
         client.indices().create(new CreateIndexRequest(INDEX), RequestOptions.DEFAULT);
@@ -84,19 +81,19 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
 
     @Override
     protected void verifyMultiSearchTemplateSpanContent(Span span) {
-        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\"}\n" +
+        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\",\"ccs_minimize_roundtrips\":true}\n" +
             "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}\n");
     }
 
     @Override
     protected void verifyMultiSearchSpanContent(Span span) {
-        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\"}\n" +
+        validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\",\"ccs_minimize_roundtrips\":true}\n" +
             "{\"query\":{\"match\":{\"foo\":{\"query\":\"bar\",\"operator\":\"OR\",\"prefix_length\":0,\"max_expansions\":50,\"fuzzy_transpositions\":true,\"lenient\":false,\"zero_terms_query\":\"NONE\",\"auto_generate_synonyms_phrase_query\":true,\"boost\":1.0}}}}\n");
     }
 
     @Override
     protected void verifyTotalHits(SearchHits searchHits) {
-        assertThat(searchHits.totalHits).isEqualTo(1L);
+        assertThat(searchHits.getTotalHits().value).isEqualTo(1L);
         assertThat(searchHits.getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAR);
     }
 

@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient;
+package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 

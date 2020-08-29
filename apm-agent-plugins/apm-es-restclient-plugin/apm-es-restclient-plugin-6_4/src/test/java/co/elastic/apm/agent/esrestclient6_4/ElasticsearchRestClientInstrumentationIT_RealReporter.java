@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient.v6_4;
+package co.elastic.apm.agent.esrestclient6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;

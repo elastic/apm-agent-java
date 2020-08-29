@@ -22,9 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient.v6_4;
+package co.elastic.apm.agent.esrestclient6_4;
 
-import co.elastic.apm.agent.es.restclient.AbstractEsClientInstrumentationTest;
+import co.elastic.apm.agent.esrestclient.AbstractEsClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.ActionListener;

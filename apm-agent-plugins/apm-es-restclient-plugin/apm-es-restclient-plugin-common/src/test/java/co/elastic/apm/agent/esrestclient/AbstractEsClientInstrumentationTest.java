@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.es.restclient;
+package co.elastic.apm.agent.esrestclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Db;
@@ -40,9 +40,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper.SPAN_ACTION;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper.SPAN_TYPE;
+import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.ELASTICSEARCH;
+import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_ACTION;
+import static co.elastic.apm.agent.esrestclient.ElasticsearchRestClientInstrumentationHelper.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
