@@ -1,2 +1,2 @@
-co.elastic.apm.agent.spring.scheduled.ScheduledTransactionNameInstrumentation
-co.elastic.apm.agent.spring.scheduled.TimerTaskInstrumentation
+co.elastic.apm.agent.scheduled.ScheduledTransactionNameInstrumentation
+co.elastic.apm.agent.scheduled.TimerTaskInstrumentation
