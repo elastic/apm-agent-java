@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.quartz.job;
+package co.elastic.apm.agent.quartzjob;
 
 import java.io.File;
 import java.io.IOException;

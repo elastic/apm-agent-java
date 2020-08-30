@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.quartz.job;
+package co.elastic.apm.agent.quartzjob;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -39,13 +38,15 @@ import javax.annotation.Nullable;
 
 public class JobTransactionNameAdvice {
 
-    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
-                                           @SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) {
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object setTransactionName(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
+                                           @SimpleMethodSignature String signature,
+                                           @Advice.Origin Class<?> clazz) {
         if (GlobalTracer.get() != null) {
+            Transaction transaction = null;
             AbstractSpan<?> active = GlobalTracer.get().getActive();
             if (context == null) {
                 logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
@@ -69,13 +70,17 @@ public class JobTransactionNameAdvice {
                 transaction.setFrameworkName("Quartz");
                 transaction.setFrameworkVersion(VersionUtils.getVersion(JobExecutionContext.class, "org.quartz-scheduler", "quartz"));
             }
+            return transaction;
         }
+        return null;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onMethodExitException(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
-                                             @Advice.Local("transaction") @Nullable Transaction transaction, @Advice.Thrown Throwable t) {
-        if (transaction != null) {
+                                             @Advice.Enter @Nullable Object transactionObj,
+                                             @Advice.Thrown Throwable t) {
+        if (transactionObj instanceof Transaction) {
+            Transaction transaction = (Transaction) transactionObj;
             if (context != null && context.getResult() != null) {
                 transaction.withResultIfUnset(context.getResult().toString());
             }

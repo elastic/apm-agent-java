@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.quartz.job;
+package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -78,8 +78,4 @@ public class JobTransactionNameInstrumentation extends TracerAwareInstrumentatio
         return JobTransactionNameAdvice.class;
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }
