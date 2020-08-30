@@ -22,15 +22,15 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.error.logging;
+package co.elastic.apm.agent.errorlogging;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-class Slf4jLoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
+class Log4j2LoggerErrorCapturingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(Slf4jLoggerErrorCapturingInstrumentationTest.class);
+    private static final Logger logger = LogManager.getLogger(Log4j2LoggerErrorCapturingInstrumentationTest.class);
 
     @Test
     void captureException() {
