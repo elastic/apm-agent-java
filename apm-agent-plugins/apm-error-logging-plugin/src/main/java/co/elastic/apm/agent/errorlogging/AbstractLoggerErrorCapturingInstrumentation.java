@@ -67,9 +67,7 @@ public abstract class AbstractLoggerErrorCapturingInstrumentation extends Tracer
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void logExit(@Advice.Enter @Nullable Object errorCaptureObj) {
-            if (callDepth.isNestedCallAndDecrement()) {
-                return;
-            }
+            callDepth.decrement();
             if (errorCaptureObj instanceof ErrorCapture) {
                 ErrorCapture error = (ErrorCapture) errorCaptureObj;
                 error.deactivate().end();
