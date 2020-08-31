@@ -24,9 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.proxysupport.AuthenticatorInstrumentation;
 import io.undertow.Undertow;
 import io.undertow.io.Sender;
 import org.jetbrains.annotations.NotNull;
@@ -50,15 +48,12 @@ import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
 // Using a separate test class for proxy support
-//
-// We have to inherit from instrumentation tests because proxy support relies on instrumentation thanks to Authenticator
-public class ApmServerClientProxySupportTest extends AbstractInstrumentationTest {
+public class ApmServerClientProxySupportTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClientProxySupportTest.class);
 
@@ -123,6 +118,10 @@ public class ApmServerClientProxySupportTest extends AbstractInstrumentationTest
         System.setProperty("http.proxyPort", "");
         System.setProperty("http.proxyUser", "");
         System.setProperty("http.proxyPassword", "");
+
+        assertThat(Authenticator.getDefault())
+            .describedAs("test should not leave a global authenticator instance set")
+            .isNull();
     }
 
     private void startProxy(boolean useAuth) {
@@ -148,7 +147,7 @@ public class ApmServerClientProxySupportTest extends AbstractInstrumentationTest
 
         setSystemProxyProperties();
 
-        simpleTestScenario(true);
+        expectProxySuccess();
     }
 
     @Test
@@ -158,20 +157,9 @@ public class ApmServerClientProxySupportTest extends AbstractInstrumentationTest
         setSystemProxyProperties();
         setSystemProxyCredentialProperties();
 
-        ApmServerClient client = createAndStartClient(true);
-        URL requestUrl = requestUrl(true);
-
-        AuthenticatorInstrumentation.toggleFallback(true);
-        checkUsingProxy(client.startRequest(requestUrl.getPath()), true); // TODO : use client.execute instead to enable proper wrapping
-        AuthenticatorInstrumentation.toggleFallback(false);
-
         // in this case, no global authenticator is set
         // thus we should get a 407 error from the proxy because credentials aren't taken in account by default
-        checkProxyAuthenticationError(requestUrl.openConnection());
-
-        assertThat(Authenticator.getDefault())
-            .describedAs("global authenticator should remain unset")
-            .isNull();
+        expectProxyError();
     }
 
     @Test
@@ -181,28 +169,36 @@ public class ApmServerClientProxySupportTest extends AbstractInstrumentationTest
         setSystemProxyProperties();
         setSystemProxyCredentialProperties();
 
-        final AtomicBoolean allow = new AtomicBoolean(false);
+        // we should not be able to use proxy without authenticator
+        expectProxyError();
 
-        // hostile authenticator that does not allow agent to connect
-        Authenticator authenticator = new Authenticator() {
-            @Nullable
+        Authenticator.setDefault(new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return !allow.get() ? null : new PasswordAuthentication(PROXY_LOGIN, PROXY_PASSWORD.toCharArray());
+                return new PasswordAuthentication(PROXY_LOGIN, PROXY_PASSWORD.toCharArray());
             }
-        };
-        Authenticator.setDefault(authenticator);
+        });
 
+        expectProxySuccess();
+
+        Authenticator.setDefault(null);
+
+    }
+
+    private void expectProxyError() throws IOException {
         ApmServerClient client = createAndStartClient(true);
         URL requestUrl = requestUrl(true);
+
+        checkProxyAuthenticationError(client.startRequest(requestUrl.getPath()));
+        checkProxyAuthenticationError(requestUrl.openConnection());
+    }
+
+    private void expectProxySuccess() throws IOException {
+        ApmServerClient client = createAndStartClient(true);
+        URL requestUrl = requestUrl(true);
+
         checkUsingProxy(client.startRequest(requestUrl.getPath()), true);
-
-        allow.set(true);
         checkUsingProxy(requestUrl.openConnection(), true);
-
-        assertThat(Authenticator.getDefault())
-            .describedAs("authenticator instance should remain unchanged")
-            .isSameAs(authenticator);
     }
 
     private void simpleTestScenario(boolean useProxy) throws IOException {
@@ -269,24 +265,4 @@ public class ApmServerClientProxySupportTest extends AbstractInstrumentationTest
         }
     }
 
-    // test cases to cover
-    //
-    // no proxy
-    // proxy without authentication
-    // proxy with authentication (basic)
-    //
-    // authenticator
-    // - no global authenticator set
-    // - one global authenticator is set, we have to override it's returned value
-
-    // how to test
-    // using a squid proxy docker image
-    //
-    //
-    // -> how to make squid provide basic/digest authentication ?
-    //   - might be doable, but that does not really help here
-    //
-    // -> how to make sure that requests go through the proxy ?
-    //   - one more line in the proxy logs
-    //   - adding an extra header in proxy
 }
