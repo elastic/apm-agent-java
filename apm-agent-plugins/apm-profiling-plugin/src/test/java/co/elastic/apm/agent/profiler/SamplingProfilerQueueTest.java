@@ -42,7 +42,7 @@ public class SamplingProfilerQueueTest {
 
         ScheduledThreadPoolExecutor scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler");
 
-        SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock(), scheduler);
+        SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock());
 
         profiler.setProfilingSessionOngoing(true);
         TraceContext traceContext = TraceContext.with64BitId(tracer);
