@@ -84,7 +84,7 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
     }
 
     public static class ApacheHttpAsyncClientAdvice {
-        public static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
+        private static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
 
         @AssignTo(arguments = {
             @AssignTo.Argument(index = 0, value = 0),
