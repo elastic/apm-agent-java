@@ -28,7 +28,6 @@ endif::[]
 
 [float]
 ===== Features
-* The agent now collects cgroup memory metrics (see <<metrics>>)
 * Experimental support for runtime attachment now also for OSGi containers, JBoss, and WildFly
 * New mitigation of OSGi bootdelegation errors (`NoClassDefFoundError`).
   You can remove any `org.osgi.framework.bootdelegation` related configuration.
@@ -49,6 +48,10 @@ endif::[]
 * Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
   an empty string - {pull}1295[#1295]
 * Add <<metrics-micrometer, micrometer support>> - {pull}1303[#1303]
+* Add `profiling_inferred_spans_lib_directory` option to override the default temp directory used for exporting the async-profiler library.
+  This is useful for server-hardened environments where `/tmp` is often configured with `noexec`, leading to `java.lang.UnsatisfiedLinkError` errors - {pull}1350[#1350]
+* Create spans for Servlet dispatches to FORWARD, INCLUDE and ERROR - {pull}1212[#1212]
+* Support sync, async calls made by JDK 11 HTTPClient - {pull}1307[#1307]
 
 [float]
 ===== Bug fixes
@@ -66,6 +69,7 @@ endif::[]
 * Fix `NumberFormatException` when using early access Java version - {pull}1325[#1325]
 * Fix `service_name` config being ignored when set to the same auto-discovered default value - {pull}1324[#1324]
 * Fix service name error when updating a web app on a Servlet container - {pull}1326[#1326]
+* Fix remote attach 'jps' executable not found when 'java' binary is symlinked ot a JRE - {pull}1352[#1352]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

@@ -81,9 +81,13 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "If set to an empty string, the agent will work as usual, except from any task requiring communication with \n" +
             "the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. \n" +
             "\n" +
-            "If outgoing HTTP traffic has to go through a proxy," +
+            "If SSL is enabled on the APM Server, use the `https` protocol. For more information, see \n" +
+            "<<ssl-configuration>>.\n" +
+            "\n" +
+            "If outgoing HTTP traffic has to go through a proxy,\n" +
             "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
-            "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.\n" +
+            "See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] \n" +
+            "for more information.\n" +
             "\n" +
             "NOTE: This configuration can only be reloaded dynamically as of 1.8.0")
         .dynamic(true)
