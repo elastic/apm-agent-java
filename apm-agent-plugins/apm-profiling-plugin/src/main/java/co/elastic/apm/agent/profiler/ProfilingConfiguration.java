@@ -184,10 +184,6 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         return asyncProfilerSafeMode.get();
     }
 
-    public boolean isProfilingDisabled() {
-        return !isProfilingEnabled();
-    }
-
     public TimeDuration getSamplingInterval() {
         return samplingInterval.get();
     }

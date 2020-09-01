@@ -52,6 +52,7 @@ endif::[]
   This is useful for server-hardened environments where `/tmp` is often configured with `noexec`, leading to `java.lang.UnsatisfiedLinkError` errors - {pull}1350[#1350]
 * Create spans for Servlet dispatches to FORWARD, INCLUDE and ERROR - {pull}1212[#1212]
 * Support sync, async calls made by JDK 11 HTTPClient - {pull}1307[#1307]
+* Lazily create profiler temporary files {pull}1360[#1360]
 
 [float]
 ===== Bug fixes
