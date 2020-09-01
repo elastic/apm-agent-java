@@ -22,7 +22,18 @@
  * under the License.
  * #L%
  */
-@NonnullApi
-package co.elastic.apm.agent.asynchttpclient.helper;
+package co.elastic.apm.agent.asynchttpclient;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import org.asynchttpclient.Request;
+
+class RequestHeaderSetter implements TextHeaderSetter<Request> {
+
+    static final TextHeaderSetter<Request> INSTANCE = new RequestHeaderSetter();
+
+    @Override
+    public void setHeader(String headerName, String headerValue, Request request) {
+        request.getHeaders().set(headerName, headerValue);
+    }
+
+}
