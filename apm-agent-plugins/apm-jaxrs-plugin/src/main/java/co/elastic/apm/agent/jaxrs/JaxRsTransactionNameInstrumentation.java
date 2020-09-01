@@ -69,8 +69,8 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
         useAnnotationValueForTransactionName = configuration.isUseJaxRsPathForTransactionName();
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@SimpleMethodSignature String signature,
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void setTransactionName(@SimpleMethodSignature String signature,
                                            @JaxRsPath @Nullable String pathAnnotationValue) {
         final Transaction transaction = TracerAwareInstrumentation.tracer.currentTransaction();
         if (transaction != null) {
@@ -143,8 +143,4 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
         return new JaxRsOffsetMappingFactory(tracer);
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }
