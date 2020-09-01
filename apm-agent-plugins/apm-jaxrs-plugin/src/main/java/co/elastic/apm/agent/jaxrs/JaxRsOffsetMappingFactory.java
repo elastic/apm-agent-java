@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.annotation.AnnotationSource;
@@ -41,15 +40,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import static co.elastic.apm.agent.jaxrs.JaxRsTransactionNameInstrumentation.USE_ANNOTATION_VALUE_CONFIG;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<JaxRsOffsetMappingFactory.JaxRsPath> {
-
-    public static boolean useAnnotationValueForTransactionName;
-
-    public JaxRsOffsetMappingFactory(ElasticApmTracer tracer) {
-        useAnnotationValueForTransactionName = tracer.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName();
-    }
 
     @Override
     public Class<JaxRsPath> getAnnotationType() {
@@ -62,7 +56,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
             @Override
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
                 Object value = null;
-                if (useAnnotationValueForTransactionName) {
+                if (JaxRsTransactionNameInstrumentation.CONFIG.get(USE_ANNOTATION_VALUE_CONFIG)) {
                     value = getTransactionAnnotationValueFromAnnotations(instrumentedMethod, instrumentedType);
                 }
                 return Target.ForStackManipulation.of(value);
@@ -181,7 +175,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
 
         String buildTransactionName() {
             String path = this.classLevelPath + this.methodLevelPath;
-            return this.method + " " + ((path.isEmpty()) ? "/": path);
+            return this.method + " " + ((path.isEmpty()) ? "/" : path);
         }
 
         public boolean isComplete() {
