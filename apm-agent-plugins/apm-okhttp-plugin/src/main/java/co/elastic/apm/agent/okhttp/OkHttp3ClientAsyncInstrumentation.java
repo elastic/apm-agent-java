@@ -60,8 +60,8 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
     public static class OkHttpClient3ExecuteAdvice {
 
         @AssignTo(
-                fields = @AssignTo.Field(index = 0, value = "originalRequest"),
-                arguments = @AssignTo.Argument(index = 1, value = 0)
+            fields = @AssignTo.Field(index = 0, value = "originalRequest"),
+            arguments = @AssignTo.Argument(index = 1, value = 0)
         )
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -82,7 +82,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
             Callback callback = originalCallback;
             HttpUrl url = request.url();
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
-                    OkHttpClientHelper.computeHostName(url.host()), url.port());
+                OkHttpClientHelper.computeHostName(url.host()), url.port());
             if (span != null) {
                 span.activate();
                 Request.Builder builder = originalRequest.newBuilder();

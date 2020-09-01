@@ -46,8 +46,8 @@ public class OkHttpClientAsyncInstrumentationTest extends AbstractHttpClientInst
     @Override
     protected void performGet(String path) throws Exception {
         Request request = new Request.Builder()
-                .url(path)
-                .build();
+            .url(path)
+            .build();
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         client.newCall(request).enqueue(new Callback() {

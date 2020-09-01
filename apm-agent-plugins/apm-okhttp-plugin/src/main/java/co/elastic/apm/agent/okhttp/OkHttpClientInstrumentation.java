@@ -63,7 +63,7 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
             com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
             HttpUrl httpUrl = request.httpUrl();
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
-                    OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
+                OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
             if (span != null) {
                 span.activate();
                 Request.Builder builder = ((com.squareup.okhttp.Request) originalRequest).newBuilder();

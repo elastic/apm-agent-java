@@ -64,7 +64,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
             okhttp3.Request request = (okhttp3.Request) originalRequest;
             HttpUrl url = request.url();
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(),
-                    OkHttpClientHelper.computeHostName(url.host()), url.port());
+                OkHttpClientHelper.computeHostName(url.host()), url.port());
             if (span != null) {
                 span.activate();
                 Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
