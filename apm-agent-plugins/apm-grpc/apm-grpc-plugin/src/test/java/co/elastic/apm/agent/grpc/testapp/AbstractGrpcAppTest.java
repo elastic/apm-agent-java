@@ -47,7 +47,6 @@ public abstract class AbstractGrpcAppTest {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractGrpcAppTest.class);
 
-    protected static final int PORT = TestPort.getAvailableRandomPort();
     protected static final String HOST = "localhost";
 
     private GrpcApp app;
@@ -58,7 +57,7 @@ public abstract class AbstractGrpcAppTest {
     void beforeEach() throws Exception {
         logger.info("--- test start ---");
 
-        app = getAppProvider().getGrpcApp(HOST, PORT);
+        app = getAppProvider().getGrpcApp(HOST, TestPort.getAvailableRandomPort());
         app.start();
     }
 
