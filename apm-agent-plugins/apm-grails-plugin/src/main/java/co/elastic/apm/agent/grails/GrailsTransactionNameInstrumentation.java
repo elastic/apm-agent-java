@@ -107,7 +107,7 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
             setName(transaction, className, methodName);
         }
 
-        public static void setName(Transaction transaction, String className, @Nullable String methodName) {
+        private static void setName(Transaction transaction, String className, @Nullable String methodName) {
             final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
             if (name != null) {
                 name.append(className);
