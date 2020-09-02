@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
+import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
@@ -36,6 +37,8 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
+import org.stagemonitor.configuration.converter.DoubleValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -162,7 +165,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
-    private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
+    private final ConfigurationOption<Double> sampleRate = RoundedDoubleConverter.withPrecision(3)
         .key(SAMPLE_RATE)
         .aliasKeys("sample_rate")
         .configurationCategory(CORE_CATEGORY)
