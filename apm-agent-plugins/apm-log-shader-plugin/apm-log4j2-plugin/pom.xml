@@ -75,7 +75,15 @@
                             <relocations>
                                 <relocation>
                                     <pattern>co.elastic.logging</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.logging.shader</shadedPattern>
+                                    <!-- We must shade ECS Logger classes to the plugin root package (or its subpackage)
+                                    so that they will be loaded by the application ClassLoader. Otherwise, if they
+                                    are loaded by the agent or Bootstrap CL, they won't find the actual logging
+                                    framework dependencies -->
+                                    <shadedPattern>co.elastic.apm.agent.log4j2.shaded.ecs.logging</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>java.lang.ThreadLocal</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.sdk.state.AgentThreadLocal</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.slf4j</pattern>
