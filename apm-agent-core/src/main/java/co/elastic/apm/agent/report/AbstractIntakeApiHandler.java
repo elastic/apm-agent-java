@@ -120,8 +120,8 @@ public class AbstractIntakeApiHandler {
                 os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
                 os.write(metaData);
             } catch (IOException e) {
-                logger.error("Error trying to connect to APM Server. If SSL is enabled, set logging level to info " +
-                    "for detailed SSL configurations available for the current connection.");
+                logger.error("Error trying to connect to APM Server. Some details about SSL configurations corresponding " +
+                    "the current connection are logged at INFO level.");
                 if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
                     HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
                     try {
