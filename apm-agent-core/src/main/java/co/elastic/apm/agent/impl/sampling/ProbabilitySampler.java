@@ -52,10 +52,12 @@ public class ProbabilitySampler implements Sampler {
 
     private final long lowerBound;
     private final long higherBound;
+    private final double sampleRate;
 
     private ProbabilitySampler(double samplingRate) {
         higherBound = (long) (Long.MAX_VALUE * samplingRate);
         lowerBound = -higherBound;
+        this.sampleRate = samplingRate;
     }
 
     public static Sampler of(double samplingRate) {
@@ -72,5 +74,10 @@ public class ProbabilitySampler implements Sampler {
     public boolean isSampled(Id traceId) {
         final long leastSignificantBits = traceId.getLeastSignificantBits();
         return leastSignificantBits > lowerBound && leastSignificantBits < higherBound;
+    }
+
+    @Override
+    public double getSampleRate() {
+        return sampleRate;
     }
 }

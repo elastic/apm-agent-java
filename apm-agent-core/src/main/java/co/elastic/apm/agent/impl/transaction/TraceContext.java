@@ -244,6 +244,9 @@ public class TraceContext implements Recyclable {
     @Nullable
     private String serviceName;
 
+    @Nullable
+    private Double sampleRate;
+
     private TraceContext(ElasticApmTracer tracer, Id id) {
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.tracer = tracer;
@@ -411,6 +414,7 @@ public class TraceContext implements Recyclable {
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
             this.flags = FLAG_RECORDED;
+            this.sampleRate = sampler.getSampleRate();
         }
         clock.init();
         onMutation();
@@ -421,6 +425,7 @@ public class TraceContext implements Recyclable {
         parentId.copyFrom(parent.id);
         transactionId.copyFrom(parent.transactionId);
         flags = parent.flags;
+        sampleRate = parent.sampleRate;
         id.setToRandomValue();
         clock.init(parent.clock);
         serviceName = parent.serviceName;
@@ -440,6 +445,7 @@ public class TraceContext implements Recyclable {
         transactionId.resetState();
         outgoingTextHeader.setLength(0);
         flags = 0;
+        sampleRate = null;
         discardable = true;
         clock.resetState();
         serviceName = null;
@@ -487,6 +493,20 @@ public class TraceContext implements Recyclable {
     }
 
     /**
+     * Returns the sample rate used for this transaction/span between 0.0 and 1.0 or {@literal null} if sample rate is unknown
+     *
+     * @return sample rate
+     */
+    @Nullable
+    public Double getSampleRate() {
+        Double rate = sampleRate;
+        if (!isRecorded()) {
+            rate = 0d;
+        }
+        return rate;
+    }
+
+    /**
      * When {@code true}, this span should be recorded aka. sampled.
      *
      * @return {@code true} when this span should be recorded, {@code false} otherwise
@@ -500,7 +520,17 @@ public class TraceContext implements Recyclable {
             flags |= FLAG_RECORDED;
         } else {
             flags &= ~FLAG_RECORDED;
+            sampleRate = 0d;
         }
+    }
+
+    /**
+     * Sets sample rate
+     *
+     * @param sampleRate sample rate, use {@literal null} to express absence of sample rate
+     */
+    void setSampleRate(@Nullable Double sampleRate) {
+        this.sampleRate = sampleRate;
     }
 
     void setNonDiscardable() {

@@ -28,11 +28,12 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -473,11 +475,27 @@ class TraceContextTest {
     void testSetSampled() {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
         traceContext.asRootSpan(ConstantSampler.of(false));
+
+        // not sampled means zero sample rate
         assertThat(traceContext.isSampled()).isFalse();
+        assertThat(traceContext.getSampleRate()).isEqualTo(0d);
+
+        // sampled without sample rate
         traceContext.setRecorded(true);
+
         assertThat(traceContext.isSampled()).isTrue();
+        assertThat(traceContext.getSampleRate()).isNull();
+
+        // sampled with sample rate
+        traceContext.setSampleRate(0.5d);
+
+        assertThat(traceContext.isSampled()).isTrue();
+        assertThat(traceContext.getSampleRate()).isEqualTo(0.5d);
+
+        // not sampled, sample rate should be unset
         traceContext.setRecorded(false);
         assertThat(traceContext.isSampled()).isFalse();
+        assertThat(traceContext.getSampleRate()).isEqualTo(0.0d);
     }
 
     @Test
@@ -510,6 +528,38 @@ class TraceContextTest {
         childContext.propagateTraceContext(binaryHeaderMap, BinaryHeaderMapAccessor.INSTANCE);
         verifyTraceContextContents(binaryHeaderMap.get(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME),
             childContext.getTraceId().toString(), childContext.getId().toString(), (byte) 0x00, (byte) 0x01);
+    }
+
+    @Test
+    void testRootContextSampleRateFromSampler() {
+        Sampler sampler = mock(Sampler.class);
+        when(sampler.isSampled(any(Id.class))).thenReturn(true);
+        when(sampler.getSampleRate()).thenReturn(0.42d);
+
+        final TraceContext rootContext = TraceContext.with64BitId(tracer);
+        rootContext.asRootSpan(sampler);
+
+        assertThat(rootContext.isRecorded()).isTrue();
+        assertThat(rootContext.getSampleRate()).isEqualTo(0.42d);
+    }
+
+    @Test
+    void testPropagateSampleRateForSampledSpan() {
+        final TraceContext rootContext = TraceContext.with64BitId(tracer);
+        rootContext.asRootSpan(ConstantSampler.of(true));
+
+        // arbitrary override the root context sample rate so it's different from the one provided
+        // by the sampler
+        rootContext.setRecorded(true);
+        rootContext.setSampleRate(0.5d);
+
+        final TraceContext childContext = TraceContext.with64BitId(tracer);
+        childContext.asChildOf(rootContext);
+
+        assertThat(childContext.getSampleRate())
+            .isEqualTo(rootContext.getSampleRate())
+            .isEqualTo(0.5d);
+
     }
 
     @Test
