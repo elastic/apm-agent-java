@@ -2,8 +2,7 @@
   {
     "name": "whitespace-only",
     "comment": "whitespace between tokens is ignored",
-    "input": "  ",
-    "tokens": []
+    "input": "  "
   },
   {
     "name": "keywords",

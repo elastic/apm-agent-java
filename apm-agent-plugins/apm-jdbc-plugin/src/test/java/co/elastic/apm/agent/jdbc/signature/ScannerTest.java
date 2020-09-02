@@ -25,33 +25,59 @@
 package co.elastic.apm.agent.jdbc.signature;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import specs.TestJsonSpec;
+
+import java.util.Iterator;
+import java.util.Optional;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ScannerTest {
 
     private Scanner scanner;
-    private JsonNode testCases;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         scanner = new Scanner();
-        testCases = new ObjectMapper().readTree(getClass().getResource("/scanner_tests.json"));
     }
 
-    @Test
-    void testScanner() {
-        for (JsonNode testCase : testCases) {
-            System.out.println(testCase);
-            scanner.setQuery(testCase.get("input").textValue());
-            for (JsonNode token : testCase.get("tokens")) {
-                assertThat(scanner.scan()).isEqualTo(Scanner.Token.valueOf(token.get("kind").textValue()));
-                assertThat(scanner.text()).isEqualTo(token.get("text").textValue());
+    @ParameterizedTest
+    @MethodSource("getTestCases")
+    void testScanner(JsonNode testCase) {
+        scanner.setQuery(testCase.get("input").textValue());
+
+        String comment = Optional.ofNullable(testCase.get("comment"))
+            .map(JsonNode::asText)
+            .orElse(null);
+
+        JsonNode tokens = testCase.get("tokens");
+        if (tokens != null) {
+            for (JsonNode token : tokens) {
+                assertThat(scanner.scan())
+                    .describedAs(comment)
+                    .isEqualTo(Scanner.Token.valueOf(token.get("kind").textValue()));
+
+                assertThat(scanner.text())
+                    .describedAs(comment)
+                    .isEqualTo(token.get("text").textValue());
             }
-            assertThat(scanner.scan()).isEqualTo(Scanner.Token.EOF);
         }
+
+        assertThat(scanner.scan())
+            .describedAs(comment)
+            .isEqualTo(Scanner.Token.EOF);
+
+    }
+
+    private static Stream<JsonNode> getTestCases() {
+        Iterator<JsonNode> json = TestJsonSpec.getJson("sql_token_examples.json").iterator();
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(json, Spliterator.ORDERED), false);
     }
 }
