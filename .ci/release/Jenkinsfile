@@ -51,13 +51,17 @@ pipeline {
                 env.TAG_DOT_X = sh(script: "./scripts/jenkins/tags.sh dot_x", returnStdout: true)
               }
             }
-            withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
-              withGitRelease() {
-                stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
+            dir("${BASE_DIR}") {
+              withEnv(["BRANCH_NAME=tags/${env.TAG_BARE}"]){
+                withGitRelease() {
+                  stash(allowEmpty: true, name: 'source', useDefaultExcludes: false)
+                }
               }
             }
             deleteDir()
-            unstash 'source'
+            dir("${BASE_DIR}") {
+              unstash 'source'
+            }
           }
         }
       }
