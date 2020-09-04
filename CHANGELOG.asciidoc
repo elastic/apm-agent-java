@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Add support for sampling weight with propagation in `tracestate` W3C header {pull}1384[#1384]
 
 [float]
 ===== Bug fixes
