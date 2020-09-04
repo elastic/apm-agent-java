@@ -39,8 +39,11 @@ import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -254,6 +257,9 @@ class TraceContextTest {
         );
         final TraceContext child = TraceContext.with64BitId(tracer);
         assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, textHeaderMap, TextHeaderMapAccessor.INSTANCE)).isFalse();
+
+        assertThat(child.isRecorded()).isFalse();
+
         Map<String, String> outgoingHeaders = new HashMap<>();
         child.propagateTraceContext(outgoingHeaders, TextHeaderMapAccessor.INSTANCE);
         assertThat(outgoingHeaders.get(TraceContext.TRACESTATE_HEADER_NAME)).isNull();
@@ -487,7 +493,7 @@ class TraceContextTest {
         assertThat(traceContext.getSampleRate()).isNull();
 
         // sampled with sample rate
-        traceContext.setSampleRate(0.5d);
+        traceContext.getTraceState().setSampleRate(0.5d);
 
         assertThat(traceContext.isSampled()).isTrue();
         assertThat(traceContext.getSampleRate()).isEqualTo(0.5d);
@@ -496,6 +502,88 @@ class TraceContextTest {
         traceContext.setRecorded(false);
         assertThat(traceContext.isSampled()).isFalse();
         assertThat(traceContext.getSampleRate()).isEqualTo(0.0d);
+    }
+
+    @Test
+    void testRootSpanShouldAddsSampleRateToTraceState() {
+        final TraceContext traceContext = createRootSpan(0.42d);
+        String traceState = traceContext.getTraceState().toTextHeader(Integer.MAX_VALUE);
+        assertThat(traceState).isEqualTo("es=s:0.42");
+    }
+
+    private TraceContext createRootSpan(double sampleRate){
+        final TraceContext traceContext = TraceContext.with64BitId(tracer);
+
+        Sampler sampler = mock(Sampler.class);
+        when(sampler.isSampled(any(Id.class))).thenReturn(true);
+        when(sampler.getSampleRate()).thenReturn(sampleRate);
+
+        traceContext.asRootSpan(sampler);
+        return traceContext;
+    }
+
+    @Test
+    void testTracedChildSpanWithoutTraceState() {
+        Map<String, String> headers = Map.of(
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01"
+        );
+        TraceContext child = createChildSpanFromHeaders(headers);
+
+        assertThat(child.isSampled()).isTrue();
+        assertThat(child.getSampleRate()).isNull();
+    }
+
+    @Test
+    void testNonTracedChildSpanWithoutTraceState() {
+        Map<String, String> headers = Map.of(
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00"
+        );
+        TraceContext child = createChildSpanFromHeaders(headers);
+
+        assertThat(child.isSampled()).isFalse();
+        assertThat(child.getSampleRate()).isEqualTo(0.0d);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        // invalid tracestate values: just assume no sample rate is provided
+        "|null",
+        "es=|null",
+        "es=s|null",
+        "es=s:|null",
+        "es=s:a|null",
+        // valid tracestate values with sample rate
+        "es=s:1|1",
+        "es=s:0.42|0.42",
+        // other vendors entries
+        "a=123,es=s:0.42|0.42",
+    })
+    void checkExpectedSampleRate(@Nullable String traceState, String expectedRate) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+        if (null != traceState) {
+            headers.put(TraceContext.TRACESTATE_HEADER_NAME, traceState);
+        }
+
+        TraceContext child = createChildSpanFromHeaders(headers);
+
+        assertThat(child.isSampled()).isTrue();
+
+        Double expectedSampleRate = "null".equals(expectedRate) ? null: Double.valueOf(expectedRate);
+        assertThat(child.getSampleRate())
+            .describedAs("tracestate = '%s' should have sample rate = %s", traceState, expectedSampleRate)
+            .isEqualTo(expectedSampleRate);
+
+        assertThat(child.getTraceState().toTextHeader(Integer.MAX_VALUE))
+                .describedAs("tracestate should be kept as-is")
+                .isEqualTo(traceState);
+
+    }
+
+    private TraceContext createChildSpanFromHeaders(Map<String, String> inHeaders) {
+        TraceContext child = TraceContext.with64BitId(tracer);
+        assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, inHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
+        return child;
     }
 
     @Test
@@ -551,7 +639,7 @@ class TraceContextTest {
         // arbitrary override the root context sample rate so it's different from the one provided
         // by the sampler
         rootContext.setRecorded(true);
-        rootContext.setSampleRate(0.5d);
+        rootContext.getTraceState().setSampleRate(0.5d);
 
         final TraceContext childContext = TraceContext.with64BitId(tracer);
         childContext.asChildOf(rootContext);

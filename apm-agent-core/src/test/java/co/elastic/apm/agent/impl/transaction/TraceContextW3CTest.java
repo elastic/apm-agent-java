@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.Mockito.mock;
 
@@ -56,11 +57,13 @@ public class TraceContextW3CTest {
                 PotentiallyMultiValuedMap headersMap = getHeaders(testCase.get("headers"));
                 if (headersMap.getAll("traceparent").size() == 1) {
                     final String traceParentHeader = headersMap.getFirst("traceparent");
+                    assertThat(traceParentHeader).isNotNull();
                     final boolean traceparentValid = testCase.get("is_traceparent_valid").booleanValue();
                     final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
                     softly.assertThat(traceContext.asChildOf(traceParentHeader))
                         .withFailMessage("Expected '%s' to be %s", traceParentHeader, traceparentValid ? "valid" : "invalid")
                         .isEqualTo(traceparentValid);
+
                 }
             }
         });
