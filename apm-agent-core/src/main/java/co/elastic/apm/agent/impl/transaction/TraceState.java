@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 class TraceState implements Recyclable {
 
@@ -68,14 +69,18 @@ class TraceState implements Recyclable {
 
     public TraceState() {
         tracestate = new ArrayList<>(1);
+        sampleRate = null;
         entries = new LinkedHashMap<>(1);
         index = -1;
+        needsUpdate = false;
     }
 
     public void copyFrom(TraceState other) {
         tracestate.clear();
         tracestate.addAll(other.tracestate);
         sampleRate = other.sampleRate;
+        entries.clear();
+        entries.putAll(other.entries);
         index = other.index;
         needsUpdate = other.needsUpdate;
     }
@@ -191,7 +196,9 @@ class TraceState implements Recyclable {
     @Override
     public void resetState() {
         tracestate.clear();
-        index = -1;
         sampleRate = null;
+        entries.clear();
+        index = -1;
+        needsUpdate = false;
     }
 }
