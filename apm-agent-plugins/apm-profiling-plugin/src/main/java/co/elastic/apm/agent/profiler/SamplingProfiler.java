@@ -242,7 +242,9 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             activationEventsFile.deleteOnExit();
             canDeleteActivationEventsFile = true;
         }
-        activationEventsFileChannel = FileChannel.open(activationEventsFile.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE);
+        if (activationEventsFileChannel == null || !activationEventsFileChannel.isOpen()) {
+            activationEventsFileChannel = FileChannel.open(activationEventsFile.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE);
+        }
         if (activationEventsFileChannel.size() == 0) {
             preAllocate(activationEventsFileChannel, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
         }
@@ -352,10 +354,15 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
         TimeDuration sampleRate = config.getSamplingInterval();
         TimeDuration profilingDuration = config.getProfilingDuration();
+        boolean postProcessingEnabled = config.isPostProcessingEnabled();
 
-        setProfilingSessionOngoing(true);
+        setProfilingSessionOngoing(postProcessingEnabled);
 
-        logger.debug("Start profiling session");
+        if (postProcessingEnabled) {
+            logger.debug("Start full profiling session (async-profiler and agent processing)");
+        } else {
+            logger.debug("Start async-profiler profiling session");
+        }
         try {
             profile(sampleRate, profilingDuration);
         } catch (Throwable t) {
@@ -366,7 +373,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         logger.debug("End profiling session");
 
         boolean interrupted = Thread.currentThread().isInterrupted();
-        boolean continueProfilingSession = config.isNonStopProfiling() && !interrupted && config.isProfilingEnabled();
+        boolean continueProfilingSession = config.isNonStopProfiling() && !interrupted && config.isProfilingEnabled() && postProcessingEnabled;
         setProfilingSessionOngoing(continueProfilingSession);
 
         if (!interrupted) {
@@ -386,11 +393,16 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             }
             profilingSessions++;
 
+            // When post-processing is disabled activation events are ignored, but we still need to invoke this method
+            // as it is the one enforcing the sampling session duration. As a side effect it will also consume
+            // residual activation events if post-processing is disabled dynamically
             consumeActivationEventsFromRingBufferAndWriteToFile(profilingDuration);
 
             String stopMessage = asyncProfiler.execute("stop");
             logger.debug(stopMessage);
 
+            // When post-processing is disabled, jfr file will not be parsed and the heavy processing will not occur
+            // as this method aborts when no activation events are buffered
             processTraces();
         } catch (InterruptedException | ClosedByInterruptException e) {
             try {

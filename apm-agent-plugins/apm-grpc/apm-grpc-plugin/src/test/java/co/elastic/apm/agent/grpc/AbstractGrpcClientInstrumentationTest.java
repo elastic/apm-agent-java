@@ -164,6 +164,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     }
 
     @Test
+    @Ignore // disabled for now as it's flaky on CI
     void serverStreamingCallShouldBeIgnored() {
         String s = app.sayHelloServerStreaming("alice", 5);
         assertThat(s)
