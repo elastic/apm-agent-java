@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Update async-profiler to 1.8.1 {pull}1382[#1382]
 
 [float]
 ===== Bug fixes
