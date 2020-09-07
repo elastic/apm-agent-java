@@ -79,7 +79,7 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`enter`**
 ```xml
-<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class)&#10;private static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="false" toShortenFQNames="true">
+<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)&#10;public static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="false" toShortenFQNames="true">
   <context>
     <option name="JAVA_DECLARATION" value="true" />
   </context>
@@ -89,7 +89,7 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 **`exit`**
 
 ```xml
-<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)&#10;private static void onExit(@Advice.Thrown Throwable thrown) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="false" toShortenFQNames="true">
+<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)&#10;public static void onExit(@Advice.Thrown Throwable thrown) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="false" toShortenFQNames="true">
   <context>
     <option name="JAVA_DECLARATION" value="true" />
   </context>
@@ -119,12 +119,12 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`at`**
 ```xml
-<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
+<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true" useStaticImport="true">
   <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true" />
   <context>
     <option name="JAVA_STATEMENT" value="true" />
   </context>
- </template>
+</template>
  ```
 
 
