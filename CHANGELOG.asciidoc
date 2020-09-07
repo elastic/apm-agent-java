@@ -28,7 +28,6 @@ endif::[]
 
 [float]
 ===== Features
-* Update async-profiler to 1.8.1 {pull}1382[#1382]
 
 [float]
 ===== Bug fixes
@@ -57,6 +56,7 @@ endif::[]
 * Convert the followings to Indy Plugins (see details in <<release-notes-1.18.0.rc1, 1.18.0-rc1 relase notes>>): gRPC,
   AsyncHttpClient, Apache HttpClient
 * The agent now collects cgroup memory metrics (see <<metrics>>)
+* Update async-profiler to 1.8.1 {pull}1382[#1382]
 
 [float]
 ===== Bug fixes
