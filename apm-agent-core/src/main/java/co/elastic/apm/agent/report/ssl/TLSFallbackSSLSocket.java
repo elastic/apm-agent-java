@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
@@ -98,6 +99,7 @@ class TLSFallbackSSLSocket extends SSLSocket {
 
                 socket.startHandshake();
             } else {
+                logSslInfo();
                 throw e;
             }
         }
@@ -209,17 +211,44 @@ class TLSFallbackSSLSocket extends SSLSocket {
 
     @Override
     public void connect(SocketAddress endpoint) throws IOException {
-        socket.connect(endpoint);
+        try {
+            socket.connect(endpoint);
+        } catch (IOException e) {
+            logSslInfo();
+            throw e;
+        }
     }
 
     @Override
     public void connect(SocketAddress endpoint, int timeout) throws IOException {
-        socket.connect(endpoint, timeout);
+        try {
+            socket.connect(endpoint, timeout);
+        } catch (IOException e) {
+            logSslInfo();
+            throw e;
+        }
     }
 
     @Override
     public void bind(SocketAddress bindpoint) throws IOException {
-        socket.bind(bindpoint);
+        try {
+            socket.bind(bindpoint);
+        } catch (IOException e) {
+            logSslInfo();
+            throw e;
+        }
+    }
+
+    private void logSslInfo() {
+        SSLSession session = socket.getSession();
+        if (session != null) {
+            try {
+                logger.info("APM Server certificates: {}", Arrays.toString(session.getPeerCertificates()));
+            } catch (SSLPeerUnverifiedException e) {
+                logger.info("APM Server identity could not be verified");
+            }
+            logger.info("Local certificates: {}", Arrays.toString(session.getLocalCertificates()));
+        }
     }
 
     @Override
