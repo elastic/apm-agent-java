@@ -1,0 +1,22 @@
+{
+    "$id": "doc/spec/system.json",
+    "title": "System",
+    "type": ["object", "null"],
+    "properties": {
+        "architecture": {
+            "description": "Architecture of the system the agent is running on.",
+            "type": ["string", "null"],
+            "maxLength": 1024
+        },
+        "hostname": {
+            "description": "Hostname of the system the agent is running on.",
+            "type": ["string", "null"],
+            "maxLength": 1024
+        },
+        "platform": {
+            "description": "Name of the system platform the agent is running on.",
+            "type": ["string", "null"],
+            "maxLength": 1024
+        }
+    }
+}
