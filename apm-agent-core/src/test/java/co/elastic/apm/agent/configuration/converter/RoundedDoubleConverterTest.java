@@ -35,11 +35,11 @@ class RoundedDoubleConverterTest {
 
     @ParameterizedTest
     @CsvSource({
-        "0.5554,0.555",
-        "0.5555,0.556",
-        "0.5556,0.556"})
+        "0.55554,0.5555",
+        "0.55555,0.5556",
+        "0.55556,0.5556"})
     void testRounding(String input, String expectedOutput) {
-        RoundedDoubleConverter converter = new RoundedDoubleConverter(3);
+        RoundedDoubleConverter converter = new RoundedDoubleConverter(4);
 
         Double expected = Double.valueOf(expectedOutput);
         Double converted = converter.convert(input);
@@ -60,7 +60,8 @@ class RoundedDoubleConverterTest {
         "0.5555,0,1",
         "0.5555,1,0.6",
         "0.5555,2,0.56",
-        "0.5555,3,0.556"
+        "0.5555,3,0.556",
+        "0.55555,4,0.5556"
     })
     void testPrecisions(String input, int precision, Double expected) {
         RoundedDoubleConverter converter = new RoundedDoubleConverter(precision);

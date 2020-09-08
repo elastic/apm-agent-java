@@ -105,7 +105,7 @@ class TraceState implements Recyclable {
                             if (0 <= doubleValue && doubleValue <= 1.0) {
                                 // ensure proper rounding of sample rate to minimize storage
                                 // even if configuration should not allow this, any upstream value might require rounding
-                                double rounded = Math.round(doubleValue * 1000d) / 1000d;
+                                double rounded = Math.round(doubleValue * 10000d) / 10000d;
 
                                 needsUpdate = doubleValue != rounded;
                                 sampleRate = rounded;

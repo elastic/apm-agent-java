@@ -145,9 +145,9 @@ class TraceStateTest {
 
     @ParameterizedTest
     @CsvSource({
-        "0.5554,0.555",
-        "0.5555,0.556",
-        "0.5556,0.556"})
+        "0.55554,0.5555",
+        "0.55555,0.5556",
+        "0.55556,0.5556"})
     void appliesRoundingOnUpstreamHeader(String headerRate, Double expectedRate) {
         traceState.addTextHeader("es=s:" + headerRate);
         assertThat(traceState.getSampleRate()).isEqualTo(expectedRate);
