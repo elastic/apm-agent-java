@@ -27,7 +27,8 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import com.github.fridujo.rabbitmq.mock.MockConnection;
 import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
 import org.junit.Test;
 
 import java.io.IOException;

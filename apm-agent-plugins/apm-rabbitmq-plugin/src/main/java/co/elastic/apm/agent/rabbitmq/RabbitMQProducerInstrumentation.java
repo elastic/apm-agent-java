@@ -34,12 +34,15 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-
 import java.util.HashMap;
 import java.util.Map;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation {
 
