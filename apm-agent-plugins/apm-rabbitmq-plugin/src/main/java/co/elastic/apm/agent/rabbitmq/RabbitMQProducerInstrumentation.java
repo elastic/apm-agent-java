@@ -27,6 +27,8 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.rabbitmq.client.AMQP;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -71,9 +73,12 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
         private RabbitProducerAdvice() {}
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @AssignTo(
+            arguments = @AssignTo.Argument(index = 0, value = 4)
+        )
         @Nullable
-        public static Object onBasicPublish(@Advice.Argument(0) final String exchange,
-                                            @Advice.Argument(value = 4, readOnly = false) @Nullable AMQP.BasicProperties basicProperties) {
+        public static Object[] onBasicPublish(@Advice.Argument(0) final String exchange,
+                                              @Advice.Argument(value = 4) @Nullable AMQP.BasicProperties originalBasicProperties) {
             if (!tracer.isRunning() || tracer.getActive() == null) {
                 return null;
             }
@@ -94,12 +99,8 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
                 .withName("RabbitMQ message sent to ")
                 .appendToName(exchange);
 
-            System.out.println("#### RabbitMQProducerInstrumentation onBasicPublish"); // TODO: Remove
-            System.out.println(exchange);
-
-            // TODO: Propagate trace context
-            //final TextHeaderSetter<HashMap<String, Object>> textHeaderSetter = new RabbitMQTextHeaderSetter();
-            //basicProperties = propagateTraceContext(exitSpan, basicProperties, textHeaderSetter);
+            final TextHeaderSetter<HashMap<String, Object>> textHeaderSetter = new RabbitMQTextHeaderSetter(); // TODO: Singleton?
+            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, textHeaderSetter);
 
             /*
             TODO: Transaction context
@@ -107,7 +108,9 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
             exitSpan.getContext().getDestination().getService().withType("messaging").withName("rabbitmq")
                 .getResource().append("rabbitmq/").append(exchange);*/
 
-            return exitSpan.activate();
+            exitSpan.activate();
+
+            return new Object[]{basicProperties, exitSpan};
         }
 
         private static AMQP.BasicProperties propagateTraceContext(Span exitSpan,
@@ -131,11 +134,10 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-        public static void afterBasicPublish(@Advice.Enter @Nullable final Object spanObject,
+        public static void afterBasicPublish(@Advice.Enter @Nullable Object[] enterArray,
                                              @Advice.Thrown @Nullable Throwable throwable) {
-            System.out.println("#### RabbitMQProducerInstrumentation afterBasicPublish"); // TODO: Remove
-            if (spanObject instanceof Span) {
-                Span span = (Span) spanObject;
+            if (enterArray != null && enterArray.length >= 2 && enterArray[1] != null) {
+                Span span = (Span) enterArray[1];
                 span.captureException(throwable).deactivate();
             }
         }

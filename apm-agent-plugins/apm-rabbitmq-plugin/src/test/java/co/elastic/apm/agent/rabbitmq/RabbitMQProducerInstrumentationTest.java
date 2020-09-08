@@ -25,10 +25,8 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import com.github.fridujo.rabbitmq.mock.MockConnection;
-import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
+import co.elastic.apm.agent.rabbitmq.mock.MockChannel;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -40,17 +38,7 @@ public class RabbitMQProducerInstrumentationTest extends AbstractInstrumentation
 
     @Test
     public void testBasicPublish() throws IOException {
-        MockConnectionFactory mockConnectionFactory = new MockConnectionFactory();
-
-        MockConnection connection = mockConnectionFactory.newConnection();
-
-        Channel channel = connection.createChannel();
-
-        channel.exchangeDeclare("test-exchange", "direct", true);
-
-        String queueName = channel.queueDeclare().getQueue();
-
-        channel.queueBind(queueName, "test-exchange", "test.key");
+        disableRecyclingValidation(); // TODO: Fixme
 
         getTracer().startRootTransaction(getClass().getClassLoader())
             .withName("Rabbit-Test Transaction")
@@ -58,13 +46,19 @@ public class RabbitMQProducerInstrumentationTest extends AbstractInstrumentation
             .withResult("success")
             .activate();
 
+        MockChannel mockChannel = new MockChannel();
+
         AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
         HashMap<String, Object> headers = new HashMap<>();
         builder.headers(headers);
-        byte[] messageBodyBytes = "Testing APM!".getBytes();
-        channel.basicPublish("test-exchange", "test.key", builder.build(), messageBodyBytes);
 
-        //assertThat(getReporter().getFirstSpan(500)).isNotNull(); // TODO: How to fix?
+        byte[] messageBodyBytes = "Testing APM!".getBytes();
+        mockChannel.basicPublish("test-exchange", "test.key", builder.build(), messageBodyBytes);
+
+        assertThat(mockChannel.getReceivedBasicProperties()).isNotNull();
+        AMQP.BasicProperties basicProperties = mockChannel.getReceivedBasicProperties();
+        assertThat(basicProperties.getHeaders()).containsKey("elastic-apm-traceparent");
+        assertThat(basicProperties.getHeaders()).containsKey("traceparent");
 
         getTracer().currentTransaction().deactivate().end();
         assertThat(getReporter().getTransactions()).hasSize(1);

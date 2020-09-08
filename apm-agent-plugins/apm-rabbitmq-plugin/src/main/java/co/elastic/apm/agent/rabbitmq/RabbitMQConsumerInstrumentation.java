@@ -71,9 +71,7 @@ public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
         public static Object onHandleDelivery(@Advice.Origin Class<?> originClazz,
-                                                   @Advice.Argument(value = 0) String consumerTag,
-                                                   @Advice.Argument(value = 1) Envelope envelope,
-                                                   @Advice.Argument(value = 2) AMQP.BasicProperties properties) {
+                                              @Advice.Argument(value = 2) AMQP.BasicProperties properties) {
             if (!tracer.isRunning() || tracer.currentTransaction() != null) {
                 return null;
             }

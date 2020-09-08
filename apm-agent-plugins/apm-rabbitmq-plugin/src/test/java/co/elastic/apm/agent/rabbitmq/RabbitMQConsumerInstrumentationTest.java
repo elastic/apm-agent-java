@@ -26,67 +26,25 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import com.github.fridujo.rabbitmq.mock.MockConnection;
-import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
+import co.elastic.apm.agent.rabbitmq.mock.MockConsumer;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Consumer;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
 
 public class RabbitMQConsumerInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     public void testHandleDelivery() throws IOException {
-        MockConnectionFactory mockConnectionFactory = new MockConnectionFactory();
+        MockConsumer mockConsumer = new MockConsumer();
+        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
+        HashMap<String, Object> headers = new HashMap<>();
+        builder.headers(headers);
 
-        MockConnection connection = mockConnectionFactory.newConnection();
-
-        Channel channel = connection.createChannel();
-
-        channel.exchangeDeclare("test-exchange", "direct", true);
-
-        String queueName = channel.queueDeclare().getQueue();
-
-        channel.queueBind(queueName, "test-exchange", "test.key");
-
-        List<String> messages = new ArrayList<>();
-
-        Consumer consumer = new DefaultConsumer(channel) {
-
-            @Override
-            public void handleDelivery(String consumerTag,
-                                       Envelope envelope,
-                                       AMQP.BasicProperties properties,
-                                       byte[] body) throws IOException {
-                long deliveryTag = envelope.getDeliveryTag();
-                messages.add(new String(body));
-                channel.basicAck(deliveryTag, false);
-            }
-
-        };
-
-        channel.basicConsume(queueName, false, "testTag", consumer);
-
-        byte[] messageBodyBytes = "Testing APM!".getBytes();
-
-        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties();
-        channel.basicPublish("test-exchange", "test.key", basicProperties, messageBodyBytes);
-
-        await().atMost(1000, MILLISECONDS).until(() -> !messages.isEmpty());
-
-        assertEquals(Arrays.asList("Testing APM!"), messages);
+        mockConsumer.handleDelivery(null, null, builder.build(), "Testing APM!".getBytes());
 
         assertThat(getReporter().getTransactions()).hasSize(1);
 
