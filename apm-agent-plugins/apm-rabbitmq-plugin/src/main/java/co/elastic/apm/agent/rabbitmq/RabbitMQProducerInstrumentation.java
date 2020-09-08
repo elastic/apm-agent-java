@@ -72,7 +72,8 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
-        public static Object onBasicPublish(@Advice.Argument(0) final String exchange/*, @Advice.Argument(value = 4, readOnly = false) @Nullable AMQP.BasicProperties basicProperties*/) {
+        public static Object onBasicPublish(@Advice.Argument(0) final String exchange,
+                                            @Advice.Argument(value = 4, readOnly = false) @Nullable AMQP.BasicProperties basicProperties) {
             if (!tracer.isRunning() || tracer.getActive() == null) {
                 return null;
             }
@@ -87,10 +88,14 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
                 return null;
             }
 
-            exitSpan.withType("messaging").withSubtype("rabbitmq")
+            exitSpan.withType("messaging")
+                .withSubtype("rabbitmq")
                 .withAction("send")
                 .withName("RabbitMQ message sent to ")
                 .appendToName(exchange);
+
+            System.out.println("#### RabbitMQProducerInstrumentation onBasicPublish"); // TODO: Remove
+            System.out.println(exchange);
 
             // TODO: Propagate trace context
             //final TextHeaderSetter<HashMap<String, Object>> textHeaderSetter = new RabbitMQTextHeaderSetter();
@@ -128,6 +133,7 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterBasicPublish(@Advice.Enter @Nullable final Object spanObject,
                                              @Advice.Thrown @Nullable Throwable throwable) {
+            System.out.println("#### RabbitMQProducerInstrumentation afterBasicPublish"); // TODO: Remove
             if (spanObject instanceof Span) {
                 Span span = (Span) spanObject;
                 span.captureException(throwable).deactivate();
