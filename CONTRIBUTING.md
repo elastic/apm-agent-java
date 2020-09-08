@@ -291,7 +291,7 @@ For illustration purpose, `1.2.3` will be the target release version, and the gi
 1. Build and push a Docker image using the instructions below
    Use `SONATYPE_FALLBACK=1 scripts/jenkins/build_docker.sh` to build image with released artifact.
    Requires credentials, thus need to delegate this manual step to someone that has them.
-1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml) on  master`.
+1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml) on  `master`.
 1. Publish release on Github. This will notify users watching repository.
 
 ###  Docker images
