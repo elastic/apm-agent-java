@@ -39,7 +39,6 @@ import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
 
@@ -64,10 +63,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MockReporter implements Reporter {
-    private static final JsonSchema transactionSchema;
-    private static final JsonSchema errorSchema;
-    private static final JsonSchema spanSchema;
+
     private static final DslJsonSerializer dslJsonSerializer;
+
+    private static final JsonSchemaVersion[] SCHEMA_VERSIONS = JsonSchemaVersion.values();
 
     // A set of exit span subtypes that do not support address and port discovery
     private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
@@ -85,9 +84,6 @@ public class MockReporter implements Reporter {
     private boolean closed;
 
     static {
-        transactionSchema = getSchema("/schema/transactions/transaction.json");
-        spanSchema = getSchema("/schema/transactions/span.json");
-        errorSchema = getSchema("/schema/errors/error.json");
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
@@ -104,16 +100,13 @@ public class MockReporter implements Reporter {
         objectMapper = new ObjectMapper();
     }
 
-    private static JsonSchema getSchema(String resource) {
-        return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
-    }
-
     public void disableDestinationAddressCheck() {
         disableDestinationAddressCheck = true;
     }
 
     @Override
-    public void start() {}
+    public void start() {
+    }
 
     @Override
     public synchronized void report(Transaction transaction) {
@@ -154,15 +147,21 @@ public class MockReporter implements Reporter {
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {
-        verifyJsonSchema(transactionSchema, jsonNode);
+        for (JsonSchemaVersion schema : SCHEMA_VERSIONS) {
+            verifyJsonSchema(schema.transactionSchema, jsonNode);
+        }
     }
 
     public void verifySpanSchema(JsonNode jsonNode) {
-        verifyJsonSchema(spanSchema, jsonNode);
+        for (JsonSchemaVersion schema : SCHEMA_VERSIONS) {
+            verifyJsonSchema(schema.spanSchema, jsonNode);
+        }
     }
 
     public void verifyErrorSchema(JsonNode jsonNode) {
-        verifyJsonSchema(errorSchema, jsonNode);
+        for (JsonSchemaVersion schema : SCHEMA_VERSIONS) {
+            verifyJsonSchema(schema.errorSchema, jsonNode);
+        }
     }
 
     private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
@@ -363,7 +362,7 @@ public class MockReporter implements Reporter {
 
         List<Span> spans = getSpans();
         List<Span> spansToFlush = spans.stream()
-            .filter(s-> !hasEmptyTraceContext(s))
+            .filter(s -> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
         transactionsToFlush.forEach(Transaction::decrementReferences);
@@ -428,4 +427,5 @@ public class MockReporter implements Reporter {
     private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
         return item.getTraceContext().getId().isEmpty();
     }
+
 }
