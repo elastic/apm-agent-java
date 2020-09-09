@@ -477,14 +477,6 @@ class InstrumentationTest {
             .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test
-    void testAdviceUsingThreadLocal() {
-        ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new UsingThreadLocal()));
-        assertThat(getSpanFromThreadLocal()).isNull();
-    }
-
     @Nullable
     public AbstractSpan<?> getSpanFromThreadLocal() {
         return null;
