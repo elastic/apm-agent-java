@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.rabbitmq.mock.MockChannel;
 import com.rabbitmq.client.AMQP;
 import org.junit.Test;
@@ -60,6 +61,20 @@ public class RabbitMQProducerInstrumentationTest extends AbstractInstrumentation
 
         getTracer().currentTransaction().deactivate().end();
         assertThat(getReporter().getTransactions()).hasSize(1);
+
+        assertThat(getReporter().getFirstSpan(500)).isNotNull();
+        assertThat(getReporter().getSpans()).hasSize(1);
+
+        Span span = getReporter().getSpans().get(0);
+        assertThat(span.getType()).isEqualTo("messaging");
+        assertThat(span.getSubtype()).isEqualTo("rabbitmq");
+        assertThat(span.getAction()).isEqualTo("send");
+        assertThat(span.getNameAsString()).isEqualTo("RabbitMQ message sent to test-exchange");
+
+        assertThat(span.getContext().getMessage().getQueueName()).isEqualTo("test-exchange");
+        assertThat(span.getContext().getDestination().getService().getType()).isEqualTo("messaging");
+        assertThat(span.getContext().getDestination().getService().getName().toString()).isEqualTo("rabbitmq");
+        assertThat(span.getContext().getDestination().getService().getResource().toString()).isEqualTo("rabbitmq/test-exchange");
     }
 
 

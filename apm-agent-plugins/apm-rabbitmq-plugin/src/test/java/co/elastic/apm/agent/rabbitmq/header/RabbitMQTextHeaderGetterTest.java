@@ -39,7 +39,7 @@ public class RabbitMQTextHeaderGetterTest {
 
     @Before
     public void setUp() {
-        rabbitMQTextHeaderGetter = new RabbitMQTextHeaderGetter();
+        rabbitMQTextHeaderGetter = RabbitMQTextHeaderGetter.getInstance();
     }
 
     @Test
@@ -58,14 +58,9 @@ public class RabbitMQTextHeaderGetterTest {
 
         Object stateObject = new Object();
 
-        HeaderGetter.HeaderConsumer<String, Object> headerConsumer = new HeaderGetter.HeaderConsumer<String, Object>() {
-
-            @Override
-            public void accept(String headerValue, Object state) {
-                assertThat(state).isEqualTo(stateObject);
-                assertThat(headerValue).isEqualTo("value");
-            }
-
+        HeaderGetter.HeaderConsumer<String, Object> headerConsumer = (headerValue, state) -> {
+            assertThat(state).isEqualTo(stateObject);
+            assertThat(headerValue).isEqualTo("value");
         };
 
         rabbitMQTextHeaderGetter.forEach("header", basicProperties, stateObject, headerConsumer);

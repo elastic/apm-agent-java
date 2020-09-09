@@ -24,11 +24,9 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Envelope;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -76,16 +74,13 @@ public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation
                 return null;
             }
 
-            final TextHeaderGetter<AMQP.BasicProperties> textHeaderGetter = new RabbitMQTextHeaderGetter(); // TODO: Singleton?
-            Transaction transaction = tracer.startChildTransaction(properties, textHeaderGetter, originClazz.getClassLoader());
+            Transaction transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.getInstance(), originClazz.getClassLoader());
 
             if (transaction == null) {
                 return null;
             }
 
             transaction.withType("messaging").withName("RabbitMQ message received");
-
-            // TODO: Transaction context
 
             return transaction.activate();
         }

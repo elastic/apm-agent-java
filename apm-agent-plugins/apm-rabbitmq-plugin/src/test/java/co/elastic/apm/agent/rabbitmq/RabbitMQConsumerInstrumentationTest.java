@@ -26,6 +26,7 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.rabbitmq.mock.MockChannel;
 import co.elastic.apm.agent.rabbitmq.mock.MockConsumer;
 import com.rabbitmq.client.AMQP;
 import org.junit.Test;
@@ -49,6 +50,39 @@ public class RabbitMQConsumerInstrumentationTest extends AbstractInstrumentation
         assertThat(getReporter().getTransactions()).hasSize(1);
 
         Transaction transaction = getReporter().getFirstTransaction();
+        assertThat(transaction.getType()).isEqualTo("messaging");
+        assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ message received");
+    }
+
+    @Test
+    public void testHandleDeliveryWithTraceHeaders() throws IOException {
+        getTracer().startRootTransaction(getClass().getClassLoader())
+            .withName("Rabbit-Test Transaction")
+            .withType("request")
+            .withResult("success")
+            .activate();
+
+        MockChannel mockChannel = new MockChannel();
+
+        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
+        HashMap<String, Object> headers = new HashMap<>();
+        builder.headers(headers);
+
+        mockChannel.basicPublish("test-exchange", "test.key", builder.build(), "Testing APM!".getBytes());
+
+        assertThat(mockChannel.getReceivedBasicProperties()).isNotNull();
+        AMQP.BasicProperties basicProperties = mockChannel.getReceivedBasicProperties();
+
+        getTracer().currentTransaction().deactivate().end();
+        assertThat(getReporter().getTransactions()).hasSize(1);
+
+        MockConsumer mockConsumer = new MockConsumer();
+
+        mockConsumer.handleDelivery(null, null, basicProperties, "Testing APM!".getBytes());
+
+        assertThat(getReporter().getTransactions()).hasSize(2);
+
+        Transaction transaction = getReporter().getTransactions().get(1);
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ message received");
     }

@@ -99,15 +99,12 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
                 .withName("RabbitMQ message sent to ")
                 .appendToName(exchange);
 
-            final TextHeaderSetter<HashMap<String, Object>> textHeaderSetter = new RabbitMQTextHeaderSetter(); // TODO: Singleton?
-            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, textHeaderSetter);
+            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, RabbitMQTextHeaderSetter.getInstance());
 
-            /*
-            TODO: Transaction context
             exitSpan.getContext().getMessage().withQueue(exchange);
 
             exitSpan.getContext().getDestination().getService().withType("messaging").withName("rabbitmq")
-                .getResource().append("rabbitmq/").append(exchange);*/
+                .getResource().append("rabbitmq/").append(exchange);
 
             exitSpan.activate();
 
