@@ -147,9 +147,9 @@ pipeline {
         stage('Nexus release') {
           steps {
             script {
-              def spid = sh(script: "./scripts/jenkins/fetch_nexus_id.sh", returnStdout: true).trim()
               dir("${BASE_DIR}"){
                 withEnvMask(vars: [[var: "SPID", password: spid]]){
+                  def spid = sh(script: "./scripts/jenkins/fetch_nexus_id.sh", returnStdout: true).trim()
                   def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
                   nexusCloseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
                   nexusReleaseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
