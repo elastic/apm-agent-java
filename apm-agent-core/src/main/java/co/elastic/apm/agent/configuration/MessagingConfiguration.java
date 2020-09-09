@@ -94,14 +94,17 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         return ignoreMessageQueues.get();
     }
 
+    @VisibleForAdvice
     public boolean shouldCollectQueueAddress() {
         return collectQueueAddress.get();
     }
 
+    @VisibleForAdvice
     public boolean shouldEndMessagingTransactionOnPoll() {
         return endMessagingTransactionOnPoll.get();
     }
 
+    @VisibleForAdvice
     public enum Strategy {
         POLLING,
         HANDLING,
