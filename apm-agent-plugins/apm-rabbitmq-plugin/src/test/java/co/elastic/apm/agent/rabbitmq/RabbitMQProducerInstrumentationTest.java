@@ -38,8 +38,6 @@ public class RabbitMQProducerInstrumentationTest extends AbstractInstrumentation
 
     @Test
     public void testBasicPublish() throws IOException {
-        disableRecyclingValidation(); // TODO: Fixme
-
         getTracer().startRootTransaction(getClass().getClassLoader())
             .withName("Rabbit-Test Transaction")
             .withType("request")

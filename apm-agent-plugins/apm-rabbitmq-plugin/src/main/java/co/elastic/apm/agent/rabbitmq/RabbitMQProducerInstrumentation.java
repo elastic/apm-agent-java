@@ -105,6 +105,7 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
             /*
             TODO: Transaction context
             exitSpan.getContext().getMessage().withQueue(exchange);
+
             exitSpan.getContext().getDestination().getService().withType("messaging").withName("rabbitmq")
                 .getResource().append("rabbitmq/").append(exchange);*/
 
@@ -138,7 +139,7 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
                                              @Advice.Thrown @Nullable Throwable throwable) {
             if (enterArray != null && enterArray.length >= 2 && enterArray[1] != null) {
                 Span span = (Span) enterArray[1];
-                span.captureException(throwable).deactivate();
+                span.captureException(throwable).deactivate().end();
             }
         }
     }
