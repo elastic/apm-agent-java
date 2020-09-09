@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.util.Version;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
@@ -31,6 +32,7 @@ import com.networknt.schema.uri.ClasspathURLFactory;
 import com.networknt.schema.uri.URIFetcher;
 import com.networknt.schema.urn.URNFactory;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,34 +49,56 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 enum JsonSchemaVersion {
 
-    V6_5("schema-v6.5.0",
+    V6_5(Version.of("6.5.0"), "apm-server-schema/v6.5.0",
         "transactions/v2_transaction.json",
         "spans/v2_span.json",
         "errors/v2_error.json"
     ),
 
-    MASTER("schema-master",
+    CURRENT(null, "apm-server-schema/current",
         "transactions/transaction.json",
         "spans/span.json",
-        "errors/error.json"),
-
-    CURRENT("schema-current",
-        "transactions/transaction.json",
-        "transactions/span.json",
         "errors/error.json");
+
+    public static JsonSchemaVersion current() {
+        return CURRENT;
+    }
 
     public final JsonSchema transactionSchema;
     public final JsonSchema spanSchema;
     public final JsonSchema errorSchema;
 
     private final String basePath;
+    @Nullable
+    private final Version version;
 
-    JsonSchemaVersion(String basePath, String transactionFile, String spanFile, String errorFile) {
+    JsonSchemaVersion(@Nullable Version version, String basePath, String transactionFile, String spanFile, String errorFile) {
         this.basePath = basePath;
+        this.version = version;
 
         transactionSchema = getSchema(transactionFile);
         spanSchema = getSchema(spanFile);
         errorSchema = getSchema(errorFile);
+    }
+
+    /**
+     * @return schema version, if {@literal null} should assume that it's the latest version
+     */
+    @Nullable
+    public Version getVersion() {
+        return version;
+    }
+
+    public JsonSchema getTransactionSchema() {
+        return transactionSchema;
+    }
+
+    public JsonSchema getSpanSchema() {
+        return spanSchema;
+    }
+
+    public JsonSchema getErrorSchema() {
+        return errorSchema;
     }
 
     private JsonSchema getSchema(String resource) {

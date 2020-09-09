@@ -35,12 +35,15 @@ import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.util.Version;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,6 +58,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,8 +67,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MockReporter implements Reporter {
-
-    private static final DslJsonSerializer dslJsonSerializer;
 
     private static final JsonSchemaVersion[] SCHEMA_VERSIONS = JsonSchemaVersion.values();
 
@@ -84,9 +86,8 @@ public class MockReporter implements Reporter {
     private boolean closed;
 
     static {
-        ApmServerClient apmServerClient = mock(ApmServerClient.class);
-        when(apmServerClient.isAtLeast(any())).thenReturn(true);
-        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+
+
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
@@ -113,7 +114,8 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
+
+        validateAllSchema(s -> s.transactionSchema, serializer -> serializer.toJsonString(transaction));
         transactions.add(transaction);
     }
 
@@ -122,7 +124,7 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+        validateAllSchema(s -> s.spanSchema, serializer -> serializer.toJsonString(span));
         verifyDestinationFields(span);
         spans.add(span);
     }
@@ -146,22 +148,31 @@ public class MockReporter implements Reporter {
         assertThat(service.getType()).describedAs("service type is required").isNotNull();
     }
 
+    /**
+     * Verify JSON transaction against the current server schema
+     *
+     * @param jsonNode transaction as JSON
+     */
     public void verifyTransactionSchema(JsonNode jsonNode) {
-        for (JsonSchemaVersion schema : SCHEMA_VERSIONS) {
-            verifyJsonSchema(schema.transactionSchema, jsonNode);
-        }
+        validateSingleSchema(s -> s.transactionSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
+    /**
+     * Verify JSON span against the current server schema
+     *
+     * @param jsonNode span as JSON
+     */
     public void verifySpanSchema(JsonNode jsonNode) {
-        for (JsonSchemaVersion schema : SCHEMA_VERSIONS) {
-            verifyJsonSchema(schema.spanSchema, jsonNode);
-        }
+        validateSingleSchema(s -> s.spanSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
+    /**
+     * Verify JSON error against the current server schema
+     *
+     * @param jsonNode error as JSON
+     */
     public void verifyErrorSchema(JsonNode jsonNode) {
-        for (JsonSchemaVersion schema : SCHEMA_VERSIONS) {
-            verifyJsonSchema(schema.errorSchema, jsonNode);
-        }
+        validateSingleSchema(s -> s.errorSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
     private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
@@ -240,7 +251,8 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifyErrorSchema(asJson(dslJsonSerializer.toJsonString(error)));
+
+        validateAllSchema(s -> s.errorSchema, serializer -> serializer.toJsonString(error));
         errors.add(error);
     }
 
@@ -426,6 +438,34 @@ public class MockReporter implements Reporter {
 
     private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
         return item.getTraceContext().getId().isEmpty();
+    }
+
+    private void validateAllSchema(Function<JsonSchemaVersion, JsonSchema> getSchema, Function<DslJsonSerializer, String> toJson) {
+        for (JsonSchemaVersion schema : JsonSchemaVersion.values()) {
+            validateSingleSchema(getSchema, toJson, schema);
+        }
+    }
+
+    private void validateSingleSchema(Function<JsonSchemaVersion, JsonSchema> getSchema, Function<DslJsonSerializer, String> toJson, JsonSchemaVersion schema) {
+        ApmServerClient apmServerClient = mock(ApmServerClient.class);
+        // emulate that remote server is of a known version, if there is none, we assume all features are supported
+        when(apmServerClient.isAtLeast(any(Version.class))).thenAnswer(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                Version otherVersion = invocation.getArgument(0);
+                Version schemaVersion = schema.getVersion();
+                if (schemaVersion == null) {
+                    return true;
+                } else {
+                    return schemaVersion.compareTo(otherVersion) >= 0;
+                }
+
+            }
+        });
+        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+
+        JsonNode json = asJson(toJson.apply(serializer));
+        verifyJsonSchema(getSchema.apply(schema), json);
     }
 
 }
