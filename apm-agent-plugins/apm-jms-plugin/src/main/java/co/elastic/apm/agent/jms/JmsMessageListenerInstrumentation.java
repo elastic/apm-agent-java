@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,7 +36,6 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.MessageListener;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
@@ -51,13 +48,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
-    @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
     public static final Logger logger = LoggerFactory.getLogger(JmsMessageListenerInstrumentation.class);
-
-    public JmsMessageListenerInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -82,9 +74,9 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
     public static class MessageListenerAdvice {
 
         @SuppressWarnings("unused")
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
-        public static Transaction beforeOnMessage(@Advice.Argument(0) @Nullable final Message message,
+        public static Object beforeOnMessage(@Advice.Argument(0) @Nullable final Message message,
                                                   @Advice.Origin Class<?> clazz) {
 
             if (message == null || tracer.currentTransaction() != null) {
@@ -101,31 +93,24 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                 logger.warn("Failed to retrieve message's destination", e);
             }
 
-            //noinspection ConstantConditions
-            JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
-                jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
-            if (helper == null) {
-                return null;
-            }
-
             if (destination != null) {
-                destinationName = helper.extractDestinationName(message, destination);
-                if (helper.ignoreDestination(destinationName)) {
+                destinationName = jmsInstrumentationHelper.extractDestinationName(message, destination);
+                if (jmsInstrumentationHelper.ignoreDestination(destinationName)) {
                     return null;
                 }
             }
 
             // Create a transaction - even if running on same JVM as the sender
-            Transaction transaction = helper.startJmsTransaction(message, clazz);
+            Transaction transaction = jmsInstrumentationHelper.startJmsTransaction(message, clazz);
             if (transaction != null) {
                 transaction.withType(MESSAGING_TYPE)
                     .withName(RECEIVE_NAME_PREFIX);
 
                 if (destinationName != null) {
-                    helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
+                    jmsInstrumentationHelper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
                 }
-                helper.addMessageDetails(message, transaction);
-                helper.setMessageAge(message, transaction);
+                jmsInstrumentationHelper.addMessageDetails(message, transaction);
+                jmsInstrumentationHelper.setMessageAge(message, transaction);
                 transaction.activate();
             }
 
@@ -133,11 +118,11 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
         }
 
         @SuppressWarnings("unused")
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void afterOnMessage(@Advice.Enter @Nullable final Transaction transaction,
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+        public static void afterOnMessage(@Advice.Enter @Nullable final Object transactionObj,
                                           @Advice.Thrown final Throwable throwable) {
-
-            if (transaction != null) {
+            if (transactionObj instanceof Transaction) {
+                Transaction transaction = (Transaction) transactionObj;
                 transaction.captureException(throwable);
                 transaction.deactivate().end();
             }
