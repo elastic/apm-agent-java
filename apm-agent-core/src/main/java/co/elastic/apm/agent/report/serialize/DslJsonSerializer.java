@@ -103,7 +103,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
     private static final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
 
-    private static final Version V7_0_0 = Version.of("7.0.0");
+    private static final Version V7_0 = Version.of("7.0.0");
+    private static final Version V6_7 = Version.of("6.7.0");
 
     // visible for testing
     final JsonWriter jw;
@@ -900,7 +901,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     // visible for testing
     void serializeLabels(AbstractContext context) {
         if (context.hasLabels()) {
-            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false, apmServerClient.supportsNonStringLabels());
+            boolean supportStringLabels = apmServerClient.isAtLeast(V6_7);
+            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false, supportStringLabels);
         } else {
             jw.writeByte(OBJECT_START);
             jw.writeByte(OBJECT_END);
@@ -1070,7 +1072,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("hostname", url.getHostname());
 
         int port = url.getPort();
-        if (apmServerClient.isAtLeast(V7_0_0)) {
+        if (apmServerClient.isAtLeast(V7_0)) {
             writeField("port", port);
         } else {
             writeField("port", Integer.toString(port));

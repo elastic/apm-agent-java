@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.util;
 
+import java.util.Arrays;
+
 /**
  * Based on <a href="https://gist.github.com/brianguertin/ada4b65c6d1c4f6d3eee3c12b6ce021b">https://gist.github.com/brianguertin</a>.
  * This code was released into the public domain by Brian Guertin on July 8, 2016 citing, verbatim the unlicense.
@@ -57,5 +59,18 @@ public class Version implements Comparable<Version> {
             }
         }
         return 0;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Version version = (Version) o;
+        return Arrays.equals(numbers, version.numbers);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(numbers);
     }
 }
