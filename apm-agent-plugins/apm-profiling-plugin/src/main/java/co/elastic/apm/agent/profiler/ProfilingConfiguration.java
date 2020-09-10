@@ -77,6 +77,14 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("internal")
         .buildWithDefault(0);
 
+    private final ConfigurationOption<Boolean> postProcessingEnabled = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_inferred_spans_post_processing_enabled")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(true)
+        .description("Can be used to test the effect of the async-profiler in isolation from the agent's post-processing.")
+        .tags("added[1.18.0]", "internal")
+        .buildWithDefault(true);
+
     private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
         .key("profiling_inferred_spans_sampling_interval")
         .configurationCategory(PROFILING_CATEGORY)
@@ -218,5 +226,9 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public String getProfilerLibDirectory() {
         return profilerLibDirectory.isDefault() ? System.getProperty("java.io.tmpdir") : profilerLibDirectory.get();
+    }
+
+    public boolean isPostProcessingEnabled() {
+        return postProcessingEnabled.get();
     }
 }

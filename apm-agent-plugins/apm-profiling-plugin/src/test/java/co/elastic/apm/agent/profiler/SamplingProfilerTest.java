@@ -178,8 +178,7 @@ class SamplingProfilerTest {
 
         Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
         assertThat(explicitSpanB).isPresent();
-        // not supported yet - an explicit span can't be a span of an inferred one
-        // assertThat(explicitSpanB.get().isChildOf(inferredSpanA.get())).isTrue();
+        assertThat(explicitSpanB.get().isChildOf(inferredSpanA.get())).isTrue();
 
         Optional<Span> inferredSpanC = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#cInferred")).findAny();
         assertThat(inferredSpanC).isPresent();
@@ -188,6 +187,32 @@ class SamplingProfilerTest {
         Optional<Span> inferredSpanD = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#dInferred")).findAny();
         assertThat(inferredSpanD).isPresent();
         assertThat(inferredSpanD.get().isChildOf(inferredSpanC.get())).isTrue();
+    }
+
+    @Test
+    void testPostProcessingDisabled() throws Exception {
+        setupProfiler(true);
+        when(profilingConfig.isPostProcessingEnabled()).thenReturn(false);
+        awaitProfilerStarted(profiler);
+
+        Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
+        try (Scope scope = transaction.activateInScope()) {
+            // makes sure that the rest will be captured by another profiling session
+            // this tests that restoring which threads to profile works
+            Thread.sleep(600);
+            aInferred(transaction);
+        } finally {
+            transaction.end();
+        }
+
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(5000, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(1));
+
+        Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
+        assertThat(explicitSpanB).isPresent();
+        assertThat(explicitSpanB.get().isChildOf(transaction)).isTrue();
     }
 
     private void aInferred(Transaction transaction) throws Exception {
