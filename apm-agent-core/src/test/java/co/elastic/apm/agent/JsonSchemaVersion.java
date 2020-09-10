@@ -25,21 +25,19 @@
 package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.util.Version;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
-import com.networknt.schema.uri.ClasspathURLFactory;
-import com.networknt.schema.uri.URIFetcher;
-import com.networknt.schema.urn.URNFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
@@ -60,13 +58,17 @@ enum JsonSchemaVersion {
         "spans/span.json",
         "errors/error.json");
 
+    public static final String SERVER_SPEC_PATH_PREFIX = "docs/spec/";
+    public static final String REF = "$ref";
+    public static final String ID = "$id";
+
     public static JsonSchemaVersion current() {
         return CURRENT;
     }
 
-    public final JsonSchema transactionSchema;
-    public final JsonSchema spanSchema;
-    public final JsonSchema errorSchema;
+    private final JsonSchema transactionSchema;
+    private final JsonSchema spanSchema;
+    private final JsonSchema errorSchema;
 
     private final String basePath;
     @Nullable
@@ -89,15 +91,15 @@ enum JsonSchemaVersion {
         return version;
     }
 
-    public JsonSchema getTransactionSchema() {
+    public JsonSchema transactionSchema() {
         return transactionSchema;
     }
 
-    public JsonSchema getSpanSchema() {
+    public JsonSchema spanSchema() {
         return spanSchema;
     }
 
-    public JsonSchema getErrorSchema() {
+    public JsonSchema errorSchema() {
         return errorSchema;
     }
 
@@ -109,46 +111,67 @@ enum JsonSchemaVersion {
             .describedAs("unable to load schema resource %s", path)
             .isNotNull();
 
-        ClasspathURLFactory urlFactory = new ClasspathURLFactory();
+        // rewrite $id and $ref fields on the fly to make validator happy
+        input = rewriteSchema(path, input);
 
         return JsonSchemaFactory
-            .builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4))
-            .addUrnFactory(new URNFactory() {
-                @Override
-                public URI create(String urn) {
-
-                    // resolve relative paths
-                    String finalPath = resolveRelativePath(urn, resource);
-                    String newUrn = String.format("resource:%s", getResourcePath(finalPath));
-                    try {
-                        URL url = ClasspathURLFactory.convert(urlFactory.create(newUrn));
-                        return url.toURI();
-                    } catch (MalformedURLException | URISyntaxException e) {
-                        throw new IllegalStateException(e);
-                    }
-
+            .builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7))
+            .uriFetcher(uri -> {
+                // loads & rewrite on-the-fly schemas loaded through $ref
+                if ("resource".equals(uri.getScheme())) {
+                    String resourcePath = uri.getSchemeSpecificPart();
+                    InputStream inputStream = classLoader.getResourceAsStream(resourcePath);
+                    Objects.requireNonNull(inputStream, "unable to load resource " + resourcePath);
+                    return rewriteSchema(resourcePath, inputStream);
                 }
-            })
-            .uriFetcher(new URIFetcher() {
-                @Override
-                public InputStream fetch(URI uri) throws IOException {
-
-                    if ("resource".equals(uri.getScheme())) {
-                        String path = uri.getSchemeSpecificPart();
-                        if (path.startsWith("/schema/")) {
-                            // make the existing in 'current' version work
-                            path = uri.getPath().replaceFirst("/schema", basePath);
-                        }
-                        InputStream inputStream = classLoader.getResourceAsStream(path);
-                        Objects.requireNonNull(inputStream, "unable to load resource " + path);
-                        return inputStream;
-                    }
-                    return uri.toURL().openStream();
-                }
-
+                return uri.toURL().openStream();
             }, "resource")
             .build()
             .getSchema(input);
+    }
+
+    @NotNull
+    private InputStream rewriteSchema(String path, InputStream input) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            ObjectNode jsonSchema = (ObjectNode) objectMapper.readTree(input);
+            String id = jsonSchema.get(ID).asText(null);
+            if (id != null && id.startsWith(SERVER_SPEC_PATH_PREFIX)) {
+                jsonSchema.put(ID, String.format("resource:%s", path));
+            }
+
+            rewriteRef(jsonSchema, path);
+
+            ByteArrayOutputStream rewriteOutput = new ByteArrayOutputStream();
+            objectMapper.writeValue(rewriteOutput, jsonSchema);
+            input = new ByteArrayInputStream(rewriteOutput.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        return input;
+    }
+
+    private void rewriteRef(JsonNode node, String path) {
+        if (node.isObject()) {
+            if (node.has(REF)) {
+                String ref = node.get(REF).asText();
+
+                if (ref.startsWith(SERVER_SPEC_PATH_PREFIX)) {
+                    // resolve against base path
+                    ref = getResourcePath(ref.substring(SERVER_SPEC_PATH_PREFIX.length()));
+                } else {
+                    // resolve relative path
+                    ref = resolveRelativePath(ref, path);
+                }
+                ((ObjectNode) node).put(REF, String.format("resource:%s", ref));
+            } else {
+                // rewrite all object properties recursively
+                node.fields().forEachRemaining(e -> rewriteRef(e.getValue(), path));
+            }
+        } else if (node.isArray()) {
+            // rewrite array entries recursive
+            node.forEach(n -> rewriteRef(n, path));
+        }
     }
 
     @NotNull

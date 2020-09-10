@@ -68,8 +68,6 @@ import static org.mockito.Mockito.when;
 
 public class MockReporter implements Reporter {
 
-    private static final JsonSchemaVersion[] SCHEMA_VERSIONS = JsonSchemaVersion.values();
-
     // A set of exit span subtypes that do not support address and port discovery
     private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
     // A map of exit span type to actions that that do not support address and port discovery
@@ -115,7 +113,7 @@ public class MockReporter implements Reporter {
             return;
         }
 
-        validateAllSchema(s -> s.transactionSchema, serializer -> serializer.toJsonString(transaction));
+        validateAllSchema(JsonSchemaVersion::transactionSchema, serializer -> serializer.toJsonString(transaction));
         transactions.add(transaction);
     }
 
@@ -124,7 +122,7 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        validateAllSchema(s -> s.spanSchema, serializer -> serializer.toJsonString(span));
+        validateAllSchema(JsonSchemaVersion::spanSchema, serializer -> serializer.toJsonString(span));
         verifyDestinationFields(span);
         spans.add(span);
     }
@@ -154,7 +152,7 @@ public class MockReporter implements Reporter {
      * @param jsonNode transaction as JSON
      */
     public void verifyTransactionSchema(JsonNode jsonNode) {
-        validateSingleSchema(s -> s.transactionSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
+        validateSingleSchema(JsonSchemaVersion::transactionSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
     /**
@@ -163,7 +161,7 @@ public class MockReporter implements Reporter {
      * @param jsonNode span as JSON
      */
     public void verifySpanSchema(JsonNode jsonNode) {
-        validateSingleSchema(s -> s.spanSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
+        validateSingleSchema(JsonSchemaVersion::spanSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
     /**
@@ -172,13 +170,15 @@ public class MockReporter implements Reporter {
      * @param jsonNode error as JSON
      */
     public void verifyErrorSchema(JsonNode jsonNode) {
-        validateSingleSchema(s -> s.errorSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
+        validateSingleSchema(JsonSchemaVersion::transactionSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
     private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
         if (verifyJsonSchema) {
             Set<ValidationMessage> errors = schema.validate(jsonNode);
-            assertThat(errors).withFailMessage("%s\n%s", errors, jsonNode).isEmpty();
+            assertThat(errors)
+                .withFailMessage("schema validation error '%s' - %s\n%s", schema.getCurrentUri(), errors, jsonNode)
+                .isEmpty();
         }
     }
 
@@ -252,7 +252,7 @@ public class MockReporter implements Reporter {
             return;
         }
 
-        validateAllSchema(s -> s.errorSchema, serializer -> serializer.toJsonString(error));
+        validateAllSchema(JsonSchemaVersion::errorSchema, serializer -> serializer.toJsonString(error));
         errors.add(error);
     }
 
@@ -446,7 +446,9 @@ public class MockReporter implements Reporter {
         }
     }
 
-    private void validateSingleSchema(Function<JsonSchemaVersion, JsonSchema> getSchema, Function<DslJsonSerializer, String> toJson, JsonSchemaVersion schema) {
+    private void validateSingleSchema(Function<JsonSchemaVersion, JsonSchema> getSchema,
+                                      Function<DslJsonSerializer, String> toJson,
+                                      JsonSchemaVersion schema) {
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         // emulate that remote server is of a known version, if there is none, we assume all features are supported
         when(apmServerClient.isAtLeast(any(Version.class))).thenAnswer(new Answer<Boolean>() {
