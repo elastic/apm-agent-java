@@ -77,5 +77,54 @@ public class RabbitMQProducerInstrumentationTest extends AbstractInstrumentation
         assertThat(span.getContext().getDestination().getService().getResource().toString()).isEqualTo("rabbitmq/test-exchange");
     }
 
+    @Test
+    public void testBasicPublishWithBasicPropertiesWithoutHeaders() throws IOException {
+        getTracer().startRootTransaction(getClass().getClassLoader())
+            .withName("Rabbit-Test Transaction without headers")
+            .withType("request")
+            .withResult("success")
+            .activate();
+
+        MockChannel mockChannel = new MockChannel();
+
+        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
+        mockChannel.basicPublish("test-exchange", "test.key", builder.build(), "Testing APM!".getBytes());
+
+        assertThat(mockChannel.getReceivedBasicProperties()).isNotNull();
+        AMQP.BasicProperties basicProperties = mockChannel.getReceivedBasicProperties();
+        assertThat(basicProperties.getHeaders()).containsKey("elastic-apm-traceparent");
+        assertThat(basicProperties.getHeaders()).containsKey("traceparent");
+
+        getTracer().currentTransaction().deactivate().end();
+        assertThat(getReporter().getTransactions()).hasSize(1);
+
+        assertThat(getReporter().getFirstSpan(500)).isNotNull();
+        assertThat(getReporter().getSpans()).hasSize(1);
+    }
+
+    @Test
+    public void testBasicPublishWithNullBasicProperties() throws IOException {
+        getTracer().startRootTransaction(getClass().getClassLoader())
+            .withName("Rabbit-Test Transaction with null properties")
+            .withType("request")
+            .withResult("success")
+            .activate();
+
+        MockChannel mockChannel = new MockChannel();
+
+        mockChannel.basicPublish("test-exchange", "test.key", null, "Testing APM!".getBytes());
+
+        assertThat(mockChannel.getReceivedBasicProperties()).isNotNull();
+        AMQP.BasicProperties basicProperties = mockChannel.getReceivedBasicProperties();
+        assertThat(basicProperties.getHeaders()).containsKey("elastic-apm-traceparent");
+        assertThat(basicProperties.getHeaders()).containsKey("traceparent");
+
+        getTracer().currentTransaction().deactivate().end();
+        assertThat(getReporter().getTransactions()).hasSize(1);
+
+        assertThat(getReporter().getFirstSpan(500)).isNotNull();
+        assertThat(getReporter().getSpans()).hasSize(1);
+    }
+
 
 }
