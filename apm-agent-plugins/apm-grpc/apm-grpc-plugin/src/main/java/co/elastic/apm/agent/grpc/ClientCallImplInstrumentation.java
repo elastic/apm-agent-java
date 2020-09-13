@@ -24,9 +24,6 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.grpc.helper.GrpcHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -63,15 +60,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public abstract class ClientCallImplInstrumentation extends BaseInstrumentation {
 
-    @VisibleForAdvice
-    public static final Collection<Class<? extends ElasticApmInstrumentation>> RESPONSE_LISTENER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+    private static final Collection<Class<? extends ElasticApmInstrumentation>> RESPONSE_LISTENER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
         ListenerClose.class,
         OtherListenerMethod.class
     );
-
-    public ClientCallImplInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -91,44 +83,29 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class Start extends ClientCallImplInstrumentation {
 
-        public Start(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("start");
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ClientCall<?, ?> clientCall,
-                                    @Advice.Argument(0) ClientCall.Listener<?> listener,
-                                    @Advice.Argument(1) Metadata headers,
-                                    @Advice.Local("span") Span span) {
-
-            if (grpcHelperManager == null) {
-                return;
-            }
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ClientCall<?, ?> clientCall,
+                                      @Advice.Argument(0) ClientCall.Listener<?> listener,
+                                      @Advice.Argument(1) Metadata headers) {
 
             DynamicTransformer.Accessor.get().ensureInstrumented(listener.getClass(), RESPONSE_LISTENER_INSTRUMENTATIONS);
 
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
-            if (helper != null) {
-                span = helper.clientCallStartEnter(clientCall, listener, headers);
-            }
-
+            return helper.clientCallStartEnter(clientCall, listener, headers);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Argument(0) ClientCall.Listener<?> listener,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Argument(0) ClientCall.Listener<?> listener,
                                    @Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Local("span") @Nullable Span span) {
+                                   @Advice.Enter @Nullable Object span) {
 
-            if (span == null) {
-                return;
-            }
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.class);
-            if (helper != null) {
+            if (span != null) {
                 helper.clientCallStartExit(listener, thrown);
             }
         }
@@ -138,10 +115,6 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
     // response listener instrumentation
 
     public static abstract class ListenerInstrumentation extends BaseInstrumentation {
-
-        protected ListenerInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         /**
          * Overridden in {@link DynamicTransformer#ensureInstrumented(Class, Collection)},
@@ -159,43 +132,25 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class ListenerClose extends ListenerInstrumentation {
 
-        public ListenerClose(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("onClose");
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ClientCall.Listener<?> listener,
-                                    @Advice.Local("span") Span span) {
-
-            if (grpcHelperManager == null) {
-                return;
-            }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
-            if (helper != null) {
-                span = helper.enterClientListenerMethod(listener);
-            }
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ClientCall.Listener<?> listener) {
+            return helper.enterClientListenerMethod(listener);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.This ClientCall.Listener<?> listener,
-                                   @Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.Local("span") @Nullable Span span) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.This ClientCall.Listener<?> listener,
+                                  @Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.Enter @Nullable Object span) {
 
-            if (grpcHelperManager == null || span == null) {
-                return;
+            if (span instanceof Span) {
+                helper.exitClientListenerMethod(thrown, listener, (Span) span, true);
             }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
-            if (helper != null) {
-                helper.exitClientListenerMethod(thrown, listener, span, true);
-            }
-
         }
 
     }
@@ -211,10 +166,6 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      */
     public static class OtherListenerMethod extends ListenerInstrumentation {
 
-        public OtherListenerMethod(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("onMessage")
@@ -222,33 +173,19 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                 .or(named("onReady"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ClientCall.Listener<?> listener,
-                                    @Advice.Local("span") Span span) {
-
-            if (grpcHelperManager == null) {
-                return;
-            }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
-            if (helper != null) {
-                span = helper.enterClientListenerMethod(listener);
-            }
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ClientCall.Listener<?> listener) {
+            return helper.enterClientListenerMethod(listener);
         }
 
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.This ClientCall.Listener<?> listener,
+                                  @Advice.Thrown Throwable thrown,
+                                  @Advice.Enter @Nullable Object span) {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.This ClientCall.Listener<?> listener,
-                                   @Advice.Thrown Throwable thrown,
-                                   @Advice.Local("span") @Nullable Span span) {
-
-            if (grpcHelperManager == null || span == null) {
-                return;
-            }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ClientCall.Listener.class);
-            if (helper != null) {
-                helper.exitClientListenerMethod(thrown, listener, span, false);
+            if (span instanceof Span) {
+                helper.exitClientListenerMethod(thrown, listener, (Span) span, false);
             }
         }
 

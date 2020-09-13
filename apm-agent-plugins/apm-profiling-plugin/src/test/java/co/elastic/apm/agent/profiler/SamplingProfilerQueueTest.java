@@ -27,7 +27,10 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,7 +40,10 @@ public class SamplingProfilerQueueTest {
     void testFillQueue() throws Exception {
         ElasticApmTracer tracer = MockTracer.create();
 
+        ScheduledThreadPoolExecutor scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler");
+
         SamplingProfiler profiler = new SamplingProfiler(tracer, new SystemNanoClock());
+
         profiler.setProfilingSessionOngoing(true);
         TraceContext traceContext = TraceContext.with64BitId(tracer);
 
@@ -45,7 +51,7 @@ public class SamplingProfilerQueueTest {
         long timeAfterFirstEvent = System.nanoTime();
         Thread.sleep(1);
 
-        for (int i = 0; i < SamplingProfiler.RING_BUFFER_SIZE -1; i++) {
+        for (int i = 0; i < SamplingProfiler.RING_BUFFER_SIZE - 1; i++) {
             assertThat(profiler.onActivation(traceContext, null)).isTrue();
         }
 

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,7 +22,24 @@
  * under the License.
  * #L%
  */
-@NonnullApi
-package co.elastic.apm.agent.grpc.helper;
+package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+public class HttpClientRequestPropertyAccessor implements TextHeaderSetter<Map<String, List<String>>> {
+
+    private static final HttpClientRequestPropertyAccessor INSTANCE = new HttpClientRequestPropertyAccessor();
+
+    public static HttpClientRequestPropertyAccessor instance() {
+        return INSTANCE;
+    }
+
+    @Override
+    public void setHeader(String headerName, String headerValue, Map<String, List<String>> headersMap) {
+        headersMap.put(headerName, Collections.singletonList(headerValue));
+    }
+}

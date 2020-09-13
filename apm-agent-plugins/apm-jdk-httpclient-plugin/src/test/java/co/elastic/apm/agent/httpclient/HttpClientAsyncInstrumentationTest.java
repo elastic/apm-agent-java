@@ -22,19 +22,33 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.asynchttpclient.helper;
+package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import org.asynchttpclient.Request;
+import org.junit.Before;
 
-@VisibleForAdvice
-@SuppressWarnings("unused")
-public class RequestHeaderSetter implements TextHeaderSetter<Request> {
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
-    @Override
-    public void setHeader(String headerName, String headerValue, Request request) {
-        request.getHeaders().set(headerName, headerValue);
+public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+    private HttpClient client;
+
+    @Before
+    public void setUp() {
+        client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     }
 
+    @Override
+    protected void performGet(String path) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(path))
+            .build();
+        client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get();
+    }
+
+    @Override
+    protected boolean isErrorOnCircularRedirectSupported() {
+        return false;
+    }
 }
