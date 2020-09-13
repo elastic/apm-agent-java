@@ -7,7 +7,7 @@
     <parent>
         <artifactId>apm-log-shader-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.18.1.RC1-SNAPSHOT</version>
+        <version>1.18.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-log4j1-plugin</artifactId>
