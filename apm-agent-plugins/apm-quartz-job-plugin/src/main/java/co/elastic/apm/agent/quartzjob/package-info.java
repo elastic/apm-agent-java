@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.quartz.job;
+package co.elastic.apm.agent.quartzjob;
 
 import co.elastic.apm.agent.sdk.NonnullApi;
