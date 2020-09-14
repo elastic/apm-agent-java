@@ -138,7 +138,12 @@ public class DependencyInjectingServiceLoader<T> {
             String msg = String.format("unable to instantiate '%s', please check descriptor in META-INF", implementation);
             throw new ServiceConfigurationError(msg, e);
         } catch(UnsupportedClassVersionError e) {
-            logger.error(String.format("unable to instantiate '%s', unsupported class version error: %s", implementation, e.getMessage()));
+            // The Java 11 HttpClient plugin is compiled with Java 11, so this is expected
+            if (!implementation.startsWith("co.elastic.apm.agent.httpclient")) {
+                logger.error(String.format("unable to instantiate '%s', unsupported class version error: %s", implementation, e.getMessage()));
+            } else {
+                logger.debug(String.format("Unsupported class version: %s", e.getMessage()));
+            }
             return null;
         } catch (Exception e) {
             throw new ServiceConfigurationError(e.getMessage(), e);
