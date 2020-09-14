@@ -22,14 +22,14 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.error.logging;
+package co.elastic.apm.agent.errorlogging;
 
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 
-import static co.elastic.apm.agent.error.logging.Slf4jLoggerErrorCapturingInstrumentation.SLF4J_LOGGER;
+import static co.elastic.apm.agent.errorlogging.Slf4jLoggerErrorCapturingInstrumentation.SLF4J_LOGGER;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
