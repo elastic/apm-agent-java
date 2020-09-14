@@ -438,8 +438,8 @@ public class ElasticApmAgent {
         }
 
         int adviceModifiers = adviceClass.getModifiers();
-        if (!Modifier.isPublic(adviceModifiers) || !Modifier.isStatic(adviceModifiers)) {
-            throw new IllegalStateException(String.format("advice class %s should be public static", adviceClassName));
+        if (!Modifier.isPublic(adviceModifiers)) {
+            throw new IllegalStateException(String.format("advice class %s should be public", adviceClassName));
         }
 
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(classLoader), TypePool.Default.ReaderMode.FAST);
