@@ -1,7 +1,7 @@
 [[setup-attach-cli]]
 === Automatic setup with `apm-agent-attach-standalone.jar`
 
-NOTE: This installation method is experimental.
+NOTE: This installation method is in beta.
 
 You can use the attacher as a standalone application on the command line or include it in your application to programmatically attach to the current JVM.
 
