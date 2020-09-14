@@ -77,6 +77,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -435,6 +436,12 @@ public class ElasticApmAgent {
         if (classLoader == null) {
             classLoader = ClassLoader.getSystemClassLoader();
         }
+
+        int adviceModifiers = adviceClass.getModifiers();
+        if (!Modifier.isPublic(adviceModifiers) || !Modifier.isStatic(adviceModifiers)) {
+            throw new IllegalStateException(String.format("advice class %s should be public static", adviceClassName));
+        }
+
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(classLoader), TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
