@@ -82,10 +82,6 @@
                                     <shadedPattern>co.elastic.apm.agent.log4j1.shaded.ecs.logging</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>java.lang.ThreadLocal</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.sdk.state.AgentThreadLocal</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>org.slf4j</pattern>
                                     <shadedPattern>co.elastic.apm.agent.logshading.shaded.slf4j</shadedPattern>
                                 </relocation>
