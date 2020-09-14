@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364]
 * Add support for sampling weight with propagation in `tracestate` W3C header {pull}1384[#1384]
 
 [float]
@@ -37,7 +38,7 @@ endif::[]
 === Java Agent version 1.x
 
 [[release-notes-1.18.0]]
-==== 1.18.0 - 2020/09/03
+==== 1.18.0 - 2020/09/08
 
 [float]
 ===== Features
@@ -56,7 +57,9 @@ endif::[]
 * Lazily create profiler temporary files {pull}1360[#1360]
 * Convert the followings to Indy Plugins (see details in <<release-notes-1.18.0.rc1, 1.18.0-rc1 relase notes>>): gRPC,
   AsyncHttpClient, Apache HttpClient
-* The agent now collects cgroup memory metrics (see <<metrics>>)
+* The agent now collects cgroup memory metrics (see details in <<metrics-cgroup,Metrics page>>)
+* Update async-profiler to 1.8.1 {pull}1382[#1382]
+* Runtime attach install option is promoted to 'beta' status (was experimental).
 
 [float]
 ===== Bug fixes

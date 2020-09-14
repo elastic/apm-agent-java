@@ -22,14 +22,13 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.error.logging;
+package co.elastic.apm.agent.errorlogging;
 
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 
-import static co.elastic.apm.agent.error.logging.Log4j2LoggerErrorCapturingInstrumentation.LOG4J2_LOGGER;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -42,7 +41,7 @@ public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErro
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return hasSuperType(named(SLF4J_LOGGER)
-            .and(not(hasSuperType(named(LOG4J2_LOGGER)))));
+            .and(not(hasSuperType(named(Log4j2LoggerErrorCapturingInstrumentation.LOG4J2_LOGGER)))));
     }
 
     @Override

@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.spring.scheduled;
+package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source /usr/local/bin/bash_standard_lib.sh
 
-JAVA_HOME=$HOME/.java/java10 ./mvnw clean verify \
+JAVA_HOME=$HOME/.java/java11 ./mvnw clean verify \
   --fail-never -q -B \
   -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 

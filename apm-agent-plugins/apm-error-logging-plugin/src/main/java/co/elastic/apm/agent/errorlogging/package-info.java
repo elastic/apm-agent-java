@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.error.logging;
+package co.elastic.apm.agent.errorlogging;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

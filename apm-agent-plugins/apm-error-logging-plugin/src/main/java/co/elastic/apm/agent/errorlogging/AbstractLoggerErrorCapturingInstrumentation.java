@@ -22,11 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.error.logging;
+package co.elastic.apm.agent.errorlogging;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -42,50 +42,35 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public abstract class AbstractLoggerErrorCapturingInstrumentation extends TracerAwareInstrumentation {
 
-    @SuppressWarnings({"WeakerAccess"})
-    @VisibleForAdvice
-    public static final ThreadLocal<Boolean> nestedThreadLocal = new ThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return Boolean.FALSE;
-        }
-    };
-
     @Override
     public Class<?> getAdviceClass() {
         return LoggingAdvice.class;
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
-
     public static class LoggingAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void logEnter(@Advice.Argument(1) Throwable exception,
-                                    @Advice.Local("nested") boolean nested,
-                                    @Advice.Origin Class<?> clazz,
-                                    @Advice.Local("error") @Nullable ErrorCapture error) {
-            nested = nestedThreadLocal.get();
-            if (!nested) {
-                error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader());
+        private static final CallDepth callDepth = CallDepth.get(LoggingAdvice.class);
+
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object logEnter(@Advice.Argument(1) Throwable exception,
+                                        @Advice.Origin Class<?> clazz) {
+            if (!callDepth.isNestedCallAndIncrement()) {
+                ErrorCapture error = tracer.captureException(exception, tracer.getActive(), clazz.getClassLoader());
                 if (error != null) {
                     error.activate();
                 }
-                nestedThreadLocal.set(Boolean.TRUE);
+                return error;
             }
+            return null;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void logExit(@Advice.Local("nested") boolean nested,
-                                   @Advice.Local("error") @Nullable ErrorCapture error) {
-            if (error != null) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void logExit(@Advice.Enter @Nullable Object errorCaptureObj) {
+            callDepth.decrement();
+            if (errorCaptureObj instanceof ErrorCapture) {
+                ErrorCapture error = (ErrorCapture) errorCaptureObj;
                 error.deactivate().end();
-            }
-            if (!nested) {
-                nestedThreadLocal.set(Boolean.FALSE);
             }
         }
     }

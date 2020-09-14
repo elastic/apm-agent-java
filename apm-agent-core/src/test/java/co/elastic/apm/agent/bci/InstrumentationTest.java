@@ -477,14 +477,6 @@ class InstrumentationTest {
             .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test
-    void testAdviceUsingThreadLocal() {
-        ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new UsingThreadLocal()));
-        assertThat(getSpanFromThreadLocal()).isNull();
-    }
-
     @Nullable
     public AbstractSpan<?> getSpanFromThreadLocal() {
         return null;
@@ -1025,37 +1017,6 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-    }
-
-    public static class UsingThreadLocal extends TracerAwareInstrumentation {
-
-        private static final ThreadLocal<AbstractSpan<?>> localSpan = new ThreadLocal<>() {
-            @Override
-            @Nullable
-            protected AbstractSpan<?> initialValue() {
-                return tracer.startRootTransaction(null);
-            }
-        };
-
-        @Advice.OnMethodEnter(inline = false)
-        public static void onEnter() {
-            localSpan.get();
-        }
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return named(InstrumentationTest.class.getName());
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("getSpanFromThreadLocal");
-        }
-
-        @Override
-        public Collection<String> getInstrumentationGroupNames() {
-            return Collections.singletonList("test");
-        }
     }
 
     public static class GetClassLoaderInstrumentation extends ElasticApmInstrumentation {

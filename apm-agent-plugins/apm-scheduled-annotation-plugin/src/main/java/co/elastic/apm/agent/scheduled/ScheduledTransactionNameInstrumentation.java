@@ -22,11 +22,10 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.scheduled;
+package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -45,41 +44,44 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperClass;
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
-    private static final String FRAMEWORK_NAME = "TimerTask";
+public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
-    @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(TimerTaskInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(ScheduledTransactionNameInstrumentation.class);
 
     private final Collection<String> applicationPackages;
 
-    public TimerTaskInstrumentation(ElasticApmTracer tracer) {
+    public ScheduledTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) {
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object setTransactionName(@SimpleMethodSignature String signature,
+                                             @Advice.Origin Class<?> clazz) {
         AbstractSpan<?> active = tracer.getActive();
         if (active == null) {
-            transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
             if (transaction != null) {
                 transaction.withName(signature)
                     .withType("scheduled")
                     .activate();
-                transaction.setFrameworkName(FRAMEWORK_NAME);
+                return transaction;
             }
         } else {
             logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
         }
+        return null;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("transaction") Transaction transaction,
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
                                     @Advice.Thrown Throwable t) {
-        if (transaction != null) {
+        if (transactionObj instanceof Transaction) {
+            Transaction transaction = (Transaction) transactionObj;
             transaction.captureException(t)
                 .deactivate()
                 .end();
@@ -89,21 +91,21 @@ public class TimerTaskInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
-            .and(hasSuperClass(named("java.util.TimerTask")));
+            .and(declaresMethod(getMethodMatcher()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("run");
+        return isAnnotatedWith(
+            named("org.springframework.scheduling.annotation.Scheduled")
+                .or(named("org.springframework.scheduling.annotation.Schedules"))
+                .or(named("javax.ejb.Schedule"))
+                .or(named("javax.ejb.Schedules"))
+        );
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("timer-task");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
+        return Arrays.asList("concurrent", "scheduled");
     }
 }
