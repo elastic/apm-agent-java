@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -29,6 +29,8 @@ import co.elastic.apm.agent.log.shader.LoggerFacade;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
 
 import java.net.URI;
@@ -44,17 +46,29 @@ public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
 
     private static class Log4j2LoggerFacade implements LoggerFacade {
 
-        private final Logger log4j2Logger;
+        private Logger log4j2Logger;
+        private URI configLocation;
 
         public Log4j2LoggerFacade() {
-            log4j2Logger = LogManager.getLogger("Test-File-Logger");
             try {
-                URI configLocation = Objects.requireNonNull(Log4j2ShadingTest.class.getClassLoader()
+                configLocation = Objects.requireNonNull(Log4j2ShadingTest.class.getClassLoader()
                     .getResource("log4j2.xml")).toURI();
-                ((org.apache.logging.log4j.core.Logger)log4j2Logger).getContext().setConfigLocation(configLocation);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
+        }
+
+        @Override
+        public void open() {
+            log4j2Logger = LogManager.getLogger("Test-File-Logger");
+            ((org.apache.logging.log4j.core.Logger) log4j2Logger).getContext().setConfigLocation(configLocation);
+        }
+
+        @Override
+        public void close() {
+            Appender fileAppender = ((org.apache.logging.log4j.core.Logger) log4j2Logger).getAppenders().get("FILE");
+            Log4j2LogShadingHelper.instance().stopShading((AbstractOutputStreamAppender<?>) fileAppender);
+            LogManager.shutdown();
         }
 
         @Override

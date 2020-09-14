@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.logback;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.joran.spi.JoranException;
@@ -44,11 +45,12 @@ public class LogbackShadingTest extends LogShadingInstrumentationTest {
 
     private static class LogbackLoggerFacade implements LoggerFacade {
 
-        private static final LoggerContext loggerFactory;
+        private Logger logbackLogger;
 
-        static {
-            loggerFactory = new LoggerContext();
-            ContextInitializer contextInitializer = new ContextInitializer(loggerFactory);
+        @Override
+        public void open() {
+            LoggerContext loggerContext = new LoggerContext();
+            ContextInitializer contextInitializer = new ContextInitializer(loggerContext);
             try {
                 // Get a configuration file from classpath
                 URL configurationUrl = Thread.currentThread().getContextClassLoader().getResource("logback.xml");
@@ -60,9 +62,14 @@ public class LogbackShadingTest extends LogShadingInstrumentationTest {
             } catch (JoranException e) {
                 throw new RuntimeException("Unable to configure logger", e);
             }
+            logbackLogger = loggerContext.getLogger("Test-File-Logger");
         }
 
-        private final Logger logbackLogger = loggerFactory.getLogger("Test-File-Logger");
+        @Override
+        public void close() {
+            LogbackLogShadingHelper.instance().closeShadeAppender((FileAppender<ILoggingEvent>) logbackLogger.getAppender("FILE"));
+            logbackLogger.detachAndStopAllAppenders();
+        }
 
         @Override
         public String getLogFilePath() {

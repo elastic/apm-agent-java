@@ -86,6 +86,10 @@ public abstract class AbstractLogShadingHelper<A> {
         }
     }
 
+    public boolean isShadingEnabled() {
+        return loggingConfiguration.isLogShadingEnabled();
+    }
+
     /**
      * Checks whether the given appender is a shading appender, so to avoid recursive shading
      *

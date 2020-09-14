@@ -24,29 +24,47 @@
  */
 package co.elastic.apm.agent.log.shader;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Utils {
 
-    static final String SHADE_LOGS_DIR_NAME = "shade_logs";
+    private static final String SHADE_FILE_EXTENSION = ".ecs.json";
+    private static final LoggingConfiguration config = GlobalTracer.requireTracerImpl().getConfig(LoggingConfiguration.class);
 
     /**
      * Computes a shade log file path based on a given log file. The shade log file will have the same name as the
-     * original log file and will be located in a subdirectory of the original file's parent directory.
+     * original log file, but with the ".ecs.json" extension. Depending on configuration, it will be located in
+     * the same directory alongside the original logs, or in an alternative directory.
+     *
      * @param originalLogFile the log file to which a shade file path is required
      * @return the shade log file path
      */
     public static String computeShadeLogFilePath(String originalLogFile) {
         Path originalFilePath = Paths.get(originalLogFile);
         Path logFileName = originalFilePath.getFileName();
-        Path logFileDir = originalFilePath.getParent();
-        Path shadeDir;
-        if (logFileDir != null) {
-            shadeDir = logFileDir.resolve(SHADE_LOGS_DIR_NAME);
-        } else {
-            shadeDir = Paths.get(SHADE_LOGS_DIR_NAME);
+        if (!config.logShadingOverrideOriginalLogFiles()) {
+            logFileName = Paths.get(replaceFileExtensionToEcsJson(logFileName.toString()));
         }
-        return shadeDir.resolve(logFileName).toString();
+        Path shadeDir = originalFilePath.getParent();
+        String configuredShadeFileDestinationDir = config.getLogShadingDestinationDir();
+        if (configuredShadeFileDestinationDir != null) {
+            shadeDir = Paths.get(configuredShadeFileDestinationDir);
+        }
+        if (shadeDir != null) {
+            logFileName = shadeDir.resolve(logFileName);
+        }
+        return logFileName.toString();
+    }
+
+    static String replaceFileExtensionToEcsJson(String originalFileName) {
+        int extensionIndex = originalFileName.lastIndexOf('.');
+        if (extensionIndex > 0) {
+            originalFileName = originalFileName.substring(0, extensionIndex);
+        }
+        return originalFileName.concat(SHADE_FILE_EXTENSION);
     }
 }

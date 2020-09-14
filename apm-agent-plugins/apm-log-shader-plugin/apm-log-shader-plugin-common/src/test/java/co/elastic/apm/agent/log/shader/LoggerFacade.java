@@ -26,6 +26,10 @@ package co.elastic.apm.agent.log.shader;
 
 public interface LoggerFacade {
 
+    void open();
+
+    void close();
+
     String getLogFilePath();
 
     void trace(String message);

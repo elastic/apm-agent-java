@@ -24,25 +24,44 @@
  */
 package co.elastic.apm.agent.log.shader;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.FileSystems;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
-public class UtilsTest {
+public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testShadePathComputation() {
-        String logFile = "app.log";
-        verifyShadeLogFilePath("/test/absolute/path/", logFile);
-        verifyShadeLogFilePath("test/relative/path/", logFile);
-        verifyShadeLogFilePath("/", logFile);
-        verifyShadeLogFilePath("", logFile);
+        assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log")).isEqualTo("/test/absolute/path/app.ecs.json");
+        assertThat(Utils.computeShadeLogFilePath("test/relative/path/app.log")).isEqualTo("test/relative/path/app.ecs.json");
+        assertThat(Utils.computeShadeLogFilePath("/app.log")).isEqualTo("/app.ecs.json");
+        assertThat(Utils.computeShadeLogFilePath("app.log")).isEqualTo("app.ecs.json");
     }
 
-    private void verifyShadeLogFilePath(String dir, String logFile) {
-        assertThat(Utils.computeShadeLogFilePath(dir + logFile)).isEqualTo(
-            dir + Utils.SHADE_LOGS_DIR_NAME + FileSystems.getDefault().getSeparator() + logFile);
+    @Test
+    void testOverride() {
+        when(config.getConfig(LoggingConfiguration.class).logShadingOverrideOriginalLogFiles()).thenReturn(true);
+        assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log")).isEqualTo("/test/absolute/path/app.log");
+        assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app")).isEqualTo("/test/absolute/path/app");
+        assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log.1")).isEqualTo("/test/absolute/path/app.log.1");
+    }
+
+    @Test
+    void testAlternativeShadeLogsDestination() {
+        when(config.getConfig(LoggingConfiguration.class).getLogShadingDestinationDir()).thenReturn("/some/alt/location");
+        assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log")).isEqualTo("/some/alt/location/app.ecs.json");
+        assertThat(Utils.computeShadeLogFilePath("test/relative/path/app.log")).isEqualTo("/some/alt/location/app.ecs.json");
+        assertThat(Utils.computeShadeLogFilePath("/app.log")).isEqualTo("/some/alt/location/app.ecs.json");
+        assertThat(Utils.computeShadeLogFilePath("app.log")).isEqualTo("/some/alt/location/app.ecs.json");
+    }
+
+    @Test
+    void testFileExtensionReplacement() {
+        assertThat(Utils.replaceFileExtensionToEcsJson("app.log")).isEqualTo("app.ecs.json");
+        assertThat(Utils.replaceFileExtensionToEcsJson("app")).isEqualTo("app.ecs.json");
+        assertThat(Utils.replaceFileExtensionToEcsJson("app.some.log")).isEqualTo("app.some.ecs.json");
     }
 }

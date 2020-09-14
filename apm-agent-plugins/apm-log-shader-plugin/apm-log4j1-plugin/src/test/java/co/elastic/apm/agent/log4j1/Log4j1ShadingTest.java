@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,6 +31,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.WriterAppender;
 
 import java.util.Objects;
 
@@ -43,13 +44,23 @@ public class Log4j1ShadingTest extends LogShadingInstrumentationTest {
 
     private static class Log4j1LoggerFacade implements LoggerFacade {
 
-        private final Logger log4j1Logger;
+        private Logger log4j1Logger;
 
         public Log4j1LoggerFacade() {
             String log4j1ConfigFile = Objects.requireNonNull(Log4j1LoggerFacade.class.getClassLoader()
                 .getResource("log4j1.properties")).getFile();
             PropertyConfigurator.configure(log4j1ConfigFile);
+        }
+
+        @Override
+        public void open() {
             log4j1Logger = LogManager.getLogger("Test-File-Logger");
+        }
+
+        @Override
+        public void close() {
+            Log4j1LogShadingHelper.instance().closeShadeAppender((WriterAppender) log4j1Logger.getAppender("FILE"));
+            LogManager.shutdown();
         }
 
         @Override

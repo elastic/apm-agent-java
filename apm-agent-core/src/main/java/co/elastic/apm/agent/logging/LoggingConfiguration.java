@@ -135,6 +135,37 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         })
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Boolean> logShadingEnabled = ConfigurationOption.booleanOption()
+        .key("log_shading_enabled")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("A boolean specifying whether the agent should automatically reformat application logs \n" +
+            "into ECS-compatible JSON files, suitable for ingestion into Elasticsearch for further analysis. \n" +
+            "If true, check out additional `log_shading` configurations options.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> logShadingOverride = ConfigurationOption.booleanOption()
+        .key("log_shading_override")
+        .configurationCategory(LOGGING_CATEGORY)
+        .tags("performance")
+        .description("By default, when Log Shading is enabled, application logs will be duplicated so that the \n" +
+            "ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the \n" +
+            "related overhead, set this option to true to override the original log files instead. \n")
+        .dynamic(false)
+        .buildWithDefault(false);
+
+    private final ConfigurationOption<String> logShadingDestinationDir = ConfigurationOption.stringOption()
+        .key("log_shading_destination_dir")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("As long as <<log_shading_override>> is set to `false`, the shade log files will be written \n" +
+            "alongside the original logs in the same directory. Use this configuration in order to write the shade \n" +
+            "logs into an alternative destination. Omitting this config or setting it to an empty string will \n" +
+            "restore the default behavior. \n" +
+            "\n" +
+            "NOTE: Use absolute path for this configuration. \n")
+        .dynamic(false)
+        .buildWithDefault("");
+
     @SuppressWarnings("unused")
     public ConfigurationOption<ByteValue> logFileSize = ByteValueConverter.byteOption()
         .key(LOG_FILE_SIZE_KEY)
@@ -243,6 +274,20 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isLogCorrelationEnabled() {
         return logCorrelationEnabled.get();
+    }
+
+    public boolean isLogShadingEnabled() {
+        return logShadingEnabled.get();
+    }
+
+    public boolean logShadingOverrideOriginalLogFiles() {
+        return logShadingOverride.get();
+    }
+
+    @Nullable
+    public String getLogShadingDestinationDir() {
+        String logShadingDestDir = logShadingDestinationDir.get().trim();
+        return (logShadingDestDir.isEmpty()) ? null : logShadingDestDir;
     }
 
     public long getLogFileSize() {

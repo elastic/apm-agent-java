@@ -29,10 +29,12 @@ import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -65,7 +67,13 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @Before
     public void setup() throws IOException {
+        logger.open();
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
+    }
+
+    @After
+    public void closeLogger() {
+        logger.close();
     }
 
     protected abstract LoggerFacade getLoggerFacade();
@@ -83,12 +91,38 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
             logger.removeTraceIdFromMdc();
         }
 
-        ArrayList<String[]> rawLogLines;
-        try (Stream<String> stream = Files.lines(Paths.get(logger.getLogFilePath()))) {
-            rawLogLines = stream.map(line -> line.split("\\s+")).collect(Collectors.toCollection(ArrayList::new));
-        }
+        ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
 
+        ArrayList<JsonNode> ecsLogLines =
+            readShadeLogFile();
+        assertThat(ecsLogLines).hasSize(4);
+
+        for (int i = 0; i < 4; i++) {
+            verifyEcsFormat(rawLogLines.get(i), ecsLogLines.get(i), traceId);
+        }
+    }
+
+    @Test
+    public void testLogShadingDisabled() throws IOException, ParseException {
+        logger.trace(TRACE_MESSAGE);
+        when(config.getConfig(LoggingConfiguration.class).isLogShadingEnabled()).thenReturn(false);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        when(config.getConfig(LoggingConfiguration.class).isLogShadingEnabled()).thenReturn(true);
+        logger.error(ERROR_MESSAGE);
+
+        ArrayList<String[]> rawLogLines = readRawLogLines();
+        assertThat(rawLogLines).hasSize(4);
+
+        ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
+        assertThat(ecsLogLines).hasSize(2);
+        verifyEcsFormat(rawLogLines.get(0), ecsLogLines.get(0), null);
+        verifyEcsFormat(rawLogLines.get(3), ecsLogLines.get(1), null);
+    }
+
+    @Nonnull
+    private ArrayList<JsonNode> readShadeLogFile() throws IOException {
         String shadeLogFilePath = getShadeLogFilePath();
         ArrayList<JsonNode> ecsLogLines = new ArrayList<>();
         try (Stream<String> stream = Files.lines(Paths.get(shadeLogFilePath))) {
@@ -100,11 +134,16 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
                 }
             });
         }
-        assertThat(ecsLogLines).hasSize(4);
+        return ecsLogLines;
+    }
 
-        for (int i = 0; i < 4; i++) {
-            verifyEcsFormat(rawLogLines.get(i), ecsLogLines.get(i), traceId);
+    @Nonnull
+    private ArrayList<String[]> readRawLogLines() throws IOException {
+        ArrayList<String[]> rawLogLines;
+        try (Stream<String> stream = Files.lines(Paths.get(logger.getLogFilePath()))) {
+            rawLogLines = stream.map(line -> line.split("\\s+")).collect(Collectors.toCollection(ArrayList::new));
         }
+        return rawLogLines;
     }
 
     @Nonnull
@@ -112,7 +151,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         return Utils.computeShadeLogFilePath(logger.getLogFilePath());
     }
 
-    private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree, String traceId) throws ParseException {
+    private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree, @Nullable String traceId) throws ParseException {
         SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         Date rawTimestamp = timestampFormat.parse(splitRawLogLine[0]);
         timestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -123,7 +162,11 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(tracer.getMetaData().getService().getName());
-        assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
+        if (traceId != null) {
+            assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
+        } else {
+            assertThat(ecsLogLineTree.get("trace.id")).isNull();
+        }
     }
 
     /**
