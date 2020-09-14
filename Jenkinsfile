@@ -79,7 +79,7 @@ pipeline {
               deleteDir()
               unstash 'source'
               dir("${BASE_DIR}"){
-                sh label: 'mvn install', script: "./mvnw -V clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
                 sh label: 'mvn license', script: "./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
@@ -123,7 +123,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw  -V test
+                ./mvnw test
                 """
               }
             }
