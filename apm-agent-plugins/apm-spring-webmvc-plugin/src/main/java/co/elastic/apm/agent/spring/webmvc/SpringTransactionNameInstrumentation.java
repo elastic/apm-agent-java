@@ -40,6 +40,7 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_PRIO_LOW_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -139,6 +140,8 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
                 name.append(className);
                 if (methodName != null) {
                     name.append('#').append(methodName);
+                } else { 
+                	transaction.withName(name,PRIO_LOW_LEVEL_FRAMEWORK + 1);
                 }
             }
         }
