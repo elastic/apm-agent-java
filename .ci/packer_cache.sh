@@ -7,7 +7,6 @@ JAVA_HOME=$HOME/.java/java11 ./mvnw clean verify \
   -Dhttps.protocols=TLSv1.2 \
   -Dmaven.wagon.http.retryHandler.count=3 \
   -Dhttp.keepAlive=false \
-  -Dmaven.wagon.http.pool=false \
   -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 if [ -x "$(command -v docker)" ]; then
