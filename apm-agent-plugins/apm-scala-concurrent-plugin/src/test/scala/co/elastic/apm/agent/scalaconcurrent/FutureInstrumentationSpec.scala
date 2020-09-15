@@ -1,4 +1,4 @@
-package co.elastic.apm.agent.scala.concurrent
+package co.elastic.apm.agent.scalaconcurrent
 
 import java.util.concurrent.Executors
 

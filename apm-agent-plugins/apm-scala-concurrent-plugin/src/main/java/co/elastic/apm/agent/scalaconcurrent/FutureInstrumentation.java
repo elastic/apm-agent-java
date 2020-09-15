@@ -22,10 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.scala.concurrent;
+package co.elastic.apm.agent.scalaconcurrent;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
@@ -44,7 +43,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
 
-    @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
     public static final WeakConcurrentMap<Object, AbstractSpan<?>> promisesToContext =
         new WeakConcurrentMap.WithInlinedExpunction<>();
@@ -53,11 +51,6 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("scala-future", "experimental");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
     }
 
     public static class ConstructorInstrumentation extends FutureInstrumentation {
@@ -72,7 +65,7 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             return isConstructor();
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void onExit(@Advice.This Object thiz) {
             final AbstractSpan<?> context = tracer.getActive();
             if (context != null) {
@@ -97,25 +90,25 @@ public abstract class FutureInstrumentation extends TracerAwareInstrumentation {
             return named("run").and(returns(void.class));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onEnter(@Advice.This Object thiz, @Nullable @Advice.Local("context") AbstractSpan<?> context) {
-            context = promisesToContext.remove(thiz);
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This Object thiz) {
+            AbstractSpan<?> context = promisesToContext.remove(thiz);
             if (context != null) {
                 context.activate();
                 // decrements the reference we incremented to avoid that the parent context gets recycled before the promise is run
                 // because we have activated it, we can be sure it doesn't get recycled until we deactivate in the OnMethodExit advice
                 context.decrementReferences();
             }
+            return context;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void onExit(@Nullable @Advice.Local("context") AbstractSpan<?> context) {
-            if (context != null) {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void onExit(@Advice.Enter @Nullable Object abstractSpanObj) {
+            if (abstractSpanObj instanceof AbstractSpan<?>) {
+                AbstractSpan<?> context = (AbstractSpan<?>) abstractSpanObj;
                 context.deactivate();
             }
         }
-
     }
-
 }
