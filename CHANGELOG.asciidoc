@@ -28,6 +28,7 @@ endif::[]
 
 [float]
 ===== Features
+* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364]
 * Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
@@ -58,6 +59,7 @@ endif::[]
   AsyncHttpClient, Apache HttpClient
 * The agent now collects cgroup memory metrics (see details in <<metrics-cgroup,Metrics page>>)
 * Update async-profiler to 1.8.1 {pull}1382[#1382]
+* Runtime attach install option is promoted to 'beta' status (was experimental).
 
 [float]
 ===== Bug fixes
