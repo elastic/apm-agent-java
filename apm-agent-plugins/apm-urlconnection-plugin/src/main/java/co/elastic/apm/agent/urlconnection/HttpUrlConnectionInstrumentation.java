@@ -25,10 +25,10 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
@@ -51,8 +51,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();
+    private static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();
+
+    // Used instead of inspecting sun.net.www.protocol.http.HttpURLConnection.connecting which was added in Java 8
+    private static final CallDepth connecting = CallDepth.get(HttpUrlConnectionInstrumentation.class);
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -76,6 +78,10 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         public static Object enter(@Advice.This HttpURLConnection thiz,
                                  @Advice.FieldValue("connected") boolean connected,
                                  @Advice.Origin String signature) {
+            if (connecting.isNestedCallAndIncrement()) {
+                return null;
+            }
+
             if (tracer.getActive() == null) {
                 return null;
             }
@@ -101,6 +107,13 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                 @Advice.FieldValue("responseCode") int responseCode,
                                 @Nullable @Advice.Enter Object spanObject,
                                 @Advice.Origin String signature) {
+
+            // This is not behaving exactly like the sun.net.www.protocol.http.HttpURLConnection.connecting flag,
+            // which is a state of the connection that can only be changed from false to true. However, it should
+            // be good enough to maintain as a state only during the execution of the current stack, as at this time
+            // of method exit, the java.net.URLConnection.connected flag should already indicate the connection state
+            connecting.decrement();
+
             Span span = (Span) spanObject;
             if (span == null) {
                 return;

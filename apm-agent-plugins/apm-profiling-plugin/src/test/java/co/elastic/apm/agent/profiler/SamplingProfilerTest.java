@@ -40,9 +40,15 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -53,35 +59,100 @@ import static org.mockito.Mockito.when;
 class SamplingProfilerTest {
 
     private MockReporter reporter;
+
+    @Nullable
     private ElasticApmTracer tracer;
     private SamplingProfiler profiler;
+    private ProfilingConfiguration profilingConfig;
 
     @BeforeEach
-    void setUp() {
-        reporter = new MockReporter();
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-        ProfilingConfiguration profilingConfig = config.getConfig(ProfilingConfiguration.class);
-        when(profilingConfig.getIncludedClasses()).thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
-        when(profilingConfig.isProfilingEnabled()).thenReturn(true);
-        when(profilingConfig.getProfilingDuration()).thenReturn(TimeDuration.of("500ms"));
-        when(profilingConfig.getProfilingInterval()).thenReturn(TimeDuration.of("500ms"));
-        when(profilingConfig.getSamplingInterval()).thenReturn(TimeDuration.of("5ms"));
-        tracer = MockTracer.createRealTracer(reporter, config);
-        profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
-        // ensure profiler is initialized
-        await()
-            .pollDelay(10, TimeUnit.MILLISECONDS)
-            .timeout(6000, TimeUnit.MILLISECONDS)
-            .until(() -> profiler.getProfilingSessions() > 1);
+    void setup() {
+        // avoids any test failure to make other tests to fail
+        getProfilerTempFiles().forEach(SamplingProfilerTest::silentDeleteFile);
     }
 
     @AfterEach
-    void tearDown() throws Exception {
-        tracer.stop();
+    void tearDown() {
+        if (tracer != null) {
+            tracer.stop();
+        }
+
+        getProfilerTempFiles().forEach(SamplingProfilerTest::silentDeleteFile);
+    }
+
+    @Test
+    void shouldLazilyCreateTempFilesAndCleanThem() throws Exception {
+
+        List<Path> tempFiles = getProfilerTempFiles();
+        assertThat(tempFiles).isEmpty();
+
+        // temporary files should be created on-demand, and properly deleted afterwards
+        setupProfiler(false);
+
+        assertThat(profiler.getProfilingSessions())
+            .describedAs("profiler should not have any session when disabled")
+            .isEqualTo(0);
+
+        assertThat(getProfilerTempFiles())
+            .describedAs("should not create a temp file when disabled")
+            .isEmpty();
+
+        when(profilingConfig.isProfilingEnabled())
+            .thenReturn(true);
+
+        awaitProfilerStarted(profiler);
+
+        assertThat(getProfilerTempFiles())
+            .describedAs("should have created two temp files")
+            .hasSize(2);
+
+        profiler.stop();
+
+        assertThat(getProfilerTempFiles())
+            .describedAs("should delete temp files when profiler is stopped")
+            .isEmpty();
+
+
+    }
+
+    private static List<Path> getProfilerTempFiles() {
+        Path tempFolder = Paths.get(System.getProperty("java.io.tmpdir"));
+        try {
+            return Files.list(tempFolder)
+                .filter(f -> f.getFileName().toString().startsWith("apm-"))
+                .sorted()
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Test
+    void shouldNotDeleteProvidedFiles() throws Exception {
+        // when an existing file is provided to the profiler, we should not delete it
+        // unlike the temporary files that are created by profiler itself
+
+        setupProfiler(true);
+        profiler.stop();
+
+        Path tempFile1 = Files.createTempFile("apm-provided", "test.bin");
+        Path tempFile2 = Files.createTempFile("apm-provided", "test.jfr");
+
+        SamplingProfiler otherProfiler = new SamplingProfiler(tracer, new FixedNanoClock(), tempFile1.toFile(), tempFile2.toFile());
+
+        otherProfiler.start(tracer);
+        awaitProfilerStarted(otherProfiler);
+        otherProfiler.stop();
+
+        assertThat(tempFile1).exists();
+        assertThat(tempFile2).exists();
     }
 
     @Test
     void testProfileTransaction() throws Exception {
+        setupProfiler(true);
+        awaitProfilerStarted(profiler);
+
         Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
         try (Scope scope = transaction.activateInScope()) {
             // makes sure that the rest will be captured by another profiling session
@@ -107,8 +178,7 @@ class SamplingProfilerTest {
 
         Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
         assertThat(explicitSpanB).isPresent();
-        // not supported yet - an explicit span can't be a span of an inferred one
-        // assertThat(explicitSpanB.get().isChildOf(inferredSpanA.get())).isTrue();
+        assertThat(explicitSpanB.get().isChildOf(inferredSpanA.get())).isTrue();
 
         Optional<Span> inferredSpanC = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#cInferred")).findAny();
         assertThat(inferredSpanC).isPresent();
@@ -117,6 +187,32 @@ class SamplingProfilerTest {
         Optional<Span> inferredSpanD = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#dInferred")).findAny();
         assertThat(inferredSpanD).isPresent();
         assertThat(inferredSpanD.get().isChildOf(inferredSpanC.get())).isTrue();
+    }
+
+    @Test
+    void testPostProcessingDisabled() throws Exception {
+        setupProfiler(true);
+        when(profilingConfig.isPostProcessingEnabled()).thenReturn(false);
+        awaitProfilerStarted(profiler);
+
+        Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
+        try (Scope scope = transaction.activateInScope()) {
+            // makes sure that the rest will be captured by another profiling session
+            // this tests that restoring which threads to profile works
+            Thread.sleep(600);
+            aInferred(transaction);
+        } finally {
+            transaction.end();
+        }
+
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(5000, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(1));
+
+        Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
+        assertThat(explicitSpanB).isPresent();
+        assertThat(explicitSpanB.get().isChildOf(transaction)).isTrue();
     }
 
     private void aInferred(Transaction transaction) throws Exception {
@@ -136,5 +232,37 @@ class SamplingProfilerTest {
 
     private void dInferred() throws Exception {
         Thread.sleep(50);
+    }
+
+
+    private void setupProfiler(boolean enabled) {
+        reporter = new MockReporter();
+        ConfigurationRegistry config1 = SpyConfiguration.createSpyConfig();
+        profilingConfig = config1.getConfig(ProfilingConfiguration.class);
+        when(profilingConfig.getIncludedClasses()).thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
+        when(profilingConfig.isProfilingEnabled()).thenReturn(enabled);
+        when(profilingConfig.getProfilingDuration()).thenReturn(TimeDuration.of("500ms"));
+        when(profilingConfig.getProfilingInterval()).thenReturn(TimeDuration.of("500ms"));
+        when(profilingConfig.getSamplingInterval()).thenReturn(TimeDuration.of("5ms"));
+        ConfigurationRegistry config = config1;
+        tracer = MockTracer.createRealTracer(reporter, config);
+        profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
+    }
+
+
+    private static void awaitProfilerStarted(SamplingProfiler profiler) {
+        // ensure profiler is initialized
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(6000, TimeUnit.MILLISECONDS)
+            .until(() -> profiler.getProfilingSessions() > 1);
+    }
+
+    private static void silentDeleteFile(Path f) {
+        try {
+            Files.delete(f);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
