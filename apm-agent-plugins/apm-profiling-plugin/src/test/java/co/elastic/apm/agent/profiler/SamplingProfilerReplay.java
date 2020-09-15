@@ -26,7 +26,6 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +53,6 @@ public class SamplingProfilerReplay {
         jfrFile.deleteOnExit();
         MockReporter reporter = new MockReporter();
         SamplingProfiler samplingProfiler = new SamplingProfiler(MockTracer.createRealTracer(reporter),
-            ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler"),
             new SystemNanoClock(),
             activationEventsFile,
             jfrFile);

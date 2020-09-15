@@ -34,7 +34,6 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class OkHttp3ClientAsyncInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
