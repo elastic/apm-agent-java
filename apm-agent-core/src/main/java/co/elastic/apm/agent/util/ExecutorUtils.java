@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -127,6 +128,16 @@ public final class ExecutorUtils {
         }
         if (t != null) {
             logger.error(t.getMessage(), t);
+        }
+    }
+
+    public static void shutdown(ExecutorService executor) {
+        executor.shutdown();
+        try {
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            logger.warn("executor service shutdown has been interrupted", e);
+            executor.shutdownNow();
         }
     }
 }

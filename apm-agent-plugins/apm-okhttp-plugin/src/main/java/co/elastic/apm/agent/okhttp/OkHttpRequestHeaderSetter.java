@@ -30,6 +30,8 @@ import com.squareup.okhttp.Request;
 @SuppressWarnings("unused")
 public class OkHttpRequestHeaderSetter implements TextHeaderSetter<Request.Builder> {
 
+    public static final OkHttpRequestHeaderSetter INSTANCE = new OkHttpRequestHeaderSetter();
+
     @Override
     public void setHeader(String headerName, String headerValue, Request.Builder requestBuilder) {
         requestBuilder.addHeader(headerName, headerValue);

@@ -29,6 +29,9 @@ import org.springframework.http.HttpRequest;
 
 @SuppressWarnings("unused")
 public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {
+
+    public static final SpringRestRequestHeaderSetter INSTANCE = new SpringRestRequestHeaderSetter();
+
     @Override
     public void setHeader(String headerName, String headerValue, HttpRequest request) {
         request.getHeaders().add(headerName, headerValue);

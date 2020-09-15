@@ -24,10 +24,9 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -49,24 +48,16 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttpClientInstrumentation {
 
-    public ApacheHttpAsyncClientRedirectInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
     private static class ApacheHttpAsyncClientRedirectAdvice {
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void onAfterExecute(@Advice.Argument(value = 0) HttpRequest original,
-                                           @Advice.Return(typing = Assigner.Typing.DYNAMIC) @Nullable HttpRequest redirect) {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Argument(value = 0) HttpRequest original,
+                                          @Advice.Return(typing = Assigner.Typing.DYNAMIC) @Nullable HttpRequest redirect) {
             if (redirect == null) {
                 return;
             }
             // org.apache.http.HttpMessage#containsHeader implementations do not allocate iterator since 4.0.1
-            TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
-            TextHeaderGetter<HttpRequest> headerGetter = headerGetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
-            if (headerGetter != null && headerSetter != null) {
-                if (TraceContext.containsTraceContextTextHeaders(original, headerGetter) && !TraceContext.containsTraceContextTextHeaders(redirect, headerGetter)) {
-                    TraceContext.copyTraceContextTextHeaders(original, headerGetter, redirect, headerSetter);
-                }
+            if (TraceContext.containsTraceContextTextHeaders(original, RequestHeaderAccessor.INSTANCE) && !TraceContext.containsTraceContextTextHeaders(redirect, RequestHeaderAccessor.INSTANCE)) {
+                TraceContext.copyTraceContextTextHeaders(original, RequestHeaderAccessor.INSTANCE, redirect, RequestHeaderAccessor.INSTANCE);
             }
         }
     }

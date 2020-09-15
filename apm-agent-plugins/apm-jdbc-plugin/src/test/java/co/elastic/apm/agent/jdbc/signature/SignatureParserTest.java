@@ -25,30 +25,66 @@
 package co.elastic.apm.agent.jdbc.signature;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import specs.TestJsonSpec;
+
+import java.util.Optional;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SignatureParserTest {
 
     private static SignatureParser signatureParser;
-    private static JsonNode testCases;
 
     @BeforeAll
-    static void setUp() throws Exception {
+    static void setUp() {
         signatureParser = new SignatureParser();
-        testCases = new ObjectMapper().readTree(SignatureParserTest.class.getResource("/signature_tests.json"));
     }
 
-    @Test
-    void testScanner() {
-        for (JsonNode testCase : testCases) {
-            System.out.println(testCase);
-            assertThat(getSignature(testCase.get("input").asText())).isEqualTo(testCase.get("output").asText());
-        }
+    @ParameterizedTest
+    @MethodSource("getTestSignatures_shared")
+    void testSignature_shared(String input, String output, String comment) {
+        final StringBuilder signature = new StringBuilder();
+        signatureParser.querySignature(input, signature, false);
+        assertThat(signature.toString())
+            .describedAs(comment)
+            .isEqualTo(output);
+    }
+
+    private static Stream<Arguments> getTestSignatures_shared() {
+        return parseTestParameters(TestJsonSpec.getJson("sql_signature_examples.json"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getTestSignatures_java")
+    void testSignature_java(String input, String output, String comment) {
+        testSignature_shared(input, output, comment);
+    }
+
+    private static Stream<Arguments> getTestSignatures_java() {
+        // this file has the same format as the shared variant, but with cases only relevant in java
+        // for example, some JDBC-only syntax that aren't used anywhere else
+        return parseTestParameters(TestJsonSpec.getJson(SignatureParserTest.class, "signature_tests.json"));
+    }
+
+    private static Stream<Arguments> parseTestParameters(JsonNode json) {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(json.iterator(), Spliterator.ORDERED), false)
+            .map(node -> {
+                String input = node.get("input").asText();
+                String output = node.get("output").asText();
+                String comment = Optional.ofNullable(node.get("comment"))
+                    .map(JsonNode::asText)
+                    .orElse(null);
+                return Arguments.of(input, output, comment);
+            });
     }
 
     @Test
@@ -72,6 +108,7 @@ class SignatureParserTest {
         final StringBuilder sb = new StringBuilder();
         final StringBuilder dblink = new StringBuilder();
         signatureParser.querySignature("SELECT * FROM TABLE1@DBLINK", sb, dblink, true);
+        assertThat(dblink.toString()).isEqualTo("DBLINK");
         sb.setLength(0);
         dblink.setLength(0);
         signatureParser.querySignature("SELECT * FROM TABLE1@DBLINK", sb, dblink, true);
@@ -94,9 +131,4 @@ class SignatureParserTest {
         assertThat(dblink.toString()).isEqualTo("DBLINK.FQDN.COM@USER");
     }
 
-    String getSignature(String query) {
-        final StringBuilder sb = new StringBuilder();
-        signatureParser.querySignature(query, sb, false);
-        return sb.toString();
-    }
 }
