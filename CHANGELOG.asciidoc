@@ -28,11 +28,13 @@ endif::[]
 
 [float]
 ===== Features
-* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364]
+* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364] {pull}1365[1365] {pull}1367[1367] {pull}1371[1371]
 * Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
 ===== Bug fixes
+* Fix instrumentation error for HttpClient - {pull}1402[#1402]
+* Eliminate `unsupported class version error` messages related to loading the Java 11 HttpClient plugin in pre-Java-11 JVMs {pull}1397[1397]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
