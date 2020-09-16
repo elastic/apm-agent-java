@@ -99,7 +99,7 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
                 .withName("RabbitMQ message sent to ")
                 .appendToName(exchange);
 
-            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, RabbitMQTextHeaderSetter.getInstance());
+            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, RabbitMQTextHeaderSetter.INSTANCE);
 
             exitSpan.getContext().getMessage().withQueue(exchange);
 

@@ -30,14 +30,7 @@ import java.util.HashMap;
 
 public class RabbitMQTextHeaderSetter implements TextHeaderSetter<HashMap<String, Object>> {
 
-    private static RabbitMQTextHeaderSetter instance;
-
-    public static RabbitMQTextHeaderSetter getInstance() {
-        if (instance == null) {
-            instance = new RabbitMQTextHeaderSetter();
-        }
-        return instance;
-    }
+    public static final RabbitMQTextHeaderSetter INSTANCE = new RabbitMQTextHeaderSetter();
 
     private RabbitMQTextHeaderSetter() {
     }

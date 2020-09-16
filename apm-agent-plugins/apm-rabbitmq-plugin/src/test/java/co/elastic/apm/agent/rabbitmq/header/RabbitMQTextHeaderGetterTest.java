@@ -39,7 +39,7 @@ public class RabbitMQTextHeaderGetterTest {
 
     @Before
     public void setUp() {
-        rabbitMQTextHeaderGetter = RabbitMQTextHeaderGetter.getInstance();
+        rabbitMQTextHeaderGetter = RabbitMQTextHeaderGetter.INSTANCE;
     }
 
     @Test

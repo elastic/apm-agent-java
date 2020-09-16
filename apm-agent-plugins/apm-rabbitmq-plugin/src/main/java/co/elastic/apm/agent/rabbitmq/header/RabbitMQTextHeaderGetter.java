@@ -31,14 +31,7 @@ import javax.annotation.Nullable;
 
 public class RabbitMQTextHeaderGetter implements TextHeaderGetter<AMQP.BasicProperties> {
 
-    private static RabbitMQTextHeaderGetter instance;
-
-    public static RabbitMQTextHeaderGetter getInstance() {
-        if (instance == null) {
-            instance = new RabbitMQTextHeaderGetter();
-        }
-        return instance;
-    }
+    public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
 
     private RabbitMQTextHeaderGetter() {
     }

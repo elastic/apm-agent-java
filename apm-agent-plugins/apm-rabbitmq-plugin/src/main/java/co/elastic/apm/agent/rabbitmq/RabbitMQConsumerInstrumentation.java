@@ -74,7 +74,7 @@ public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation
                 return null;
             }
 
-            Transaction transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.getInstance(), originClazz.getClassLoader());
+            Transaction transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
 
             if (transaction == null) {
                 return null;
