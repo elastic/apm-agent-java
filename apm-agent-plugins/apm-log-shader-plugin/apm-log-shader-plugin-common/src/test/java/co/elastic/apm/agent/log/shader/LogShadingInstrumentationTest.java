@@ -149,7 +149,11 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @Nonnull
     private ArrayList<JsonNode> readShadeLogFile() throws IOException {
-        String shadeLogFilePath = getShadeLogFilePath();
+        return readShadeLogFile(getShadeLogFilePath());
+    }
+
+    @Nonnull
+    private ArrayList<JsonNode> readShadeLogFile(String shadeLogFilePath) throws IOException {
         ArrayList<JsonNode> ecsLogLines = new ArrayList<>();
         try (Stream<String> stream = Files.lines(Paths.get(shadeLogFilePath))) {
             stream.forEach(line -> {
@@ -206,18 +210,26 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
      * As opposed to those, log4j1 rolls over after appending an event, which means that the active log file (log4j1.log)
      * will be empty when the test ends.
      */
-    // @Test
-    public void testShadeLogRolling() {
-        when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
-        logger.trace("First line");
-        sleep();
-        logger.debug("Second Line");
-        sleep();
-        logger.trace("Third line");
-        sleep();
-        logger.debug("Fourth line");
-        sleep();
-    }
+     //@Test
+     public void testShadeLogRolling() throws IOException {
+         when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
+         logger.trace("First line");
+         sleep();
+         logger.debug("Second Line");
+         sleep();
+         logger.trace("Third line");
+         sleep();
+         logger.debug("Fourth line");
+         sleep();
+
+         // All tests are configured so that only one line can fit a log file before being rolled.
+         // However, while in log4j2 and Logback file rolling takes place BEFORE appending the new log event, in
+         // log4j1 this happens AFTER the event is logged. This means we can only count on the non-active file to
+         // contain a single line
+         String shadeLogFilePath = getShadeLogFilePath();
+         ArrayList<JsonNode> jsonNodes = readShadeLogFile(shadeLogFilePath + ".1");
+         assertThat(jsonNodes).hasSize(1);
+     }
 
     private void sleep() {
         try {
