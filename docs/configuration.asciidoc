@@ -1650,7 +1650,7 @@ related overhead, set this option to true to replace the original log files with
 [[config-log-shading-destination-dir]]
 ==== `log_shading_destination_dir`
 
-As long as <<config-log-shading-override,`log_shading_override`>> is set to `false`, the shade 
+As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade 
 log files will be written alongside the original logs in the same directory. Use this configuration in 
 order to write the shade logs into an alternative destination. Omitting this config or setting it to an 
 empty string will restore the default behavior. If relative path is used, this path will be used relative 
@@ -3190,7 +3190,7 @@ The default unit for this option is `ms`.
 #
 # log_shading_replace=false
 
-# As long as <<config-log-shading-override,`log_shading_override`>> is set to `false`, the shade 
+# As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade 
 # log files will be written alongside the original logs in the same directory. Use this configuration in 
 # order to write the shade logs into an alternative destination. Omitting this config or setting it to an 
 # empty string will restore the default behavior. If relative path is used, this path will be used relative 

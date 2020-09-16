@@ -157,7 +157,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> logShadingDestinationDir = ConfigurationOption.stringOption()
         .key("log_shading_destination_dir")
         .configurationCategory(LOGGING_CATEGORY)
-        .description("As long as <<config-log-shading-override,`log_shading_override`>> is set to `false`, the shade \n" +
+        .description("As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade \n" +
             "log files will be written alongside the original logs in the same directory. Use this configuration in \n" +
             "order to write the shade logs into an alternative destination. Omitting this config or setting it to an \n" +
             "empty string will restore the default behavior. If relative path is used, this path will be used relative \n" +
