@@ -85,7 +85,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 [source,bash]
 ----
 java -jar apm-agent-attach-standalone.jar \
-    --include '.*MyApplication.*' '.*/my-application.jar' \
+    --include '.*MyApplication.*' '.*/my-application.jar.*' \
     --continuous \
     --config service_name=my-cool-service \
     --config server_urls=http://localhost:8200
