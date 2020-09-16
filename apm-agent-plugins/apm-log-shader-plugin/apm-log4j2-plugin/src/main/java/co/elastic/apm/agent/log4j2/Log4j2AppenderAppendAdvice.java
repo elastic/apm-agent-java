@@ -31,6 +31,13 @@ import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
 
 public class Log4j2AppenderAppendAdvice {
 
+    @SuppressWarnings("unused")
+    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
+    public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,
+                                                        @Advice.This(typing = Assigner.Typing.DYNAMIC) AbstractOutputStreamAppender<?> thisAppender) {
+        return Log4j2LogShadingHelper.instance().shouldSkipAppend(thisAppender);
+    }
+
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LogEvent eventObject,

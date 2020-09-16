@@ -86,6 +86,19 @@ public abstract class AbstractLogShadingHelper<A> {
         }
     }
 
+    /**
+     * Checks whether we should skip {@code append()} invocations for log events for the given appender.
+     * Log event appends should be skipped if they are replaced by ECS-formatted events, meaning if:
+     *  - shading is enabled by configuration AND
+     *  - replace is enabled by configuration AND
+     *  - there is a shade appender for this appender (there isn't when this appender IS A shade appender or it is not a file appender)
+     * @param appender the appender
+     * @return true if log events should be ignored for the given appender; false otherwise
+     */
+    public boolean shouldSkipAppend(A appender) {
+        return isShadingEnabled() && loggingConfiguration.isLogShadingReplaceEnabled() && getOrCreateShadeAppenderFor(appender) != null;
+    }
+
     public boolean isShadingEnabled() {
         return loggingConfiguration.isLogShadingEnabled();
     }

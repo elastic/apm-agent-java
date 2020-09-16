@@ -27,6 +27,7 @@ package co.elastic.apm.agent.log.shader;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -45,19 +46,28 @@ public class Utils {
      */
     public static String computeShadeLogFilePath(String originalLogFile) {
         Path originalFilePath = Paths.get(originalLogFile);
-        Path logFileName = originalFilePath.getFileName();
-        if (!config.logShadingOverrideOriginalLogFiles()) {
-            logFileName = Paths.get(replaceFileExtensionToEcsJson(logFileName.toString()));
-        }
-        Path shadeDir = originalFilePath.getParent();
-        String configuredShadeFileDestinationDir = config.getLogShadingDestinationDir();
-        if (configuredShadeFileDestinationDir != null) {
-            shadeDir = Paths.get(configuredShadeFileDestinationDir);
-        }
+        Path logFileName = Paths.get(replaceFileExtensionToEcsJson(originalFilePath.getFileName().toString()));
+        Path shadeDir = computeShadeLogsDir(originalFilePath);
         if (shadeDir != null) {
             logFileName = shadeDir.resolve(logFileName);
         }
         return logFileName.toString();
+    }
+
+    @Nullable
+    private static Path computeShadeLogsDir(Path originalFilePath) {
+        Path shadeDir;
+        Path logsDir = originalFilePath.getParent();
+        String configuredShadeFileDestinationDir = config.getLogShadingDestinationDir();
+        if (configuredShadeFileDestinationDir == null) {
+            shadeDir = logsDir;
+        } else {
+            shadeDir = Paths.get(configuredShadeFileDestinationDir);
+            if (!shadeDir.isAbsolute() && logsDir != null) {
+                    shadeDir = logsDir.resolve(shadeDir);
+            }
+        }
+        return shadeDir;
     }
 
     static String replaceFileExtensionToEcsJson(String originalFileName) {

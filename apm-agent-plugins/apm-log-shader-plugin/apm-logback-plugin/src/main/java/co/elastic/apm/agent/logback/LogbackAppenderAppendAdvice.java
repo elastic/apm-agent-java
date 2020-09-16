@@ -32,6 +32,14 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 public class LogbackAppenderAppendAdvice {
 
+    @SuppressWarnings("unused")
+    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
+    public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,
+                                                        @Advice.This(typing = Assigner.Typing.DYNAMIC) OutputStreamAppender<ILoggingEvent> thisAppender) {
+        return thisAppender instanceof FileAppender && eventObject instanceof ILoggingEvent &&
+            LogbackLogShadingHelper.instance().shouldSkipAppend((FileAppender<ILoggingEvent>) thisAppender);
+    }
+
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final Object eventObject,

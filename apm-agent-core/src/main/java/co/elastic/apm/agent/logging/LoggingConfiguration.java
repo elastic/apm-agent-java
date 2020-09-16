@@ -144,25 +144,24 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(true);
 
-    private final ConfigurationOption<Boolean> logShadingOverride = ConfigurationOption.booleanOption()
-        .key("log_shading_override")
+    private final ConfigurationOption<Boolean> logShadingReplace = ConfigurationOption.booleanOption()
+        .key("log_shading_replace")
         .configurationCategory(LOGGING_CATEGORY)
         .tags("performance")
         .description("By default, when Log Shading is enabled, application logs will be duplicated so that the \n" +
             "ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the \n" +
-            "related overhead, set this option to true to override the original log files instead. \n")
+            "related overhead, set this option to true to replace the original log files with the ECS-compatible ones.")
         .dynamic(false)
         .buildWithDefault(false);
 
     private final ConfigurationOption<String> logShadingDestinationDir = ConfigurationOption.stringOption()
         .key("log_shading_destination_dir")
         .configurationCategory(LOGGING_CATEGORY)
-        .description("As long as <<log_shading_override>> is set to `false`, the shade log files will be written \n" +
-            "alongside the original logs in the same directory. Use this configuration in order to write the shade \n" +
-            "logs into an alternative destination. Omitting this config or setting it to an empty string will \n" +
-            "restore the default behavior. \n" +
-            "\n" +
-            "NOTE: Use absolute path for this configuration. \n")
+        .description("As long as <<config-log-shading-override,`log_shading_override`>> is set to `false`, the shade \n" +
+            "log files will be written alongside the original logs in the same directory. Use this configuration in \n" +
+            "order to write the shade logs into an alternative destination. Omitting this config or setting it to an \n" +
+            "empty string will restore the default behavior. If relative path is used, this path will be used relative \n" +
+            "to the original logs directory.")
         .dynamic(false)
         .buildWithDefault("");
 
@@ -280,8 +279,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return logShadingEnabled.get();
     }
 
-    public boolean logShadingOverrideOriginalLogFiles() {
-        return logShadingOverride.get();
+    public boolean isLogShadingReplaceEnabled() {
+        return logShadingReplace.get();
     }
 
     @Nullable

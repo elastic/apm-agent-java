@@ -37,6 +37,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -94,13 +95,19 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         ArrayList<String[]> rawLogLines = readRawLogLines();
         assertThat(rawLogLines).hasSize(4);
 
-        ArrayList<JsonNode> ecsLogLines =
-            readShadeLogFile();
+        ArrayList<JsonNode> ecsLogLines = readShadeLogFile();
         assertThat(ecsLogLines).hasSize(4);
 
         for (int i = 0; i < 4; i++) {
             verifyEcsFormat(rawLogLines.get(i), ecsLogLines.get(i), traceId);
         }
+    }
+
+    @Test
+    public void testShadingIntoConfiguredDir() throws IOException, ParseException {
+        when(config.getConfig(LoggingConfiguration.class).getLogShadingDestinationDir()).thenReturn("shade_logs");
+        Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
+        testSimpleLogShading();
     }
 
     @Test
@@ -119,6 +126,25 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(ecsLogLines).hasSize(2);
         verifyEcsFormat(rawLogLines.get(0), ecsLogLines.get(0), null);
         verifyEcsFormat(rawLogLines.get(3), ecsLogLines.get(1), null);
+    }
+
+    @Test
+    public void testLogShadingReplaceOriginal() throws IOException {
+        when(config.getConfig(LoggingConfiguration.class).isLogShadingReplaceEnabled()).thenReturn(true);
+        logger.trace(TRACE_MESSAGE);
+        logger.debug(DEBUG_MESSAGE);
+        logger.warn(WARN_MESSAGE);
+        logger.error(ERROR_MESSAGE);
+
+        assertThat(readRawLogLines()).isEmpty();
+        ArrayList<JsonNode> shadeLogEvents = readShadeLogFile();
+        assertThat(shadeLogEvents).hasSize(4);
+        for (JsonNode ecsLogLineTree : shadeLogEvents) {
+            assertThat(ecsLogLineTree.get("process.thread.name")).isNotNull();
+            assertThat(ecsLogLineTree.get("log.level")).isNotNull();
+            assertThat(ecsLogLineTree.get("log.logger")).isNotNull();
+            assertThat(ecsLogLineTree.get("message")).isNotNull();
+        }
     }
 
     @Nonnull
@@ -140,10 +166,15 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     @Nonnull
     private ArrayList<String[]> readRawLogLines() throws IOException {
         ArrayList<String[]> rawLogLines;
-        try (Stream<String> stream = Files.lines(Paths.get(logger.getLogFilePath()))) {
+        try (Stream<String> stream = Files.lines(getOriginalLogFilePath())) {
             rawLogLines = stream.map(line -> line.split("\\s+")).collect(Collectors.toCollection(ArrayList::new));
         }
         return rawLogLines;
+    }
+
+    @Nonnull
+    private Path getOriginalLogFilePath() {
+        return Paths.get(logger.getLogFilePath());
     }
 
     @Nonnull

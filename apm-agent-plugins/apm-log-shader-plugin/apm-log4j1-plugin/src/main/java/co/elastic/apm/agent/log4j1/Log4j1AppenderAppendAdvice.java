@@ -31,9 +31,15 @@ import org.apache.log4j.spi.LoggingEvent;
 
 public class Log4j1AppenderAppendAdvice {
 
+    @SuppressWarnings("unused")
+    @Advice.OnMethodEnter(suppress = Throwable.class, skipOn = Advice.OnNonDefaultValue.class, inline = false)
+    public static boolean shadeAndSkipIfOverrideEnabled(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LoggingEvent eventObject,
+                                                        @Advice.This(typing = Assigner.Typing.DYNAMIC) WriterAppender thisAppender) {
+        return Log4j1LogShadingHelper.instance().shouldSkipAppend(thisAppender);
+    }
+
     @SuppressWarnings({"unused"})
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-
     public static void shadeLoggingEvent(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) final LoggingEvent eventObject,
                                          @Advice.This(typing = Assigner.Typing.DYNAMIC) WriterAppender thisAppender) {
 

@@ -139,7 +139,7 @@ Click on a key to get more information.
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
 ** <<config-log-shading-enabled>>
-** <<config-log-shading-override>>
+** <<config-log-shading-replace>>
 ** <<config-log-shading-destination-dir>>
 ** <<config-log-file-size>>
 ** <<config-log-format-sout>>
@@ -1622,13 +1622,12 @@ If true, check out additional `log_shading` configurations options.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-log-shading-override]]
-==== `log_shading_override` (performance)
+[[config-log-shading-replace]]
+==== `log_shading_replace` (performance)
 
 By default, when Log Shading is enabled, application logs will be duplicated so that the 
 ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the 
-related overhead, set this option to true to override the original log files instead. 
-
+related overhead, set this option to true to replace the original log files with the ECS-compatible ones.
 
 
 
@@ -1643,7 +1642,7 @@ related overhead, set this option to true to override the original log files ins
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.log_shading_override` | `log_shading_override` | `ELASTIC_APM_LOG_SHADING_OVERRIDE`
+| `elastic.apm.log_shading_replace` | `log_shading_replace` | `ELASTIC_APM_LOG_SHADING_REPLACE`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1651,13 +1650,11 @@ related overhead, set this option to true to override the original log files ins
 [[config-log-shading-destination-dir]]
 ==== `log_shading_destination_dir`
 
-As long as <<config-log-shading-override,`log_shading_override`>> is set to `false`, the shade log files will be written
-alongside the original logs in the same directory. Use this configuration in order to write the shade 
-logs into an alternative destination. Omitting this config or setting it to an empty string will 
-restore the default behavior. 
-
-NOTE: Use absolute path for this configuration. 
-
+As long as <<config-log-shading-override,`log_shading_override`>> is set to `false`, the shade 
+log files will be written alongside the original logs in the same directory. Use this configuration in 
+order to write the shade logs into an alternative destination. Omitting this config or setting it to an 
+empty string will restore the default behavior. If relative path is used, this path will be used relative 
+to the original logs directory.
 
 
 
@@ -2643,7 +2640,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jsf`, `kafka`, `lettuce`, `log4j`, `log4j1`, `log4j2`, `logback`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `log4j1`, `log4j2`, `logback`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -3185,22 +3182,19 @@ The default unit for this option is `ms`.
 
 # By default, when Log Shading is enabled, application logs will be duplicated so that the 
 # ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the 
-# related overhead, set this option to true to override the original log files instead. 
-# 
+# related overhead, set this option to true to replace the original log files with the ECS-compatible ones.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean
 # Default value: false
 #
-# log_shading_override=false
+# log_shading_replace=false
 
-# As long as <<log_shading_override>> is set to `false`, the shade log files will be written 
-# alongside the original logs in the same directory. Use this configuration in order to write the shade 
-# logs into an alternative destination. Omitting this config or setting it to an empty string will 
-# restore the default behavior. 
-# 
-# NOTE: Use absolute path for this configuration. 
-# 
+# As long as <<config-log-shading-override,`log_shading_override`>> is set to `false`, the shade 
+# log files will be written alongside the original logs in the same directory. Use this configuration in 
+# order to write the shade logs into an alternative destination. Omitting this config or setting it to an 
+# empty string will restore the default behavior. If relative path is used, this path will be used relative 
+# to the original logs directory.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
