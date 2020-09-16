@@ -33,6 +33,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * Fix instrumentation error for HttpClient - {pull}1402[#1402]
+* Eliminate `unsupported class version error` messages related to loading the Java 11 HttpClient plugin in pre-Java-11 JVMs {pull}1397[1397]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
