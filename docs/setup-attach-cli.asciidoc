@@ -73,7 +73,7 @@ Attaches the agent to all matching JVMs on the host which confirm to the optiona
 
 [source,bash]
 ----
-java -jar apm-agent-attach-standalone.jar [-include <include_pattern>...]
+java -jar apm-agent-attach-standalone.jar [--include <include_pattern>...]
        [--exclude <exclude_pattern>...] [--continuous]
        [--config <agent_config>... | --args-provider <args_provider_script>]
 ----
