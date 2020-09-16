@@ -59,8 +59,8 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@SimpleMethodSignature String signature) {
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void setTransactionName(@SimpleMethodSignature String signature) {
         final Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
             transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
@@ -102,8 +102,4 @@ public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentat
         return Collections.singletonList("jax-ws");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }
