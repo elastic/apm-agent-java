@@ -267,11 +267,13 @@ public class JmsInstrumentationHelper {
                 messageContext.addHeader(JMS_TIMESTAMP_HEADER, String.valueOf(message.getJMSTimestamp()));
 
                 Enumeration properties = message.getPropertyNames();
-                while (properties.hasMoreElements()) {
-                    String propertyName = String.valueOf(properties.nextElement());
-                    if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)
-                        && WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
-                        messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
+                if (properties != null) {
+                    while (properties.hasMoreElements()) {
+                        String propertyName = String.valueOf(properties.nextElement());
+                        if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)
+                            && WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
+                            messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
+                        }
                     }
                 }
             }
