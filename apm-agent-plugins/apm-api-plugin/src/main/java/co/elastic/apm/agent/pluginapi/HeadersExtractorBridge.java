@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +32,6 @@ import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.util.Iterator;
 
-@VisibleForAdvice
 public class HeadersExtractorBridge implements TextHeaderGetter<HeadersExtractorBridge.Extractor> {
 
     private static final Logger logger = LoggerFactory.getLogger(HeadersExtractorBridge.class);

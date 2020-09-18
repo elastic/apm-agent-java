@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -74,11 +74,10 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("setName"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        @Advice.OnMethodEnter(inline = false)
+        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj,
                                    @Advice.Argument(0) String name) {
-            span.withName(name, PRIO_USER_SUPPLIED);
+            ((AbstractSpan<?>) abstractSpanObj).withName(name, PRIO_USER_SUPPLIED);
         }
     }
 
@@ -88,11 +87,11 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        @Advice.OnMethodEnter(inline = false)
+        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj,
                                    @Advice.Argument(0) String type) {
-            if (span instanceof Span) {
-                ((Span) span).setType(type, null, null);
+            if (abstractSpanObj instanceof Span) {
+                ((Span) abstractSpanObj).setType(type, null, null);
             }
         }
     }
@@ -105,8 +104,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static Span doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.createSpan();
+        public static Object doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj) {
+            return ((AbstractSpan<?>) abstractSpanObj).createSpan();
         }
     }
 
@@ -116,9 +115,9 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            span.end();
+        @Advice.OnMethodEnter(inline = false)
+        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj) {
+            ((AbstractSpan<?>) abstractSpanObj).end();
         }
     }
 
@@ -130,9 +129,9 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj,
                                         @Advice.Argument(0) Throwable t) {
-            span.captureException(t);
+            ((AbstractSpan<?>) abstractSpanObj).captureException(t);
         }
     }
 
@@ -145,8 +144,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.getTraceContext().getId().toString();
+        public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj) {
+            return ((AbstractSpan<?>) abstractSpanObj).getTraceContext().getId().toString();
         }
     }
 
@@ -159,8 +158,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.getTraceContext().getTraceId().toString();
+        public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj) {
+            return ((AbstractSpan<?>) abstractSpanObj).getTraceContext().getTraceId().toString();
         }
     }
 
@@ -170,10 +169,10 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        @Advice.OnMethodEnter(inline = false)
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj,
                                   @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
-            span.addLabel(key, value);
+            ((AbstractSpan<?>) abstractSpanObj).addLabel(key, value);
         }
     }
 
@@ -183,9 +182,9 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            span.activate();
+        @Advice.OnMethodEnter(inline = false)
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj) {
+            ((AbstractSpan<?>) abstractSpanObj).activate();
         }
     }
 
@@ -197,8 +196,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static boolean addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.isSampled();
+        public static boolean addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object abstractSpanObj) {
+            return ((AbstractSpan<?>) abstractSpanObj).isSampled();
         }
     }
 }

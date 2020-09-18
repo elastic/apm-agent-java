@@ -22,31 +22,21 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
-import net.bytebuddy.matcher.ElementMatcher;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
-import static net.bytebuddy.matcher.ElementMatchers.named;
+import java.util.Collection;
+import java.util.Collections;
 
-public class ApiScopeInstrumentation extends ApiInstrumentation {
-
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> context) {
-        context.deactivate();
+public abstract class ApiInstrumentation extends TracerAwareInstrumentation {
+    @Override
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return true;
     }
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.api.ScopeImpl");
-    }
-
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("close");
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP);
     }
 }

@@ -22,10 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.AnnotationValueExtractor;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -48,15 +47,14 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
-import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
-import static co.elastic.apm.agent.plugin.api.Utils.FRAMEWORK_NAME;
+import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class CaptureTransactionInstrumentation extends TracerAwareInstrumentation {
 
-    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(CaptureTransactionInstrumentation.class);
 
     private final StacktraceConfiguration config;
@@ -65,15 +63,15 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
         config = tracer.getConfig(StacktraceConfiguration.class);
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onMethodEnter(@Advice.Origin Class<?> clazz,
-                                     @SimpleMethodSignature String signature,
-                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
-                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
-                                     @Advice.Local("transaction") Transaction transaction) {
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onMethodEnter(@Advice.Origin Class<?> clazz,
+                                       @SimpleMethodSignature String signature,
+                                       @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
+                                       @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type) {
         final Object active = tracer.getActive();
         if (active == null) {
-            transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
             if (transaction != null) {
                 if (transactionName.isEmpty()) {
                     transaction.withName(signature, PRIO_METHOD_SIGNATURE);
@@ -83,17 +81,19 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
                 transaction.withType(type)
                     .activate();
                 transaction.setFrameworkName(FRAMEWORK_NAME);
+                return transaction;
             }
         } else {
             logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
         }
+        return null;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("transaction") Transaction transaction,
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onMethodExit(@Nullable @Advice.Enter Object transactionObj,
                                     @Advice.Thrown Throwable t) {
-        if (transaction != null) {
-            transaction.captureException(t)
+        if (transactionObj instanceof Transaction) {
+            ((Transaction) transactionObj).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -118,10 +118,5 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
     }
 }

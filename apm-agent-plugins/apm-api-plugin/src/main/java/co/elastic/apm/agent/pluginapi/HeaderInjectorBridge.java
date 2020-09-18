@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
-@VisibleForAdvice
 @SuppressWarnings("unused")
 public class HeaderInjectorBridge implements TextHeaderSetter<Object> {
 
@@ -41,7 +39,6 @@ public class HeaderInjectorBridge implements TextHeaderSetter<Object> {
     @Nullable
     private static HeaderInjectorBridge INSTANCE;
 
-    @VisibleForAdvice
     public static HeaderInjectorBridge get(MethodHandle addHeaderMethod) {
         if (INSTANCE == null) {
             INSTANCE = new HeaderInjectorBridge(addHeaderMethod);

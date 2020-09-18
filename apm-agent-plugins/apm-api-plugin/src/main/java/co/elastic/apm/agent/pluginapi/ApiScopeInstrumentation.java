@@ -22,32 +22,31 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class CaptureExceptionInstrumentation extends ApiInstrumentation {
+public class ApiScopeInstrumentation extends ApiInstrumentation {
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) Throwable t) {
-        tracer.captureAndReportException(t, clazz.getClassLoader());
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object contextAbstractSpanObj) {
+        ((AbstractSpan<?>) contextAbstractSpanObj).deactivate();
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.api.NoopTransaction").or(
-            named("co.elastic.apm.api.NoopSpan"));
+        return named("co.elastic.apm.api.ScopeImpl");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("captureException").and(takesArguments(Throwable.class));
+        return named("close");
     }
-
 }

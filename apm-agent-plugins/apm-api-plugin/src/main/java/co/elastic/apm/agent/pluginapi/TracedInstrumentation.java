@@ -22,24 +22,22 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -47,55 +45,70 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
+import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
-
-    @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);
+public class TracedInstrumentation extends TracerAwareInstrumentation {
 
     private final StacktraceConfiguration config;
 
-    public CaptureSpanInstrumentation(ElasticApmTracer tracer) {
+    public TracedInstrumentation(ElasticApmTracer tracer) {
         config = tracer.getConfig(StacktraceConfiguration.class);
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onMethodEnter(
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onMethodEnter(
+        @Advice.Origin Class<?> clazz,
         @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action,
-        @Advice.Local("span") Span span) {
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "value") String spanName,
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "type") String type,
+        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") String subtype,
+        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") String action) {
+
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent != null) {
-            span = parent.createSpan();
-            span.setType(type, subtype, action);
+            Span span = parent.createSpan();
+            span.withType(type.isEmpty() ? "app" : type);
+            span.withSubtype(subtype);
+            span.withAction(action);
             span.withName(spanName.isEmpty() ? signature : spanName)
                 .activate();
+            return span;
         } else {
-            logger.debug("Not creating span for {} because there is no currently active span.", signature);
+            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+            if (transaction != null) {
+                if (spanName.isEmpty()) {
+                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                } else {
+                    transaction.withName(spanName, PRIO_USER_SUPPLIED);
+                }
+                transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
+                    .activate();
+                transaction.setFrameworkName(FRAMEWORK_NAME);
+            }
+            return transaction;
         }
-
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("span") Span span,
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onMethodExit(@Advice.Enter @Nullable Object abstractSpanObj,
                                     @Advice.Thrown Throwable t) {
-        if (span != null) {
+        if (abstractSpanObj != null) {
+            AbstractSpan<?> span = (AbstractSpan<?>) abstractSpanObj;
             span.captureException(t)
-                .deactivate()
-                .end();
+                .deactivate();
+            span.end();
         }
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return classLoaderCanLoadClass("co.elastic.apm.api.CaptureSpan");
+        return classLoaderCanLoadClass("co.elastic.apm.api.Traced");
     }
 
     @Override
@@ -106,7 +119,7 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isAnnotatedWith(named("co.elastic.apm.api.CaptureSpan"));
+        return isAnnotatedWith(named("co.elastic.apm.api.Traced"));
     }
 
     @Override
@@ -117,10 +130,5 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
     }
 }

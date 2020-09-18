@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
@@ -64,11 +63,12 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("setUser"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
                                    @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
-            transaction.setUser(id, email, username);
+            if (transactionObj instanceof Transaction) {
+                ((Transaction) transactionObj).setUser(id, email, username);
+            }
         }
     }
 
@@ -79,14 +79,17 @@ public class TransactionInstrumentation extends ApiInstrumentation {
 
         @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction) {
-            final TraceContext traceContext = transaction.getTraceContext();
-            if (traceContext.getParentId().isEmpty()) {
-                traceContext.getParentId().setToRandomValue();
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj) {
+            if (transactionObj instanceof Transaction) {
+                Transaction transaction = (Transaction) transactionObj;
+                final TraceContext traceContext = transaction.getTraceContext();
+                if (traceContext.getParentId().isEmpty()) {
+                    traceContext.getParentId().setToRandomValue();
+                }
+                return traceContext.getParentId().toString();
             }
-            return traceContext.getParentId().toString();
+            return null;
         }
     }
 
@@ -95,10 +98,12 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("setResult"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                           @Advice.Argument(0) String result) {
-            transaction.withResult(result);
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
+                                          @Advice.Argument(0) String result) {
+            if (transactionObj instanceof Transaction) {
+                ((Transaction) transactionObj).withResult(result);
+            }
         }
     }
 
@@ -107,11 +112,11 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("addCustomContext"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Object value) {
-            if (value != null ) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
+                                            @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Object value) {
+            if (value != null && transactionObj instanceof Transaction) {
+                Transaction transaction = (Transaction) transactionObj;
                 if (value instanceof String) {
                     transaction.addCustomContext(key, (String) value);
                 } else if (value instanceof Number) {
