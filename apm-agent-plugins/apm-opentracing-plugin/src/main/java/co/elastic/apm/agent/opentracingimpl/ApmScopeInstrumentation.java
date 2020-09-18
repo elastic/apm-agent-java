@@ -22,29 +22,36 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrumentation {
+public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void close() {
-        tracer.stop();
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object dispatcherAbstractSpanObj) {
+        if (dispatcherAbstractSpanObj instanceof AbstractSpan<?>) {
+            AbstractSpan<?> dispatcher = (AbstractSpan<?>) dispatcherAbstractSpanObj;
+            dispatcher.deactivate();
+        }
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.opentracing.ElasticApmTracer");
+        return named("co.elastic.apm.opentracing.ApmScope");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("close");
+        return named("release");
     }
 }

@@ -22,11 +22,29 @@
  * under the License.
  * #L%
  */
+package co.elastic.apm.agent.opentracingimpl;
 
-/**
- * Injects the actual implementation of the OpenTracing API at runtime.
- */
-@NonnullApi
-package co.elastic.apm.agent.opentracing.impl;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+
+public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrumentation {
+
+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+    public static void close() {
+        tracer.stop();
+    }
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("co.elastic.apm.opentracing.ElasticApmTracer");
+    }
+
+    @Override
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("close");
+    }
+}

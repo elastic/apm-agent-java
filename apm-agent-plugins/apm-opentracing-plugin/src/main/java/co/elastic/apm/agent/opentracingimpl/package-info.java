@@ -22,26 +22,11 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+/**
+ * Injects the actual implementation of the OpenTracing API at runtime.
+ */
+@NonnullApi
+package co.elastic.apm.agent.opentracingimpl;
 
-import java.util.Collection;
-import java.util.Collections;
-
-public abstract class OpenTracingBridgeInstrumentation extends TracerAwareInstrumentation {
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("opentracing");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

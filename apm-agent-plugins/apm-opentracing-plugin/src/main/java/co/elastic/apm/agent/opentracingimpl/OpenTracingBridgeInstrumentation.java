@@ -22,42 +22,22 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.opentracing;
+package co.elastic.apm.agent.opentracingimpl;
 
-import javax.annotation.Nullable;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 
-public class TraceContextSpanContext implements ApmSpanContext {
-
-    // co.elastic.apm.agent.impl.transaction.TraceContext
-    @Nullable
-    private final Object traceContext;
-
-    TraceContextSpanContext(@Nullable Object traceContext) {
-        this.traceContext = traceContext;
+public abstract class OpenTracingBridgeInstrumentation extends TracerAwareInstrumentation {
+    @Override
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return true;
     }
 
     @Override
-    public String toTraceId() {
-        // co.elastic.apm.agent.opentracingimpl.SpanContextInstrumentation$ToTraceIdInstrumentation
-        return "";
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton("opentracing");
     }
 
-    @Override
-    public String toSpanId() {
-        // co.elastic.apm.agent.opentracingimpl.SpanContextInstrumentation$ToSpanIdInstrumentation
-        return "";
-    }
-
-    @Override
-    public Iterable<Map.Entry<String, String>> baggageItems() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    @Nullable
-    public Object getTraceContext() {
-        return traceContext;
-    }
 }

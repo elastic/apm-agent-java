@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -61,10 +60,10 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
             super(named("doActivate"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
-            if (span != null) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object spanObj) {
+            if (spanObj instanceof AbstractSpan<?>) {
+                AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
                 span.activate();
             }
         }
@@ -78,8 +77,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
 
         @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static Object getCurrentSpan() {
             return tracer.getActive();
         }
@@ -94,8 +92,7 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
 
         @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static Object getCurrentTraceContext() {
             return tracer.getActive();
         }

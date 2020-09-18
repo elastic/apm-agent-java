@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -38,6 +37,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -47,7 +47,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
-    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ApmSpanInstrumentation.class);
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
@@ -71,16 +70,15 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             super(named("finishInternal"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj,
                                            @Advice.Argument(0) long finishMicros) {
-            if (span != null) {
-                doFinishInternal(span, finishMicros);
+            if (abstractSpanObj instanceof AbstractSpan<?>) {
+                doFinishInternal((AbstractSpan<?>) abstractSpanObj, finishMicros);
             }
         }
 
-        @VisibleForAdvice
-        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros) {
+        public static void doFinishInternal(@Nonnull AbstractSpan<?> abstractSpan, long finishMicros) {
             abstractSpan.incrementReferences();
             if (abstractSpan instanceof Transaction) {
                 Transaction transaction = (Transaction) abstractSpan;
@@ -111,12 +109,11 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             super(named("setOperationName"));
         }
 
-        @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+        public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj,
                                             @Advice.Argument(0) @Nullable String operationName) {
-            if (span != null) {
-                span.withName(operationName, PRIO_USER_SUPPLIED);
+            if (abstractSpanObj instanceof AbstractSpan<?>) {
+                ((AbstractSpan<?>) abstractSpanObj).withName(operationName, PRIO_USER_SUPPLIED);
             } else {
                 logger.warn("Calling setOperationName on an already finished span");
             }
@@ -128,13 +125,13 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             super(named("log").and(takesArguments(long.class, Map.class)));
         }
 
-        @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void log(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+        public static void log(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj,
                                @Advice.Argument(0) long epochTimestampMicros,
                                @Advice.Argument(1) Map<String, ?> fields) {
 
-            if (span != null) {
+            if (abstractSpanObj instanceof AbstractSpan<?>) {
+                AbstractSpan<?> span = (AbstractSpan<?>) abstractSpanObj;
                 if ("error".equals(fields.get("event"))) {
                     final Object errorObject = fields.get("error.object");
                     if (errorObject instanceof Throwable) {
@@ -157,36 +154,35 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             super(named("handleTag"));
         }
 
-        @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void handleTag(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+        public static void handleTag(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj,
                                      @Advice.Argument(0) String key,
                                      @Advice.Argument(1) @Nullable Object value) {
             if (value == null) {
                 return;
             }
-            if (span instanceof Transaction) {
-                handleTransactionTag((Transaction) span, key, value);
-            } else if (span instanceof Span) {
-                handleSpanTag((Span) span, key, value);
+            if (abstractSpanObj instanceof Transaction) {
+                handleTransactionTag((Transaction) abstractSpanObj, key, value);
+            } else if (abstractSpanObj instanceof Span) {
+                handleSpanTag((Span) abstractSpanObj, key, value);
             } else {
                 logger.warn("Calling setTag on an already finished span");
             }
         }
 
-        private static void handleTransactionTag(Transaction transaction, String key, Object value) {
+        private static void handleTransactionTag(@Nonnull Transaction transaction, String key, Object value) {
             if (!handleSpecialTransactionTag(transaction, key, value)) {
                 addTag(transaction, key, value);
             }
         }
 
-        private static void handleSpanTag(Span span, String key, Object value) {
+        private static void handleSpanTag(@Nonnull Span span, String key, Object value) {
             if (!handleSpecialSpanTag(span, key, value)) {
                 addTag(span, key, value);
             }
         }
 
-        private static void addTag(AbstractSpan transaction, String key, Object value) {
+        private static void addTag(@Nonnull AbstractSpan transaction, String key, Object value) {
             if (value instanceof Number) {
                 transaction.addLabel(key, (Number) value);
             } else if (value instanceof Boolean) {
@@ -198,7 +194,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         // unfortunately, we can't use the constants in io.opentracing.tag.Tags,
         // as we can't declare a direct dependency on the OT API
-        private static boolean handleSpecialTransactionTag(Transaction transaction, String key, Object value) {
+        private static boolean handleSpecialTransactionTag(@Nonnull Transaction transaction, String key, Object value) {
             if ("type".equals(key)) {
                 transaction.withType(value.toString());
                 return true;
@@ -239,7 +235,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             return false;
         }
 
-        private static boolean handleSpecialSpanTag(Span span, String key, Object value) {
+        private static boolean handleSpecialSpanTag(@Nonnull Span span, String key, Object value) {
             if ("type".equals(key)) {
                 if (span.getSubtype() == null && span.getAction() == null) {
                     span.setType(value.toString(), null, null);
@@ -293,9 +289,9 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         @Nullable
         @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static Object getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan) {
-            return abstractSpan;
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static Object getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj) {
+            return abstractSpanObj;
         }
     }
 
