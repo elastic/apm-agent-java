@@ -52,7 +52,7 @@ public class ConnectionInstrumentation extends JdbcInstrumentation {
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void storeSql(@Advice.Return PreparedStatement statement,
                                 @Advice.Argument(0) String sql) {
-        jdbcHelper.mapStatementToSql(statement, sql);
+        getJdbcHelper().mapStatementToSql(statement, sql);
     }
 
     @Override

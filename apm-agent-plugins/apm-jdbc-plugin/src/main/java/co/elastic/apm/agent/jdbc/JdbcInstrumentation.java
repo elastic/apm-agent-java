@@ -26,18 +26,37 @@ package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
+import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
+
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 
 public abstract class JdbcInstrumentation extends TracerAwareInstrumentation {
 
     private static final Collection<String> JDBC_GROUPS = Collections.singleton("jdbc");
 
-    protected static JdbcHelper jdbcHelper = new JdbcHelper();
+    @Nullable
+    private static JdbcHelper jdbcHelper;
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return classLoaderCanLoadClass("java.sql.Statement");
+    }
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
         return JDBC_GROUPS;
+    }
+
+    protected synchronized static JdbcHelper getJdbcHelper() {
+        // lazily initialize helper to prevent trying to load classes in java.sql package with the bootstrap classloader
+        // this method should only be called from advices
+        if (jdbcHelper == null) {
+            jdbcHelper = new JdbcHelper();
+        }
+        return jdbcHelper;
     }
 }

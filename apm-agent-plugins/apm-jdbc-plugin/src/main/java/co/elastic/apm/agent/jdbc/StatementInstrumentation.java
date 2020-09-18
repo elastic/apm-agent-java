@@ -26,6 +26,7 @@ package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -100,7 +101,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         public static Object onBeforeExecute(@Advice.This Statement statement,
                                              @Advice.Argument(0) String sql) {
 
-            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), false);
+            return getJdbcHelper().createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
 
@@ -147,7 +148,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         public static Object onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
 
-            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), false);
+            return getJdbcHelper().createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -185,7 +186,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void storeSql(@Advice.This Statement statement, @Advice.Argument(0) String sql) {
-            jdbcHelper.mapStatementToSql(statement, sql);
+            getJdbcHelper().mapStatementToSql(statement, sql);
         }
     }
 
@@ -212,8 +213,9 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
-            String sql = jdbcHelper.retrieveSqlForStatement(statement);
-            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+            JdbcHelper helper = getJdbcHelper();
+            String sql = helper.retrieveSqlForStatement(statement);
+            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
 
         }
 
@@ -273,8 +275,9 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
 
-            String sql = jdbcHelper.retrieveSqlForStatement(statement);
-            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+            JdbcHelper helper = getJdbcHelper();
+            String sql = helper.retrieveSqlForStatement(statement);
+            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -317,8 +320,9 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
-            @Nullable String sql = jdbcHelper.retrieveSqlForStatement(statement);
-            return jdbcHelper.createJdbcSpan(sql, statement, tracer.getActive(), true);
+            JdbcHelper helper = getJdbcHelper();
+            @Nullable String sql = helper.retrieveSqlForStatement(statement);
+            return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
