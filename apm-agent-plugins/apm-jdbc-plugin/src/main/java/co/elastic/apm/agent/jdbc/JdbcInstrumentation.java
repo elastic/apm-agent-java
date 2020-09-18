@@ -43,7 +43,7 @@ public abstract class JdbcInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return classLoaderCanLoadClass("java.sql.Statement");
+        return classLoaderCanLoadClass("java.sql.Statement"); // in case java.sql module is not there
     }
 
     @Override
