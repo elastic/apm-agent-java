@@ -19,8 +19,9 @@
 
     <modules>
         <module>apm-rabbitmq-plugin</module>
-        <module>apm-rabbitmq-test-3.x</module>
+        <module>apm-rabbitmq-test-3</module>
+        <module>apm-rabbitmq-test-4</module>
+        <module>apm-rabbitmq-test-5</module>
     </modules>
-
 
 </project>

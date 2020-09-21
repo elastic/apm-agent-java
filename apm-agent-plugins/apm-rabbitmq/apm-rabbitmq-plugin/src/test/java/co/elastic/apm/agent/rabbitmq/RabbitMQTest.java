@@ -1,3 +1,4 @@
+package co.elastic.apm.agent.rabbitmq;
 /*-
  * #%L
  * Elastic APM Java agent
@@ -22,7 +23,6 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import com.rabbitmq.client.Connection;
@@ -30,7 +30,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.jupiter.api.AfterAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.RabbitMQContainer;

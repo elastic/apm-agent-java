@@ -1,3 +1,4 @@
+package co.elastic.apm.agent.rabbitmq;
 /*-
  * #%L
  * Elastic APM Java agent
@@ -22,7 +23,6 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.rabbitmq.client.AMQP;
@@ -48,7 +48,7 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
     private static final Logger log = LoggerFactory.getLogger(RabbitMQPluginIT.class);
 
     @Test
-    public void testRabbitPlugin() throws IOException, InterruptedException {
+    public void testRabbitPlugin() throws IOException {
         Connection connection = createConnection();
 
         Channel channel = connection.createChannel();
