@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
+@Deprecated
 public class MockChannel implements Channel {
 
     private AMQP.BasicProperties receivedBasicProperties;

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.mock.MockChannel;
 import co.elastic.apm.agent.rabbitmq.mock.MockConsumer;
@@ -36,11 +35,12 @@ import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RabbitMQConsumerInstrumentationTest extends AbstractInstrumentationTest {
+public class RabbitMQConsumerInstrumentationTest extends RabbitMQTest {
 
     @Test
     public void testHandleDelivery() throws IOException {
-        MockConsumer mockConsumer = new MockConsumer();
+
+        MockConsumer mockConsumer = new MockConsumer(null);
         AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
         HashMap<String, Object> headers = new HashMap<>();
         builder.headers(headers);
@@ -76,7 +76,7 @@ public class RabbitMQConsumerInstrumentationTest extends AbstractInstrumentation
         getTracer().currentTransaction().deactivate().end();
         assertThat(getReporter().getTransactions()).hasSize(1);
 
-        MockConsumer mockConsumer = new MockConsumer();
+        MockConsumer mockConsumer = new MockConsumer(null);
 
         mockConsumer.handleDelivery(null, null, basicProperties, "Testing APM!".getBytes());
 

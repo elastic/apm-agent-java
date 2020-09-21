@@ -50,7 +50,7 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("com.rabbitmq.client.Channel"));
+        return hasSuperType(named("com.rabbitmq.client.Channel")); // expensive matching
     }
 
     @Override

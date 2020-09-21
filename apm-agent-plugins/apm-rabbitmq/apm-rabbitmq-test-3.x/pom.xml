@@ -3,29 +3,42 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>apm-agent-plugins</artifactId>
+        <artifactId>apm-rabbitmq</artifactId>
         <groupId>co.elastic.apm</groupId>
         <version>1.18.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-rabbitmq-plugin</artifactId>
+    <artifactId>apm-rabbitmq-test-3.x</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
     <dependencies>
         <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-rabbitmq-plugin</artifactId>
+            <version>1.18.1-SNAPSHOT</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
-            <version>5.9.0</version>
-            <scope>provided</scope>
+            <version>3.6.6</version>
+            <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>4.0.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

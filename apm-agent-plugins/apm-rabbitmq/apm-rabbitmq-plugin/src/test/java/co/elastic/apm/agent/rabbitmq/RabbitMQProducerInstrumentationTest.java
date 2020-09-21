@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.rabbitmq.mock.MockChannel;
 import com.rabbitmq.client.AMQP;
@@ -35,7 +34,7 @@ import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RabbitMQProducerInstrumentationTest extends AbstractInstrumentationTest {
+public class RabbitMQProducerInstrumentationTest extends RabbitMQTest {
 
     @Test
     public void testBasicPublish() throws IOException {
