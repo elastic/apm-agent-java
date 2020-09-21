@@ -25,6 +25,7 @@ package co.elastic.apm.agent.rabbitmq;
  */
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.junit.After;
@@ -45,6 +46,10 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     private static final String IMAGE = "rabbitmq:3.7-management-alpine";
     private static final RabbitMQContainer container = new RabbitMQContainer(IMAGE);
+
+    protected static final String ROUTING_KEY = "test.key";
+
+    protected static final byte[] MSG = "Testing APM!".getBytes();
 
     @Nullable
     private static ConnectionFactory factory;
@@ -91,6 +96,22 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         } catch (IOException | TimeoutException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    protected String createQueue(Channel channel, String exchange) throws IOException {
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, exchange, ROUTING_KEY);
+        return queueName;
+    }
+
+    protected String createExchange(Channel channel) throws IOException {
+        String exchange = randString("exchange");
+        channel.exchangeDeclare(exchange, "direct", false);
+        return exchange;
+    }
+
+    private static String randString(String prefix) {
+        return String.format("%s-%08x", prefix, System.currentTimeMillis());
     }
 
 }

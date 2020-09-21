@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import com.rabbitmq.client.AMQP;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 
 public class RabbitMQTextHeaderGetter implements TextHeaderGetter<AMQP.BasicProperties> {
 
@@ -39,22 +40,25 @@ public class RabbitMQTextHeaderGetter implements TextHeaderGetter<AMQP.BasicProp
     @Nullable
     @Override
     public String getFirstHeader(String headerName, AMQP.BasicProperties carrier) {
-        if (carrier.getHeaders() != null && !carrier.getHeaders().isEmpty() && carrier.getHeaders().containsKey(headerName)) {
-            Object headerValue = carrier.getHeaders().get(headerName);
-            if (headerValue instanceof String) {
-                return (String) headerValue;
-            }
+        Map<String, Object> headers = carrier.getHeaders();
+        if (headers == null || headers.isEmpty()) {
+            return null;
+        }
+        Object headerValue = headers.get(headerName);
+        if (headerValue instanceof String) {
+            return (String) headerValue;
+        } else if (headerValue != null) {
+            // com.rabbitmq.client.impl.LongStringHelper.ByteArrayLongString
+            return headerValue.toString();
         }
         return null;
     }
 
     @Override
     public <S> void forEach(String headerName, AMQP.BasicProperties carrier, S state, HeaderConsumer<String, S> consumer) {
-        if (carrier.getHeaders() != null && !carrier.getHeaders().isEmpty() && carrier.getHeaders().containsKey(headerName)) {
-            Object headerValue = carrier.getHeaders().get(headerName);
-            if (headerValue instanceof String) {
-                consumer.accept((String) headerValue, state);
-            }
+        String header = getFirstHeader(headerName, carrier);
+        if (header != null) {
+            consumer.accept(header, state);
         }
     }
 }

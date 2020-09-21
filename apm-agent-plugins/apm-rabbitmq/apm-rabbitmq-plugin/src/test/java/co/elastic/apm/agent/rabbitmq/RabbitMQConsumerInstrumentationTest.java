@@ -24,10 +24,15 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.rabbitmq.mock.MockChannel;
-import co.elastic.apm.agent.rabbitmq.mock.MockConsumer;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -38,51 +43,83 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class RabbitMQConsumerInstrumentationTest extends RabbitMQTest {
 
     @Test
-    public void testHandleDelivery() throws IOException {
+    public void createRootTransactionOnConsumerHandle() throws IOException {
 
-        MockConsumer mockConsumer = new MockConsumer(null);
-        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
-        HashMap<String, Object> headers = new HashMap<>();
-        builder.headers(headers);
+        Connection connection = createConnection();
+        Channel channel = connection.createChannel();
+        String exchange = createExchange(channel);
+        String queue = createQueue(channel, exchange);
 
-        mockConsumer.handleDelivery(null, null, builder.build(), "Testing APM!".getBytes());
+        Consumer consumer = dummyConsumer(channel);
 
-        assertThat(getReporter().getTransactions()).hasSize(1);
+        channel.basicConsume(queue, consumer);
+
+        AMQP.BasicProperties properties = emptyProperties();
+        channel.basicPublish(exchange, ROUTING_KEY, properties, MSG);
+
+        getReporter().awaitTransactionCount(1);
 
         Transaction transaction = getReporter().getFirstTransaction();
-        assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ message received");
+        checkTransaction(transaction);
     }
 
     @Test
     public void testHandleDeliveryWithTraceHeaders() throws IOException {
+        Connection connection = createConnection();
+        Channel channel = connection.createChannel();
+        String exchange = createExchange(channel);
+        String queue = createQueue(channel, exchange);
+
+        // publish within first transaction
+
         getTracer().startRootTransaction(getClass().getClassLoader())
             .withName("Rabbit-Test Transaction")
             .withType("request")
             .withResult("success")
             .activate();
 
-        MockChannel mockChannel = new MockChannel();
-
-        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
-        HashMap<String, Object> headers = new HashMap<>();
-        builder.headers(headers);
-
-        mockChannel.basicPublish("test-exchange", "test.key", builder.build(), "Testing APM!".getBytes());
-
-        assertThat(mockChannel.getReceivedBasicProperties()).isNotNull();
-        AMQP.BasicProperties basicProperties = mockChannel.getReceivedBasicProperties();
+        // publish will create a span
+        channel.basicPublish(exchange, ROUTING_KEY, emptyProperties(), MSG);
 
         getTracer().currentTransaction().deactivate().end();
-        assertThat(getReporter().getTransactions()).hasSize(1);
 
-        MockConsumer mockConsumer = new MockConsumer(null);
+        getReporter().awaitTransactionCount(1);
 
-        mockConsumer.handleDelivery(null, null, basicProperties, "Testing APM!".getBytes());
+        // consume outside of transaction: should create another transaction with parent
 
-        assertThat(getReporter().getTransactions()).hasSize(2);
+        channel.basicConsume(queue, dummyConsumer(channel));
 
-        Transaction transaction = getReporter().getTransactions().get(1);
+        getReporter().awaitTransactionCount(2);
+
+        Transaction parentTransaction = getReporter().getTransactions().get(0);
+        Transaction childTransaction = getReporter().getTransactions().get(1);
+
+        checkTransaction(childTransaction);
+
+        Span publishSpan = getReporter().getFirstSpan();
+        checkParentChild(parentTransaction, publishSpan);
+
+        checkParentChild(publishSpan, childTransaction);
+
+    }
+
+    private Consumer dummyConsumer(Channel channel){
+        return new DefaultConsumer(channel) {
+            // using an anonymous class to ensure class matching is properly applied
+        };
+    }
+
+    protected AMQP.BasicProperties emptyProperties() {
+        return new AMQP.BasicProperties.Builder().headers(new HashMap<>()).build();
+    }
+
+    protected void checkParentChild(AbstractSpan<?> parent, AbstractSpan<?> child) {
+        assertThat(parent.getTraceContext().getParentId())
+            .describedAs("child (%s) should be a child of (%s)", child, parent)
+            .isEqualTo(parent.getTraceContext().getId());
+    }
+
+    protected void checkTransaction(Transaction transaction) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ message received");
     }

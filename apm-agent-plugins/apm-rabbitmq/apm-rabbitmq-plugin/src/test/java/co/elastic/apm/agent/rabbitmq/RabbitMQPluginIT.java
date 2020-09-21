@@ -50,18 +50,13 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
     @Test
     public void testRabbitPlugin() throws IOException {
         Connection connection = createConnection();
-
         Channel channel = connection.createChannel();
-
-        channel.exchangeDeclare("test-exchange", "direct", true);
-
-        String queueName = channel.queueDeclare().getQueue();
-
-        channel.queueBind(queueName, "test-exchange", "test.key");
+        String exchange = createExchange(channel);
+        String queue = createQueue(channel, exchange);
 
         MyConsumer consumer = new MyConsumer(channel);
 
-        channel.basicConsume(queueName, false, "testTag", consumer);
+        channel.basicConsume(queue, false, "testTag", consumer);
 
         Transaction transaction = getTracer().startRootTransaction(getClass().getClassLoader())
             .withName("RabbitIT Transaction")
@@ -70,7 +65,7 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
             .activate();
 
         AMQP.BasicProperties basicProperties = new AMQP.BasicProperties();
-        channel.basicPublish("test-exchange", "test.key", basicProperties, "Testing APM!".getBytes());
+        channel.basicPublish(exchange, ROUTING_KEY, basicProperties, "Testing APM!".getBytes());
 
         transaction.deactivate().end();
 
