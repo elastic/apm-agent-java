@@ -32,6 +32,8 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import org.awaitility.core.ConditionFactory;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,8 +45,10 @@ import static org.awaitility.Awaitility.await;
 
 public abstract class RabbitMQPluginIT extends RabbitMQTest {
 
+    private static final Logger log = LoggerFactory.getLogger(RabbitMQPluginIT.class);
+
     @Test
-    public void testRabbitPlugin() throws IOException {
+    public void testRabbitPlugin() throws IOException, InterruptedException {
         Connection connection = createConnection();
 
         Channel channel = connection.createChannel();
@@ -95,8 +99,10 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
                                    Envelope envelope,
                                    AMQP.BasicProperties properties,
                                    byte[] body) throws IOException {
+            String msg = new String(body);
+            messages.add(msg);
+            log.info("handle message : {}", msg);
             long deliveryTag = envelope.getDeliveryTag();
-            messages.add(new String(body));
             getChannel().basicAck(deliveryTag, false);
         }
 
