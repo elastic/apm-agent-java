@@ -4,9 +4,6 @@ source /usr/local/bin/bash_standard_lib.sh
 JAVA_HOME=$HOME/.java/java11 ./mvnw clean verify \
   --fail-never -q -B \
   -Dmaven.javadoc.skip=true \
-  -Dhttps.protocols=TLSv1.2 \
-  -Dmaven.wagon.http.retryHandler.count=3 \
-  -Dhttp.keepAlive=false \
   -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 if [ -x "$(command -v docker)" ]; then
