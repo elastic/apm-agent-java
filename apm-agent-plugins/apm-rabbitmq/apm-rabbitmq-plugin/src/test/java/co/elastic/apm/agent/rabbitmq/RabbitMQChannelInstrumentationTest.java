@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RabbitMQProducerInstrumentationTest extends RabbitMQTest {
+public class RabbitMQChannelInstrumentationTest extends RabbitMQTest {
 
     @Test
     public void contextPropagationWithProperties() throws IOException, InterruptedException {

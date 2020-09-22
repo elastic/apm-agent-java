@@ -46,7 +46,13 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation {
+/**
+ * Instruments
+ * <ul>
+ *     <li>{@link com.rabbitmq.client.Channel#basicPublish}</li>
+ * </ul>
+ */
+public class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

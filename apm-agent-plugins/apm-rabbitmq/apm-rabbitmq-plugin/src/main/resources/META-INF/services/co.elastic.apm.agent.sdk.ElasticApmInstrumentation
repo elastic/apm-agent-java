@@ -1,2 +1,2 @@
 co.elastic.apm.agent.rabbitmq.RabbitMQConsumerInstrumentation
-co.elastic.apm.agent.rabbitmq.RabbitMQProducerInstrumentation
+co.elastic.apm.agent.rabbitmq.RabbitMQChannelInstrumentation

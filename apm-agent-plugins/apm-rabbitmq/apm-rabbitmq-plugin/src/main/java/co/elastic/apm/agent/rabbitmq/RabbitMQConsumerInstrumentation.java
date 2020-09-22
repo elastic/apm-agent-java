@@ -40,6 +40,12 @@ import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
+/**
+ * Instruments
+ * <ul>
+ *     <li>{@link com.rabbitmq.client.Consumer#handleDelivery}</li>
+ * </ul>
+ */
 public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation {
 
     @Override
@@ -64,7 +70,8 @@ public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation
 
     public static class RabbitConsumerAdvice {
 
-        private RabbitConsumerAdvice() {}
+        private RabbitConsumerAdvice() {
+        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
