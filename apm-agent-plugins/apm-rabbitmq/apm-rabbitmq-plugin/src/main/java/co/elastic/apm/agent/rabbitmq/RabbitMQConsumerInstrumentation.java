@@ -35,6 +35,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -50,7 +51,8 @@ public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("com.rabbitmq.client.Consumer")); // expensive matching
+        // Instrumentation applied at runtime, thus no need to check type
+        return any();
     }
 
     @Override

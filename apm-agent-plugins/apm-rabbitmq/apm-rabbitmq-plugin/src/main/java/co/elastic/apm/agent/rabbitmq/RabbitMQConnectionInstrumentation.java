@@ -11,10 +11,11 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -26,13 +27,16 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class RabbitMQConnectionInstrumentation extends RabbitMQBaseInstrumentation {
 
-    private static final List<Class<? extends ElasticApmInstrumentation>> CHANNEL_INSTRUMENTATIONS = Collections.singletonList(
-        RabbitMQChannelInstrumentation.class
+    private static final List<Class<? extends ElasticApmInstrumentation>> CHANNEL_INSTRUMENTATIONS = Arrays.asList(
+        RabbitMQChannelInstrumentation.BasicPublish.class,
+        RabbitMQChannelInstrumentation.BasicConsume.class
     );
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("com.rabbitmq.client");
+        // this fast heuristic works for all implementations within driver
+        return nameEndsWith("Connection")
+            .and(nameStartsWith("com.rabbitmq.client.impl"));
     }
 
     @Override

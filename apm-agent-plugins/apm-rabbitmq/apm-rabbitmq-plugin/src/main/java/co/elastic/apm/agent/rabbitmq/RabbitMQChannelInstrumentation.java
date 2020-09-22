@@ -28,31 +28,32 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
+import co.elastic.apm.agent.sdk.DynamicTransformer;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Consumer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-/**
- * Instruments
- * <ul>
- *     <li>{@link com.rabbitmq.client.Channel#basicPublish}</li>
- * </ul>
- */
-public class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrumentation {
+
+public abstract class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -60,32 +61,58 @@ public class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrumentation 
         return any();
     }
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("basicPublish")
-            .and(takesArguments(6));
-    }
+
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("com.rabbitmq.client.Channel"));
     }
 
-    @Override
-    public Class<?> getAdviceClass() {
-        return RabbitProducerAdvice.class;
-    }
+    /**
+     * Instruments
+     * <ul>
+     *     <li>{@link com.rabbitmq.client.Channel#basicConsume} to ensure instrumentation of {@link com.rabbitmq.client.Consumer} implementation</li>
+     * </ul>
+     */
+    public static class BasicConsume extends RabbitMQChannelInstrumentation {
 
-    public static class RabbitProducerAdvice {
+        public static final Set<Class<? extends ElasticApmInstrumentation>> CONSUMER_INSTRUMENTATION = Collections.singleton(RabbitMQConsumerInstrumentation.class);
 
-        private RabbitProducerAdvice() {}
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("basicConsume")
+                .and(takesArguments(7))
+                .and(takesArgument(6, named("com.rabbitmq.client.Consumer")));
+        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @AssignTo(
-            arguments = @AssignTo.Argument(index = 0, value = 4)
-        )
+        public static void onEnter(@Advice.Argument(6) @Nullable Consumer consumer) {
+            if (consumer == null) {
+                return;
+            }
+
+            DynamicTransformer.Accessor.get().ensureInstrumented(consumer.getClass(), CONSUMER_INSTRUMENTATION);
+        }
+    }
+
+    /**
+     * Instruments
+     * <ul>
+     *     <li>{@link com.rabbitmq.client.Channel#basicPublish}</li>
+     * </ul>
+     */
+    public static class BasicPublish extends RabbitMQChannelInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("basicPublish")
+                .and(takesArguments(6));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        @AssignTo(arguments = @AssignTo.Argument(index = 0, value = 4))
         @Nullable
         public static Object[] onBasicPublish(@Advice.Argument(0) final String exchange,
-                                              @Advice.Argument(value = 4) @Nullable AMQP.BasicProperties originalBasicProperties) {
+                                              @Advice.Argument(4) @Nullable AMQP.BasicProperties originalBasicProperties) {
             if (!tracer.isRunning() || tracer.getActive() == null) {
                 return null;
             }
