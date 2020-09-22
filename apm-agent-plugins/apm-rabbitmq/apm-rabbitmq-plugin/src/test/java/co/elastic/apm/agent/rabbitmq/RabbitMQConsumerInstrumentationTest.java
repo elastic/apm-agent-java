@@ -32,7 +32,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -103,7 +102,7 @@ public class RabbitMQConsumerInstrumentationTest extends RabbitMQTest {
 
     }
 
-    private Consumer dummyConsumer(Channel channel){
+    private Consumer dummyConsumer(Channel channel) {
         return new DefaultConsumer(channel) {
             // using an anonymous class to ensure class matching is properly applied
         };

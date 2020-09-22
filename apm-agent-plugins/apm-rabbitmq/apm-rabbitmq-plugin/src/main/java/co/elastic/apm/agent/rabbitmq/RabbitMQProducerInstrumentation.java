@@ -103,7 +103,9 @@ public class RabbitMQProducerInstrumentation extends RabbitMQBaseInstrumentation
 
             exitSpan.getContext().getMessage().withQueue(exchange);
 
-            exitSpan.getContext().getDestination().getService().withType("messaging").withName("rabbitmq")
+            exitSpan.getContext().getDestination().getService()
+                .withType("messaging")
+                .withName("rabbitmq")
                 .getResource().append("rabbitmq/").append(exchange);
 
             exitSpan.activate();
