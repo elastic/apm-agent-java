@@ -987,7 +987,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private static CharSequence sanitizeLabelKey(String key, StringBuilder replaceBuilder) {
+    public static CharSequence sanitizeLabelKey(String key, StringBuilder replaceBuilder) {
         for (int i = 0; i < DISALLOWED_IN_LABEL_KEY.length; i++) {
             if (key.contains(DISALLOWED_IN_LABEL_KEY[i])) {
                 return replaceAll(key, DISALLOWED_IN_LABEL_KEY, "_", replaceBuilder);
@@ -1171,7 +1171,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeStringValue(value, replaceBuilder, jw);
     }
 
-    private static void writeStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
+    public static void writeStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));
