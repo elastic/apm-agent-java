@@ -26,6 +26,8 @@ package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
@@ -35,13 +37,20 @@ public class UrlConnectionPropertyAccessor implements TextHeaderSetter<HttpURLCo
 
     private static final UrlConnectionPropertyAccessor INSTANCE = new UrlConnectionPropertyAccessor();
 
+    private static final Logger logger = LoggerFactory.getLogger(UrlConnectionPropertyAccessor.class);
+
     public static UrlConnectionPropertyAccessor instance() {
         return INSTANCE;
     }
 
     @Override
     public void setHeader(String headerName, String headerValue, HttpURLConnection urlConnection) {
-        urlConnection.addRequestProperty(headerName, headerValue);
+        try {
+            urlConnection.addRequestProperty(headerName, headerValue);
+        } catch (IllegalStateException e) {
+            // Indicating that it is too late now to add request properties, see sun.net.www.protocol.http.HttpURLConnection#connecting
+            logger.debug("Failed to add header {} to connection: {}", headerName, e.getMessage());
+        }
     }
 
     @Nullable
