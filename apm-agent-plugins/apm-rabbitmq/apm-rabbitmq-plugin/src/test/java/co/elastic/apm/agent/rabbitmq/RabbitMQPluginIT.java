@@ -24,6 +24,7 @@ package co.elastic.apm.agent.rabbitmq;
  * #L%
  */
 
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -65,19 +66,24 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
             .activate();
 
         AMQP.BasicProperties basicProperties = new AMQP.BasicProperties();
-        channel.basicPublish(exchange, ROUTING_KEY, basicProperties, "Testing APM!".getBytes());
+        channel.basicPublish(exchange, ROUTING_KEY, basicProperties, MSG);
 
         transaction.deactivate().end();
 
-        doAwait().until(() -> !consumer.getMessages().isEmpty());
-        assertThat(consumer.getMessages()).contains("Testing APM!");
+        getReporter().awaitTransactionCount(2);
+        getReporter().awaitSpanCount(1);
 
-        assertThat(getReporter().getTransactions()).hasSize(2);
-        assertThat(getReporter().getSpans()).hasSize(1);
-    }
+        Span span = getReporter().getFirstSpan();
+        Transaction transaction1 = getReporter().getTransactions().get(0);
+        checkTransaction(transaction1);
+        Transaction transaction2 = getReporter().getTransactions().get(1);
+        checkTransaction(transaction2);
 
-    protected ConditionFactory doAwait() {
-        return await().atMost(1000, MILLISECONDS);
+        assertThat(consumer.getMessages()).contains(new String(MSG));
+
+        // check context propagation
+        checkParentChild(transaction1, span);
+        checkParentChild(span, transaction2);
     }
 
     private static class MyConsumer extends DefaultConsumer {

@@ -25,6 +25,9 @@ package co.elastic.apm.agent.rabbitmq;
  */
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -38,7 +41,10 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class RabbitMQTest extends AbstractInstrumentationTest {
 
@@ -114,4 +120,18 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         return String.format("%s-%08x", prefix, System.currentTimeMillis());
     }
 
+    protected AMQP.BasicProperties emptyProperties() {
+        return new AMQP.BasicProperties.Builder().headers(new HashMap<>()).build();
+    }
+
+    protected void checkParentChild(AbstractSpan<?> parent, AbstractSpan<?> child) {
+        assertThat(child.getTraceContext().getParentId())
+            .describedAs("child (%s) should be a child of (%s)", child, parent)
+            .isEqualTo(parent.getTraceContext().getId());
+    }
+
+    protected void checkTransaction(Transaction transaction) {
+        assertThat(transaction.getType()).isEqualTo("messaging");
+        assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ message received");
+    }
 }

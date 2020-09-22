@@ -90,15 +90,10 @@ public class RabbitMQConsumerInstrumentationTest extends RabbitMQTest {
 
         getReporter().awaitTransactionCount(2);
 
-        Transaction parentTransaction = getReporter().getTransactions().get(0);
         Transaction childTransaction = getReporter().getTransactions().get(1);
 
         checkTransaction(childTransaction);
-
-        Span publishSpan = getReporter().getFirstSpan();
-        checkParentChild(parentTransaction, publishSpan);
-
-        checkParentChild(publishSpan, childTransaction);
+        checkParentChild(getReporter().getFirstSpan(), childTransaction);
 
     }
 
@@ -106,21 +101,6 @@ public class RabbitMQConsumerInstrumentationTest extends RabbitMQTest {
         return new DefaultConsumer(channel) {
             // using an anonymous class to ensure class matching is properly applied
         };
-    }
-
-    protected AMQP.BasicProperties emptyProperties() {
-        return new AMQP.BasicProperties.Builder().headers(new HashMap<>()).build();
-    }
-
-    protected void checkParentChild(AbstractSpan<?> parent, AbstractSpan<?> child) {
-        assertThat(parent.getTraceContext().getParentId())
-            .describedAs("child (%s) should be a child of (%s)", child, parent)
-            .isEqualTo(parent.getTraceContext().getId());
-    }
-
-    protected void checkTransaction(Transaction transaction) {
-        assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ message received");
     }
 
 }

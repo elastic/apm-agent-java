@@ -29,7 +29,10 @@ import com.rabbitmq.client.AMQP;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,27 +47,56 @@ public class RabbitMQTextHeaderGetterTest {
 
     @Test
     public void getFirstHeader() {
+        getFirstHeader("value", "value");
+        getFirstHeader(null, null);
+
+        // use toString as fallback
+        ObjectHeader header = new ObjectHeader();
+        getFirstHeader(header, header.toString());
+    }
+
+    private static class ObjectHeader {
+        @Override
+        public String toString() {
+            return "hello";
+        }
+    }
+
+    private void getFirstHeader(@Nullable Object value, @Nullable String expected) {
         HashMap<String, Object> headers = new HashMap<>();
-        headers.put("header", "value");
-        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder().headers(headers).build();
-        assertThat(rabbitMQTextHeaderGetter.getFirstHeader("header", basicProperties)).isEqualTo("value");
+        headers.put("header", value);
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().headers(headers).build();
+        assertThat(rabbitMQTextHeaderGetter.getFirstHeader("header", properties))
+            .isEqualTo(expected);
     }
 
     @Test
-    public void forEach() {
+    public void forEach() throws InterruptedException {
+        forEach("value", "value");
+        forEach(null, null);
+
+        // use toString as fallback
+        ObjectHeader header = new ObjectHeader();
+        forEach(header, header.toString());
+    }
+
+    private void forEach(@Nullable Object value, @Nullable String expected) throws InterruptedException {
         HashMap<String, Object> headers = new HashMap<>();
-        headers.put("header", "value");
-        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder().headers(headers).build();
+        headers.put("header", value);
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().headers(headers).build();
 
         Object stateObject = new Object();
+        CountDownLatch end = new CountDownLatch(1);
 
         HeaderGetter.HeaderConsumer<String, Object> headerConsumer = (headerValue, state) -> {
-            assertThat(state).isEqualTo(stateObject);
-            assertThat(headerValue).isEqualTo("value");
+            assertThat(state).isSameAs(stateObject);
+            assertThat(headerValue).isEqualTo(expected);
+            end.countDown();
         };
 
-        rabbitMQTextHeaderGetter.forEach("header", basicProperties, stateObject, headerConsumer);
+        rabbitMQTextHeaderGetter.forEach("header", properties, stateObject, headerConsumer);
 
-
+        // ensure consumer has been properly called
+        end.await(1, TimeUnit.SECONDS);
     }
 }
