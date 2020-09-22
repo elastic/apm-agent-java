@@ -33,6 +33,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -52,7 +53,7 @@ public class RabbitMQChannelInstrumentationTest extends RabbitMQTest {
         testContextPropagation(null);
     }
 
-    private void testContextPropagation(AMQP.BasicProperties properties) throws IOException, InterruptedException {
+    private void testContextPropagation(@Nullable AMQP.BasicProperties properties) throws IOException, InterruptedException {
 
         Connection connection = createConnection();
         Channel channel = connection.createChannel();

@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -56,7 +56,8 @@ public class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrumentation 
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("com.rabbitmq.client.Channel")); // expensive matching
+        // Instrumentation applied at runtime, thus no need to check type
+        return any();
     }
 
     @Override
@@ -69,83 +70,73 @@ public class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrumentation 
         return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("com.rabbitmq.client.Channel"));
     }
 
-    @Override
-    public Class<?> getAdviceClass() {
-        return RabbitProducerAdvice.class;
+
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    @AssignTo(arguments = @AssignTo.Argument(index = 0, value = 4))
+    @Nullable
+    public static Object[] onBasicPublish(@Advice.Argument(0) final String exchange,
+                                          @Advice.Argument(value = 4) @Nullable AMQP.BasicProperties originalBasicProperties) {
+        if (!tracer.isRunning() || tracer.getActive() == null) {
+            return null;
+        }
+
+        final AbstractSpan<?> activeSpan = tracer.getActive();
+        if (activeSpan == null) {
+            return null;
+        }
+
+        Span exitSpan = activeSpan.createExitSpan();
+        if (null == exitSpan) {
+            return null;
+        }
+
+        exitSpan.withType("messaging")
+            .withSubtype("rabbitmq")
+            .withAction("send")
+            .withName("RabbitMQ message sent to ")
+            .appendToName(exchange);
+
+        AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, RabbitMQTextHeaderSetter.INSTANCE);
+
+        exitSpan.getContext().getMessage().withQueue(exchange);
+
+        exitSpan.getContext().getDestination().getService()
+            .withType("messaging")
+            .withName("rabbitmq")
+            .getResource().append("rabbitmq/").append(exchange);
+
+        exitSpan.activate();
+
+        return new Object[]{basicProperties, exitSpan};
     }
 
-    public static class RabbitProducerAdvice {
-
-        private RabbitProducerAdvice() {}
-
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        @AssignTo(
-            arguments = @AssignTo.Argument(index = 0, value = 4)
-        )
-        @Nullable
-        public static Object[] onBasicPublish(@Advice.Argument(0) final String exchange,
-                                              @Advice.Argument(value = 4) @Nullable AMQP.BasicProperties originalBasicProperties) {
-            if (!tracer.isRunning() || tracer.getActive() == null) {
-                return null;
-            }
-
-            final AbstractSpan<?> activeSpan = tracer.getActive();
-            if (activeSpan == null) {
-                return null;
-            }
-
-            Span exitSpan = activeSpan.createExitSpan();
-            if (null == exitSpan) {
-                return null;
-            }
-
-            exitSpan.withType("messaging")
-                .withSubtype("rabbitmq")
-                .withAction("send")
-                .withName("RabbitMQ message sent to ")
-                .appendToName(exchange);
-
-            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, RabbitMQTextHeaderSetter.INSTANCE);
-
-            exitSpan.getContext().getMessage().withQueue(exchange);
-
-            exitSpan.getContext().getDestination().getService()
-                .withType("messaging")
-                .withName("rabbitmq")
-                .getResource().append("rabbitmq/").append(exchange);
-
-            exitSpan.activate();
-
-            return new Object[]{basicProperties, exitSpan};
+    private static AMQP.BasicProperties propagateTraceContext(Span exitSpan,
+                                                              @Nullable AMQP.BasicProperties originalBasicProperties,
+                                                              TextHeaderSetter<HashMap<String, Object>> textHeaderSetter) {
+        AMQP.BasicProperties properties = originalBasicProperties;
+        if (properties == null) {
+            properties = new AMQP.BasicProperties();
         }
 
-        private static AMQP.BasicProperties propagateTraceContext(Span exitSpan,
-                                                                  @Nullable AMQP.BasicProperties originalBasicProperties,
-                                                                  TextHeaderSetter<HashMap<String, Object>> textHeaderSetter) {
-            AMQP.BasicProperties properties = originalBasicProperties;
-            if (properties == null) {
-                properties = new AMQP.BasicProperties();
-            }
-
-            Map<String, Object> currentHeaders = properties.getHeaders();
-            if (currentHeaders == null) {
-                currentHeaders = new HashMap<>();
-            }
-
-            HashMap<String, Object> headersWithContext = new HashMap<>(currentHeaders);
-
-            exitSpan.propagateTraceContext(headersWithContext, textHeaderSetter);
-
-            return properties.builder().headers(headersWithContext).build();
+        Map<String, Object> currentHeaders = properties.getHeaders();
+        if (currentHeaders == null) {
+            currentHeaders = new HashMap<>();
         }
 
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-        public static void afterBasicPublish(@Advice.Enter @Nullable Object[] enterArray,
-                                             @Advice.Thrown @Nullable Throwable throwable) {
-            if (enterArray != null && enterArray.length >= 2 && enterArray[1] != null) {
-                Span span = (Span) enterArray[1];
-                span.captureException(throwable).deactivate().end();
-            }
+        HashMap<String, Object> headersWithContext = new HashMap<>(currentHeaders);
+
+        exitSpan.propagateTraceContext(headersWithContext, textHeaderSetter);
+
+        return properties.builder().headers(headersWithContext).build();
+    }
+
+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
+    public static void afterBasicPublish(@Advice.Enter @Nullable Object[] enterArray,
+                                         @Advice.Thrown @Nullable Throwable throwable) {
+        if (enterArray != null && enterArray.length >= 2 && enterArray[1] != null) {
+            Span span = (Span) enterArray[1];
+            span.captureException(throwable).deactivate().end();
         }
     }
+
 }
