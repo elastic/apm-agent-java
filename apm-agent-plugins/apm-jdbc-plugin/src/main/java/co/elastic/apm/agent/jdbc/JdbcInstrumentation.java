@@ -42,11 +42,6 @@ public abstract class JdbcInstrumentation extends TracerAwareInstrumentation {
     private static JdbcHelper jdbcHelper;
 
     @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return classLoaderCanLoadClass("java.sql.Statement"); // in case java.sql module is not there
-    }
-
-    @Override
     public final Collection<String> getInstrumentationGroupNames() {
         return JDBC_GROUPS;
     }
