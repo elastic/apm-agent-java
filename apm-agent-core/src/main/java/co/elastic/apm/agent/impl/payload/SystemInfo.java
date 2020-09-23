@@ -46,7 +46,9 @@ public class SystemInfo {
 
     private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
     private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
-    private static final String POD_REGEX = "(?:^/kubepods[\\S]*/[\\S]*pod([^/]+)$)";
+    private static final String POD_REGEX =
+        "(?:^/kubepods[\\S]*/pod([^/]+)$)|" +
+            "(?:^/kubepods\\.slice/(kubepods-[^/]+\\.slice/)?kubepods[^/]*-pod([^/]+)\\.slice$)";
 
     /**
      * Architecture of the system the agent is running on.
@@ -197,18 +199,21 @@ public class SystemInfo {
                     final Pattern pattern = Pattern.compile(POD_REGEX);
                     final Matcher matcher = pattern.matcher(dir);
                     if (matcher.find()) {
-                        String podUid = matcher.group(1);
-                        if (podUid != null && !podUid.isEmpty()) {
-                            // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
-                            podUid = podUid.replace('_', '-');
-                            int podPostfixIndex = podUid.indexOf('.');
-                            if (podPostfixIndex > 0) {
-                                podUid = podUid.substring(0, podPostfixIndex);
+                        for (int i = 1; i <= matcher.groupCount(); i++) {
+                            String podUid = matcher.group(i);
+                            if (podUid != null && !podUid.isEmpty()) {
+                                if (i == 2) {
+                                    continue;
+                                } else if (i == 3) {
+                                    // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
+                                    podUid = podUid.replace('_', '-');
+                                }
+                                logger.debug("Found Kubernetes pod UID: {}", podUid);
+                                // By default, Kubernetes will set the hostname of the pod containers to the pod name. Users that override
+                                // the name should use the Downward API to override the pod name.
+                                kubernetes = new Kubernetes(hostname, null, null, podUid);
+                                break;
                             }
-                            logger.debug("Found Kubernetes pod UID: {}", podUid);
-                            // By default, Kubernetes will set the hostname of the pod containers to the pod name. Users that override
-                            // the name should use the Downward API to override the pod name.
-                            kubernetes = new Kubernetes(hostname, null, null, podUid);
                         }
                     }
                 }
