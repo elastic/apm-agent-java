@@ -49,7 +49,11 @@ public class UrlConnectionPropertyAccessor implements TextHeaderSetter<HttpURLCo
             urlConnection.addRequestProperty(headerName, headerValue);
         } catch (IllegalStateException e) {
             // Indicating that it is too late now to add request properties, see sun.net.www.protocol.http.HttpURLConnection#connecting
-            logger.debug("Failed to add header {} to connection: {}", headerName, e.getMessage());
+            if (logger.isTraceEnabled()) {
+                logger.trace("Failed to add header to the request", e);
+            } else if (logger.isDebugEnabled()) {
+                logger.debug("Failed to add header {} to the request through HttpUrlConnection: {}", headerName, e.getMessage());
+            }
         }
     }
 
