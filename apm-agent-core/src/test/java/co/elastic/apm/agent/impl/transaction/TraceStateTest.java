@@ -67,8 +67,7 @@ class TraceStateTest {
     void multipleVendorsInSameHeader() {
         traceState.addTextHeader("aa=1|2|3,es=s:0.5,bb=4|5|6");
         assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        traceState.setSampleRate(0.3);
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.3,bb=4|5|6");
+        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
     }
 
     @Test
@@ -80,32 +79,22 @@ class TraceStateTest {
     }
 
     @Test
-    void sampleRateFromAndToHeaders() {
+    void sampleRateFromHeaders() {
         traceState.addTextHeader("aa=1|2|3");
         traceState.addTextHeader("es=s:0.5");
         assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
         traceState.addTextHeader("bb=4|5|6");
         assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
-
-        traceState.setSampleRate(0.444d);
-        assertThat(traceState.getSampleRate()).isEqualTo(0.444d);
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.444,bb=4|5|6");
     }
 
     @Test
-    void setThenRemoveTraceState() {
-        // that's a corner case probably not relevant in practice
+    void sampleRateAddedToHeaders() {
         traceState.addTextHeader("aa=1|2|3");
-        traceState.addTextHeader("es=s:0.5;k:1");
         traceState.addTextHeader("bb=4|5|6");
 
-        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5;k:1,bb=4|5|6");
-
-        traceState.setSampleRate(null);
-
-        assertThat(traceState.getSampleRate()).isNull();
-        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=k:1,bb=4|5|6");
+        traceState.setSampleRate(0.444d);
+        assertThat(traceState.getSampleRate()).isEqualTo(0.444d);
+        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6,es=s:0.444");
     }
 
     @Test
@@ -128,12 +117,15 @@ class TraceStateTest {
         assertThat(traceState.toTextHeader()).isEqualTo("es=s:0.2,aa=1_2");
     }
 
-    @Test
-    void ignoresUnknownKeys() {
-        traceState.addTextHeader("es=k:0;s:0.5");
-        assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        traceState.setSampleRate(0.4d);
-        assertThat(traceState.toTextHeader()).isEqualTo("es=k:0;s:0.4");
+    @ParameterizedTest
+    @CsvSource(value = {
+        "es=k:0;s:0.555555,aa=123|es=k:0;s:0.5556,aa=123",
+        "es=s:0.555555;k:0,aa=123|es=s:0.5556;k:0,aa=123"},
+        delimiterString = "|")
+    void unknownKeysAreIgnored(String header, String rewrittenHeader) {
+        traceState.addTextHeader(header);
+        assertThat(traceState.getSampleRate()).isEqualTo(0.5556d);
+        assertThat(traceState.toTextHeader()).isEqualTo(rewrittenHeader);
     }
 
     @ParameterizedTest
@@ -152,6 +144,27 @@ class TraceStateTest {
         traceState.addTextHeader("es=s:" + headerRate);
         assertThat(traceState.getSampleRate()).isEqualTo(expectedRate);
         assertThat(traceState.toTextHeader()).isEqualTo("es=s:" + expectedRate);
+    }
+
+    @Test
+    void reuseHeaderValueIfNotRewriting() {
+        String headerValue = "es=s:0.43";
+        traceState.addTextHeader(headerValue);
+        assertThat(traceState.getSampleRate()).isEqualTo(0.43d);
+        assertThat(traceState.toTextHeader()).isSameAs(headerValue);
+    }
+
+    @Test
+    void useCacheWithSameSampleRateAfterRecycling() {
+        traceState.setSampleRate(0.43d);
+        assertThat(traceState.getSampleRate()).isEqualTo(0.43d);
+
+        String cachedValue = traceState.toTextHeader();
+        assertThat(cachedValue).isEqualTo("es=s:0.43");
+
+        traceState.resetState();
+        traceState.setSampleRate(0.43d);
+        assertThat(traceState.toTextHeader()).isSameAs(cachedValue);
     }
 
 }

@@ -28,18 +28,14 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 class TraceState implements Recyclable {
 
-    private static final String VENDOR_ENTRIES_SEPARATOR = ",";
-    private static final String ENTRY_SEPARATOR = ";";
-    private static final String KEY_VALUE_SEPARATOR = ":";
+    private static final char VENDOR_SEPARATOR = ',';
+    private static final char ENTRY_SEPARATOR = ';';
     private static final String VENDOR_PREFIX = "es=";
-    private static final String SAMPLE_RATE_KEY = "s";
+    private static final String SAMPLE_RATE_PREFIX = "s:";
 
     /**
      * List of tracestate header values
@@ -49,91 +45,102 @@ class TraceState implements Recyclable {
     /**
      * sample rate, null if unknown or not set
      */
+    private double sampleRate;
+
+    // temp buffer used for rewriting
+    private final StringBuilder tempBuffer = new StringBuilder();
+
+    // cache to avoid rewriting same header many times when rate does not change
+    private double lastWrittenRate = Double.NaN;
     @Nullable
-    private Double sampleRate;
-
-    /**
-     * Key/Value pairs for entries in the 'es' namespace
-     */
-    private final Map<String, String> entries;
-
-    /**
-     * where elastic apm header is stored (if any) within {@link #tracestate} list.
-     */
-    private int index;
-
-    /**
-     * {@literal true} when tracestate array needs an update at known index
-     */
-    private boolean needsUpdate;
+    private String lastWrittenHeader = null;
 
     public TraceState() {
         tracestate = new ArrayList<>(1);
-        sampleRate = null;
-        entries = new LinkedHashMap<>(1);
-        index = -1;
-        needsUpdate = false;
+        sampleRate = Double.MIN_VALUE;
     }
 
     public void copyFrom(TraceState other) {
         tracestate.clear();
         tracestate.addAll(other.tracestate);
         sampleRate = other.sampleRate;
-        entries.clear();
-        entries.putAll(other.entries);
-        index = other.index;
-        needsUpdate = other.needsUpdate;
     }
 
     public void addTextHeader(String headerValue) {
-        for (String header : headerValue.split(VENDOR_ENTRIES_SEPARATOR)) {
-            addSingleHeader(header);
-        }
-    }
+        int index = headerValue.indexOf(VENDOR_PREFIX);
 
-    private void addSingleHeader(String header) {
-        if (header.startsWith(VENDOR_PREFIX)) {
-            index = tracestate.size();
-            for (String entry : header.substring(3).split(ENTRY_SEPARATOR)) {
-                String[] entryParts = entry.split(KEY_VALUE_SEPARATOR);
-                if (entryParts.length == 2) {
-                    String key = entryParts[0];
-                    String value = entryParts[1];
-                    if (SAMPLE_RATE_KEY.equals(key)) {
-                        try {
-                            double doubleValue = Double.parseDouble(value);
-                            if (0 <= doubleValue && doubleValue <= 1.0) {
-                                // ensure proper rounding of sample rate to minimize storage
-                                // even if configuration should not allow this, any upstream value might require rounding
-                                double rounded = Math.round(doubleValue * 10000d) / 10000d;
-
-                                needsUpdate = doubleValue != rounded;
-                                sampleRate = rounded;
-
-                                entries.put(SAMPLE_RATE_KEY, sampleRate.toString());
-                            }
-                        } catch (NumberFormatException e) {
-                            // silently ignored
-                        }
-                    } else {
-                        entries.put(key, value);
+        if (index >= 0) {
+            // parsing (and maybe fixing) current tracestate required
+            int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX);
+            if (entriesStart >= 0) {
+                int valueStart = entriesStart + 2;
+                int valueEnd = valueStart;
+                if (valueEnd < headerValue.length()) {
+                    char c = headerValue.charAt(valueEnd);
+                    while (valueEnd < headerValue.length() && c != VENDOR_SEPARATOR && c != ENTRY_SEPARATOR) {
+                        c = headerValue.charAt(valueEnd++);
                     }
+                    if (valueEnd < headerValue.length()) {
+                        // end due to separator char that needs to be trimmed
+                        valueEnd--;
+                    }
+                }
+                double value;
+                try {
+                    value = Double.parseDouble(headerValue.substring(valueStart, valueEnd));
+                    if (0 <= value && value <= 1.0) {
+                        // ensure proper rounding of sample rate to minimize storage
+                        // even if configuration should not allow this, any upstream value might require rounding
+                        double rounded = Math.round(value * 10000d) / 10000d;
+
+                        if (rounded != value) {
+                            headerValue = rewriteHeaderSampleRate(headerValue, valueStart, valueEnd, rounded);
+                        }
+                        sampleRate = rounded;
+                    }
+                } catch (NumberFormatException e) {
+                    // silently ignored
                 }
             }
         }
-        tracestate.add(header);
+        tracestate.add(headerValue);
     }
 
-    public void setSampleRate(@Nullable Double rate) {
-        if (null == sampleRate && rate != null) {
-            // set first sample rate, actual value will be lazily written
-            tracestate.add(null);
-            index = 0;
+    private String rewriteHeaderSampleRate(String originalHeader, int valueStart, int valueEnd, double sampleRate) {
+        tempBuffer.setLength(0);
+        tempBuffer.append(originalHeader, 0, valueStart);
+        tempBuffer.append(sampleRate);
+        tempBuffer.append(originalHeader, valueEnd, originalHeader.length());
+        return tempBuffer.toString();
+    }
+
+    private String writeHeader(double sampleRate) {
+        if (sampleRate == lastWrittenRate && lastWrittenHeader != null) {
+            return lastWrittenHeader;
         }
-        if (rate == null) {
-            entries.remove(SAMPLE_RATE_KEY);
+
+        tempBuffer.setLength(0);
+        tempBuffer.append(VENDOR_PREFIX);
+        tempBuffer.append(SAMPLE_RATE_PREFIX).append(sampleRate);
+        lastWrittenHeader = tempBuffer.toString();
+        lastWrittenRate = sampleRate;
+        return lastWrittenHeader;
+    }
+
+    /**
+     * Sets sample rate if it hasn't already been set
+     *
+     * @param rate sample rate
+     * @throws IllegalStateException if sample rate has already been set
+     */
+    public void setSampleRate(double rate) {
+        if (sampleRate != Double.MIN_VALUE) {
+            // sample rate is set either explicitly from this method (for root transactions)
+            // or through upstream header, thus there is no need to change after. This allows to only
+            // write/rewrite headers once
+            throw new IllegalStateException("sample rate has already been set from headers");
         }
-        needsUpdate = true;
+        tracestate.add(writeHeader(rate));
         sampleRate = rate;
     }
 
@@ -142,7 +149,7 @@ class TraceState implements Recyclable {
      */
     @Nullable
     public Double getSampleRate() {
-        return sampleRate;
+        return Double.MIN_VALUE == sampleRate ? null : sampleRate;
     }
 
     /**
@@ -154,38 +161,11 @@ class TraceState implements Recyclable {
     public String toTextHeader(int sizeLimit) {
         if (tracestate.isEmpty()) {
             return null;
-        }
-        if (needsUpdate) {
-            if (sampleRate != null) {
-                entries.put(SAMPLE_RATE_KEY, sampleRate.toString());
-            }
-            tracestate.set(index, getHeaderValue(entries));
-        }
-
-        String value;
-        if (tracestate.size() == 1) {
-            value = tracestate.get(0);
+        } else if (tracestate.size() == 1) {
+            return tracestate.get(0);
         } else {
-            value = TextTracestateAppender.instance().join(tracestate, sizeLimit);
+            return TextTracestateAppender.instance().join(tracestate, sizeLimit);
         }
-        return value;
-    }
-
-    @Nullable
-    private static String getHeaderValue(Map<String, String> entries) {
-        if (entries.isEmpty()) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder(VENDOR_PREFIX);
-        boolean isFirst = true;
-        for (Map.Entry<String, String> entry : entries.entrySet()) {
-            if (!isFirst) {
-                sb.append(ENTRY_SEPARATOR);
-            }
-            sb.append(entry.getKey()).append(KEY_VALUE_SEPARATOR).append(entry.getValue());
-            isFirst = false;
-        }
-        return sb.toString();
     }
 
     @Nullable
@@ -196,9 +176,6 @@ class TraceState implements Recyclable {
     @Override
     public void resetState() {
         tracestate.clear();
-        sampleRate = null;
-        entries.clear();
-        index = -1;
-        needsUpdate = false;
+        sampleRate = Double.MIN_VALUE;
     }
 }
