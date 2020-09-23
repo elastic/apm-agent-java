@@ -172,7 +172,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeStringValue(sanitizeLabelKey(globalLabelKeys.get(0), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
             writeStringValue(globalLabelValues.get(0), replaceBuilder, jw);
-            for (int i = 0; i < globalLabelKeys.size(); i++) {
+            for (int i = 1; i < globalLabelKeys.size(); i++) {
                 jw.writeByte(COMMA);
                 writeStringValue(sanitizeLabelKey(globalLabelKeys.get(i), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
