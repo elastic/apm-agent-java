@@ -31,7 +31,6 @@ class TextTracestateAppender {
     private static final TextTracestateAppender INSTANCE = new TextTracestateAppender();
     private final ThreadLocal<StringBuilder> tracestateBuffer = new ThreadLocal<StringBuilder>();
 
-
     static TextTracestateAppender instance() {
         return INSTANCE;
     }
@@ -41,7 +40,9 @@ class TextTracestateAppender {
 
     public String join(List<String> tracestate, int tracestateSizeLimit) {
         StringBuilder buffer = getTracestateBuffer();
-        for (String value : tracestate) {
+        //noinspection ForLoopReplaceableByForEach
+        for (int i = 0, size = tracestate.size(); i < size; i++) {
+            String value = tracestate.get(i);
             if (value != null) { // ignore null entries to allow removing entries without resizing collection
                 appendTracestateHeaderValue(value, buffer, tracestateSizeLimit);
             }

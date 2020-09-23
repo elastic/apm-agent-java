@@ -99,6 +99,10 @@ public class TraceContext implements Recyclable {
     private static final int BINARY_FORMAT_FLAGS_OFFSET = 27;
     private static final byte BINARY_FORMAT_FLAGS_FIELD_ID = (byte) 0b0000_0010;
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
+
+    // avoid
+    private static final Double SAMPLE_RATE_ZERO = 0d;
+
     /**
      * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
      */
@@ -186,6 +190,7 @@ public class TraceContext implements Recyclable {
             return false;
         }
     };
+
 
     public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
         return headerGetter.getFirstHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
@@ -504,7 +509,7 @@ public class TraceContext implements Recyclable {
         if (isRecorded()) {
             return traceState.getSampleRate();
         } else {
-            return 0d;
+            return SAMPLE_RATE_ZERO;
         }
     }
 
