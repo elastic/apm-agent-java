@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -35,9 +33,6 @@ import com.rabbitmq.client.DefaultConsumer;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class RabbitMQConsumerInstrumentationTest extends RabbitMQTest {
 

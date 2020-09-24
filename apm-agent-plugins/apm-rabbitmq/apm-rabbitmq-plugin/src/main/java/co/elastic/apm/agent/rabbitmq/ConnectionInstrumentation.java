@@ -25,11 +25,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     <li>{@link Connection#createChannel}</li>
  * </ul>
  */
-public class RabbitMQConnectionInstrumentation extends RabbitMQBaseInstrumentation {
+public class ConnectionInstrumentation extends BaseInstrumentation {
 
     private static final List<Class<? extends ElasticApmInstrumentation>> CHANNEL_INSTRUMENTATIONS = Arrays.asList(
-        RabbitMQChannelInstrumentation.BasicPublish.class,
-        RabbitMQChannelInstrumentation.BasicConsume.class
+        ChannelInstrumentation.BasicPublish.class,
+        ChannelInstrumentation.BasicConsume.class
     );
 
     @Override

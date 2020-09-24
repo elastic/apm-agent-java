@@ -36,7 +36,6 @@ import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.any;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -47,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  *     <li>{@link com.rabbitmq.client.Consumer#handleDelivery}</li>
  * </ul>
  */
-public class RabbitMQConsumerInstrumentation extends RabbitMQBaseInstrumentation {
+public class ConsumerInstrumentation extends BaseInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

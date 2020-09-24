@@ -31,9 +31,9 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.RabbitMQContainer;
@@ -63,8 +63,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     @Nullable
     private Connection connection;
 
-    @BeforeClass
-    public static void before() {
+    @BeforeAll
+    static void before() {
         container.withLogConsumer(new Slf4jLogConsumer(logger))
             .start();
 
@@ -76,8 +76,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         factory.setPassword(container.getAdminPassword());
     }
 
-    @After
-    public void cleanup() throws IOException {
+    @AfterEach
+    void cleanup() throws IOException {
         if (connection != null) {
             if (connection.isOpen()) {
                 logger.info("silently closing open connection id = {}", connection);
@@ -86,8 +86,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         }
     }
 
-    @AfterClass
-    public static void after() {
+    @AfterAll
+    static void after() {
         container.close();
     }
 

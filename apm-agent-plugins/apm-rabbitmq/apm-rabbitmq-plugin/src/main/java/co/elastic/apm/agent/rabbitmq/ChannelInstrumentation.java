@@ -53,7 +53,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 
-public abstract class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrumentation {
+public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -73,9 +73,9 @@ public abstract class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrum
      *     <li>{@link com.rabbitmq.client.Channel#basicConsume} to ensure instrumentation of {@link com.rabbitmq.client.Consumer} implementation</li>
      * </ul>
      */
-    public static class BasicConsume extends RabbitMQChannelInstrumentation {
+    public static class BasicConsume extends ChannelInstrumentation {
 
-        public static final Set<Class<? extends ElasticApmInstrumentation>> CONSUMER_INSTRUMENTATION = Collections.singleton(RabbitMQConsumerInstrumentation.class);
+        public static final Set<Class<? extends ElasticApmInstrumentation>> CONSUMER_INSTRUMENTATION = Collections.singleton(ConsumerInstrumentation.class);
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -100,7 +100,7 @@ public abstract class RabbitMQChannelInstrumentation extends RabbitMQBaseInstrum
      *     <li>{@link com.rabbitmq.client.Channel#basicPublish}</li>
      * </ul>
      */
-    public static class BasicPublish extends RabbitMQChannelInstrumentation {
+    public static class BasicPublish extends ChannelInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {

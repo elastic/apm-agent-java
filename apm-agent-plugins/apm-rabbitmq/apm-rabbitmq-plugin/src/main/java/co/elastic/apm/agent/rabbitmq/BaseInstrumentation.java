@@ -29,7 +29,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class RabbitMQBaseInstrumentation extends TracerAwareInstrumentation {
+public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

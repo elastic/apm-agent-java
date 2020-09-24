@@ -31,8 +31,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import org.awaitility.core.ConditionFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,16 +39,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 public abstract class RabbitMQPluginIT extends RabbitMQTest {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitMQPluginIT.class);
 
     @Test
-    public void testRabbitPlugin() throws IOException {
+    void testRabbitPlugin() throws IOException {
         Connection connection = createConnection();
         Channel channel = connection.createChannel();
         String exchange = createExchange(channel);
@@ -111,7 +108,6 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
             return messages;
         }
     }
-
 
 
 }

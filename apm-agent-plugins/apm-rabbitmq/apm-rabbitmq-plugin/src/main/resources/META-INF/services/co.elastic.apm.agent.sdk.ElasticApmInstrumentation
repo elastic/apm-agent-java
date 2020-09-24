@@ -1,1 +1,1 @@
-co.elastic.apm.agent.rabbitmq.RabbitMQConnectionInstrumentation
+co.elastic.apm.agent.rabbitmq.ConnectionInstrumentation
