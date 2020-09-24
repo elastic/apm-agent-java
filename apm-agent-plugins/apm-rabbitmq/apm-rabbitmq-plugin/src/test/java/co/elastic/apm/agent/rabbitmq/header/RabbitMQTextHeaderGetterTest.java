@@ -26,8 +26,8 @@ package co.elastic.apm.agent.rabbitmq.header;
 
 import co.elastic.apm.agent.impl.transaction.HeaderGetter;
 import com.rabbitmq.client.AMQP;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -38,15 +38,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class RabbitMQTextHeaderGetterTest {
 
-    private RabbitMQTextHeaderGetter rabbitMQTextHeaderGetter;
+    private static RabbitMQTextHeaderGetter rabbitMQTextHeaderGetter;
 
-    @Before
-    public void setUp() {
+    @BeforeAll
+    static void setUp() {
         rabbitMQTextHeaderGetter = RabbitMQTextHeaderGetter.INSTANCE;
     }
 
     @Test
-    public void getFirstHeader() {
+    void getFirstHeader() {
         getFirstHeader("value", "value");
         getFirstHeader(null, null);
 
@@ -71,7 +71,7 @@ public class RabbitMQTextHeaderGetterTest {
     }
 
     @Test
-    public void forEach() throws InterruptedException {
+    void forEach() throws InterruptedException {
         forEach("value", "value");
         forEach(null, null);
 

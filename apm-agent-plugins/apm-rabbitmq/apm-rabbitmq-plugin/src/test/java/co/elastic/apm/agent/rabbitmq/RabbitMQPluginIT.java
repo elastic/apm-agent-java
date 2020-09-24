@@ -71,10 +71,20 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
         getReporter().awaitSpanCount(1);
 
         Span span = getReporter().getFirstSpan();
-        Transaction transaction1 = getReporter().getTransactions().get(0);
-        checkTransaction(transaction1);
-        Transaction transaction2 = getReporter().getTransactions().get(1);
-        checkTransaction(transaction2);
+
+        Transaction transaction1 = null;
+        Transaction transaction2 = null;
+        for (Transaction t : getReporter().getTransactions()) {
+            if(t == transaction){
+                assertThat(t.getNameAsString()).isEqualTo("RabbitIT Transaction");
+                transaction1 = t;
+            } else {
+                checkTransaction(t);
+                transaction2 = t;
+            }
+        }
+        assertThat(transaction1).isNotNull();
+        assertThat(transaction2).isNotNull();
 
         assertThat(consumer.getMessages()).contains(new String(MSG));
 

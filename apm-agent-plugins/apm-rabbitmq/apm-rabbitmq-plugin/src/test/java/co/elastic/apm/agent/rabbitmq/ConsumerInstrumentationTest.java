@@ -30,11 +30,11 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-public class RabbitMQConsumerInstrumentationTest extends RabbitMQTest {
+public class ConsumerInstrumentationTest extends RabbitMQTest {
 
     @Test
     public void createRootTransactionOnConsumerHandle() throws IOException {

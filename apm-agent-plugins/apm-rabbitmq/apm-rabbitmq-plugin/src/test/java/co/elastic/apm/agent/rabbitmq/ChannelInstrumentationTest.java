@@ -31,7 +31,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class RabbitMQChannelInstrumentationTest extends RabbitMQTest {
+public class ChannelInstrumentationTest extends RabbitMQTest {
 
     @Test
     public void contextPropagationWithProperties() throws IOException, InterruptedException {

@@ -39,10 +39,10 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -75,7 +75,8 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
      */
     public static class BasicConsume extends ChannelInstrumentation {
 
-        public static final Set<Class<? extends ElasticApmInstrumentation>> CONSUMER_INSTRUMENTATION = Collections.singleton(ConsumerInstrumentation.class);
+        public static final Collection<Class<? extends ElasticApmInstrumentation>> CONSUMER_INSTRUMENTATION =
+            Collections.<Class<? extends ElasticApmInstrumentation>>singleton(ConsumerInstrumentation.class);
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {

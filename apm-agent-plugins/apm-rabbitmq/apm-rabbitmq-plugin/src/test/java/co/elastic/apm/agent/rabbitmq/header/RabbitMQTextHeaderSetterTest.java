@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.rabbitmq.header;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
@@ -34,15 +34,15 @@ import static org.assertj.core.api.Assertions.entry;
 
 public class RabbitMQTextHeaderSetterTest {
 
-    private RabbitMQTextHeaderSetter rabbitMQTextHeaderSetter;
+    private static RabbitMQTextHeaderSetter rabbitMQTextHeaderSetter;
 
-    @Before
-    public void setUp() {
+    @BeforeAll
+    static void setUp() {
         rabbitMQTextHeaderSetter = RabbitMQTextHeaderSetter.INSTANCE;
     }
 
     @Test
-    public void setHeader() {
+    void setHeader() {
         HashMap<String, Object> hashMap = new HashMap<>();
 
         rabbitMQTextHeaderSetter.setHeader("header", "value", hashMap);
