@@ -94,6 +94,26 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
+    void testTagsSanitation() {
+        List<Tag> tags = List.of(
+            Tag.of("with.dot", "dot"),
+            Tag.of("with*asterisk", "asterisk"),
+            Tag.of("with\"quotation", "quotation")
+        );
+        meterRegistry.counter("counter", tags).increment(42);
+        meterRegistry.gauge("gauge", tags, 42, v -> 42);
+
+        JsonNode metricSet = getSingleMetricSet();
+        JsonNode metricset = metricSet.get("metricset");
+        JsonNode tagsNode = metricset.get("tags");
+        assertThat(tagsNode.get("with_dot").textValue()).isEqualTo("dot");
+        assertThat(tagsNode.get("with_asterisk").textValue()).isEqualTo("asterisk");
+        assertThat(tagsNode.get("with_quotation").textValue()).isEqualTo("quotation");
+        assertThat(metricset.get("samples").get("counter").get("value").doubleValue()).isEqualTo(42);
+        assertThat(metricset.get("samples").get("gauge").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
     void testDifferentMetricSets() {
         meterRegistry.counter("counter", List.of(Tag.of("foo", "bar"))).increment(42);
         meterRegistry.gauge("gauge", List.of(Tag.of("baz", "qux")), 42, v -> 42);

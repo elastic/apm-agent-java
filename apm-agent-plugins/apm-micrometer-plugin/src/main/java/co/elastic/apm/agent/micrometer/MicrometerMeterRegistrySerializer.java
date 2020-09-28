@@ -154,7 +154,9 @@ public class MicrometerMeterRegistrySerializer {
             if (i > 0) {
                 jw.writeByte(COMMA);
             }
-            DslJsonSerializer.writeLastField(tag.getKey(), tag.getValue(), replaceBuilder, jw);
+            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizeLabelKey(tag.getKey(), replaceBuilder), replaceBuilder, jw);
+            jw.writeByte(JsonWriter.SEMI);
+            DslJsonSerializer.writeStringValue(tag.getValue(), replaceBuilder, jw);
         }
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
