@@ -111,7 +111,7 @@ public class MicrometerMetricsReporter implements Runnable {
         @Override
         public void accept(Meter meter) {
             Meter.Id meterId = meter.getId();
-            if (WildcardMatcher.anyMatch(disabledMetrics, meterId.getName()) == null) {
+            if (WildcardMatcher.isNoneMatch(disabledMetrics, meterId.getName())) {
                 meters.put(meterId, meter);
             }
         }
