@@ -26,6 +26,7 @@ package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -88,7 +90,7 @@ public class MicrometerMetricsReporter implements Runnable {
             return;
         }
         final long timestamp = System.currentTimeMillis() * 1000;
-        MeterMapConsumer meterConsumer = new MeterMapConsumer();
+        MeterMapConsumer meterConsumer = new MeterMapConsumer(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics());
         for (MeterRegistry registry : meterRegistries) {
             registry.forEachMeter(meterConsumer);
         }
@@ -97,11 +99,21 @@ public class MicrometerMetricsReporter implements Runnable {
     }
 
     private static class MeterMapConsumer implements Consumer<Meter> {
+
+        private final List<WildcardMatcher> disabledMetrics;
+
+        public MeterMapConsumer(List<WildcardMatcher> disabledMetrics) {
+            this.disabledMetrics = disabledMetrics;
+        }
+
         final Map<Meter.Id, Meter> meters = new HashMap<>();
 
         @Override
         public void accept(Meter meter) {
-            meters.put(meter.getId(), meter);
+            Meter.Id meterId = meter.getId();
+            if (WildcardMatcher.anyMatch(disabledMetrics, meterId.getName()) == null) {
+                meters.put(meterId, meter);
+            }
         }
     }
 
