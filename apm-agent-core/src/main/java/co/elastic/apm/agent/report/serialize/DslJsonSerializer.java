@@ -509,8 +509,8 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("result", transaction.getResult());
         serializeContext(transaction, transaction.getContext(), traceContext);
         serializeSpanCount(transaction.getSpanCount());
-        Double sampleRate = traceContext.getSampleRate();
-        if (sampleRate != null) {
+        double sampleRate = traceContext.getSampleRate();
+        if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
         }
         writeLastField("sampled", transaction.isSampled());
@@ -561,8 +561,8 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeSpanContext(span.getContext(), traceContext);
         writeHexArray("child_ids", span.getChildIds());
-        Double sampleRate = traceContext.getSampleRate();
-        if (sampleRate != null) {
+        double sampleRate = traceContext.getSampleRate();
+        if (!Double.isNaN(sampleRate)) {
             writeField("sample_rate", sampleRate);
         }
         serializeSpanType(span);

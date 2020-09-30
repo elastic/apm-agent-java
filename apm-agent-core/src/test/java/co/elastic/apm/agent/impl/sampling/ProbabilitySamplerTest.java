@@ -25,8 +25,11 @@
 package co.elastic.apm.agent.impl.sampling;
 
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.TraceState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,6 +44,19 @@ class ProbabilitySamplerTest {
     void setUp() {
         sampler = ProbabilitySampler.of(SAMPLING_RATE);
         assertThat(sampler.getSampleRate()).isEqualTo(SAMPLING_RATE);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0.0","1.0","0.5"})
+    void headerCaching(double rate) {
+
+        // will indirectly test ConstantSampler as we delegate to it for 0 and 1 values
+        sampler = ProbabilitySampler.of(rate);
+
+        String header = sampler.getTraceStateHeader();
+        assertThat(header).isEqualTo(TraceState.buildHeaderString(rate));
+
+        assertThat(sampler.getTraceStateHeader()).isSameAs(header);
     }
 
     @Test

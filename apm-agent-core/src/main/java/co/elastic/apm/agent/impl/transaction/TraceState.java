@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-class TraceState implements Recyclable {
+public class TraceState implements Recyclable {
 
     private static final char VENDOR_SEPARATOR = ',';
     private static final char ENTRY_SEPARATOR = ';';
@@ -43,21 +43,16 @@ class TraceState implements Recyclable {
     private final List<String> tracestate;
 
     /**
-     * sample rate, null if unknown or not set
+     * sample rate, {@link Double#NaN} if unknown or not set
      */
     private double sampleRate;
 
     // temp buffer used for rewriting
     private final StringBuilder tempBuffer = new StringBuilder();
 
-    // cache to avoid rewriting same header many times when rate does not change
-    private double lastWrittenRate = Double.NaN;
-    @Nullable
-    private String lastWrittenHeader = null;
-
     public TraceState() {
         tracestate = new ArrayList<>(1);
-        sampleRate = Double.MIN_VALUE;
+        sampleRate = Double.NaN;
     }
 
     public void copyFrom(TraceState other) {
@@ -69,9 +64,9 @@ class TraceState implements Recyclable {
     public void addTextHeader(String headerValue) {
         int elasticEntryStartIndex = headerValue.indexOf(VENDOR_PREFIX);
 
-        if (index >= 0) {
+        if (elasticEntryStartIndex >= 0) {
             // parsing (and maybe fixing) current tracestate required
-            int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX, index);
+            int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX, elasticEntryStartIndex);
             if (entriesStart >= 0) {
                 int valueStart = entriesStart + 2;
                 int valueEnd = valueStart;
@@ -114,42 +109,49 @@ class TraceState implements Recyclable {
         return tempBuffer.toString();
     }
 
-    private String writeHeader(double sampleRate) {
-        if (sampleRate == lastWrittenRate && lastWrittenHeader != null) {
-            return lastWrittenHeader;
+    /**
+     * Computes tracestate header value string representation for a given rate
+     *
+     * @param sampleRate sample rate
+     * @return tracestate header text representation
+     * @throws IllegalArgumentException if sample rate is invalid
+     */
+    public static String buildHeaderString(double sampleRate) {
+        if (!isValidSampleRate(sampleRate)) {
+            throw new IllegalArgumentException("invalid sample rate argument " + sampleRate);
         }
 
-        tempBuffer.setLength(0);
-        tempBuffer.append(VENDOR_PREFIX);
-        tempBuffer.append(SAMPLE_RATE_PREFIX).append(sampleRate);
-        lastWrittenHeader = tempBuffer.toString();
-        lastWrittenRate = sampleRate;
-        return lastWrittenHeader;
+        return VENDOR_PREFIX + SAMPLE_RATE_PREFIX + sampleRate;
+    }
+
+    private static boolean isValidSampleRate(double sampleRate) {
+        return !Double.isNaN(sampleRate) && !Double.isInfinite(sampleRate) && sampleRate >= 0d && sampleRate <= 1.0d;
     }
 
     /**
-     * Sets sample rate if it hasn't already been set
+     * Sets value for trace state. Provided rate and header value are assumed to be correct and consistent
      *
-     * @param rate sample rate
-     * @throws IllegalStateException if sample rate has already been set
+     * @param rate   sample rate
+     * @param header header text value, returned from calling {@link #buildHeaderString(double)}.
+     * @throws IllegalStateException    if sample rate has already been set
+     * @throws IllegalArgumentException if rate has an invalid value
      */
-    public void setSampleRate(double rate) {
-        if (sampleRate != Double.MIN_VALUE) {
+    public void set(double rate, String header) {
+        if (!Double.isNaN(sampleRate)) {
             // sample rate is set either explicitly from this method (for root transactions)
             // or through upstream header, thus there is no need to change after. This allows to only
             // write/rewrite headers once
             throw new IllegalStateException("sample rate has already been set from headers");
         }
-        tracestate.add(writeHeader(rate));
         sampleRate = rate;
+        tracestate.add(header);
     }
 
     /**
-     * @return sample rate set in tracestate header, {@literal null} if not set
+     * @return sample rate between 0.0 and 1.0, or {@link Double#NaN} if not set
      */
-    @Nullable
-    public Double getSampleRate() {
-        return Double.MIN_VALUE == sampleRate ? null : sampleRate;
+    public double getSampleRate() {
+        return sampleRate;
     }
 
     /**
@@ -168,15 +170,10 @@ class TraceState implements Recyclable {
         }
     }
 
-    @Nullable
-    String toTextHeader() {
-        return toTextHeader(Integer.MAX_VALUE);
-    }
-
     @Override
     public void resetState() {
         tracestate.clear();
-        sampleRate = Double.MIN_VALUE;
+        sampleRate = Double.NaN;
         tempBuffer.setLength(0);
     }
 }

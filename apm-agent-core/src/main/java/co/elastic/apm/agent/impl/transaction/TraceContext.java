@@ -425,7 +425,7 @@ public class TraceContext implements Recyclable {
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
             flags = FLAG_RECORDED;
-            traceState.setSampleRate(sampler.getSampleRate());
+            traceState.set(sampler.getSampleRate(), sampler.getTraceStateHeader());
         }
         clock.init();
         onMutation();
@@ -499,12 +499,11 @@ public class TraceContext implements Recyclable {
     }
 
     /**
-     * Returns the sample rate used for this transaction/span between 0.0 and 1.0 or {@literal null} if sample rate is unknown
+     * Returns the sample rate used for this transaction/span between 0.0 and 1.0 or {@link Double#NaN} if sample rate is unknown
      *
      * @return sample rate
      */
-    @Nullable
-    public Double getSampleRate() {
+    public double getSampleRate() {
         if (isRecorded()) {
             return traceState.getSampleRate();
         } else {

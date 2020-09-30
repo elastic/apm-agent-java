@@ -58,4 +58,9 @@ public interface Sampler {
      * @return current sample rate
      */
     double getSampleRate();
+
+    /**
+     * @return tracestate header value (which only contains sample rate currently)
+     */
+    String getTraceStateHeader();
 }
