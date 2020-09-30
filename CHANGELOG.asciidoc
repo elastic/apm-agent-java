@@ -38,6 +38,7 @@ endif::[]
 metricset tag keys - {pull}1413[1413]
 * Fix invalid micrometer metrics with non-numeric values {pull}1419[1419]
 * Fix `NoClassDefFoundError` with JDBC instrumentation plugin {pull}1409[1409]
+* Apply `disable_metrics` config to Micrometer metrics - {pull}1421[1421]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
