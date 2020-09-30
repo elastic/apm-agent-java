@@ -27,7 +27,6 @@ package co.elastic.apm.agent.micrometer;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
-import com.dslplatform.json.Nullable;
 import com.dslplatform.json.NumberConverter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
@@ -116,10 +115,15 @@ public class MicrometerMeterRegistrySerializer {
                         serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount());
                         hasValue = true;
                     } else if (meter instanceof Gauge) {
-                        if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         Gauge gauge = (Gauge) meter;
-                        serializeValue(gauge.getId(), gauge.value(), jw);
-                        hasValue = true;
+
+                        // gauge values can be Double.NaN or +/-Infinite
+                        if (isValidValue(gauge.value())) {
+                            if (hasValue) jw.writeByte(JsonWriter.COMMA);
+                            serializeValue(gauge.getId(), gauge.value(), jw);
+                            hasValue = true;
+                        }
+
                     } else if (meter instanceof Counter) {
                         if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         Counter counter = (Counter) meter;
@@ -197,5 +201,9 @@ public class MicrometerMeterRegistrySerializer {
         jw.writeAscii("value");
         jw.writeByte(JsonWriter.QUOTE);
         jw.writeByte(JsonWriter.SEMI);
+    }
+
+    private static boolean isValidValue(double value) {
+        return !Double.isNaN(value) && !Double.isInfinite(value);
     }
 }

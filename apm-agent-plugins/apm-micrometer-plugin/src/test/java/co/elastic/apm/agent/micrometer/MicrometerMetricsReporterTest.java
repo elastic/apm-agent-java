@@ -229,6 +229,23 @@ class MicrometerMetricsReporterTest {
         assertThat(metricSet.get("metricset").get("samples").get("timer.sum").get("value").longValue()).isEqualTo(3);
     }
 
+    @Test
+    void tryToSerializeInvalidGaugeValues() {
+        for (Double invalidValue : Arrays.asList(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN)) {
+            List<Tag> tags = List.of(Tag.of("foo", "bar"));
+            meterRegistry.gauge("gauge1", tags, 42, v -> invalidValue);
+            meterRegistry.gauge("gauge2", tags, 42, v -> 42D);
+            JsonNode metricSet = getSingleMetricSet();
+            assertThat(metricSet.get("metricset").get("samples").get("gauge1"))
+                .describedAs("value of %s is not expected to be written to json", invalidValue)
+                .isNull();
+
+            // serialization should handle ignoring the 1st value
+            assertThat(metricSet.get("metricset").get("samples").get("gauge2").get("value").doubleValue())
+                .isEqualTo(42D);
+        }
+    }
+
     private JsonNode getSingleMetricSet() {
         List<JsonNode> metricSets = getMetricSets();
         assertThat(metricSets).hasSize(1);
