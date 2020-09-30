@@ -67,11 +67,11 @@ class TraceState implements Recyclable {
     }
 
     public void addTextHeader(String headerValue) {
-        int index = headerValue.indexOf(VENDOR_PREFIX);
+        int elasticEntryStartIndex = headerValue.indexOf(VENDOR_PREFIX);
 
         if (index >= 0) {
             // parsing (and maybe fixing) current tracestate required
-            int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX);
+            int entriesStart = headerValue.indexOf(SAMPLE_RATE_PREFIX, index);
             if (entriesStart >= 0) {
                 int valueStart = entriesStart + 2;
                 int valueEnd = valueStart;
@@ -177,5 +177,6 @@ class TraceState implements Recyclable {
     public void resetState() {
         tracestate.clear();
         sampleRate = Double.MIN_VALUE;
+        tempBuffer.setLength(0);
     }
 }
