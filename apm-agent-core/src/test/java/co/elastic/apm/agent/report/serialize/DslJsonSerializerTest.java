@@ -29,9 +29,9 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -49,6 +49,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.IOUtils;
+import co.elastic.apm.agent.util.Version;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -106,11 +107,17 @@ class DslJsonSerializerTest {
 
     @Test
     void testSerializeNonStringLabels() {
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(true);
-        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Map.of("foo", true)));
+        Version version = Version.of("6.7.0");
 
-        when(apmServerClient.supportsNonStringLabels()).thenReturn(false);
-        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Collections.singletonMap("foo", null)));
+        when(apmServerClient.isAtLeast(version))
+            .thenReturn(true);
+        assertThat(serializeTags(Map.of("foo", true)))
+            .isEqualTo(toJson(Map.of("foo", true)));
+
+        when(apmServerClient.isAtLeast(version))
+            .thenReturn(false);
+        assertThat(serializeTags(Map.of("foo", true)))
+            .isEqualTo(toJson(Collections.singletonMap("foo", null)));
     }
 
     @Test

@@ -58,6 +58,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.Version;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -101,6 +102,10 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
     private static final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
+
+    private static final Version V7_0 = Version.of("7.0.0");
+    private static final Version V6_7 = Version.of("6.7.0");
+
     // visible for testing
     final JsonWriter jw;
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
@@ -896,7 +901,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     // visible for testing
     void serializeLabels(AbstractContext context) {
         if (context.hasLabels()) {
-            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false, apmServerClient.supportsNonStringLabels());
+            boolean supportStringLabels = apmServerClient.isAtLeast(V6_7);
+            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false, supportStringLabels);
         } else {
             jw.writeByte(OBJECT_START);
             jw.writeByte(OBJECT_END);
@@ -1064,7 +1070,14 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("full", url.getFull());
         writeField("hostname", url.getHostname());
-        writeField("port", url.getPort());
+
+        int port = url.getPort();
+        if (apmServerClient.isAtLeast(V7_0)) {
+            writeField("port", port);
+        } else {
+            writeField("port", Integer.toString(port));
+        }
+
         writeField("pathname", url.getPathname());
         writeField("search", url.getSearch());
         writeLastField("protocol", url.getProtocol());

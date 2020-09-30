@@ -321,10 +321,6 @@ public class ApmServerClient {
         return serverUrls;
     }
 
-    public boolean supportsNonStringLabels() {
-        return isAtLeast(VERSION_6_7);
-    }
-
     public boolean supportsLogsEndpoint() {
         return isAtLeast(VERSION_7_9);
     }

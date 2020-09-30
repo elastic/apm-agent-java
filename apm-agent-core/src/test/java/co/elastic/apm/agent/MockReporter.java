@@ -35,13 +35,15 @@ import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.util.Version;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,6 +58,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,10 +67,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MockReporter implements Reporter {
-    private static final JsonSchema transactionSchema;
-    private static final JsonSchema errorSchema;
-    private static final JsonSchema spanSchema;
-    private static final DslJsonSerializer dslJsonSerializer;
 
     // A set of exit span subtypes that do not support address and port discovery
     private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
@@ -85,12 +84,8 @@ public class MockReporter implements Reporter {
     private boolean closed;
 
     static {
-        transactionSchema = getSchema("/schema/transactions/transaction.json");
-        spanSchema = getSchema("/schema/transactions/span.json");
-        errorSchema = getSchema("/schema/errors/error.json");
-        ApmServerClient apmServerClient = mock(ApmServerClient.class);
-        when(apmServerClient.isAtLeast(any())).thenReturn(true);
-        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+
+
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
@@ -104,23 +99,21 @@ public class MockReporter implements Reporter {
         objectMapper = new ObjectMapper();
     }
 
-    private static JsonSchema getSchema(String resource) {
-        return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
-    }
-
     public void disableDestinationAddressCheck() {
         disableDestinationAddressCheck = true;
     }
 
     @Override
-    public void start() {}
+    public void start() {
+    }
 
     @Override
     public synchronized void report(Transaction transaction) {
         if (closed) {
             return;
         }
-        verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
+
+        validateAllSchema(JsonSchemaVersion::transactionSchema, serializer -> serializer.toJsonString(transaction));
         transactions.add(transaction);
     }
 
@@ -129,7 +122,7 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+        validateAllSchema(JsonSchemaVersion::spanSchema, serializer -> serializer.toJsonString(span));
         verifyDestinationFields(span);
         spans.add(span);
     }
@@ -153,22 +146,39 @@ public class MockReporter implements Reporter {
         assertThat(service.getType()).describedAs("service type is required").isNotNull();
     }
 
+    /**
+     * Verify JSON transaction against the current server schema
+     *
+     * @param jsonNode transaction as JSON
+     */
     public void verifyTransactionSchema(JsonNode jsonNode) {
-        verifyJsonSchema(transactionSchema, jsonNode);
+        validateSingleSchema(JsonSchemaVersion::transactionSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
+    /**
+     * Verify JSON span against the current server schema
+     *
+     * @param jsonNode span as JSON
+     */
     public void verifySpanSchema(JsonNode jsonNode) {
-        verifyJsonSchema(spanSchema, jsonNode);
+        validateSingleSchema(JsonSchemaVersion::spanSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
+    /**
+     * Verify JSON error against the current server schema
+     *
+     * @param jsonNode error as JSON
+     */
     public void verifyErrorSchema(JsonNode jsonNode) {
-        verifyJsonSchema(errorSchema, jsonNode);
+        validateSingleSchema(JsonSchemaVersion::transactionSchema, s -> jsonNode.toString(), JsonSchemaVersion.current());
     }
 
     private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
         if (verifyJsonSchema) {
             Set<ValidationMessage> errors = schema.validate(jsonNode);
-            assertThat(errors).withFailMessage("%s\n%s", errors, jsonNode).isEmpty();
+            assertThat(errors)
+                .withFailMessage("schema validation error '%s' - %s\n%s", schema.getCurrentUri(), errors, jsonNode)
+                .isEmpty();
         }
     }
 
@@ -241,7 +251,8 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
-        verifyErrorSchema(asJson(dslJsonSerializer.toJsonString(error)));
+
+        validateAllSchema(JsonSchemaVersion::errorSchema, serializer -> serializer.toJsonString(error));
         errors.add(error);
     }
 
@@ -363,7 +374,7 @@ public class MockReporter implements Reporter {
 
         List<Span> spans = getSpans();
         List<Span> spansToFlush = spans.stream()
-            .filter(s-> !hasEmptyTraceContext(s))
+            .filter(s -> !hasEmptyTraceContext(s))
             .collect(Collectors.toList());
 
         transactionsToFlush.forEach(Transaction::decrementReferences);
@@ -428,4 +439,35 @@ public class MockReporter implements Reporter {
     private static boolean hasEmptyTraceContext(AbstractSpan<?> item) {
         return item.getTraceContext().getId().isEmpty();
     }
+
+    private void validateAllSchema(Function<JsonSchemaVersion, JsonSchema> getSchema, Function<DslJsonSerializer, String> toJson) {
+        for (JsonSchemaVersion schema : JsonSchemaVersion.values()) {
+            validateSingleSchema(getSchema, toJson, schema);
+        }
+    }
+
+    private void validateSingleSchema(Function<JsonSchemaVersion, JsonSchema> getSchema,
+                                      Function<DslJsonSerializer, String> toJson,
+                                      JsonSchemaVersion schema) {
+        ApmServerClient apmServerClient = mock(ApmServerClient.class);
+        // emulate that remote server is of a known version, if there is none, we assume all features are supported
+        when(apmServerClient.isAtLeast(any(Version.class))).thenAnswer(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                Version otherVersion = invocation.getArgument(0);
+                Version schemaVersion = schema.getVersion();
+                if (schemaVersion == null) {
+                    return true;
+                } else {
+                    return schemaVersion.compareTo(otherVersion) >= 0;
+                }
+
+            }
+        });
+        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+
+        JsonNode json = asJson(toJson.apply(serializer));
+        verifyJsonSchema(getSchema.apply(schema), json);
+    }
+
 }

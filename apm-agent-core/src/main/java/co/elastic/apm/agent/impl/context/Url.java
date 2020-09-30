@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -49,9 +49,9 @@ public class Url implements Recyclable {
     @Nullable
     private String hostname;
     /**
-     * The port of the request, e.g. '443'
+     * The port of the request, e.g. 443
      */
-    private final StringBuilder port = new StringBuilder();
+    private int port;
     /**
      * The path of the request, e.g. '/search'
      */
@@ -110,7 +110,7 @@ public class Url implements Recyclable {
     /**
      * The port of the request, e.g. '443'
      */
-    public StringBuilder getPort() {
+    public int getPort() {
         return port;
     }
 
@@ -118,7 +118,7 @@ public class Url implements Recyclable {
      * The port of the request, e.g. '443'
      */
     public Url withPort(int port) {
-        this.port.append(port);
+        this.port = port;
         return this;
     }
 
@@ -159,7 +159,7 @@ public class Url implements Recyclable {
         protocol = null;
         full.setLength(0);
         hostname = null;
-        port.setLength(0);
+        port = 0;
         pathname = null;
         search = null;
     }
@@ -169,8 +169,7 @@ public class Url implements Recyclable {
         this.full.setLength(0);
         this.full.append(other.full);
         this.hostname = other.hostname;
-        this.port.setLength(0);
-        this.port.append(other.port);
+        this.port = other.port;
         this.pathname = other.pathname;
         this.search = other.search;
     }
@@ -179,7 +178,7 @@ public class Url implements Recyclable {
         return protocol != null ||
             full.length() > 0 ||
             hostname != null ||
-            port.length() > 0 ||
+            port > 0 ||
             pathname != null ||
             search != null;
     }

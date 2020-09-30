@@ -104,7 +104,7 @@
         <version.log4j>2.12.1</version.log4j>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>0.1.19</version.json-schema-validator>
+        <version.json-schema-validator>1.0.43</version.json-schema-validator>
         <version.byte-buddy>1.10.12</version.byte-buddy>
 
         <!-- used both for plugin & annotations dependency -->
