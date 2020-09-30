@@ -173,7 +173,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
             "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.\n\n" +
-            "Value will be rounded with 4 significance digits, as an example, value '0.55555' will be rounded to `0.5556`")
+            "Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
         .buildWithDefault(1.0);
