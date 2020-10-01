@@ -36,6 +36,7 @@ public class TraceState implements Recyclable {
     private static final char ENTRY_SEPARATOR = ';';
     private static final String VENDOR_PREFIX = "es=";
     private static final String SAMPLE_RATE_PREFIX = "s:";
+    private static final String FULL_PREFIX = VENDOR_PREFIX + SAMPLE_RATE_PREFIX;
 
     /**
      * List of tracestate header values
@@ -48,11 +49,12 @@ public class TraceState implements Recyclable {
     private double sampleRate;
 
     // temp buffer used for rewriting
-    private final StringBuilder tempBuffer = new StringBuilder();
+    private final StringBuilder rewriteBuffer;
 
     public TraceState() {
         tracestate = new ArrayList<>(1);
         sampleRate = Double.NaN;
+        rewriteBuffer = new StringBuilder();
     }
 
     public void copyFrom(TraceState other) {
@@ -102,11 +104,11 @@ public class TraceState implements Recyclable {
     }
 
     private String rewriteHeaderSampleRate(String originalHeader, int valueStart, int valueEnd, double sampleRate) {
-        tempBuffer.setLength(0);
-        tempBuffer.append(originalHeader, 0, valueStart);
-        tempBuffer.append(sampleRate);
-        tempBuffer.append(originalHeader, valueEnd, originalHeader.length());
-        return tempBuffer.toString();
+        rewriteBuffer.setLength(0);
+        rewriteBuffer.append(originalHeader, 0, valueStart);
+        rewriteBuffer.append(sampleRate);
+        rewriteBuffer.append(originalHeader, valueEnd, originalHeader.length());
+        return rewriteBuffer.toString();
     }
 
     /**
@@ -120,8 +122,7 @@ public class TraceState implements Recyclable {
         if (!isValidSampleRate(sampleRate)) {
             throw new IllegalArgumentException("invalid sample rate argument " + sampleRate);
         }
-
-        return VENDOR_PREFIX + SAMPLE_RATE_PREFIX + sampleRate;
+        return FULL_PREFIX + sampleRate;
     }
 
     private static boolean isValidSampleRate(double sampleRate) {
@@ -174,6 +175,6 @@ public class TraceState implements Recyclable {
     public void resetState() {
         tracestate.clear();
         sampleRate = Double.NaN;
-        tempBuffer.setLength(0);
+        rewriteBuffer.setLength(0);
     }
 }
