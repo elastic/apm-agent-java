@@ -92,7 +92,7 @@ public class MockReporter implements Reporter {
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
-        SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"), "rabbitmq", Set.of("send"));
+        SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
 
     public MockReporter() {

@@ -24,14 +24,16 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderSetter;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -112,7 +114,8 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @AssignTo(arguments = @AssignTo.Argument(index = 0, value = 4))
         @Nullable
-        public static Object[] onBasicPublish(@Advice.Argument(0) final String exchange,
+        public static Object[] onBasicPublish(@Advice.This Channel channel,
+                                              @Advice.Argument(0) final String exchange,
                                               @Advice.Argument(4) @Nullable AMQP.BasicProperties originalBasicProperties) {
             if (!tracer.isRunning() || tracer.getActive() == null) {
                 return null;
@@ -134,14 +137,20 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
                 .withName("RabbitMQ message sent to ")
                 .appendToName(exchange);
 
-            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties, RabbitMQTextHeaderSetter.INSTANCE);
+            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties);
 
             exitSpan.getContext().getMessage().withQueue(exchange);
 
-            exitSpan.getContext().getDestination().getService()
+            Destination destination = exitSpan.getContext().getDestination();
+
+            destination.getService()
                 .withType("messaging")
                 .withName("rabbitmq")
                 .getResource().append("rabbitmq/").append(exchange);
+
+            Connection connection = channel.getConnection();
+            destination.withAddress(connection.getAddress().getHostName());
+            destination.withPort(connection.getPort());
 
             exitSpan.activate();
 
@@ -149,8 +158,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         }
 
         private static AMQP.BasicProperties propagateTraceContext(Span exitSpan,
-                                                                  @Nullable AMQP.BasicProperties originalBasicProperties,
-                                                                  TextHeaderSetter<HashMap<String, Object>> textHeaderSetter) {
+                                                                  @Nullable AMQP.BasicProperties originalBasicProperties) {
             AMQP.BasicProperties properties = originalBasicProperties;
             if (properties == null) {
                 properties = new AMQP.BasicProperties();
@@ -163,7 +171,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
             HashMap<String, Object> headersWithContext = new HashMap<>(currentHeaders);
 
-            exitSpan.propagateTraceContext(headersWithContext, textHeaderSetter);
+            exitSpan.propagateTraceContext(headersWithContext, RabbitMQTextHeaderSetter.INSTANCE);
 
             return properties.builder().headers(headersWithContext).build();
         }
