@@ -27,6 +27,7 @@ package co.elastic.apm.agent.micrometer;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -64,6 +65,7 @@ class MicrometerMetricsReporterTest {
     private MicrometerMetricsReporter metricsReporter;
     private MockReporter reporter;
     private ObjectMapper objectMapper = new ObjectMapper();
+    private ElasticApmTracer tracer;
 
     @BeforeEach
     void setUp() {
@@ -71,7 +73,7 @@ class MicrometerMetricsReporterTest {
         CompositeMeterRegistry nestedCompositeMeterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(simpleMeterRegistry));
         meterRegistry = new CompositeMeterRegistry(Clock.SYSTEM, List.of(nestedCompositeMeterRegistry));
         reporter = new MockReporter();
-        ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
+        tracer = MockTracer.createRealTracer(reporter);
         doReturn(0L).when(tracer.getConfig(ReporterConfiguration.class)).getMetricsIntervalMs();
         metricsReporter = new MicrometerMetricsReporter(tracer);
         metricsReporter.registerMeterRegistry(meterRegistry);
@@ -91,6 +93,22 @@ class MicrometerMetricsReporterTest {
         assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
         assertThat(metricSet.get("metricset").get("samples").get("counter").get("value").doubleValue()).isEqualTo(42);
         assertThat(metricSet.get("metricset").get("samples").get("gauge").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testDisabledMetrics() {
+        doReturn(List.of(WildcardMatcher.valueOf("root.metric"), WildcardMatcher.valueOf("root.metric.exclude.*")))
+            .when(tracer.getConfig(ReporterConfiguration.class)).getDisableMetrics();
+
+        List<Tag> tags = List.of(Tag.of("foo", "bar"));
+        meterRegistry.counter("root.metric", tags).increment(42);
+        meterRegistry.counter("root.metric.include", tags).increment(42);
+        meterRegistry.counter("root.metric.exclude.counter", tags).increment(42);
+
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
+        assertThat(metricSet.get("metricset").get("samples")).hasSize(1);
+        assertThat(metricSet.get("metricset").get("samples").get("root.metric.include").get("value").doubleValue()).isEqualTo(42);
     }
 
     @Test
@@ -227,6 +245,23 @@ class MicrometerMetricsReporterTest {
         assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
         assertThat(metricSet.get("metricset").get("samples").get("timer.count").get("value").intValue()).isEqualTo(2);
         assertThat(metricSet.get("metricset").get("samples").get("timer.sum").get("value").longValue()).isEqualTo(3);
+    }
+
+    @Test
+    void tryToSerializeInvalidGaugeValues() {
+        for (Double invalidValue : Arrays.asList(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN)) {
+            List<Tag> tags = List.of(Tag.of("foo", "bar"));
+            meterRegistry.gauge("gauge1", tags, 42, v -> invalidValue);
+            meterRegistry.gauge("gauge2", tags, 42, v -> 42D);
+            JsonNode metricSet = getSingleMetricSet();
+            assertThat(metricSet.get("metricset").get("samples").get("gauge1"))
+                .describedAs("value of %s is not expected to be written to json", invalidValue)
+                .isNull();
+
+            // serialization should handle ignoring the 1st value
+            assertThat(metricSet.get("metricset").get("samples").get("gauge2").get("value").doubleValue())
+                .isEqualTo(42D);
+        }
     }
 
     private JsonNode getSingleMetricSet() {

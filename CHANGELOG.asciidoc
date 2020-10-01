@@ -36,7 +36,9 @@ endif::[]
 * Eliminate `unsupported class version error` messages related to loading the Java 11 HttpClient plugin in pre-Java-11 JVMs {pull}1397[1397]
 * Fix rejected metric events by APM Server with response code 400 due to data validation error - sanitizing Micrometer
 metricset tag keys - {pull}1413[1413]
+* Fix invalid micrometer metrics with non-numeric values {pull}1419[1419]
 * Fix `NoClassDefFoundError` with JDBC instrumentation plugin {pull}1409[1409]
+* Apply `disable_metrics` config to Micrometer metrics - {pull}1421[1421]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
