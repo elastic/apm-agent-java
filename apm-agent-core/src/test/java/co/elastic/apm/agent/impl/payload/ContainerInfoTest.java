@@ -108,6 +108,14 @@ public class ContainerInfoTest {
     }
 
     @Test
+    void testOpenshiftFormDisney() {
+        String line = "9:freezer:/kubepods.slice/kubepods-pod22949dce_fd8b_11ea_8ede_98f2b32c645c.slice" +
+            "/docker-b15a5bdedd2e7645c3be271364324321b908314e4c77857bbfd32a041148c07f.scope";
+        SystemInfo systemInfo = assertContainerId(line, "b15a5bdedd2e7645c3be271364324321b908314e4c77857bbfd32a041148c07f");
+        assertKubernetesInfo(systemInfo, "22949dce-fd8b-11ea-8ede-98f2b32c645c", "my-host", null, null);
+    }
+
+    @Test
     void testKubernetesInfo_podUid_with_underscores() {
         // In such cases- underscores should be replaced with hyphens in the pod UID
         String line = "1:name=systemd:/kubepods.slice/kubepods-burstable.slice/" +

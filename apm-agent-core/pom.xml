@@ -168,28 +168,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.jsonschema2pojo</groupId>
-                <artifactId>jsonschema2pojo-maven-plugin</artifactId>
-                <version>0.5.1</version>
-                <configuration>
-                    <sourceDirectory>${basedir}/src/main/resources/schema</sourceDirectory>
-                    <targetPackage>co.elastic.apm.agent.impl.intake</targetPackage>
-                    <usePrimitives>true</usePrimitives>
-                    <useLongIntegers>true</useLongIntegers>
-                    <includeAdditionalProperties>false</includeAdditionalProperties>
-                    <formatDateTimes>true</formatDateTimes>
-                    <generateBuilders>true</generateBuilders>
-                    <skip>true</skip>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>
                     <execution>

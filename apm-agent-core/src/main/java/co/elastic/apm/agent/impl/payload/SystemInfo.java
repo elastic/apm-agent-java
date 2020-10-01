@@ -48,7 +48,7 @@ public class SystemInfo {
     private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
     private static final String POD_REGEX =
         "(?:^/kubepods[\\S]*/pod([^/]+)$)|" +
-            "(?:^/kubepods\\.slice/kubepods-[^/]+\\.slice/kubepods-[^/]+-pod([^/]+)\\.slice$)";
+            "(?:^/kubepods\\.slice/(kubepods-[^/]+\\.slice/)?kubepods[^/]*-pod([^/]+)\\.slice$)";
 
     /**
      * Architecture of the system the agent is running on.
@@ -203,6 +203,8 @@ public class SystemInfo {
                             String podUid = matcher.group(i);
                             if (podUid != null && !podUid.isEmpty()) {
                                 if (i == 2) {
+                                    continue;
+                                } else if (i == 3) {
                                     // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
                                     podUid = podUid.replace('_', '-');
                                 }
