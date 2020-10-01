@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,40 +49,63 @@ class TraceStateTest {
         // check for proper reset at end of each test with current state
         traceState.resetState();
 
-        assertThat(toTextHeader()).isNull();
+        assertThat(traceState.toTextHeader()).isNull();
         assertThat(traceState.getSampleRate()).isNaN();
-    }
-
-    @Nullable
-    private String toTextHeader() {
-        return traceState.toTextHeader(Integer.MAX_VALUE);
     }
 
     @Test
     void createEmpty() {
-        assertThat(toTextHeader()).isNull();
+        assertThat(traceState.toTextHeader()).isNull();
+        assertThat(traceState.getSampleRate()).isNaN();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiterString = "|", value = {
+        // corner cases
+        "0|one=two|",
+        "7|one=two|one=two",
+        //
+        "20|one=two_three=four|one=two,three=four", // no overflow
+        "20|one=two_three=four_five=six_seven=eight|one=two,three=four", // overflow after 'four'
+        "20|one=two,three=four_five=six,seven=eight|one=two,three=four", // overflow within 2cnd header
+        "20|one=two_three=four_five=six,seven=eight|one=two,three=four", // overflow within first header
+        "20|one=two_three=four,X,five=six_seven=eight,nine=ten|one=two,three=four,X", // empty entry kept as-is
+        "20|one=two_three=four,five=six,seven=eight_nine=ten|one=two,three=four", // multiple overflow values
+        "18|one=two_three=four,five=six,seven=eight_nine=ten|one=two,three=four", // cutoff on separator,
+        "17|one=two_three=four,five=six,seven=eight_nine=ten,eleven-twelve|one=two,nine=ten", // just fits
+    })
+    void sizeLimit(int limit, String headers, @Nullable String expected) {
+        Function<String,String> replaceSpaces = s -> s == null ? null : s.replace('X', ' ');
+
+        traceState.setSizeLimit(limit);
+        for (String h : headers.split("_")) {
+            traceState.addTextHeader(replaceSpaces.apply(h));
+        }
+        assertThat(traceState.toTextHeader()).isEqualTo(replaceSpaces.apply(expected));
+
+        // none of those values should have a sample rate set
         assertThat(traceState.getSampleRate()).isNaN();
     }
 
     @Test
     void addSampleRate() {
-        traceState.set(0.5d, TraceState.buildHeaderString(0.5d));
+        traceState.set(0.5d, Double.toString(0.5d));
         assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        assertThat(toTextHeader()).isEqualTo("es=s:0.5");
+        assertThat(traceState.toTextHeader()).isEqualTo("es=s:0.5");
     }
 
     @Test
     void multipleVendorsInSameHeader() {
         traceState.addTextHeader("aa=1|2|3,es=s:0.5,bb=4|5|6");
         assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        assertThat(toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
+        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
     }
 
     @Test
     void otherVendorsOnly() {
         traceState.addTextHeader("aa=1|2|3");
         traceState.addTextHeader("bb=4|5|6");
-        assertThat(toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6");
+        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6");
         assertThat(traceState.getSampleRate()).isNaN();
     }
 
@@ -91,7 +115,7 @@ class TraceStateTest {
         traceState.addTextHeader("es=s:0.5");
         assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
         traceState.addTextHeader("bb=4|5|6");
-        assertThat(toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
+        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,es=s:0.5,bb=4|5|6");
     }
 
     @Test
@@ -99,15 +123,15 @@ class TraceStateTest {
         traceState.addTextHeader("aa=1|2|3");
         traceState.addTextHeader("bb=4|5|6");
 
-        traceState.set(0.444d, TraceState.buildHeaderString(0.444d));
+        traceState.set(0.444d, Double.toString(0.444d));
         assertThat(traceState.getSampleRate()).isEqualTo(0.444d);
-        assertThat(toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6,es=s:0.444");
+        assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6,es=s:0.444");
     }
 
     @Test
     void buildCopy() {
         TraceState other = new TraceState();
-        other.set(0.2d, TraceState.buildHeaderString(0.2d));
+        other.set(0.2d, Double.toString(0.2d));
         other.addTextHeader("aa=1_2");
 
         traceState.copyFrom(other);
@@ -115,7 +139,7 @@ class TraceStateTest {
         other.resetState();
 
         assertThat(traceState.getSampleRate()).isEqualTo(0.2d);
-        assertThat(toTextHeader()).isEqualTo("es=s:0.2,aa=1_2");
+        assertThat(traceState.toTextHeader()).isEqualTo("es=s:0.2,aa=1_2");
     }
 
     @ParameterizedTest
@@ -126,7 +150,7 @@ class TraceStateTest {
     void unknownKeysAreIgnored(String header, String rewrittenHeader) {
         traceState.addTextHeader(header);
         assertThat(traceState.getSampleRate()).isEqualTo(0.5556d);
-        assertThat(toTextHeader()).isEqualTo(rewrittenHeader);
+        assertThat(traceState.toTextHeader()).isEqualTo(rewrittenHeader);
     }
 
     @ParameterizedTest
@@ -150,27 +174,18 @@ class TraceStateTest {
     void appliesRoundingOnUpstreamHeader(String headerRate, Double expectedRate) {
         traceState.addTextHeader("es=s:" + headerRate);
         assertThat(traceState.getSampleRate()).isEqualTo(expectedRate);
-        assertThat(toTextHeader()).isEqualTo("es=s:" + expectedRate);
-    }
-
-    @Test
-    void reuseHeaderValueIfNotRewriting() {
-        String headerValue = "es=s:0.43";
-        traceState.addTextHeader(headerValue);
-        assertThat(traceState.getSampleRate()).isEqualTo(0.43d);
-        assertThat(toTextHeader()).isSameAs(headerValue);
+        assertThat(traceState.toTextHeader()).isEqualTo("es=s:" + expectedRate);
     }
 
     @Test
     void useProvidedValueForTextHeader() {
         double rate = 0.43d;
-        String headerValue = TraceState.buildHeaderString(rate);
+        String headerValue = Double.toString(rate + 0.01d);
         traceState.set(rate, headerValue);
         assertThat(traceState.getSampleRate()).isEqualTo(rate);
 
-        String textHeader = toTextHeader();
-        assertThat(textHeader).isEqualTo("es=s:0.43");
-        assertThat(textHeader).isSameAs(headerValue);
+        String textHeader = traceState.toTextHeader();
+        assertThat(textHeader).isEqualTo("es=s:0.44"); // not exactly the same on purpose
     }
 
 }

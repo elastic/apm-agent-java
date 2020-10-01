@@ -53,14 +53,12 @@ public interface Sampler {
     boolean isSampled(Id traceId);
 
     /**
-     * Provides current sample rate
-     *
      * @return current sample rate
      */
     double getSampleRate();
 
     /**
-     * @return tracestate header value (which only contains sample rate currently)
+     * @return current sample rate as constant string
      */
-    String getTraceStateHeader();
+    String getSampleRateString();
 }

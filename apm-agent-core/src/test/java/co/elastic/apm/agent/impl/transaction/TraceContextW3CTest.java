@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.core.JsonParser;
@@ -59,7 +60,9 @@ public class TraceContextW3CTest {
                     final String traceParentHeader = headersMap.getFirst("traceparent");
                     assertThat(traceParentHeader).isNotNull();
                     final boolean traceparentValid = testCase.get("is_traceparent_valid").booleanValue();
-                    final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+
+                    ElasticApmTracer tracer = MockTracer.create();
+                    final TraceContext traceContext = TraceContext.with64BitId(tracer);
                     softly.assertThat(traceContext.asChildOf(traceParentHeader))
                         .withFailMessage("Expected '%s' to be %s", traceParentHeader, traceparentValid ? "valid" : "invalid")
                         .isEqualTo(traceparentValid);

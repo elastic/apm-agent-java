@@ -32,35 +32,46 @@ import java.util.List;
 
 public class TraceState implements Recyclable {
 
+    private static final int DEFAULT_SIZE_LIMIT = 4096;
+
     private static final char VENDOR_SEPARATOR = ',';
     private static final char ENTRY_SEPARATOR = ';';
     private static final String VENDOR_PREFIX = "es=";
     private static final String SAMPLE_RATE_PREFIX = "s:";
     private static final String FULL_PREFIX = VENDOR_PREFIX + SAMPLE_RATE_PREFIX;
 
-    /**
-     * List of tracestate header values
-     */
-    private final List<String> tracestate;
+    private int sizeLimit;
+
+    private final StringBuilder header;
+
+    private final StringBuilder rewriteBuffer;
+
+    private final List<CharSequence> tracestate;
 
     /**
      * sample rate, {@link Double#NaN} if unknown or not set
      */
     private double sampleRate;
 
-    // temp buffer used for rewriting
-    private final StringBuilder rewriteBuffer;
-
     public TraceState() {
-        tracestate = new ArrayList<>(1);
         sampleRate = Double.NaN;
+        sizeLimit = DEFAULT_SIZE_LIMIT;
+        tracestate = new ArrayList<>(1);
         rewriteBuffer = new StringBuilder();
+        header = new StringBuilder(FULL_PREFIX.length());
     }
 
     public void copyFrom(TraceState other) {
-        tracestate.clear();
-        tracestate.addAll(other.tracestate);
         sampleRate = other.sampleRate;
+        sizeLimit = other.sizeLimit;
+        tracestate.clear();
+        // copy and make sure we have the immutable variant
+        for (int i = 0; i < other.tracestate.size(); i++) {
+            tracestate.add(other.tracestate.get(i).toString());
+        }
+        rewriteBuffer.setLength(0);
+        header.setLength(0);
+        header.append(other.header);
     }
 
     public void addTextHeader(String headerValue) {
@@ -91,7 +102,14 @@ public class TraceState implements Recyclable {
                         double rounded = Math.round(value * 10000d) / 10000d;
 
                         if (rounded != value) {
-                            headerValue = rewriteHeaderSampleRate(headerValue, valueStart, valueEnd, rounded);
+
+                            // value needs to be re-written first
+                            rewriteBuffer.setLength(0);
+                            rewriteBuffer.append(headerValue, 0, valueStart);
+                            rewriteBuffer.append(rounded);
+                            rewriteBuffer.append(headerValue, valueEnd, headerValue.length());
+                            // we don't minimize allocation as re-writing should be an exception
+                            headerValue = rewriteBuffer.toString();
                         }
                         sampleRate = rounded;
                     }
@@ -100,44 +118,19 @@ public class TraceState implements Recyclable {
                 }
             }
         }
+
         tracestate.add(headerValue);
     }
 
-    private String rewriteHeaderSampleRate(String originalHeader, int valueStart, int valueEnd, double sampleRate) {
-        rewriteBuffer.setLength(0);
-        rewriteBuffer.append(originalHeader, 0, valueStart);
-        rewriteBuffer.append(sampleRate);
-        rewriteBuffer.append(originalHeader, valueEnd, originalHeader.length());
-        return rewriteBuffer.toString();
-    }
-
     /**
-     * Computes tracestate header value string representation for a given rate
+     * Sets value for trace state. Provided rate and string value are assumed to be correct and consistent
      *
-     * @param sampleRate sample rate
-     * @return tracestate header text representation
-     * @throws IllegalArgumentException if sample rate is invalid
-     */
-    public static String buildHeaderString(double sampleRate) {
-        if (!isValidSampleRate(sampleRate)) {
-            throw new IllegalArgumentException("invalid sample rate argument " + sampleRate);
-        }
-        return FULL_PREFIX + sampleRate;
-    }
-
-    private static boolean isValidSampleRate(double sampleRate) {
-        return !Double.isNaN(sampleRate) && !Double.isInfinite(sampleRate) && sampleRate >= 0d && sampleRate <= 1.0d;
-    }
-
-    /**
-     * Sets value for trace state. Provided rate and header value are assumed to be correct and consistent
-     *
-     * @param rate   sample rate
-     * @param header header text value, returned from calling {@link #buildHeaderString(double)}.
+     * @param rate       sample rate
+     * @param rateString rate written as a string, used to minimize allocation
      * @throws IllegalStateException    if sample rate has already been set
      * @throws IllegalArgumentException if rate has an invalid value
      */
-    public void set(double rate, String header) {
+    public void set(double rate, String rateString) {
         if (!Double.isNaN(sampleRate)) {
             // sample rate is set either explicitly from this method (for root transactions)
             // or through upstream header, thus there is no need to change after. This allows to only
@@ -145,6 +138,9 @@ public class TraceState implements Recyclable {
             throw new IllegalStateException("sample rate has already been set from headers");
         }
         sampleRate = rate;
+        header.setLength(0);
+        header.append(FULL_PREFIX);
+        header.append(rateString);
         tracestate.add(header);
     }
 
@@ -155,17 +151,10 @@ public class TraceState implements Recyclable {
         return sampleRate;
     }
 
-    /**
-     * Serializes tracestate to a string representation
-     *
-     * @return string representation of tracestate header
-     */
     @Nullable
-    public String toTextHeader(int sizeLimit) {
+    public String toTextHeader() {
         if (tracestate.isEmpty()) {
             return null;
-        } else if (tracestate.size() == 1) {
-            return tracestate.get(0);
         } else {
             return TextTracestateAppender.instance().join(tracestate, sizeLimit);
         }
@@ -173,8 +162,16 @@ public class TraceState implements Recyclable {
 
     @Override
     public void resetState() {
-        tracestate.clear();
         sampleRate = Double.NaN;
+        sizeLimit = DEFAULT_SIZE_LIMIT;
         rewriteBuffer.setLength(0);
+        tracestate.clear();
+    }
+
+    public void setSizeLimit(int limit) {
+        if(!tracestate.isEmpty()) {
+            throw new IllegalStateException("can't change size limit once headers have been added");
+        }
+        this.sizeLimit = limit;
     }
 }

@@ -56,13 +56,13 @@ public class ProbabilitySampler implements Sampler {
     private final double sampleRate;
 
     // Because header value only contains sampling rate, we can cache it here
-    private final String traceStateHeader;
+    private final String rateString;
 
     private ProbabilitySampler(double samplingRate) {
         higherBound = (long) (Long.MAX_VALUE * samplingRate);
         lowerBound = -higherBound;
         this.sampleRate = samplingRate;
-        traceStateHeader = TraceState.buildHeaderString(samplingRate);
+        rateString = Double.toString(samplingRate);
     }
 
     public static Sampler of(double samplingRate) {
@@ -86,7 +86,8 @@ public class ProbabilitySampler implements Sampler {
         return sampleRate;
     }
 
-    public String getTraceStateHeader() {
-        return traceStateHeader;
+    @Override
+    public String getSampleRateString() {
+        return rateString;
     }
 }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 class TextTracestateAppender {
@@ -38,37 +39,51 @@ class TextTracestateAppender {
     TextTracestateAppender() {
     }
 
-    public String join(List<String> tracestate, int tracestateSizeLimit) {
+    @Nullable
+    public String join(List<? extends CharSequence> tracestate, int tracestateSizeLimit) {
         StringBuilder buffer = getTracestateBuffer();
         //noinspection ForLoopReplaceableByForEach
         for (int i = 0, size = tracestate.size(); i < size; i++) {
-            String value = tracestate.get(i);
+            CharSequence value = tracestate.get(i);
             if (value != null) { // ignore null entries to allow removing entries without resizing collection
                 appendTracestateHeaderValue(value, buffer, tracestateSizeLimit);
             }
         }
-        return buffer.toString();
+        return buffer.length() == 0 ? null : buffer.toString();
     }
 
-    void appendTracestateHeaderValue(String headerValue, StringBuilder tracestateBuffer, int tracestateSizeLimit) {
-        int endIndex = headerValue.length();
-        // Check if adding comma and the entire header value will break size limit
-        if (tracestateBuffer.length() + endIndex + 1 > tracestateSizeLimit) {
+    void appendTracestateHeaderValue(CharSequence headerValue, StringBuilder tracestateBuffer, int tracestateSizeLimit) {
+        int requiredLength = headerValue.length();
+        boolean needsComma = tracestateBuffer.length() > 0;
+        if (needsComma) {
+            requiredLength++;
+        }
+
+        if (tracestateBuffer.length() + requiredLength <= tracestateSizeLimit) {
+            // header fits completely
+            if (needsComma) {
+                tracestateBuffer.append(',');
+            }
+            tracestateBuffer.append(headerValue);
+        } else {
+            // only part of header might be included
+            //
             // When trimming due to size limit, we must include complete entries
-            endIndex = 0;
+            int endIndex = 0;
             for (int i = headerValue.length() - 1; i >= 0; i--) {
                 if (headerValue.charAt(i) == ',' && tracestateBuffer.length() + i < tracestateSizeLimit) {
                     endIndex = i;
                     break;
                 }
             }
-        }
-        if (endIndex > 0) {
-            if (tracestateBuffer.length() > 0) {
-                tracestateBuffer.append(',');
+            if (endIndex > 0) {
+                if (tracestateBuffer.length() > 0) {
+                    tracestateBuffer.append(',');
+                }
+                tracestateBuffer.append(headerValue, 0, endIndex);
             }
-            tracestateBuffer.append(headerValue, 0, endIndex);
         }
+
     }
 
     private StringBuilder getTracestateBuffer() {

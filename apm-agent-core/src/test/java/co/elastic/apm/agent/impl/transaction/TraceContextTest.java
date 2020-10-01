@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
@@ -493,7 +494,7 @@ class TraceContextTest {
         assertThat(traceContext.getSampleRate()).isNaN();
 
         // sampled with sample rate
-        traceContext.getTraceState().set(0.5d, TraceState.buildHeaderString(0.5d));
+        traceContext.getTraceState().set(0.5d, Double.toString(0.5d));
 
         assertThat(traceContext.isSampled()).isTrue();
         assertThat(traceContext.getSampleRate()).isEqualTo(0.5d);
@@ -507,7 +508,7 @@ class TraceContextTest {
     @Test
     void testRootSpanShouldAddsSampleRateToTraceState() {
         final TraceContext traceContext = createRootSpan(0.42d);
-        String traceState = traceContext.getTraceState().toTextHeader(Integer.MAX_VALUE);
+        String traceState = traceContext.getTraceState().toTextHeader();
         assertThat(traceState).isEqualTo("es=s:0.42");
     }
 
@@ -517,7 +518,7 @@ class TraceContextTest {
         Sampler sampler = mock(Sampler.class);
         when(sampler.isSampled(any(Id.class))).thenReturn(true);
         when(sampler.getSampleRate()).thenReturn(sampleRate);
-        when(sampler.getTraceStateHeader()).thenReturn(TraceState.buildHeaderString(sampleRate));
+        when(sampler.getSampleRateString()).thenReturn(Double.toString(sampleRate));
 
         traceContext.asRootSpan(sampler);
         return traceContext;
@@ -574,7 +575,7 @@ class TraceContextTest {
             .describedAs("tracestate = '%s' should have sample rate = %s", traceState, expectedRate)
             .isEqualTo(expectedRate);
 
-        assertThat(child.getTraceState().toTextHeader(Integer.MAX_VALUE))
+        assertThat(child.getTraceState().toTextHeader())
                 .describedAs("tracestate should be kept as-is")
                 .isEqualTo(traceState);
 
@@ -629,26 +630,6 @@ class TraceContextTest {
 
         assertThat(rootContext.isRecorded()).isTrue();
         assertThat(rootContext.getSampleRate()).isEqualTo(0.42d);
-    }
-
-    @Test
-    void testPropagateSampleRateForSampledSpan() {
-        final TraceContext rootContext = TraceContext.with64BitId(tracer);
-        Sampler sampler = ConstantSampler.of(true);
-        rootContext.asRootSpan(sampler);
-
-        String samplerHeader = sampler.getTraceStateHeader();
-
-        final TraceContext childContext = TraceContext.with64BitId(tracer);
-        childContext.asChildOf(rootContext);
-
-        assertThat(childContext.getSampleRate())
-            .isEqualTo(rootContext.getSampleRate())
-            .isEqualTo(1.0d);
-
-        assertThat(childContext.getTraceState().toTextHeader(Integer.MAX_VALUE))
-            .describedAs("child span should reuse the header provided by the samplerw")
-            .isSameAs(samplerHeader);
     }
 
     @Test
@@ -748,13 +729,17 @@ class TraceContextTest {
 
     @Test
     void testDeserialization() {
-        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        ElasticApmTracer tracer = MockTracer.create();
+        CoreConfiguration configuration = tracer.getConfig(CoreConfiguration.class);
+        when(configuration.getTracestateSizeLimit()).thenReturn(Integer.MAX_VALUE);
+
+        final TraceContext traceContext = TraceContext.with64BitId(tracer);
         traceContext.asRootSpan(ConstantSampler.of(true));
 
         byte[] serializedContext = new byte[TraceContext.SERIALIZED_LENGTH];
         traceContext.serialize(serializedContext);
 
-        TraceContext deserialized = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        TraceContext deserialized = TraceContext.with64BitId(tracer);
         deserialized.deserialize(serializedContext, null);
 
         assertThat(deserialized.traceIdAndIdEquals(serializedContext)).isTrue();

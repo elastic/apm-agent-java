@@ -232,7 +232,7 @@ public class TraceContext implements Recyclable {
     // weakly referencing to avoid CL leaks in case of leaked spans
     @Nullable
     private WeakReference<ClassLoader> applicationClassLoader;
-    private final TraceState traceState = new TraceState();
+    private final TraceState traceState;
 
     final CoreConfiguration coreConfiguration;
 
@@ -248,6 +248,8 @@ public class TraceContext implements Recyclable {
 
     private TraceContext(ElasticApmTracer tracer, Id id) {
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        traceState = new TraceState();
+        traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
         this.tracer = tracer;
         this.id = id;
     }
@@ -425,7 +427,7 @@ public class TraceContext implements Recyclable {
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
             flags = FLAG_RECORDED;
-            traceState.set(sampler.getSampleRate(), sampler.getTraceStateHeader());
+            traceState.set(sampler.getSampleRate(), sampler.getSampleRateString());
         }
         clock.init();
         onMutation();
@@ -457,6 +459,7 @@ public class TraceContext implements Recyclable {
         serviceName = null;
         applicationClassLoader = null;
         traceState.resetState();
+        traceState.setSizeLimit(coreConfiguration.getTracestateSizeLimit());
     }
 
     /**
@@ -561,7 +564,7 @@ public class TraceContext implements Recyclable {
             headerSetter.setHeader(ELASTIC_TRACE_PARENT_TEXTUAL_HEADER_NAME, outgoingTraceParent, carrier);
         }
 
-        String outgoingTraceState = traceState.toTextHeader(coreConfiguration.getTracestateSizeLimit());
+        String outgoingTraceState = traceState.toTextHeader();
         if (outgoingTraceState != null) {
             headerSetter.setHeader(TRACESTATE_HEADER_NAME, outgoingTraceState, carrier);
         }
