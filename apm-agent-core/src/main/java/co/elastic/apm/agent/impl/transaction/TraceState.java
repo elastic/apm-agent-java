@@ -156,7 +156,7 @@ public class TraceState implements Recyclable {
         if (tracestate.isEmpty()) {
             return null;
         } else {
-            return TextTracestateAppender.instance().join(tracestate, sizeLimit);
+            return TextTracestateAppender.INSTANCE.join(tracestate, sizeLimit);
         }
     }
 
@@ -173,5 +173,77 @@ public class TraceState implements Recyclable {
             throw new IllegalStateException("can't change size limit once headers have been added");
         }
         this.sizeLimit = limit;
+    }
+
+    /**
+     * Internal appender uses a per-thread StringBuilder instance to concatenate the tracestate header.
+     * This allows ot limit actual memory usage to be linear to the number of active threads which
+     * is assumed to be far less than the number of active in-flight transactions.
+     */
+    private static class TextTracestateAppender {
+
+        private static final TextTracestateAppender INSTANCE = new TextTracestateAppender();
+        private final ThreadLocal<StringBuilder> tracestateBuffer = new ThreadLocal<StringBuilder>();
+
+        private TextTracestateAppender() {
+        }
+
+        @Nullable
+        public String join(List<? extends CharSequence> tracestate, int tracestateSizeLimit) {
+            StringBuilder buffer = getTracestateBuffer();
+            //noinspection ForLoopReplaceableByForEach
+            for (int i = 0, size = tracestate.size(); i < size; i++) {
+                CharSequence value = tracestate.get(i);
+                if (value != null) { // ignore null entries to allow removing entries without resizing collection
+                    appendTracestateHeaderValue(value, buffer, tracestateSizeLimit);
+                }
+            }
+            return buffer.length() == 0 ? null : buffer.toString();
+        }
+
+        void appendTracestateHeaderValue(CharSequence headerValue, StringBuilder tracestateBuffer, int tracestateSizeLimit) {
+            int requiredLength = headerValue.length();
+            boolean needsComma = tracestateBuffer.length() > 0;
+            if (needsComma) {
+                requiredLength++;
+            }
+
+            if (tracestateBuffer.length() + requiredLength <= tracestateSizeLimit) {
+                // header fits completely
+                if (needsComma) {
+                    tracestateBuffer.append(',');
+                }
+                tracestateBuffer.append(headerValue);
+            } else {
+                // only part of header might be included
+                //
+                // When trimming due to size limit, we must include complete entries
+                int endIndex = 0;
+                for (int i = headerValue.length() - 1; i >= 0; i--) {
+                    if (headerValue.charAt(i) == ',' && tracestateBuffer.length() + i < tracestateSizeLimit) {
+                        endIndex = i;
+                        break;
+                    }
+                }
+                if (endIndex > 0) {
+                    if (tracestateBuffer.length() > 0) {
+                        tracestateBuffer.append(',');
+                    }
+                    tracestateBuffer.append(headerValue, 0, endIndex);
+                }
+            }
+
+        }
+
+        private StringBuilder getTracestateBuffer() {
+            StringBuilder buffer = tracestateBuffer.get();
+            if (buffer == null) {
+                buffer = new StringBuilder();
+                tracestateBuffer.set(buffer);
+            } else {
+                buffer.setLength(0);
+            }
+            return buffer;
+        }
     }
 }
