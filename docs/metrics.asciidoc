@@ -120,16 +120,6 @@ Memory usage in current cgroup slice.
 --
 
 
-*`system.process.cgroup.memory.stats.inactive_file.bytes`*::
-+
---
-type: long
-
-format: bytes
-
-Inactive memory in current cgroup slice.
---
-
 [float]
 [[metrics-jvm]]
 === JVM Metrics
