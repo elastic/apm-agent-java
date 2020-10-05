@@ -27,6 +27,8 @@ package co.elastic.apm.agent.util;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VersionUtilsTest {
@@ -36,6 +38,9 @@ class VersionUtilsTest {
         assertThat(VersionUtils.getVersionFromPackage(Test.class)).isNotEmpty();
         assertThat(VersionUtils.getVersionFromPackage(Test.class))
             .isEqualTo(VersionUtils.getVersion(Test.class, "org.junit.jupiter", "junit-jupiter-api"));
+        assertThat(VersionUtils.getManifestEntry(new File(Test.class.getProtectionDomain().getCodeSource().getLocation().getFile()), "Implementation-Version"))
+            .isEqualTo(VersionUtils.getVersionFromPackage(Test.class));
+
         // tests caching
         assertThat(VersionUtils.getVersion(Test.class, "org.junit.jupiter", "junit-jupiter-api"))
             .isSameAs(VersionUtils.getVersion(Test.class, "org.junit.jupiter", "junit-jupiter-api"));
