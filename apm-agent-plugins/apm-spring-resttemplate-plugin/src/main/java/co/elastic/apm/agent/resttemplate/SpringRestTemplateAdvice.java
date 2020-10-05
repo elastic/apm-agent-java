@@ -39,9 +39,7 @@ public class SpringRestTemplateAdvice {
     public static void afterExecute(@Advice.Return @Nullable ClientHttpResponse clientHttpResponse,
                                     @Advice.Enter @Nullable Object spanObj,
                                     @Advice.Thrown @Nullable Throwable t) throws IOException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Exit advice for RestTemplate client execute() method, span object: {}", spanObj);
-        }
+        logger.trace("Exit advice for RestTemplate client execute() method, span object: {}", spanObj);
         if (spanObj instanceof Span) {
             Span span = (Span) spanObj;
             try {
