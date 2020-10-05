@@ -190,6 +190,14 @@ public class TraceState implements Recyclable {
 
         @Nullable
         public String join(List<? extends CharSequence> tracestate, int tracestateSizeLimit) {
+            Object singleEntry = tracestate.size() != 1 ? null : tracestate.get(0);
+            if (singleEntry instanceof String) {
+                String entry = (String) singleEntry;
+                if (entry.length() <= tracestateSizeLimit) {
+                    return entry;
+                }
+            }
+
             StringBuilder buffer = getTracestateBuffer();
             //noinspection ForLoopReplaceableByForEach
             for (int i = 0, size = tracestate.size(); i < size; i++) {
