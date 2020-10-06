@@ -28,6 +28,9 @@ endif::[]
 
 [float]
 ===== Features
+* The agent version now includes a git hash if it's a snapshot version.
+  This makes it easier to differ distinct snapshot builds of the same version.
+  Example: `1.18.1-SNAPSHOT.4655910`
 
 [float]
 ===== Bug fixes
