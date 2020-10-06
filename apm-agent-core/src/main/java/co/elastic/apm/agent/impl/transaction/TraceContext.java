@@ -539,6 +539,7 @@ public class TraceContext implements Recyclable {
             String tracestateHeaderValue = TextTracestateAppender.instance().join(tracestate, coreConfiguration.getTracestateSizeLimit());
             headerSetter.setHeader(TRACESTATE_HEADER_NAME, tracestateHeaderValue, carrier);
         }
+        logger.trace("Trace context headers added to {}", carrier);
     }
 
     /**
