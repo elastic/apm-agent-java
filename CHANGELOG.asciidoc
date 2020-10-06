@@ -28,11 +28,24 @@ endif::[]
 
 [float]
 ===== Features
-* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364] {pull}1365[1365] {pull}1367[1367] {pull}1371[1371]
-* Remove cgroup inactive_file.bytes metric {pull}1422[1422]
 * The agent version now includes a git hash if it's a snapshot version.
   This makes it easier to differ distinct snapshot builds of the same version.
   Example: `1.18.1-SNAPSHOT.4655910`
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.18.1]]
+==== 1.18.1 - 2020/10/06
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364] {pull}1365[1365] {pull}1367[1367] {pull}1371[1371]
+* Remove cgroup inactive_file.bytes metric {pull}1422[1422]
+
 
 [float]
 ===== Bug fixes
@@ -43,9 +56,7 @@ metricset tag keys - {pull}1413[1413]
 * Fix invalid micrometer metrics with non-numeric values {pull}1419[1419]
 * Fix `NoClassDefFoundError` with JDBC instrumentation plugin {pull}1409[1409]
 * Apply `disable_metrics` config to Micrometer metrics - {pull}1421[1421]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Remove cgroup `inactive_file.bytes` metric according to spec {pull}1422[1422]
 
 [[release-notes-1.18.0]]
 ==== 1.18.0 - 2020/09/08
