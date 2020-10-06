@@ -455,7 +455,6 @@
                         <goals>
                             <goal>revision</goal>
                         </goals>
-                        <phase>clean</phase>
                     </execution>
                 </executions>
             </plugin>
