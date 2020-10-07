@@ -31,9 +31,6 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,7 +46,6 @@ public abstract class AbstractInstrumentationTest {
     private boolean validateRecycling = true;
 
     @BeforeAll
-    @BeforeClass
     public static synchronized void beforeAll() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         tracer = mockInstrumentationSetup.getTracer();
@@ -61,7 +57,6 @@ public abstract class AbstractInstrumentationTest {
     }
 
     @AfterAll
-    @AfterClass
     public static synchronized void afterAll() {
         ElasticApmAgent.reset();
     }
@@ -82,7 +77,6 @@ public abstract class AbstractInstrumentationTest {
         return config;
     }
 
-    @After
     @AfterEach
     public final void cleanUp() {
         SpyConfiguration.reset(config);
@@ -104,7 +98,7 @@ public abstract class AbstractInstrumentationTest {
         tracer.resetServiceNameOverrides();
 
         assertThat(tracer.getActive())
-            .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
-            .isNull();
+                .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
+                .isNull();
     }
 }

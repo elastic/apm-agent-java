@@ -30,9 +30,9 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQMapMessage;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import javax.jms.Connection;
@@ -59,7 +59,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
     private static Connection connection;
     private static ClassPathXmlApplicationContext ctx;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws JMSException {
         ConnectionFactory connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
         connection = connectionFactory.createConnection();
@@ -67,7 +67,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
         ctx = new ClassPathXmlApplicationContext("app-context.xml");
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() throws JMSException {
         ctx.close();
         connection.stop();

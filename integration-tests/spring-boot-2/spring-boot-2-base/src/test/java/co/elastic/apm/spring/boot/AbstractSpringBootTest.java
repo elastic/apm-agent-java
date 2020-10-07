@@ -32,11 +32,11 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.api.ElasticApm;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,7 +51,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -62,7 +62,7 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 public abstract class AbstractSpringBootTest {
 
@@ -72,25 +72,25 @@ public abstract class AbstractSpringBootTest {
     private int port;
     private TestRestTemplate restTemplate;
 
-    @BeforeClass
-    public static void beforeClass() {
+    @BeforeAll
+    public static void beforeAll() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         config = mockInstrumentationSetup.getConfig();
         reporter = mockInstrumentationSetup.getReporter();
         ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
         restTemplate = new TestRestTemplate(new RestTemplateBuilder()
-            .setConnectTimeout(0)
-            .setReadTimeout(0)
-            .basicAuthorization("username", "password"));
+                .setConnectTimeout(0)
+                .setReadTimeout(0)
+                .basicAuthorization("username", "password"));
         reporter.reset();
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         ElasticApmAgent.reset();
     }
@@ -98,7 +98,7 @@ public abstract class AbstractSpringBootTest {
     @Test
     public void greetingShouldReturnDefaultMessage() throws Exception {
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/", String.class))
-            .contains("Hello World");
+                .contains("Hello World");
 
         // the transaction might not have been reported yet, as the http call returns when the ServletOutputStream has been closed,
         // which is before the transaction has ended
@@ -116,7 +116,7 @@ public abstract class AbstractSpringBootTest {
     public void testStaticFile() throws Exception {
         when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(Collections.emptyList());
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
-            .contains("// empty test script");
+                .contains("// empty test script");
 
         assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("ResourceHttpRequestHandler");
         assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("Spring Web MVC");
@@ -143,19 +143,19 @@ public abstract class AbstractSpringBootTest {
             @Override
             protected void configure(HttpSecurity http) throws Exception {
                 http.authorizeRequests()
-                    .anyRequest().authenticated()
-                    .and()
-                    .httpBasic();
+                        .anyRequest().authenticated()
+                        .and()
+                        .httpBasic();
             }
 
             @Bean
             @Override
             public UserDetailsService userDetailsService() {
                 return new InMemoryUserDetailsManager(User.withDefaultPasswordEncoder()
-                    .username("username")
-                    .password("password")
-                    .roles("USER")
-                    .build());
+                        .username("username")
+                        .password("password")
+                        .roles("USER")
+                        .build());
             }
         }
 

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,8 +31,8 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -41,13 +41,13 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
 
     private static CloseableHttpAsyncClient client;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         client = HttpAsyncClients.createDefault();
         client.start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() throws IOException {
         client.close();
     }
@@ -57,8 +57,8 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
         final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
 
         RequestConfig requestConfig = RequestConfig.custom()
-            .setCircularRedirectsAllowed(true)
-            .build();
+                .setCircularRedirectsAllowed(true)
+                .build();
         HttpClientContext httpClientContext = HttpClientContext.create();
         httpClientContext.setRequestConfig(requestConfig);
         client.execute(new HttpGet(path), httpClientContext, new FutureCallback<>() {

@@ -25,37 +25,33 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 
-@RunWith(Parameterized.class)
-public class KafkaClientVersionsIT {
-    private final TestClassWithDependencyRunner runner;
+class KafkaClientVersionsIT {
+    private TestClassWithDependencyRunner runner;
 
-    public KafkaClientVersionsIT(String version) throws Exception {
+    private void setUp(String version) throws Exception {
         runner = new TestClassWithDependencyRunner("org.apache.kafka", "kafka-clients", version,
             KafkaIT.class, KafkaIT.Consumer.class, KafkaIT.RecordIterationMode.class, KafkaIT.TestScenario.class,
             KafkaIT.ConsumerRecordConsumer.class);
     }
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            // No real need to run both versions, the APIs are the same. Running both requires a separate module
-            // because within a module that declares the dependency, the Kafka client is loaded by the app class loader
-            // IN ADDITION to the test class loader. This works fine only when the tested version is the same as the
-            // dependency version, probably due to some static initializations done by the first one loaded.
-            // We use this test runner framework only so it runs from a class loader that is not the app class loader,
-            // in order to verify that we don't have class visibility problems.
-            {"2.4.0"}
-        });
+    public static Stream<Arguments> data() {
+        final List<Arguments> configurations = new ArrayList<>();
+        configurations.add(Arguments.arguments("2.4.0"));
+        return configurations.stream();
     }
 
-    @Test
-    public void testVersions() {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testVersions(String version) throws Exception {
+        setUp(version);
         runner.run();
     }
 }

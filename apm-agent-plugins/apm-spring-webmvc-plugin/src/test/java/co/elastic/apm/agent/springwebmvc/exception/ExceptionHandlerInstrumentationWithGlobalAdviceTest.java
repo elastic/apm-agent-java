@@ -30,7 +30,7 @@ import co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.Con
 import co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceRuntimeException;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.ControllerAdviceRuntimeException200;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.controller_advice.GlobalExceptionHandler;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;

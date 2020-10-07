@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,32 +25,32 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.provider.Arguments;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 
-@RunWith(Parameterized.class)
 public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private RestTemplate restTemplate;
 
-    public SpringRestTemplateInstrumentationTest(Supplier<ClientHttpRequestFactory> supplier) {
-        restTemplate = new RestTemplate(supplier.get());
+    public static Stream<Arguments> params() {
+        final List<Arguments> configurations = new ArrayList<>();
+        configurations.add(Arguments.arguments(new SimpleClientHttpRequestFactory()));
+        configurations.add(Arguments.arguments(new OkHttp3ClientHttpRequestFactory()));
+        configurations.add(Arguments.arguments(new HttpComponentsClientHttpRequestFactory()));
+        return configurations.stream();
     }
 
-    @Parameterized.Parameters()
-    public static Iterable<Supplier<ClientHttpRequestFactory>> data() {
-        return Arrays.asList(
-            SimpleClientHttpRequestFactory::new,
-            OkHttp3ClientHttpRequestFactory::new,
-            HttpComponentsClientHttpRequestFactory::new);
+    @Override
+    public void setUp(Object arg) {
+        restTemplate = new RestTemplate((ClientHttpRequestFactory) arg);
     }
 
     @Override

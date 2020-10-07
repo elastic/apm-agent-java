@@ -25,28 +25,52 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import org.asynchttpclient.*;
+import org.asynchttpclient.AsyncCompletionHandler;
+import org.asynchttpclient.AsyncCompletionHandlerBase;
+import org.asynchttpclient.AsyncHandler;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.Dsl;
+import org.asynchttpclient.HttpResponseBodyPart;
+import org.asynchttpclient.HttpResponseStatus;
+import org.asynchttpclient.RequestBuilder;
+import org.asynchttpclient.Response;
 import org.asynchttpclient.handler.StreamedAsyncHandler;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.provider.Arguments;
 import org.reactivestreams.Publisher;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.asynchttpclient.Dsl.asyncHttpClient;
 
-@RunWith(Parameterized.class)
 public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
-    private final RequestExecutor requestExecutor;
+    private RequestExecutor requestExecutor;
     private AsyncHttpClient client;
 
-    public AsyncHttpClientInstrumentationTest(RequestExecutor requestExecutor) {
-        this.requestExecutor = requestExecutor;
+    public static AsyncHandler<Response> customStreamAsyncHandler = new CustomStreamedAsyncHandler();
+
+    public static Stream<Arguments> params() {
+        List<RequestExecutor> requestExecutors = Arrays.asList(
+                (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build()).get(),
+                (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), new AsyncCompletionHandlerBase()).get(),
+                (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), customAsyncHandler).get(),
+                (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), customStreamAsyncHandler).get(),
+                (client, path) -> client.prepareGet(path).execute(new AsyncCompletionHandlerBase()).get(),
+                (client, path) -> client.prepareGet(path).execute().get()
+        );
+        return requestExecutors.stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
+    }
+
+    @Override
+    public void setUp(Object arg) {
+        this.requestExecutor = (RequestExecutor) arg;
     }
 
     public static AsyncHandler<Response> customAsyncHandler = new AsyncCompletionHandler<Response>() {
@@ -89,28 +113,14 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
         }
     }
 
-    public static AsyncHandler<Response> customStreamAsyncHandler = new CustomStreamedAsyncHandler();
-
-    @Parameterized.Parameters()
-    public static Iterable<RequestExecutor> data() {
-        return Arrays.asList(
-            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build()).get(),
-            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), new AsyncCompletionHandlerBase()).get(),
-            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), customAsyncHandler).get(),
-            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), customStreamAsyncHandler).get(),
-            (client, path) -> client.prepareGet(path).execute(new AsyncCompletionHandlerBase()).get(),
-            (client, path) -> client.prepareGet(path).execute().get()
-        );
-    }
-
-    @Before
+    @BeforeEach
     public void setUp() {
         client = asyncHttpClient(Dsl.config()
-            .setFollowRedirect(true)
-            .build());
+                .setFollowRedirect(true)
+                .build());
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         client.close();
     }

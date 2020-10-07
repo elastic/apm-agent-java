@@ -30,7 +30,7 @@ import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -39,7 +39,7 @@ public class OkHttp3ClientAsyncInstrumentationTest extends AbstractHttpClientIns
 
     private OkHttpClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         client = new OkHttpClient();
     }
@@ -47,8 +47,8 @@ public class OkHttp3ClientAsyncInstrumentationTest extends AbstractHttpClientIns
     @Override
     protected void performGet(String path) throws Exception {
         Request request = new Request.Builder()
-            .url(path)
-            .build();
+                .url(path)
+                .build();
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         client.newCall(request).enqueue(new Callback() {

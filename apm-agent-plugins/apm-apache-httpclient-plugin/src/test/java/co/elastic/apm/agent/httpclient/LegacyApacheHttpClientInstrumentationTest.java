@@ -27,21 +27,22 @@ package co.elastic.apm.agent.httpclient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+
 
 public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     @SuppressWarnings("deprecation")
     private static DefaultHttpClient client;
 
-    @BeforeClass
+    @BeforeAll
     @SuppressWarnings("deprecation")
     public static void setUp() {
         client = new DefaultHttpClient();
     }
 
-    @AfterClass
+    @AfterAll
     public static void close() {
         client.close();
     }

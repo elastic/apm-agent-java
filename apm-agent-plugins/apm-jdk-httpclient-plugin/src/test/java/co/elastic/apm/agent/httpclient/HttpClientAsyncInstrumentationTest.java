@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -34,7 +34,7 @@ import java.net.http.HttpResponse;
 public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstrumentationTest {
     private HttpClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
     }
@@ -42,8 +42,8 @@ public class HttpClientAsyncInstrumentationTest extends AbstractHttpClientInstru
     @Override
     protected void performGet(String path) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(path))
-            .build();
+                .uri(URI.create(path))
+                .build();
         client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get();
     }
 
