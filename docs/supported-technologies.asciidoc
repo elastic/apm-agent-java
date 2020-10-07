@@ -349,7 +349,7 @@ side will be a part of the same trace containing the producer side as well. Kafk
 |1.13.0
 
 |RabbitMQ
-|5.X
+|3.x - 5.x
 |The agent captures RabbitMQ Message sends and consumes.  
 When the producer send message within a traced transaction, a span will be created and a transaction is created when consumes a message.
 |1.19.0
