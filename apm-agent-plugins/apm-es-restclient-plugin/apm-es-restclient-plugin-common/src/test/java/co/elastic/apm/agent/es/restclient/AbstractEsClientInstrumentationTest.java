@@ -31,14 +31,16 @@ import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.provider.Arguments;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.ELASTICSEARCH;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_ACTION;
@@ -63,12 +65,15 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected boolean async;
 
-    @Parameterized.Parameters(name = "Async={0}")
-    public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
+    public void init(boolean async) {
+        this.async = async;
     }
 
-    @Before
+    public static Stream<Arguments> data() {
+        return Arrays.asList(Boolean.FALSE, Boolean.TRUE).stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
+    }
+
+    @BeforeEach
     public void startTransaction() {
         Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("ES Transaction");
@@ -76,7 +81,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         transaction.withResultIfUnset("success");
     }
 
-    @After
+    @AfterEach
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
@@ -142,7 +147,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
 
-        List<Span>spans = reporter.getSpans();
+        List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
     }

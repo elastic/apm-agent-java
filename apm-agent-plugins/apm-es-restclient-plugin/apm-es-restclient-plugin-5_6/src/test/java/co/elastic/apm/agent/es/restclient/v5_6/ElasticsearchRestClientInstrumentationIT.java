@@ -51,11 +51,10 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
@@ -68,7 +67,6 @@ import java.util.concurrent.ExecutionException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
-@RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientInstrumentationTest {
 
     protected static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
@@ -80,11 +78,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     @SuppressWarnings("NullableProblems")
     protected static RestClient lowLevelClient;
 
-    public ElasticsearchRestClientInstrumentationIT(boolean async) {
-        this.async = async;
-    }
-
-    @BeforeClass
+    @BeforeAll
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
         container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
@@ -93,8 +87,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
-        RestClientBuilder builder =  RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
-            .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+        RestClientBuilder builder = RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
+                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         lowLevelClient = builder.build();
         client = new RestHighLevelClient(lowLevelClient);
 
@@ -102,15 +96,18 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         reporter.reset();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopElasticsearchContainerAndClient() throws IOException {
         lowLevelClient.performRequest("DELETE", "/" + INDEX);
         container.stop();
         lowLevelClient.close();
     }
 
-    @Test
-    public void testTryToDeleteNonExistingIndex() throws IOException {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testTryToDeleteNonExistingIndex(Boolean active) throws IOException {
+        init(active);
+
         ResponseException re = null;
         try {
             doPerformRequest("POST", "/non-existing/1/_mapping");
@@ -125,8 +122,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThatErrorsExistWhenDeleteNonExistingIndex();
     }
 
-    @Test
-    public void testCreateAndDeleteIndex() throws IOException, ExecutionException {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testCreateAndDeleteIndex(Boolean active) throws IOException, ExecutionException {
+        init(active);
         // Create an Index
         doPerformRequest("PUT", "/" + SECOND_INDEX);
 
@@ -141,14 +140,16 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         validateSpanContentAfterIndexDeleteRequest();
     }
 
-    @Test
-    public void testDocumentScenario() throws IOException, ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testDocumentScenario(Boolean active) throws IOException, ExecutionException, InterruptedException {
+        init(active);
         // Index a document
         IndexResponse ir = doIndex(new IndexRequest(INDEX, DOC_TYPE, DOC_ID).source(
-            jsonBuilder()
-                .startObject()
-                .field(FOO, BAR)
-                .endObject()
+                jsonBuilder()
+                        .startObject()
+                        .field(FOO, BAR)
+                        .endObject()
         ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
         assertThat(ir.status().getStatus()).isEqualTo(201);
 
@@ -183,7 +184,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put(FOO, BAZ);
         UpdateResponse ur = doUpdate(new UpdateRequest(INDEX, DOC_TYPE, DOC_ID).doc(jsonMap)
-            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
         assertThat(ur.status().getStatus()).isEqualTo(200);
         sr = doSearch(new SearchRequest(INDEX));
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
@@ -192,8 +193,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
-        for(Span span: spans) {
-            if(span.getNameAsString().contains("_update")) {
+        for (Span span : spans) {
+            if (span.getNameAsString().contains("_update")) {
                 updateSpanFound = true;
                 break;
             }
@@ -206,16 +207,19 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
     }
 
-    @Test
-    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testScenarioAsBulkRequest(Boolean active) throws IOException, ExecutionException, InterruptedException {
+        init(active);
+
         doBulk(new BulkRequest()
-            .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
-                jsonBuilder()
-                    .startObject()
-                    .field(FOO, BAR)
-                    .endObject()
-            ))
-            .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
+                .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
+                        jsonBuilder()
+                                .startObject()
+                                .field(FOO, BAR)
+                                .endObject()
+                ))
+                .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
 
         validateSpanContentAfterBulkRequest();
     }
@@ -243,7 +247,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     private IndexResponse doIndex(IndexRequest indexRequest) throws ExecutionException, InterruptedException, IOException {
         if (async) {
             ClientMethod<IndexRequest, IndexResponse> method =
-                (request, listener) -> client.indexAsync(request, listener);
+                    (request, listener) -> client.indexAsync(request, listener);
             return invokeAsync(indexRequest, method);
         }
         return client.index(indexRequest);
@@ -252,7 +256,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     private SearchResponse doSearch(SearchRequest searchRequest) throws IOException, ExecutionException, InterruptedException {
         if (async) {
             ClientMethod<SearchRequest, SearchResponse> method =
-                (request, listener) -> client.searchAsync(request, listener);
+                    (request, listener) -> client.searchAsync(request, listener);
             return invokeAsync(searchRequest, method);
         }
         return client.search(searchRequest);
@@ -261,7 +265,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     private UpdateResponse doUpdate(UpdateRequest updateRequest) throws IOException, ExecutionException, InterruptedException {
         if (async) {
             ClientMethod<UpdateRequest, UpdateResponse> method =
-                (request, listener) -> client.updateAsync(request, listener);
+                    (request, listener) -> client.updateAsync(request, listener);
             return invokeAsync(updateRequest, method);
         }
         return client.update(updateRequest);
@@ -270,7 +274,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     private DeleteResponse doDelete(DeleteRequest deleteRequest) throws IOException, ExecutionException, InterruptedException {
         if (async) {
             ClientMethod<DeleteRequest, DeleteResponse> method =
-                (request, listener) -> client.deleteAsync(request, listener);
+                    (request, listener) -> client.deleteAsync(request, listener);
             return invokeAsync(deleteRequest, method);
         }
         return client.delete(deleteRequest);
@@ -279,7 +283,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     private BulkResponse doBulk(BulkRequest bulkRequest) throws IOException, ExecutionException, InterruptedException {
         if (async) {
             ClientMethod<BulkRequest, BulkResponse> method =
-                (request, listener) -> client.bulkAsync(request, listener);
+                    (request, listener) -> client.bulkAsync(request, listener);
             return invokeAsync(bulkRequest, method);
         }
         return client.bulk(bulkRequest);

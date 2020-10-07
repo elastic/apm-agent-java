@@ -29,11 +29,11 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.bson.Document;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.Collection;
@@ -49,19 +49,19 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
     protected static final String DB_NAME = "testdb";
     protected static final String COLLECTION_NAME = "testcollection";
 
-    @BeforeClass
+    @BeforeAll
     public static void startContainer() {
         container = new GenericContainer("mongo:3.4").withExposedPorts(27017);
         container.start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopContainer() {
         container.stop();
         container = null;
     }
 
-    @Before
+    @BeforeEach
     public void startTransaction() throws Exception {
         Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("Mongo Transaction");
@@ -69,7 +69,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         transaction.withResultIfUnset("success");
     }
 
-    @After
+    @AfterEach
     public void endTransaction() throws Exception {
         reporter.reset();
         dropCollection();

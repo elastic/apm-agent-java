@@ -36,10 +36,9 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.BufferedReader;
@@ -66,7 +65,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ApmServerLogShipperTest {
 
-    @Rule
     public WireMockRule mockApmServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
     private TailableFile tailableFile;
     private ApmServerLogShipper logShipper;
@@ -74,11 +72,12 @@ public class ApmServerLogShipperTest {
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
     private ApmServerClient apmServerClient;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
+        mockApmServer.start();
 
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
         startClientWithValidUrls();
@@ -93,8 +92,10 @@ public class ApmServerLogShipperTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
+        mockApmServer.stop();
+
         if (!logFile.delete()) {
             logFile.deleteOnExit();
         }
@@ -122,9 +123,9 @@ public class ApmServerLogShipperTest {
         Future<Integer> readLinesFuture = Executors.newSingleThreadExecutor().submit(() -> tailableFile.tail(buffer, logShipper, 100));
         // Wait until first failure to send file lines
         Awaitility.await()
-            .pollInterval(1, TimeUnit.MILLISECONDS)
-            .timeout(100, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> assertThat(logShipper.getErrorCount()).isGreaterThan(0));
+                .pollInterval(1, TimeUnit.MILLISECONDS)
+                .timeout(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> assertThat(logShipper.getErrorCount()).isGreaterThan(0));
         // Set valid APM server URLs
         startClientWithValidUrls();
         // Verify that after backing off, lines are sent to APM server
@@ -143,8 +144,8 @@ public class ApmServerLogShipperTest {
 
     private List<String> getEvents() {
         return mockApmServer.findAll(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)))
-            .stream()
-            .flatMap(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody())))).lines())
-            .collect(Collectors.toList());
+                .stream()
+                .flatMap(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody())))).lines())
+                .collect(Collectors.toList());
     }
 }

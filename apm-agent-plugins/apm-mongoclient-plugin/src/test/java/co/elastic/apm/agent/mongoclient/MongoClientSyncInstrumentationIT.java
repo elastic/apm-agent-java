@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,8 +28,8 @@ import com.mongodb.MongoClient;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,13 +40,13 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
     private static MongoClient mongo = null;
     private static MongoDatabase db = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void startMongoContainerAndClient() {
         mongo = new MongoClient(new ServerAddress(container.getContainerIpAddress(), container.getMappedPort(27017)));
         db = mongo.getDatabase(DB_NAME);
     }
 
-    @AfterClass
+    @AfterAll
     public static void closeClient() {
         mongo.close();
         mongo = null;

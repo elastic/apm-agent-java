@@ -25,9 +25,9 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -45,7 +45,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
     private static ExecutorService executorService;
     private static final long nanoTimeOffsetToEpoch = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis()) - System.nanoTime();
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         blockingQueue = new ArrayBlockingQueue<>(5);
         executorService = Executors.newSingleThreadExecutor();
@@ -72,7 +72,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
         });
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         blockingQueue.clear();
         executorService.shutdownNow();

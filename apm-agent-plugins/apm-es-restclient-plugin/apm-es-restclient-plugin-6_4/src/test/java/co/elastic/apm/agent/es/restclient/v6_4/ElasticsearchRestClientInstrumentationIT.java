@@ -37,10 +37,8 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.search.SearchHits;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
@@ -48,16 +46,11 @@ import java.io.IOException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-@RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:6.7.0";
 
-    public ElasticsearchRestClientInstrumentationIT(boolean async) {
-        this.async = async;
-    }
-
-    @BeforeClass
+    @BeforeAll
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
         container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
@@ -68,14 +61,14 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
         RestClientBuilder builder = RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
-            .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         client = new RestHighLevelClient(builder);
 
         client.indices().create(new CreateIndexRequest(INDEX), RequestOptions.DEFAULT);
         reporter.reset();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopElasticsearchContainerAndClient() throws IOException {
         client.indices().delete(new DeleteIndexRequest(INDEX), RequestOptions.DEFAULT);
         container.stop();
@@ -85,13 +78,13 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
     @Override
     protected void verifyMultiSearchTemplateSpanContent(Span span) {
         validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\"}\n" +
-            "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}\n");
+                "{\"source\":\"{  \\\"query\\\": { \\\"term\\\" : { \\\"{{field}}\\\" : \\\"{{value}}\\\" } },  \\\"size\\\" : \\\"{{size}}\\\"}\",\"params\":{\"field\":\"foo\",\"size\":5,\"value\":\"bar\"},\"explain\":false,\"profile\":false}\n");
     }
 
     @Override
     protected void verifyMultiSearchSpanContent(Span span) {
         validateDbContextContent(span, "{\"index\":[\"my-index\"],\"types\":[],\"search_type\":\"query_then_fetch\"}\n" +
-            "{\"query\":{\"match\":{\"foo\":{\"query\":\"bar\",\"operator\":\"OR\",\"prefix_length\":0,\"max_expansions\":50,\"fuzzy_transpositions\":true,\"lenient\":false,\"zero_terms_query\":\"NONE\",\"auto_generate_synonyms_phrase_query\":true,\"boost\":1.0}}}}\n");
+                "{\"query\":{\"match\":{\"foo\":{\"query\":\"bar\",\"operator\":\"OR\",\"prefix_length\":0,\"max_expansions\":50,\"fuzzy_transpositions\":true,\"lenient\":false,\"zero_terms_query\":\"NONE\",\"auto_generate_synonyms_phrase_query\":true,\"boost\":1.0}}}}\n");
     }
 
     @Override

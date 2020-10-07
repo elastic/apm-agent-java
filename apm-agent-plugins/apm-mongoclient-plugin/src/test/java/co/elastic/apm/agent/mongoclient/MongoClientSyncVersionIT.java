@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,48 +25,52 @@
 package co.elastic.apm.agent.mongoclient;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-@RunWith(Parameterized.class)
 public class MongoClientSyncVersionIT {
 
-    private final TestClassWithDependencyRunner runner;
+    private TestClassWithDependencyRunner runner;
 
-    public MongoClientSyncVersionIT(String version) throws Exception {
+    private void init(String version) throws Exception {
+
         runner = new TestClassWithDependencyRunner("org.mongodb", "mongo-java-driver", version,
-            MongoClientSyncInstrumentationIT.class, AbstractMongoClientInstrumentationTest.class);
+                MongoClientSyncInstrumentationIT.class, AbstractMongoClientInstrumentationTest.class);
     }
 
-    @Parameterized.Parameters(name= "{0}")
-    public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {"3.11.1"},
-            {"3.10.2"},
-            {"3.9.0"},
-            {"3.9.0"},
-            {"3.8.2"},
-            {"3.7.1"},
-            {"3.6.4"},
-            {"3.5.0"},
-            {"3.4.3"},
-            {"3.3.0"},
-            {"3.2.2"},
-            {"3.1.1"},
-            {"3.0.4"}
-        });
+    public static Stream<Arguments> data() {
+        return Arrays.asList(
+                "3.11.1",
+                "3.10.2",
+                "3.9.0",
+                "3.9.0",
+                "3.8.2",
+                "3.7.1",
+                "3.6.4",
+                "3.5.0",
+                "3.4.3",
+                "3.3.0",
+                "3.2.2",
+                "3.1.1",
+                "3.0.4"
+        ).stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
     }
 
-    @Test
-    public void testVersions() throws Exception {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testVersions(String version) throws Exception {
+        init(version);
+
         runner.run();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         // judging from heap dumps, DefaultServerConnection seems to keep the class loader alive
         //runner.assertClassLoaderIsGCed();

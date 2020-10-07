@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,9 +30,9 @@ import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,19 +43,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
-@Ignore("Async instrumentation is not implemented yet")
+@Disabled("Async instrumentation is not implemented yet")
 public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstrumentationTest {
 
     private static MongoClient mongo = null;
     private static MongoDatabase db;
 
-    @BeforeClass
+    @BeforeAll
     public static void startMongoContainerAndClient() {
         mongo = MongoClients.create("mongodb://" + container.getContainerIpAddress() + ":" + container.getMappedPort(27017));
         db = mongo.getDatabase(DB_NAME);
     }
 
-    @AfterClass
+    @AfterAll
     public static void closeClient() {
         mongo.close();
     }

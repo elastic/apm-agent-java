@@ -49,12 +49,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
@@ -79,7 +79,7 @@ import static org.mockito.Mockito.when;
  * b.  the creation of consumer transaction- one per consumed record
  */
 @SuppressWarnings("NotNullFieldNotInitialized")
-@Ignore
+@Disabled
 public class KafkaIT extends AbstractInstrumentationTest {
 
     static final String REQUEST_TOPIC = "Request-Topic";
@@ -109,7 +109,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         this.messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         // confluent versions 5.3.0 correspond Kafka versions 2.3.0 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
@@ -122,18 +122,18 @@ public class KafkaIT extends AbstractInstrumentationTest {
         replyConsumer = createKafkaConsumer();
         replyConsumer.subscribe(Collections.singletonList(REPLY_TOPIC));
         producer = new KafkaProducer<>(
-            ImmutableMap.of(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
-                ProducerConfig.CLIENT_ID_CONFIG, UUID.randomUUID().toString(),
-                // This should guarantee that records are batched, as long as they are sent within the configured duration
-                ProducerConfig.LINGER_MS_CONFIG, 50
-            ),
-            new StringSerializer(),
-            new StringSerializer()
+                ImmutableMap.of(
+                        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                        ProducerConfig.CLIENT_ID_CONFIG, UUID.randomUUID().toString(),
+                        // This should guarantee that records are batched, as long as they are sent within the configured duration
+                        ProducerConfig.LINGER_MS_CONFIG, 50
+                ),
+                new StringSerializer(),
+                new StringSerializer()
         );
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         producer.close();
         replyConsumer.unsubscribe();
@@ -142,7 +142,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         kafka.stop();
     }
 
-    @Before
+    @BeforeEach
     public void startTransaction() {
         startAndActivateTransaction(null);
         testScenario = TestScenario.NORMAL;
@@ -157,13 +157,13 @@ public class KafkaIT extends AbstractInstrumentationTest {
         }
         if (transaction != null) {
             transaction.activate()
-                .withName("Kafka-Test Transaction")
-                .withType("request")
-                .withResult("success");
+                    .withName("Kafka-Test Transaction")
+                    .withType("request")
+                    .withResult("success");
         }
     }
 
-    @After
+    @AfterEach
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
@@ -347,10 +347,10 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(transactions).hasSize(2);
         transactions.forEach(transaction -> assertThat(transaction.isSampled()).isFalse());
         transactions.forEach(transaction -> assertThat(
-            transaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId())
+                transaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId())
         );
         transactions.forEach(transaction -> assertThat(
-            transaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId())
+                transaction.getTraceContext().getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId())
         );
         transactions.forEach(transaction -> assertThat(transaction.getType()).isEqualTo("messaging"));
         transactions.forEach(transaction -> assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC));
@@ -463,7 +463,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         }
         Headers headers = message.getHeaders();
         if (testScenario == TestScenario.HEADERS_CAPTURE_DISABLED || testScenario == TestScenario.SANITIZED_HEADER ||
-            topic.equals(REPLY_TOPIC)) {
+                topic.equals(REPLY_TOPIC)) {
             assertThat(headers).isEmpty();
         } else {
             assertThat(headers.size()).isEqualTo(1);
@@ -476,13 +476,13 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     static KafkaConsumer<String, String> createKafkaConsumer() {
         return new KafkaConsumer<>(
-            ImmutableMap.of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
-                ConsumerConfig.GROUP_ID_CONFIG, "tc-" + UUID.randomUUID(),
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
-            ),
-            new StringDeserializer(),
-            new StringDeserializer()
+                ImmutableMap.of(
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                        ConsumerConfig.GROUP_ID_CONFIG, "tc-" + UUID.randomUUID(),
+                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+                ),
+                new StringDeserializer(),
+                new StringDeserializer()
         );
     }
 
