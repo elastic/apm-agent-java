@@ -26,5 +26,3 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.sdk.NonnullApi;
-
-// proposal: remove the 'RabbitMQ' prefix to all class names
