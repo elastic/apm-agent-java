@@ -605,6 +605,8 @@ You must use the query bar to filter for a specific environment in versions prio
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
 
+Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
+
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
@@ -2513,6 +2515,8 @@ The default unit for this option is `ms`.
 # environment=
 
 # By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+# 
+# Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
 #
 # This setting can be changed at runtime
 # Type: Double

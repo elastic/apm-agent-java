@@ -83,7 +83,7 @@ class CallTreeTest {
 
     @Test
     void testCallTree() throws Exception {
-        TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        TraceContext traceContext = TraceContext.with64BitId(MockTracer.create());
         CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
         ObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0, callTreePool, 0);

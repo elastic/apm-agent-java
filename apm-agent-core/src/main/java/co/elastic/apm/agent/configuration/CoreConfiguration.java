@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
+import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
@@ -36,6 +37,8 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
+import org.stagemonitor.configuration.converter.DoubleValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -162,14 +165,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
-    private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
+    private final ConfigurationOption<Double> sampleRate = RoundedDoubleConverter.withPrecision(4)
         .key(SAMPLE_RATE)
         .aliasKeys("sample_rate")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
-            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.")
+            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.\n\n" +
+            "Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
         .buildWithDefault(1.0);
