@@ -100,7 +100,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
-    private static final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
+    private static final List<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     // visible for testing
     final JsonWriter jw;
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
@@ -671,8 +671,8 @@ public class DslJsonSerializer implements PayloadSerializer {
             return true;
         }
         String className = stackTraceElement.getClassName();
-        for (String excludedStackFrame : excludedStackFrames) {
-            if (className.startsWith(excludedStackFrame)) {
+        for (int i = 0, size = excludedStackFrames.size(); i < size; i++) {
+            if (className.startsWith(excludedStackFrames.get(i))) {
                 return true;
             }
         }

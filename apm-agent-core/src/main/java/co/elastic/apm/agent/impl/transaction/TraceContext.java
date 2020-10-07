@@ -568,6 +568,7 @@ public class TraceContext implements Recyclable {
         if (outgoingTraceState != null) {
             headerSetter.setHeader(TRACESTATE_HEADER_NAME, outgoingTraceState, carrier);
         }
+        logger.trace("Trace context headers added to {}", carrier);
     }
 
     /**
