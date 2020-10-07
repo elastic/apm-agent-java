@@ -47,6 +47,7 @@ import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ObjectUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
+import co.elastic.apm.agent.util.VersionUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -73,6 +74,7 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
@@ -91,6 +93,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarInputStream;
 
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
@@ -637,6 +640,11 @@ public class ElasticApmAgent {
     @Nullable
     public static String getAgentHome() {
         return agentJarFile == null ? null : agentJarFile.getParent();
+    }
+
+    @Nullable
+    public static File getAgentJarFile() {
+        return agentJarFile;
     }
 
     /**
