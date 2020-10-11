@@ -138,7 +138,7 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         builder.setStatusLevel(Level.ERROR)
             .setConfigurationName("ElasticAPM");
 
-        Level level = Level.valueOf(getValue(LOG_LEVEL_KEY, sources, getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
+        Level level = getLogLevel();
         RootLoggerComponentBuilder rootLogger = builder.newRootLogger(level);
         List<AppenderComponentBuilder> appenders = createAppenders(builder);
         for (AppenderComponentBuilder appender : appenders) {
@@ -146,6 +146,12 @@ public class Log4j2ConfigurationFactory extends ConfigurationFactory {
         }
         builder.add(rootLogger);
         return builder.build();
+    }
+
+    private Level getLogLevel() {
+        String rawLogLevelValue = getValue(LOG_LEVEL_KEY, sources, getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString()));
+        LogLevel logLevel = LoggingConfiguration.mapLogLevel(new EnumValueConverter<>(LogLevel.class).convert(rawLogLevelValue));
+        return Level.valueOf(logLevel.toString());
     }
 
     private List<AppenderComponentBuilder> createAppenders(ConfigurationBuilder<BuiltConfiguration> builder) {
