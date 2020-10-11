@@ -498,15 +498,21 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeTransaction(final Transaction transaction) {
+        TraceContext traceContext = transaction.getTraceContext();
+
         jw.writeByte(OBJECT_START);
         writeTimestamp(transaction.getTimestamp());
         writeField("name", transaction.getNameForSerialization());
-        serializeTraceContext(transaction.getTraceContext(), false);
+        serializeTraceContext(traceContext, false);
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDurationMs());
         writeField("result", transaction.getResult());
-        serializeContext(transaction, transaction.getContext(), transaction.getTraceContext());
+        serializeContext(transaction, transaction.getContext(), traceContext);
         serializeSpanCount(transaction.getSpanCount());
+        double sampleRate = traceContext.getSampleRate();
+        if (!Double.isNaN(sampleRate)) {
+            writeField("sample_rate", sampleRate);
+        }
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
     }
@@ -540,18 +546,25 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeSpan(final Span span) {
+        TraceContext traceContext = span.getTraceContext();
+
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
-        serializeTraceContext(span.getTraceContext(), true);
+
+        serializeTraceContext(traceContext, true);
         writeField("duration", span.getDurationMs());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         } else if (span.getStackFrames() != null) {
             serializeStackTrace(span.getStackFrames());
         }
-        serializeSpanContext(span.getContext(), span.getTraceContext());
+        serializeSpanContext(span.getContext(), traceContext);
         writeHexArray("child_ids", span.getChildIds());
+        double sampleRate = traceContext.getSampleRate();
+        if (!Double.isNaN(sampleRate)) {
+            writeField("sample_rate", sampleRate);
+        }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
