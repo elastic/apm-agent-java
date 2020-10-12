@@ -47,7 +47,6 @@ import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ObjectUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
-import co.elastic.apm.agent.util.VersionUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -74,7 +73,6 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
@@ -93,7 +91,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.jar.JarInputStream;
 
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
@@ -592,9 +589,21 @@ public class ElasticApmAgent {
                 public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable, List<Class<?>> types) {
                     logger.warn("Error while redefining classes {}", throwable.getMessage());
                     logger.debug(throwable.getMessage(), throwable);
+                    if (logger.isDebugEnabled()) {
+                        StringBuilder sb = new StringBuilder();
+                        for (Class<?> errorCandidate : batch) {
+                            if (sb.length() > 0) {
+                                sb.append(',');
+                            }
+                            sb.append(errorCandidate.getCanonicalName());
+                        }
+                        logger.debug("trying to instrument one of those classes triggered an instrumentation error : {}", sb);
+                    }
                     return super.onError(index, batch, throwable, types);
                 }
             })
+            // in case of error, split redefinition batch
+            .with(RedefinitionStrategy.Listener.BatchReallocator.splitting())
             .with(descriptionStrategy)
             .with(locationStrategy)
             .with(new ErrorLoggingListener())

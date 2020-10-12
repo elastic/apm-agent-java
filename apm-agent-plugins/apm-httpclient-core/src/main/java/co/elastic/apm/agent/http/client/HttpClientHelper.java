@@ -73,8 +73,8 @@ public class HttpClientHelper {
             }
             setDestinationServiceDetails(span, scheme, hostName, port);
         }
-        if (logger.isTraceEnabled()) {
-            logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
         }
         return span;
     }
