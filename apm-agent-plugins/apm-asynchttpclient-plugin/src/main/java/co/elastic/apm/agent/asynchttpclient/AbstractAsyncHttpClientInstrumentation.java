@@ -41,6 +41,8 @@ import org.asynchttpclient.AsyncHandler;
 import org.asynchttpclient.HttpResponseStatus;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.uri.Uri;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -78,17 +80,21 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
 
     public static class AsyncHttpClientInstrumentation extends AbstractAsyncHttpClientInstrumentation {
 
+        private static final Logger logger = LoggerFactory.getLogger(AsyncHttpClientInstrumentation.class);
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
                                             @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
             final AbstractSpan<?> parent = tracer.getActive();
+
+            Uri uri = request.getUri();
             if (parent == null) {
+                logger.debug("Enter advice without parent for method {}#execute() {} {}", request.getClass().getName(), request.getMethod(), uri);
                 return null;
             }
             DynamicTransformer.Accessor.get().ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
 
-            Uri uri = request.getUri();
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
 
             if (span != null) {

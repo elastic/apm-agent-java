@@ -45,11 +45,11 @@ public class SpringRestTemplateAdvice {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object beforeExecute(@Advice.This ClientHttpRequest request) {
-        logger.debug("Enter advice for method {}#execute()", request.getClass().getName());
-        if (TracerAwareInstrumentation.tracer.getActive() == null) {
+        AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
+        if (parent == null) {
+            logger.debug("Enter advice without parent for method {}#execute() {} {}", request.getClass().getName(), request.getMethod(), request.getURI());
             return null;
         }
-        final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
         Span span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(), request.getURI().getHost());
         if (span != null) {
             span.activate();
@@ -63,7 +63,6 @@ public class SpringRestTemplateAdvice {
     public static void afterExecute(@Advice.Return @Nullable ClientHttpResponse clientHttpResponse,
                                     @Advice.Enter @Nullable Object spanObj,
                                     @Advice.Thrown @Nullable Throwable t) throws IOException {
-        logger.debug("Exit advice for RestTemplate client execute() method, span object: {}", spanObj);
         if (spanObj instanceof Span) {
             Span span = (Span) spanObj;
             try {

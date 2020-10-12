@@ -35,6 +35,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,16 +53,24 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
 
     public static class OkHttpClientExecuteAdvice {
 
+        private static final Logger logger = LoggerFactory.getLogger(OkHttpClientExecuteAdvice.class);
+
         @Nonnull
         @AssignTo(fields = @AssignTo.Field(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
-            if (tracer.getActive() == null || !(originalRequest instanceof Request)) {
+            if (!(originalRequest instanceof Request)) {
                 return new Object[]{originalRequest, null};
             }
-            final AbstractSpan<?> parent = tracer.getActive();
+            Request request = (com.squareup.okhttp.Request) originalRequest;
 
-            com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
+            final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
+                logger.debug("Enter advice without parent for method {}#execute() {} {}", originalRequest.getClass().getName(), request.method(), request.url());
+                return new Object[]{originalRequest, null};
+            }
+
+
             HttpUrl httpUrl = request.httpUrl();
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.method(), httpUrl.toString(), httpUrl.scheme(),
                 OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());

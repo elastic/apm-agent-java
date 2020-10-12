@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -37,6 +38,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.conn.routing.HttpRoute;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -53,6 +56,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 @SuppressWarnings("Duplicates")
 public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
+    private static final Logger logger = LoggerFactory.getLogger(ApacheHttpClientInstrumentation.class);
+
     public static class ApacheHttpClientAdvice {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -60,6 +65,7 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
                                              @Advice.Argument(1) HttpRequestWrapper request) {
             AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
+                logger.debug("Enter advice without parent for method {}#execute() {} {}", request.getClass().getName(), request.getMethod(), request.getURI());
                 return null;
             }
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());

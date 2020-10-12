@@ -28,6 +28,8 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -36,6 +38,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstrumentation {
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractHttpClientInstrumentation.class);
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -46,6 +50,7 @@ public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstr
     protected static Span startSpan(HttpRequest httpRequest) {
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent == null) {
+            logger.debug("Enter advice without parent for method {}#execute() {} {}", httpRequest.getClass().getName(), httpRequest.method(), httpRequest.uri());
             return null;
         }
 

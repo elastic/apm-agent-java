@@ -66,15 +66,16 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
-            if (tracer.getActive() == null) {
-                return null;
-            }
 
             if (originalRequest == null || originalCallback == null) {
                 return null;
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
+                logger.debug("Enter advice without parent for method {}#execute() {} {}", originalRequest.getClass().getName(), originalRequest.method(), originalRequest.url());
+                return new Object[]{originalRequest, null};
+            }
 
             Request request = originalRequest;
             Callback callback = originalCallback;

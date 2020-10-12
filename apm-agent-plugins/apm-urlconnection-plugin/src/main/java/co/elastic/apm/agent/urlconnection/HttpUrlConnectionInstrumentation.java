@@ -26,6 +26,7 @@ package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
@@ -35,6 +36,8 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.HttpURLConnection;
@@ -69,19 +72,23 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
+        private static final Logger logger = LoggerFactory.getLogger(CreateSpanInstrumentation.class);
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enter(@Advice.This HttpURLConnection thiz,
                                  @Advice.FieldValue("connected") boolean connected,
                                  @Advice.Origin String signature) {
 
-            if (tracer.getActive() == null) {
+            AbstractSpan<?> parent = tracer.getActive();
+            if (parent == null) {
+                logger.debug("Enter advice without parent for method {}#execute() {} {}", thiz.getClass().getName(), thiz.getRequestMethod(), thiz.getURL());
                 return null;
             }
             Span span = inFlightSpans.get(thiz);
             if (span == null && !connected) {
                 final URL url = thiz.getURL();
-                span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+                span = HttpClientHelper.startHttpClientSpan(parent, thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
                 if (span != null) {
                     if (!TraceContext.containsTraceContextTextHeaders(thiz, UrlConnectionPropertyAccessor.instance())) {
                         span.propagateTraceContext(thiz, UrlConnectionPropertyAccessor.instance());

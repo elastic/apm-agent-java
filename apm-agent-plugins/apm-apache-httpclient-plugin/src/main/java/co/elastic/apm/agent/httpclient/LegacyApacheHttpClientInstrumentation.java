@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.httpclient;
 
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -38,6 +39,8 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -52,18 +55,25 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
     public static class LegacyApacheHttpClientAdvice {
+
+        private static final Logger logger = LoggerFactory.getLogger(LegacyApacheHttpClientAdvice.class);
+
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpHost host,
                                              @Advice.Argument(1) HttpRequest request) {
             final AbstractSpan<?> parent = tracer.getActive();
-            if (parent == null) {
-                return null;
-            }
+
             if (!(request instanceof HttpUriRequest)) {
                 return null;
             }
             HttpUriRequest uriRequest = (HttpUriRequest) request;
+
+            if (parent == null) {
+                logger.debug("Enter advice without parent for method {}#execute() {} {}", request.getClass().getName(), uriRequest.getMethod(), uriRequest.getURI());
+                return null;
+            }
+
             Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), host.getHostName());
             if (span != null) {
                 span.activate();
