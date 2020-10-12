@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -45,7 +45,7 @@ public class SpringRestTemplateAdvice {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object beforeExecute(@Advice.This ClientHttpRequest request) {
-        logger.trace("Enter advice for method {}#execute()", request.getClass().getName());
+        logger.debug("Enter advice for method {}#execute()", request.getClass().getName());
         if (TracerAwareInstrumentation.tracer.getActive() == null) {
             return null;
         }
@@ -63,7 +63,7 @@ public class SpringRestTemplateAdvice {
     public static void afterExecute(@Advice.Return @Nullable ClientHttpResponse clientHttpResponse,
                                     @Advice.Enter @Nullable Object spanObj,
                                     @Advice.Thrown @Nullable Throwable t) throws IOException {
-        logger.trace("Exit advice for RestTemplate client execute() method, span object: {}", spanObj);
+        logger.debug("Exit advice for RestTemplate client execute() method, span object: {}", spanObj);
         if (spanObj instanceof Span) {
             Span span = (Span) spanObj;
             try {
