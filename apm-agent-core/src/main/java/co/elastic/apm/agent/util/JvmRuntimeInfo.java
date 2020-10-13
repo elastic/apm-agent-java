@@ -1,0 +1,201 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2020 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
+package co.elastic.apm.agent.util;
+
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+
+import javax.annotation.Nullable;
+import java.lang.management.ManagementFactory;
+import java.util.List;
+
+public class JvmRuntimeInfo {
+
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    private static String javaVersion;
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    private static String javaVmName;
+    @Nullable private static String javaVmVersion;
+    private static int majorVersion;
+    private static int updateVersion;
+    private static boolean isHotSpot;
+    private static boolean isIbmJ9;
+
+    static {
+        parseVmInfo(System.getProperty("java.version"), System.getProperty("java.vm.name"), System.getProperty("java.vm.version"));
+    }
+
+    /**
+     * Parses Java major version, update version and JVM vendor
+     *
+     * @param version   jvm version, from {@code System.getProperty("java.version")}
+     * @param vmName    jvm name, from {@code System.getProperty("java.vm.name")}
+     * @param vmVersion jvm version, from {@code System.getProperty("java.vm.version")}
+     */
+    // package-protected for testing
+    static void parseVmInfo(String version, String vmName, @Nullable String vmVersion) {
+        javaVersion = version;
+        javaVmName = vmName;
+        javaVmVersion = vmVersion;
+
+        // new scheme introduced in java 9, thus we can use it as a shortcut
+        if (version.startsWith("1.")) {
+            majorVersion = Character.digit(version.charAt(2), 10);
+        } else {
+            String majorAsString = version.split("\\.")[0];
+            int indexOfDash = majorAsString.indexOf('-');
+            if (indexOfDash > 0) {
+                majorAsString = majorAsString.substring(0, indexOfDash);
+            }
+            majorVersion = Integer.parseInt(majorAsString);
+        }
+
+        int updateIndex = version.lastIndexOf("_");
+        if (updateIndex <= 0) {
+            // GA release like '1.8.0'
+            updateVersion = 0;
+        } else {
+            String updateVersionString;
+            int versionSuffixIndex = version.indexOf('-', updateIndex + 1);
+            if (versionSuffixIndex <= 0) {
+                updateVersionString = version.substring(updateIndex + 1);
+            } else {
+                updateVersionString = version.substring(updateIndex + 1, versionSuffixIndex);
+            }
+            try {
+                updateVersion = Integer.parseInt(updateVersionString);
+            } catch (NumberFormatException e) {
+                // in case of unknown format, we just support by default
+                System.err.println("Unsupported format of the java.version system property - " + version);
+                updateVersion = -1;
+            }
+        }
+
+        isHotSpot = vmName.contains("HotSpot(TM)") || vmName.contains("OpenJDK");
+        isIbmJ9 = vmName.contains("IBM J9");
+    }
+
+    public static String getJavaVersion() {
+        return javaVersion;
+    }
+
+    public static String getJavaVmName() {
+        return javaVmName;
+    }
+
+    @Nullable
+    public static String getJavaVmVersion() {
+        return javaVmVersion;
+    }
+
+    public static int getMajorVersion() {
+        return majorVersion;
+    }
+
+    /**
+     * Checks if a given version of the JVM is likely supported by this agent.
+     * <br>
+     * Supports values provided before and after https://openjdk.java.net/jeps/223, in case parsing fails due to an
+     * unknown version format, we assume it's supported, thus this method might return false positives, but never false
+     * negatives.
+     *
+     * @return true if the version is supported, false otherwise
+     */
+    public static boolean isJavaVersionSupported() {
+        if (majorVersion < 7) {
+            // given code is compiled with java 7, this one is unlikely in practice
+            return false;
+        }
+        if (isHotSpot) {
+            return isHotSpotVersionSupported();
+        } else if (isIbmJ9) {
+            return isIbmJ9VersionSupported();
+        }
+        // innocent until proven guilty
+        return true;
+    }
+
+    private static boolean isHotSpotVersionSupported() {
+        if (updateVersion < 0) {
+            return true;
+        }
+
+        switch (majorVersion) {
+            case 7:
+                // versions prior to that have unreliable invoke dynamic support according to https://groovy-lang.org/indy.html
+                return updateVersion >= 60;
+            case 8:
+                return updateVersion >= 40;
+            default:
+                return true;
+        }
+    }
+
+    private static boolean isIbmJ9VersionSupported() {
+        switch (majorVersion) {
+            case 7:
+                return false;
+            case 8:
+                // early versions crash during invokedynamic bootstrap
+                // the exact version that fixes that error is currently not known
+                // presumably, service refresh 5 (build 2.8) fixes the issue
+                return !"2.8".equals(javaVmVersion);
+            default:
+                return true;
+        }
+    }
+
+    /**
+     * NOTE: THIS METHOD REQUIRES JMX OPERATION, THEREFORE IS SHOULD ONLY BE USED WITHIN OR AFTER THE TRACER HAVE
+     * BEEN STARTED (see {@link ElasticApmTracer#start(boolean)} for details).
+     *
+     * @return true if the setup of this JVM is supported
+     */
+    public static boolean isJvmConfigurationSupported() {
+        List<String> jvmArgs = null;
+        try {
+            jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        } catch (Exception e) {
+            System.err.println("Failed to obtain command line arguments: " + e.getMessage());
+        }
+        return isJvmConfigurationSupported(jvmArgs);
+    }
+
+    static boolean isJvmConfigurationSupported(@Nullable List<String> jvmArgs) {
+        if (jvmArgs == null) {
+            return true;
+        }
+
+        if (majorVersion == 7) {
+            for (String jvmArg : jvmArgs) {
+                if ("-XX:+UseG1GC".equals(jvmArg)) {
+                    System.err.println("Using Elastic APM Java agent on Java 7 where the -XX:+UseG1GC JVM argument is " +
+                        "used may cause JVM crashes, therefore is not allowed.");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}
