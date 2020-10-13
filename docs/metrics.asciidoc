@@ -124,8 +124,7 @@ Memory usage in current cgroup slice.
 [[metrics-jvm]]
 === JVM Metrics
 
-NOTE: As of now, there are no built-in visualizations for these metrics,
-so you will need to create custom Kibana dashboards for them.
+JVM-specific metrics
 
 *`jvm.memory.heap.used`*::
 +
