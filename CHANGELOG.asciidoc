@@ -24,6 +24,10 @@ endif::[]
 ==== 1.19.0 - YYYY/MM/DD
 
 [float]
+===== Refactors
+* Replace System Rules with System Lambda {pull}1434[#1434]
+
+[float]
 ===== Breaking changes
 
 [float]
