@@ -1514,12 +1514,13 @@ The resulting documents in Elasticsearch look similar to this:
 ==== `log_level`
 
 Sets the logging level for the agent.
-
 This option is case-insensitive.
+
+NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `CRITICAL`, `WARN`, `WARNING`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
@@ -3054,10 +3055,11 @@ The default unit for this option is `ms`.
 ############################################
 
 # Sets the logging level for the agent.
-# 
 # This option is case-insensitive.
+# 
+# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
 #
-# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, CRITICAL, WARN, WARNING, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
 # Type: LogLevel
 # Default value: INFO

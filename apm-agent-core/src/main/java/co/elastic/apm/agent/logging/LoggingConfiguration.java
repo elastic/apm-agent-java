@@ -33,6 +33,7 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -77,6 +78,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
      * However, the registry initializes logging by declaring a static final logger variable.
      * In order to break up the cyclic dependency and to not accidentally initialize logging before we had the chance to configure the logging,
      * we manually resolve these options.
+     *
+     * NOTE: on top of the above, this specific option should never be accessed through the ConfigurationOption as it
+     * allows {@link LogLevel} that are effectively mapped to other values.
+     *
      * See {@link Log4j2ConfigurationFactory#getValue}
      */
     @SuppressWarnings("unused")
@@ -85,16 +90,35 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .aliasKeys(DEPRECATED_LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the logging level for the agent.\n" +
+            "This option is case-insensitive.\n" +
             "\n" +
-            "This option is case-insensitive.")
+            "NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.")
         .dynamic(true)
         .addChangeListener(new ConfigurationOption.ChangeListener<LogLevel>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, LogLevel oldValue, LogLevel newValue) {
+                newValue = mapLogLevel(newValue);
                 setLogLevel(newValue);
             }
         })
         .buildWithDefault(LogLevel.INFO);
+
+    /**
+     * Maps a {@link LogLevel} that is supported by the agent to a value that is also supported by the underlying
+     * logging framework.
+     * @param original the agent-supported {@link LogLevel}
+     * @return a {@link LogLevel} that is both supported by the agent and the underlying logging framework
+     */
+    @Nonnull
+    static LogLevel mapLogLevel(LogLevel original) {
+        LogLevel mapped = original;
+        if (original == LogLevel.WARNING) {
+            mapped = LogLevel.WARN;
+        } else if (original == LogLevel.CRITICAL) {
+            mapped = LogLevel.ERROR;
+        }
+        return mapped;
+    }
 
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
