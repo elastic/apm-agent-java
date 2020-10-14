@@ -526,8 +526,7 @@ public class ElasticApmAgent {
     /**
      * Reverts instrumentation of classes and re-transforms them to their state without the agent.
      * <p>
-     * NOTE: THIS IS ONLY TO BE USED FOR UNIT TESTS
-     * NOTE2: THIS METHOD MUST BE CALLED AFTER AGENT WAS INITIALIZED
+     * NOTE: THIS METHOD MUST BE CALLED AFTER AGENT WAS INITIALIZED
      * </p>
      */
     public static synchronized void reset() {
