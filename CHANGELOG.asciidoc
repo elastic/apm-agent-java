@@ -24,6 +24,10 @@ endif::[]
 ==== 1.19.0 - YYYY/MM/DD
 
 [float]
+===== Refactors
+* Replace System Rules with System Lambda {pull}1434[#1434]
+
+[float]
 ===== Breaking changes
 
 [float]
@@ -32,6 +36,8 @@ endif::[]
   This makes it easier to differ distinct snapshot builds of the same version.
   Example: `1.18.1-SNAPSHOT.4655910`
 * Add support for sampling weight with propagation in `tracestate` W3C header {pull}1384[#1384]
+* Adding two more valid options to the `log_level` config: `WARNING` (equivalent to `WARN`) and `CRITICAL`
+  (will be treated as `ERROR`) - {pull}1431[1431]
 
 [float]
 ===== Bug fixes
