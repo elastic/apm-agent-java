@@ -595,7 +595,7 @@ public class ElasticApmAgent {
                             if (sb.length() > 0) {
                                 sb.append(',');
                             }
-                            sb.append(errorCandidate.getCanonicalName());
+                            sb.append(errorCandidate.getName());
                         }
                         logger.debug("trying to instrument one of those classes triggered an instrumentation error : {}", sb);
                     }
