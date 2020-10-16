@@ -107,7 +107,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpURLConnection thiz,
                                 @Nullable @Advice.Thrown Throwable t,
-                                @Advice.FieldValue("responseCode") int responseCode, // can we still do that without inlining ?
+                                @Advice.FieldValue("responseCode") int responseCode,
                                 @Nullable @Advice.Enter Object spanObject,
                                 @Advice.Origin String signature) {
 
@@ -119,7 +119,6 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
             }
             span.deactivate();
 
-            // if we don't get the proper response code ?
             if (responseCode != -1) {
                 logger.debug("response code != -1");
                 inFlightSpans.remove(thiz);
