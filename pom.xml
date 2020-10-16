@@ -105,7 +105,10 @@
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>0.1.19</version.json-schema-validator>
-        <version.byte-buddy>1.10.15</version.byte-buddy>
+
+        <version.byte-buddy>1.10.17</version.byte-buddy>
+        <!-- this should be kept in sync with ASM version used by bytebuddy -->
+        <version.asm>9.0</version.asm>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
