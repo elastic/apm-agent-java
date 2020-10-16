@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -62,7 +61,11 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpRoute route,
-                                             @Advice.Argument(1) HttpRequestWrapper request) {
+                                             @Advice.Argument(1) HttpRequestWrapper request,
+                                             @Advice.Origin String signature) {
+
+            logger.debug("Enter advice signature = {}", signature);
+
             AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
                 logger.debug("Enter advice without parent for method {}#execute() {} {}", request.getClass().getName(), request.getMethod(), request.getURI());
@@ -70,9 +73,11 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
             }
             Span span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
             if (span != null) {
+                logger.debug("activate and propagate context");
                 span.activate();
                 span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
             } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                logger.debug("propagate parent context for redirect");
                 // re-adds the header on redirects
                 parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
             }
@@ -82,9 +87,13 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable CloseableHttpResponse response,
                                           @Advice.Enter @Nullable Object spanObj,
-                                          @Advice.Thrown @Nullable Throwable t) {
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Origin String signature) {
+
+            logger.debug("Exit advice signature = {}", signature);
             Span span = (Span) spanObj;
             if (span == null) {
+                logger.debug("early exit, no span");
                 return;
             }
             try {

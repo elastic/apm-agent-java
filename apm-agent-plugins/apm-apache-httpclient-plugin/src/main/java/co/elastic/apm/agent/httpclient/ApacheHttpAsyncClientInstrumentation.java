@@ -38,6 +38,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -84,6 +86,9 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
     }
 
     public static class ApacheHttpAsyncClientAdvice {
+
+        private static final Logger logger = LoggerFactory.getLogger(ApacheHttpAsyncClientAdvice.class);
+
         private static ApacheHttpAsyncClientHelper asyncHelper = new ApacheHttpAsyncClientHelper();
 
         @AssignTo(arguments = {
@@ -94,9 +99,14 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(@Advice.Argument(value = 0) HttpAsyncRequestProducer requestProducer,
                                                @Advice.Argument(2) HttpContext context,
-                                               @Advice.Argument(value = 3) FutureCallback<?> futureCallback) {
+                                               @Advice.Argument(value = 3) FutureCallback<?> futureCallback,
+                                               @Advice.Origin String signature) {
+
+            logger.debug("Enter advice signature = {}", signature);
+
             AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
+                logger.debug("early exit due to no parent");
                 return null;
             }
             Span span = parent.createExitSpan();
@@ -104,12 +114,23 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
             FutureCallback<?> wrappedFutureCallback = futureCallback;
             boolean wrapped = false;
             if (span != null) {
+                logger.debug("activate on created span");
+
                 span.withType(HttpClientHelper.EXTERNAL_TYPE)
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
                     .activate();
 
+
+                // log "activate on span creation"
+
                 wrappedProducer = asyncHelper.wrapRequestProducer(requestProducer, span, RequestHeaderAccessor.INSTANCE);
                 wrappedFutureCallback = asyncHelper.wrapFutureCallback(futureCallback, context, span);
+
+                if (logger.isDebugEnabled()) {
+                    logger.debug("classloader for callback class {} = {}", wrappedFutureCallback.getClass(), wrappedFutureCallback.getClass().getClassLoader());
+                    logger.debug("classloader for advice class {} = {}", ApacheHttpAsyncClientAdvice.class, ApacheHttpAsyncClientAdvice.class.getClassLoader());
+                }
+
                 wrapped = true;
             }
             return new Object[]{wrappedProducer, wrappedFutureCallback, wrapped, span};
@@ -117,16 +138,26 @@ public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientIn
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Enter @Nullable Object[] enter,
-                                          @Advice.Thrown @Nullable Throwable t) {
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Origin String signature) {
+
+            logger.debug("Exit advice signature = {}", signature);
+
             Span span = enter != null ? (Span) enter[3] : null;
             if (span != null) {
+                logger.debug("deactivate span");
                 // Deactivate in this thread. Span will be ended and reported by the listener
                 span.deactivate();
 
+                logger.debug("wrapped = {}", enter[2]);
+
                 if (!((Boolean) enter[2])) {
+                    // another one here
                     // Listener is not wrapped- we need to end the span so to avoid leak and report error if occurred during method invocation
                     span.captureException(t);
                     span.end();
+                } else {
+                    logger.debug("not wrapped, do not end span");
                 }
             }
         }

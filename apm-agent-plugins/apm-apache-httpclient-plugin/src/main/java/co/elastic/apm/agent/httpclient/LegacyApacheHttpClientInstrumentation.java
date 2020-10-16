@@ -60,10 +60,15 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(0) HttpHost host,
-                                             @Advice.Argument(1) HttpRequest request) {
+                                             @Advice.Argument(1) HttpRequest request,
+                                             @Advice.Origin String signature) {
+
+            logger.debug("Enter advice signature = {}", signature);
+
             final AbstractSpan<?> parent = tracer.getActive();
 
             if (!(request instanceof HttpUriRequest)) {
+                logger.debug("unexpected request type");
                 return null;
             }
             HttpUriRequest uriRequest = (HttpUriRequest) request;
@@ -75,9 +80,11 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
 
             Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), host.getHostName());
             if (span != null) {
+                logger.trace("activate and propagate context");
                 span.activate();
                 span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
             } else if (!TraceContext.containsTraceContextTextHeaders(request, RequestHeaderAccessor.INSTANCE)) {
+                logger.trace("redirect propagate context");
                 // re-adds the header on redirects
                 parent.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
             }
@@ -87,7 +94,11 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable HttpResponse response,
                                           @Advice.Enter @Nullable Object spanObj,
-                                          @Advice.Thrown @Nullable Throwable t) {
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Origin String signature) {
+
+            logger.debug("Enter advice signature = {}", signature);
+
             Span span = (Span) spanObj;
             if (span == null) {
                 return;
