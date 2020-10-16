@@ -44,6 +44,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
@@ -77,8 +78,10 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enter(@Advice.This HttpURLConnection thiz,
-                                 @Advice.FieldValue("connected") boolean connected,
-                                 @Advice.Origin String signature) {
+                                   @Advice.FieldValue("connected") boolean connected,
+                                   @Advice.Origin String signature) {
+
+            logger.debug("Enter advice signature = {} connected = {}", signature, connected);
 
             AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
@@ -104,29 +107,43 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpURLConnection thiz,
                                 @Nullable @Advice.Thrown Throwable t,
-                                @Advice.FieldValue("responseCode") int responseCode,
+                                @Advice.FieldValue("responseCode") int responseCode, // can we still do that without inlining ?
                                 @Nullable @Advice.Enter Object spanObject,
                                 @Advice.Origin String signature) {
+
+            logger.debug("Exit advice signature = {} responseCode = {} span = {}", signature, responseCode, spanObject);
 
             Span span = (Span) spanObject;
             if (span == null) {
                 return;
             }
             span.deactivate();
+
+            // if we don't get the proper response code ?
             if (responseCode != -1) {
+                logger.debug("response code != -1");
                 inFlightSpans.remove(thiz);
                 // if the response code is set, the connection has been established via getOutputStream
                 // if the response code is unset even after getOutputStream has been called, there will be an exception
                 span.getContext().getHttp().withStatusCode(responseCode);
                 span.captureException(t).end();
             } else if (t != null) {
+                logger.debug("thrown exception : {}", t.getMessage());
                 inFlightSpans.remove(thiz);
                 span.captureException(t).end();
             } else {
+                logger.debug("keep in-flight");
                 // if connect or getOutputStream has been called we can't end the span right away
                 // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
                 // note that this could happen on another thread
                 inFlightSpans.put(thiz, span);
+            }
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("in-flight spans count = {}", inFlightSpans.approximateSize());
+                for (Map.Entry<HttpURLConnection, Span> entry : inFlightSpans) {
+                    logger.debug("in-flight span = {}", entry.getValue());
+                }
             }
         }
 
@@ -144,10 +161,16 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
      */
     public static class DisconnectInstrumentation extends HttpUrlConnectionInstrumentation {
 
+        private static final Logger logger = LoggerFactory.getLogger(CreateSpanInstrumentation.class);
+
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
                                            @Nullable @Advice.Thrown Throwable t,
-                                           @Advice.FieldValue("responseCode") int responseCode) {
+                                           @Advice.FieldValue("responseCode") int responseCode,
+                                           @Advice.Origin String signature) {
+
+            logger.debug("Exit advice signature = {} responseCode = {}", signature, responseCode);
+
             Span span = inFlightSpans.remove(thiz);
             if (span != null) {
                 span.captureException(t).end();
