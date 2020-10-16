@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.apachehttpclient;
 
 import co.elastic.apm.agent.sdk.NonnullApi;

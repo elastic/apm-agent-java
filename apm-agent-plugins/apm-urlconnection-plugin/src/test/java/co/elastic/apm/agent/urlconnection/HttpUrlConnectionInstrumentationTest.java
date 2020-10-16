@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.urlconnection;
 
-import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.http.client.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import org.junit.Ignore;

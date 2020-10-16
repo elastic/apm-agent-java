@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.http.client.AbstractHttpClientInstrumentationTest;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.junit.Before;

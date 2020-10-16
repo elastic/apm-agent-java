@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.http.client.AbstractHttpClientInstrumentationTest;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import org.junit.Before;

@@ -22,11 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.apachehttpclient;
 
-import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -79,6 +77,7 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttp
 
     /**
      * Apache HTTP Async client 4.0.1 is dependent on Apache HTTP client 4.3.2
+     *
      * @return a matcher for LTE 4.3.2
      */
     @Override

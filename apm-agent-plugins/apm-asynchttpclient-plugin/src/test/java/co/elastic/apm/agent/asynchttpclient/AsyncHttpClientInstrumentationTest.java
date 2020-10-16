@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.asynchttpclient;
 
-import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.http.client.AbstractHttpClientInstrumentationTest;
 import org.asynchttpclient.*;
 import org.asynchttpclient.handler.StreamedAsyncHandler;
 import org.junit.After;

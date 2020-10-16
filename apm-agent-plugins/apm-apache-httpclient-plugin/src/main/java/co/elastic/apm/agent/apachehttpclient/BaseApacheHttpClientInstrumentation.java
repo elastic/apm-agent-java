@@ -22,7 +22,18 @@
  * under the License.
  * #L%
  */
-@NonnullApi
-package co.elastic.apm.agent.httpclient.helper;
+package co.elastic.apm.agent.apachehttpclient;
 
-import co.elastic.apm.agent.sdk.NonnullApi;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+
+import java.util.Arrays;
+import java.util.Collection;
+
+public abstract class BaseApacheHttpClientInstrumentation extends TracerAwareInstrumentation {
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("http-client", "apache-httpclient");
+    }
+
+}

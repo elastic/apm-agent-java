@@ -22,8 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.httpclient;
+package co.elastic.apm.agent.apachehttpclient;
 
+import co.elastic.apm.agent.http.client.AbstractHttpClientInstrumentationTest;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
