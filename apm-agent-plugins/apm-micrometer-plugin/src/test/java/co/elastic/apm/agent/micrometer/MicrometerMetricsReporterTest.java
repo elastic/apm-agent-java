@@ -53,6 +53,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -196,6 +197,18 @@ class MicrometerMetricsReporterTest {
         JsonNode metricSet = getSingleMetricSet();
         assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
         assertThat(metricSet.get("metricset").get("samples").get("gauge").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testGaugeNaNOnSecondInvocation() {
+        AtomicBoolean fistInvocation = new AtomicBoolean(true);
+        meterRegistry.gauge("gauge", 42, v -> fistInvocation.getAndSet(false) ? 42 : Double.NaN);
+
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples").get("gauge").get("value").doubleValue()).isEqualTo(42);
+
+        metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples").get("gauge")).isNull();
     }
 
     @Test
