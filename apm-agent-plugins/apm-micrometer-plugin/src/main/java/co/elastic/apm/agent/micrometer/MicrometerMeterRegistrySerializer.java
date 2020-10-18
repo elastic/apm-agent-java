@@ -119,9 +119,10 @@ public class MicrometerMeterRegistrySerializer {
                         Gauge gauge = (Gauge) meter;
 
                         // gauge values can be Double.NaN or +/-Infinite
-                        if (isValidValue(gauge.value())) {
+                        double value = gauge.value();
+                        if (isValidValue(value)) {
                             if (hasValue) jw.writeByte(JsonWriter.COMMA);
-                            serializeValue(gauge.getId(), gauge.value(), jw);
+                            serializeValue(gauge.getId(), value, jw);
                             hasValue = true;
                         }
 
