@@ -57,7 +57,7 @@ class SanitizingWebProcessorTest {
 
     @Test
     void processErrors() {
-        final ErrorCapture errorCapture = new ErrorCapture(mock(ElasticApmTracer.class));
+        final ErrorCapture errorCapture = new ErrorCapture(MockTracer.create());
         fillContext(errorCapture.getContext());
 
         processor.processBeforeReport(errorCapture);

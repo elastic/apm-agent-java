@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.impl.sampling;
 
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.TraceState;
 
 /**
  * This implementation of {@link Sampler} samples based on a sampling probability (or sampling rate) between 0.0 and 1.0.
@@ -52,10 +53,16 @@ public class ProbabilitySampler implements Sampler {
 
     private final long lowerBound;
     private final long higherBound;
+    private final double sampleRate;
+
+    // Because header value only contains sampling rate, we can cache it here
+    private final String rateString;
 
     private ProbabilitySampler(double samplingRate) {
         higherBound = (long) (Long.MAX_VALUE * samplingRate);
         lowerBound = -higherBound;
+        this.sampleRate = samplingRate;
+        rateString = Double.toString(samplingRate);
     }
 
     public static Sampler of(double samplingRate) {
@@ -72,5 +79,15 @@ public class ProbabilitySampler implements Sampler {
     public boolean isSampled(Id traceId) {
         final long leastSignificantBits = traceId.getLeastSignificantBits();
         return leastSignificantBits > lowerBound && leastSignificantBits < higherBound;
+    }
+
+    @Override
+    public double getSampleRate() {
+        return sampleRate;
+    }
+
+    @Override
+    public String getSampleRateString() {
+        return rateString;
     }
 }

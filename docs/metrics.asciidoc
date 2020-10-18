@@ -120,22 +120,11 @@ Memory usage in current cgroup slice.
 --
 
 
-*`system.process.cgroup.memory.stats.inactive_file.bytes`*::
-+
---
-type: long
-
-format: bytes
-
-Inactive memory in current cgroup slice.
---
-
 [float]
 [[metrics-jvm]]
 === JVM Metrics
 
-NOTE: As of now, there are no built-in visualizations for these metrics,
-so you will need to create custom Kibana dashboards for them.
+JVM-specific metrics
 
 *`jvm.memory.heap.used`*::
 +
