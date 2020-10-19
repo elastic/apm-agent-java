@@ -75,7 +75,12 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected boolean runtimeAttach() {
+    protected boolean runtimeAttachSupported() {
         return true;
+    }
+
+    @Override
+    protected String getJavaagentEnvVariable() {
+        return "CATALINA_OPTS";
     }
 }
