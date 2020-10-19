@@ -75,9 +75,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
         final String serviceName = configurationRegistry.getConfig(CoreConfiguration.class).getServiceName();
         logger.info("Starting Elastic APM {} as {} on {}", elasticApmVersion, serviceName, getJvmAndOsVersionString());
-        if (logger.isDebugEnabled()) {
-            logger.debug("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
-        }
+        logger.info("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
         for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
             for (ConfigurationOption<?> option : options) {
                 if (!option.isDefault()) {

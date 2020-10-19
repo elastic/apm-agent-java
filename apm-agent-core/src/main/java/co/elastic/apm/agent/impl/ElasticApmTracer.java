@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.ExecutorServiceShutdownLifecycleListener;
@@ -544,11 +543,6 @@ public class ElasticApmTracer implements Tracer {
     private synchronized void startSync() {
         if (tracerState != TracerState.UNINITIALIZED) {
             logger.warn("Trying to start an already initialized agent");
-            return;
-        }
-        if (!JvmRuntimeInfo.isJvmConfigurationSupported()) {
-            logger.error("JVM configuration is not supported. The agent will not be started and classes are un-instrumented.");
-            ElasticApmAgent.reset();
             return;
         }
         apmServerClient.start();

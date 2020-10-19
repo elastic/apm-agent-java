@@ -47,13 +47,14 @@ public class JvmRuntimeInfo {
     }
 
     /**
-     * Parses Java major version, update version and JVM vendor
+     * Parses Java major version, update version and JVM vendor.
+     *
+     * NOTE: THIS METHOD IS ONLY FOR UNIT TESTING. THE JVM INFO SHOULD COME FROM SYSTEM PROPERTIES
      *
      * @param version   jvm version, from {@code System.getProperty("java.version")}
      * @param vmName    jvm name, from {@code System.getProperty("java.vm.name")}
      * @param vmVersion jvm version, from {@code System.getProperty("java.vm.version")}
      */
-    // package-protected for testing
     static void parseVmInfo(String version, String vmName, @Nullable String vmVersion) {
         javaVersion = version;
         javaVmName = vmName;
@@ -166,12 +167,6 @@ public class JvmRuntimeInfo {
         }
     }
 
-    /**
-     * NOTE: THIS METHOD REQUIRES JMX OPERATION, THEREFORE IS SHOULD ONLY BE USED WITHIN OR AFTER THE TRACER HAVE
-     * BEEN STARTED (see {@link ElasticApmTracer#start(boolean)} for details).
-     *
-     * @return true if the setup of this JVM is supported
-     */
     public static boolean isJvmConfigurationSupported() {
         List<String> jvmArgs = null;
         try {

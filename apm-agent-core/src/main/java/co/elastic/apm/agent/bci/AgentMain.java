@@ -87,6 +87,11 @@ public class AgentMain {
             return;
         }
 
+        if (!JvmRuntimeInfo.isJvmConfigurationSupported()) {
+            System.err.println("JVM configuration is not supported. Aborting agent initialization.");
+            return;
+        }
+
         try {
             // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
             FileSystems.getDefault();
