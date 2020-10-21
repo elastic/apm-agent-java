@@ -29,6 +29,9 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -49,6 +52,12 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ServletInstrumentation extends AbstractServletInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
+    static final String SERVLET_API_DISPATCH = "servlet-api-dispatch";
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList(SERVLET_API, SERVLET_API_DISPATCH);
+    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
