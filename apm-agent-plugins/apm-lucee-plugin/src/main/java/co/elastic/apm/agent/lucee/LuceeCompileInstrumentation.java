@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.lucee;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -50,7 +50,7 @@ import java.util.Collection;
 import java.util.Arrays;
 import lucee.runtime.PageSource;
 
-public class LuceeCompileInstrumentation extends ElasticApmInstrumentation {
+public class LuceeCompileInstrumentation extends TracerAwareInstrumentation {
 // lucee.runtime.compiler.CFMLCompilerImpl#_compile(ConfigImpl config, PageSource ps, SourceCode sc, String className, TagLib[] tld, FunctionLib[] fld, Resource classRootDir, boolean returnValue, boolean ignoreScopes)
 
     // lucee.runtime.compiler.CFMLCompilerImpl#_compile

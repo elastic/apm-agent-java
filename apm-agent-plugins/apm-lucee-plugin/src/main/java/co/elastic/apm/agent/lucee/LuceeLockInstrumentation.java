@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.lucee;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -51,7 +51,7 @@ import java.util.Arrays;
 import lucee.runtime.tag.Lock;
 import javax.servlet.jsp.tagext.Tag;
 
-public class LuceeLockInstrumentation extends ElasticApmInstrumentation {
+public class LuceeLockInstrumentation extends TracerAwareInstrumentation {
     // lucee.runtime.tag.Lock#doStartTag
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

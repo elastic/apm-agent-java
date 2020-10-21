@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.lucee;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -50,7 +50,7 @@ import java.util.Collection;
 import java.util.Arrays;
 import lucee.runtime.PageSource;
 
-public class LuceeApplicationInstrumentation extends ElasticApmInstrumentation {
+public class LuceeApplicationInstrumentation extends TracerAwareInstrumentation {
 // lucee.runtime.listener.ModernAppListener#call(Component app, PageContext pc, Collection.Key eventName, Object[] args, boolean catchAbort) throws PageException {
 
     // lucee.runtime.listener.ModernAppListener#call

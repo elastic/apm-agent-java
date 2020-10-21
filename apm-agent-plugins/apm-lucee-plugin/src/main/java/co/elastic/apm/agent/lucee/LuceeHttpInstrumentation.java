@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.lucee;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -60,9 +60,9 @@ import lucee.commons.net.HTTPUtil;
 
 import co.elastic.apm.agent.lucee.LuceeHttpHeaderSetter;
 
-public class LuceeHttpInstrumentation extends ElasticApmInstrumentation {
+public class LuceeHttpInstrumentation extends TracerAwareInstrumentation {
 
-    // We can refer OkHttp types thanks to type erasure
+    // We can refer lucee.runtime.tag.Http types thanks to type erasure
     @VisibleForAdvice
     @Nullable
     public static HelperClassManager<TextHeaderSetter<Http>> headerSetterHelperManager;
