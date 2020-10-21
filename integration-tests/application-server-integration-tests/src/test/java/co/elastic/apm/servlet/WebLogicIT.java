@@ -85,7 +85,7 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected boolean runtimeAttach() {
+    protected boolean runtimeAttachSupported() {
         return true;
     }
 }

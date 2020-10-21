@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.lang.management.ManagementFactory;
 import java.util.List;
 
 /**
@@ -74,6 +75,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
         final String serviceName = configurationRegistry.getConfig(CoreConfiguration.class).getServiceName();
         logger.info("Starting Elastic APM {} as {} on {}", elasticApmVersion, serviceName, getJvmAndOsVersionString());
+        logger.info("VM Arguments: {}", ManagementFactory.getRuntimeMXBean().getInputArguments());
         for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
             for (ConfigurationOption<?> option : options) {
                 if (!option.isDefault()) {
