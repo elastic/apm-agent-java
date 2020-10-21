@@ -45,6 +45,8 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
+  `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
