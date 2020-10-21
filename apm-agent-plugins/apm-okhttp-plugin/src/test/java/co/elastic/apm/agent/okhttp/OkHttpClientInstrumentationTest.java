@@ -27,13 +27,13 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 public class OkHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private OkHttpClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         client = new OkHttpClient();
     }
