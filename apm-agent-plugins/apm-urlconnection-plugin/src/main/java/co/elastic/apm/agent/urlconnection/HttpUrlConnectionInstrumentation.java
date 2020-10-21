@@ -46,6 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
@@ -64,7 +65,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(is(HttpURLConnection.class));
+        return hasSuperType(is(HttpURLConnection.class)).and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")));
     }
 
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
