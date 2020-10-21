@@ -72,6 +72,24 @@ enum NoopTransaction implements Transaction {
 
     @Nonnull
     @Override
+    public Transaction setLabel(String key, String value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, boolean value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
     public Transaction addCustomContext(String key, String value) {
         return this;
     }

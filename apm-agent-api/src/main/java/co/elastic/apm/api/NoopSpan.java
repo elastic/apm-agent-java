@@ -69,6 +69,24 @@ enum NoopSpan implements Span {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Span setLabel(String key, String value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setLabel(String key, boolean value) {
+        return this;
+    }
+
     @Override
     public void end() {
         // noop
