@@ -69,6 +69,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                                                final @Advice.FieldValue("originalRequest") @Nullable okhttp3.Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
 
+            logger.debug("Enter advice");
             if (originalRequest == null || originalCallback == null) {
                 return null;
             }

@@ -557,6 +557,7 @@ public class TraceContext implements Recyclable {
      * @param <C>          the header carrier type, for example - an HTTP request
      */
     <C> void propagateTraceContext(C carrier, TextHeaderSetter<C> headerSetter) {
+        logger.debug("propagateTraceContext");
         String outgoingTraceParent = getOutgoingTraceParentTextHeader().toString();
 
         headerSetter.setHeader(W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, outgoingTraceParent, carrier);
@@ -568,7 +569,7 @@ public class TraceContext implements Recyclable {
         if (outgoingTraceState != null) {
             headerSetter.setHeader(TRACESTATE_HEADER_NAME, outgoingTraceState, carrier);
         }
-        logger.trace("Trace context headers added to {}", carrier);
+        logger.debug("Trace context headers added to {}", carrier);
     }
 
     /**

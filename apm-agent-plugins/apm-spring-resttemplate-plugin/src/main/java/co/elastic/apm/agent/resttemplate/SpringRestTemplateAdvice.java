@@ -45,6 +45,7 @@ public class SpringRestTemplateAdvice {
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object beforeExecute(@Advice.This ClientHttpRequest request) {
+        logger.debug("Enter advice");
         AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
         if (parent == null) {
             logger.debug("Enter advice without parent for method {}#execute() {} {}", request.getClass().getName(), request.getMethod(), request.getURI());
@@ -52,6 +53,7 @@ public class SpringRestTemplateAdvice {
         }
         Span span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(), request.getURI().getHost());
         if (span != null) {
+            logger.debug("activate and propagate context");
             span.activate();
             span.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
             return span;

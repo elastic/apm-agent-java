@@ -48,6 +48,7 @@ public abstract class AbstractHttpClientInstrumentation extends TracerAwareInstr
 
     @Nullable
     protected static Span startSpan(HttpRequest httpRequest) {
+        logger.debug("Enter advice");
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent == null) {
             logger.debug("Enter advice without parent for method {}#execute() {} {}", httpRequest.getClass().getName(), httpRequest.method(), httpRequest.uri());

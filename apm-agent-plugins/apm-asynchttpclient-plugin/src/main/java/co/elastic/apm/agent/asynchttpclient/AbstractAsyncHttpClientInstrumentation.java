@@ -86,6 +86,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeExecute(@Advice.Argument(value = 0) Request request,
                                             @Advice.Argument(value = 1) AsyncHandler<?> asyncHandler) {
+            logger.debug("Enter advice");
             final AbstractSpan<?> parent = tracer.getActive();
 
             Uri uri = request.getUri();

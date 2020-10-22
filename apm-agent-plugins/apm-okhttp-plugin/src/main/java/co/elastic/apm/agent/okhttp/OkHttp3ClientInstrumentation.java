@@ -59,6 +59,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
         @AssignTo(fields = @AssignTo.Field(index = 0, value = "originalRequest", typing = Assigner.Typing.DYNAMIC))
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeExecute(final @Advice.FieldValue("originalRequest") @Nullable Object originalRequest) {
+            logger.debug("Enter advice");
             if (!(originalRequest instanceof Request)) {
                 return new Object[]{originalRequest, null};
             }
