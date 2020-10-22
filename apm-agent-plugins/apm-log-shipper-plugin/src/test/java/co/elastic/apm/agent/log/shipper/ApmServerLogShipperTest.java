@@ -32,14 +32,13 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.BufferedReader;
@@ -66,19 +65,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ApmServerLogShipperTest {
 
-    @Rule
-    public WireMockRule mockApmServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockServer mockApmServer = new WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort());
     private TailableFile tailableFile;
     private ApmServerLogShipper logShipper;
     private File logFile;
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
     private ApmServerClient apmServerClient;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
+        mockApmServer.start();
 
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
         startClientWithValidUrls();
@@ -93,8 +92,10 @@ public class ApmServerLogShipperTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
+        mockApmServer.stop();
+
         if (!logFile.delete()) {
             logFile.deleteOnExit();
         }

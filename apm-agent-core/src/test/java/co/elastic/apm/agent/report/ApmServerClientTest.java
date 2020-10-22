@@ -37,9 +37,9 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.assertj.core.util.Lists;
 import org.awaitility.core.ConditionFactory;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.FileNotFoundException;
@@ -67,9 +67,7 @@ import static org.mockito.Mockito.doReturn;
 
 public class ApmServerClientTest {
 
-    @Rule
     public WireMockRule apmServer1 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
-    @Rule
     public WireMockRule apmServer2 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
     private ApmServerClient apmServerClient;
     private ConfigurationRegistry config;
@@ -77,10 +75,8 @@ public class ApmServerClientTest {
     private TestObjectPoolFactory objectPoolFactory;
     private ReporterConfiguration reporterConfiguration;
 
-    @Before
+    @BeforeEach
     public void setUp() throws MalformedURLException {
-        URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
-        URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
         // APM server 6.x style
         apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("ok", Map.of("version", "6.7.0-SNAPSHOT")))));
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
@@ -89,6 +85,11 @@ public class ApmServerClientTest {
         apmServer2.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.3.0-RC1"))));
         apmServer2.stubFor(get(urlEqualTo("/test")).willReturn(ok("hello from server 2")));
         apmServer2.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
+        apmServer1.start();
+        apmServer2.start();
+
+        URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
+        URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
 
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
@@ -101,6 +102,12 @@ public class ApmServerClientTest {
 
         apmServerClient = tracer.getApmServerClient();
         apmServerClient.start(tracer.getConfig(ReporterConfiguration.class).getServerUrls());
+    }
+
+    @AfterEach
+    public final void after() {
+        apmServer1.stop();
+        apmServer2.stop();
     }
 
     @Test

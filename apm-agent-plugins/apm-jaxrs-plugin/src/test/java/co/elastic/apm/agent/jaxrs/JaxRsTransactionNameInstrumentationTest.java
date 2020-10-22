@@ -35,9 +35,9 @@ import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
@@ -61,8 +61,10 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     private ConfigurationRegistry config;
     private TestObjectPoolFactory objectPoolFactory;
 
-    @Before
-    public void before() {
+    @BeforeEach
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
         reporter = mockInstrumentationSetup.getReporter();
         config = mockInstrumentationSetup.getConfig();
@@ -70,8 +72,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
     }
 
-    @After
-    public void after() {
+    @AfterEach
+    @Override
+    public void tearDown() throws Exception {
         try {
             reporter.assertRecycledAfterDecrementingReferences();
             objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
@@ -80,6 +83,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             objectPoolFactory.reset();
             ElasticApmAgent.reset();
         }
+        super.tearDown();
     }
 
     @Test

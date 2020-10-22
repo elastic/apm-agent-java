@@ -29,7 +29,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerController;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_handler.ExceptionHandlerRuntimeException200;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;

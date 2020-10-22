@@ -27,7 +27,7 @@ package co.elastic.apm.agent.springwebmvc.exception;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.ExceptionResolverController;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.ExceptionResolverRuntimeException;
 import co.elastic.apm.agent.springwebmvc.exception.testapp.exception_resolver.RestResponseStatusExceptionResolver;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;

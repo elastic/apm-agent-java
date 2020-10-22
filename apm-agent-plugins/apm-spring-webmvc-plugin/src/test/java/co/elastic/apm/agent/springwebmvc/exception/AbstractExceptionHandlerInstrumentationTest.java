@@ -32,17 +32,14 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import co.elastic.apm.agent.springwebmvc.ExceptionHandlerInstrumentation;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -54,7 +51,7 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
-@RunWith(value = SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @WebAppConfiguration
 @TestConfiguration
 public abstract class AbstractExceptionHandlerInstrumentationTest {
@@ -67,7 +64,6 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
     @Autowired
     WebApplicationContext wac;
 
-    @BeforeClass
     @BeforeAll
     public static void setUpAll() {
         MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
@@ -78,13 +74,11 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
             Arrays.asList(new ServletInstrumentation(), new ExceptionHandlerInstrumentation()));
     }
 
-    @AfterClass
     @AfterAll
     public static void afterAll() {
         ElasticApmAgent.reset();
     }
 
-    @Before
     @BeforeEach
     public void setup() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
