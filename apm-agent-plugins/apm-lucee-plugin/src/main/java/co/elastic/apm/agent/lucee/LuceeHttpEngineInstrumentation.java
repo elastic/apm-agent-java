@@ -27,7 +27,6 @@ package co.elastic.apm.agent.lucee;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -57,21 +56,6 @@ import co.elastic.apm.agent.lucee.LuceeHttpEngineHeaderSetter;
 
 public class LuceeHttpEngineInstrumentation extends TracerAwareInstrumentation {
 
-    // We can refer OkHttp types thanks to type erasure
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderSetter<HttpUriRequest>> headerSetterHelperManager;
-
-    public LuceeHttpEngineInstrumentation(ElasticApmTracer tracer) {
-        synchronized (LuceeHttpHeaderSetter.class) {
-            if (headerSetterHelperManager == null) {
-                headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    "co.elastic.apm.agent.lucee.LuceeHttpEngineHeaderSetter"
-                );
-            }
-        }
-    }
-
     // lucee.runtime.tag.Http#doEndTag
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -95,37 +79,41 @@ public class LuceeHttpEngineInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static class CfHTTPEngineAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static @Nullable Object onBeforeExecute(
                 @Advice.Argument(value=0) @Nullable URL url,
-                @Advice.Argument(value=1, readOnly=false) @Nullable HttpUriRequest request,
-                @Advice.Local("span") @Nullable Span span) {
+                @Advice.Argument(value=1, readOnly=false) @Nullable HttpUriRequest request) {
 
             if (tracer == null || tracer.getActive() == null) {
-                return;
+                return null;
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
-            span = HttpClientHelper.startHttpClientSpan(parent, (request != null)?request.getMethod():"UNKNOWN", url.toString(), url.getProtocol(), url.getHost(), url.getPort());
+            Object span = HttpClientHelper.startHttpClientSpan(parent, (request != null)?request.getMethod():"UNKNOWN", url.toString(), url.getProtocol(), url.getHost(), url.getPort());
             if (span != null) {
                 if (request != null) {
-                    TextHeaderSetter<HttpUriRequest> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(HttpUriRequest.class);
-                    span.propagateTraceContext(request, headerSetter);
+                    try {
+                        TextHeaderSetter<HttpUriRequest> headerSetter = new LuceeHttpEngineHeaderSetter();
+                        ((Span)span).propagateTraceContext(request, headerSetter);
+                    } catch (Throwable e) {}
                 }
-                span.activate();
+                ((Span)span).activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Return @Nullable HTTPResponse response,
-                                          @Advice.Local("span") @Nullable Span span,
+                                          @Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
                 try {
-                    span.getContext().getHttp().withStatusCode(response.getStatusCode());
-                    span.captureException(t);
+                    if (span instanceof Span) {
+                        ((Span) span).getContext().getHttp().withStatusCode(response.getStatusCode());
+                    }
+                    ((Span)span).captureException(t);
                 } finally {
-                    span.deactivate().end();
+                    ((Span)span).deactivate().end();
                 }
             }
         }

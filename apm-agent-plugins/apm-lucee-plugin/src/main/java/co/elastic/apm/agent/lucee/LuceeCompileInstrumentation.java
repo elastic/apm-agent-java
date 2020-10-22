@@ -76,34 +76,36 @@ public class LuceeCompileInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static class CfCompileAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(
                 @Advice.Argument(value=1) @Nullable PageSource ps,
-                @Advice.Argument(value=3) @Nullable String className,
-                @Advice.Local("span") @Nullable Span span) {
+                @Advice.Argument(value=3) @Nullable String className) {
 
             if (tracer == null || tracer.getActive() == null) {
-                return;
+                return null;
             }
+
             final AbstractSpan<?> parent = tracer.getActive();
-            span = parent.createSpan()
+            Object span = parent.createSpan()
                     .withName("Compilation of " + ps.getRealpathWithVirtual())
                     .withType("lucee")
                     .withSubtype("compilation")
                     .withAction("cfml");
+
             if (span != null) {
-                span.activate();
+                ((Span)span).activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
                 try {
-                    span.captureException(t);
+                    ((Span)span).captureException(t);
                 } finally {
-                    span.deactivate().end();
+                    ((Span)span).deactivate().end();
                 }
             }
         }

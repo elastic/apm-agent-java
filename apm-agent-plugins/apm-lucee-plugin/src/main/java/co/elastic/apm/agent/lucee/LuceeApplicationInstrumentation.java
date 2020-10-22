@@ -77,41 +77,41 @@ public class LuceeApplicationInstrumentation extends TracerAwareInstrumentation 
     @VisibleForAdvice
     public static class CfCompileAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(
-                @Advice.Argument(value=2) @Nullable lucee.runtime.type.Collection.Key eventName,
-                @Advice.Local("span") @Nullable Span span) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(
+                @Advice.Argument(value=2) @Nullable lucee.runtime.type.Collection.Key eventName) {
 
             if (eventName == null) {
-                return;
+                return null;
             }
             if (tracer == null || tracer.getActive() == null) {
-                return;
+                return null;
             }
             String eventStringName = eventName.getString();
             // Skip, the main "body" event, as it's basically the full request, skip it to use a full span
             if (eventStringName == "onRequest") {
-                return;
+                return null;
             }
             final AbstractSpan<?> parent = tracer.getActive();
-            span = parent.createSpan()
+            Object span = parent.createSpan()
                     .withName(eventStringName)
                     .withType("lucee")
                     .withSubtype(eventStringName)
                     .withAction("hook");
             if (span != null) {
-                span.activate();
+                ((Span)span).activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
                 try {
-                    span.captureException(t);
+                    ((Span)span).captureException(t);
                 } finally {
-                    span.deactivate().end();
+                    ((Span)span).deactivate().end();
                 }
             }
         }

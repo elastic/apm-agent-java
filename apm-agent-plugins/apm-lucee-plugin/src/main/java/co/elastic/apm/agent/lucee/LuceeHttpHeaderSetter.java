@@ -42,6 +42,5 @@ public class LuceeHttpHeaderSetter implements TextHeaderSetter<Http> {
         param.setName(headerName);
         param.setValue(headerValue);
         httpTag.setParam(param);
-        //httpTag.setParam(4/* Header */, headerName, headerValue);
     }
 }

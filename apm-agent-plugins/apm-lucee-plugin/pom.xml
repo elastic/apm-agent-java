@@ -37,9 +37,8 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-httpclient-core</artifactId>
-            <type>test-jar</type>
             <version>${project.version}</version>
-            <scope>test</scope>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

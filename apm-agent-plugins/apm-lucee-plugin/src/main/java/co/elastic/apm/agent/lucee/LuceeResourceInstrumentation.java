@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -60,7 +61,9 @@ public class LuceeResourceInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isPublic();
+        return isPublic()
+            .and(not(named("init")))
+            .and(not(named("getName")));
     }
 
     @Override
@@ -75,37 +78,53 @@ public class LuceeResourceInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static class CfRessourceAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(
                 @Advice.Origin("#t") String className,
                 @Advice.Origin("#m") String methodName,
-                @Advice.Local("span") @Nullable Span span,
-                @Advice.This(optional = true) Object thiz
+                @Advice.This(optional = true) Resource res
             ) {
 
-            String FileName = (thiz != null && (thiz instanceof lucee.commons.io.res.Resource)) ? ((lucee.commons.io.res.Resource)thiz).getName():"unknown";
             if (tracer == null || tracer.getActive() == null) {
-                return;
+                return null;
             }
+
+            String[] classParts = className.split("\\.");
+            String baseClass = classParts.length>1?classParts[classParts.length - 1]:className;
+            String FileName = "Unknown";
+            if (res != null) {
+                try {
+                    FileName = res.getName();
+                } catch (Throwable e) {}
+            }
+
             final AbstractSpan<?> parent = tracer.getActive();
-            span = parent.createSpan()
-                    .withName("CfRessource " + className + ":" + methodName)
+            Object span = parent.createSpan()
+                    .withName(FileName)
                     .withType("lucee")
                     .withSubtype("resource")
-                    .withAction(FileName);
+                    .withAction(baseClass + ":" + methodName);
             if (span != null) {
-                span.activate();
+                ((Span)span).activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
                 try {
-                    span.captureException(t);
+                    ((Span)span).captureException(t);
+                    final long endTime = ((Span)span).getTraceContext().getClock().getEpochMicros();
+                    if (span instanceof Span) {
+                        long durationMicros = endTime - ((Span)span).getTimestamp();
+                        if (durationMicros<500) {
+                            ((Span)span).requestDiscarding();
+                        }
+                    }
                 } finally {
-                    span.deactivate().end();
+                    ((Span)span).deactivate().end();
                 }
             }
         }

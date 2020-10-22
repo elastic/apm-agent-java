@@ -77,15 +77,14 @@ public class LuceeExtensionImageTagInstrumentation extends TracerAwareInstrument
     @VisibleForAdvice
     public static class CfLockAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(
                 @Advice.FieldValue(value="strAction") @Nullable String strAction,
                 @Advice.FieldValue(value="oSource") @Nullable Object oSource,
-                @Advice.FieldValue(value="base64") @Nullable boolean base64,
-                @Advice.Local("span") @Nullable Span span) {
+                @Advice.FieldValue(value="base64") @Nullable boolean base64) {
 
             if (tracer == null || tracer.getActive() == null) {
-                return;
+                return null;
             }
             String str = "Unknown Image";
             if (oSource instanceof CharSequence) {
@@ -103,25 +102,26 @@ public class LuceeExtensionImageTagInstrumentation extends TracerAwareInstrument
                 } catch (Throwable e) {}
             }
             final AbstractSpan<?> parent = tracer.getActive();
-            span = parent.createSpan()
+            Object span = parent.createSpan()
                     .withName("cfImage " + strAction + " on " + str)
                     .withType("lucee")
                     .withSubtype("image")
                     .withAction(strAction);
             if (span != null) {
-                span.activate();
+                ((Span)span).activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Return @Nullable int retval,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
                 try {
-                    span.captureException(t);
+                    ((Span)span).captureException(t);
                 } finally {
-                    span.deactivate().end();
+                    ((Span)span).deactivate().end();
                 }
             }
         }

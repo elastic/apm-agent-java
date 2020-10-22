@@ -75,16 +75,15 @@ public class LuceeLockInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static class CfLockAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(
                 @Advice.FieldValue(value="scope") @Nullable int scope,
                 @Advice.FieldValue(value="name") @Nullable String name,
                 @Advice.FieldValue(value="type") @Nullable int type,
-                @Advice.FieldValue(value="id") @Nullable String id,
-                @Advice.Local("span") @Nullable Span span) {
+                @Advice.FieldValue(value="id") @Nullable String id) {
 
             if (tracer == null || tracer.getActive() == null) {
-                return;
+                return null;
             }
             String lockName = "unknown";
             switch(scope) {
@@ -108,18 +107,19 @@ public class LuceeLockInstrumentation extends TracerAwareInstrumentation {
                     }
             }
             final AbstractSpan<?> parent = tracer.getActive();
-            span = parent.createSpan()
+            Object span = parent.createSpan()
                     .withName("CFLock " + lockName)
                     .withType("lucee")
                     .withSubtype("lock")
                     .withAction((type==0)?"shared":"exclusive");
             if (span != null) {
-                span.activate();
+                ((Span)span).activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Return @Nullable int retval,
                                           @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
@@ -129,9 +129,9 @@ public class LuceeLockInstrumentation extends TracerAwareInstrumentation {
                     } else {
                         // Failure
                     }
-                    span.captureException(t);
+                    ((Span)span).captureException(t);
                 } finally {
-                    span.deactivate().end();
+                    ((Span)span).deactivate().end();
                 }
             }
         }

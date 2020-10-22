@@ -26,11 +26,10 @@ package co.elastic.apm.agent.lucee;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -61,22 +60,6 @@ import lucee.commons.net.HTTPUtil;
 import co.elastic.apm.agent.lucee.LuceeHttpHeaderSetter;
 
 public class LuceeHttpInstrumentation extends TracerAwareInstrumentation {
-
-    // We can refer lucee.runtime.tag.Http types thanks to type erasure
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderSetter<Http>> headerSetterHelperManager;
-
-    public LuceeHttpInstrumentation(ElasticApmTracer tracer) {
-        synchronized (LuceeHttpHeaderSetter.class) {
-            if (headerSetterHelperManager == null) {
-                headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    "co.elastic.apm.agent.lucee.LuceeHttpHeaderSetter"
-                );
-            }
-        }
-    }
-
     // lucee.runtime.tag.Http#doEndTag
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -101,21 +84,21 @@ public class LuceeHttpInstrumentation extends TracerAwareInstrumentation {
     @VisibleForAdvice
     public static class CfHTTPAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(
                 @Advice.FieldValue(value="method") @Nullable short methodId,
                 @Advice.FieldValue(value="url") @Nullable String objurl,
-                @Advice.FieldValue(value="params", readOnly=false) @Nullable  ArrayList<HttpParamBean> params,
-                @Advice.This Http httpTag,
-                @Advice.Local("span") Span span) {
+                @Advice.FieldValue(value="params") @Nullable ArrayList<HttpParamBean> params,
+                @Advice.This Http httpTag) {
 
             if (tracer == null || tracer.getActive() == null) {
-                return;
+                return null;
             }
 
             final AbstractSpan<?> parent = tracer.getActive();
             // Use Lucee converter as url without protocol are accepted
             URL url = null;
+            Object span = null;
             try {
                 url = new URL(objurl);
             }
@@ -131,15 +114,16 @@ public class LuceeHttpInstrumentation extends TracerAwareInstrumentation {
             }
             if (span != null) {
                 if (params != null) {
-                    TextHeaderSetter<Http> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Http.class);
-                    span.propagateTraceContext(httpTag, headerSetter);
+                    TextHeaderSetter<Http> headerSetter = new LuceeHttpHeaderSetter();
+                    ((Span)span).propagateTraceContext(httpTag, headerSetter);
                 }
-                span.activate();
+                ((Span)span).activate();
             }
+            return span;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.FieldValue(value="result") @Nullable String result,
                                           @Advice.FieldValue(value="pageContext") @Nullable PageContext pageContext) {
@@ -152,12 +136,14 @@ public class LuceeHttpInstrumentation extends TracerAwareInstrumentation {
                     if (resultStruct != null) {
                         try {
                         double statusCode = (Double)(resultStruct.get(KeyImpl.intern("status_code")));
-                        span.getContext().getHttp().withStatusCode(((int)statusCode));
+                            if (span instanceof Span) {
+                                ((Span) span).getContext().getHttp().withStatusCode((int)statusCode);
+                            }
                         } catch (Throwable e) {}
                     }
-                    span.captureException(t);
+                    ((Span)span).captureException(t);
                 } finally {
-                    span.deactivate().end();
+                    ((Span)span).deactivate().end();
                 }
             }
         }
