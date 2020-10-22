@@ -82,7 +82,7 @@ public class LuceeHttpEngineInstrumentation extends TracerAwareInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static @Nullable Object onBeforeExecute(
                 @Advice.Argument(value=0) @Nullable URL url,
-                @Advice.Argument(value=1, readOnly=false) @Nullable HttpUriRequest request) {
+                @Advice.Argument(value=1) @Nullable HttpUriRequest request) {
 
             if (tracer == null || tracer.getActive() == null) {
                 return null;
