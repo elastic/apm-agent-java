@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -63,6 +64,7 @@ public class LuceeResourceInstrumentation extends TracerAwareInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return isPublic()
             .and(not(named("init")))
+            .and(not(isConstructor()))
             .and(not(named("getName")));
     }
 
