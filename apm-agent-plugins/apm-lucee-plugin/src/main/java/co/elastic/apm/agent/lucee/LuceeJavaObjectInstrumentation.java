@@ -42,11 +42,13 @@ import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import java.util.Collection;
 import java.util.Arrays;
 
 import lucee.runtime.java.JavaObject;
+import lucee.runtime.PageContext;
 
 public class LuceeJavaObjectInstrumentation extends TracerAwareInstrumentation {
 // lucee.runtime.compiler.CFMLCompilerImpl#_compile(ConfigImpl config, PageSource ps, SourceCode sc, String className, TagLib[] tld, FunctionLib[] fld, Resource classRootDir, boolean returnValue, boolean ignoreScopes)
@@ -60,7 +62,9 @@ public class LuceeJavaObjectInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("call")
-            .and(takesArguments(3));
+            .and(takesArguments(3))
+            .and(takesArgument(1, String.class));
+
     }
 
     @Override
@@ -86,10 +90,10 @@ public class LuceeJavaObjectInstrumentation extends TracerAwareInstrumentation {
 
             final AbstractSpan<?> parent = tracer.getActive();
             Object span = parent.createSpan()
-                    .withName(obj.getClazz().toString() + methodName)
+                    .withName(obj.getClazz().toString() + "." + methodName + "()")
                     .withType("lucee")
                     .withSubtype("java")
-                    .withAction("Call");
+                    .withAction("call");
 
             if (span != null) {
                 ((Span)span).activate();
