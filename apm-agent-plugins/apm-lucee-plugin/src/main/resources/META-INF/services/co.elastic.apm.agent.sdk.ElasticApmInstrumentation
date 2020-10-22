@@ -5,3 +5,5 @@ co.elastic.apm.agent.lucee.LuceeLockInstrumentation
 co.elastic.apm.agent.lucee.LuceeApplicationInstrumentation
 co.elastic.apm.agent.lucee.LuceeExtensionImageTagInstrumentation
 co.elastic.apm.agent.lucee.LuceeResourceInstrumentation
+co.elastic.apm.agent.lucee.LuceeCreateObjectInstrumentation
+co.elastic.apm.agent.lucee.LuceeJavaObjectInstrumentation
