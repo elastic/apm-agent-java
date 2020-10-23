@@ -37,10 +37,8 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.search.SearchHits;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
@@ -48,16 +46,11 @@ import java.io.IOException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-@RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4ClientInstrumentationTest {
 
     private static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:6.7.0";
 
-    public ElasticsearchRestClientInstrumentationIT(boolean async) {
-        this.async = async;
-    }
-
-    @BeforeClass
+    @BeforeAll
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
         container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
@@ -75,7 +68,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
         reporter.reset();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopElasticsearchContainerAndClient() throws IOException {
         client.indices().delete(new DeleteIndexRequest(INDEX), RequestOptions.DEFAULT);
         container.stop();

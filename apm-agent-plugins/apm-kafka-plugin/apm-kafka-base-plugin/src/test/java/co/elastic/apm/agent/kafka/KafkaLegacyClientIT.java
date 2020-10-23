@@ -43,12 +43,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
@@ -74,7 +74,7 @@ import static org.mockito.Mockito.when;
  * b.  the creation of consumer transaction- one per consumed record
  */
 @SuppressWarnings("NotNullFieldNotInitialized")
-@Ignore
+@Disabled
 public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     static final String REQUEST_TOPIC = UUID.randomUUID().toString();
@@ -101,7 +101,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         this.messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         // confluent versions 5.3.x correspond Kafka versions 2.3.x -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
@@ -125,7 +125,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         );
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() {
         producer.close();
         replyConsumer.unsubscribe();
@@ -134,7 +134,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         kafka.stop();
     }
 
-    @Before
+    @BeforeEach
     public void startTransaction() {
         Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("Kafka-Test Transaction");
@@ -143,7 +143,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         testScenario = TestScenario.NORMAL;
     }
 
-    @After
+    @AfterEach
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
