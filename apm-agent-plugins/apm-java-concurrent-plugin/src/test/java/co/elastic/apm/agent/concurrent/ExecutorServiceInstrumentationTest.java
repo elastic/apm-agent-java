@@ -37,14 +37,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -52,20 +50,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationTest {
 
-    private ExecutorService executor;
     private CurrentThreadExecutor currentThreadExecutor;
     private Transaction transaction;
 
-    private void init(Supplier<ExecutorService> supplier) {
-        executor = supplier.get();
-    }
-
     public static Stream<Arguments> parameters() {
-        List<Supplier<Executor>> params = Arrays.asList(Executors::newSingleThreadExecutor,
-                Executors::newSingleThreadScheduledExecutor,
-                ForkJoinPool::new
-        );
-        return params.stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
+        List<Object[]> parameters = Arrays.asList(new Object[][]{{Executors.newSingleThreadExecutor(), "Executors.newSingleThreadExecutor"},
+            {Executors.newSingleThreadScheduledExecutor(), "Executors.newSingleThreadScheduledExecutor"},
+            {new ForkJoinPool(), "ForkJoinPool"}
+        });
+        return parameters.stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
     }
 
     @BeforeEach
@@ -80,11 +73,9 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         assertThat(JavaConcurrent.needsContext.get()).isNotEqualTo(false);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testExecutorSubmitRunnableAnonymousInnerClass(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testExecutorSubmitRunnableAnonymousInnerClass(ExecutorService executor, String executorName) throws Exception {
         executor.submit(new Runnable() {
             @Override
             public void run() {
@@ -95,38 +86,30 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         reporter.awaitSpanCount(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testExecutorSubmitRunnableLambda(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testExecutorSubmitRunnableLambda(ExecutorService executor, String executorName) throws Exception {
         executor.submit(() -> createAsyncSpan()).get(1, TimeUnit.SECONDS);
         reporter.awaitSpanCount(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testExecutorExecute(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testExecutorExecute(ExecutorService executor, String executorName) throws Exception {
         executor.execute(this::createAsyncSpan);
         reporter.awaitSpanCount(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testExecutorSubmitRunnableWithResult(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testExecutorSubmitRunnableWithResult(ExecutorService executor, String executorName) throws Exception {
         executor.submit(this::createAsyncSpan, null);
         reporter.awaitSpanCount(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testExecutorSubmitCallableMethodReference(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testExecutorSubmitCallableMethodReference(ExecutorService executor, String executorName) throws Exception {
         executor.submit(() -> {
             createAsyncSpan();
             return null;
@@ -134,11 +117,9 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         reporter.awaitSpanCount(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testInvokeAll(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testInvokeAll(ExecutorService executor, String executorName) throws Exception {
         final List<Future<Span>> futures = executor.invokeAll(Arrays.<Callable<Span>>asList(this::createAsyncSpan, () -> createAsyncSpan(), new Callable<Span>() {
             @Override
             public Span call() throws Exception {
@@ -149,42 +130,36 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         reporter.awaitSpanCount(3);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testNestedExecutions(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testNestedExecutions(ExecutorService executor, String executorName) throws Exception {
         currentThreadExecutor.execute(() -> executor.execute(this::createAsyncSpan));
         reporter.awaitSpanCount(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testInvokeAllTimed(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testInvokeAllTimed(ExecutorService executor, String executorName) throws Exception {
         final List<Future<Span>> futures = executor.invokeAll(Arrays.asList(
-                new Callable<Span>() {
-                    @Override
-                    public Span call() throws Exception {
-                        return createAsyncSpan();
-                    }
-                },
-                new Callable<Span>() {
-                    @Override
-                    public Span call() throws Exception {
-                        return createAsyncSpan();
-                    }
-                }), 1, TimeUnit.SECONDS);
+            new Callable<Span>() {
+                @Override
+                public Span call() throws Exception {
+                    return createAsyncSpan();
+                }
+            },
+            new Callable<Span>() {
+                @Override
+                public Span call() throws Exception {
+                    return createAsyncSpan();
+                }
+            }), 1, TimeUnit.SECONDS);
         futures.forEach(ThrowingConsumer.of(Future::get));
         reporter.awaitSpanCount(2);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testInvokeAny(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testInvokeAny(ExecutorService executor, String executorName) throws Exception {
         executor.invokeAny(Collections.singletonList(new Callable<Span>() {
             @Override
             public Span call() {
@@ -194,11 +169,9 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
         reporter.awaitSpanCount(1);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "ExecutorService={1}")
     @MethodSource("parameters")
-    public void testInvokeAnyTimed(Supplier<ExecutorService> serviceSupplier) throws Exception {
-        init(serviceSupplier);
-
+    public void testInvokeAnyTimed(ExecutorService executor, String executorName) throws Exception {
         executor.invokeAny(Collections.<Callable<Span>>singletonList(new Callable<Span>() {
             @Override
             public Span call() {

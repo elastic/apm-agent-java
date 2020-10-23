@@ -49,7 +49,7 @@ class SignatureParserTest {
         signatureParser = new SignatureParser();
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "input={0}, output={1}, comment={2}")
     @MethodSource("getTestSignatures_shared")
     void testSignature_shared(String input, String output, String comment) {
         final StringBuilder signature = new StringBuilder();
@@ -63,7 +63,7 @@ class SignatureParserTest {
         return parseTestParameters(TestJsonSpec.getJson("sql_signature_examples.json"));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "input={0}, output={1}, comment={2}")
     @MethodSource("getTestSignatures_java")
     void testSignature_java(String input, String output, String comment) {
         testSignature_shared(input, output, comment);

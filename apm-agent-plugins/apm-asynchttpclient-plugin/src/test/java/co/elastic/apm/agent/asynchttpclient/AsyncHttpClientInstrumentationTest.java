@@ -41,9 +41,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.reactivestreams.Publisher;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,6 +62,12 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
     }
 
     public static Stream<Arguments> args() {
+        List<String> testNames = Arrays.asList("syncRequest",
+            "AsyncCompletionHandlerBase",
+            "customAsyncCompletionHandler",
+            "customStreamAsyncHandler",
+            "boundRequestWithAsyncHandler",
+            "boundRequest");
         List<RequestExecutor> requestExecutors = Arrays.asList(
             (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build()).get(),
             (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), new AsyncCompletionHandlerBase()).get(),
@@ -70,7 +76,11 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
             (client, path) -> client.prepareGet(path).execute(new AsyncCompletionHandlerBase()).get(),
             (client, path) -> client.prepareGet(path).execute().get()
         );
-        return requestExecutors.stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
+        List<Arguments> arguments = new ArrayList<>(testNames.size());
+        for (int i = 0; i < testNames.size(); i++) {
+            arguments.add(Arguments.of(testNames.get(i), requestExecutors.get(i)));
+        }
+        return arguments.stream();
     }
 
     @BeforeEach

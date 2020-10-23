@@ -38,6 +38,7 @@ import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -94,9 +95,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         return true;
     }
 
-    @ParameterizedTest
+    @DisplayName("testHttpCall: GET /")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testHttpCall(Object args) {
+    public void testHttpCall(String name, Object args) {
         setUp(args);
 
         String path = "/";
@@ -105,27 +107,30 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         verifyHttpSpan(path);
     }
 
-    @ParameterizedTest
+    @DisplayName("testHttpCallWithUserInfo")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testHttpCallWithUserInfo(Object args) throws Exception {
+    public void testHttpCallWithUserInfo(String name, Object args) throws Exception {
         setUp(args);
 
         performGet("http://user:passwd@localhost:" + wireMockServer.port() + "/");
         verifyHttpSpan("/");
     }
 
-    @ParameterizedTest
+    @DisplayName("testHttpCallWithIpv4")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testHttpCallWithIpv4(Object args) throws Exception {
+    public void testHttpCallWithIpv4(String name, Object args) throws Exception {
         setUp(args);
 
         performGet("http://127.0.0.1:" + wireMockServer.port() + "/");
         verifyHttpSpan("http", "127.0.0.1", wireMockServer.port(), "/");
     }
 
-    @ParameterizedTest
+    @DisplayName("testHttpCallWithIpv6")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testHttpCallWithIpv6(Object args) throws Exception {
+    public void testHttpCallWithIpv6(String name, Object args) throws Exception {
         setUp(args);
 
         if (!isIpv6Supported()) {
@@ -172,9 +177,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         });
     }
 
-    @ParameterizedTest
+    @DisplayName("testNonExistingHttpCall")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testNonExistingHttpCall(Object args) {
+    public void testNonExistingHttpCall(String name, Object args) {
         setUp(args);
 
         String path = "/non-existing";
@@ -186,9 +192,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
     }
 
-    @ParameterizedTest
+    @DisplayName("testErrorHttpCall")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testErrorHttpCall(Object args) {
+    public void testErrorHttpCall(String name, Object args) {
         setUp(args);
 
         String path = "/error";
@@ -200,9 +207,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
     }
 
-    @ParameterizedTest
+    @DisplayName("testHttpCallRedirect")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testHttpCallRedirect(Object args) {
+    public void testHttpCallRedirect(String name, Object args) {
         setUp(args);
 
         String path = "/redirect";
@@ -217,9 +225,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         verifyTraceContextHeaders(reporter.getFirstSpan(), "/");
     }
 
-    @ParameterizedTest
+    @DisplayName("testHttpCallCircularRedirect")
+    @ParameterizedTest(name = "{0}")
     @MethodSource("args")
-    public void testHttpCallCircularRedirect(Object args) {
+    public void testHttpCallCircularRedirect(String name, Object args) {
         setUp(args);
 
         if (!isErrorOnCircularRedirectSupported()) {
@@ -281,8 +290,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     public static Stream<Arguments> args() {
-        final List<Arguments> configurations = new ArrayList<>(1);
-        configurations.add(Arguments.arguments("test"));
+        final List<Arguments> configurations = new ArrayList<>(2);
+        configurations.add(Arguments.of("test", null));
         return configurations.stream();
     }
 }

@@ -46,7 +46,7 @@ class ProbabilitySamplerTest {
         assertThat(sampler.getSampleRate()).isEqualTo(SAMPLING_RATE);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "rate = {0}")
     @CsvSource({"0.0","1.0","0.5"})
     void headerCaching(double rate) {
 
