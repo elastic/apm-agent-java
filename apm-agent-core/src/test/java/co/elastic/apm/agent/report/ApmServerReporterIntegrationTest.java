@@ -105,7 +105,8 @@ class ApmServerReporterIntegrationTest {
             reporterConfiguration,
             processorEventHandler,
             new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            new MetaData(title, service, system, Collections.emptyMap()),
+            // TODO FIX
+            new MetaData(title, service, system, null, Collections.emptyMap()),
             apmServerClient);
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
         reporter.start();

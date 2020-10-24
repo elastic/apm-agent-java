@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import co.elastic.apm.agent.impl.payload.ProcessFactory;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -54,13 +55,19 @@ public class MetaData {
      */
     private final SystemInfo system;
 
+    /**
+     * Cloud provider metadata
+     */
+    private final CloudProviderInfo cloudProvider;
+
     private final ArrayList<String> globalLabelKeys;
     private final ArrayList<String> globalLabelValues;
 
-    public MetaData(ProcessInfo process, Service service, SystemInfo system, Map<String, String> globalLabels) {
+    public MetaData(ProcessInfo process, Service service, SystemInfo system, CloudProviderInfo cloudProvider, Map<String, String> globalLabels) {
         this.process = process;
         this.service = service;
         this.system = system;
+        this.cloudProvider = cloudProvider;
         globalLabelKeys = new ArrayList<>(globalLabels.keySet());
         globalLabelValues = new ArrayList<>(globalLabels.values());
     }
@@ -75,7 +82,7 @@ public class MetaData {
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        return new MetaData(processInformation, service, SystemInfo.create(coreConfiguration.getHostname()), coreConfiguration.getGlobalLabels());
+        return new MetaData(processInformation, service, SystemInfo.create(coreConfiguration.getHostname()), CloudProviderInfo.create(coreConfiguration.getCloudProvider()), coreConfiguration.getGlobalLabels());
     }
 
     /**

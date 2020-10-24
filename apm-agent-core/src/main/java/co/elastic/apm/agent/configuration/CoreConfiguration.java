@@ -41,6 +41,7 @@ import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -577,6 +578,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("0ms"));
 
+    private final ConfigurationOption<String> cloudProvider = ConfigurationOption.stringOption()
+        .key("cloud_provider")
+        .tags("added[1.18.2]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("The config value allows you to specify which cloud provider should be assumed\n" +
+            "for metadata collection. By default, the agent will attempt to detect the cloud\n" +
+            "provider or, if that fails, will use trial and error to collect the metadata." +
+            "\n" +
+            "Valid options are `\"aws\"`, `\"gcp\"` and `\"azure\"`. If this config value is set\n" +
+            "to `False`, then no cloud metadata will be collected.")
+        .dynamic(false)
+        .buildWithDefault("None");
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -754,6 +768,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         } else {
             return configFileLocation;
         }
+    }
+
+    @Nullable
+    public String getCloudProvider() {
+        return cloudProvider.get();
     }
 
     public enum EventType {

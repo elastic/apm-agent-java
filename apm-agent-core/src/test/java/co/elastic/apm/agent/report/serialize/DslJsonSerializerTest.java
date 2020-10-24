@@ -431,7 +431,8 @@ class DslJsonSerializerTest {
         ProcessInfo processInfo = new ProcessInfo("title").withPid(1234);
         processInfo.getArgv().add("test");
 
-        serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, systemInfo, Map.of("foo", "bar", "baz", "qux")));
+        // TODO FIX
+        serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, systemInfo, null, Map.of("foo", "bar", "baz", "qux")));
 
         JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
 
@@ -684,7 +685,8 @@ class DslJsonSerializerTest {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
-        return new MetaData(processInfo, service, system, new HashMap<>(0));
+        // TODO FIX
+        return new MetaData(processInfo, service, system, null, new HashMap<>(0));
     }
 
 
