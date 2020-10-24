@@ -33,6 +33,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,20 +44,15 @@ public class SpringRestTemplateInstrumentationTest extends AbstractHttpClientIns
     private RestTemplate restTemplate;
 
     public static Stream<Arguments> args() {
-        Iterable<Supplier<ClientHttpRequestFactory>> iterable = Arrays.asList(
-            SimpleClientHttpRequestFactory::new,
-            OkHttp3ClientHttpRequestFactory::new,
-            HttpComponentsClientHttpRequestFactory::new);
-        return StreamSupport.stream(iterable.spliterator(), false)
-            .map(k -> Arguments.of(k))
-            .collect(Collectors.toList())
-            .stream();
+        List<Object[]> arguments = Arrays.asList(new Object[][]{{"SimpleClientHttpRequestFactory", new SimpleClientHttpRequestFactory()},
+            {"OkHttp3ClientHttpRequestFactory", new OkHttp3ClientHttpRequestFactory()},
+            {"HttpComponentsClientHttpRequestFactory", new HttpComponentsClientHttpRequestFactory()}});
+        return arguments.stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
     }
 
     @Override
-    public void setUp(Object arg) {
-        Supplier<ClientHttpRequestFactory> supplier = (Supplier<ClientHttpRequestFactory>) arg;
-        restTemplate = new RestTemplate(supplier.get());
+    public void setUp(Object httpRequestFactory) {
+        restTemplate = new RestTemplate((ClientHttpRequestFactory) httpRequestFactory);
     }
 
     @Override
