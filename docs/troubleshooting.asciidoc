@@ -244,9 +244,8 @@ Known issues:
 several bugs that might result in JVM crashes when a java agent is active,
 thus agent *will not start* on those versions.
 - Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to `invokedynamic`.
-- Using the `-XX:+UseG1GC` JVM argument with Java 7 is not supported, as it may cause crashes as well.
 - When <<config-profiling-inferred-spans-enabled>> is set to `true`, it uses a native library that collects low-level
-information from the JVM. All known issues so far had been fixed. Try to disable it if you think the crash may be relaed.
+information from the JVM. All known issues so far had been fixed. Try to disable it if you think the crash may be related.
 
 Whenever you encounter a JVM crash, please report through https://discuss.elastic.co/c/observability/apm/58[our forum]
 or by opening an issue on our https://github.com/elastic/apm-agent-java[GitHub repository]. Look for the crash log

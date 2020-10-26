@@ -28,11 +28,6 @@ endif::[]
 * Replace System Rules with System Lambda {pull}1434[#1434]
 
 [float]
-===== Breaking changes
-* Agent will abort when used on HotSpot JVM of version 7 where the `-XX:+UseG1GC` command line argument is used, as it
-  may cause JVM crash - {pull}1435[#1435]
-
-[float]
 ===== Features
 * The agent version now includes a git hash if it's a snapshot version.
   This makes it easier to differ distinct snapshot builds of the same version.
