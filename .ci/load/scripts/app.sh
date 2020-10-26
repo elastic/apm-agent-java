@@ -4,15 +4,18 @@ set -exuo pipefail
 
 POLL_FREQ=1
 
-LOCUST_LOCUSTFILE="../locust.py"
-LOCUST_PRINT_STATS=1
+APP_PORT=999
 
-# 1. Loop until we get a signal that the application is ready.
 
-function appIsReady() {
+function sendAppReady() {
     curl -s -X POST -H "Content-Type: application/json" -d \
-    "{\"app_token\": \""$APP_TOKEN"\", \"session_token\": \""$SESSION_TOKEN"\"}" $ORCH_URL/api/poll | \
-    jq -e '.services.application.state == "ready"'
+    "{\"app_token\": \""$APP_TOKEN"\", \
+    \"session_token\": \""$SESSION_TOKEN"\", \
+    \"service\": \"load_generation\", \
+    \"hostname\": \""$(hostname)"\", \
+    \"port\": \"999\"}" \
+    $ORCH_URL/api/ready 
+
 }
 
 function waitForApp() {
@@ -27,23 +30,14 @@ function waitForApp() {
 
 function buildArgs() {
     export LOCUST_HOST=$(curl -s -X POST -H "Content-Type: application/json" -d \
-    "{\"app_token\": \
-    \""$APP_TOKEN"\", \
-    \"session_token\": \""$SESSION_TOKEN"\"}" \
-    $ORCH_URL/api/poll | \
-    jq '.services.application.'})
+    "{\"app_token\": \""$APP_TOKEN"\", \"session_token\": \""$SESSION_TOKEN"\"}" $ORCH_URL/api/poll | jq '.services.application.'})
 
     export LOCUST_RUN_TIME=30
 }
 
 function startLoad() {
     curl -s -X POST -H "Content-Type: application/json" -d \
-    "{\"app_token\": \""$APP_TOKEN"\", \
-    \"session_token\": \""$SESSION_TOKEN"\", \
-    \"service\": \"load_generation\", \
-    \"hostname\": \"test_app\", \
-    \"port\": \"999\"}" \
-    $ORCH_URL/api/ready 
+    "{\"app_token\": \""$APP_TOKEN"\", \"session_token\": \""$SESSION_TOKEN"\", \"service\": \"load_generation\"}" $ORCH_URL/api/ready
 
     docker run -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py
 }
@@ -53,7 +47,7 @@ function stopLoad() {
     docker ps|egrep locust|awk '{print $1}'|xargs docker kill
 }
 
-
-waitForApp
-buildArgs
-startLoad
+sendAppReady
+# waitForApp
+# buildArgs
+# startLoad

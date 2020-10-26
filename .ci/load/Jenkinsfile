@@ -4,14 +4,7 @@ pipeline {
         REPO = 'apm-agent-java'
         APP = 'spring-petclinic'
         APP_BASE_DIR = "src/${APP}"
-        // BASE_DIR = "src/github.com/elastic/${env.REPO}"
-        // DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
-        // ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
-        // NEXUS_SECRET = 'secret/apm-team/ci/nexus'
-        // MAVEN_CONFIG = '-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=.m2'
-        // HOME = "${env.WORKSPACE}"
-        // JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
-        // PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        ORCH_URL='localhost:8000' // FIXME: For development only.
     }
     options {
         timeout(time: 3, unit: 'HOURS')
@@ -27,22 +20,30 @@ pipeline {
     // TODO: Drop-down of JVM versions instead
     string(name: 'jvm_version', defaultValue: '9.0.4', description: 'Version of JVM.')
     string(name: 'concurrent_requests', defaultValue: '100', description: 'The number of concurrent requests to test with.')
-    string(name: 'duration', defaultValue: '10', description: 'Test duration in minutes. Max: 280') // 300 min is the overall timeout so 280 is probably fine.
+    // 300 min is the overall timeout so 280 is probably fine.
+    string(name: 'duration', defaultValue: '10', description: 'Test duration in minutes. Max: 280')
     string(name: 'num_of_runs', defaultValue: '1', description: 'Number of test runs to execute.')
-  }
+    }
+
     stages {
         stage('Pre-flight'){
             steps {
-                echo 'Pre-flight implement me!'
-            }
+                echo 'Getting authentication information from Vault'
+                withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                    script {
+                        env.SESSION_TOKEN = sh(script: ".ci/load/scripts/start.sh")
+                    }
+                }
+            }    
         }
         stage('Load test') {
             parallel {
                 stage('Start load generation') {
                     agent { label 'linux && immutable' }
                     steps {
-                        echo 'Install load generation tooling'
-                        echo 'LOAD: Implement me!'
+                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                                sh(script: ".ci/load/scripts/load_agent.sh")
+                            }
                     }
                 }
                 stage('Start application') {
