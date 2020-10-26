@@ -42,10 +42,13 @@ endif::[]
   (will be treated as `ERROR`) - {pull}1431[1431]
 * Add the ability to disable Servlet-related spans for `INCLUDE`, `FORWARD` and `ERROR` dispatches (without affecting
   basic Servlet capturing) by adding `servlet-api-dispatch` to <<config-disable-instrumentations>> - {pull}1448[1448]
+* Add Sampling Profiler support for AArch64 architectures - {pull}1443[1443]
 * Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
 ===== Bug fixes
+* Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
+  `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

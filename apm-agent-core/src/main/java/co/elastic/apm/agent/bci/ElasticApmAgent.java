@@ -78,6 +78,7 @@ import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
+import java.nio.file.Paths;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -206,8 +207,24 @@ public class ElasticApmAgent {
 
     private static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                                         Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
-        if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        if (!coreConfig.isEnabled()) {
             return;
+        }
+        String bytecodeDumpPath = coreConfig.getBytecodeDumpPath();
+        if (bytecodeDumpPath != null) {
+            bytecodeDumpPath = bytecodeDumpPath.trim();
+            if (!bytecodeDumpPath.isEmpty()) {
+                try {
+                    File bytecodeDumpDir = Paths.get(bytecodeDumpPath).toFile();
+                    if (!bytecodeDumpDir.exists()) {
+                        bytecodeDumpDir.mkdir();
+                    }
+                    System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
+                } catch (Exception e) {
+                    System.err.println("Failed to create directory to dump instrumented bytecode: " + e.getMessage());
+                }
+            }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             pluginClassLoaderByAdviceClass.put(
@@ -230,7 +247,6 @@ public class ElasticApmAgent {
         // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
-        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
             instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
                 @Override
