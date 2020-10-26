@@ -37,8 +37,6 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
-import org.stagemonitor.configuration.converter.AbstractValueConverter;
-import org.stagemonitor.configuration.converter.DoubleValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -332,6 +330,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("internal")
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
+
+    private final ConfigurationOption<String> bytecodeDumpPath = ConfigurationOption.stringOption()
+        .key("bytecode_dump_path")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When set, the agent will create a directory in the provided path if such does not already " +
+            "exist and use it to dump bytecode of instrumented classes.")
+        .buildWithDefault("");
 
     private final ConfigurationOption<Boolean> typeMatchingWithNamePreFilter = ConfigurationOption.booleanOption()
         .key("enable_type_matching_name_pre_filtering")
@@ -649,6 +655,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    @Nullable
+    public String getBytecodeDumpPath() {
+        return bytecodeDumpPath.get();
     }
 
     public boolean isTypeMatchingWithNamePreFilter() {

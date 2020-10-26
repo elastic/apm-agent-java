@@ -92,6 +92,7 @@ public class ServletApiAdvice {
         if (tracer.isRunning() && servletRequest instanceof HttpServletRequest) {
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             DispatcherType dispatcherType = servletRequest.getDispatcherType();
+            CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
             if (dispatcherType == DispatcherType.REQUEST) {
                 if (Boolean.TRUE != excluded.get()) {
@@ -108,7 +109,7 @@ public class ServletApiAdvice {
                         excluded.set(Boolean.TRUE);
                     } else {
                         final Request req = transaction.getContext().getRequest();
-                        if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
+                        if (transaction.isSampled() && coreConfig.isCaptureHeaders()) {
                             if (request.getCookies() != null) {
                                 for (Cookie cookie : request.getCookies()) {
                                     req.addCookie(cookie.getName(), cookie.getValue());
@@ -131,7 +132,8 @@ public class ServletApiAdvice {
                         ret = transaction;
                     }
                 }
-            } else if (dispatcherType != DispatcherType.ASYNC) {
+            } else if (dispatcherType != DispatcherType.ASYNC &&
+                !coreConfig.getDisabledInstrumentations().contains(ServletInstrumentation.SERVLET_API_DISPATCH)) {
                 final AbstractSpan<?> parent = tracer.getActive();
                 if (parent != null) {
                     Object servletPath = null;

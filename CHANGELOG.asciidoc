@@ -40,9 +40,13 @@ endif::[]
 * Add support for sampling weight with propagation in `tracestate` W3C header {pull}1384[#1384]
 * Adding two more valid options to the `log_level` config: `WARNING` (equivalent to `WARN`) and `CRITICAL`
   (will be treated as `ERROR`) - {pull}1431[1431]
+* Add the ability to disable Servlet-related spans for `INCLUDE`, `FORWARD` and `ERROR` dispatches (without affecting
+  basic Servlet capturing) by adding `servlet-api-dispatch` to <<config-disable-instrumentations>> - {pull}1448[1448]
 
 [float]
 ===== Bug fixes
+* Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
+  `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
