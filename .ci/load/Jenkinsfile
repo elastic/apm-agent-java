@@ -4,7 +4,7 @@ pipeline {
         REPO = 'apm-agent-java'
         APP = 'spring-petclinic'
         APP_BASE_DIR = "src/${APP}"
-        ORCH_URL='localhost:8000' // FIXME: For development only.
+        ORCH_URL='10.0.2.2:8000' // FIXME: For development only.
     }
     options {
         timeout(time: 3, unit: 'HOURS')
@@ -31,7 +31,9 @@ pipeline {
                 echo 'Getting authentication information from Vault'
                 withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
                     script {
-                        env.SESSION_TOKEN = sh(script: ".ci/load/scripts/start.sh")
+                        sh(script: ".ci/load/scripts/start.sh", returnStdout: true)
+                        env.LOCUST_RUN_TIME = params.duration
+                        env.SESSION_TOKEN = sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim()
                     }
                 }
             }    
@@ -48,7 +50,6 @@ pipeline {
                 }
                 stage('Start application') {
                     steps {
-                        echo 'APP: Implement me!'
                         gitCheckout(
                             basedir: "${APP_BASE_DIR}",
                             branch: 'main',
@@ -57,7 +58,12 @@ pipeline {
                             shallow: false
                         )
                         dir("${APP_BASE_DIR}"){
-                            sh(script: "./mvnw spring-boot:run")
+                            // Launch app in background
+                            sh(script: "./mvnw spring-boot:run &")
+                        }
+                        // Foreground the orchestrator script for execution control
+                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                            sh(script: ".ci/load/scripts/app.sh")
                         }
                     }
                 }
