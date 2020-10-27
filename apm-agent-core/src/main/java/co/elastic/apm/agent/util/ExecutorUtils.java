@@ -82,6 +82,13 @@ public final class ExecutorUtils {
             Thread thread = new Thread(r);
             thread.setDaemon(true);
             thread.setName(threadName);
+            if (logger.isDebugEnabled()) {
+                logger.debug("A new thread named `{}` was created. The original context class loader of this thread ({}) has been overridden",
+                    threadName, thread.getContextClassLoader());
+            }
+            if (logger.isTraceEnabled()) {
+                logger.trace("Stack trace related to thread creation: ", new Throwable());
+            }
             thread.setContextClassLoader(null);
             return thread;
         }
