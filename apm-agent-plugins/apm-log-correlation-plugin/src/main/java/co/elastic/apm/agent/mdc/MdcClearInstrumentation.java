@@ -20,7 +20,7 @@ public class MdcClearInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.slf4j.MDC")
+        return named("org!slf4j!MDC".replace('!', '.'))
             .or(named("org.apache.log4j.MDC"))
             .or(named("org.apache.logging.log4j.ThreadContext"));
     }
