@@ -280,7 +280,7 @@ public class IndyBootstrap {
             } else {
                 pluginClasses.addAll(getClassNamesFromBundledPlugin(adviceClassName, adviceClassLoader));
             }
-            pluginClasses.add(LookupExposer.class.getName());
+            pluginClasses.add("co.elastic.apm.agent.bci.classloading.LookupExposer");
             ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
                 lookup.lookupClass().getClassLoader(),
                 pluginClasses,
@@ -290,7 +290,7 @@ public class IndyBootstrap {
                     // also, this plugin is used as a dependency in other plugins
                     .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-            Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LookupExposer.class.getName());
+            Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass("co.elastic.apm.agent.bci.classloading.LookupExposer");
             // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
             MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
             MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
