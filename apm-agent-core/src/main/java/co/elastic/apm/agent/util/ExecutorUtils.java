@@ -82,6 +82,7 @@ public final class ExecutorUtils {
             Thread thread = new Thread(r);
             thread.setDaemon(true);
             thread.setName(threadName);
+            thread.setContextClassLoader(null);
             return thread;
         }
     }
