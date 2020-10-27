@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.ArgumentOfInstrumentedClass;
-import co.elastic.apm.agent.InstrumentedClass;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.subpackage.AdviceInSubpackageInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -61,13 +59,10 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -480,31 +475,6 @@ class InstrumentationTest {
             ByteBuddyAgent.install(),
             Collections.singletonList(new AgentTypeParameterInstrumentation())))
             .isInstanceOf(IllegalStateException.class);
-    }
-
-    @Test
-    void testSameClassInDifferentHierarchies() throws Exception {
-        ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new MultipleClassLoaderHierarchiesInstrumentation()));
-
-        ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(getClass().getClassLoader());
-        Map<String, byte[]> classes = Map.of(
-            InstrumentedClass.class.getName(), locator.locate(InstrumentedClass.class.getName()).resolve(),
-            ArgumentOfInstrumentedClass.class.getName(), locator.locate(ArgumentOfInstrumentedClass.class.getName()).resolve()
-        );
-
-        ByteArrayClassLoader clA = new ByteArrayClassLoader(null, classes, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
-        Optional<Method> instrumentMeA = Arrays.stream(clA.loadClass(InstrumentedClass.class.getName()).getMethods()).filter(m -> m.getName().equals("instrumentMe")).findAny();
-        assertThat(instrumentMeA).isPresent();
-        instrumentMeA.get().invoke(null, new Object[]{null});
-        assertThat(MultipleClassLoaderHierarchiesInstrumentation.enterCount).isEqualTo(1);
-
-        ByteArrayClassLoader clB = new ByteArrayClassLoader(null, classes, ByteArrayClassLoader.PersistenceHandler.MANIFEST);
-        Optional<Method> instrumentMeB = Arrays.stream(clB.loadClass(InstrumentedClass.class.getName()).getMethods()).filter(m -> m.getName().equals("instrumentMe")).findAny();
-        assertThat(instrumentMeB).isPresent();
-        instrumentMeB.get().invoke(null, new Object[]{null});
-        assertThat(MultipleClassLoaderHierarchiesInstrumentation.enterCount).isEqualTo(2);
     }
 
     @Nullable
@@ -947,31 +917,6 @@ class InstrumentationTest {
             return Collections.singletonList("test");
         }
 
-    }
-
-    public static class MultipleClassLoaderHierarchiesInstrumentation extends ElasticApmInstrumentation {
-
-        public static AtomicInteger enterCount = GlobalVariables.get(CallStackUtilsInstrumentation.class, "enterCount", new AtomicInteger());
-
-        @Advice.OnMethodEnter(inline = false)
-        public static void onEnter(@Advice.Argument(0) ArgumentOfInstrumentedClass arg) {
-            enterCount.incrementAndGet();
-        }
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return named(InstrumentedClass.class.getName());
-        }
-
-        @Override
-        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("instrumentMe");
-        }
-
-        @Override
-        public Collection<String> getInstrumentationGroupNames() {
-            return Collections.singletonList("test");
-        }
     }
 
     public static class ClassLoadingTestInstrumentation extends ElasticApmInstrumentation {
