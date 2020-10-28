@@ -53,7 +53,11 @@ pipeline {
                     stages{
                         stage('Provision Java') {
                             steps {
-                                echo 'TODO: Provision java'
+                                echo "Provisioning Java version: ${params.jvm_version}"
+                                script {
+                                    env.JAVA_HOME = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
+                                    sh(script: "printenv")
+                                }
                             }
                         }
                         stage ('Provision agent') {
