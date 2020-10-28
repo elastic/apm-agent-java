@@ -53,7 +53,7 @@ class MethodHandleLookupTest {
     private void lookupAndInvoke(ClassLoader classLoader) throws Throwable {
         Class<?> fooClass = classLoader.loadClass(Foo.class.getName());
         MethodHandles.Lookup lookup;
-        // using public lookup fails with LinkageError - is this a (known) JVM bug?
+        // using public lookup fails with LinkageError on second invocation - is this a (known) JVM bug?
         // lookup = MethodHandles.publicLookup();
         lookup = (MethodHandles.Lookup) fooClass.getMethod("getLookup").invoke(null);
         MethodHandle methodHandle = lookup
