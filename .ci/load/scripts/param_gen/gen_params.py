@@ -115,8 +115,8 @@ print('Paste the following into the Jenkinsfile:\n\n\n\n')
 
 print(
     '// The following snippet is auto-generated. To update it, run the script located in .ci/load/scripts/param_gen and copy in the output',  # noqa E501
-    'choice(choices: {}, name: "APM Java Agent version")'.format(agent_releases),  # noqa E501
-    'choice(choices: {}, name: "JVM")'.format(supported_jdks),
+    'choice(choices: {}, name: "apm_version", description: "APM Java Agent version")'.format(agent_releases),  # noqa E501
+    'choice(choices: {}, name: "jvm_version", description: "JVM")'.format(supported_jdks),  # noqa E501
     'string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")',  # noqa E501
     'string(name: "duration", defaultValue: "10", description: "Test duration in minutes. Max: 280")',  # noqa E501
     'string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")',  # noqa E501

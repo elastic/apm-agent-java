@@ -4,6 +4,7 @@ pipeline {
         REPO = 'apm-agent-java'
         APP = 'spring-petclinic'
         APP_BASE_DIR = "src/${APP}"
+        AGENT_BASE_DIR = "agent/"
         ORCH_URL='10.0.2.2:8000' // FIXME: For development only.
     }
     options {
@@ -16,8 +17,8 @@ pipeline {
     }
     parameters {
         // The following snippet is auto-generated. To update it, run the script located in .ci/load/scripts/param_gen and copy in the output
-        choice(choices: ['1.18.1', '1.18.0', '1.18.0.RC1', '1.17.0', '1.16.0', '1.15.0', '1.14.0', '1.13.0', '1.12.0', '1.11.0', '1.10.0', '1.9.0', '1.8.0', '1.7.0', '1.6.1', '1.6.0', '1.5.0', '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.1', '1.0.0', '1.0.0.RC1', '0.7.1', '0.7.0', '0.6.2', '0.6.1', '0.6.0', '0.5.1', '0.1.2', '0.1.1'], name: "APM Java Agent version")
-        choice(choices: ['oracle-10+43-linux', 'oracle-10+46-linux', 'oracle-11+11-linux', 'oracle-11+12-linux', 'oracle-11+13-linux', 'oracle-11+14-linux', 'oracle-11+15-linux', 'oracle-11+16-linux', 'oracle-11+17-linux', 'oracle-11+18-linux', 'oracle-11+19-linux', 'oracle-11+20-linux', 'oracle-11+21-linux', 'oracle-11+22-linux', 'oracle-11+23-linux', 'oracle-11+24-linux', 'oracle-11+25-linux', 'oracle-11+26-linux', 'oracle-11+27-linux', 'oracle-11+28-linux', 'oracle-11+5-linux', 'oracle-11.0.2+7-linux', 'oracle-11.0.2+9-linux', 'oracle-11.0.3+12-linux', 'oracle-11.0.4+10-linux', 'oracle-11.0.5+10-linux', 'oracle-11.0.6+8-linux', 'oracle-12+33-linux', 'oracle-12.0.1+12-linux', 'oracle-12.0.2+10-linux', 'oracle-13+33-linux', 'oracle-13.0.1+9-linux', 'oracle-13.0.2+8-linux', 'oracle-7u80-linux', 'oracle-8u161-linux', 'oracle-8u162-linux', 'oracle-8u171-linux', 'oracle-8u172-linux', 'oracle-8u181-linux', 'oracle-8u191-linux', 'oracle-8u192-linux', 'oracle-8u201-linux', 'oracle-8u202-linux', 'oracle-8u211-linux', 'oracle-8u212-linux', 'oracle-8u221-linux', 'oracle-8u231-linux', 'oracle-8u241-linux', 'oracle-9.0.4+11-linux'], name: "JVM")
+        choice(choices: ['1.18.1', '1.18.0', '1.18.0.RC1', '1.17.0', '1.16.0', '1.15.0', '1.14.0', '1.13.0', '1.12.0', '1.11.0', '1.10.0', '1.9.0', '1.8.0', '1.7.0', '1.6.1', '1.6.0', '1.5.0', '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.1', '1.0.0', '1.0.0.RC1', '0.7.1', '0.7.0', '0.6.2', '0.6.1', '0.6.0', '0.5.1', '0.1.2', '0.1.1'], name: "apm_version", description: "APM Java Agent version")
+        choice(choices: ['oracle-10+43-linux', 'oracle-10+46-linux', 'oracle-11+11-linux', 'oracle-11+12-linux', 'oracle-11+13-linux', 'oracle-11+14-linux', 'oracle-11+15-linux', 'oracle-11+16-linux', 'oracle-11+17-linux', 'oracle-11+18-linux', 'oracle-11+19-linux', 'oracle-11+20-linux', 'oracle-11+21-linux', 'oracle-11+22-linux', 'oracle-11+23-linux', 'oracle-11+24-linux', 'oracle-11+25-linux', 'oracle-11+26-linux', 'oracle-11+27-linux', 'oracle-11+28-linux', 'oracle-11+5-linux', 'oracle-11.0.2+7-linux', 'oracle-11.0.2+9-linux', 'oracle-11.0.3+12-linux', 'oracle-11.0.4+10-linux', 'oracle-11.0.5+10-linux', 'oracle-11.0.6+8-linux', 'oracle-12+33-linux', 'oracle-12.0.1+12-linux', 'oracle-12.0.2+10-linux', 'oracle-13+33-linux', 'oracle-13.0.1+9-linux', 'oracle-13.0.2+8-linux', 'oracle-7u80-linux', 'oracle-8u161-linux', 'oracle-8u162-linux', 'oracle-8u171-linux', 'oracle-8u172-linux', 'oracle-8u181-linux', 'oracle-8u191-linux', 'oracle-8u192-linux', 'oracle-8u201-linux', 'oracle-8u202-linux', 'oracle-8u211-linux', 'oracle-8u212-linux', 'oracle-8u221-linux', 'oracle-8u231-linux', 'oracle-8u241-linux', 'oracle-9.0.4+11-linux'], name: "jvm_version", description: "JVM")
         string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")
         string(name: "duration", defaultValue: "10", description: "Test duration in minutes. Max: 280")
         string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")
@@ -52,7 +53,27 @@ pipeline {
                     stages{
                         stage('Provision Java') {
                             steps {
-                                echo 'Provision java'
+                                echo 'TODO: Provision java'
+                            }
+                        }
+                        stage ('Provision agent') {
+                            steps {
+                                echo 'Checking out master branch'
+                                dir("${AGENT_BASE_DIR}") {
+                                    gitCheckout(
+                                        basedir: "apm-agent-java",
+                                        branch: 'master',
+                                        repo: "https://github.com/elastic/${REPO}.git",
+                                        credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                                        shallow: false
+                                    )
+                                    echo 'Switching to requested version'
+                                    dir("apm-agent-java"){
+                                        sh(script: "git checkout v${params.apm_version}")
+                                        echo 'Building agent'
+                                        sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
+                                    }
+                                }
                             }
                         }
                         stage('Provision test application') {
