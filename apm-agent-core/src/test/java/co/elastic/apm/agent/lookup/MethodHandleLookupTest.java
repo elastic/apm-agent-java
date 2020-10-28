@@ -43,7 +43,10 @@ class MethodHandleLookupTest {
             Bar.class.getName(), Bar.class.getResourceAsStream("Bar.class").readAllBytes()
         );
 
+        // MethodHandles.publicLookup() always succeeds on the first invocation
         lookupAndInvoke(new ByteArrayClassLoader(null, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST));
+        // MethodHandles.publicLookup() fails on the second invocation,
+        // even though the classes are loaded from an isolated class loader hierarchy
         lookupAndInvoke(new ByteArrayClassLoader(null, typeDefinitions, ByteArrayClassLoader.PersistenceHandler.MANIFEST));
     }
 

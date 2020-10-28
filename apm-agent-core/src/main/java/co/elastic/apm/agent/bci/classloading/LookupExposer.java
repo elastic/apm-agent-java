@@ -32,6 +32,7 @@ import java.lang.invoke.MethodHandles;
  * instead of calling {@link MethodHandles#lookup()} which uses the caller class as the lookup class.
  * <p>
  * This circumvents a nasty JVM bug that's described <a href="https://github.com/elastic/apm-agent-java/issues/1450">here</a>.
+ * The error is reproduced in {@code MethodHandleLookupTest}
  * </p>
  */
 public class LookupExposer {
