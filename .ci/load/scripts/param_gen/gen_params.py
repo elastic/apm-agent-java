@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+
+
+# Licensed to Elasticsearch B.V. under one or more contributor
+# license agreements. See the NOTICE file distributed with
+# this work for additional information regarding copyright
+# ownership. Elasticsearch B.V. licenses this file to you under
+# the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Description:
+
+This is an ad-hoc script used to generate the drop-down selections
+for the Jenkinsfile to allow users to test against various combinations
+of JDKs available in the Elastic JVM catalog which is hosted at:
+https://jvm-catalog.elastic.co.
+
+It dymamically generates a list of available JDKs and of APM Java Agent
+releases. These are returns as a snippet of code which can then be pasted
+directly into a Jenkinsfile. Below is an example of the kind of output
+produced by this script:
+
+    parameters {
+    string(name: 'agent_version', defaultValue: 'v1.9.0', description: 'Version of agent. Should correspond to tag, e.g. `v1.9.0`.')
+    string(name: 'jvm_version', defaultValue: '9.0.4', description: 'Version of JVM.')
+    string(name: 'concurrent_requests', defaultValue: '100', description: 'The number of concurrent requests to test with.')
+    string(name: 'duration', defaultValue: '10', description: 'Test duration in minutes. Max: 280')
+    string(name: 'num_of_runs', defaultValue: '1', description: 'Number of test runs to execute.')
+    }
+
+Author: Mike Place <mike.place@elastic.co>
+
+Maintainers: Observability Developer Productivity
+<observability-robots@elastic.co>
+"""
+
+import os
+from github.Repository import Repository
+import requests
+import argparse
+import github
+
+CATALOG_URL = 'https://jvm-catalog.elastic.co'
+SUPPORTED_JDKS = ['oracle']
+
+parser = argparse.ArgumentParser(description="Jenkins JDK snippet generator")
+parser.add_argument(
+    '--platforms',
+    nargs='+',
+    help='platforms help',
+    type=str,
+    default='linux',
+    choices=['linux', 'darwin', 'windows']
+    )
+parser.add_argument(
+    '--gh-token',
+    help='GitHub token to gather supported releases',
+    type=str,
+    required=False
+)
+
+parsed_args = parser.parse_args()
+
+# print(parsed_args.platforms)
+
+# os_buckets = {
+#     'linux': [],
+#     'darwin': [],
+#     'windows': []
+# }
+
+# Gather JDKs we can support
+r = requests.get(CATALOG_URL + '/jdks')
+if r.status_code != 200:
+    raise Exception('Error encountered trying to download JDK manifest')
+
+supported_jdks = []
+
+for jdk in r.json():
+    # print(jdk)
+    try:
+        flavor, ver, dist = jdk.split('-', 3)
+    except ValueError:
+        flavor, ver, dist, arch = jdk.split('-', 4)
+
+    if dist in parsed_args.platforms and flavor in SUPPORTED_JDKS:
+        supported_jdks.append(jdk)
+
+# print(supported_jdks)
+
+# Gather releases of the agent we can support
+agent_releases = []
+if parsed_args.gh_token:
+    gh = github.Github(login_or_token=parsed_args.gh_token)
+    releases = gh.get_repo('elastic/apm-agent-java').get_releases()
+    for release in releases:
+        _, rel_number = release.title.split(' ')
+        agent_releases.append(rel_number)
+
+
+# Begin to print output
+
+print('Paste the following into the Jenkinsfile:\n\n\n\n')
+
+print(
+    '// The following snippet is auto-generated. To update it, run the script located in .ci/load/scripts/param_gen and copy in the output',  # noqa E501
+    'choice(choices: {}, name: "APM Java Agent version")'.format(agent_releases),  # noqa E501
+    'choice(choices: {}, name: "JVM")'.format(supported_jdks),
+    'string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")',  # noqa E501
+    'string(name: "duration", defaultValue: "10", description: "Test duration in minutes. Max: 280")',  # noqa E501
+    'string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")',  # noqa E501
+    '// End script auto-generation',
+    sep="\n"
+)
