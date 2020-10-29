@@ -32,7 +32,6 @@ pipeline {
                 withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
                     script {
                         sh(script: ".ci/load/scripts/start.sh", returnStdout: true)
-                        // TODO pass through to scripts
                         env.LOCUST_RUN_TIME = params.duration
                         env.SESSION_TOKEN = sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim()
                     }
