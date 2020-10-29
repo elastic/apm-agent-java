@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 # Licensed to Elasticsearch B.V. under one or more contributor
 # license agreements. See the NOTICE file distributed with
 # this work for additional information regarding copyright
@@ -45,8 +44,6 @@ Maintainers: Observability Developer Productivity
 <observability-robots@elastic.co>
 """
 
-import os
-from github.Repository import Repository
 import requests
 import argparse
 import github
@@ -72,14 +69,6 @@ parser.add_argument(
 
 parsed_args = parser.parse_args()
 
-# print(parsed_args.platforms)
-
-# os_buckets = {
-#     'linux': [],
-#     'darwin': [],
-#     'windows': []
-# }
-
 # Gather JDKs we can support
 r = requests.get(CATALOG_URL + '/jdks')
 if r.status_code != 200:
@@ -97,8 +86,6 @@ for jdk in r.json():
     if dist in parsed_args.platforms and flavor in SUPPORTED_JDKS:
         supported_jdks.append(jdk)
 
-# print(supported_jdks)
-
 # Gather releases of the agent we can support
 agent_releases = []
 if parsed_args.gh_token:
@@ -107,9 +94,6 @@ if parsed_args.gh_token:
     for release in releases:
         _, rel_number = release.title.split(' ')
         agent_releases.append(rel_number)
-
-
-# Begin to print output
 
 print('Paste the following into the Jenkinsfile:\n\n\n\n')
 
