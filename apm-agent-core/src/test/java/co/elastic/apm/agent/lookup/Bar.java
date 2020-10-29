@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,22 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci.classloading;
+package co.elastic.apm.agent.lookup;
 
-import java.lang.invoke.MethodHandles;
+public class Bar {
 
-/**
- * This class is injected into every {@link IndyPluginClassLoader} in {@link co.elastic.apm.agent.bci.IndyBootstrap#bootstrap}
- * so that the bootstrap can use a {@link MethodHandles.Lookup} with a lookup class from within the {@link IndyPluginClassLoader},
- * instead of calling {@link MethodHandles#lookup()} which uses the caller class as the lookup class.
- * <p>
- * This circumvents a nasty JVM bug that's described <a href="https://github.com/elastic/apm-agent-java/issues/1450">here</a>.
- * The error is reproduced in {@code MethodHandleLookupTest}
- * </p>
- */
-public class LookupExposer {
-
-    public static MethodHandles.Lookup getLookup() {
-        return MethodHandles.lookup();
-    }
 }
