@@ -52,7 +52,7 @@ import argparse
 import github
 
 CATALOG_URL = 'https://jvm-catalog.elastic.co'
-SUPPORTED_JDKS = ['oracle']
+SUPPORTED_JDKS = ['oracle', 'openjdk', 'adoptopenjdk', 'amazon', 'jdk', 'zulu']
 
 parser = argparse.ArgumentParser(description="Jenkins JDK snippet generator")
 parser.add_argument(
