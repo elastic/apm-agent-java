@@ -70,7 +70,7 @@ function startLoad() {
     \"port\": \"8080\"}" \
     $ORCH_URL/api/ready 
     # FIXME put number of concurrent users in
-    docker run -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py -u 10 --headless
+    docker run -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -e "LOCUST_USERS=$LOCUST_USERS" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py -u 10 --headless
 }
 
 function stopLoad() {

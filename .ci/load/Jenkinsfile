@@ -34,6 +34,7 @@ pipeline {
                     script {
                         sh(script: ".ci/load/scripts/start.sh", returnStdout: true)
                         env.LOCUST_RUN_TIME = params.duration
+                        env.LOCUST_USERS = params.concurrent_requests
                         env.SESSION_TOKEN = sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim()
                     }
                 }
