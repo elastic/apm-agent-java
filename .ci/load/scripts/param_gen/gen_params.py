@@ -47,9 +47,11 @@ Maintainers: Observability Developer Productivity
 import requests
 import argparse
 import github
+from packaging.version import parse as parse_version
 
 CATALOG_URL = 'https://jvm-catalog.elastic.co'
 SUPPORTED_JDKS = ['oracle', 'openjdk', 'adoptopenjdk', 'amazon', 'jdk', 'zulu']
+MIN_JDK_VERSION = '11'
 
 parser = argparse.ArgumentParser(description="Jenkins JDK snippet generator")
 parser.add_argument(
@@ -66,8 +68,17 @@ parser.add_argument(
     type=str,
     required=False
 )
+parser.add_argument(
+    '--min-ver',
+    help='Minimum version of JDK to include',
+    type=str,
+    required=False,
+    default=MIN_JDK_VERSION
+)
 
 parsed_args = parser.parse_args()
+
+
 
 # Gather JDKs we can support
 r = requests.get(CATALOG_URL + '/jdks')
@@ -83,7 +94,9 @@ for jdk in r.json():
     except ValueError:
         flavor, ver, dist, arch = jdk.split('-', 4)
 
-    if dist in parsed_args.platforms and flavor in SUPPORTED_JDKS:
+    if dist in parsed_args.platforms and \
+        flavor in SUPPORTED_JDKS and \
+            parse_version(ver) >= parse_version(parsed_args.min_ver):
         supported_jdks.append(jdk)
 
 # Gather releases of the agent we can support
