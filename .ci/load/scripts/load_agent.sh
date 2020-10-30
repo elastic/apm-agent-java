@@ -56,7 +56,6 @@ function buildArgs() {
         \"session_token\": \""$SESSION_TOKEN"\"}" \
         $ORCH_URL/api/poll | \
         jq '.services.application.port')"
-    # FIXME temporary value
     export LOCUST_HOST=http://$(echo $LOCUST_HOSTNAME|sed 's/"//g'):$(echo $LOCUST_PORT|sed 's/"//g')
     export LOCUST_RUN_TIME=30s
 }
@@ -69,7 +68,6 @@ function startLoad() {
     \"hostname\": \"test_app\", \
     \"port\": \"8080\"}" \
     $ORCH_URL/api/ready 
-    # FIXME put number of concurrent users in
     docker run -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -e "LOCUST_USERS=$LOCUST_USERS" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py -u 10 --headless
 }
 
