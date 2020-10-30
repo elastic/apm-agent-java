@@ -6,7 +6,7 @@ pipeline {
         APP = 'spring-petclinic'
         APP_BASE_DIR = "src/${APP}"
         AGENT_BASE_DIR = "agent/"
-        ORCH_URL='10.0.2.2:8000' // FIXME: For development only.
+        ORCH_URL='obs-load-orch.app.elastic.co:8000'
     }
     options {
         timeout(time: 3, unit: 'HOURS')
