@@ -71,9 +71,19 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
-            if (applicationContext.getServletContext() != null) {
-                tracer.overrideServiceNameForClassLoader(applicationContext.getServletContext().getClassLoader(), applicationContext.getEnvironment().getProperty("spring.application.name"));
+
+            String appName = applicationContext.getEnvironment().getProperty("spring.application.name", "");
+
+            // fallback when application name isn't set through an environment property
+            if (appName.isEmpty()) {
+                appName = applicationContext.getApplicationName();
+                // remove '/' (if any) from application name
+                if (appName.startsWith("/")) {
+                    appName = appName.substring(1);
+                }
             }
+
+            tracer.overrideServiceNameForClassLoader(applicationContext.getClassLoader(), appName);
         }
     }
 }
