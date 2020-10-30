@@ -104,6 +104,7 @@ print(
     'string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")',  # noqa E501
     'string(name: "duration", defaultValue: "10", description: "Test duration in minutes. Max: 280")',  # noqa E501
     'string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")',  # noqa E501
+    'text(name: "agent_config", "defaultValue": "", description: "APM Agent configuration")',  # noqa E501
     '// End script auto-generation',
     sep="\n"
 )
