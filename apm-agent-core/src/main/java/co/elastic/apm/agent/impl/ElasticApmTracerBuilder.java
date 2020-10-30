@@ -81,11 +81,19 @@ public class ElasticApmTracerBuilder {
 
     private final List<ConfigurationSource> configSources;
 
+    /**
+     * Constructs a new builder instance with default configuration sources
+     */
     public ElasticApmTracerBuilder() {
         this(getConfigSources(null));
     }
 
-    public ElasticApmTracerBuilder(List<ConfigurationSource> configSources){
+    /**
+     * Constructs a new builder instance
+     *
+     * @param configSources configuration sources, obtained from calling {@link #getConfigSources(String)}
+     */
+    public ElasticApmTracerBuilder(List<ConfigurationSource> configSources) {
         this.configSources = configSources;
         this.ephemeralId = UUID.randomUUID().toString();
         LoggingConfiguration.init(configSources, ephemeralId);
