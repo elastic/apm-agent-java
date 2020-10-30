@@ -140,8 +140,9 @@ public class ElasticApmAgent {
         List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
         for (ConfigurationSource configSource : configSources) {
             String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
-            if (enabled != null && !Boolean.parseBoolean(enabled))
+            if (enabled != null && !Boolean.parseBoolean(enabled)) {
                 return;
+            }
 
         }
 
@@ -229,7 +230,7 @@ public class ElasticApmAgent {
                 try {
                     File bytecodeDumpDir = Paths.get(bytecodeDumpPath).toFile();
                     if (!bytecodeDumpDir.exists()) {
-                        bytecodeDumpDir.mkdir();
+                        bytecodeDumpDir.mkdirs();
                     }
                     System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {
