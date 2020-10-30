@@ -28,11 +28,6 @@ endif::[]
 * Replace System Rules with System Lambda {pull}1434[#1434]
 
 [float]
-===== Breaking changes
-* Agent will abort when used on HotSpot JVM of version 7 where the `-XX:+UseG1GC` command line argument is used, as it
-  may cause JVM crash - {pull}1435[#1435]
-
-[float]
 ===== Features
 * The agent version now includes a git hash if it's a snapshot version.
   This makes it easier to differ distinct snapshot builds of the same version.
@@ -48,6 +43,7 @@ endif::[]
 ===== Bug fixes
 * Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
   `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
+* Fixes class loading issue that can occur when deploying multiple applications to the same application server - {pull}1458[#1458]
 * Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1447]
 
 [[release-notes-1.x]]

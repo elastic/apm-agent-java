@@ -169,13 +169,4 @@ class JvmRuntimeInfoTest {
                 .isFalse();
         });
     }
-
-    @Test
-    void testG1GConJava7NotSupported() {
-        JvmRuntimeInfo.parseVmInfo("1.7.0_241", HOTSPOT_VM_NAME, null);
-        assertThat(JvmRuntimeInfo.isJvmConfigurationSupported(List.of("-Xmx256m", "-Xms256"))).isTrue();
-        assertThat(JvmRuntimeInfo.isJvmConfigurationSupported(List.of("-Xmx256m", "-XX:+UseG1GC", "-Xms256"))).isFalse();
-        JvmRuntimeInfo.parseVmInfo("1.8.0_241", HOTSPOT_VM_NAME, null);
-        assertThat(JvmRuntimeInfo.isJvmConfigurationSupported(List.of("-Xmx256m", "-XX:+UseG1GC", "-Xms256"))).isTrue();
-    }
 }
