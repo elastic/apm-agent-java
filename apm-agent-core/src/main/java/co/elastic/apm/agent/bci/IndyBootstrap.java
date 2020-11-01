@@ -27,6 +27,8 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
+import co.elastic.apm.agent.indymodule.ClassModuleInstrumentation;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.PackageScanner;
@@ -196,14 +198,35 @@ public class IndyBootstrap {
     /**
      * Injects the {@code java.lang.IndyBootstrapDispatcher} class into the bootstrap class loader if it wasn't already.
      */
-    private static Class<?> initIndyBootstrap() throws Exception {
+    static Class<?> initIndyBootstrap() throws Exception {
+        if (JvmRuntimeInfo.getMajorVersion() >= 9) {
+            // todo: We may specifically test for OpenJ9 or any J9
+            ElasticApmAgent.ensureInstrumented(Class.class,
+                Collections.<Class<? extends ElasticApmInstrumentation>>singletonList(ClassModuleInstrumentation.class)
+            );
+        }
+        Class<?> indyBootstrapDispatcherClass;
         try {
-            return Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
+            indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
         } catch (ClassNotFoundException e) {
             byte[] bootstrapClass = IOUtils.readToBytes(ClassLoader.getSystemClassLoader().getResourceAsStream(INDY_BOOTSTRAP_RESOURCE));
             ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(INDY_BOOTSTRAP_CLASS_NAME, bootstrapClass));
+            indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
         }
-        return Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
+        System.out.println("System.getProperty(\"java.vm.name\") = " + System.getProperty("java.vm.name"));
+        System.out.println("System.getProperty(\"java.version\") = " + System.getProperty("java.version"));
+        System.out.println("System.getProperty(\"java.vendor\") = " + System.getProperty("java.vendor"));
+        System.out.println("System.getProperty(\"java.vm.version\") = " + System.getProperty("java.vm.version"));
+        System.out.println("Thread.class.getModule() = " + Thread.class.getModule());
+        System.out.println("Thread.class.getPackageName() = " + Thread.class.getPackageName());
+        System.out.println("System.identityHashCode(Thread.class.getModule()) = " + System.identityHashCode(Thread.class.getModule()));
+        System.out.println("Thread.class.getClassLoader() = " + Thread.class.getClassLoader());
+        System.out.println("indyBootstrapDispatcherClass.getModule() = " + indyBootstrapDispatcherClass.getModule());
+        System.out.println("indyBootstrapDispatcherClass.getPackageName() = " + indyBootstrapDispatcherClass.getPackageName());
+        System.out.println("indyBootstrapDispatcherClass.getPackage() = " + indyBootstrapDispatcherClass.getPackage());
+        System.out.println("System.identityHashCode(indyBootstrapDispatcherClass.getModule()) = " + System.identityHashCode(indyBootstrapDispatcherClass.getModule()));
+        System.out.println("indyBootstrapDispatcherClass.getClassLoader() = " + indyBootstrapDispatcherClass.getClassLoader());
+        return indyBootstrapDispatcherClass;
     }
 
     /**
