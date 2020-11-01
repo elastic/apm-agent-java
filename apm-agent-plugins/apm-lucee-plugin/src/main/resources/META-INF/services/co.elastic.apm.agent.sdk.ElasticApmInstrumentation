@@ -12,4 +12,4 @@ co.elastic.apm.agent.lucee.LuceeDbManagerGetConnectionInstrumentation
 co.elastic.apm.agent.lucee.LuceeDBManagerBeginStringInstrumentation
 co.elastic.apm.agent.lucee.LuceeDBManagerBeginIntegerInstrumentation
 co.elastic.apm.agent.lucee.LuceeInternalRequestInstrumentation
-
+co.elastic.apm.agent.lucee.LuceeUnscopedInstrumentation
