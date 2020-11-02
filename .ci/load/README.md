@@ -54,7 +54,7 @@ To set up a local development environment for executing load tests and for devel
 
 1. Checkout the Bandstand application and build a docker container from it tagged as `bandstand`.
 2. Checkout the [fork of the APM Pipeline library](https://github.com/cachedout/apm-pipeline-library-1/tree/perf) which contains the necessary modifications to provision a load-testing environment locally.
-3. In the `apm-pipeline-library` checkout from step 3, create a soft link from `local/jenkins_home` to the your checkout of the `apm-java-agent` codebase.
+3. In the `apm-pipeline-library` checkout from step 2, create a soft link from `local/jenkins_home` to the your checkout of the `apm-java-agent` codebase.
 4. Start up Jenkins using `make start` from your copy of the APM Pipeline library. Start up a worker as well, using the modified `Vagrantfile` from step 2.
 5. Modify the Jenkinsfile to use Bandstand. Set `ORCH_URL` to `10.0.2.2:8000` to use the local instance.
    
