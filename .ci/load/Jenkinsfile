@@ -72,12 +72,9 @@ pipeline {
                         stage('Provision Java') {
                             steps {
                                 echo "Provisioning Java version: ${params.jvm_version}"
-                                script {
-                                    def jdk_home = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
-                                    env.JAVA_HOME = jdk_home
-                                    env.JAVACMD = "${env.JAVA_HOME}/bin/java"
-                                    env.PATH = "${env.JAVA_HOME}/bin:$PATH"
-                                }
+                                setEnvVar('JAVA_HOME', sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim())
+                                setEnvVar('JAVACMD', "${env.JAVA_HOME}/bin/java")
+                                setEnvVar('PATH', "${env.JAVA_HOME}/bin:$PATH")
                             }
                         }
                         stage ('Provision agent') {
