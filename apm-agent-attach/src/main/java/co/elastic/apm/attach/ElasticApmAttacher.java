@@ -121,7 +121,11 @@ public class ElasticApmAttacher {
             // when an external configuration file is used, we have to load it first
             String externalConfig = configuration.get("config_file");
             if (null != externalConfig) {
-                loadExternalProperties(properties, externalConfig);
+                try (FileInputStream stream = new FileInputStream(externalConfig)) {
+                    properties.load(stream);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             properties.putAll(configuration);
@@ -135,24 +139,6 @@ public class ElasticApmAttacher {
             }
         }
         return tempFile;
-    }
-
-    private static void loadExternalProperties(Properties properties, String externalProperties) {
-        FileInputStream stream = null;
-        try {
-            stream = new FileInputStream(externalProperties);
-            properties.load(stream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (IOException e) {
-                    // silenty ignored
-                }
-            }
-        }
     }
 
     static String toAgentArgs(Map<String, String> configuration) {
