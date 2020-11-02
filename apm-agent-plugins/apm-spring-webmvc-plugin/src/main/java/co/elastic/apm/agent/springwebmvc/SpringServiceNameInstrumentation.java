@@ -32,6 +32,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.context.WebApplicationContext;
 
+import javax.servlet.ServletContext;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -71,6 +72,17 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
+            // This method will be called whenever the spring application context is refreshed
+            ClassLoader classLoader = applicationContext.getClassLoader();
+
+            ServletContext servletContext = applicationContext.getServletContext();
+            if (servletContext != null) {
+                try {
+                    classLoader = servletContext.getClassLoader();
+                } catch (UnsupportedOperationException e) {
+                    // silently ignored
+                }
+            }
 
             String appName = applicationContext.getEnvironment().getProperty("spring.application.name", "");
 
@@ -83,7 +95,7 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
                 }
             }
 
-            tracer.overrideServiceNameForClassLoader(applicationContext.getClassLoader(), appName);
+            tracer.overrideServiceNameForClassLoader(classLoader, appName);
         }
     }
 }
