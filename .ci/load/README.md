@@ -47,7 +47,7 @@ To view the load generation output, see the console output in Jenkins for the `L
 
 ## Hacking
 
-*Caution*: The following requires access to libraries which are internal to Elastic. Do not attempt to follow these instructions of you are an open-source user
+*Caution*: The following requires access to libraries which are internal to Elastic. Do not attempt to follow these instructions if you are an open-source user
 of the APM Java Agent. Instead, contact the core development team with questions.
 
 To set up a local development environment for executing load tests and for developing the test framework, perform the following steps:
