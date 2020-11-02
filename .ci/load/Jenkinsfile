@@ -98,13 +98,11 @@ pipeline {
                                         sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
                                     }
                                 }
-                                script {
-                                    if (params.agent_config) {
-                                        echo 'Writing user-supplied agent configuration'
-                                        dir("${AGENT_BASE_DIR}") {
-                                            sh script: "echo \"${params.agent_config}\">custom_config.cfg"
-                                        }
-                                    }
+                                whenTrue(params.agent_config) {
+                                    echo 'Writing user-supplied agent configuration'
+                                    dir("${AGENT_BASE_DIR}") {
+                                        sh script: "echo \"${params.agent_config}\">custom_config.cfg"
+                                     }
                                 }
                             }
                         }
