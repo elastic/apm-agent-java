@@ -59,7 +59,7 @@ class JvmDiscovererTest {
             .isTrue();
         for (JvmInfo jvm : discoverer.discoverJvms()) {
             Optional.ofNullable(jvm.packageOrPathOrJvmProperties)
-                .ifPresent((s)-> assertThat(s).doesNotContain("sun.tool.jps.Jps"));
+                .ifPresent((s) -> assertThat(s).doesNotContain("sun.tool.jps.Jps"));
         }
     }
 
@@ -71,7 +71,7 @@ class JvmDiscovererTest {
     @Test
     void getJpsPathJavaHomeProperties() {
         Properties sysProperties = new Properties();
-        Map<String,String> env = new HashMap<String,String>();
+        Map<String, String> env = new HashMap<String, String>();
 
         Path javaHomeProperties = Paths.get("java", "home");
         sysProperties.put("java.home", javaHomeProperties.toString());
@@ -85,7 +85,7 @@ class JvmDiscovererTest {
     @Test
     void getJpsPathJavaHomeEnv() {
         Properties sysProperties = new Properties();
-        Map<String,String> env = new HashMap<String,String>();
+        Map<String, String> env = new HashMap<String, String>();
 
         Path javaHomeEnv = Paths.get("usr", "local", "java");
         env.put("JAVA_HOME", javaHomeEnv.toString());
@@ -121,7 +121,7 @@ class JvmDiscovererTest {
         Properties sysProperties = new Properties();
         sysProperties.put("os.name", "Windows ME"); // the best one ever !
 
-        checkExpectedJpsPaths(sysProperties, new HashMap<String,String>(), Paths.get("jps.exe"));
+        checkExpectedJpsPaths(sysProperties, new HashMap<String, String>(), Paths.get("jps.exe"));
         // note: we can't really test both windows+java.home set as it relies on absolute path resolution
     }
 
