@@ -72,7 +72,11 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
-            // This method will be called whenever the spring application context is refreshed
+            // This method will be called whenever the spring application context is refreshed which may be more than once
+            //
+            // For example, using Tomcat Servlet container, it's called twice with the first not having a ServletContext,
+            // while the second does, and later requests are initiated with the Servlet classloader and not the application
+            // classloader.
             ClassLoader classLoader = applicationContext.getClassLoader();
 
             ServletContext servletContext = applicationContext.getServletContext();
