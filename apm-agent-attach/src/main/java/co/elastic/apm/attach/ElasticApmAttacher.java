@@ -117,6 +117,27 @@ public class ElasticApmAttacher {
         File tempFile = null;
         if (!configuration.isEmpty()) {
             Properties properties = new Properties();
+
+            // when an external configuration file is used, we have to load it first
+            String externalConfig = configuration.get("config_file");
+            if (null != externalConfig) {
+                FileInputStream stream = null;
+                try {
+                    stream = new FileInputStream(externalConfig);
+                    properties.load(stream);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (stream != null) {
+                        try {
+                            stream.close();
+                        } catch (IOException e) {
+                            // silenty ignored
+                        }
+                    }
+                }
+            }
+
             properties.putAll(configuration);
             try {
                 tempFile = File.createTempFile("elstcapm", ".tmp");
