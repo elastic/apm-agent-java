@@ -5,6 +5,7 @@ pipeline {
         REPO = 'apm-agent-java'
         APP = 'spring-petclinic'
         APP_BASE_DIR = "src/${APP}"
+        METRICS_BASE_DIR="metrics/"
         AGENT_BASE_DIR = "agent/"
         ORCH_URL = 'obs-load-orch.app.elastic.co:8000'
         // Set below for local development
@@ -32,6 +33,7 @@ pipeline {
         // string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")
         text(name: "agent_config", "defaultValue": "", description: "Custom APM Agent configuration. (WARNING: May echo to console. Do not supply sensitive data.)")
         text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")
+        booleanParam(name: "local_metrics", description: "Enable local metrics collection?", defaultValue: false)
         // End script auto-generation
     }
 
@@ -50,10 +52,9 @@ pipeline {
             }    
         }
         stage('Load test') {
-            agent { label 'metal' }
             parallel {
                 stage('Load generation') {
-                    agent { label 'linux && immutable' }
+                    agent { label 'metal' }
                     steps {
                             withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
                                 echo 'Preparing load generation..'
@@ -68,7 +69,7 @@ pipeline {
                     }
                 }
                 stage('Test application') {
-                    agent { label 'linux && immutable' }
+                    agent { label 'metal' }
                     stages{
                         stage('Provision Java') {
                             steps {
@@ -121,6 +122,29 @@ pipeline {
                                 )
                             }
                         }
+                        stage('Provision local metrics collection') {
+                            when {
+                                expression { 
+                                    return params.local_metrics
+                                }
+                            }
+                            steps {
+                                echo 'Enable local metric collection'
+                                gitCheckout(
+                                    basedir: "${METRICS_BASE_DIR}",
+                                    branch: 'master',
+                                    repo: "https://github.com/pstadler/metrics.sh",
+                                    credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                                    shallow: false
+                                )
+                                sh(script: "touch metrics.out")
+                                dir("${METRICS_BASE_DIR}"){
+                                    withEnv(["FILE_LOCATION=./metrics.out"]) {
+                                        sh(script: "./metrics.sh -r file &")
+                                    }
+                                }
+                            }
+                        }
                         stage('Application load') {
                             steps {
                                 echo 'Starting test application in background..'
@@ -142,7 +166,9 @@ pipeline {
                         stage('Collecting results') {
                             steps {
                                 echo "To view results, JMC is required. Get it here: https://jdk.java.net/jmc/"
-                                archiveArtifacts artifacts: "${APP_BASE_DIR}/**/*.jfr"
+                                archiveArtifacts(allowEmptyArchive: true,
+                                    artifacts: "${APP_BASE_DIR}/**/*.jfr,${METRICS_BASE_DIR}/**/*.out",
+                                    onlyIfSuccessful: false)
                             }
                         }
                     }
