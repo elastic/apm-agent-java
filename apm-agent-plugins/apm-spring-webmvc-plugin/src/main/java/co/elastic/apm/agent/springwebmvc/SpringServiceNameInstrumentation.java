@@ -82,7 +82,10 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
             ServletContext servletContext = applicationContext.getServletContext();
             if (servletContext != null) {
                 try {
-                    classLoader = servletContext.getClassLoader();
+                    ClassLoader servletClassloader = servletContext.getClassLoader();
+                    if (servletClassloader != null) {
+                        classLoader = servletClassloader;
+                    }
                 } catch (UnsupportedOperationException e) {
                     // silently ignored
                 }
