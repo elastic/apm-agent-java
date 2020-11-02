@@ -42,12 +42,8 @@ pipeline {
             steps {
                 echo 'Getting authentication information from Vault'
                 withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
-                    script {
-                        sh(script: ".ci/load/scripts/start.sh", returnStdout: true)
-                        env.LOCUST_RUN_TIME = params.duration
-                        env.LOCUST_USERS = params.concurrent_requests
-                        env.SESSION_TOKEN = sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim()
-                    }
+                    sh(script: ".ci/load/scripts/start.sh", returnStdout: true)
+                    setEnvVar('SESSION_TOKEN', sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim())
                 }
             }    
         }
