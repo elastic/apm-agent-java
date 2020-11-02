@@ -26,6 +26,8 @@ All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`.
 5) Runtime attach parameters::
 . `--config` parameter. +
 See <<setup-attach-cli>>.
+. Entries from `config_file` provided through  `--config` parameter. +
+See <<setup-attach-cli>>.
 . Arguments of `ElasticApmAttacher.attach(...)`. +
 See <<setup-attach-api>>.
 . `elasticapm.properties` in classpath root with `ElasticApmAttacher.attach()`. +
