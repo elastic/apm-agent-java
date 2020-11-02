@@ -140,10 +140,11 @@ function tearDown() {
         sudo -n cpufreq-set -c ${cpu} --min ${MIN_FREQ} --max ${MAX_FREQ}
     done
 }
-
+if [ ! $DEBUG_MODE ]; then
 trap "tearDown" EXIT
-
 setUp
+fi
+
 waitForApp
 buildArgs
 startLoad

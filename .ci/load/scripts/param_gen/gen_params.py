@@ -119,7 +119,7 @@ print(
     '// num_of_runs currently unsupported',
     '// string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")',  # noqa E501
     'text(name: "agent_config", "defaultValue": "", description: "APM Agent configuration")',  # noqa E501
-    'text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")',  # noqa E501
+    'text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")',  # noqa E5011
     '// End script auto-generation',
     sep="\n"
 )

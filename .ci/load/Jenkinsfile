@@ -6,7 +6,13 @@ pipeline {
         APP = 'spring-petclinic'
         APP_BASE_DIR = "src/${APP}"
         AGENT_BASE_DIR = "agent/"
-        ORCH_URL='localhost:8000'
+        ORCH_URL = 'obs-load-orch.app.elastic.co:8000'
+        // Set below for local development
+        // ORCH_URL='10.0.2.2:8000'
+        DEBUG_MODE = '0' // set to '0' for production
+        // This is a placeholder server. This will change to a dummy APM Server when it is available.
+        APM_SERVER_URL = 'https://2a2bd0e2806a47e5996eeeec6d22e6df.apm.eu-west-3.aws.elastic-cloud.com:443'
+
     }
     options {
         timeout(time: 3, unit: 'HOURS')
@@ -94,7 +100,7 @@ pipeline {
                                 }
                                 script {
                                     if (params.agent_config) {
-                                        echo 'Writing user-supplied configuration'
+                                        echo 'Writing user-supplied agent configuration'
                                         dir("${AGENT_BASE_DIR}") {
                                             sh script: "echo \"${params.agent_config}\">custom_config.cfg"
                                         }
@@ -119,8 +125,10 @@ pipeline {
                                 echo 'Starting test application in background..'
                                 dir("${APP_BASE_DIR}"){
                                     // Launch app in background
-                                    withEnv(["MAVEN_OPTS=-XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr"]){
-                                        sh(script: "./mvnw spring-boot:run &")
+                                    withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_TOKEN_TYPE', pass_var_name: 'ELASTIC_APM_API_KEY'){
+                                        // Start with packaging things up
+                                        sh(script: "./mvnw package")
+                                        sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
                                     }
                                 }
                                 echo 'Starting bandstand client..'

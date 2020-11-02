@@ -145,7 +145,7 @@ function checkLoadGenFinish(){
 
 
 function stopApp() {
-    ps -ef|egrep spring-boot:run|egrep java|awk '{print $2}'|xargs kill
+    ps -ef|egrep spring-petclinic|egrep java|awk '{print $2}'|xargs kill
 }
 
 function tearDown() {
@@ -160,9 +160,10 @@ function tearDown() {
     done
 }
 
+if [ ! $DEBUG_MODE ]; then
 trap "tearDown" EXIT
-
-setUp
+    setUp
+fi
 waitForApp
 sendAppReady
 waitForLoad
