@@ -50,6 +50,7 @@ pipeline {
             }    
         }
         stage('Load test') {
+            agent { label 'metal' }
             parallel {
                 stage('Load generation') {
                     agent { label 'linux && immutable' }
