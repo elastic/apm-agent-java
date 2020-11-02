@@ -17,7 +17,7 @@ Bandstand performs two primary functions.
 1. *Service discovery* The pipeline utilizes a load-generation machine and an application server which run in parallel to each other. These machines need to know how to find each other and Bandstand gives them that information.
 2. *Orchestration* We need to have a system which tells various services when to start an stop based on the state of other services. For example, we can't start load-generation until we are assured that the application is up and in a coherent state. By using an independent orchestrator, we can allow each service to report on its own state. This avoid a number of otherwise difficult-to-maintain dependencies between service state through the lifetime of the load generation.
 
-While the orchestration layer is currently relatively lightweight and simple, it is built to be able to easily extended for more sophisticated needs, such as multiple test runs inside a single test exuection.
+While the orchestration layer is currently relatively lightweight and simple, it is built to be able to be easily extended for more sophisticated needs, such as multiple test runs inside a single test execution.
 
 The current design uses a persistant orchestator. However, it is a future goal to have a dynamic orchestrator which is unique to each test execution and is spun up and torn down alongside the rest of the services.
 
