@@ -71,7 +71,10 @@ class ElasticApmAttacherTest {
     @Test
     void testCreateTempPropertiesWithExternalConfig() throws IOException {
         Properties externalConfig = new Properties();
-        externalConfig.putAll(Map.of("foo_ext", "bär_ext"));
+        externalConfig.putAll(Map.of(
+            "foo_ext", "bär_ext",
+            "to_be_overriden", "external"
+        ));
 
         File externalConfigFile = File.createTempFile("external-config", ".tmp");
         toClean.add(externalConfigFile);
@@ -79,6 +82,7 @@ class ElasticApmAttacherTest {
 
         Map<String, String> config = Map.of(
             "foo", "bär",
+            "to_be_overriden", "overriden",
             "config_file", externalConfigFile.getAbsolutePath());
 
         File tempProperties = ElasticApmAttacher.createTempProperties(config);
@@ -87,7 +91,8 @@ class ElasticApmAttacherTest {
         Properties mergedProperties = readProperties(tempProperties);
         assertThat(mergedProperties)
             .containsEntry("foo", "bär")
-            .containsEntry("foo_ext", "bär_ext");
+            .containsEntry("foo_ext", "bär_ext")
+            .containsEntry("to_be_overriden", "overriden");
 
     }
 
