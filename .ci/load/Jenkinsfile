@@ -58,11 +58,9 @@ pipeline {
                     steps {
                             withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
                                 echo 'Preparing load generation..'
-                                script {
-                                    if (params.locustfile) {
-                                        echo 'Using user-supplied plan for load-generation with Locust'
-                                        sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
-                                    }
+                                whenTrue(params.locustfile) {
+                                    echo 'Using user-supplied plan for load-generation with Locust'
+                                    sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
                                 }
                                 sh(script: ".ci/load/scripts/load_agent.sh")
                             }
