@@ -32,8 +32,10 @@ import co.elastic.apm.agent.util.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassInjector;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
+import sun.misc.Unsafe;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -167,10 +169,19 @@ public class IndyBootstrap {
      */
     private static final String INDY_BOOTSTRAP_CLASS_NAME = "java.lang.IndyBootstrapDispatcher";
     /**
+     * Needs to be loaded from the bootstrap CL because it uses {@link Unsafe}
+     */
+    private static final String INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME = "co.elastic.apm.agent.bci.IndyBootstrapDispatcherModuleSetter";
+    /**
      * The class file of {@code java.lang.IndyBootstrapDispatcher}.
      * Ends with {@code clazz} because if it ended with {@code clazz}, it would be loaded like a regular class.
      */
     private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/IndyBootstrapDispatcher.clazz";
+    /**
+     * The class file of {@code IndyBootstrapDispatcherModuleSetter}.
+     * Ends with {@code clazz} because if it ended with {@code clazz}, it would be loaded like a regular class.
+     */
+    private static final String INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE = "bootstrap/IndyBootstrapDispatcherModuleSetter.clazz";
     /**
      * Caches the names of classes that are defined within a package and it's subpackages
      */
@@ -178,12 +189,12 @@ public class IndyBootstrap {
     @Nullable
     static Method indyBootstrapMethod;
 
-    public static Method getIndyBootstrapMethod() {
+    public static Method getIndyBootstrapMethod(final Logger logger) {
         if (indyBootstrapMethod != null) {
             return indyBootstrapMethod;
         }
         try {
-            Class<?> indyBootstrapClass = initIndyBootstrap();
+            Class<?> indyBootstrapClass = initIndyBootstrap(logger);
             indyBootstrapClass
                 .getField("bootstrap")
                 .set(null, IndyBootstrap.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class));
@@ -193,17 +204,39 @@ public class IndyBootstrap {
         }
     }
 
+    private static Class<?> loadClassByBootCL(String className, String classFile) throws Exception {
+        try {
+            return Class.forName(className, false, null);
+        } catch (ClassNotFoundException e) {
+            byte[] bootstrapClass = IOUtils.readToBytes(ClassLoader.getSystemClassLoader().getResourceAsStream(classFile));
+            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, bootstrapClass));
+        }
+        return Class.forName(className, false, null);
+    }
+
     /**
      * Injects the {@code java.lang.IndyBootstrapDispatcher} class into the bootstrap class loader if it wasn't already.
      */
-    private static Class<?> initIndyBootstrap() throws Exception {
-        try {
-            return Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
-        } catch (ClassNotFoundException e) {
-            byte[] bootstrapClass = IOUtils.readToBytes(ClassLoader.getSystemClassLoader().getResourceAsStream(INDY_BOOTSTRAP_RESOURCE));
-            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(INDY_BOOTSTRAP_CLASS_NAME, bootstrapClass));
+    private static Class<?> initIndyBootstrap(final Logger logger) throws Exception {
+        Class<?> indyBootstrapDispatcherClass = loadClassByBootCL(INDY_BOOTSTRAP_CLASS_NAME, INDY_BOOTSTRAP_RESOURCE);
+        if (JvmRuntimeInfo.getMajorVersion() >= 9 && JvmRuntimeInfo.isJ9VM()) {
+            try {
+                logger.info("Overriding IndyBootstrapDispatcher class's module to java.base module");
+                setJavaBaseModule(indyBootstrapDispatcherClass);
+            } catch (Throwable throwable) {
+                logger.warn("Failed to setup proper module for the IndyBootstrapDispatcher class, instrumentation may fail", throwable);
+            }
         }
-        return Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
+        return indyBootstrapDispatcherClass;
+    }
+
+    static void setJavaBaseModule(Class<?> targetClass) throws Throwable {
+        // In order to override the original unnamed module assigned to the IndyBootstrapDispatcher, we rely on the
+        // Unsafe API, which requires the caller to be loaded by the Bootstrap CL
+        Class<?> moduleSetterClass = loadClassByBootCL(INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME, INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE);
+        MethodHandles.lookup()
+            .findStatic(moduleSetterClass, "setJavaBaseModule", MethodType.methodType(void.class, Class.class))
+            .invoke(targetClass);
     }
 
     /**
