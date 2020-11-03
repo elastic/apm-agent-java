@@ -76,7 +76,7 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected boolean runtimeAttach() {
+    protected boolean runtimeAttachSupported() {
         return true;
     }
 }

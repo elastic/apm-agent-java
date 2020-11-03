@@ -84,7 +84,6 @@ class CGroupMetricsTest {
 
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.usage.bytes", Labels.EMPTY)).isEqualTo(value);
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(Double.valueOf(memLimit));
-        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.stats.inactive_file.bytes", Labels.EMPTY)).isEqualTo(10407936L);
     }
     @ParameterizedTest
     @ValueSource(strings ={
@@ -116,7 +115,6 @@ class CGroupMetricsTest {
 
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(Double.NaN);
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.usage.bytes", Labels.EMPTY)).isEqualTo(964778496);
-        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.stats.inactive_file.bytes", Labels.EMPTY)).isEqualTo(10407936L);
     }
 
     @Test
@@ -126,7 +124,6 @@ class CGroupMetricsTest {
 
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.limit.bytes", Labels.EMPTY)).isEqualTo(Double.NaN);
         assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.mem.usage.bytes", Labels.EMPTY)).isEqualTo(964778496);
-        assertThat(metricRegistry.getGaugeValue("system.process.cgroup.memory.stats.inactive_file.bytes", Labels.EMPTY)).isEqualTo(10407936L);
     }
 
 }

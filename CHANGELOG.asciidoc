@@ -24,17 +24,50 @@ endif::[]
 ==== 1.19.0 - YYYY/MM/DD
 
 [float]
-===== Breaking changes
+===== Refactors
+* Replace System Rules with System Lambda {pull}1434[#1434]
 
 [float]
 ===== Features
-* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364]
+* The agent version now includes a git hash if it's a snapshot version.
+  This makes it easier to differ distinct snapshot builds of the same version.
+  Example: `1.18.1-SNAPSHOT.4655910`
+* Add support for sampling weight with propagation in `tracestate` W3C header {pull}1384[#1384]
+* Adding two more valid options to the `log_level` config: `WARNING` (equivalent to `WARN`) and `CRITICAL`
+  (will be treated as `ERROR`) - {pull}1431[1431]
+* Add the ability to disable Servlet-related spans for `INCLUDE`, `FORWARD` and `ERROR` dispatches (without affecting
+  basic Servlet capturing) by adding `servlet-api-dispatch` to <<config-disable-instrumentations>> - {pull}1448[1448]
+* Add Sampling Profiler support for AArch64 architectures - {pull}1443[1443]
+* Support proper transaction naming when using Spring's `ServletWrappingController` - {pull}1461[#1461]
 
 [float]
 ===== Bug fixes
+* Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
+  `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
+* Fixes class loading issue that can occur when deploying multiple applications to the same application server - {pull}1458[#1458]
+* Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1447]
+* Fix ignored runtime attach `config_file` {pull}1469[1469]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
+
+[[release-notes-1.18.1]]
+==== 1.18.1 - 2020/10/06
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364] {pull}1365[1365] {pull}1367[1367] {pull}1371[1371]
+
+[float]
+===== Bug fixes
+* Fix instrumentation error for HttpClient - {pull}1402[#1402]
+* Eliminate `unsupported class version error` messages related to loading the Java 11 HttpClient plugin in pre-Java-11 JVMs {pull}1397[1397]
+* Fix rejected metric events by APM Server with response code 400 due to data validation error - sanitizing Micrometer
+metricset tag keys - {pull}1413[1413]
+* Fix invalid micrometer metrics with non-numeric values {pull}1419[1419]
+* Fix `NoClassDefFoundError` with JDBC instrumentation plugin {pull}1409[1409]
+* Apply `disable_metrics` config to Micrometer metrics - {pull}1421[1421]
+* Remove cgroup `inactive_file.bytes` metric according to spec {pull}1422[1422]
 
 [[release-notes-1.18.0]]
 ==== 1.18.0 - 2020/09/08

@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.18.1-SNAPSHOT</version>
+        <version>1.18.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -117,9 +117,8 @@
         <!--For setting environment variables-->
         <dependency>
             <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-rules</artifactId>
-            <!-- Latest version (1.19.0) doesn't work at the moment - https://github.com/stefanbirkner/system-rules/issues/70 -->
-            <version>1.17.2</version>
+            <artifactId>system-lambda</artifactId>
+            <version>1.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -167,28 +166,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.jsonschema2pojo</groupId>
-                <artifactId>jsonschema2pojo-maven-plugin</artifactId>
-                <version>0.5.1</version>
-                <configuration>
-                    <sourceDirectory>${basedir}/src/main/resources/schema</sourceDirectory>
-                    <targetPackage>co.elastic.apm.agent.impl.intake</targetPackage>
-                    <usePrimitives>true</usePrimitives>
-                    <useLongIntegers>true</useLongIntegers>
-                    <includeAdditionalProperties>false</includeAdditionalProperties>
-                    <formatDateTimes>true</formatDateTimes>
-                    <generateBuilders>true</generateBuilders>
-                    <skip>true</skip>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>
