@@ -35,6 +35,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -53,6 +54,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
@@ -212,7 +214,7 @@ public class ServletApiAdvice {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-                ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction);
+                TransactionNameUtils.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
                 final Principal userPrincipal = httpServletRequest.getUserPrincipal();
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }

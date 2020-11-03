@@ -69,6 +69,7 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -132,9 +133,20 @@ public class ElasticApmAgent {
      * @param agentJarFile    a reference to the agent jar on the file system
      */
     @SuppressWarnings("unused") // called through reflection
-    public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
+    public static void initialize(@Nullable String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
+
+        // silently early abort when agent is disabled to minimize the number of loaded classes
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
+        for (ConfigurationSource configSource : configSources) {
+            String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
+            if (enabled != null && !Boolean.parseBoolean(enabled)) {
+                return;
+            }
+
+        }
+
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
         initInstrumentation(tracer, instrumentation, premain);
         tracer.start(premain);
     }
@@ -218,7 +230,7 @@ public class ElasticApmAgent {
                 try {
                     File bytecodeDumpDir = Paths.get(bytecodeDumpPath).toFile();
                     if (!bytecodeDumpDir.exists()) {
-                        bytecodeDumpDir.mkdir();
+                        bytecodeDumpDir.mkdirs();
                     }
                     System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
                 } catch (Exception e) {

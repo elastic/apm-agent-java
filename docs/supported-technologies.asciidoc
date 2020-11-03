@@ -61,9 +61,6 @@ several bugs that might result in JVM crashes when a java agent is active,
 thus agent *will not start* on those versions.
 Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to invokedynamic.
 
-NOTE: Installing the Java agent on HotSpot JVM of version 7 in combination with the `-XX:+UseG1GC` JVM argumnent
-may cause JVM crash. If such a setup is identified, the agent will abort.
-
 Here is an example of the message displayed when this happens.
 ```
 Failed ot start agent - JVM version not supported: 1.8.0_31

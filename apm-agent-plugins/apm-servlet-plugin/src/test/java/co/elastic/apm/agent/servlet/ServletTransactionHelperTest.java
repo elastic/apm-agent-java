@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -41,6 +42,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -62,14 +64,14 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
     @Test
     void setTransactionNameByServletClass() {
         Transaction transaction = new Transaction(MockTracer.create());
-        ServletTransactionHelper.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction);
+        TransactionNameUtils.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
         assertThat(transaction.getNameAsString()).isEqualTo("ServletTransactionHelperTest#doGet");
     }
 
     @Test
     void setTransactionNameByServletClassNullMethod() {
         Transaction transaction = new Transaction(MockTracer.create());
-        ServletTransactionHelper.setTransactionNameByServletClass(null, ServletTransactionHelperTest.class, transaction);
+        TransactionNameUtils.setTransactionNameByServletClass(null, ServletTransactionHelperTest.class, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
         assertThat(transaction.getNameAsString()).isEqualTo("ServletTransactionHelperTest");
     }
 
@@ -95,7 +97,7 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
         ));
 
         Transaction transaction = new Transaction(MockTracer.create());
-        ServletTransactionHelper.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction);
+        TransactionNameUtils.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
         servletTransactionHelper.applyDefaultTransactionName("GET", "/foo/bar/baz", null, transaction);
         assertThat(transaction.getNameAsString()).isEqualTo("GET /foo/bar/*");
     }
