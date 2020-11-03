@@ -13,6 +13,8 @@ pipeline {
         DEBUG_MODE = '0' // set to '0' for production
         // This is a placeholder server. This will change to a dummy APM Server when it is available.
         APM_SERVER_URL = 'https://2a2bd0e2806a47e5996eeeec6d22e6df.apm.eu-west-3.aws.elastic-cloud.com:443'
+        LOCUST_RUN_TIME = "${params.duration}"
+        LOCUST_USERS = "${params.concurrent_requests}"
 
     }
     options {
@@ -54,7 +56,7 @@ pipeline {
                     steps {
                             withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
                                 echo 'Preparing load generation..'
-                                whenTrue(params.locustfile) {
+                                whenTrue(Boolean.valueOf(params.locustfile)) {
                                     echo 'Using user-supplied plan for load-generation with Locust'
                                     sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
                                 }
@@ -91,7 +93,7 @@ pipeline {
                                         sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
                                     }
                                 }
-                                whenTrue(params.agent_config) {
+                                whenTrue(Boolean.valueOf(params.agent_config)) {
                                     echo 'Writing user-supplied agent configuration'
                                     dir("${AGENT_BASE_DIR}") {
                                         sh script: "echo \"${params.agent_config}\">custom_config.cfg"
