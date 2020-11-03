@@ -48,6 +48,9 @@ endif::[]
 * Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1447]
 * Fix ignored runtime attach `config_file` {pull}1469[1469]
 
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1404[1404]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
