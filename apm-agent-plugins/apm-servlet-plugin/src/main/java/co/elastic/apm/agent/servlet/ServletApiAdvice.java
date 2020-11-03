@@ -35,6 +35,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -53,6 +54,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
@@ -92,6 +94,7 @@ public class ServletApiAdvice {
         if (tracer.isRunning() && servletRequest instanceof HttpServletRequest) {
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             DispatcherType dispatcherType = servletRequest.getDispatcherType();
+            CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
             if (dispatcherType == DispatcherType.REQUEST) {
                 if (Boolean.TRUE != excluded.get()) {
@@ -108,7 +111,7 @@ public class ServletApiAdvice {
                         excluded.set(Boolean.TRUE);
                     } else {
                         final Request req = transaction.getContext().getRequest();
-                        if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
+                        if (transaction.isSampled() && coreConfig.isCaptureHeaders()) {
                             if (request.getCookies() != null) {
                                 for (Cookie cookie : request.getCookies()) {
                                     req.addCookie(cookie.getName(), cookie.getValue());
@@ -131,7 +134,8 @@ public class ServletApiAdvice {
                         ret = transaction;
                     }
                 }
-            } else if (dispatcherType != DispatcherType.ASYNC) {
+            } else if (dispatcherType != DispatcherType.ASYNC &&
+                !coreConfig.getDisabledInstrumentations().contains(ServletInstrumentation.SERVLET_API_DISPATCH)) {
                 final AbstractSpan<?> parent = tracer.getActive();
                 if (parent != null) {
                     Object servletPath = null;
@@ -210,7 +214,7 @@ public class ServletApiAdvice {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-                ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction);
+                TransactionNameUtils.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
                 final Principal userPrincipal = httpServletRequest.getUserPrincipal();
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }

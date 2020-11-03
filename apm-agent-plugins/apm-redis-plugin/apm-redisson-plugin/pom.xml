@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-redis-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.18.1-SNAPSHOT</version>
+        <version>1.18.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-redisson-plugin</artifactId>
@@ -38,6 +38,10 @@
                 <exclusion>
                     <groupId>net.bytebuddy</groupId>
                     <artifactId>byte-buddy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

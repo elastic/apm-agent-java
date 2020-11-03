@@ -26,7 +26,9 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
+import co.elastic.apm.agent.bci.classloading.LookupExposer;
 import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.util.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassInjector;
@@ -42,6 +44,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -148,7 +151,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     <li>
  *         The {@code INVOKEDYNAMIC} support of early Java 7 versions is not reliable.
  *         That's why we disable the agent on them.
- *         See also {@link AgentMain#isJavaVersionSupported}
+ *         See also {@link JvmRuntimeInfo#isJavaVersionSupported}
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
@@ -271,12 +274,13 @@ public class IndyBootstrap {
             MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
 
             ClassLoader adviceClassLoader = ElasticApmAgent.getClassLoader(adviceClassName);
-            List<String> pluginClasses;
+            List<String> pluginClasses = new ArrayList<>();
             if (adviceClassLoader instanceof ExternalPluginClassLoader) {
-                pluginClasses = ((ExternalPluginClassLoader) adviceClassLoader).getClassNames();
+                pluginClasses.addAll(((ExternalPluginClassLoader) adviceClassLoader).getClassNames());
             } else {
-                pluginClasses = getClassNamesFromBundledPlugin(adviceClassName, adviceClassLoader);
+                pluginClasses.addAll(getClassNamesFromBundledPlugin(adviceClassName, adviceClassLoader));
             }
+            pluginClasses.add("co.elastic.apm.agent.bci.classloading.LookupExposer");
             ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
                 lookup.lookupClass().getClassLoader(),
                 pluginClasses,
@@ -286,7 +290,10 @@ public class IndyBootstrap {
                     // also, this plugin is used as a dependency in other plugins
                     .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-            MethodHandle methodHandle = MethodHandles.lookup().findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
+            Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass("co.elastic.apm.agent.bci.classloading.LookupExposer");
+            // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
+            MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
+            MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
             return new ConstantCallSite(methodHandle);
         } catch (Exception e) {
             // must not be a static field as it would initialize logging before it's ready

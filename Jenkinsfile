@@ -56,7 +56,8 @@ pipeline {
           steps {
             pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             deleteDir()
-            gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
+            gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, shallow: false,
+                        reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
             script {
               dir("${BASE_DIR}"){

@@ -22,17 +22,18 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci;
+package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class AgentMainTest {
+class JvmRuntimeInfoTest {
 
-    private static String HOTSPOT_VM_NAME = "Java HotSpot(TM) 64-Bit Server VM";
+    private static final String HOTSPOT_VM_NAME = "Java HotSpot(TM) 64-Bit Server VM";
 
     @Test
     void java6AndEarlierNotSupported() {
@@ -143,13 +144,16 @@ class AgentMainTest {
 
     @Test
     void testIbmJava8SupportedAfterBuild2_8() {
-        assertThat(AgentMain.isJavaVersionSupported("1.8.0", "IBM J9 VM", "2.8")).isFalse();
-        assertThat(AgentMain.isJavaVersionSupported("1.8.0", "IBM J9 VM", "2.9")).isTrue();
+        JvmRuntimeInfo.parseVmInfo("1.8.0", "IBM J9 VM", "2.8");
+        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isFalse();
+        JvmRuntimeInfo.parseVmInfo("1.8.0", "IBM J9 VM", "2.9");
+        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isTrue();
     }
 
     private static void checkSupported(String vmName, Stream<String> versions) {
         versions.forEach((v) -> {
-            boolean supported = AgentMain.isJavaVersionSupported(v, vmName, null);
+            JvmRuntimeInfo.parseVmInfo(v, vmName, null);
+            boolean supported = JvmRuntimeInfo.isJavaVersionSupported();
             assertThat(supported)
                 .describedAs("java.version = '%s' java.vm.name = '%s' should be supported", v, vmName)
                 .isTrue();
@@ -158,11 +162,11 @@ class AgentMainTest {
 
     private static void checkNotSupported(String vmName, Stream<String> versions) {
         versions.forEach((v) -> {
-            boolean supported = AgentMain.isJavaVersionSupported(v, vmName, null);
+            JvmRuntimeInfo.parseVmInfo(v, vmName, null);
+            boolean supported = JvmRuntimeInfo.isJavaVersionSupported();
             assertThat(supported)
                 .describedAs("java.version = '%s' java.vm.name = '%s' should not be supported", v, vmName)
                 .isFalse();
         });
     }
-
 }

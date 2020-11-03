@@ -81,12 +81,17 @@ import static org.mockserver.model.HttpRequest.request;
  * <p>
  * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
  * </p>
+ * <p>
+ * Servlet containers that support runtime attach are being tested with it by default. In order to test those through
+ * the `javaagent` route, set {@link #ENABLE_RUNTIME_ATTACH} to {@code false}
+ * </p>
  */
 public abstract class AbstractServletContainerIntegrationTest {
     private static final String pathToJavaagent;
     private static final String pathToAttach;
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
     static boolean ENABLE_DEBUGGING = false;
+    static boolean ENABLE_RUNTIME_ATTACH = true;
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
         .withNetworkAliases("apm-server")
@@ -130,6 +135,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             enableDebugging(servletContainer);
             this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
+        if (runtimeAttachSupported() && !ENABLE_RUNTIME_ATTACH) {
+            // If runtime attach is off for Servlet containers that support that, we need to add the javaagent here
+            appendToEnvVariable(servletContainer, getJavaagentEnvVariable(), "-javaagent:/elastic-apm-agent.jar");
+        }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         this.containerName = containerName;
         servletContainer
@@ -158,7 +167,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             }
         }
         this.servletContainer.start();
-        if (runtimeAttach()) {
+        if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
                 Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
                 System.out.println(result.getStdout());
@@ -173,6 +182,16 @@ public abstract class AbstractServletContainerIntegrationTest {
                 checkFilePresent(pathToAppFile);
                 servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
             }
+        }
+    }
+
+    private void appendToEnvVariable(GenericContainer<?> servletContainer, String key, String value) {
+        Map<String, String> envMap = servletContainer.getEnvMap();
+        String currentValue = envMap.get(key);
+        if (currentValue == null) {
+            servletContainer.withEnv(key, value);
+        } else {
+            servletContainer.withEnv(key, currentValue + " " + value);
         }
     }
 
@@ -191,8 +210,25 @@ public abstract class AbstractServletContainerIntegrationTest {
         return true;
     }
 
-    protected boolean runtimeAttach() {
+    /**
+     * Change to false in the Servlet-container implementation in order to attach through {@code premain()}
+     * See also {@link AbstractServletContainerIntegrationTest#getJavaagentEnvVariable()}
+     *
+     * @return whether the agent should be attached using the remote attach option or through `javaagent`
+     */
+    protected boolean runtimeAttachSupported() {
         return false;
+    }
+
+    /**
+     * Override with the name of the environment variable to which the `javaagent` argument should be appended.
+     * See also {@link AbstractServletContainerIntegrationTest#runtimeAttachSupported()}
+     *
+     * @return the name of the environment variable to which the `javaagent` argument should be appended
+     */
+    protected String getJavaagentEnvVariable() {
+        throw new UnsupportedOperationException("You must provide the proper config that will append the `javaagent` " +
+            "argument properly to the command line");
     }
 
     private static void checkFilePresent(String pathToWar) {

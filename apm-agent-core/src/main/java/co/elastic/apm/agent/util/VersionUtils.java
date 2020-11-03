@@ -24,19 +24,34 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.jar.JarInputStream;
 
 public final class VersionUtils {
 
     private static final WeakConcurrentMap<Class<?>, String> versionsCache = new WeakConcurrentMap.WithInlinedExpunction<>();
     private static final String UNKNOWN_VERSION = "UNKNOWN_VERSION";
     @Nullable
-    private static final String AGENT_VERSION = getVersion(VersionUtils.class, "co.elastic.apm", "elastic-apm-agent");
+    private static final String AGENT_VERSION;
+
+    static {
+        String version = getVersion(VersionUtils.class, "co.elastic.apm", "elastic-apm-agent");
+        if (version != null && version.endsWith("SNAPSHOT")) {
+            String gitRev = getManifestEntry(ElasticApmAgent.getAgentJarFile(), "SCM-Revision");
+            if (gitRev != null) {
+                version = version + "." + gitRev;
+            }
+        }
+        AGENT_VERSION = version;
+    }
 
     private VersionUtils() {
     }
@@ -90,6 +105,18 @@ public final class VersionUtils {
         } catch (IOException ignore) {
         }
         return null;
+    }
+
+    @Nullable
+    public static String getManifestEntry(@Nullable File jarFile, String manifestAttribute) {
+        if (jarFile == null) {
+            return null;
+        }
+        try (JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile))) {
+            return jarInputStream.getManifest().getMainAttributes().getValue(manifestAttribute);
+        } catch (IOException e) {
+            return null;
+        }
     }
 
 }

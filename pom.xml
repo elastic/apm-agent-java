@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.18.1-SNAPSHOT</version>
+    <version>1.18.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -69,7 +69,7 @@
 
         <maven.compiler.target>7</maven.compiler.target>
         <maven.compiler.testTarget>11</maven.compiler.testTarget>
-        
+
         <maven.compiler.source>${maven.compiler.target}</maven.compiler.source>
         <maven.compiler.testSource>${maven.compiler.testTarget}</maven.compiler.testSource>
 
@@ -128,6 +128,10 @@
             <id>IntelliJ</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <!-- makes profile enabled in Intellij only -->
+                    <name>idea.maven.embedder.version</name>
+                </property>
             </activation>
             <properties>
                 <!-- use same java version as tests -->
