@@ -22,10 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.hibernate.search.v6_x;
+package co.elastic.apm.agent.hibernatesearch;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.hibernate.search.DeleteFileVisitor;
 import org.hibernate.search.engine.search.dsl.query.SearchQueryContext;
 import org.hibernate.search.engine.search.query.SearchResult;
 import org.hibernate.search.mapper.orm.Search;
@@ -44,7 +43,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
-import static co.elastic.apm.agent.hibernate.search.HibernateSearchAssertionHelper.assertApmSpanInformation;
+import static co.elastic.apm.agent.hibernatesearch.HibernateSearchAssertionHelper.assertApmSpanInformation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 

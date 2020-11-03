@@ -22,21 +22,18 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.hibernate.search;
+package co.elastic.apm.agent.hibernatesearch;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 
-@VisibleForAdvice
 public final class HibernateSearchHelper {
 
     private HibernateSearchHelper() {
 
     }
 
-    @VisibleForAdvice
     public static Span createAndActivateSpan(final Tracer tracer, final String methodName,
                                              final String query) {
 
