@@ -82,7 +82,7 @@ class ElasticApmAttacherTest {
 
         Map<String, String> config = Map.of(
             "foo", "bär",
-            "to_be_overriden", "overriden",
+            "to_be_overriden", "--config param",
             "config_file", externalConfigFile.getAbsolutePath());
 
         File tempProperties = ElasticApmAttacher.createTempProperties(config);
@@ -92,7 +92,7 @@ class ElasticApmAttacherTest {
         assertThat(mergedProperties)
             .containsEntry("foo", "bär")
             .containsEntry("foo_ext", "bär_ext")
-            .containsEntry("to_be_overriden", "overriden");
+            .containsEntry("to_be_overriden", "external"); // external properties has higher priority than parameters
 
     }
 

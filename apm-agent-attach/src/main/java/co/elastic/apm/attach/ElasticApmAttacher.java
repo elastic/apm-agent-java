@@ -117,8 +117,9 @@ public class ElasticApmAttacher {
         File tempFile = null;
         if (!configuration.isEmpty()) {
             Properties properties = new Properties();
+            properties.putAll(configuration);
 
-            // when an external configuration file is used, we have to load it first
+            // when an external configuration file is used, we have to load it last to give it higher priority
             String externalConfig = configuration.get("config_file");
             if (null != externalConfig) {
                 try (FileInputStream stream = new FileInputStream(externalConfig)) {
@@ -128,7 +129,6 @@ public class ElasticApmAttacher {
                 }
             }
 
-            properties.putAll(configuration);
             try {
                 tempFile = File.createTempFile("elstcapm", ".tmp");
                 try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
