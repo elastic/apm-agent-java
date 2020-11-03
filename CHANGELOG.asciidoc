@@ -47,6 +47,7 @@ endif::[]
 * Fixes class loading issue that can occur when deploying multiple applications to the same application server - {pull}1458[#1458]
 * Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1444]
 * Avoid `UnsupportedOperationException` on some spring application startup {pull}1464[1464]
+* Fix ignored runtime attach `config_file` {pull}1469[1469]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
