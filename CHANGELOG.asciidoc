@@ -50,6 +50,9 @@ endif::[]
 * Avoid `UnsupportedOperationException` on some spring application startup {pull}1464[1464]
 * Fix ignored runtime attach `config_file` {pull}1469[1469]
 
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1404[1404]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
