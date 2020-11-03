@@ -1,8 +1,8 @@
-from locust import HttpUser, task, between
+from locust import HttpUser, task, constant
 
 
 class QuickstartUser(HttpUser):
-    wait_time = between(1, 2)
+    wait_time = constant(1)
 
     @task
     def index_page(self):
