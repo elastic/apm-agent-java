@@ -37,7 +37,9 @@ public class ApiScopeInstrumentation extends ApiInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context) {
-        ((AbstractSpan<?>) context).deactivate();
+        if (context instanceof AbstractSpan) {
+            ((AbstractSpan<?>) context).deactivate();
+        }
     }
 
     @Override

@@ -99,7 +99,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setResult(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
-                                          @Advice.Argument(0) String result) {
+                                     @Advice.Argument(0) String result) {
             if (transaction instanceof Transaction) {
                 ((Transaction) transaction).withResult(result);
             }
