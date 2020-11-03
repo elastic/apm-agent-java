@@ -50,7 +50,7 @@ public class CloudProviderInfo {
         return region;
     }
 
-    public void setRegion(String region) {
+    public void setRegion(@Nullable String region) {
         this.region = region;
     }
 
@@ -132,7 +132,6 @@ public class CloudProviderInfo {
         return null;
     }
 
-
     public static class ProviderAccount {
         private String id;
 
@@ -152,6 +151,15 @@ public class CloudProviderInfo {
     public static class ProviderInstance {
         private String id;
         private String name;
+
+        public ProviderInstance(@Nullable Long id, @Nullable String name) {
+            this.id = id != null ? id.toString() : null;
+            this.name = name;
+        }
+        public ProviderInstance(@Nullable String id, @Nullable String name) {
+            this.id = id;
+            this.name = name;
+        }
 
         public String getId() {
             return id;
@@ -174,6 +182,15 @@ public class CloudProviderInfo {
     public static class ProviderProject {
         private String id;
         private String name;
+
+        public ProviderProject(@Nullable String name) {
+            this.name = name;
+        }
+
+        public ProviderProject(@Nullable String name, @Nullable Long id) {
+            this.name = name;
+            this.id = id != null ? id.toString() : null;
+        }
 
         public String getId() {
             return id;

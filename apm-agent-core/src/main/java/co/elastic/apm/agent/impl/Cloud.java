@@ -26,6 +26,7 @@ public class Cloud {
             String metadataUrl = "http://169.254.169.254/latest/dynamic/instance-identity/document";
             Map<String, String> documentHeaders = Map.of("X-aws-ec2-metadata-token", token);
             String metadata = callRequest(metadataUrl, "GET", documentHeaders);
+            logger.debug("Got aws metadata = {}", metadata);
             AwsMetadata awsMetadata = deserialize(metadata, AwsMetadata.class);
             return awsMetadata.convert();
         } catch (Exception e) {
@@ -40,6 +41,7 @@ public class Cloud {
             String gcpUrl = "http://metadata.google.internal/computeMetadata/v1/?recursive=true";
             Map<String, String> headers = Map.of("Metadata-Flavor", "Google");
             String metadata = callRequest(gcpUrl, "GET", headers);
+            logger.debug("Got gcp metadata = {}", metadata);
             GcpMetadata gcpMetadata = deserialize(metadata, GcpMetadata.class);
             return gcpMetadata.convert();
         } catch (Exception e) {
@@ -50,10 +52,18 @@ public class Cloud {
 
     @Nullable
     public static CloudProviderInfo getAzureMetadata() {
-
-        return null;
+        try {
+            String azureUrl = "http://169.254.169.254/metadata/instance/compute?api-version=2019-08-15";
+            Map<String, String> headers = Map.of("Metadata", "true");
+            String metadata = callRequest(azureUrl, "GET", headers);
+            logger.debug("Got azure metadata = {}", metadata);
+            AzureMetadata azureMetadata = deserialize(metadata, AzureMetadata.class);
+            return azureMetadata.convert();
+        } catch (Exception e) {
+            logger.debug("Got exception during fetching azure metadata", e);
+            return null;
+        }
     }
-
 
     private static <T> T deserialize(String input, Class<T> clazz) throws IOException {
         DslJson<Object> json = new DslJson<>();
@@ -115,10 +125,7 @@ public class Cloud {
         public CloudProviderInfo convert() {
             CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("aws");
             cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(accountId));
-            CloudProviderInfo.ProviderInstance providerInstance = new CloudProviderInfo.ProviderInstance();
-            providerInstance.setId(instanceId);
-            providerInstance.setName(null);
-            cloudProviderInfo.setInstance(providerInstance);
+            cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(instanceId, null));
             cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instanceType));
             cloudProviderInfo.setAvailabilityZone(availabilityZone);
             cloudProviderInfo.setRegion(region);
@@ -199,17 +206,21 @@ public class Cloud {
 
         public CloudProviderInfo convert() {
             CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("gcp");
-            cloudProviderInfo.setAccount(null);
-            CloudProviderInfo.ProviderInstance providerInstance = new CloudProviderInfo.ProviderInstance();
-            providerInstance.setId(instance.getId() != null ? instance.getId().toString() : null);
-            providerInstance.setName(instance.getName());
-            cloudProviderInfo.setInstance(providerInstance);
-            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instance.getMachineType()));
-            int indexSlash = instance.getZone().lastIndexOf("/");
-            String availabilityZone = indexSlash != -1 ? instance.getZone().substring(indexSlash  + 1) : instance.getZone();
-            cloudProviderInfo.setAvailabilityZone(availabilityZone);
-            int defisLastIndex = availabilityZone != null ? availabilityZone.lastIndexOf("-") : -1;
-            cloudProviderInfo.setRegion(defisLastIndex != -1 ? availabilityZone.substring(0, defisLastIndex) : null);
+            if (instance != null) {
+                cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(instance.getId(), instance.getName()));
+                cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instance.getMachineType()));
+                String zone = instance.getZone();
+                if (zone != null) {
+                    int indexSlash = zone.lastIndexOf("/");
+                    String availabilityZone = indexSlash != -1 ? zone.substring(indexSlash  + 1) : zone;
+                    cloudProviderInfo.setAvailabilityZone(availabilityZone);
+                    int defisLastIndex = availabilityZone.lastIndexOf("-");
+                    cloudProviderInfo.setRegion(defisLastIndex != -1 ? availabilityZone.substring(0, defisLastIndex) : null);
+                }
+            }
+            if (project != null) {
+                cloudProviderInfo.setProject(new CloudProviderInfo.ProviderProject(project.getProjectId(), project.getNumericProjectId()));
+            }
             return cloudProviderInfo;
         }
 
@@ -303,6 +314,88 @@ public class Cloud {
      * }
      */
     private static class AzureMetadata {
+        private String location;
+        private String name;
+        private String resourceGroupName;
+        private String subscriptionId;
+        private String vmId;
+        private String vmScaleSetName;
+        private String vmSize;
+        private String zone;
 
+        public CloudProviderInfo convert() {
+            CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("azure");
+            cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(subscriptionId));
+            cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(vmId, name));
+            cloudProviderInfo.setProject(new CloudProviderInfo.ProviderProject(resourceGroupName));
+            cloudProviderInfo.setAvailabilityZone(zone);
+            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(vmSize));
+            cloudProviderInfo.setRegion(location);
+            return cloudProviderInfo;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public void setLocation(String location) {
+            this.location = location;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getResourceGroupName() {
+            return resourceGroupName;
+        }
+
+        public void setResourceGroupName(String resourceGroupName) {
+            this.resourceGroupName = resourceGroupName;
+        }
+
+        public String getSubscriptionId() {
+            return subscriptionId;
+        }
+
+        public void setSubscriptionId(String subscriptionId) {
+            this.subscriptionId = subscriptionId;
+        }
+
+        public String getVmId() {
+            return vmId;
+        }
+
+        public void setVmId(String vmId) {
+            this.vmId = vmId;
+        }
+
+        public String getVmScaleSetName() {
+            return vmScaleSetName;
+        }
+
+        public void setVmScaleSetName(String vmScaleSetName) {
+            this.vmScaleSetName = vmScaleSetName;
+        }
+
+        public String getVmSize() {
+            return vmSize;
+        }
+
+        public void setVmSize(String vmSize) {
+            this.vmSize = vmSize;
+        }
+
+        public String getZone() {
+            return zone;
+        }
+
+        public void setZone(String zone) {
+            this.zone = zone;
+        }
     }
 }
