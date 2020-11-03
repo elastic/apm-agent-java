@@ -23,12 +23,4 @@
         now enforced through the maven.compiler.release property -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-plugin-sdk</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
 </project>

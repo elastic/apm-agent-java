@@ -169,19 +169,15 @@ public class IndyBootstrap {
      */
     private static final String INDY_BOOTSTRAP_CLASS_NAME = "java.lang.IndyBootstrapDispatcher";
     /**
-     * Needs to be loaded from the bootstrap CL because it uses {@link Unsafe}
+     * Needs to be loaded from the bootstrap CL because it uses {@link Unsafe}.
+     * In addition, needs to be loaded explicitly by name only when running on Java 9, because compiled with Java 9
      */
     private static final String INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME = "co.elastic.apm.agent.bci.IndyBootstrapDispatcherModuleSetter";
     /**
      * The class file of {@code java.lang.IndyBootstrapDispatcher}.
-     * Ends with {@code clazz} because if it ended with {@code clazz}, it would be loaded like a regular class.
+     * Ends with {@code clazz} because if it ended with {@code class}, it would be loaded like a regular class.
      */
     private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/IndyBootstrapDispatcher.clazz";
-    /**
-     * The class file of {@code IndyBootstrapDispatcherModuleSetter}.
-     * Ends with {@code clazz} because if it ended with {@code clazz}, it would be loaded like a regular class.
-     */
-    private static final String INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE = "bootstrap/IndyBootstrapDispatcherModuleSetter.clazz";
     /**
      * Caches the names of classes that are defined within a package and it's subpackages
      */
@@ -204,21 +200,19 @@ public class IndyBootstrap {
         }
     }
 
-    private static Class<?> loadClassByBootCL(String className, String classFile) throws Exception {
-        try {
-            return Class.forName(className, false, null);
-        } catch (ClassNotFoundException e) {
-            byte[] bootstrapClass = IOUtils.readToBytes(ClassLoader.getSystemClassLoader().getResourceAsStream(classFile));
-            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, bootstrapClass));
-        }
-        return Class.forName(className, false, null);
-    }
-
     /**
      * Injects the {@code java.lang.IndyBootstrapDispatcher} class into the bootstrap class loader if it wasn't already.
      */
     private static Class<?> initIndyBootstrap(final Logger logger) throws Exception {
-        Class<?> indyBootstrapDispatcherClass = loadClassByBootCL(INDY_BOOTSTRAP_CLASS_NAME, INDY_BOOTSTRAP_RESOURCE);
+        Class<?> indyBootstrapDispatcherClass;
+        try {
+            indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
+        } catch (ClassNotFoundException e) {
+            byte[] bootstrapClass = IOUtils.readToBytes(ClassLoader.getSystemClassLoader().getResourceAsStream(INDY_BOOTSTRAP_RESOURCE));
+            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(INDY_BOOTSTRAP_CLASS_NAME, bootstrapClass));
+            indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
+        }
+
         if (JvmRuntimeInfo.getMajorVersion() >= 9 && JvmRuntimeInfo.isJ9VM()) {
             try {
                 logger.info("Overriding IndyBootstrapDispatcher class's module to java.base module");
@@ -230,10 +224,16 @@ public class IndyBootstrap {
         return indyBootstrapDispatcherClass;
     }
 
+    /**
+     * A package-private method for unit-testing of the module overriding functionality
+     *
+     * @param targetClass class for which module should be overridden with the {@code java.base} module
+     * @throws Throwable in case of any failure related to module overriding
+     */
     static void setJavaBaseModule(Class<?> targetClass) throws Throwable {
         // In order to override the original unnamed module assigned to the IndyBootstrapDispatcher, we rely on the
         // Unsafe API, which requires the caller to be loaded by the Bootstrap CL
-        Class<?> moduleSetterClass = loadClassByBootCL(INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME, INDY_BOOTSTRAP_MODULE_SETTER_RESOURCE);
+        Class<?> moduleSetterClass = Class.forName(INDY_BOOTSTRAP_MODULE_SETTER_CLASS_NAME, false, null);
         MethodHandles.lookup()
             .findStatic(moduleSetterClass, "setJavaBaseModule", MethodType.methodType(void.class, Class.class))
             .invoke(targetClass);

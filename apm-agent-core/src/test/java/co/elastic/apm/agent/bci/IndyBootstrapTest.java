@@ -25,9 +25,15 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import net.bytebuddy.dynamic.loading.ClassInjector;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.util.IOUtils;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.io.InputStream;
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class IndyBootstrapTest extends AbstractInstrumentationTest {
 
@@ -35,6 +41,12 @@ class IndyBootstrapTest extends AbstractInstrumentationTest {
     void testSetJavaBaseModule() throws Throwable {
         Module javaBaseModule = Class.class.getModule();
         assertNotEquals(IndyBootstrapTest.class.getModule(), javaBaseModule);
+
+        // In order to test this functionality, IndyBootstrapDispatcherModuleSetter needs to be loaded from the Boot CL
+        InputStream classFileAsStream = IndyBootstrapDispatcherModuleSetter.class.getResourceAsStream("IndyBootstrapDispatcherModuleSetter.class");
+        byte[] bootstrapClass = IOUtils.readToBytes(classFileAsStream);
+        ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(IndyBootstrapDispatcherModuleSetter.class.getName(), bootstrapClass));
+
         IndyBootstrap.setJavaBaseModule(IndyBootstrapTest.class);
         assertEquals(IndyBootstrapTest.class.getModule(), javaBaseModule);
     }
