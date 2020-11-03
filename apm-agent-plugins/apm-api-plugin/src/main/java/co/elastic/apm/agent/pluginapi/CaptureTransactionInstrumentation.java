@@ -90,10 +90,10 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Nullable @Advice.Enter Object transactionObj,
+    public static void onMethodExit(@Advice.Enter @Nullable Object transaction,
                                     @Advice.Thrown Throwable t) {
-        if (transactionObj instanceof Transaction) {
-            ((Transaction) transactionObj).captureException(t)
+        if (transaction instanceof Transaction) {
+            ((Transaction) transaction).captureException(t)
                 .deactivate()
                 .end();
         }

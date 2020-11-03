@@ -82,10 +82,10 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Nullable @Advice.Enter Object spanObj,
+    public static void onMethodExit(@Nullable @Advice.Enter Object span,
                                     @Advice.Thrown Throwable t) {
-        if (spanObj instanceof Span) {
-            ((Span) spanObj).captureException(t)
+        if (span instanceof Span) {
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }

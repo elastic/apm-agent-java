@@ -30,7 +30,6 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -61,48 +60,54 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
         config = tracer.getConfig(StacktraceConfiguration.class);
     }
 
+    @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onMethodEnter(
         @Advice.Origin Class<?> clazz,
         @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
         @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "value") String spanName,
         @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "type") String type,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") String subtype,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") String action) {
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "subtype") @Nullable String subtype,
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.Traced", method = "action") @Nullable String action) {
 
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent != null) {
-            Span span = parent.createSpan();
-            span.withType(type.isEmpty() ? "app" : type);
-            span.withSubtype(subtype);
-            span.withAction(action);
-            span.withName(spanName.isEmpty() ? signature : spanName)
+            return parent.createSpan()
+                .withType(type.isEmpty() ? "app" : type)
+                .withSubtype(subtype)
+                .withAction(action)
+                .withName(spanName.isEmpty() ? signature : spanName)
                 .activate();
-            return span;
-        } else {
-            Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
-            if (transaction != null) {
-                if (spanName.isEmpty()) {
-                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
-                } else {
-                    transaction.withName(spanName, PRIO_USER_SUPPLIED);
-                }
-                transaction.withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
-                    .activate();
-                transaction.setFrameworkName(FRAMEWORK_NAME);
-            }
-            return transaction;
         }
+
+        Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
+        if (transaction == null) {
+            return null;
+        }
+
+        transaction.setFrameworkName(FRAMEWORK_NAME);
+        String name;
+        int namePriority;
+        if (spanName.isEmpty()) {
+            name = signature;
+            namePriority = PRIO_METHOD_SIGNATURE;
+        } else {
+            name = spanName;
+            namePriority = PRIO_USER_SUPPLIED;
+        }
+        return transaction.withName(name, namePriority)
+            .withType(type.isEmpty() ? Transaction.TYPE_REQUEST : type)
+            .activate();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Advice.Enter @Nullable Object abstractSpanObj,
+    public static void onMethodExit(@Advice.Enter @Nullable Object abstractSpan,
                                     @Advice.Thrown Throwable t) {
-        if (abstractSpanObj != null) {
-            AbstractSpan<?> span = (AbstractSpan<?>) abstractSpanObj;
-            span.captureException(t)
-                .deactivate();
-            span.end();
+        if (abstractSpan instanceof AbstractSpan<?>) {
+            ((AbstractSpan<?>) abstractSpan)
+                .captureException(t)
+                .deactivate()
+                .end();
         }
     }
 

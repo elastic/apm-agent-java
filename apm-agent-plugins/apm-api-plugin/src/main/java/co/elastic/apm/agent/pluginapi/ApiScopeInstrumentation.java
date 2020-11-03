@@ -36,8 +36,8 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class ApiScopeInstrumentation extends ApiInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object contextAbstractSpanObj) {
-        ((AbstractSpan<?>) contextAbstractSpanObj).deactivate();
+    public static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context) {
+        ((AbstractSpan<?>) context).deactivate();
     }
 
     @Override
