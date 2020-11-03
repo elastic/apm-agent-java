@@ -29,10 +29,31 @@ public class Cloud {
             AwsMetadata awsMetadata = deserialize(metadata, AwsMetadata.class);
             return awsMetadata.convert();
         } catch (Exception e) {
-            logger.warn("Exception during fetching aws metadata", e);
+            logger.debug("Exception during fetching aws metadata", e);
             return null;
         }
     }
+
+    @Nullable
+    public static CloudProviderInfo getGcpMetadata() {
+        try {
+            String gcpUrl = "http://metadata.google.internal/computeMetadata/v1/?recursive=true";
+            Map<String, String> headers = Map.of("Metadata-Flavor", "Google");
+            String metadata = callRequest(gcpUrl, "GET", headers);
+            GcpMetadata gcpMetadata = deserialize(metadata, GcpMetadata.class);
+            return gcpMetadata.convert();
+        } catch (Exception e) {
+            logger.debug("Got exception during fetching gcp metadata", e);
+            return null;
+        }
+    }
+
+    @Nullable
+    public static CloudProviderInfo getAzureMetadata() {
+
+        return null;
+    }
+
 
     private static <T> T deserialize(String input, Class<T> clazz) throws IOException {
         DslJson<Object> json = new DslJson<>();
@@ -63,18 +84,25 @@ public class Cloud {
         return response;
     }
 
-    @Nullable
-    public static CloudProviderInfo getGcpMetadata() {
-
-        return null;
-    }
-
-    @Nullable
-    public static CloudProviderInfo getAzureMetadata() {
-
-        return null;
-    }
-
+    /**
+     * {
+     *     "accountId": "946960629917",
+     *     "architecture": "x86_64",
+     *     "availabilityZone": "us-east-2a",
+     *     "billingProducts": null,
+     *     "devpayProductCodes": null,
+     *     "marketplaceProductCodes": null,
+     *     "imageId": "ami-07c1207a9d40bc3bd",
+     *     "instanceId": "i-0ae894a7c1c4f2a75",
+     *     "instanceType": "t2.medium",
+     *     "kernelId": null,
+     *     "pendingTime": "2020-06-12T17:46:09Z",
+     *     "privateIp": "172.31.0.212",
+     *     "ramdiskId": null,
+     *     "region": "us-east-2",
+     *     "version": "2017-09-30"
+     * }
+     */
     private static class AwsMetadata {
         private String accountId;
         private String architecture;
@@ -85,13 +113,15 @@ public class Cloud {
         private String version;
 
         public CloudProviderInfo convert() {
-            CloudProviderInfo cloudProviderInfo = new CloudProviderInfo();
-            cloudProviderInfo.setAccount(accountId);
-            cloudProviderInfo.setInstance(instanceId);
-            cloudProviderInfo.setMachine(instanceType);
+            CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("aws");
+            cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(accountId));
+            CloudProviderInfo.ProviderInstance providerInstance = new CloudProviderInfo.ProviderInstance();
+            providerInstance.setId(instanceId);
+            providerInstance.setName(null);
+            cloudProviderInfo.setInstance(providerInstance);
+            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instanceType));
             cloudProviderInfo.setAvailabilityZone(availabilityZone);
             cloudProviderInfo.setRegion(region);
-            cloudProviderInfo.setProvider("aws");
             return cloudProviderInfo;
         }
 
@@ -150,5 +180,129 @@ public class Cloud {
         public void setVersion(String version) {
             this.version = version;
         }
+    }
+
+    /**
+     * {
+     *     "instance": {
+     *         "id": 4306570268266786072,
+     *         "machineType": "projects/513326162531/machineTypes/n1-standard-1",
+     *         "name": "basepi-test",
+     *         "zone": "projects/513326162531/zones/us-west3-a"
+     *     },
+     *     "project": {"numericProjectId": 513326162531, "projectId": "elastic-apm"}
+     * }
+      */
+    private static class GcpMetadata{
+        private GcpInstance instance;
+        private GcpProject project;
+
+        public CloudProviderInfo convert() {
+            CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("gcp");
+            cloudProviderInfo.setAccount(null);
+            CloudProviderInfo.ProviderInstance providerInstance = new CloudProviderInfo.ProviderInstance();
+            providerInstance.setId(instance.getId() != null ? instance.getId().toString() : null);
+            providerInstance.setName(instance.getName());
+            cloudProviderInfo.setInstance(providerInstance);
+            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instance.getMachineType()));
+            int indexSlash = instance.getZone().lastIndexOf("/");
+            String availabilityZone = indexSlash != -1 ? instance.getZone().substring(indexSlash  + 1) : instance.getZone();
+            cloudProviderInfo.setAvailabilityZone(availabilityZone);
+            int defisLastIndex = availabilityZone != null ? availabilityZone.lastIndexOf("-") : -1;
+            cloudProviderInfo.setRegion(defisLastIndex != -1 ? availabilityZone.substring(0, defisLastIndex) : null);
+            return cloudProviderInfo;
+        }
+
+        public GcpInstance getInstance() {
+            return instance;
+        }
+
+        public void setInstance(GcpInstance instance) {
+            this.instance = instance;
+        }
+
+        public GcpProject getProject() {
+            return project;
+        }
+
+        public void setProject(GcpProject project) {
+            this.project = project;
+        }
+    }
+
+    private static class GcpInstance {
+        private Long id;
+        private String name;
+        private String machineType;
+        private String zone;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getMachineType() {
+            return machineType;
+        }
+
+        public void setMachineType(String machineType) {
+            this.machineType = machineType;
+        }
+
+        public String getZone() {
+            return zone;
+        }
+
+        public void setZone(String zone) {
+            this.zone = zone;
+        }
+    }
+
+    private static class GcpProject {
+        private Long numericProjectId;
+        private String projectId;
+
+        public Long getNumericProjectId() {
+            return numericProjectId;
+        }
+
+        public void setNumericProjectId(Long numericProjectId) {
+            this.numericProjectId = numericProjectId;
+        }
+
+        public String getProjectId() {
+            return projectId;
+        }
+
+        public void setProjectId(String projectId) {
+            this.projectId = projectId;
+        }
+    }
+
+    /**
+     * {
+     *     "location": "westus2",
+     *     "name": "basepi-test",
+     *     "resourceGroupName": "basepi-testing",
+     *     "subscriptionId": "7657426d-c4c3-44ac-88a2-3b2cd59e6dba",
+     *     "vmId": "e11ebedc-019d-427f-84dd-56cd4388d3a8",
+     *     "vmScaleSetName": "",
+     *     "vmSize": "Standard_D2s_v3",
+     *     "zone": ""
+     * }
+     */
+    private static class AzureMetadata {
+
     }
 }

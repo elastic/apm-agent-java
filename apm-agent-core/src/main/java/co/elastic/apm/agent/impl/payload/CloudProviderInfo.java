@@ -12,18 +12,23 @@ public class CloudProviderInfo {
 
     private String provider;
 
-    private String instance;
-
     private String availabilityZone;
-
-    private String machine;
 
     private String region;
 
+    private ProviderInstance instance;
+
     // aws - azure
-    private String account;
+    private ProviderAccount account;
+
     // gcp - azure
-    private String project;
+    private ProviderProject project;
+
+    private ProviderMachine machine;
+
+    public CloudProviderInfo(String provider) {
+        this.provider = provider;
+    }
 
     public String getProvider() {
         return provider;
@@ -31,14 +36,6 @@ public class CloudProviderInfo {
 
     public void setProvider(String provider) {
         this.provider = provider;
-    }
-
-    public String getInstance() {
-        return instance;
-    }
-
-    public void setInstance(String instance) {
-        this.instance = instance;
     }
 
     public String getAvailabilityZone() {
@@ -49,14 +46,6 @@ public class CloudProviderInfo {
         this.availabilityZone = availabilityZone;
     }
 
-    public String getMachine() {
-        return machine;
-    }
-
-    public void setMachine(String machine) {
-        this.machine = machine;
-    }
-
     public String getRegion() {
         return region;
     }
@@ -65,20 +54,36 @@ public class CloudProviderInfo {
         this.region = region;
     }
 
-    public String getAccount() {
+    public ProviderInstance getInstance() {
+        return instance;
+    }
+
+    public void setInstance(ProviderInstance instance) {
+        this.instance = instance;
+    }
+
+    public ProviderAccount getAccount() {
         return account;
     }
 
-    public void setAccount(String account) {
+    public void setAccount(ProviderAccount account) {
         this.account = account;
     }
 
-    public String getProject() {
+    public ProviderProject getProject() {
         return project;
     }
 
-    public void setProject(String project) {
+    public void setProject(ProviderProject project) {
         this.project = project;
+    }
+
+    public ProviderMachine getMachine() {
+        return machine;
+    }
+
+    public void setMachine(ProviderMachine machine) {
+        this.machine = machine;
     }
 
     @Nullable
@@ -127,4 +132,79 @@ public class CloudProviderInfo {
         return null;
     }
 
+
+    public static class ProviderAccount {
+        private String id;
+
+        public ProviderAccount(String id) {
+            this.id = id;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+    }
+
+    public static class ProviderInstance {
+        private String id;
+        private String name;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+
+    public static class ProviderProject {
+        private String id;
+        private String name;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    public static class ProviderMachine {
+        private String type;
+
+        public ProviderMachine(String type) {
+            this.type = type;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+    }
 }
