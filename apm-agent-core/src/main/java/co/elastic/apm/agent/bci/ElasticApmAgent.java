@@ -41,7 +41,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.indymodule.ClassModuleInstrumentation;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
@@ -422,8 +421,8 @@ public class ElasticApmAgent {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
         // external plugins are always indy plugins
-        if ((!(instrumentation instanceof TracerAwareInstrumentation) || ((TracerAwareInstrumentation) instrumentation).indyPlugin())
-            && !(instrumentation instanceof ClassModuleInstrumentation)) {
+        if (!(instrumentation instanceof TracerAwareInstrumentation)
+            || ((TracerAwareInstrumentation) instrumentation).indyPlugin()) {
             validateAdvice(instrumentation.getAdviceClass());
             withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
         }
