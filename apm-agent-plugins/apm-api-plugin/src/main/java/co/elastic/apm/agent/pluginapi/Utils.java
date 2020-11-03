@@ -26,7 +26,8 @@ package co.elastic.apm.agent.pluginapi;
 
 public final class Utils {
 
-    private Utils() { }
+    private Utils() {
+    }
 
     public static final String FRAMEWORK_NAME = "API";
 }
