@@ -1,8 +1,8 @@
-from locust import HttpUser, task, constant
+from locust import HttpUser, task, constant_pacing
 
 
 class QuickstartUser(HttpUser):
-    wait_time = constant(1)
+    wait_time = constant_pacing(1)
 
     @task
     def index_page(self):
