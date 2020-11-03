@@ -100,7 +100,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
-    private static final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
+    private static final List<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     // visible for testing
     final JsonWriter jw;
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
@@ -172,7 +172,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeStringValue(sanitizeLabelKey(globalLabelKeys.get(0), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
             writeStringValue(globalLabelValues.get(0), replaceBuilder, jw);
-            for (int i = 0; i < globalLabelKeys.size(); i++) {
+            for (int i = 1; i < globalLabelKeys.size(); i++) {
                 jw.writeByte(COMMA);
                 writeStringValue(sanitizeLabelKey(globalLabelKeys.get(i), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
@@ -498,15 +498,21 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeTransaction(final Transaction transaction) {
+        TraceContext traceContext = transaction.getTraceContext();
+
         jw.writeByte(OBJECT_START);
         writeTimestamp(transaction.getTimestamp());
         writeField("name", transaction.getNameForSerialization());
-        serializeTraceContext(transaction.getTraceContext(), false);
+        serializeTraceContext(traceContext, false);
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDurationMs());
         writeField("result", transaction.getResult());
-        serializeContext(transaction, transaction.getContext(), transaction.getTraceContext());
+        serializeContext(transaction, transaction.getContext(), traceContext);
         serializeSpanCount(transaction.getSpanCount());
+        double sampleRate = traceContext.getSampleRate();
+        if (!Double.isNaN(sampleRate)) {
+            writeField("sample_rate", sampleRate);
+        }
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
     }
@@ -540,18 +546,25 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeSpan(final Span span) {
+        TraceContext traceContext = span.getTraceContext();
+
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
-        serializeTraceContext(span.getTraceContext(), true);
+
+        serializeTraceContext(traceContext, true);
         writeField("duration", span.getDurationMs());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         } else if (span.getStackFrames() != null) {
             serializeStackTrace(span.getStackFrames());
         }
-        serializeSpanContext(span.getContext(), span.getTraceContext());
+        serializeSpanContext(span.getContext(), traceContext);
         writeHexArray("child_ids", span.getChildIds());
+        double sampleRate = traceContext.getSampleRate();
+        if (!Double.isNaN(sampleRate)) {
+            writeField("sample_rate", sampleRate);
+        }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
@@ -658,8 +671,8 @@ public class DslJsonSerializer implements PayloadSerializer {
             return true;
         }
         String className = stackTraceElement.getClassName();
-        for (String excludedStackFrame : excludedStackFrames) {
-            if (className.startsWith(excludedStackFrame)) {
+        for (int i = 0, size = excludedStackFrames.size(); i < size; i++) {
+            if (className.startsWith(excludedStackFrames.get(i))) {
                 return true;
             }
         }
@@ -987,7 +1000,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private static CharSequence sanitizeLabelKey(String key, StringBuilder replaceBuilder) {
+    public static CharSequence sanitizeLabelKey(String key, StringBuilder replaceBuilder) {
         for (int i = 0; i < DISALLOWED_IN_LABEL_KEY.length; i++) {
             if (key.contains(DISALLOWED_IN_LABEL_KEY[i])) {
                 return replaceAll(key, DISALLOWED_IN_LABEL_KEY, "_", replaceBuilder);
@@ -1171,7 +1184,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeStringValue(value, replaceBuilder, jw);
     }
 
-    private static void writeStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
+    public static void writeStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));

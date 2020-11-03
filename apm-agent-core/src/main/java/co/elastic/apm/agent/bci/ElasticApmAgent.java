@@ -69,6 +69,7 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -77,6 +78,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
+import java.nio.file.Paths;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -130,9 +133,20 @@ public class ElasticApmAgent {
      * @param agentJarFile    a reference to the agent jar on the file system
      */
     @SuppressWarnings("unused") // called through reflection
-    public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
+    public static void initialize(@Nullable String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
+
+        // silently early abort when agent is disabled to minimize the number of loaded classes
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
+        for (ConfigurationSource configSource : configSources) {
+            String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
+            if (enabled != null && !Boolean.parseBoolean(enabled)) {
+                return;
+            }
+
+        }
+
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
         initInstrumentation(tracer, instrumentation, premain);
         tracer.start(premain);
     }
@@ -205,8 +219,24 @@ public class ElasticApmAgent {
 
     private static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                                         Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
-        if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        if (!coreConfig.isEnabled()) {
             return;
+        }
+        String bytecodeDumpPath = coreConfig.getBytecodeDumpPath();
+        if (bytecodeDumpPath != null) {
+            bytecodeDumpPath = bytecodeDumpPath.trim();
+            if (!bytecodeDumpPath.isEmpty()) {
+                try {
+                    File bytecodeDumpDir = Paths.get(bytecodeDumpPath).toFile();
+                    if (!bytecodeDumpDir.exists()) {
+                        bytecodeDumpDir.mkdirs();
+                    }
+                    System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
+                } catch (Exception e) {
+                    System.err.println("Failed to create directory to dump instrumented bytecode: " + e.getMessage());
+                }
+            }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             pluginClassLoaderByAdviceClass.put(
@@ -229,7 +259,6 @@ public class ElasticApmAgent {
         // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
-        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
             instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
                 @Override
@@ -435,6 +464,12 @@ public class ElasticApmAgent {
         if (classLoader == null) {
             classLoader = ClassLoader.getSystemClassLoader();
         }
+
+        int adviceModifiers = adviceClass.getModifiers();
+        if (!Modifier.isPublic(adviceModifiers)) {
+            throw new IllegalStateException(String.format("advice class %s should be public", adviceClassName));
+        }
+
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, ClassFileLocator.ForClassLoader.of(classLoader), TypePool.Default.ReaderMode.FAST);
         TypeDescription typeDescription = pool.describe(adviceClassName).resolve();
         for (MethodDescription.InDefinedShape enterAdvice : typeDescription.getDeclaredMethods().filter(isStatic().and(isAnnotatedWith(Advice.OnMethodEnter.class)))) {
@@ -630,6 +665,11 @@ public class ElasticApmAgent {
     @Nullable
     public static String getAgentHome() {
         return agentJarFile == null ? null : agentJarFile.getParent();
+    }
+
+    @Nullable
+    public static File getAgentJarFile() {
+        return agentJarFile;
     }
 
     /**

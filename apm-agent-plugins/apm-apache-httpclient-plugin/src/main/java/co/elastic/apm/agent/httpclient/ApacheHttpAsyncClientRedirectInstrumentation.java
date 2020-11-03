@@ -48,7 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttpClientInstrumentation {
 
-    private static class ApacheHttpAsyncClientRedirectAdvice {
+    public static class ApacheHttpAsyncClientRedirectAdvice {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void onAfterExecute(@Advice.Argument(value = 0) HttpRequest original,
                                           @Advice.Return(typing = Assigner.Typing.DYNAMIC) @Nullable HttpRequest redirect) {
