@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.StringUtils;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class CloudProviderInfo {
@@ -18,26 +19,22 @@ public class CloudProviderInfo {
 
     private ProviderInstance instance;
 
-    // aws - azure
     private ProviderAccount account;
 
-    // gcp - azure
     private ProviderProject project;
 
     private ProviderMachine machine;
 
-    public CloudProviderInfo(String provider) {
+    public CloudProviderInfo(@Nonnull String provider) {
         this.provider = provider;
     }
 
+    @Nonnull
     public String getProvider() {
         return provider;
     }
 
-    public void setProvider(String provider) {
-        this.provider = provider;
-    }
-
+    @Nullable
     public String getAvailabilityZone() {
         return availabilityZone;
     }
@@ -46,6 +43,7 @@ public class CloudProviderInfo {
         this.availabilityZone = availabilityZone;
     }
 
+    @Nullable
     public String getRegion() {
         return region;
     }
@@ -54,14 +52,16 @@ public class CloudProviderInfo {
         this.region = region;
     }
 
+    @Nullable
     public ProviderInstance getInstance() {
         return instance;
     }
 
-    public void setInstance(ProviderInstance instance) {
+    public void setInstance(@Nonnull ProviderInstance instance) {
         this.instance = instance;
     }
 
+    @Nullable
     public ProviderAccount getAccount() {
         return account;
     }
@@ -70,6 +70,7 @@ public class CloudProviderInfo {
         this.account = account;
     }
 
+    @Nullable
     public ProviderProject getProject() {
         return project;
     }
@@ -78,11 +79,12 @@ public class CloudProviderInfo {
         this.project = project;
     }
 
+    @Nullable
     public ProviderMachine getMachine() {
         return machine;
     }
 
-    public void setMachine(ProviderMachine machine) {
+    public void setMachine(@Nonnull ProviderMachine machine) {
         this.machine = machine;
     }
 
@@ -134,17 +136,20 @@ public class CloudProviderInfo {
 
     public static class ProviderAccount {
         private String id;
+        private String name;
 
-        public ProviderAccount(String id) {
+        public ProviderAccount(@Nullable String id) {
             this.id = id;
         }
 
+        @Nullable
         public String getId() {
             return id;
         }
 
-        public void setId(String id) {
-            this.id = id;
+        @Nullable
+        public String getName() {
+            return name;
         }
     }
 
@@ -161,20 +166,14 @@ public class CloudProviderInfo {
             this.name = name;
         }
 
+        @Nullable
         public String getId() {
             return id;
         }
 
-        public void setId(String id) {
-            this.id = id;
-        }
-
+        @Nullable
         public String getName() {
             return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
         }
     }
 
@@ -192,36 +191,27 @@ public class CloudProviderInfo {
             this.id = id != null ? id.toString() : null;
         }
 
+        @Nullable
         public String getId() {
             return id;
         }
 
-        public void setId(String id) {
-            this.id = id;
-        }
-
+        @Nullable
         public String getName() {
             return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
         }
     }
 
     public static class ProviderMachine {
         private String type;
 
-        public ProviderMachine(String type) {
+        public ProviderMachine(@Nullable String type) {
             this.type = type;
         }
 
+        @Nullable
         public String getType() {
             return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
         }
     }
 }

@@ -41,6 +41,7 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.User;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
+import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import co.elastic.apm.agent.impl.payload.Language;
 import co.elastic.apm.agent.impl.payload.Node;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
@@ -66,6 +67,7 @@ import com.dslplatform.json.StringConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -162,6 +164,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues());
         serializeSystem(metaData.getSystem());
+        serializeCloudProvider(metaData.getCloudProvider());
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
@@ -449,6 +452,42 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("hostname", system.getHostname());
         writeLastField("platform", system.getPlatform());
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private void serializeCloudProvider(final @Nonnull CloudProviderInfo cloudProviderInfo) {
+        writeFieldName("cloud");
+        jw.writeByte(OBJECT_START);
+        writeField("availability_zone", cloudProviderInfo.getAvailabilityZone());
+        if (cloudProviderInfo.getAccount() != null) {
+            writeFieldName("account");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeField("id", cloudProviderInfo.getAccount().getId());
+            writeField("name", cloudProviderInfo.getAccount().getName());
+            jw.writeByte(JsonWriter.OBJECT_END);
+        }
+        if (cloudProviderInfo.getInstance() != null) {
+            writeFieldName("instance");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeField("id", cloudProviderInfo.getInstance().getId());
+            writeField("name", cloudProviderInfo.getInstance().getName());
+            jw.writeByte(JsonWriter.OBJECT_END);
+        }
+        if (cloudProviderInfo.getMachine() != null) {
+            writeFieldName("machine");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeField("type", cloudProviderInfo.getMachine().getType());
+            jw.writeByte(JsonWriter.OBJECT_END);
+        }
+        if (cloudProviderInfo.getProject() != null) {
+            writeFieldName("project");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeField("id", cloudProviderInfo.getProject().getId());
+            writeField("name", cloudProviderInfo.getProject().getName());
+            jw.writeByte(JsonWriter.OBJECT_END);
+        }
+        writeField("provider", cloudProviderInfo.getProvider());
+        writeField("region", cloudProviderInfo.getRegion());
+        jw.writeByte(OBJECT_END);
     }
 
     private void serializeContainerInfo(@Nullable SystemInfo.Container container) {

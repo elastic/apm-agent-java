@@ -120,4 +120,9 @@ public class MetaData {
     public ArrayList<String> getGlobalLabelValues() {
         return globalLabelValues;
     }
+
+    @Nullable
+    public CloudProviderInfo getCloudProvider() {
+        return cloudProvider;
+    }
 }
