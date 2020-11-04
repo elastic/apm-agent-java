@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.pluginapi;
 
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
@@ -77,18 +78,19 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("ensureParentId"));
         }
 
-        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction) {
+        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+                                            @Advice.Return String returnValue) {
             if (transaction instanceof Transaction) {
                 final TraceContext traceContext = ((Transaction) transaction).getTraceContext();
-                if (traceContext.getParentId().isEmpty()) {
-                    traceContext.getParentId().setToRandomValue();
+                Id parentId = traceContext.getParentId();
+                if (parentId.isEmpty()) {
+                    parentId.setToRandomValue();
                 }
-                return traceContext.getParentId().toString();
+                return parentId.toString();
             }
-            return null;
+            return returnValue;
         }
     }
 
