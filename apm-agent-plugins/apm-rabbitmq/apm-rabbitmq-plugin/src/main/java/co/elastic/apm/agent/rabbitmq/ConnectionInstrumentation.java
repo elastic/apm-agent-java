@@ -76,7 +76,7 @@ public class ConnectionInstrumentation extends BaseInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Nullable @Advice.Thrown Throwable thrown,
+    public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
                               @Advice.Return @Nullable Channel channel) {
 
         if (thrown != null || channel == null) {

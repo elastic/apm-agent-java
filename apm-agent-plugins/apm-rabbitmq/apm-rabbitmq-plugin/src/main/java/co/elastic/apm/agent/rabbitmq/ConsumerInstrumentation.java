@@ -27,6 +27,7 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Envelope;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -77,7 +78,8 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
         public static Object onHandleDelivery(@Advice.Origin Class<?> originClazz,
-                                              @Advice.Argument(value = 2) AMQP.BasicProperties properties) {
+                                              @Advice.Argument(value = 1) @Nullable Envelope envelope,
+                                              @Advice.Argument(value = 2) @Nullable AMQP.BasicProperties properties) {
             if (!tracer.isRunning() || tracer.currentTransaction() != null) {
                 return null;
             }
@@ -88,14 +90,20 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
                 return null;
             }
 
-            transaction.withType("messaging").withName("RabbitMQ message received");
+            String exchange = envelope != null ? envelope.getExchange() : null;
+            if (exchange == null) {
+                exchange = "unknown";
+            }
+
+            transaction.withType("messaging")
+                .withName("Consumer#handleDelivery from ").appendToName(exchange);
 
             return transaction.activate();
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterHandleDelivery(@Advice.Enter @Nullable final Object transactionObject,
-                                               @Advice.Thrown final Throwable throwable) {
+                                               @Advice.Thrown @Nullable final Throwable throwable) {
             if (transactionObject instanceof Transaction) {
                 Transaction transaction = (Transaction) transactionObject;
                 transaction.captureException(throwable)

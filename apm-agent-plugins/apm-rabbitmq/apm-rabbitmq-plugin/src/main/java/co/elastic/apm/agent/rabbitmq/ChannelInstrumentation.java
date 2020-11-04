@@ -54,7 +54,9 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-
+/**
+ * Instruments implementations of {@link com.rabbitmq.client.Channel}
+ */
 public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
     @Override
@@ -134,12 +136,13 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             exitSpan.withType("messaging")
                 .withSubtype("rabbitmq")
                 .withAction("send")
-                .withName("RabbitMQ message sent to ")
+                .withName("Channel#basicPublish to ")
                 .appendToName(exchange);
 
             AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties);
 
-            exitSpan.getContext().getMessage().withQueue(exchange);
+            exitSpan.getContext().getMessage()
+                .withQueue(exchange);
 
             Destination destination = exitSpan.getContext().getDestination();
 

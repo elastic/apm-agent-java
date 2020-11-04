@@ -54,7 +54,7 @@ public class ConsumerInstrumentationTest extends RabbitMQTest {
         getReporter().awaitTransactionCount(1);
 
         Transaction transaction = getReporter().getFirstTransaction();
-        checkTransaction(transaction);
+        checkTransaction(transaction, exchange);
     }
 
     @Test
@@ -87,7 +87,7 @@ public class ConsumerInstrumentationTest extends RabbitMQTest {
 
         Transaction childTransaction = getReporter().getTransactions().get(1);
 
-        checkTransaction(childTransaction);
+        checkTransaction(childTransaction, exchange);
         checkParentChild(getReporter().getFirstSpan(), childTransaction);
 
     }

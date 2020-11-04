@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -72,8 +72,8 @@ public class ChannelInstrumentationTest extends RabbitMQTest {
             }
         });
 
-        getTracer().startRootTransaction(getClass().getClassLoader())
-            .withName("Rabbit-Test Transaction")
+        Transaction rootTransaction = getTracer().startRootTransaction(getClass().getClassLoader())
+            .withName("Rabbit-Test Root Transaction")
             .withType("request")
             .withResult("success")
             .activate();
@@ -88,23 +88,26 @@ public class ChannelInstrumentationTest extends RabbitMQTest {
         getReporter().awaitTransactionCount(2);
         getReporter().awaitSpanCount(1);
 
+        Transaction childTransaction = null;
+        for (Transaction t : getReporter().getTransactions()) {
+            if (t != rootTransaction) {
+                assertThat(childTransaction).isNull();
+                childTransaction = t;
+            }
+        }
+        assertThat(childTransaction).isNotNull();
+        checkTransaction(childTransaction, exchange);
+
         Span span = getReporter().getSpans().get(0);
         checkSpan(span, exchange);
+
+        // span should be child of the first transaction
+        checkParentChild(rootTransaction, span);
+        // second transaction should be the child of span
+        checkParentChild(span, childTransaction);
     }
 
-    protected static void checkSpan(Span span, String exchange) {
-        assertThat(span.getType()).isEqualTo("messaging");
-        assertThat(span.getSubtype()).isEqualTo("rabbitmq");
-        assertThat(span.getAction()).isEqualTo("send");
-        assertThat(span.getNameAsString()).isEqualTo("RabbitMQ message sent to " + exchange);
-
-        assertThat(span.getContext().getMessage().getQueueName()).isEqualTo(exchange);
-        Destination.Service service = span.getContext().getDestination().getService();
-        assertThat(service.getType()).isEqualTo("messaging");
-        assertThat(service.getName().toString()).isEqualTo("rabbitmq");
-        assertThat(service.getResource().toString()).isEqualTo("rabbitmq/" + exchange);
 
 
-    }
 
 }

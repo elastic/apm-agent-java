@@ -71,6 +71,7 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
         getReporter().awaitSpanCount(1);
 
         Span span = getReporter().getFirstSpan();
+        checkSpan(span, exchange);
 
         Transaction transaction1 = null;
         Transaction transaction2 = null;
@@ -79,7 +80,7 @@ public abstract class RabbitMQPluginIT extends RabbitMQTest {
                 assertThat(t.getNameAsString()).isEqualTo("RabbitIT Transaction");
                 transaction1 = t;
             } else {
-                checkTransaction(t);
+                checkTransaction(t, exchange);
                 transaction2 = t;
             }
         }
