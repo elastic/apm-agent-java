@@ -22,91 +22,81 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.hibernate.search.v5_x;
+package co.elastic.apm.agent.hibernatesearch;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.hibernate.search.HibernateSearchConstants;
-import co.elastic.apm.agent.hibernate.search.HibernateSearchHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.hibernate.search.query.hibernate.impl.FullTextQueryImpl;
+import org.hibernate.search.engine.search.query.SearchQuery;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class HibernateSearch5Instrumentation extends TracerAwareInstrumentation {
+public class HibernateSearch6Instrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Class<?> getAdviceClass() {
-        return HibernateSearch5ExecuteAdvice.class;
+        return Hibernate6ExecuteAdvice.class;
     }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Query");
+        return nameContains("Search");
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.hibernate.search.FullTextQuery"));
+            .and(classLoaderCanLoadClass("org.hibernate.search.engine.search.query.SearchFetchable"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("org.hibernate.search.FullTextQuery")));
+            .and(hasSuperType(named("org.hibernate.search.engine.search.query.SearchFetchable")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("list")
-            .or(named("scroll"))
-            .or(named("iterate"));
+        return nameStartsWith("fetch");
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
+        return Arrays.asList(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, "experimental");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
+    public static class Hibernate6ExecuteAdvice {
 
-    public static class HibernateSearch5ExecuteAdvice {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onBeforeExecute(@Advice.This SearchQuery<?> query,
+                                             @Advice.Origin("#m") String methodName) {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(@Advice.This FullTextQueryImpl query,
-                                            @Advice.Local("span") Span span,
-                                            @Advice.Origin("#m") String methodName) {
-            span = HibernateSearchHelper.createAndActivateSpan(tracer, methodName, query.getQueryString());
+            return HibernateSearchHelper.createAndActivateSpan(tracer, methodName, query.getQueryString());
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Local("span") @Nullable Span span,
-            @Advice.Thrown Throwable t) {
-            if (span != null) {
-                try {
-                    span.captureException(t);
-                } finally {
-                    span.end();
-                    span.deactivate();
-                }
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
+                                          @Advice.Thrown @Nullable Throwable t) {
+
+            if (span instanceof Span) {
+                ((Span) span).captureException(t)
+                    .deactivate()
+                    .end();
             }
         }
     }
