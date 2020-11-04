@@ -32,22 +32,22 @@ import org.stagemonitor.util.IOUtils;
 import java.io.InputStream;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class IndyBootstrapTest extends AbstractInstrumentationTest {
 
     @Test
     void testSetJavaBaseModule() throws Throwable {
         Module javaBaseModule = Class.class.getModule();
-        assertNotEquals(IndyBootstrapTest.class.getModule(), javaBaseModule);
+        assertThat(IndyBootstrapTest.class.getModule()).isNotEqualTo(javaBaseModule);
 
-        // In order to test this functionality, IndyBootstrapDispatcherModuleSetter needs to be loaded from the Boot CL
+        // In order to test this functionality, IndyBootstrapDispatcherModuleSetter needs to be loaded from the Boot CL.
+        // We don't mind loading it with the test's class loader as well only to get it's class file
         InputStream classFileAsStream = IndyBootstrapDispatcherModuleSetter.class.getResourceAsStream("IndyBootstrapDispatcherModuleSetter.class");
         byte[] bootstrapClass = IOUtils.readToBytes(classFileAsStream);
         ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(IndyBootstrapDispatcherModuleSetter.class.getName(), bootstrapClass));
 
         IndyBootstrap.setJavaBaseModule(IndyBootstrapTest.class);
-        assertEquals(IndyBootstrapTest.class.getModule(), javaBaseModule);
+        assertThat(IndyBootstrapTest.class.getModule()).isEqualTo(javaBaseModule);
     }
 }

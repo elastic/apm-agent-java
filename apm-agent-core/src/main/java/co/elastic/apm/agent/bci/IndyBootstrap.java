@@ -215,7 +215,7 @@ public class IndyBootstrap {
 
         if (JvmRuntimeInfo.getMajorVersion() >= 9 && JvmRuntimeInfo.isJ9VM()) {
             try {
-                logger.info("Overriding IndyBootstrapDispatcher class's module to java.base module");
+                logger.info("Overriding IndyBootstrapDispatcher class's module to java.base module. This is required in J9 VMs.");
                 setJavaBaseModule(indyBootstrapDispatcherClass);
             } catch (Throwable throwable) {
                 logger.warn("Failed to setup proper module for the IndyBootstrapDispatcher class, instrumentation may fail", throwable);
