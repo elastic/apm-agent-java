@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
@@ -67,7 +67,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         Span span = transaction.createSpan();
         span.setType("foo.bar.baz");
         endSpan(span);
-        co.elastic.apm.agent.impl.transaction.Span  internalSpan = reporter.getFirstSpan();
+        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getType()).isEqualTo("foo");
         assertThat(internalSpan.getSubtype()).isEqualTo("bar");
         assertThat(internalSpan.getAction()).isEqualTo("baz");
@@ -77,7 +77,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
     void testTypes() {
         Span span = transaction.startSpan("foo", "bar", "baz");
         endSpan(span);
-        co.elastic.apm.agent.impl.transaction.Span  internalSpan = reporter.getFirstSpan();
+        co.elastic.apm.agent.impl.transaction.Span internalSpan = reporter.getFirstSpan();
         assertThat(internalSpan.getType()).isEqualTo("foo");
         assertThat(internalSpan.getSubtype()).isEqualTo("bar");
         assertThat(internalSpan.getAction()).isEqualTo("baz");

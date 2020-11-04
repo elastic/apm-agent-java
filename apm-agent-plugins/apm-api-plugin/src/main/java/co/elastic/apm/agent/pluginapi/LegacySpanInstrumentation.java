@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -61,7 +61,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.api.SpanImpl").and(not(hasSuperType(named("co.elastic.apm.api.AbstractSpanImpl"))));
+        return named("co.elastic.apm.api.SpanImpl")
+            .and(not(hasSuperType(named("co.elastic.apm.api.AbstractSpanImpl"))));
     }
 
     @Override
@@ -74,11 +75,12 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("setName"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        @Advice.OnMethodEnter(inline = false)
+        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                    @Advice.Argument(0) String name) {
-            span.withName(name, PRIO_USER_SUPPLIED);
+            if (span instanceof Span) {
+                ((Span) span).withName(name, PRIO_USER_SUPPLIED);
+            }
         }
     }
 
@@ -88,8 +90,8 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        @Advice.OnMethodEnter(inline = false)
+        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
                                    @Advice.Argument(0) String type) {
             if (span instanceof Span) {
                 ((Span) span).setType(type, null, null);
@@ -102,11 +104,16 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("doCreateSpan"));
         }
 
+        @Nullable
         @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static Span doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.createSpan();
+        public static Object doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
+            if (span instanceof Span) {
+                return ((Span) span).createSpan();
+            } else {
+                return null;
+            }
         }
     }
 
@@ -116,12 +123,13 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            span.end();
+        @Advice.OnMethodEnter(inline = false)
+        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
+            if (span instanceof Span) {
+                ((Span) span).end();
+            }
         }
     }
-
 
     public static class CaptureExceptionInstrumentation extends LegacySpanInstrumentation {
         public CaptureExceptionInstrumentation() {
@@ -130,9 +138,11 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                        @Advice.Argument(0) Throwable t) {
-            span.captureException(t);
+        public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
+                                            @Advice.Argument(0) Throwable t) {
+            if (span instanceof Span) {
+                ((Span) span).captureException(t);
+            }
         }
     }
 
@@ -141,12 +151,15 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("getId").and(takesArguments(0)));
         }
 
-        @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.getTraceContext().getId().toString();
+        public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
+                                   @Advice.Return String returnValue) {
+            if (span instanceof Span) {
+                return ((Span) span).getTraceContext().getId().toString();
+            } else {
+                return returnValue;
+            }
         }
     }
 
@@ -155,12 +168,15 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("getTraceId").and(takesArguments(0)));
         }
 
-        @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.getTraceContext().getTraceId().toString();
+        public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
+                                        @Advice.Return String returnValue) {
+            if (span instanceof Span) {
+                return ((Span) span).getTraceContext().getTraceId().toString();
+            } else {
+                return returnValue;
+            }
         }
     }
 
@@ -170,10 +186,13 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                  @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
-            span.addLabel(key, value);
+        @Advice.OnMethodEnter(inline = false)
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
+                                  @Advice.Argument(0) String key,
+                                  @Advice.Argument(1) String value) {
+            if (span instanceof Span) {
+                ((Span) span).addLabel(key, value);
+            }
         }
     }
 
@@ -182,10 +201,11 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("activate"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            span.activate();
+        @Advice.OnMethodEnter(inline = false)
+        public static void activate(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span) {
+            if (span instanceof Span) {
+                ((Span) span).activate();
+            }
         }
     }
 
@@ -197,8 +217,13 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @AssignTo.Return
         @VisibleForAdvice
         @Advice.OnMethodExit(inline = false)
-        public static boolean addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            return span.isSampled();
+        public static boolean isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
+                                        @Advice.Return boolean returnValue) {
+            if (span instanceof Span) {
+                return ((AbstractSpan<?>) span).isSampled();
+            } else {
+                return returnValue;
+            }
         }
     }
 }

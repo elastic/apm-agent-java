@@ -22,28 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+@NonnullApi
+package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-
-import java.util.Collection;
-import java.util.Collections;
-
-import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
-
-public abstract class ApiInstrumentation extends TracerAwareInstrumentation {
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

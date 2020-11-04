@@ -22,10 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -47,14 +46,12 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
-    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);
 
     private final StacktraceConfiguration config;
@@ -63,31 +60,32 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
         config = tracer.getConfig(StacktraceConfiguration.class);
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onMethodEnter(
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onMethodEnter(
         @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
         @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
         @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
         @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action,
-        @Advice.Local("span") Span span) {
+        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action) {
         final AbstractSpan<?> parent = tracer.getActive();
         if (parent != null) {
-            span = parent.createSpan();
+            Span span = parent.createSpan();
             span.setType(type, subtype, action);
             span.withName(spanName.isEmpty() ? signature : spanName)
                 .activate();
+            return span;
         } else {
             logger.debug("Not creating span for {} because there is no currently active span.", signature);
         }
-
+        return null;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("span") Span span,
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onMethodExit(@Nullable @Advice.Enter Object span,
                                     @Advice.Thrown Throwable t) {
-        if (span != null) {
-            span.captureException(t)
+        if (span instanceof Span) {
+            ((Span) span).captureException(t)
                 .deactivate()
                 .end();
         }
@@ -116,11 +114,6 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return false;
+        return Arrays.asList(ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP, "annotations");
     }
 }

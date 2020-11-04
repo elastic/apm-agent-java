@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.plugin.api;
+package co.elastic.apm.agent.pluginapi;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -35,7 +34,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
-import static co.elastic.apm.agent.plugin.api.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -67,12 +65,11 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static Object doStartTransaction(@Advice.Origin Class<?> clazz) {
             Transaction transaction = tracer.startRootTransaction(clazz.getClassLoader());
             if (transaction != null) {
-                transaction.setFrameworkName(FRAMEWORK_NAME);
+                transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
             }
             return transaction;
         }
@@ -87,13 +84,12 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @Nullable
         @AssignTo.Return
         @SuppressWarnings({"UnusedAssignment", "ParameterCanBeLocal", "unused"})
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static Transaction doStartTransaction(@Advice.Origin Class<?> clazz,
-                                                     @Advice.Argument(0) MethodHandle getFirstHeader,
-                                                     @Advice.Argument(1) @Nullable Object headerExtractor,
-                                                     @Advice.Argument(2) MethodHandle getAllHeaders,
-                                                     @Advice.Argument(3) @Nullable Object headersExtractor) {
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static Object doStartTransaction(@Advice.Origin Class<?> clazz,
+                                                @Advice.Argument(0) MethodHandle getFirstHeader,
+                                                @Advice.Argument(1) @Nullable Object headerExtractor,
+                                                @Advice.Argument(2) MethodHandle getAllHeaders,
+                                                @Advice.Argument(3) @Nullable Object headersExtractor) {
             Transaction transaction = null;
             if (headersExtractor != null) {
                 HeadersExtractorBridge headersExtractorBridge = HeadersExtractorBridge.get(getFirstHeader, getAllHeaders);
@@ -105,7 +101,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                 transaction = tracer.startRootTransaction(clazz.getClassLoader());
             }
             if (transaction != null) {
-                transaction.setFrameworkName(FRAMEWORK_NAME);
+                transaction.setFrameworkName(Utils.FRAMEWORK_NAME);
             }
             return transaction;
         }
@@ -118,8 +114,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static Object doGetCurrentTransaction() {
             return tracer.currentTransaction();
         }
@@ -132,8 +127,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @Nullable
         @AssignTo.Return
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static Object doGetCurrentSpan() {
             return tracer.getActive();
         }
@@ -144,8 +138,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             super(named("captureException"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
             tracer.captureAndReportException(e, clazz.getClassLoader());
         }
