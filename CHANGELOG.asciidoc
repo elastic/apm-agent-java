@@ -51,7 +51,7 @@ endif::[]
 * Fix ignored runtime attach `config_file` {pull}1469[1469]
 
 ===== Refactors
-* Migrate some plugins to indy dispatcher {pull}1404[1404]
+* Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1411[1411]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
