@@ -126,7 +126,7 @@ public interface JvmDiscoverer {
 
     class JpsFinder {
         // package protected for testing
-        static List<Path> getJpsPaths(Properties systemProperties, Map<String,String> env) {
+        static List<Path> getJpsPaths(Properties systemProperties, Map<String, String> env) {
 
             List<Path> list = new ArrayList<Path>();
 
@@ -161,7 +161,7 @@ public interface JvmDiscoverer {
             return list;
         }
 
-        static Path getJpsPath(Properties systemProperties, Map<String,String> env) {
+        static Path getJpsPath(Properties systemProperties, Map<String, String> env) {
             List<Path> locations = getJpsPaths(systemProperties, env);
             for (Path path : locations) {
                 if (Files.isExecutable(path)) {
@@ -209,11 +209,11 @@ public interface JvmDiscoverer {
                     temporaryDirectory = "/tmp";
                 }
             } else if (Platform.isWindows()) {
-				temporaryDirectory = System.getenv("TEMP");
-				if (temporaryDirectory == null) {
+                temporaryDirectory = System.getenv("TEMP");
+                if (temporaryDirectory == null) {
                     temporaryDirectory = "c:/Temp";
                 }
-			} else {
+            } else {
                 temporaryDirectory = "/tmp";
             }
             return new ForHotSpotVm(temporaryDirectory);

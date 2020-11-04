@@ -22,39 +22,26 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.attach;
+package co.elastic.apm.agent.hibernatesearch;
 
-import java.util.Objects;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 
-class JvmInfo {
-    final String pid;
-    final String packageOrPathOrJvmProperties;
+public class DeleteFileVisitor extends SimpleFileVisitor<Path> {
 
-    JvmInfo(String pid, String packageOrPathOrJvmProperties) {
-        this.pid = pid;
-        this.packageOrPathOrJvmProperties = packageOrPathOrJvmProperties;
-    }
-
-    static JvmInfo parse(String jpsLine) {
-        final int firstSpace = jpsLine.indexOf(' ');
-        return new JvmInfo(jpsLine.substring(0, firstSpace), jpsLine.substring(firstSpace + 1));
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        Files.delete(file);
+        return FileVisitResult.CONTINUE;
     }
 
     @Override
-    public String toString() {
-        return pid + ' ' + packageOrPathOrJvmProperties;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JvmInfo jvmInfo = (JvmInfo) o;
-        return pid.equals(jvmInfo.pid);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(pid);
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+        Files.delete(dir);
+        return FileVisitResult.CONTINUE;
     }
 }

@@ -125,7 +125,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             setStartTimestampNow();
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("startSpan {} {", this);
+            logger.debug("startSpan {}", this);
             if (logger.isTraceEnabled()) {
                 logger.trace("starting span at",
                     new RuntimeException("this exception is just used to record where the span has been started from"));

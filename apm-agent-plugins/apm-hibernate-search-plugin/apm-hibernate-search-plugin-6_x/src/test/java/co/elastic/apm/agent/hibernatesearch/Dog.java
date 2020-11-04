@@ -22,39 +22,47 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.attach;
+package co.elastic.apm.agent.hibernatesearch;
 
-import java.util.Objects;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
-class JvmInfo {
-    final String pid;
-    final String packageOrPathOrJvmProperties;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 
-    JvmInfo(String pid, String packageOrPathOrJvmProperties) {
-        this.pid = pid;
-        this.packageOrPathOrJvmProperties = packageOrPathOrJvmProperties;
+@Entity
+@Indexed
+public class Dog {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @GenericField
+    private String name;
+
+    public Dog() {
     }
 
-    static JvmInfo parse(String jpsLine) {
-        final int firstSpace = jpsLine.indexOf(' ');
-        return new JvmInfo(jpsLine.substring(0, firstSpace), jpsLine.substring(firstSpace + 1));
+    public Dog(final String name) {
+        this.name = name;
     }
 
-    @Override
-    public String toString() {
-        return pid + ' ' + packageOrPathOrJvmProperties;
+    public Long getId() {
+        return id;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JvmInfo jvmInfo = (JvmInfo) o;
-        return pid.equals(jvmInfo.pid);
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(pid);
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }
