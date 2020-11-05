@@ -63,6 +63,7 @@
         <module>integration-tests</module>
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
+        <module>apm-indy-bootstrap-module</module>
     </modules>
 
     <properties>

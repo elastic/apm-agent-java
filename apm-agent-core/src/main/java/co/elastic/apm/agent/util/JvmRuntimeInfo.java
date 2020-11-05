@@ -37,6 +37,7 @@ public class JvmRuntimeInfo {
     private static int updateVersion;
     private static boolean isHotSpot;
     private static boolean isIbmJ9;
+    private static boolean isJ9;
 
     static {
         parseVmInfo(System.getProperty("java.version"), System.getProperty("java.vm.name"), System.getProperty("java.vm.version"));
@@ -91,6 +92,7 @@ public class JvmRuntimeInfo {
 
         isHotSpot = vmName.contains("HotSpot(TM)") || vmName.contains("OpenJDK");
         isIbmJ9 = vmName.contains("IBM J9");
+        isJ9 = vmName.contains("J9");
     }
 
     public static String getJavaVersion() {
@@ -108,6 +110,10 @@ public class JvmRuntimeInfo {
 
     public static int getMajorVersion() {
         return majorVersion;
+    }
+
+    public static boolean isJ9VM() {
+        return isJ9;
     }
 
     /**
