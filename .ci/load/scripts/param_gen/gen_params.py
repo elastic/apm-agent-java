@@ -50,8 +50,13 @@ import github
 from packaging.version import parse as parse_version
 
 CATALOG_URL = 'https://jvm-catalog.elastic.co'
-SUPPORTED_JDKS = ['oracle', 'openjdk', 'adoptopenjdk', 'amazon', 'jdk', 'zulu']
-MIN_JDK_VERSION = '11'
+# The limit of total choices must be < 256 or Jenkins will stacktrace.
+# The list below represents all choices currently in the catalog
+# *except* `amazon` and `jdk`.
+# See https://github.com/elastic/apm-agent-java/pull/1467#discussion_r516464187
+# for additional context and discussion.
+SUPPORTED_JDKS = ['oracle', 'openjdk', 'adoptopenjdk', 'zulu']
+MIN_JDK_VERSION = '7'
 
 parser = argparse.ArgumentParser(description="Jenkins JDK snippet generator")
 parser.add_argument(
@@ -78,8 +83,6 @@ parser.add_argument(
 
 parsed_args = parser.parse_args()
 
-
-
 # Gather JDKs we can support
 r = requests.get(CATALOG_URL + '/jdks')
 if r.status_code != 200:
@@ -88,7 +91,7 @@ if r.status_code != 200:
 supported_jdks = []
 
 for jdk in r.json():
-    # print(jdk)
+    arch = None
     try:
         flavor, ver, dist = jdk.split('-', 3)
     except ValueError:
@@ -97,6 +100,8 @@ for jdk in r.json():
     if dist in parsed_args.platforms and \
         flavor in SUPPORTED_JDKS and \
             parse_version(ver) >= parse_version(parsed_args.min_ver):
+        if arch:
+            continue
         supported_jdks.append(jdk)
 
 # Gather releases of the agent we can support
@@ -118,7 +123,7 @@ print(
     'string(name: "duration", defaultValue: "10", description: "Test duration in minutes. Max: 280")',  # noqa E501
     '// num_of_runs currently unsupported',
     '// string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")',  # noqa E501
-    'text(name: "agent_config", "defaultValue": "", description: "APM Agent configuration")',  # noqa E501
+    'text(name: "agent_config", "defaultValue": "", description: "Custom APM Agent configuration. (WARNING: May echo to console. Do not supply sensitive data.)")',  # noqa E501
     'text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")',  # noqa E5011
     'booleanParam(name: "local_metrics", description: "Enable local metrics collection?", defaultValue: false)',  # noqa E501
     '// End script auto-generation',
