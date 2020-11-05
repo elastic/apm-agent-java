@@ -209,7 +209,7 @@ Annotating a method with `@CaptureTransaction` creates a transaction for that me
 
 Note that this only works when there is no active transaction on the same thread.
 
-* `value`: The name of the span. Defaults to `ClassName#methodName`
+* `value`: The name of the transaction. Defaults to `ClassName#methodName`
 * `type`: The type of the transaction. Defaults to `request`
 
 NOTE: Using this annotation implicitly creates a Transaction and activates it when entering the annotated
