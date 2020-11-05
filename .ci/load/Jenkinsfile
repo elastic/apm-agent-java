@@ -62,7 +62,7 @@ pipeline {
                     }
                 }
                 stage('Test application') {
-                    agent { label 'metal' }
+                    agent { label 'benchmark' }
                     stages{
                         stage('Provision Java') {
                             steps {
