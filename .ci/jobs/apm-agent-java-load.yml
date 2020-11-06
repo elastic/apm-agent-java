@@ -1,6 +1,6 @@
 ##### LOAD TESTING JOB
 - job:
-    name: apm-agent-java/apm-agent-java-load-mbp
+    name: apm-agent-java/apm-agent-java-load
     display-name: APM Agent Java Load Testing
     description: APM Agent Java Load Testing
     project-type: pipeline
