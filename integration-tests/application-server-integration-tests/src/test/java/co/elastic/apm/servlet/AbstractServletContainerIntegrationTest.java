@@ -154,7 +154,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
-            .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic.webapp") // allows to use API annotations
+            .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
