@@ -1,6 +1,6 @@
 // For documentation on this pipeline, please see the README.md in this directory
 pipeline {
-    agent any
+    agent { label 'linux && immutable' }
     environment {
         REPO = 'apm-agent-java'
         APP = 'spring-petclinic'
