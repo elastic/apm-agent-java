@@ -1,6 +1,6 @@
 ##### LOAD TESTING JOB
 - job:
-    name: apm-agent-java/apm-agent-java-mbp
+    name: apm-agent-java/apm-agent-java-load-mbp
     display-name: APM Agent Java Load Testing
     description: APM Agent Java Load Testing
     script-path: .ci/load/Jenkinsfile
