@@ -247,7 +247,6 @@ public class ServletApiTestApp extends TestApp {
         test.executeAndValidateRequest(pathToTest, null, 200, null);
         JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
 
-        // TODO : check transaction name
         String transactionId = transaction.get("id").asText();
 
         assertThat(transaction.get("name").asText()).
