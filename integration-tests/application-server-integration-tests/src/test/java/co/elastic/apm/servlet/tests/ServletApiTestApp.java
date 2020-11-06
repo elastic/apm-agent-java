@@ -60,6 +60,7 @@ public class ServletApiTestApp extends TestApp {
         testJmxMetrics(test);
         testTransactionReportingWithForward(test);
         testTransactionReportingWithInclude(test);
+        testPublicApi(test);
     }
 
     private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
@@ -216,6 +217,7 @@ public class ServletApiTestApp extends TestApp {
         }
     }
 
+    @SuppressWarnings("JavadocReference")
     /**
      * Tests that the capture_jmx_metrics config option works with each app server
      * Especially WildFly is problematic see {@link co.elastic.apm.agent.jmx.ManagementFactoryInstrumentation}
@@ -236,6 +238,46 @@ public class ServletApiTestApp extends TestApp {
             .flatMap(metricset -> Streams.stream(metricset.get("samples").fieldNames()))
             .distinct())
             .contains("jvm.jmx.test_heap_metric.max");
+    }
+
+    private void testPublicApi(AbstractServletContainerIntegrationTest test) throws IOException, InterruptedException {
+
+        test.clearMockServerLog();
+        final String pathToTest = "/simple-webapp/test-public-api";
+        test.executeAndValidateRequest(pathToTest, null, 200, null);
+        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+
+        // TODO : check transaction name
+        String transactionId = transaction.get("id").asText();
+
+        assertThat(transaction.get("name").asText()).
+            isEqualTo("custom_transaction_name");
+
+        JsonNode context = transaction.get("context");
+
+        assertThat(context.get("custom").get("custom-context").asText())
+            .isEqualTo("custom-context-value");
+
+        JsonNode tags = context.get("tags");
+        assertThat(tags.get("custom-label1").asText())
+            .isEqualTo("label_value1");
+        assertThat(tags.get("custom-label2").asText())
+            .isEqualTo("label_value2");
+
+        List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
+        assertThat(spans).hasSize(2);
+
+        for (JsonNode span : spans) {
+            assertThat(span.get("parent_id").textValue()).isEqualTo(transactionId);
+
+            if (span.get("type").asText().equals("app")) {
+                assertThat(span.get("name").asText()).isEqualTo("TestApiServlet#captureSpanAnnotation");
+                assertThat(span.get("context").get("tags").get("span-label").asText()).isEqualTo("label-value");
+            } else {
+                assertThat(span.get("type").asText()).isEqualTo("db.mysql.query");
+                assertThat(span.get("name").asText()).isEqualTo("SELECT FROM customer");
+            }
+        }
     }
 
     private void flush(AbstractServletContainerIntegrationTest test) throws IOException {
