@@ -1,4 +1,4 @@
-## Load testing
+##### LOAD TESTING JOB
 - job:
     name: apm-agent-java/apm-agent-java-mbp
     display-name: APM Agent Java Load Testing
