@@ -1,5 +1,7 @@
 ---
+##### MBP JOB
 - job:
     name: apm-agent-java/apm-agent-java-mbp
     display-name: APM Agent Java
     description: APM Agent Java
+    script-path: Jenkinsfile

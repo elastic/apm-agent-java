@@ -1,0 +1,6 @@
+## Load testing
+- job:
+    name: apm-agent-java/apm-agent-java-mbp
+    display-name: APM Agent Java Load Testing
+    description: APM Agent Java Load Testing
+    script-path: .ci/load/Jenkinsfile
