@@ -35,9 +35,9 @@ public class EntityManagerFactoryHelper {
 
     public static EntityManagerFactory buildEntityManagerFactory(final Path tempDirectory) {
         Map<String, Object> configOverrides = new HashMap<>();
-        configOverrides.put("hibernate.search.backends.testBackend.type", "lucene");
-        configOverrides.put("hibernate.search.backends.testBackend.directory_provider", "local_directory");
-        configOverrides.put("hibernate.search.backends.testBackend.root_directory", tempDirectory.toAbsolutePath().toString());
+        configOverrides.put("hibernate.search.backend.testBackend.type", "lucene");
+        configOverrides.put("hibernate.search.backend.testBackend.directory.type", "local-filesystem");
+        configOverrides.put("hibernate.search.backend.directory.root", tempDirectory.toAbsolutePath().toString());
         configOverrides.put("hibernate.search.default_backend", "testBackend");
         return Persistence.createEntityManagerFactory("templatePU", configOverrides);
     }
