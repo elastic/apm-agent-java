@@ -227,7 +227,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     Transaction messageHandlingTransaction = helper.startJmsTransaction(message, clazz);
                     if (messageHandlingTransaction != null) {
                         messageHandlingTransaction.withType(MESSAGE_HANDLING)
-                            .withName(RECEIVE_NAME_PREFIX);
+                            .withName(RECEIVE_NAME_PREFIX)
+                            .disableAsyncPropagation();
 
                         if (destinationName != null) {
                             messageHandlingTransaction.appendToName(" from ");

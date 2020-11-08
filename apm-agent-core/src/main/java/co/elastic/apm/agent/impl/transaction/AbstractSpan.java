@@ -69,6 +69,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * Flag to mark a span as representing an exit event
      */
     private boolean isExit;
+
+    /**
+     * Flag to mark this span as such that should not be activated on a different thread if active when inter-thread
+     * context propagation is attempted.
+     */
+    private boolean asyncPropagationDisabled;
+
     /**
      * <p>
      * This use case for child ids is modifying parent/child relationships for profiler-inferred spans.
@@ -324,6 +331,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         namePriority = PRIO_DEFAULT;
         discardRequested = false;
         isExit = false;
+        asyncPropagationDisabled = false;
         childIds = null;
     }
 
@@ -359,6 +367,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return isExit;
     }
 
+    public T disableAsyncPropagation() {
+        asyncPropagationDisabled = true;
+        return (T) this;
+    }
+
+    public boolean isAsyncPropagationDisabled() {
+        return asyncPropagationDisabled;
+    }
 
     public void captureException(long epochMicros, Throwable t) {
         tracer.captureAndReportException(epochMicros, t, this);

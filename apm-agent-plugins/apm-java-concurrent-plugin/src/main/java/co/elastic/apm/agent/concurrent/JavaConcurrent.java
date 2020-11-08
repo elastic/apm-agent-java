@@ -81,7 +81,7 @@ public class JavaConcurrent {
         }
         needsContext.set(Boolean.FALSE);
         AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
+        if (active == null || active.isAsyncPropagationDisabled()) {
             return runnable;
         }
         if (isLambda(runnable)) {
@@ -109,7 +109,7 @@ public class JavaConcurrent {
         }
         needsContext.set(Boolean.FALSE);
         AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
+        if (active == null || active.isAsyncPropagationDisabled()) {
             return callable;
         }
         if (isLambda(callable)) {
@@ -126,7 +126,7 @@ public class JavaConcurrent {
         }
         needsContext.set(Boolean.FALSE);
         AbstractSpan<?> active = tracer.getActive();
-        if (active == null) {
+        if (active == null || active.isAsyncPropagationDisabled()) {
             return task;
         }
         captureContext(task, active);
