@@ -92,7 +92,7 @@ public class AgentMain {
                 msgTemplate = "WARNING : JVM version unknown or not supported, safety check disabled - %s %s %s";
             } else {
                 doDisable = true;
-                msgTemplate = "Failed to start agent - JVM version not supported: %s %s %s";
+                msgTemplate = "Failed to start agent - JVM version not supported: %s %s %s. To override Java version verification, set the "elastic.apm.disable_bootstrap_checks" System property to "true".";
             }
 
             System.err.println(String.format(msgTemplate,
