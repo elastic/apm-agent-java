@@ -79,7 +79,7 @@ function sendAppReady() {
     "{\"app_token\": \""$APP_TOKEN"\", \
     \"session_token\": \""$SESSION_TOKEN"\", \
     \"service\": \"application\", \
-    \"hostname\": \""$(hostname)"\", \
+    \"hostname\": \""$(hostname -I|cut -f1 -d ' ')"\", \
     \"port\": \"8080\"}" \
     $ORCH_URL/api/ready 
     
