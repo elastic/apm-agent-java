@@ -64,6 +64,9 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
     @SuppressWarnings("WeakerAccess")
     public static final Logger logger = LoggerFactory.getLogger(JmsMessageConsumerInstrumentation.class);
 
+    @VisibleForAdvice
+    public static final ThreadLocal<Boolean> isTransactionCreatingThread = new ThreadLocal<>();
+
     JmsMessageConsumerInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -118,10 +121,16 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             // Avoid duplications for nested calls
                             return null;
                         } else if (MESSAGE_HANDLING.equals(transaction.getType())) {
-                            // A transaction created in the OnMethodExit of the poll- end it here
-                            // Type must be changed to "messaging"
-                            transaction.withType(MESSAGING_TYPE);
-                            transaction.deactivate().end();
+                            // A transaction created in the OnMethodExit of the poll:
+                            // If this thread created it - end it here and change its type to "messaging".
+                            // Otherwise - deactivate it on this thread so that another transaction can be created
+                            // on `receive` exit and ignore this `receive` entry.
+                            transaction.deactivate();
+                            if (JmsMessageConsumerInstrumentation.isTransactionCreatingThread.get()) {
+                                transaction.withType(MESSAGING_TYPE);
+                                transaction.end();
+                                JmsMessageConsumerInstrumentation.isTransactionCreatingThread.set(Boolean.FALSE);
+                            }
                             createPollingTransaction = true;
                         } else {
                             createPollingSpan = true;
@@ -228,6 +237,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     if (messageHandlingTransaction != null) {
                         messageHandlingTransaction.withType(MESSAGE_HANDLING)
                             .withName(RECEIVE_NAME_PREFIX);
+
+                        JmsMessageConsumerInstrumentation.isTransactionCreatingThread.set(Boolean.TRUE);
 
                         if (destinationName != null) {
                             messageHandlingTransaction.appendToName(" from ");
