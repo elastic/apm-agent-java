@@ -104,7 +104,6 @@ function buildArgs() {
         $ORCH_URL/api/poll | \
         jq '.services.application.port')"
     export LOCUST_HOST=http://$(echo $LOCUST_HOSTNAME|sed 's/"//g'):$(echo $LOCUST_PORT|sed 's/"//g')
-    export LOCUST_RUN_TIME=30s
 }
 
 function startLoad() {
