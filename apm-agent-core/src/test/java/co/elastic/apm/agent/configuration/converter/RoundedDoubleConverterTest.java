@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RoundedDoubleConverterTest {
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "input={0}, expected={1}")
     @CsvSource({
         "0.55554,0.5555",
         "0.55555,0.5556",
@@ -55,7 +55,7 @@ class RoundedDoubleConverterTest {
             .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "input={0}, precision={1}, expected={2}")
     @CsvSource({
         "0.5555,0,1",
         "0.5555,1,0.6",

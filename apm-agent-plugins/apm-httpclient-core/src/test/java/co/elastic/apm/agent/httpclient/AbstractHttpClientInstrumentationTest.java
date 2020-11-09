@@ -31,20 +31,24 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
@@ -57,70 +61,87 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
+    public WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort());
 
-    @Before
+    @BeforeEach
     public final void setUpWiremock() {
-        wireMockRule.stubFor(any(urlEqualTo("/"))
+        wireMockServer.stubFor(any(urlEqualTo("/"))
             .willReturn(aResponse()
                 .withStatus(200)));
-        wireMockRule.stubFor(get(urlEqualTo("/error"))
+        wireMockServer.stubFor(get(urlEqualTo("/error"))
             .willReturn(aResponse()
                 .withStatus(515)));
-        wireMockRule.stubFor(get(urlEqualTo("/redirect"))
+        wireMockServer.stubFor(get(urlEqualTo("/redirect"))
             .willReturn(seeOther("/")));
-        wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
+        wireMockServer.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
+        wireMockServer.start();
         final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
         transaction.withName("parent of http span").withType("request").activate();
     }
 
-    @After
+    @AfterEach
     public final void after() {
         tracer.currentTransaction().deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
+        wireMockServer.stop();
     }
 
     protected boolean isIpv6Supported() {
         return true;
     }
 
-    protected boolean isErrorOnCircularRedirectSupported(){
+    protected boolean isErrorOnCircularRedirectSupported() {
         return true;
     }
 
-    @Test
-    public void testHttpCall() throws Exception {
+    @DisplayName("testHttpCall: GET /")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testHttpCall(String name, Object args) {
+        setUp(args);
+
         String path = "/";
         performGetWithinTransaction(path);
 
         verifyHttpSpan(path);
     }
 
-    @Test
-    public void testHttpCallWithUserInfo() throws Exception {
-        performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
+    @DisplayName("testHttpCallWithUserInfo")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testHttpCallWithUserInfo(String name, Object args) throws Exception {
+        setUp(args);
+
+        performGet("http://user:passwd@localhost:" + wireMockServer.port() + "/");
         verifyHttpSpan("/");
     }
 
-    @Test
-    public void testHttpCallWithIpv4() throws Exception {
-        performGet("http://127.0.0.1:" + wireMockRule.port() + "/");
-        verifyHttpSpan("http", "127.0.0.1", wireMockRule.port(), "/");
+    @DisplayName("testHttpCallWithIpv4")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testHttpCallWithIpv4(String name, Object args) throws Exception {
+        setUp(args);
+
+        performGet("http://127.0.0.1:" + wireMockServer.port() + "/");
+        verifyHttpSpan("http", "127.0.0.1", wireMockServer.port(), "/");
     }
 
-    @Test
-    public void testHttpCallWithIpv6() throws Exception {
+    @DisplayName("testHttpCallWithIpv6")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testHttpCallWithIpv6(String name, Object args) throws Exception {
+        setUp(args);
+
         if (!isIpv6Supported()) {
             return;
         }
-        performGet("http://[::1]:" + wireMockRule.port() + "/");
-        verifyHttpSpan("http", "[::1]", wireMockRule.port(), "/");
+        performGet("http://[::1]:" + wireMockServer.port() + "/");
+        verifyHttpSpan("http", "[::1]", wireMockServer.port(), "/");
     }
 
     protected void verifyHttpSpan(String path) {
-        verifyHttpSpan("http", "localhost", wireMockRule.port(), path);
+        verifyHttpSpan("http", "localhost", wireMockServer.port(), path);
     }
 
     protected void verifyHttpSpan(String scheme, String host, int port, String path) {
@@ -137,9 +158,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
         int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
-        assertThat(destination.getPort()).isEqualTo(wireMockRule.port());
+        assertThat(destination.getPort()).isEqualTo(wireMockServer.port());
         assertThat(destination.getService().getName().toString()).isEqualTo(baseUrl);
-        assertThat(destination.getService().getResource().toString()).isEqualTo(host + ":" + wireMockRule.port());
+        assertThat(destination.getService().getResource().toString()).isEqualTo(host + ":" + wireMockServer.port());
         assertThat(destination.getService().getType()).isEqualTo("external");
         verifyTraceContextHeaders(reporter.getFirstSpan(), path);
     }
@@ -148,7 +169,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         Map<String, String> headerMap = new HashMap<>();
         span.propagateTraceContext(headerMap, TextHeaderMapAccessor.INSTANCE);
         assertThat(headerMap).isNotEmpty();
-        List<LoggedRequest> loggedRequests = wireMockRule.findAll(anyRequestedFor(urlPathEqualTo(path)));
+        List<LoggedRequest> loggedRequests = wireMockServer.findAll(anyRequestedFor(urlPathEqualTo(path)));
         assertThat(loggedRequests).isNotEmpty();
         loggedRequests.forEach(request -> {
             assertThat(TraceContext.containsTraceContextTextHeaders(request, new HeaderAccessor())).isTrue();
@@ -156,8 +177,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         });
     }
 
-    @Test
-    public void testNonExistingHttpCall() {
+    @DisplayName("testNonExistingHttpCall")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testNonExistingHttpCall(String name, Object args) {
+        setUp(args);
+
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
@@ -167,8 +192,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
     }
 
-    @Test
-    public void testErrorHttpCall() {
+    @DisplayName("testErrorHttpCall")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testErrorHttpCall(String name, Object args) {
+        setUp(args);
+
         String path = "/error";
         performGetWithinTransaction(path);
 
@@ -178,8 +207,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
     }
 
-    @Test
-    public void testHttpCallRedirect() {
+    @DisplayName("testHttpCallRedirect")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testHttpCallRedirect(String name, Object args) {
+        setUp(args);
+
         String path = "/redirect";
         performGetWithinTransaction(path);
 
@@ -192,8 +225,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         verifyTraceContextHeaders(reporter.getFirstSpan(), "/");
     }
 
-    @Test
-    public void testHttpCallCircularRedirect() {
+    @DisplayName("testHttpCallCircularRedirect")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("args")
+    public void testHttpCallCircularRedirect(String name, Object args) {
+        setUp(args);
+
         if (!isErrorOnCircularRedirectSupported()) {
             return;
         }
@@ -212,7 +249,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     protected String getBaseUrl() {
-        return "http://localhost:" + wireMockRule.port();
+        return "http://localhost:" + wireMockServer.port();
     }
 
     protected void performGetWithinTransaction(String path) {
@@ -246,5 +283,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
                 }
             }
         }
+    }
+
+    public void setUp(Object args) {
+        // workaround
+    }
+
+    public static Stream<Arguments> args() {
+        final List<Arguments> configurations = new ArrayList<>(2);
+        configurations.add(Arguments.of("test", null));
+        return configurations.stream();
     }
 }

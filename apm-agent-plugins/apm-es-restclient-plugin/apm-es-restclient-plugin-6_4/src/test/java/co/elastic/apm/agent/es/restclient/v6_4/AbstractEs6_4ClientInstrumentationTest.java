@@ -57,7 +57,9 @@ import org.elasticsearch.script.mustache.SearchTemplateRequest;
 import org.elasticsearch.script.mustache.SearchTemplateResponse;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.junit.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -77,8 +79,10 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
     @SuppressWarnings("NullableProblems")
     protected static RestHighLevelClient client;
 
-    @Test
-    public void testCreateAndDeleteIndex() throws IOException, ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testCreateAndDeleteIndex(Boolean async) throws IOException, ExecutionException, InterruptedException {
+        super.async = async;
         // Create an Index
         doCreateIndex(new CreateIndexRequest(SECOND_INDEX));
 
@@ -91,8 +95,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         validateSpanContentAfterIndexDeleteRequest();
     }
 
-    @Test
-    public void testTryToDeleteNonExistingIndex() throws IOException, InterruptedException {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testTryToDeleteNonExistingIndex(Boolean async) throws IOException, InterruptedException {
+        super.async = async;
+
         ElasticsearchStatusException ese = null;
         try {
             doDeleteIndex(new DeleteIndexRequest(SECOND_INDEX));
@@ -109,8 +116,10 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         assertThatErrorsExistWhenDeleteNonExistingIndex();
     }
 
-    @Test
-    public void testDocumentScenario() throws Exception {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testDocumentScenario(Boolean async) throws Exception {
+        super.async = async;
         // Index a document
         createDocument();
 
@@ -163,8 +172,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
     }
 
-    @Test
-    public void testCountRequest_validateSpanContentAndDbContext() throws Exception {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testCountRequest_validateSpanContentAndDbContext(Boolean async) throws Exception {
+        super.async = async;
+
         createDocument();
         reporter.reset();
 
@@ -185,8 +197,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         deleteDocument();
     }
 
-    @Test
-    public void testMultiSearchRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testMultiSearchRequest_validateSpanContentAndDbContext(Boolean async) throws InterruptedException, ExecutionException, IOException {
+        super.async = async;
+
         createDocument();
         reporter.reset();
 
@@ -208,8 +223,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         deleteDocument();
     }
 
-    @Test
-    public void testRollupSearch_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testRollupSearch_validateSpanContentAndDbContext(Boolean async) throws InterruptedException, ExecutionException, IOException {
+        super.async = async;
+
         createDocument();
         reporter.reset();
 
@@ -232,8 +250,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         deleteDocument();
     }
 
-    @Test
-    public void testSearchTemplateRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testSearchTemplateRequest_validateSpanContentAndDbContext(Boolean async) throws InterruptedException, ExecutionException, IOException {
+        super.async = async;
+
         createDocument();
         reporter.reset();
 
@@ -251,8 +272,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         deleteDocument();
     }
 
-    @Test
-    public void testMultisearchTemplateRequest_validateSpanContentAndDbContext() throws InterruptedException, ExecutionException, IOException {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testMultisearchTemplateRequest_validateSpanContentAndDbContext(Boolean async) throws InterruptedException, ExecutionException, IOException {
+        super.async = async;
+
         createDocument();
         reporter.reset();
 
@@ -317,8 +341,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
 
     }
 
-    @Test
-    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "isAsync = {0}")
+    @MethodSource("arguments")
+    public void testScenarioAsBulkRequest(Boolean async) throws IOException, ExecutionException, InterruptedException {
+        super.async = async;
+
         doBulk(new BulkRequest()
             .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
                 jsonBuilder()

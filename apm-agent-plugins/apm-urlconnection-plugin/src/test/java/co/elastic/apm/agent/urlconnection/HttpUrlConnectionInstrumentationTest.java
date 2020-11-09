@@ -27,8 +27,9 @@ package co.elastic.apm.agent.urlconnection;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -108,7 +109,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testFakeReuse() throws Exception {
         final HttpURLConnection urlConnection = (HttpURLConnection) new URL(getBaseUrl() + "/").openConnection();
         urlConnection.getInputStream();

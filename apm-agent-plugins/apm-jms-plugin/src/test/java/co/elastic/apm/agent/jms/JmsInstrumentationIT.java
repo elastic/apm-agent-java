@@ -36,12 +36,12 @@ import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
@@ -65,6 +65,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
 import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
@@ -78,7 +79,6 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QU
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
-@RunWith(Parameterized.class)
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     // Keeping a static reference for resource cleaning
@@ -86,42 +86,51 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     private static final BlockingQueue<Message> resultQ = new ArrayBlockingQueue<>(5);
 
-    private final BrokerFacade brokerFacade;
-    private final CoreConfiguration coreConfiguration;
+    private CoreConfiguration coreConfiguration;
     private ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
     private ThreadLocal<Boolean> expectNoTraces = new ThreadLocal<>();
 
     private Queue noopQ;
+    private BrokerFacade brokerFacade;
 
-    public JmsInstrumentationIT(BrokerFacade brokerFacade, Class<? extends BrokerFacade> clazz) throws Exception {
-        this.brokerFacade = brokerFacade;
+    private void init(BrokerFacade brokerFacade) throws Exception {
         if (staticBrokerFacade.add(brokerFacade)) {
             brokerFacade.prepareResources();
         }
+        this.brokerFacade = brokerFacade;
+        brokerFacade.beforeTest();
+        noopQ = brokerFacade.createQueue("NOOP");
         coreConfiguration = config.getConfig(CoreConfiguration.class);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
     }
 
-    @Parameterized.Parameters(name = "BrokerFacade={1}")
-    public static Iterable<Object[]> brokerFacades() {
-        return Arrays.asList(new Object[][]{{new ActiveMqFacade(), ActiveMqFacade.class}, {new ActiveMqArtemisFacade(), ActiveMqArtemisFacade.class}});
+    public static Stream<Arguments> brokerFacades() {
+        List<Object[]> parameters = Arrays.asList(new Object[][]{{new ActiveMqFacade(), ActiveMqFacade.class}, {new ActiveMqArtemisFacade(), ActiveMqArtemisFacade.class}});
+        return parameters.stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
     }
 
-    @AfterClass
+    @BeforeEach
+    public void startTransaction() throws Exception {
+        receiveNoWaitFlow.set(false);
+        expectNoTraces.set(false);
+        startAndActivateTransaction(null);
+    }
+
+    @AfterEach
+    public void endTransaction() throws Exception {
+        Transaction currentTransaction = tracer.currentTransaction();
+        if (currentTransaction != null) {
+            currentTransaction.deactivate().end();
+        }
+        brokerFacade.afterTest();
+    }
+
+    @AfterAll
     public static void closeResources() throws Exception {
         for (BrokerFacade brokerFacade : staticBrokerFacade) {
             brokerFacade.closeResources();
         }
         staticBrokerFacade.clear();
-    }
-
-    @Before
-    public void startTransaction() throws Exception {
-        receiveNoWaitFlow.set(false);
-        expectNoTraces.set(false);
-        startAndActivateTransaction(null);
-        brokerFacade.beforeTest();
-        noopQ = brokerFacade.createQueue("NOOP");
-        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
     }
 
     private void startAndActivateTransaction(@Nullable Sampler sampler) {
@@ -139,29 +148,29 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         }
     }
 
-    @After
-    public void endTransaction() throws Exception {
-        Transaction currentTransaction = tracer.currentTransaction();
-        if (currentTransaction != null) {
-            currentTransaction.deactivate().end();
-        }
-        brokerFacade.afterTest();
-    }
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueSendReceiveOnTracedThread(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
 
-    @Test
-    public void testQueueSendReceiveOnTracedThread() throws Exception {
         final Queue queue = createTestQueue();
         doTestSendReceiveOnTracedThread(() -> brokerFacade.receive(queue, 10), queue, false, false);
     }
 
-    @Test
-    public void testQueueSendReceiveOnTracedThreadNoTimestamp() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueSendReceiveOnTracedThreadNoTimestamp(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         final Queue queue = createTestQueue();
         doTestSendReceiveOnTracedThread(() -> brokerFacade.receive(queue, 10), queue, false, true);
     }
 
-    @Test
-    public void testQueueSendReceiveNoWaitOnTracedThread() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueSendReceiveNoWaitOnTracedThread(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         receiveNoWaitFlow.set(true);
         if (!brokerFacade.shouldTestReceiveNoWait()) {
             return;
@@ -213,15 +222,21 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         }
     }
 
-    @Test
-    public void testQueueSendReceiveOnNonTracedThread() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueSendReceiveOnNonTracedThread(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
     @SuppressWarnings("ConstantConditions")
-    @Test
-    public void testQueueSendReceiveOnNonTracedThread_NonSampledTransaction() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueSendReceiveOnNonTracedThread_NonSampledTransaction(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         final Queue queue = createTestQueue();
 
         // End current transaction and start a non-sampled one
@@ -239,8 +254,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
     }
 
-    @Test
-    public void testAgentPaused() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testAgentPaused(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         TracerInternalApiUtils.pauseTracer(tracer);
         int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
         int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
@@ -260,15 +278,21 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
-    @Test
-    public void testQueueSendReceiveOnNonTracedThreadInactive() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueSendReceiveOnNonTracedThreadInactive(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
-    @Test
-    public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueSendReceiveNoWaitOnNonTracedThread(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         receiveNoWaitFlow.set(true);
         if (!brokerFacade.shouldTestReceiveNoWait()) {
             return;
@@ -277,29 +301,41 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
     }
 
-    @Test
-    public void testPollingTransactionCreationOnly() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testPollingTransactionCreationOnly(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         doReturn(POLLING).when(config.getConfig(MessagingConfiguration.class)).getMessagePollingTransactionStrategy();
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
-    @Test
-    public void testHandlingAndPollingTransactionCreation() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testHandlingAndPollingTransactionCreation(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         doReturn(BOTH).when(config.getConfig(MessagingConfiguration.class)).getMessagePollingTransactionStrategy();
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
-    @Test
-    public void testInactiveReceive() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testInactiveReceive(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         TracerInternalApiUtils.pauseTracer(tracer);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
-    @Test
-    public void testQueueDisablement() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testQueueDisablement(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         doReturn(BOTH).when(config.getConfig(MessagingConfiguration.class)).getMessagePollingTransactionStrategy();
         doReturn(List.of(WildcardMatcher.valueOf("ignore-*"))).when(config.getConfig(MessagingConfiguration.class)).getIgnoreMessageQueues();
         final Queue queue = brokerFacade.createQueue("ignore-this");
@@ -566,8 +602,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         }
     }
 
-    @Test
-    public void testRegisterConcreteListenerImpl() {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testRegisterConcreteListenerImpl(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         try {
             testQueueSendListen(createTestQueue(), brokerFacade::registerConcreteListenerImplementation);
         } catch (Exception e) {
@@ -575,8 +614,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         }
     }
 
-    @Test
-    public void testTempQueueListener() {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testTempQueueListener(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         try {
             testQueueSendListen(brokerFacade.createTempQueue(), brokerFacade::registerConcreteListenerImplementation);
         } catch (Exception e) {
@@ -584,8 +626,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         }
     }
 
-    @Test
-    public void testTibcoTempQueueListener() {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testTibcoTempQueueListener(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         try {
             testQueueSendListen(brokerFacade.createQueue(TIBCO_TMP_QUEUE_PREFIX + UUID.randomUUID().toString()),
                 brokerFacade::registerConcreteListenerImplementation);
@@ -594,8 +639,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         }
     }
 
-    @Test
-    public void testInactiveOnMessage() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testInactiveOnMessage(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         TracerInternalApiUtils.pauseTracer(tracer);
         Queue queue = createTestQueue();
         CompletableFuture<Message> incomingMessageFuture = brokerFacade.registerConcreteListenerImplementation(queue);
@@ -608,8 +656,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
-    @Test
-    public void testRegisterListenerLambda() {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testRegisterListenerLambda(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         try {
             testQueueSendListen(createTestQueue(), brokerFacade::registerListenerLambda);
         } catch (Exception e) {
@@ -617,8 +668,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         }
     }
 
-    @Test
-    public void testRegisterListenerMethodReference() {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testRegisterListenerMethodReference(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         try {
             testQueueSendListen(createTestQueue(), brokerFacade::registerListenerMethodReference);
         } catch (Exception e) {
@@ -642,8 +696,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         verifySendListenOnNonTracedThread(queueName, outgoingMessage, 1);
     }
 
-    @Test
-    public void testTopicWithTwoSubscribers() throws Exception {
+    @ParameterizedTest(name = "BrokerFacade={1}")
+    @MethodSource("brokerFacades")
+    public void testTopicWithTwoSubscribers(BrokerFacade brokerFacade, Class brokerFacadeClassName) throws Exception {
+        init(brokerFacade);
+
         Topic topic = createTestTopic();
 
         final CompletableFuture<Message> incomingMessageFuture1 = brokerFacade.registerConcreteListenerImplementation(topic);

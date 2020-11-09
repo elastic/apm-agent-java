@@ -26,8 +26,8 @@ package co.elastic.apm.agent.es.restclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
@@ -67,12 +67,13 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
@@ -87,7 +88,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@Ignore
+@Disabled
 public class ElasticsearchRestClientInstrumentationIT_RealReporter {
     private static final String USER_NAME = "elastic-user";
     private static final String PASSWORD = "elastic-pass";
@@ -111,7 +112,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
     /**
      * A version of ElasticsearchRestClientInstrumentationIT that can be used to test E2E the ES client instrumentation with the IT stack
      */
-    @BeforeClass
+    @BeforeAll
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
         container = new ElasticsearchContainer();
@@ -123,7 +124,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
-        RestClientBuilder builder =  RestClient.builder(new HttpHost("localhost", 9200))
+        RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200))
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         client = new RestHighLevelClient(builder);
 
@@ -156,7 +157,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopElasticsearchContainerAndClient() throws IOException {
         client.indices().delete(new DeleteIndexRequest(INDEX), RequestOptions.DEFAULT);
         container.stop();
@@ -169,7 +170,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         }
     }
 
-    @Before
+    @BeforeEach
     public void startTransaction() {
         Transaction transaction = tracer.startRootTransaction(null).activate();
         transaction.withName("transaction");
@@ -177,7 +178,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         transaction.withResult("success");
     }
 
-    @After
+    @AfterEach
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
@@ -242,18 +243,18 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
     @Test
     public void testScenarioAsBulkRequest() throws IOException {
         client.bulk(new BulkRequest()
-            .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
-                jsonBuilder()
-                    .startObject()
-                    .field(FOO, BAR)
-                    .endObject()
-            ))
-            .add(new IndexRequest(INDEX, DOC_TYPE, "3").source(
-                jsonBuilder()
-                    .startObject()
-                    .field(FOO, BAR)
-                    .endObject()
-            ))
-        , RequestOptions.DEFAULT);
+                .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
+                    jsonBuilder()
+                        .startObject()
+                        .field(FOO, BAR)
+                        .endObject()
+                ))
+                .add(new IndexRequest(INDEX, DOC_TYPE, "3").source(
+                    jsonBuilder()
+                        .startObject()
+                        .field(FOO, BAR)
+                        .endObject()
+                ))
+            , RequestOptions.DEFAULT);
     }
 }

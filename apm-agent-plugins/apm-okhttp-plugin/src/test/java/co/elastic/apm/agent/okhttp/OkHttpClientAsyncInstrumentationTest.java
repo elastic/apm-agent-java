@@ -29,7 +29,7 @@ import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +38,7 @@ public class OkHttpClientAsyncInstrumentationTest extends AbstractHttpClientInst
 
     private OkHttpClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         client = new OkHttpClient();
     }

@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.servlet;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 import java.io.File;

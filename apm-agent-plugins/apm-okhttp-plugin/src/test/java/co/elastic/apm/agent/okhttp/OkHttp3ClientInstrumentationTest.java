@@ -27,13 +27,13 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 public class OkHttp3ClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private OkHttpClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         client = new OkHttpClient();
     }

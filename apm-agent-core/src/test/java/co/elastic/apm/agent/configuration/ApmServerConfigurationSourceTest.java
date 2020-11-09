@@ -31,14 +31,14 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -67,25 +67,31 @@ import static org.mockito.Mockito.when;
 
 public class ApmServerConfigurationSourceTest {
 
-    @Rule
-    public WireMockRule mockApmServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockServer mockApmServer = new WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort());
     private ConfigurationRegistry config;
     private ApmServerClient apmServerClient;
     private ApmServerConfigurationSource configurationSource;
     private Logger mockLogger;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         config = SpyConfiguration.createSpyConfig();
         mockApmServer.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.0.0"))));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
+        mockApmServer.start();
+
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
         configurationSource = new ApmServerConfigurationSource(
             new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
             MetaData.create(config, null), apmServerClient, mockLogger);
+    }
+
+    @AfterEach
+    public void stopMockServer() {
+        mockApmServer.stop();
     }
 
     @Test
@@ -95,7 +101,7 @@ public class ApmServerConfigurationSourceTest {
         mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")));
         configurationSource.fetchConfig(config);
         mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")));
-        for (LoggedRequest request : WireMock.findAll(newRequestPattern(RequestMethod.POST, urlEqualTo("/config/v1/agents")))) {
+        for (LoggedRequest request : mockApmServer.findAll(newRequestPattern(RequestMethod.POST, urlEqualTo("/config/v1/agents")))) {
             final JsonNode jsonNode = new ObjectMapper().readTree(request.getBodyAsString());
             assertThat(jsonNode.get("service")).isNotNull();
             assertThat(jsonNode.get("system")).isNotNull();

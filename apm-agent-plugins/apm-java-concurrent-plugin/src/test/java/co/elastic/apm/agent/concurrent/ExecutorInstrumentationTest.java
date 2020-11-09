@@ -27,54 +27,62 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.SyncTaskExecutor;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(Parameterized.class)
 public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
-    private final Executor executor;
+    private Executor executor;
     private Transaction transaction;
 
-    public ExecutorInstrumentationTest(Supplier<ExecutorService> supplier) {
+    private void init(Supplier<ExecutorService> supplier) {
         executor = supplier.get();
     }
 
-    @Parameterized.Parameters()
-    public static Iterable<Supplier<Executor>> data() {
-        return Arrays.asList(SimpleAsyncTaskExecutor::new, SyncTaskExecutor::new);
+    public static Stream<Arguments> args() {
+        List<Supplier<Executor>> params = Arrays.asList(SimpleAsyncTaskExecutor::new, SyncTaskExecutor::new);
+        return params.stream().map(k -> Arguments.of(k)).collect(Collectors.toList()).stream();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         assertThat(tracer.getActive()).isNull();
     }
 
-    @Test
-    public void testExecutorExecute_Transaction() {
+    @ParameterizedTest
+    @MethodSource("args")
+    public void testExecutorExecute_Transaction(Supplier<ExecutorService> serviceSupplier) {
+        init(serviceSupplier);
+
         executor.execute(this::createAsyncSpan);
         assertOnlySpanIsChildOfOnlyTransaction();
     }
 
-    @Test
-    public void testExecutorExecute_Span() {
+    @ParameterizedTest
+    @MethodSource("args")
+    public void testExecutorExecute_Span(Supplier<ExecutorService> serviceSupplier) {
+        init(serviceSupplier);
+
         Span nonAsyncSpan = transaction.createSpan().withName("NonAsync").activate();
         executor.execute(this::createAsyncSpan);
         try {

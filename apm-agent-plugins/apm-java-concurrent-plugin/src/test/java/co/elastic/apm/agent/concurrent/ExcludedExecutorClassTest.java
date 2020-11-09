@@ -26,9 +26,9 @@ package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,14 +40,14 @@ public class ExcludedExecutorClassTest extends AbstractInstrumentationTest {
     private ExecutorService executor;
     private Transaction transaction;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         executor = Executors.newFixedThreadPool(1);
         ExecutorInstrumentation.excludedClasses.add(executor.getClass().getName());
         transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         transaction.deactivate().end();
         ExecutorInstrumentation.excludedClasses.remove(executor.getClass().getName());

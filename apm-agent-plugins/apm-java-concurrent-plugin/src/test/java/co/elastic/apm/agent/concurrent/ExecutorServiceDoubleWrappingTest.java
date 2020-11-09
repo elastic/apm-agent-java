@@ -27,9 +27,9 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -44,12 +44,12 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private Transaction transaction;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         transaction.deactivate().end();
         assertThat(tracer.getActive()).isNull();
