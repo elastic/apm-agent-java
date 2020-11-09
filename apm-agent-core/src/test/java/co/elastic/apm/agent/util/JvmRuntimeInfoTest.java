@@ -26,7 +26,6 @@ package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -146,8 +145,26 @@ class JvmRuntimeInfoTest {
     void testIbmJava8SupportedAfterBuild2_8() {
         JvmRuntimeInfo.parseVmInfo("1.8.0", "IBM J9 VM", "2.8");
         assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isFalse();
+        assertThat(JvmRuntimeInfo.isJ9VM()).isTrue();
         JvmRuntimeInfo.parseVmInfo("1.8.0", "IBM J9 VM", "2.9");
         assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isTrue();
+        assertThat(JvmRuntimeInfo.isJ9VM()).isTrue();
+    }
+
+    @Test
+    void testHpUxSupport() {
+        checkHpUx("1.8.0.1-hp-ux", "1.8.0.2-hp-ux");
+        checkHpUx("1.7.0.9-hp-ux", "1.7.0.10-hp-ux");
+    }
+
+    private static void checkHpUx(String unsupportedVersion, String supportedVersion){
+        JvmRuntimeInfo.parseVmInfo(unsupportedVersion, HOTSPOT_VM_NAME, null);
+        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isFalse();
+        assertThat(JvmRuntimeInfo.isIsHpUx()).isTrue();
+
+        JvmRuntimeInfo.parseVmInfo(supportedVersion, HOTSPOT_VM_NAME, null);
+        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isTrue();
+        assertThat(JvmRuntimeInfo.isIsHpUx()).isTrue();
     }
 
     private static void checkSupported(String vmName, Stream<String> versions) {

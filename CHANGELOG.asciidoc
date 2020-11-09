@@ -52,6 +52,7 @@ endif::[]
 * Fix ignored runtime attach `config_file` {pull}1469[1469]
 * Fix `IllegalAccessError: Module 'java.base' no access to: package 'java.lang'...` in J9 VMs of Java version >= 9 -
   {pull}1468[#1468]
+* Fix JVM version parsing on HP-UX {pull}1477[#1477]
 
 ===== Refactors
 * Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1411[1411]
