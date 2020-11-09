@@ -40,6 +40,7 @@ endif::[]
 * Add Sampling Profiler support for AArch64 architectures - {pull}1443[1443]
 * Support proper transaction naming when using Spring's `ServletWrappingController` - {pull}1461[#1461]
 * Update async-profiler to 1.8.2 {pull}1471[1471]
+* Update existing Hibernate Search 6 instrumentation to work with the latest CR1 release
 
 [float]
 ===== Bug fixes

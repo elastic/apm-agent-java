@@ -111,6 +111,8 @@
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
 
+        <version.testcontainers>1.15.0</version.testcontainers>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -504,7 +506,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.10.6</version>
+                <version>${version.testcontainers}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

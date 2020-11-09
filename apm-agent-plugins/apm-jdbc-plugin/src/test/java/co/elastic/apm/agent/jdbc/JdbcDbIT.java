@@ -50,7 +50,8 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
             {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb"},
             {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "sqlserver"},
             {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2"},
-            {"jdbc:tc:oracle://hostname/databasename", "oracle"},
+            // Oracle test commented out until resolving https://github.com/testcontainers/testcontainers-java/pull/3439
+            // {"jdbc:tc:oracle://hostname/databasename", "oracle"},
         });
     }
 
