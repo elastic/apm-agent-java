@@ -59,7 +59,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeAll
     static void setUp() throws IOException {
-        tempDirectory = Files.createTempDirectory("HibernateSearch6nstrumentationTest");
+        tempDirectory = Files.createTempDirectory("HibernateSearch6InstrumentationTest");
         entityManagerFactory = EntityManagerFactoryHelper.buildEntityManagerFactory(tempDirectory);
         entityManager = entityManagerFactory.createEntityManager();
         saveDogsToIndex();
