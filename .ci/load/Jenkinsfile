@@ -7,7 +7,7 @@ pipeline {
         APP_BASE_DIR = "src/${APP}"
         METRICS_BASE_DIR="metrics/"
         AGENT_BASE_DIR = "agent/"
-        ORCH_URL = 'https://obs-load-orch.app.elastic.co'
+        ORCH_URL = 'https://obs-load-orch.app.elstc.co '
         // Set below for local development
         // ORCH_URL='10.0.2.2:8000'
         DEBUG_MODE = '0' // set to '0' for production
