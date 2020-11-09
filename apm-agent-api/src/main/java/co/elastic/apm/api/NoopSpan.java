@@ -45,6 +45,7 @@ enum NoopSpan implements Span {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addTag(String key, String value) {
         // noop
@@ -52,20 +53,41 @@ enum NoopSpan implements Span {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addLabel(String key, String value) {
         return this;
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addLabel(String key, Number value) {
         return this;
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addLabel(String key, boolean value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setLabel(String key, String value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span setLabel(String key, boolean value) {
         return this;
     }
 

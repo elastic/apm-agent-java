@@ -31,16 +31,20 @@ import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SpanInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final SecureRandom random = new SecureRandom();
 
     private Transaction transaction;
 
@@ -85,11 +89,22 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testChaining() {
-        Span span = transaction.startSpan("foo", null, null).setName("foo").addLabel("foo", "bar");
+        int randomInt = random.nextInt();
+        boolean randomBoolean = random.nextBoolean();
+        String randomString = RandomStringUtils.randomAlphanumeric(3);
+        Span span = transaction.startSpan("foo", null, null)
+            .setName("foo")
+            .addLabel("foo", "bar")
+            .setLabel("stringKey", randomString)
+            .setLabel("numberKey", randomInt)
+            .setLabel("booleanKey", randomBoolean);
         endSpan(span);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getContext().getLabel("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstSpan().getContext().getLabel("stringKey")).isEqualTo(randomString);
+        assertThat(reporter.getFirstSpan().getContext().getLabel("numberKey")).isEqualTo(randomInt);
+        assertThat(reporter.getFirstSpan().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
     }
 
     private void endSpan(Span span) {

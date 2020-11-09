@@ -29,12 +29,17 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TransactionInstrumentationTest extends AbstractInstrumentationTest {
+
+    private static final SecureRandom random = new SecureRandom();
 
     private Transaction transaction;
 
@@ -65,10 +70,20 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testAddTag() {
+    void testAddOrSetLabel() {
+        int randomInt = random.nextInt();
+        boolean randomBoolean = random.nextBoolean();
+        String randomString = RandomStringUtils.randomAlphanumeric(3);
         transaction.addLabel("foo", "bar");
+        transaction.setLabel("stringKey", randomString);
+        transaction.setLabel("numberKey", randomInt);
+        transaction.setLabel("booleanKey", randomBoolean);
+
         endTransaction();
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("stringKey")).isEqualTo(randomString);
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("numberKey")).isEqualTo(randomInt);
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
     }
 
     @Test
@@ -105,7 +120,18 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testChaining() {
-        transaction.setType("foo").setName("foo").addLabel("foo", "bar").setUser("foo", "bar", "baz").setResult("foo");
+        int randomInt = random.nextInt();
+        boolean randomBoolean = random.nextBoolean();
+        String randomString = RandomStringUtils.randomAlphanumeric(3);
+
+        transaction.setType("foo")
+            .setName("foo")
+            .addLabel("foo", "bar")
+            .setLabel("stringKey", randomString)
+            .setLabel("numberKey", randomInt)
+            .setLabel("booleanKey", randomBoolean)
+            .setUser("foo", "bar", "baz")
+            .setResult("foo");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("foo");
@@ -114,6 +140,9 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");
         assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("stringKey")).isEqualTo(randomString);
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("numberKey")).isEqualTo(randomInt);
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
     }
 
     @Test
