@@ -24,11 +24,7 @@
  */
 package co.elastic.apm.agent.util;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-
 import javax.annotation.Nullable;
-import java.lang.management.ManagementFactory;
-import java.util.List;
 
 public class JvmRuntimeInfo {
 
@@ -41,6 +37,7 @@ public class JvmRuntimeInfo {
     private static int updateVersion;
     private static boolean isHotSpot;
     private static boolean isIbmJ9;
+    private static boolean isJ9;
 
     static {
         parseVmInfo(System.getProperty("java.version"), System.getProperty("java.vm.name"), System.getProperty("java.vm.version"));
@@ -95,6 +92,7 @@ public class JvmRuntimeInfo {
 
         isHotSpot = vmName.contains("HotSpot(TM)") || vmName.contains("OpenJDK");
         isIbmJ9 = vmName.contains("IBM J9");
+        isJ9 = vmName.contains("J9");
     }
 
     public static String getJavaVersion() {
@@ -112,6 +110,10 @@ public class JvmRuntimeInfo {
 
     public static int getMajorVersion() {
         return majorVersion;
+    }
+
+    public static boolean isJ9VM() {
+        return isJ9;
     }
 
     /**
@@ -165,32 +167,5 @@ public class JvmRuntimeInfo {
             default:
                 return true;
         }
-    }
-
-    public static boolean isJvmConfigurationSupported() {
-        List<String> jvmArgs = null;
-        try {
-            jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
-        } catch (Exception e) {
-            System.err.println("Failed to obtain command line arguments: " + e.getMessage());
-        }
-        return isJvmConfigurationSupported(jvmArgs);
-    }
-
-    static boolean isJvmConfigurationSupported(@Nullable List<String> jvmArgs) {
-        if (jvmArgs == null) {
-            return true;
-        }
-
-        if (majorVersion == 7) {
-            for (String jvmArg : jvmArgs) {
-                if ("-XX:+UseG1GC".equals(jvmArg)) {
-                    System.err.println("Using Elastic APM Java agent on Java 7 where the -XX:+UseG1GC JVM argument is " +
-                        "used may cause JVM crashes, therefore is not allowed.");
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 }

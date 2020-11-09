@@ -1,0 +1,19 @@
+##### LOAD TESTING JOB
+- job:
+    name: apm-agent-java/apm-agent-java-load
+    display-name: APM Agent Java Load Testing
+    description: APM Agent Java Load Testing
+    project-type: pipeline
+    pipeline-scm:
+      script-path: .ci/load/Jenkinsfile
+      scm:
+        - git:
+            url: git@github.com:elastic/apm-agent-java.git
+            refspec: +refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pr/*
+            wipe-workspace: 'True'
+            name: origin
+            shallow-clone: true
+            credentials-id: 2a9602aa-ab9f-4e52-baf3-b71ca88469c7-UserAndToken
+            reference-repo: /var/lib/jenkins/.git-references/apm-agent-java.git
+            branches:
+              - master
