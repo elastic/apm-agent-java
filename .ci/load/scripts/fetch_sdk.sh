@@ -44,7 +44,7 @@
 
 CATALOG_URL="https://jvm-catalog.elastic.co/jdks"
 
-read -r SDK_URL SDK_FILENAME <<<$(curl -s $CATALOG_URL|jq -Mr '.['\"$1\"'].url, .['\"$1\"'].filename')
+read -d'\n' -r SDK_URL SDK_FILENAME <<<$(curl -s $CATALOG_URL|jq -Mr '.['\"$1\"'].url, .['\"$1\"'].filename')
 
 curl -s -o $SDK_FILENAME $SDK_URL
 
