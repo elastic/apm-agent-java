@@ -72,26 +72,53 @@ public interface Transaction extends Span {
     @Deprecated
     Transaction addTag(String key, String value);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #setLabel(String, String)} instead
+     */
     @Nonnull
+    @Deprecated
     @Override
     Transaction addLabel(String key, String value);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #setLabel(String, Number)} instead
+     */
     @Nonnull
+    @Deprecated
     @Override
     Transaction addLabel(String key, Number value);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #setLabel(String, boolean)} instead
+     */
     @Nonnull
+    @Deprecated
     @Override
     Transaction addLabel(String key, boolean value);
 
+    /**
+     * {@inheritDoc}
+     */
     @Nonnull
     @Override
     Transaction setLabel(String key, String value);
 
+    /**
+     * {@inheritDoc}
+     */
     @Nonnull
     @Override
     Transaction setLabel(String key, Number value);
 
+    /**
+     * {@inheritDoc}
+     */
     @Nonnull
     @Override
     Transaction setLabel(String key, boolean value);

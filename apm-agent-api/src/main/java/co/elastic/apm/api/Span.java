@@ -73,36 +73,32 @@ public interface Span {
     Span addTag(String key, String value);
 
     /**
-     * @see {@link #setLabel(String, String)}
-     *
      * @param key   The label key.
      * @param value The label value.
      * @since 1.5.0
-     * @deprecated use {@link #setLabel(String, String)} instead
+     * @deprecated use {@link #setLabel(String, String)}
      */
     @Nonnull
     @Deprecated
     Span addLabel(String key, String value);
 
     /**
-     * @see {@link #setLabel(String, Number)}
+     * @deprecated use {@link #setLabel(String, Number)}
      *
      * @param key   The label key.
      * @param value The label value.
      * @since 1.5.0, APM Server 6.7
-     * @deprecated use {@link #setLabel(String, Number)} instead
      */
     @Nonnull
     @Deprecated
     Span addLabel(String key, Number value);
 
     /**
-     * @see {@link #setLabel(String, boolean)}
+     * @deprecated use {@link #setLabel(String, boolean)}
      *
      * @param key   The label key.
      * @param value The label value.
      * @since 1.5.0, APM Server 6.7
-     * @deprecated use {@link #setLabel(String, boolean)} instead
      */
     @Nonnull
     @Deprecated
@@ -132,7 +128,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.8.2
+     * @since 1.9.0
      */
     @Nonnull
     Span setLabel(String key, String value);
@@ -165,7 +161,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.8.2, APM Server 6.7
+     * @since 1.9.0, APM Server 6.7
      */
     @Nonnull
     Span setLabel(String key, Number value);
@@ -198,7 +194,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.8.2, APM Server 6.7
+     * @since 1.9.0, APM Server 6.7
      */
     @Nonnull
     Span setLabel(String key, boolean value);

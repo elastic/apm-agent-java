@@ -95,14 +95,14 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         Span span = transaction.startSpan("foo", null, null)
             .setName("foo")
             .addLabel("foo", "bar")
-            .setLabel("bar", randomString)
+            .setLabel("stringKey", randomString)
             .setLabel("numberKey", randomInt)
             .setLabel("booleanKey", randomBoolean);
         endSpan(span);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getContext().getLabel("foo")).isEqualTo("bar");
-        assertThat(reporter.getFirstSpan().getContext().getLabel("bar")).isEqualTo(randomString);
+        assertThat(reporter.getFirstSpan().getContext().getLabel("stringKey")).isEqualTo(randomString);
         assertThat(reporter.getFirstSpan().getContext().getLabel("numberKey")).isEqualTo(randomInt);
         assertThat(reporter.getFirstSpan().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
     }

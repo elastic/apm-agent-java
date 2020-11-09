@@ -53,6 +53,7 @@ class SpanImpl extends AbstractSpanImpl {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addTag(String key, String value) {
         doAddTag(key, value);
@@ -60,6 +61,7 @@ class SpanImpl extends AbstractSpanImpl {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addLabel(String key, String value) {
         doAddStringLabel(key, value);
@@ -67,6 +69,7 @@ class SpanImpl extends AbstractSpanImpl {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addLabel(String key, Number value) {
         doAddNumberLabel(key, value);
@@ -74,6 +77,7 @@ class SpanImpl extends AbstractSpanImpl {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Span addLabel(String key, boolean value) {
         doAddBooleanLabel(key, value);

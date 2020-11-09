@@ -75,13 +75,13 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         boolean randomBoolean = random.nextBoolean();
         String randomString = RandomStringUtils.randomAlphanumeric(3);
         transaction.addLabel("foo", "bar");
-        transaction.setLabel("bar", randomString);
+        transaction.setLabel("stringKey", randomString);
         transaction.setLabel("numberKey", randomInt);
         transaction.setLabel("booleanKey", randomBoolean);
 
         endTransaction();
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
-        assertThat(reporter.getFirstTransaction().getContext().getLabel("bar")).isEqualTo(randomString);
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("stringKey")).isEqualTo(randomString);
         assertThat(reporter.getFirstTransaction().getContext().getLabel("numberKey")).isEqualTo(randomInt);
         assertThat(reporter.getFirstTransaction().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
     }

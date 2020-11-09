@@ -55,6 +55,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addTag(String key, String value) {
         doAddTag(key, value);
@@ -62,6 +63,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, String value) {
         doAddStringLabel(key, value);
@@ -69,6 +71,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, Number value) {
         doAddNumberLabel(key, value);
@@ -76,6 +79,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, boolean value) {
         doAddBooleanLabel(key, value);
