@@ -41,6 +41,7 @@ endif::[]
 * Support proper transaction naming when using Spring's `ServletWrappingController` - {pull}1461[#1461]
 * Update async-profiler to 1.8.2 {pull}1471[1471]
 * Update existing Hibernate Search 6 instrumentation to work with the latest CR1 release
+* Deprecating the `addLabel` public API in favor of `setLabel` (still supporting `addLabel`) - {pull}1449[#1449]
 
 [float]
 ===== Bug fixes

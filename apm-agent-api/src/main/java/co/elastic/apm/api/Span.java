@@ -128,7 +128,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.9.0
+     * @since 1.19.0
      */
     @Nonnull
     Span setLabel(String key, String value);
@@ -161,7 +161,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.9.0, APM Server 6.7
+     * @since 1.19.0, APM Server 6.7
      */
     @Nonnull
     Span setLabel(String key, Number value);
@@ -194,7 +194,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.9.0, APM Server 6.7
+     * @since 1.19.0, APM Server 6.7
      */
     @Nonnull
     Span setLabel(String key, boolean value);
