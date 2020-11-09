@@ -35,7 +35,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 import org.mockserver.model.ClearType;
@@ -428,12 +427,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         return null;
     }
 
-    @NotNull
     public List<String> getPathsToTest() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
-    @NotNull
     public List<String> getPathsToTestErrors() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
