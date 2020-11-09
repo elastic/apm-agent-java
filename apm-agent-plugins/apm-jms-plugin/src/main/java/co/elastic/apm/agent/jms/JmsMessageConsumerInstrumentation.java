@@ -228,6 +228,10 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     if (messageHandlingTransaction != null) {
                         messageHandlingTransaction.withType(MESSAGE_HANDLING)
                             .withName(RECEIVE_NAME_PREFIX)
+                            // These transactions get a temporary "message-handling" type and left active on the thread
+                            // to be ended when the thread does the next polling for another message. It is a heuristic
+                            // approach that may produce inaccuracies, but in any case, only the activating thread should be able
+                            // to end and deactivate these transactions, otherwise consequences are unpredictable.
                             .disableAsyncPropagation();
 
                         if (destinationName != null) {
