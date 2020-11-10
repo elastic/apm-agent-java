@@ -1,1 +1,1 @@
-co.elastic.apm.agent.hibernate.search.v6_x.HibernateSearch6Instrumentation
+co.elastic.apm.agent.hibernatesearch.HibernateSearch6Instrumentation

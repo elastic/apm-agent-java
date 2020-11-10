@@ -35,7 +35,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 import org.mockserver.model.ClearType;
@@ -154,6 +153,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
+            .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -325,7 +325,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(responseBody).isNotNull();
         String responseString = responseBody.string();
         if (expectedContent != null) {
-            assertThat(responseString).contains(expectedContent);
+            assertThat(responseString)
+                .describedAs("unexpected response content")
+                .contains(expectedContent);
         }
         return responseString;
     }
@@ -428,12 +430,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         return null;
     }
 
-    @NotNull
     public List<String> getPathsToTest() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
-    @NotNull
     public List<String> getPathsToTestErrors() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }

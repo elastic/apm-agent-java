@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
+        <groupId>co.elastic.apm</groupId>
         <version>1.18.2-SNAPSHOT</version>
     </parent>
 
@@ -72,6 +72,12 @@
             <version>2.1.11</version>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-indy-bootstrap-module</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>

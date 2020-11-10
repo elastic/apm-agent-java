@@ -46,6 +46,7 @@ enum NoopTransaction implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addTag(String key, String value) {
         // noop
@@ -53,20 +54,41 @@ enum NoopTransaction implements Transaction {
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, String value) {
         return this;
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, Number value) {
         return this;
     }
 
     @Nonnull
+    @Deprecated
     @Override
     public Transaction addLabel(String key, boolean value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, String value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setLabel(String key, boolean value) {
         return this;
     }
 

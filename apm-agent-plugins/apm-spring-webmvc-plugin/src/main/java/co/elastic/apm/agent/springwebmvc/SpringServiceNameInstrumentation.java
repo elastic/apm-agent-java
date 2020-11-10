@@ -32,6 +32,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.context.WebApplicationContext;
 
+import javax.servlet.ServletContext;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -71,9 +72,37 @@ public class SpringServiceNameInstrumentation extends TracerAwareInstrumentation
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
-            if (applicationContext.getServletContext() != null) {
-                tracer.overrideServiceNameForClassLoader(applicationContext.getServletContext().getClassLoader(), applicationContext.getEnvironment().getProperty("spring.application.name"));
+            // This method will be called whenever the spring application context is refreshed which may be more than once
+            //
+            // For example, using Tomcat Servlet container, it's called twice with the first not having a ServletContext,
+            // while the second does, and later requests are initiated with the Servlet classloader and not the application
+            // classloader.
+            ClassLoader classLoader = applicationContext.getClassLoader();
+
+            ServletContext servletContext = applicationContext.getServletContext();
+            if (servletContext != null) {
+                try {
+                    ClassLoader servletClassloader = servletContext.getClassLoader();
+                    if (servletClassloader != null) {
+                        classLoader = servletClassloader;
+                    }
+                } catch (UnsupportedOperationException e) {
+                    // silently ignored
+                }
             }
+
+            String appName = applicationContext.getEnvironment().getProperty("spring.application.name", "");
+
+            // fallback when application name isn't set through an environment property
+            if (appName.isEmpty()) {
+                appName = applicationContext.getApplicationName();
+                // remove '/' (if any) from application name
+                if (appName.startsWith("/")) {
+                    appName = appName.substring(1);
+                }
+            }
+
+            tracer.overrideServiceNameForClassLoader(classLoader, appName);
         }
     }
 }

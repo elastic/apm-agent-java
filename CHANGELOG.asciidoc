@@ -39,6 +39,9 @@ endif::[]
   basic Servlet capturing) by adding `servlet-api-dispatch` to <<config-disable-instrumentations>> - {pull}1448[1448]
 * Add Sampling Profiler support for AArch64 architectures - {pull}1443[1443]
 * Support proper transaction naming when using Spring's `ServletWrappingController` - {pull}1461[#1461]
+* Update async-profiler to 1.8.2 {pull}1471[1471]
+* Update existing Hibernate Search 6 instrumentation to work with the latest CR1 release
+* Deprecating the `addLabel` public API in favor of `setLabel` (still supporting `addLabel`) - {pull}1449[#1449]
 * Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
@@ -46,7 +49,15 @@ endif::[]
 * Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
   `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
 * Fixes class loading issue that can occur when deploying multiple applications to the same application server - {pull}1458[#1458]
-* Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1447]
+* Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1444]
+* Avoid `UnsupportedOperationException` on some spring application startup {pull}1464[1464]
+* Fix ignored runtime attach `config_file` {pull}1469[1469]
+* Fix `IllegalAccessError: Module 'java.base' no access to: package 'java.lang'...` in J9 VMs of Java version >= 9 -
+  {pull}1468[#1468]
+* Fix JVM version parsing on HP-UX {pull}1477[#1477]
+
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1411[1411]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
