@@ -9,7 +9,6 @@ updates:
     reviewers:
       - "@elastic/apm-agent-java"
     allow:
-      - dependency-name: "react*"
       - dependency-name: "com.lmax:disruptor"
       - dependency-name: "org.jctools:jctools-core"
       - dependency-name: "co.elastic.logging:log4j2-ecs-layout"
