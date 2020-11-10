@@ -8,3 +8,21 @@ updates:
     open-pull-requests-limit: 3
     reviewers:
       - "@elastic/apm-agent-java"
+    allow:
+      - dependency-name: "react*"
+      - dependency-name: "com.lmax:disruptor"
+      - dependency-name: "org.jctools:jctools-core"
+      - dependency-name: "co.elastic.logging:log4j2-ecs-layout"
+      - dependency-name: "org.testcontainers:testcontainers"
+      - dependency-name: "org.junit.jupiter:*"
+      - dependency-name: "junit:junit"
+      - dependency-name: "org.junit.vintage:*"
+      - dependency-name: "org.assertj:assertj-core"
+      - dependency-name: "org.mockito:mockito-core"
+      - dependency-name: "com.networknt:json-schema-validator"
+      - dependency-name: "com.fasterxml.jackson.core:jackson-databind"
+      - dependency-name: "org.eclipse.jetty:jetty-servlet"
+      - dependency-name: "com.github.tomakehurst:wiremock-standalone"
+      - dependency-name: "org.awaitility:awaitility"
+      - dependency-name: "org.apache.ivy:ivy"
+      - dependency-name: "org.testcontainers:testcontainers"
