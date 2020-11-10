@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -9,11 +10,12 @@
     </parent>
 
     <artifactId>apm-jms-plugin</artifactId>
+    <packaging>pom</packaging>
+
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
-        <spring-framework.version>5.1.8.RELEASE</spring-framework.version>
         <activemq.version>5.15.9</activemq.version>
         <artemis.version>2.8.1</artemis.version>
     </properties>
@@ -46,6 +48,7 @@
     </dependencies>
 
     <modules>
+        <module>apm-jms-plugin-base</module>
         <module>apm-jms-spring-plugin</module>
     </modules>
 
