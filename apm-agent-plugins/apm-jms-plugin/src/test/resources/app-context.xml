@@ -34,6 +34,9 @@
         <property name="connectionFactory" ref="connectionFactory"/>
         <property name="destinationName" value="Spring-Test-Queue"/>
         <property name="messageListener" ref="springMapMessageListener"/>
+        <property name="concurrentConsumers" value="1"/>
+        <property name="maxConcurrentConsumers" value="10"/>
+        <property name="idleConsumerLimit" value="10"/>
     </bean>
 
 </beans>
