@@ -96,36 +96,37 @@ public class CloudProviderInfo {
             return null;
         }
         CloudProviderInfo data = null;
+        Cloud cloud = new Cloud();
         if ("aws".equals(cloudProviderName)) {
-            data = Cloud.getAwsMetadata();
+            data = cloud.getAwsMetadata();
             if (data == null) {
                 logger.warn("Cloud provider {} defined, but no metadata was found.", cloudProviderName);
             }
             return data;
         } else if ("gcp".equals(cloudProviderName)) {
-            data = Cloud.getGcpMetadata();
+            data = cloud.getGcpMetadata();
             if (data == null) {
                 logger.warn("Cloud provider {} defined, but no metadata was found.", cloudProviderName);
             }
             return data;
         } else if ("azure".equals(cloudProviderName)) {
-            data = Cloud.getAzureMetadata();
+            data = cloud.getAzureMetadata();
             if (data == null) {
                 logger.warn("Cloud provider {} defined, but no metadata was found.", cloudProviderName);
             }
             return data;
         } else {
-            data = Cloud.getAwsMetadata();
+            data = cloud.getAwsMetadata();
             if (data != null) {
                 logger.debug("Defined aws cloud provider metadata");
                 return data;
             }
-            data = Cloud.getGcpMetadata();
+            data = cloud.getGcpMetadata();
             if (data != null) {
                 logger.debug("Defined gcp cloud provider metadata");
                 return data;
             }
-            data = Cloud.getAzureMetadata();
+            data = cloud.getAzureMetadata();
             if (data != null) {
                 logger.debug("Defined azure cloud provider metadata");
                 return data;
@@ -189,6 +190,11 @@ public class CloudProviderInfo {
         public ProviderProject(@Nullable String name, @Nullable Long id) {
             this.name = name;
             this.id = id != null ? id.toString() : null;
+        }
+
+        public ProviderProject(@Nullable String name, @Nullable String id) {
+            this.name = name;
+            this.id = id;
         }
 
         @Nullable
