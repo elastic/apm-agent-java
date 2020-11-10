@@ -164,6 +164,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues());
         serializeSystem(metaData.getSystem());
+        jw.writeByte(COMMA);
         serializeCloudProvider(metaData.getCloudProvider());
         jw.writeByte(JsonWriter.OBJECT_END);
     }
