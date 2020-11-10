@@ -20,12 +20,20 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.0]]
-==== 1.19.0 - YYYY/MM/DD
+[[release-notes-1.19.1]]
+==== 1.19.1 - YYYY/MM/DD
 
 [float]
-===== Refactors
-* Replace System Rules with System Lambda {pull}1434[#1434]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.19.0]]
+==== 1.19.0 - 2020/11/10
 
 [float]
 ===== Features
@@ -56,11 +64,10 @@ endif::[]
 * Fix JVM version parsing on HP-UX {pull}1477[#1477]
 * Fix Spring-JMS transactions lifecycle management when using multiple concurrent consumers - {pull}1496[#1496]
 
+[float]
 ===== Refactors
 * Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1411[1411]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Replace System Rules with System Lambda {pull}1434[#1434]
 
 [[release-notes-1.18.1]]
 ==== 1.18.1 - 2020/10/06
