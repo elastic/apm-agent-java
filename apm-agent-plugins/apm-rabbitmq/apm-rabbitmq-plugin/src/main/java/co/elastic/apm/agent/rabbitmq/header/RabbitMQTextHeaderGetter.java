@@ -45,9 +45,7 @@ public class RabbitMQTextHeaderGetter implements TextHeaderGetter<AMQP.BasicProp
             return null;
         }
         Object headerValue = headers.get(headerName);
-        if (headerValue instanceof String) {
-            return (String) headerValue;
-        } else if (headerValue != null) {
+        if (headerValue != null) {
             // com.rabbitmq.client.impl.LongStringHelper.ByteArrayLongString
             return headerValue.toString();
         }

@@ -24,9 +24,11 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -49,6 +51,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  */
 public class ConsumerInstrumentation extends BaseInstrumentation {
 
+    public ConsumerInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         // Instrumentation applied at runtime, thus no need to check type
@@ -62,7 +68,8 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("com.rabbitmq.client.Consumer"));
+        return not(isBootstrapClassLoader())
+            .and(classLoaderCanLoadClass("com.rabbitmq.client.Consumer"));
     }
 
     @Override
@@ -75,18 +82,13 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
         private RabbitConsumerAdvice() {
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onHandleDelivery(@Advice.Origin Class<?> originClazz,
+                                              @Advice.This Consumer consumer,
                                               @Advice.Argument(value = 1) @Nullable Envelope envelope,
                                               @Advice.Argument(value = 2) @Nullable AMQP.BasicProperties properties) {
             if (!tracer.isRunning() || tracer.currentTransaction() != null) {
-                return null;
-            }
-
-            Transaction transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
-
-            if (transaction == null) {
                 return null;
             }
 
@@ -95,8 +97,21 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
                 exchange = "unknown";
             }
 
+            if (isExchangeIgnored(exchange)) {
+                return null;
+            }
+
+            Transaction transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
+            if (transaction == null) {
+                return null;
+            }
+
             transaction.withType("messaging")
                 .withName("Consumer#handleDelivery from ").appendToName(exchange);
+
+            transaction.setFrameworkName("RabbitMQ");
+
+            captureMessage(exchange, properties, transaction);
 
             return transaction.activate();
         }

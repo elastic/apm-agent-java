@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -36,6 +37,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -47,8 +49,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.any;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -59,10 +63,19 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  */
 public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
+    public ChannelInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameStartsWith("com.rabbitmq.client")
+            .and(nameContains("Channel"));
+    }
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // Instrumentation applied at runtime, thus no need to check type
-        return any();
+        return hasSuperType(named("com.rabbitmq.client.Channel"));
     }
 
 
@@ -82,6 +95,10 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         public static final Collection<Class<? extends ElasticApmInstrumentation>> CONSUMER_INSTRUMENTATION =
             Collections.<Class<? extends ElasticApmInstrumentation>>singleton(ConsumerInstrumentation.class);
 
+        public BasicConsume(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("basicConsume")
@@ -90,7 +107,8 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void onEnter(@Advice.Argument(6) @Nullable Consumer consumer) {
+        public static void onEnter(@Advice.This Channel channel,
+                                   @Advice.Argument(6) @Nullable Consumer consumer) {
             if (consumer == null) {
                 return;
             }
@@ -107,6 +125,10 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
      */
     public static class BasicPublish extends ChannelInstrumentation {
 
+        public BasicPublish(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("basicPublish")
@@ -118,13 +140,13 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         @Nullable
         public static Object[] onBasicPublish(@Advice.This Channel channel,
                                               @Advice.Argument(0) final String exchange,
-                                              @Advice.Argument(4) @Nullable AMQP.BasicProperties originalBasicProperties) {
-            if (!tracer.isRunning() || tracer.getActive() == null) {
+                                              @Advice.Argument(4) @Nullable AMQP.BasicProperties properties) {
+            if (!tracer.isRunning()) {
                 return null;
             }
 
             final AbstractSpan<?> activeSpan = tracer.getActive();
-            if (activeSpan == null) {
+            if (activeSpan == null || isExchangeIgnored(exchange)) {
                 return null;
             }
 
@@ -139,10 +161,9 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
                 .withName("Channel#basicPublish to ")
                 .appendToName(exchange);
 
-            AMQP.BasicProperties basicProperties = propagateTraceContext(exitSpan, originalBasicProperties);
+            properties = propagateTraceContext(exitSpan, properties);
 
-            exitSpan.getContext().getMessage()
-                .withQueue(exchange);
+            captureMessage(exchange, properties, exitSpan);
 
             Destination destination = exitSpan.getContext().getDestination();
 
@@ -157,7 +178,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
             exitSpan.activate();
 
-            return new Object[]{basicProperties, exitSpan};
+            return new Object[]{properties, exitSpan};
         }
 
         private static AMQP.BasicProperties propagateTraceContext(Span exitSpan,
