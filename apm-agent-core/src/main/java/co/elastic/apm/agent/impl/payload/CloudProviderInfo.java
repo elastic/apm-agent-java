@@ -161,6 +161,7 @@ public class CloudProviderInfo {
 
     public static class ProviderAccount {
         private String id;
+        private String name;
 
         public ProviderAccount(@Nullable String id) {
             this.id = id;
@@ -208,7 +209,6 @@ public class CloudProviderInfo {
             this.name = name;
         }
     }
-
 
     public static class ProviderProject {
         private String id;
