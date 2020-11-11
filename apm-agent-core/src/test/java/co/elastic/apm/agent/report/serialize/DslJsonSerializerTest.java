@@ -36,6 +36,7 @@ import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.Agent;
+import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import co.elastic.apm.agent.impl.payload.Language;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -74,6 +75,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -431,8 +433,8 @@ class DslJsonSerializerTest {
         ProcessInfo processInfo = new ProcessInfo("title").withPid(1234);
         processInfo.getArgv().add("test");
 
-        // TODO FIX
-        serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, systemInfo, null, Map.of("foo", "bar", "baz", "qux")));
+        CloudProviderInfo cloudProviderInfo = createCloudProviderInfo();
+        serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, systemInfo, cloudProviderInfo, Map.of("foo", "bar", "baz", "qux")));
 
         JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
 
@@ -476,6 +478,21 @@ class DslJsonSerializerTest {
         assertThat(jsonKubernetes.get("pod").get("name").asText()).isEqualTo("pod");
         assertThat(jsonKubernetes.get("pod").get("uid").asText()).isEqualTo("pod_id");
         assertThat(jsonKubernetes.get("namespace").asText()).isEqualTo("ns");
+
+        JsonNode jsonCloud = metaDataJson.get("cloud");
+        assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
+        assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
+        assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
+        JsonNode jsonCloudAccount = jsonCloud.get("account");
+        assertThat(jsonCloudAccount.get("id").asText()).isEqualTo("accountId");
+        JsonNode jsonCloudInstance = jsonCloud.get("instance");
+        assertThat(jsonCloudInstance.get("id").asText()).isEqualTo("instanceId");
+        assertThat(jsonCloudInstance.get("name").asText()).isEqualTo("instanceName");
+        JsonNode jsonCloudMachine = jsonCloud.get("machine");
+        assertThat(jsonCloudMachine.get("type").asText()).isEqualTo("machineType");
+        JsonNode jsonCloudProject = jsonCloud.get("project");
+        assertThat(jsonCloudProject.get("id").asText()).isEqualTo("projectId");
+        assertThat(jsonCloudProject.get("name").asText()).isEqualTo("projectName");
     }
 
     @Test
@@ -677,6 +694,96 @@ class DslJsonSerializerTest {
         assertThat(platform).isEqualTo(system.get("platform").asText());
     }
 
+    @Test
+    void testCloudProviderInfoWithNullObjectFields() {
+        System.getProperty("os.arch");
+        System.getProperty("os.name");
+        SystemInfo.getNameOfLocalHost();
+
+        MetaData metaData = createMetaData();
+        CloudProviderInfo cloudProviderInfo = metaData.getCloudProvider();
+        cloudProviderInfo.getAccount().setId(null);
+        cloudProviderInfo.setMachine(null);
+        cloudProviderInfo.setProject(null);
+        cloudProviderInfo.setInstance(null);
+
+        serializer.serializeMetadata(metaData);
+
+        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+
+        assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
+        assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
+        assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
+        JsonNode jsonCloudAccount = jsonCloud.get("account");
+        assertThat(jsonCloudAccount).isNull();
+        JsonNode jsonCloudInstance = jsonCloud.get("instance");
+        assertThat(jsonCloudInstance).isNull();
+        JsonNode jsonCloudMachine = jsonCloud.get("machine");
+        assertThat(jsonCloudMachine).isNull();
+        JsonNode jsonCloudProject = jsonCloud.get("project");
+        assertThat(jsonCloudProject).isNull();
+    }
+
+    @Test
+    void testCloudProviderInfoWithNullNameFields() {
+        System.getProperty("os.arch");
+        System.getProperty("os.name");
+        SystemInfo.getNameOfLocalHost();
+
+        MetaData metaData = createMetaData();
+        CloudProviderInfo cloudProviderInfo = metaData.getCloudProvider();
+        cloudProviderInfo.getProject().setName(null);
+        cloudProviderInfo.getInstance().setName(null);
+
+        serializer.serializeMetadata(metaData);
+
+        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+
+        assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
+        assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
+        assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
+        JsonNode jsonCloudAccount = jsonCloud.get("account");
+        assertThat(jsonCloudAccount.get("id").asText()).isEqualTo("accountId");
+        JsonNode jsonCloudInstance = jsonCloud.get("instance");
+        assertThat(jsonCloudInstance.get("id").asText()).isEqualTo("instanceId");
+        assertThat(jsonCloudInstance.get("name")).isEmpty();
+        JsonNode jsonCloudMachine = jsonCloud.get("machine");
+        assertThat(jsonCloudMachine.get("type").asText()).isEqualTo("machineType");
+        JsonNode jsonCloudProject = jsonCloud.get("project");
+        assertThat(jsonCloudProject.get("id").asText()).isEqualTo("projectId");
+        assertThat(jsonCloudProject.get("name")).isEmpty();
+    }
+
+    @Test
+    void testCloudProviderInfoWithNullIdFields() {
+        System.getProperty("os.arch");
+        System.getProperty("os.name");
+        SystemInfo.getNameOfLocalHost();
+
+        MetaData metaData = createMetaData();
+        CloudProviderInfo cloudProviderInfo = metaData.getCloudProvider();
+        cloudProviderInfo.getProject().setId(null);
+        cloudProviderInfo.getInstance().setId(null);
+
+        serializer.serializeMetadata(metaData);
+
+        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+
+        assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
+        assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
+        assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
+        JsonNode jsonCloudAccount = jsonCloud.get("account");
+        assertThat(jsonCloudAccount.get("id").asText()).isEqualTo("accountId");
+        JsonNode jsonCloudInstance = jsonCloud.get("instance");
+        assertThat(jsonCloudInstance.get("id")).isNull();
+        assertThat(jsonCloudInstance.get("name").asText()).isEqualTo("instanceName");
+        JsonNode jsonCloudMachine = jsonCloud.get("machine");
+        assertThat(jsonCloudMachine.get("type").asText()).isEqualTo("machineType");
+        JsonNode jsonCloudProject = jsonCloud.get("project");
+        assertThat(jsonCloudProject.get("id")).isNull();
+        assertThat(jsonCloudProject.get("name").asText()).isEqualTo("projectName");
+    }
+
     private MetaData createMetaData() {
         return createMetaData(SystemInfo.create());
     }
@@ -685,10 +792,19 @@ class DslJsonSerializerTest {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
-        // TODO FIX
-        return new MetaData(processInfo, service, system, null, new HashMap<>(0));
+        return new MetaData(processInfo, service, system, createCloudProviderInfo(), new HashMap<>(0));
     }
 
+    private CloudProviderInfo createCloudProviderInfo() {
+        CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("aws");
+        cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine("machineType"));
+        cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance("instanceId", "instanceName"));
+        cloudProviderInfo.setAvailabilityZone("availabilityZone");
+        cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount("accountId"));
+        cloudProviderInfo.setRegion("region");
+        cloudProviderInfo.setProject(new CloudProviderInfo.ProviderProject("projectName", "projectId"));
+        return cloudProviderInfo;
+    }
 
     private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(MockTracer.create());
@@ -753,7 +869,6 @@ class DslJsonSerializerTest {
         } else {
             assertThat(jsonSampleRate.asDouble()).isEqualTo(expectedRate);
         }
-
     }
 
     @Test

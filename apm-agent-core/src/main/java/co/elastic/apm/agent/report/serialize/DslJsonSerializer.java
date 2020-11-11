@@ -458,36 +458,39 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeCloudProvider(final @Nonnull CloudProviderInfo cloudProviderInfo) {
         writeFieldName("cloud");
         jw.writeByte(OBJECT_START);
-        writeField("availability_zone", cloudProviderInfo.getAvailabilityZone());
-        if (cloudProviderInfo.getAccount() != null) {
+        if (cloudProviderInfo.getAccount() != null && cloudProviderInfo.getAccount().getId() != null) {
             writeFieldName("account");
             jw.writeByte(JsonWriter.OBJECT_START);
-            writeField("id", cloudProviderInfo.getAccount().getId());
-            writeField("name", cloudProviderInfo.getAccount().getName());
+            writeLastField("id", cloudProviderInfo.getAccount().getId());
             jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
         }
         if (cloudProviderInfo.getInstance() != null) {
             writeFieldName("instance");
             jw.writeByte(JsonWriter.OBJECT_START);
             writeField("id", cloudProviderInfo.getInstance().getId());
-            writeField("name", cloudProviderInfo.getInstance().getName());
+            writeLastField("name", cloudProviderInfo.getInstance().getName());
             jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
         }
-        if (cloudProviderInfo.getMachine() != null) {
+        if (cloudProviderInfo.getMachine() != null && cloudProviderInfo.getMachine().getType() != null) {
             writeFieldName("machine");
             jw.writeByte(JsonWriter.OBJECT_START);
-            writeField("type", cloudProviderInfo.getMachine().getType());
+            writeLastField("type", cloudProviderInfo.getMachine().getType());
             jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
         }
         if (cloudProviderInfo.getProject() != null) {
             writeFieldName("project");
             jw.writeByte(JsonWriter.OBJECT_START);
             writeField("id", cloudProviderInfo.getProject().getId());
-            writeField("name", cloudProviderInfo.getProject().getName());
+            writeLastField("name", cloudProviderInfo.getProject().getName());
             jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
         }
-        writeField("provider", cloudProviderInfo.getProvider());
+        writeField("availability_zone", cloudProviderInfo.getAvailabilityZone());
         writeField("region", cloudProviderInfo.getRegion());
+        writeLastField("provider", cloudProviderInfo.getProvider());
         jw.writeByte(OBJECT_END);
     }
 
