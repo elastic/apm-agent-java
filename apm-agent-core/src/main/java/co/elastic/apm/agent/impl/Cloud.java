@@ -52,11 +52,11 @@ public class Cloud {
     @Nullable
     public CloudProviderInfo getAwsMetadata() {
         try {
-            String awsTokenUrl = "http://localhost:8080/latest/api/token";
+            String awsTokenUrl = "http://169.254.169.254/latest/api/token";
             Map<String, String> headers = new HashMap<>(1);
             headers.put("X-aws-ec2-metadata-token-ttl-seconds", "300");
             String token = callRequest(awsTokenUrl, "PUT", headers);
-            String awsMetadataUrl = "http://localhost:8080/latest/dynamic/instance-identity/document";
+            String awsMetadataUrl = "http://169.254.169.254/latest/dynamic/instance-identity/document";
             Map<String, String> documentHeaders = new HashMap<>(1);
             documentHeaders.put("X-aws-ec2-metadata-token", token);
             String metadata = callRequest(awsMetadataUrl, "GET", documentHeaders);
@@ -152,15 +152,15 @@ public class Cloud {
             LinkedHashMap<String, Object> instanceMap = (LinkedHashMap) instanceData;
             Long instanceId = (instanceMap.get("id") instanceof Long) ? (Long) instanceMap.get("id") : null;
             String instanceName = (instanceMap.get("name") instanceof String) ? (String) instanceMap.get("name") : null;
-            cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(instanceId, instanceName));
             String machineType = instanceMap.get("machineType") instanceof String ? (String) instanceMap.get("machineType") : null;
-            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(machineType));
             String zone = instanceMap.get("zone") instanceof String ? (String) instanceMap.get("zone") : null;
+            cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(instanceId, instanceName));
+            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(machineType));
             if (zone != null) {
                 int indexSlash = zone.lastIndexOf("/");
                 String availabilityZone = indexSlash != -1 ? zone.substring(indexSlash + 1) : zone;
-                cloudProviderInfo.setAvailabilityZone(availabilityZone);
                 int hyphenLastIndex = availabilityZone.lastIndexOf("-");
+                cloudProviderInfo.setAvailabilityZone(availabilityZone);
                 cloudProviderInfo.setRegion(hyphenLastIndex != -1 ? availabilityZone.substring(0, hyphenLastIndex) : null);
             }
         }

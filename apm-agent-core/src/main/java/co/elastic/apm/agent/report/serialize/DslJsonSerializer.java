@@ -77,7 +77,6 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -164,8 +163,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues());
         serializeSystem(metaData.getSystem());
-        jw.writeByte(COMMA);
-        serializeCloudProvider(metaData.getCloudProvider());
+        if (metaData.getCloudProvider() != null) {
+            jw.writeByte(COMMA);
+            serializeCloudProvider(metaData.getCloudProvider());
+        }
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 

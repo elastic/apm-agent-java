@@ -116,7 +116,7 @@ public class CloudProviderInfo {
     public static CloudProviderInfo create(@Nullable String cloudProviderName) {
         cloudProviderName = cloudProviderName != null ? cloudProviderName.toLowerCase() : null;
         if (StringUtils.isEmpty(cloudProviderName) || "false".equals(cloudProviderName)) {
-            logger.debug("cloud_provider configuration is null or `FALSE`.");
+            logger.debug("cloud_provider configuration is null or has `false` value.");
             return null;
         }
         CloudProviderInfo data = null;
