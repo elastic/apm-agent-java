@@ -144,7 +144,6 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             reporterConfiguration,
             processorEventHandler,
             new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            // TODO FIX
             new MetaData(title, service, system, null, Collections.emptyMap()),
             apmServerClient);
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);

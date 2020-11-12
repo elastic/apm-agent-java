@@ -113,7 +113,6 @@ class IntakeV2ReportingEventHandlerTest {
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            // TODO FIX
             new MetaData(title, service, system, null, Collections.emptyMap()), apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
@@ -123,7 +122,6 @@ class IntakeV2ReportingEventHandlerTest {
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(mock(StacktraceConfiguration.class), this.apmServerClient),
-            // TODO FIX
             new MetaData(title1, service1, system, null, Collections.emptyMap()),
             apmServerClient);
     }
