@@ -166,8 +166,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 if (message != null) {
                     try {
                         destination = message.getJMSDestination();
-                        destinationName = jmsInstrumentationHelper.extractDestinationName(message, destination);
-                        discard = jmsInstrumentationHelper.ignoreDestination(destinationName);
+                        destinationName = helper.extractDestinationName(message, destination);
+                        discard = helper.ignoreDestination(destinationName);
                     } catch (JMSException e) {
                         logger.error("Failed to retrieve meta info from Message", e);
                     }
@@ -177,9 +177,9 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         if (discard) {
                             transaction.ignoreTransaction();
                         } else {
-                            jmsInstrumentationHelper.makeChildOf(transaction, message);
+                            helper.makeChildOf(transaction, message);
                             transaction.withType(MESSAGING_TYPE);
-                            jmsInstrumentationHelper.addMessageDetails(message, abstractSpan);
+                            helper.addMessageDetails(message, abstractSpan);
                         }
                     }
                 } else if (abstractSpan instanceof Transaction) {
@@ -195,8 +195,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         } else if (addDetails) {
                             if (message != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");
-                                jmsInstrumentationHelper.addDestinationDetails(message, destination, destinationName, abstractSpan);
-                                jmsInstrumentationHelper.setMessageAge(message, abstractSpan);
+                                helper.addDestinationDetails(message, destination, destinationName, abstractSpan);
+                                helper.setMessageAge(message, abstractSpan);
                             }
                             abstractSpan.captureException(throwable);
                         }
@@ -210,16 +210,16 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
 
-                    Transaction messageHandlingTransaction = jmsInstrumentationHelper.startJmsTransaction(message, clazz);
+                    Transaction messageHandlingTransaction = helper.startJmsTransaction(message, clazz);
                     if (messageHandlingTransaction != null) {
                         messageHandlingTransaction.withType(MESSAGE_HANDLING)
                             .withName(RECEIVE_NAME_PREFIX);
 
                         if (destinationName != null) {
                             messageHandlingTransaction.appendToName(" from ");
-                            jmsInstrumentationHelper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
-                            jmsInstrumentationHelper.addMessageDetails(message, messageHandlingTransaction);
-                            jmsInstrumentationHelper.setMessageAge(message, messageHandlingTransaction);
+                            helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
+                            helper.addMessageDetails(message, messageHandlingTransaction);
+                            helper.setMessageAge(message, messageHandlingTransaction);
                         }
 
                         messageHandlingTransaction.activate();
@@ -247,7 +247,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             @AssignTo.Argument(0)
             @Advice.OnMethodEnter(inline = false)
             public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
-                return jmsInstrumentationHelper.wrapLambda(original);
+                return helper.wrapLambda(original);
             }
         }
     }

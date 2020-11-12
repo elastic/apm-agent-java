@@ -40,11 +40,11 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation {
 
     public static MessagingConfiguration messagingConfiguration;
-    public static JmsInstrumentationHelper jmsInstrumentationHelper;
+    public static JmsInstrumentationHelper helper;
 
     static {
         ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
-        jmsInstrumentationHelper = new JmsInstrumentationHelper(elasticApmTracer);
+        helper = new JmsInstrumentationHelper(elasticApmTracer);
         messagingConfiguration = elasticApmTracer.getConfig(MessagingConfiguration.class);
     }
 

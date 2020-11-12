@@ -91,7 +91,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
 
                 try {
                     Destination destination = producer.getDestination();
-                    return jmsInstrumentationHelper.startJmsSendSpan(destination, message);
+                    return helper.startJmsSendSpan(destination, message);
                 } catch (JMSException e) {
                     logger.warn("Failed to retrieve message's destination", e);
                 }
@@ -131,7 +131,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             @Nullable
             public static Object startSpan(@Advice.Argument(0) final Destination destination,
                                            @Advice.Argument(1) final Message message) {
-                return jmsInstrumentationHelper.startJmsSendSpan(destination, message);
+                return helper.startJmsSendSpan(destination, message);
             }
 
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)

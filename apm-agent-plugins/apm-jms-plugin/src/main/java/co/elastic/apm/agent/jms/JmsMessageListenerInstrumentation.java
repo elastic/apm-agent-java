@@ -94,23 +94,23 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             }
 
             if (destination != null) {
-                destinationName = jmsInstrumentationHelper.extractDestinationName(message, destination);
-                if (jmsInstrumentationHelper.ignoreDestination(destinationName)) {
+                destinationName = helper.extractDestinationName(message, destination);
+                if (helper.ignoreDestination(destinationName)) {
                     return null;
                 }
             }
 
             // Create a transaction - even if running on same JVM as the sender
-            Transaction transaction = jmsInstrumentationHelper.startJmsTransaction(message, clazz);
+            Transaction transaction = helper.startJmsTransaction(message, clazz);
             if (transaction != null) {
                 transaction.withType(MESSAGING_TYPE)
                     .withName(RECEIVE_NAME_PREFIX);
 
                 if (destinationName != null) {
-                    jmsInstrumentationHelper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
+                    helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
                 }
-                jmsInstrumentationHelper.addMessageDetails(message, transaction);
-                jmsInstrumentationHelper.setMessageAge(message, transaction);
+                helper.addMessageDetails(message, transaction);
+                helper.setMessageAge(message, transaction);
                 transaction.activate();
             }
 
