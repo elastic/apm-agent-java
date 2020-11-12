@@ -82,14 +82,14 @@ import static org.mockito.Mockito.doReturn;
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     // Keeping a static reference for resource cleaning
-    private static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();
+    private final static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();
 
     private static final BlockingQueue<Message> resultQ = new ArrayBlockingQueue<>(5);
 
     private final BrokerFacade brokerFacade;
     private final CoreConfiguration coreConfiguration;
-    private ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
-    private ThreadLocal<Boolean> expectNoTraces = new ThreadLocal<>();
+    private final ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
+    private final ThreadLocal<Boolean> expectNoTraces = new ThreadLocal<>();
 
     private Queue noopQ;
 

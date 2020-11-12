@@ -5,13 +5,15 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.18.2-SNAPSHOT</version>
+        <version>1.19.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-indy-bootstrap-module</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
 
         <maven.compiler.target>9</maven.compiler.target>
