@@ -69,7 +69,10 @@ public class TraceState implements Recyclable {
         // While this is not a deep-copy and we don't explicitly make it immutable by using CharSequence.
         // It's not required as entries are never modified once added.
         // Doing so allows to bypass any copy for String/StringBuilder in the collection
-        tracestate.addAll(other.tracestate);
+        for (int i = 0; i < other.tracestate.size(); i++) {
+            //noinspection UseBulkOperation
+            tracestate.add(other.tracestate.get(i));
+        }
 
         rewriteBuffer.setLength(0);
         header.setLength(0);
