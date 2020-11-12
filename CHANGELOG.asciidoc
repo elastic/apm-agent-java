@@ -29,6 +29,10 @@ endif::[]
 [float]
 ===== Bug fixes
 
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1394[1394]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
