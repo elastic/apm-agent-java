@@ -65,10 +65,12 @@ public class TraceState implements Recyclable {
         sampleRate = other.sampleRate;
         sizeLimit = other.sizeLimit;
         tracestate.clear();
-        // copy and make sure we have the immutable variant
-        for (int i = 0; i < other.tracestate.size(); i++) {
-            tracestate.add(other.tracestate.get(i).toString());
-        }
+
+        // While this is not a deep-copy and we don't explicitly make it immutable by using CharSequence.
+        // It's not required as entries are never modified once added.
+        // Doing so allows to bypass any copy for String/StringBuilder in the collection
+        tracestate.addAll(other.tracestate);
+
         rewriteBuffer.setLength(0);
         header.setLength(0);
         header.append(other.header);
