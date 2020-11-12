@@ -11,3 +11,5 @@ dependency-reduced-pom.xml
 html_docs
 docs/html/
 **/__pycache__/
+.m2/
+fetch.log

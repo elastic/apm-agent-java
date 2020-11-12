@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.18.1-SNAPSHOT</version>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.19.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -73,6 +73,12 @@
         </dependency>
 
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-indy-bootstrap-module</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
             <version>${version.okhttp}</version>
@@ -117,9 +123,8 @@
         <!--For setting environment variables-->
         <dependency>
             <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-rules</artifactId>
-            <!-- Latest version (1.19.0) doesn't work at the moment - https://github.com/stefanbirkner/system-rules/issues/70 -->
-            <version>1.17.2</version>
+            <artifactId>system-lambda</artifactId>
+            <version>1.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

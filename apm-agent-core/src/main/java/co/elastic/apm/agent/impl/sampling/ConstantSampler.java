@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,9 +35,13 @@ public class ConstantSampler implements Sampler {
     private static final Sampler FALSE = new ConstantSampler(false);
 
     private final boolean decision;
+    private final double rate;
+    private final String rateString;
 
     private ConstantSampler(boolean decision) {
         this.decision = decision;
+        rate = decision ? 1.0d : 0.0d;
+        rateString = Double.toString(rate);
     }
 
     public static Sampler of(boolean decision) {
@@ -51,5 +55,15 @@ public class ConstantSampler implements Sampler {
     @Override
     public boolean isSampled(Id traceId) {
         return decision;
+    }
+
+    @Override
+    public double getSampleRate() {
+        return rate;
+    }
+
+    @Override
+    public String getSampleRateString() {
+        return rateString;
     }
 }

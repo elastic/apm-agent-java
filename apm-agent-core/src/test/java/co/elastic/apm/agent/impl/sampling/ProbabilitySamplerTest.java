@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,8 +25,11 @@
 package co.elastic.apm.agent.impl.sampling;
 
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.TraceState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,6 +43,22 @@ class ProbabilitySamplerTest {
     @BeforeEach
     void setUp() {
         sampler = ProbabilitySampler.of(SAMPLING_RATE);
+        assertThat(sampler.getSampleRate()).isEqualTo(SAMPLING_RATE);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0.0","1.0","0.5"})
+    void headerCaching(double rate) {
+
+        // will indirectly test ConstantSampler as we delegate to it for 0 and 1 values
+        sampler = ProbabilitySampler.of(rate);
+
+        String rateString = sampler.getSampleRateString();
+        assertThat(rateString).isEqualTo(Double.toString(rate));
+
+        assertThat(rateString)
+            .describedAs("rate as string should return same instance on each call")
+            .isSameAs(sampler.getSampleRateString());
     }
 
     @Test

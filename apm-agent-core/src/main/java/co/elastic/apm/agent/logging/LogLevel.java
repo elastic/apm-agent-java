@@ -27,7 +27,9 @@ package co.elastic.apm.agent.logging;
 enum LogLevel {
     OFF,
     ERROR,
+    CRITICAL,
     WARN,
+    WARNING,
     INFO,
     DEBUG,
     TRACE

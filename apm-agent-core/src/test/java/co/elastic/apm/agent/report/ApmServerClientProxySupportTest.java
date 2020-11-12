@@ -27,7 +27,6 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import io.undertow.Undertow;
 import io.undertow.io.Sender;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -256,7 +255,6 @@ public class ApmServerClientProxySupportTest {
             .isEqualTo(407);
     }
 
-    @NotNull
     private static URL baseUrl(String host, int port) {
         try {
             return new URL(String.format("http://%s:%d", host, port));

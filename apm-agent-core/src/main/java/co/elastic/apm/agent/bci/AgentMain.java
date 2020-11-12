@@ -24,7 +24,8 @@
  */
 package co.elastic.apm.agent.bci;
 
-import javax.annotation.Nullable;
+import co.elastic.apm.agent.util.JvmRuntimeInfo;
+
 import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.net.URISyntaxException;
@@ -76,16 +77,31 @@ public class AgentMain {
             return;
         }
 
-        String javaVersion = System.getProperty("java.version");
-        String javaVmName = System.getProperty("java.vm.name");
-        String javaVmVersion = System.getProperty("java.vm.version");
-        if (!isJavaVersionSupported(javaVersion, javaVmName, javaVmVersion)) {
+        if (!JvmRuntimeInfo.isJavaVersionSupported()) {
             // Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
             // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
             // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
             // for JVM internals, there is no other option but to use an up-to-date JVM instead.
-            System.err.println(String.format("Failed to start agent - JVM version not supported: %s %s %s", javaVersion, javaVmName, javaVmVersion));
-            return;
+
+            String msgTemplate;
+
+            boolean doDisable;
+            if (Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks"))) {
+                // safety check disabled, warn end user that it might
+                doDisable = false;
+                msgTemplate = "WARNING : JVM version unknown or not supported, safety check disabled - %s %s %s";
+            } else {
+                doDisable = true;
+                msgTemplate = "Failed to start agent - JVM version not supported: %s %s %s.\nTo override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.";
+            }
+
+            System.err.println(String.format(msgTemplate,
+                JvmRuntimeInfo.getJavaVersion(), JvmRuntimeInfo.getJavaVmName(), JvmRuntimeInfo.getJavaVmVersion()));
+
+            if (doDisable) {
+                return;
+            }
+
         }
 
         try {
@@ -105,96 +121,6 @@ public class AgentMain {
         } catch (Exception | LinkageError e) {
             System.err.println("Failed to start agent");
             e.printStackTrace();
-        }
-    }
-
-    /**
-     * Checks if a given version of the JVM is likely supported by this agent.
-     * <br>
-     * Supports values provided before and after https://openjdk.java.net/jeps/223, in case parsing fails due to an
-     * unknown version format, we assume it's supported, thus this method might return false positives, but never false
-     * negatives.
-     *
-     * @param version   jvm version, from {@code System.getProperty("java.version")}
-     * @param vmName    jvm name, from {@code System.getProperty("java.vm.name")}
-     * @param vmVersion jvm version, from {@code System.getProperty("java.vm.version")}
-     * @return true if the version is supported, false otherwise
-     */
-    // package-protected for testing
-    static boolean isJavaVersionSupported(String version, String vmName, @Nullable String vmVersion) {
-        // new scheme introduced in java 9, thus we can use it as a shortcut
-        int major;
-        if (version.startsWith("1.")) {
-            major = Character.digit(version.charAt(2), 10);
-        } else {
-            String majorAsString = version.split("\\.")[0];
-            int indexOfDash = majorAsString.indexOf('-');
-            if (indexOfDash > 0) {
-                majorAsString = majorAsString.substring(0, indexOfDash);
-            }
-            major = Integer.parseInt(majorAsString);
-        }
-
-        boolean isHotSpot = vmName.contains("HotSpot(TM)") || vmName.contains("OpenJDK");
-        boolean isIbmJ9 = vmName.contains("IBM J9");
-        if (major < 7) {
-            // given code is compiled with java 7, this one is unlikely in practice
-            return false;
-        }
-        if (isHotSpot) {
-            return isHotSpotVersionSupported(version, major);
-        } else if (isIbmJ9) {
-            return isIbmJ9VersionSupported(vmVersion, major);
-        }
-        // innocent until proven guilty
-        return true;
-    }
-
-    private static boolean isHotSpotVersionSupported(String version, int major) {
-        switch (major) {
-            case 7:
-                // versions prior to that have unreliable invoke dynamic support according to https://groovy-lang.org/indy.html
-                return isUpdateVersionAtLeast(version, 60);
-            case 8:
-                return isUpdateVersionAtLeast(version, 40);
-            default:
-                return true;
-        }
-    }
-
-    private static boolean isIbmJ9VersionSupported(@Nullable String vmVersion, int major) {
-        switch (major) {
-            case 7:
-                return false;
-            case 8:
-                // early versions crash during invokedynamic bootstrap
-                // the exact version that fixes that error is currently not known
-                // presumably, service refresh 5 (build 2.8) fixes the issue
-                return !"2.8".equals(vmVersion);
-            default:
-                return true;
-        }
-    }
-
-    private static boolean isUpdateVersionAtLeast(String version, int minimumUpdateVersion) {
-        int updateIndex = version.lastIndexOf("_");
-        if (updateIndex <= 0) {
-            // GA release '1.8.0'
-            return false;
-        } else {
-            int versionSuffixIndex = version.indexOf('-', updateIndex + 1);
-            String updateVersion;
-            if (versionSuffixIndex <= 0) {
-                updateVersion = version.substring(updateIndex + 1);
-            } else {
-                updateVersion = version.substring(updateIndex + 1, versionSuffixIndex);
-            }
-            try {
-                return Integer.parseInt(updateVersion) >= minimumUpdateVersion;
-            } catch (NumberFormatException e) {
-                // in case of unknown format, we just support by default
-                return true;
-            }
         }
     }
 
