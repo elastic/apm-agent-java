@@ -161,7 +161,7 @@ function tearDown() {
 }
 
 if [ ! $DEBUG_MODE ]; then
-trap "tearDown" EXIT
+    trap "tearDown" ERR EXIT
     setUp
 fi
 waitForApp
