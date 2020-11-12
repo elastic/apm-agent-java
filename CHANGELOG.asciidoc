@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
 ===== Bug fixes
@@ -50,7 +51,6 @@ endif::[]
 * Update async-profiler to 1.8.2 {pull}1471[1471]
 * Update existing Hibernate Search 6 instrumentation to work with the latest CR1 release
 * Deprecating the `addLabel` public API in favor of `setLabel` (still supporting `addLabel`) - {pull}1449[#1449]
-* Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
 ===== Bug fixes
