@@ -13,7 +13,7 @@ pipeline {
         DEBUG_MODE = '0' // set to '0' for production
         LOCUST_RUN_TIME = "${params.duration}"
         LOCUST_USERS = "${params.concurrent_requests}"
-
+        LOCUST_IGNORE_ERRORS = "${params.ignore_application_errors}"
     }
     options {
         timeout(time: 72, unit: 'HOURS')
@@ -34,6 +34,7 @@ pipeline {
         text(name: "agent_config", "defaultValue": "", description: "Custom APM Agent configuration. (WARNING: May echo to console. Do not supply sensitive data.)")
         text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")
         booleanParam(name: "local_metrics", description: "Enable local metrics collection?", defaultValue: false)
+        booleanParam(name: "ignore_application_errors", description: "Instruct the load generator to ignore non-2xx errors on exit", defaultValue: true)
         // End script auto-generation
     }
 
@@ -51,14 +52,16 @@ pipeline {
                 stage('Load generation') {
                     agent { label 'metal' }
                     steps {
-                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
-                                echo 'Preparing load generation..'
-                                whenTrue(Boolean.valueOf(params.locustfile)) {
-                                    echo 'Using user-supplied plan for load-generation with Locust'
-                                    sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
-                                }
+                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                            echo 'Preparing load generation..'
+                            whenTrue(Boolean.valueOf(params.locustfile)) {
+                                echo 'Using user-supplied plan for load-generation with Locust'
+                                sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
+                            }
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 sh(script: ".ci/load/scripts/load_agent.sh")
                             }
+                        }
                     }
                 }
                 stage('Test application') {
