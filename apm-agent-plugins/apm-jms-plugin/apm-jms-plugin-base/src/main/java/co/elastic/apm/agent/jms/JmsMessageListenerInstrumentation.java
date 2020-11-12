@@ -73,7 +73,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @Nullable
         public static Object beforeOnMessage(@Advice.Argument(0) @Nullable final Message message,
-                                                  @Advice.Origin Class<?> clazz) {
+                                             @Advice.Origin Class<?> clazz) {
 
             if (message == null || tracer.currentTransaction() != null) {
                 return null;
