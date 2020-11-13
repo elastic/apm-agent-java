@@ -95,7 +95,7 @@ public class ApmServerClient {
         this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
-                logger.debug("server_urls override with value = ({}).", newValue);
+                logger.debug("server_url override with value = ({}).", newValue);
                 if (newValue != null && !newValue.isEmpty()) {
                     setServerUrls(shuffleUrls(newValue));
                 }

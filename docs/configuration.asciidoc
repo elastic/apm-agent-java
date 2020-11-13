@@ -64,7 +64,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example,org.another.example
--Delastic.apm.server_urls=http://localhost:8200
+-Delastic.apm.server_url=http://localhost:8200
 ----
 
 [source,properties]
@@ -72,7 +72,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example,org.another.example
-server_urls=http://localhost:8200
+server_url=http://localhost:8200
 ----
 
 [source,bash]
@@ -80,7 +80,7 @@ server_urls=http://localhost:8200
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
-ELASTIC_APM_SERVER_URLS=http://localhost:8200
+ELASTIC_APM_SERVER_URL=http://localhost:8200
 ----
 
 [float]
@@ -153,7 +153,7 @@ Click on a key to get more information.
 * <<config-reporter>>
 ** <<config-secret-token>>
 ** <<config-api-key>>
-** <<config-server-urls>>
+** <<config-server-url>>
 ** <<config-server-timeout>>
 ** <<config-verify-server-cert>>
 ** <<config-max-queue-size>>
@@ -1944,17 +1944,13 @@ Use if APM Server requires an API key.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-server-urls]]
-==== `server_urls`
+[[config-server-url]]
+==== `server_url`
 
-The URLs must be fully qualified, including protocol (http or https) and port.
-
-Fails over to the next APM Server URL in the event of connection errors.
-Achieves load-balancing by shuffling the list of configured URLs.
-When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+The URL must be fully qualified, including protocol (http or https) and port.
 
 If set to an empty string, the agent will work as usual, except from any task requiring communication with 
-the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+the APM server (since 1.18.0). Events will be dropped as long as no valid server URL are set. 
 
 If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 <<ssl-configuration>>.
@@ -1979,7 +1975,7 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.server_urls` | `server_urls` | `ELASTIC_APM_SERVER_URLS`
+| `elastic.apm.server_url` | `server_url` | `ELASTIC_APM_SERVER_URL`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3265,16 +3261,12 @@ The default unit for this option is `ms`.
 #
 # api_key=
 
-# The URLs for your APM Servers
+# The URL for your APM Server
 #
-# The URLs must be fully qualified, including protocol (http or https) and port.
-# 
-# Fails over to the next APM Server URL in the event of connection errors.
-# Achieves load-balancing by shuffling the list of configured URLs.
-# When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+# The URL must be fully qualified, including protocol (http or https) and port.
 # 
 # If set to an empty string, the agent will work as usual, except from any task requiring communication with 
-# the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+# the APM server (since 1.18.0). Events will be dropped as long as no valid server URL are set. 
 # 
 # If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 # <<ssl-configuration>>.
@@ -3290,7 +3282,7 @@ The default unit for this option is `ms`.
 # Type: comma separated list
 # Default value: http://localhost:8200
 #
-# server_urls=http://localhost:8200
+# server_url=http://localhost:8200
 
 # Server timeout
 #

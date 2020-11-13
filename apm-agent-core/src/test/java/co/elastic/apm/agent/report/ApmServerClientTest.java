@@ -105,7 +105,7 @@ public class ApmServerClientTest {
 
     @Test
     public void testClientMethodsWithEmptyUrls() throws IOException {
-        // tests setting server_urls to an empty string in configuration
+        // tests setting server_url to an empty string in configuration
         apmServerClient.start(Lists.emptyList());
         awaitUpToOneSecond().untilAsserted(
             () -> assertThat(apmServerClient.getApmServerVersion(1, TimeUnit.SECONDS)).isEqualTo(Version.UNKNOWN_VERSION)
@@ -120,7 +120,7 @@ public class ApmServerClientTest {
         Reporter reporter = tracer.getReporter();
         long droppedStart = reporter.getDropped();
 
-        // tests setting server_urls to an empty string in configuration
+        // tests setting server_url to an empty string in configuration
         apmServerClient.start(Lists.emptyList());
 
         BookkeeperObjectPool<Transaction> transactionPool = objectPoolFactory.getTransactionPool();
@@ -245,7 +245,7 @@ public class ApmServerClientTest {
     @Test
     public void testGetServerUrlsVerifyThatServerUrlsWillBeReloaded() throws IOException {
         URL tempUrl = new URL("http", "localhost", 9999, "");
-        config.save("server_urls", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        config.save("server_url", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
 
         List<URL> updatedServerUrls = apmServerClient.getServerUrls();
 
@@ -259,7 +259,7 @@ public class ApmServerClientTest {
         assertThat(apmServerClient.supportsNonStringLabels()).isTrue();
         apmServer1.stubFor(get(urlEqualTo("/"))
             .willReturn(okForJson(Map.of("version", "6.6.1"))));
-        config.save("server_urls", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        config.save("server_url", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
         assertThat(apmServerClient.supportsNonStringLabels()).isFalse();
 
     }

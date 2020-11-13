@@ -144,7 +144,7 @@ pipeline {
                                     withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY'){
                                         // Start with packaging things up
                                         sh(script: "./mvnw package")
-                                        sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
+                                        sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_url=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
                                     }
                                 }
                                 echo 'Starting bandstand client..'

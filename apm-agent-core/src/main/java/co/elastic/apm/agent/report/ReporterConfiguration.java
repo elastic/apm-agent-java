@@ -68,18 +68,14 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .build();
 
     private final ConfigurationOption<List<URL>> serverUrls = ConfigurationOption.urlsOption()
-        .key("server_urls")
-        .aliasKeys("server_url")
+        .key("server_url")
+        .aliasKeys("server_urls")
         .configurationCategory(REPORTER_CATEGORY)
-        .label("The URLs for your APM Servers")
-        .description("The URLs must be fully qualified, including protocol (http or https) and port.\n" +
-            "\n" +
-            "Fails over to the next APM Server URL in the event of connection errors.\n" +
-            "Achieves load-balancing by shuffling the list of configured URLs.\n" +
-            "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.\n" +
+        .label("The URL for your APM Server")
+        .description("The URL must be fully qualified, including protocol (http or https) and port.\n" +
             "\n" +
             "If set to an empty string, the agent will work as usual, except from any task requiring communication with \n" +
-            "the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. \n" +
+            "the APM server (since 1.18.0). Events will be dropped as long as no valid server URL are set. \n" +
             "\n" +
             "If SSL is enabled on the APM Server, use the `https` protocol. For more information, see \n" +
             "<<ssl-configuration>>.\n" +

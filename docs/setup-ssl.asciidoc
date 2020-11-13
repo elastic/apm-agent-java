@@ -1,7 +1,7 @@
 [[ssl-configuration]]
 === SSL/TLS communication with APM Server
 
-If {apm-server-ref-v}/ssl-setup.html[SSL/TLS communication] is enabled on the APM Server, use the `https` protocol when configuring <<config-server-urls,`server_urls`>>.
+If {apm-server-ref-v}/ssl-setup.html[SSL/TLS communication] is enabled on the APM Server, use the `https` protocol when configuring <<config-server-urls,`server_url`>>.
 
 [float]
 [[ssl-server-authentication]]
