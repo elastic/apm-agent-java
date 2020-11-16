@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
 import com.rabbitmq.client.AMQP;
@@ -111,7 +112,10 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
 
             transaction.setFrameworkName("RabbitMQ");
 
-            captureMessage(exchange, properties, transaction);
+
+            Message message = captureMessage(exchange, properties, transaction);
+            // only capture incoming messages headers for now (consistent with other messaging plugins)
+            captureHeaders(properties, message);
 
             return transaction.activate();
         }

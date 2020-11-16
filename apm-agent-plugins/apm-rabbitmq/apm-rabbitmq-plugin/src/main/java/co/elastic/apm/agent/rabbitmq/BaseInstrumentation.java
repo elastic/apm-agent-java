@@ -66,8 +66,13 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return !WildcardMatcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
     }
 
-    protected static void captureMessage(String exchange, @Nullable AMQP.BasicProperties properties, AbstractSpan<?> context) {
-        Map<String, Object> headers = null;
+    protected static Message captureMessage(String exchange, @Nullable AMQP.BasicProperties properties, AbstractSpan<?> context) {
+        return context.getContext().getMessage()
+            .withQueue(exchange)
+            .withAge(getTimestamp(properties));
+    }
+
+    private static long getTimestamp(@Nullable AMQP.BasicProperties properties) {
         long age = -1L;
         if (null != properties) {
 
@@ -77,23 +82,20 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
                 long time = timestamp.getTime();
                 age = time <= now ? (now - time) : 0;
             }
+        }
+        return age;
+    }
 
-            headers = properties.getHeaders();
+    protected static void captureHeaders(@Nullable AMQP.BasicProperties properties, Message message) {
+        Map<String, Object> headers = properties != null ? properties.getHeaders() : null;
+        if (!isCaptureHeaders() || headers == null || headers.size() <= 0) {
+            return;
         }
 
-        Message message = context.getContext().getMessage()
-            .withQueue(exchange)
-            .withAge(age);
-
-        if (isCaptureHeaders() && headers != null && headers.size() > 0) {
-            for (Map.Entry<String, Object> entry : headers.entrySet()) {
-                if (captureHeaderKey(entry.getKey())) {
-                    Object value = entry.getValue();
-                    if (value != null) {
-                        // headers aren't stored as String instances here
-                        message.addHeader(entry.getKey(), value.toString());
-                    }
-                }
+        for (Map.Entry<String, Object> entry : headers.entrySet()) {
+            if (captureHeaderKey(entry.getKey())) {
+                // headers aren't stored as String instances here
+                message.addHeader(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
 

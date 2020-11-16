@@ -51,15 +51,13 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -114,12 +112,12 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
 
     @Test
-    void contextPropagationWithProperties() throws IOException, InterruptedException {
+    void contextPropagationWithoutProperties() throws IOException, InterruptedException {
         performTest(null);
     }
 
     @Test
-    void contextPropagationWithoutProperties() throws IOException, InterruptedException {
+    void contextPropagationWithProperties() throws IOException, InterruptedException {
         performTest(emptyProperties());
     }
 
@@ -134,16 +132,23 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             emptyProperties(),
             false,
             randString("exchange"),
-            message -> {
-                checkMessageBodyNotCaptured(message);
-                checkMessageHeaders(message, Collections.emptyMap(), true);
+            (mt, ms) -> {
+
+                checkMessageBodyNotCaptured(mt);
+                checkMessageBodyNotCaptured(ms);
             });
     }
 
     @Test
     void headersCaptureEnabledByDefault() throws IOException, InterruptedException {
-        Map<String, String> headers = Map.of("message-header", "header value");
-        testHeadersCapture(headers, headers, true);
+        Map<String,String> headers = Map.of("message-header", "header value");
+        Map<String, String> headersWithNullValue = new HashMap<>(headers);
+        headersWithNullValue.put("null-header", null);
+        testHeadersCapture(headersWithNullValue,
+            Map.of(
+                "message-header", "header value",
+                "null-header", "null"),
+            true);
     }
 
     @Test
@@ -173,9 +178,14 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             propertiesMap(headersMap),
             false,
             randString("exchange"),
-            message -> {
-                checkMessageBodyNotCaptured(message);
-                checkMessageHeaders(message, expectedHeaders, expectTracingHeaders);
+            (mt, ms) -> {
+                assertThat(ms.getHeaders())
+                    .describedAs("spans should not capture outgoing message headers")
+                    .isEmpty();
+
+                // only transaction should have headers
+                checkHeaders(mt, expectedHeaders);
+                checkDistributedTracingHeaders(mt, expectTracingHeaders);
             });
     }
 
@@ -184,19 +194,19 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
         when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-*")));
 
-        performTest(emptyProperties(), true, randString("ignored"), message -> {
+        performTest(emptyProperties(), true, randString("ignored"), (mt, ms) -> {
         });
     }
 
     private void performTest(@Nullable AMQP.BasicProperties properties) throws IOException, InterruptedException {
-        performTest(properties, false, randString("exchange"), message -> {
+        performTest(properties, false, randString("exchange"), (mt, ms) -> {
         });
     }
 
     private void performTest(@Nullable AMQP.BasicProperties properties,
                              boolean shouldIgnore,
                              String channelName,
-                             Consumer<Message> messageCheck) throws IOException, InterruptedException {
+                             BiConsumer<Message, Message> messageCheck) throws IOException, InterruptedException {
 
         Connection connection = createConnection();
         Channel channel = connection.createChannel();
@@ -274,9 +284,13 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         // second transaction should be the child of span
         checkParentChild(span, childTransaction);
 
-        // perform extra test-specific message check
-        messageCheck.accept(span.getContext().getMessage());
-        messageCheck.accept(childTransaction.getContext().getMessage());
+        // common assertions on span & transaction message
+        Message spanMessage = span.getContext().getMessage();
+        Message transactionMessage = childTransaction.getContext().getMessage();
+
+
+        // test-specific assertions on captured message
+        messageCheck.accept(transactionMessage, spanMessage);
 
     }
 
@@ -310,9 +324,10 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     private AMQP.BasicProperties propertiesMap(Map<String, String> map) {
         // doing a dumb copy to convert Map<String,String> to Map<String,Object>
-        Map<String, Object> objectMap = map.entrySet()
-            .stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        Map<String, Object> objectMap = new HashMap<>();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            objectMap.put(entry.getKey(), entry.getValue());
+        }
         return new AMQP.BasicProperties.Builder()
             .headers(objectMap)
             .build();
@@ -350,25 +365,17 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
 
     private static void checkMessageBodyNotCaptured(Message message) {
-        assertThat(message.getBodyForRead()).isNull();
+        assertThat(message.getBodyForRead()).describedAs("body capture isn't supported").isNull();
     }
 
-    private static String[] DISTRIBUTED_TRACING_HEADERS = {
+    private static final String[] DISTRIBUTED_TRACING_HEADERS = {
         "elastic-apm-traceparent",
         "tracestate",
         "traceparent"
     };
 
-    private static void checkMessageHeaders(Message message, Map<String, String> expectedHeaders, boolean expectTracingHeaders) {
-        Headers headers = message.getHeaders();
-
-        Map<String, String> headersMap = new HashMap<>();
-        headers.forEach(h -> headersMap.put(h.getKey(), h.getValue().toString()));
-
-        if (!expectedHeaders.isEmpty()) {
-            assertThat(headersMap).containsAllEntriesOf(expectedHeaders);
-        }
-
+    private static void checkDistributedTracingHeaders(Message message, boolean expectTracingHeaders) {
+        HashMap<String, String> headersMap = getHeadersMap(message);
         if (expectTracingHeaders) {
             assertThat(headersMap)
                 .describedAs("distributed tracing headers should be captured")
@@ -378,6 +385,23 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
                 .describedAs("distributed tracing headers aren't expected")
                 .doesNotContainKeys(DISTRIBUTED_TRACING_HEADERS);
         }
+    }
+
+    private static void checkHeaders(Message message, Map<String, String> expectedHeaders) {
+        HashMap<String, String> headersMap = getHeadersMap(message);
+        for (String key : DISTRIBUTED_TRACING_HEADERS) {
+            headersMap.remove(key);
+        }
+        assertThat(headersMap)
+            .describedAs("should contain entries of %s", expectedHeaders)
+            .containsAllEntriesOf(expectedHeaders);
+    }
+
+    private static HashMap<String, String> getHeadersMap(Message message) {
+        Headers headers = message.getHeaders();
+        HashMap<String, String> headersMap = new HashMap<>();
+        headers.forEach(h -> headersMap.put(h.getKey(), h.getValue().toString()));
+        return headersMap;
     }
 
     private static void checkSpan(Span span, String exchange) {
