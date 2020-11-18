@@ -57,8 +57,10 @@ public interface Sampler {
      */
     double getSampleRate();
 
+    // While header is not related to sampler itself, putting this here allows to reuse the same
+    // String instance as long as the sample rate does not change to minimize allocation
     /**
-     * @return current sample rate as constant string
+     * @return sample rate as String header for context propagation
      */
-    String getSampleRateString();
+    String getTraceStateHeader();
 }
