@@ -126,6 +126,7 @@ print(
     'text(name: "agent_config", "defaultValue": "", description: "Custom APM Agent configuration. (WARNING: May echo to console. Do not supply sensitive data.)")',  # noqa E501
     'text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")',  # noqa E5011
     'booleanParam(name: "local_metrics", description: "Enable local metrics collection?", defaultValue: false)',  # noqa E501
+    'booleanParam(name: "ignore_application_errors", description: "Instruct the load generator to ignore non-2xx errors on exit", defaultValue: true)',  # noqa E501
     '// End script auto-generation',
     sep="\n"
 )

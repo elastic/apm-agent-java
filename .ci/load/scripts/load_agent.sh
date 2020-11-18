@@ -24,6 +24,12 @@ POLL_FREQ=1
 LOCUST_LOCUSTFILE="../locust.py"
 LOCUST_PRINT_STATS=1
 
+if [ $LOCUST_IGNORE_ERRORS = "true" ]; then
+    export LOCUST_EXIT_CODE_ON_ERROR=0
+else
+    export LOCUST_EXIT_CODE_ON_ERROR=1
+fi
+
 
 function setUp() {
     echo "Setting CPU frequency to base frequency"
@@ -114,10 +120,11 @@ function startLoad() {
     \"hostname\": \"test_app\", \
     \"port\": \"8080\"}" \
     $ORCH_URL/api/ready 
-    docker run -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -e "LOCUST_USERS=$LOCUST_USERS" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py -u 10 --headless
+    docker run -e "LOCUST_EXIT_CODE_ON_ERROR=$LOCUST_EXIT_CODE_ON_ERROR" -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -e "LOCUST_USERS=$LOCUST_USERS" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py -u 10 --headless
 }
 
-function stopLoad() {
+
+function tearDown() {
     # This happens as soon as the container exits so there is nothing to kill
     curl -s -X POST -H "Content-Type: application/json" -d \
     "{\"app_token\": \""$APP_TOKEN"\", \
@@ -126,9 +133,8 @@ function stopLoad() {
     \"hostname\": \"test_app\", \
     \"port\": \"8080\"}" \
     $ORCH_URL/api/stop 
-}
 
-function tearDown() {
+    if [ ! $DEBUG_MODE ]; then
     echo "Destroying cgroups"
     sudo -n cset set --destroy /os
     sudo -n cset set --destroy /benchmark
@@ -138,13 +144,14 @@ function tearDown() {
     do
         sudo -n cpufreq-set -c ${cpu} --min ${MIN_FREQ} --max ${MAX_FREQ}
     done
+    fi
 }
-if [ ! $DEBUG_MODE ]; then
-trap "tearDown" EXIT
-setUp
-fi
 
+trap "tearDown" ERR EXIT
+
+if [ ! $DEBUG_MODE ]; then
+    setUp
+fi
 waitForApp
 buildArgs
 startLoad
-stopLoad
