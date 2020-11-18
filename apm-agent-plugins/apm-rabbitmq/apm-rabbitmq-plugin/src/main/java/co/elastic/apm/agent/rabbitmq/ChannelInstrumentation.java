@@ -158,7 +158,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             exitSpan.withType("messaging")
                 .withSubtype("rabbitmq")
                 .withAction("send")
-                .withName("Channel#basicPublish to ")
+                .withName("RabbitMQ SEND to ")
                 .appendToName(exchange);
 
             properties = propagateTraceContext(exitSpan, properties);

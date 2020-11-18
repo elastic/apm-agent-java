@@ -108,7 +108,7 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
             }
 
             transaction.withType("messaging")
-                .withName("Consumer#handleDelivery from ").appendToName(exchange);
+                .withName("RabbitMQ message RECEIVE from ").appendToName(exchange);
 
             transaction.setFrameworkName("RabbitMQ");
 

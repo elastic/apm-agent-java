@@ -350,7 +350,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     private static void checkTransaction(Transaction transaction, String exchange) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString())
-            .isEqualTo("Consumer#handleDelivery from %s", exchange);
+            .isEqualTo("RabbitMQ message RECEIVE from %s", exchange);
         assertThat(transaction.getFrameworkName()).isEqualTo("RabbitMQ");
 
         checkMessage(transaction.getContext().getMessage(), exchange);
@@ -410,7 +410,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         assertThat(span.getAction()).isEqualTo("send");
 
         assertThat(span.getNameAsString())
-            .isEqualTo("Channel#basicPublish to %s", exchange);
+            .isEqualTo("RabbitMQ SEND to %s", exchange);
 
         checkMessage(span.getContext().getMessage(), exchange);
 
