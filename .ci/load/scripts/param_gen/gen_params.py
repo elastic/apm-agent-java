@@ -121,7 +121,7 @@ print(
     'choice(choices: {}, name: "jvm_version", description: "JVM")'.format(supported_jdks),  # noqa E501
     'string(name: "jvm_options", defaultValue: "", description: "Extra JVM options")',  # noqa E501
     'string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")',  # noqa E501
-    'string(name: "duration", defaultValue: "10", description: "Test duration in minutes. Max: 280")',  # noqa E501
+    'string(name: "duration", defaultValue: "10m", description: "Test duration. Specify with unit. Ex: 30m, 1h")',  # noqa E501
     '// num_of_runs currently unsupported',
     '// string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")',  # noqa E501
     'text(name: "agent_config", "defaultValue": "", description: "Custom APM Agent configuration. (WARNING: May echo to console. Do not supply sensitive data.)")',  # noqa E501
