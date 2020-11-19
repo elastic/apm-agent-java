@@ -83,7 +83,7 @@ pipeline {
           }
         }
         stage('Check master build status') {
-        when { expression { params.ignore_branch_ci_status } }
+        when { expression { params.check_branch_ci_status } }
          steps {
              // If this build is not green: https://apm-ci.elastic.co/job/apm-agent-java/job/apm-agent-java-mbp/job/master/
              whenTrue(!buildStatus(host: 'apm-ci.elastic.co', job: ['apm-agent-java', 'apm-agent-java-mbp', 'master'], return_boolean: true)) {
@@ -148,8 +148,7 @@ pipeline {
           steps {
             script {
               dir("${BASE_DIR}"){
-                withEnvMask(vars: [[var: "SPID", password: spid]]){
-                  def spid = sh(script: "./scripts/jenkins/fetch_nexus_id.sh", returnStdout: true).trim()
+                withSecretVault(secret: 'secret/apm-team/ci/nexus', user_var_name: '__unused__', pass_var_name: 'SPID'){
                   def foundStagingId = nexusFindStagingId(stagingProfileId: "${SPID}", groupId: "co.elastic.apm")
                   nexusCloseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
                   nexusReleaseStagingRepository(stagingProfileId: "${SPID}", stagingId: foundStagingId)
@@ -181,12 +180,12 @@ pipeline {
                 // Construct the URL with anchor for the release notes
                 // Ex: https://www.elastic.co/guide/en/apm/agent/java/current/release-notes-1.x.html#release-notes-1.13.0
                 def finalUrl = sh(script: "scripts/jenkins/generate_release_notes_url.sh ${curVer}", returnStdout: true)
+                githubEnv()
                 def ret = githubReleaseCreate(draft: true, name: "Release ${curVer}", body: "[Release Notes for ${curVer}](${finalUrl})")
                 env.RELEASE_ID = ret['id']
                 env.RELEASE_NOTES_URL = finalUrl
               }
             }
-
           }
         }
         stage('Wait for artifact to be available in Maven Central') {
@@ -226,6 +225,7 @@ pipeline {
                 }
               }
             }
+            githubEnv()
             githubReleasePublish(id: "${env.RELEASE_ID}")
           }
         }
