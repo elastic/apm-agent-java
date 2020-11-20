@@ -67,7 +67,6 @@ public class SpringRestTemplateVersionsIT {
 
         TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies, SprintRestTemplateIntegration.class);
         runner.run();
-        ;
     }
 
 

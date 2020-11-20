@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -79,7 +80,8 @@ public class SprintRestTemplateIntegration extends AbstractInstrumentationTest {
         reporter.awaitSpanCount(1);
 
         Span span = reporter.getFirstSpan();
-        assertThat(span.getContext().getHttp().getMethod()).isEqualTo("GET");
-        assertThat(span.getContext().getHttp().getUrl()).isEqualTo(url);
+        Http http = span.getContext().getHttp();
+        assertThat(http.getMethod()).isEqualTo("GET");
+        assertThat(http.getUrl()).isEqualTo(url);
     }
 }
