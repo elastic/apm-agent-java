@@ -36,6 +36,7 @@ import org.springframework.http.client.ClientHttpResponse;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Objects;
 
 public class SpringRestTemplateAdvice {
@@ -51,7 +52,16 @@ public class SpringRestTemplateAdvice {
         if (parent == null) {
             return null;
         }
-        Span span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(), request.getURI().getHost());
+        URI uri = null;
+        String host = "unknown";
+        try {
+            uri = request.getURI();
+            host = uri.getHost();
+        } catch (NoSuchMethodError ignored){
+            // Spring 3.0.0 does not provide this method until
+        }
+
+        Span span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, host);
         if (span != null) {
             span.activate();
             span.propagateTraceContext(request, SpringRestRequestHeaderSetter.INSTANCE);
