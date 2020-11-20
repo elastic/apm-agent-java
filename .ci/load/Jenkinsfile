@@ -163,7 +163,15 @@ pipeline {
                                         // Start with packaging things up
                                         sh(script: "./mvnw package")
                                         echo "start application with JVM options '${params.jvm_options}'"
-                                        sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
+                                        script {
+                                            def ver = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+                                            if(ver == '7'){
+                                                echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
+                                                sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/petclinic.war &")
+                                            } else {
+                                                sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
+                                            }
+                                        }
                                     }
                                 }
                                 echo 'Starting bandstand client..'
