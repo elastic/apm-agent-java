@@ -52,16 +52,7 @@ public class SpringRestTemplateAdvice {
         if (parent == null) {
             return null;
         }
-        URI uri = null;
-        String host = "unknown";
-        try {
-            uri = request.getURI();
-        } catch (NoSuchMethodError ignored) {
-            // Spring 3.0 does not provide getURI until 3.0.3
-            logger.debug("unable to retrieve request URI, ignore spring HTTP span");
-            return null;
-        }
-
+        URI uri = request.getURI();
         Span span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), uri, uri.getHost());
         if (span != null) {
             span.activate();

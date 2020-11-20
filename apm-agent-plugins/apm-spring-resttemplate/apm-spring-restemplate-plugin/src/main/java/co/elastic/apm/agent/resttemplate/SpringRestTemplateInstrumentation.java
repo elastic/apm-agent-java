@@ -49,7 +49,12 @@ public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentatio
             .and(not(isInterface()))
             // only traverse the object hierarchy if the class declares the method to instrument at all
             .and(declaresMethod(getMethodMatcher()))
-            .and(hasSuperType(named("org.springframework.http.client.ClientHttpRequest")));
+            .and(hasSuperType(named("org.springframework.http.client.ClientHttpRequest")
+                .and(// only instrument spring 3.0.3+ getURI method is misssing previously
+                    declaresMethod(named("getURI").and(takesArguments(0)).and(returns(named("java.net.URI"))))
+                ).or(
+                    // for spring 3.1.0+ HttpRequest type has getURI method
+                    hasSuperType(named("org.springframework.http.HttpRequest")))));
     }
 
     @Override
