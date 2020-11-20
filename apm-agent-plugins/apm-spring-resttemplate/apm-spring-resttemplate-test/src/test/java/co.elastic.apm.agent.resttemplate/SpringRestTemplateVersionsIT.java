@@ -25,21 +25,29 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@RunWith(Parameterized.class)
 public class SpringRestTemplateVersionsIT {
 
-    private final TestClassWithDependencyRunner runner;
-
-    public SpringRestTemplateVersionsIT(String version) throws Exception {
+    @ParameterizedTest
+    @CsvSource({
+        "3.0.3.RELEASE", // lower versions are not supported
+        "3.1.0.RELEASE",
+        "3.2.0.RELEASE",
+        "4.0.0.RELEASE",
+        "4.1.0.RELEASE",
+        "4.2.0.RELEASE",
+        "4.3.0.RELEASE",
+        "5.0.0.RELEASE",
+        "5.1.0.RELEASE",
+        "5.2.0.RELEASE",
+        "5.3.0"})
+    void testVersion(String version) throws Exception {
         List<String> dependencies = Stream.of(
             "spring-webmvc",
             "spring-aop",
@@ -57,30 +65,9 @@ public class SpringRestTemplateVersionsIT {
             dependencies.add("org.slf4j:jcl-over-slf4j:1.7.30");
         }
 
-
-        runner = new TestClassWithDependencyRunner(dependencies, SprintRestTemplateIntegration.class);
-    }
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {"3.0.3.RELEASE"}, // lower versions are not supported
-            {"3.1.0.RELEASE"},
-            {"3.2.0.RELEASE"},
-            {"4.0.0.RELEASE"},
-            {"4.1.0.RELEASE"},
-            {"4.2.0.RELEASE"},
-            {"4.3.0.RELEASE"},
-            {"5.0.0.RELEASE"},
-            {"5.1.0.RELEASE"},
-            {"5.2.0.RELEASE"},
-            {"5.3.0"},
-        });
-    }
-
-    @Test
-    public void testVersions() throws Exception {
+        TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies, SprintRestTemplateIntegration.class);
         runner.run();
+        ;
     }
 
 
