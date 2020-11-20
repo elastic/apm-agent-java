@@ -71,6 +71,7 @@ pipeline {
                         stage('Provision Java') {
                             steps {
                                 echo "Provisioning Java version: ${params.jvm_version}"
+                                setEnvVar('ORIG_PATH', "$PATH")
                                 setEnvVar('JAVA_HOME', sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim())
                                 setEnvVar('JAVACMD', "${env.JAVA_HOME}/bin/java")
                                 setEnvVar('PATH', "${env.JAVA_HOME}/bin:$PATH")
@@ -91,7 +92,14 @@ pipeline {
                                         echo 'Switching to requested version'
                                         sh(script: "git checkout v${params.apm_version}")
                                         echo 'Building agent'
-                                        sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
+                                        withEnv(["JAVA_HOME=${env.HUDSON_HOME}/.java/java11"]){
+                                            withEnv(["JAVACMD=${env.JAVA_HOME}/bin/java", "PATH=${env.JAVA_HOME}/bin:$ORIG_PATH"]){
+                                                echo("Building the Agent with Java 11\nJAVA_HOME set to ${env.JAVA_HOME}\nJAVACMD set to ${env.JAVACMD}\nPATH set to ${env.PATH}")
+                                                sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
+                                            }
+                                        }
+                                            echo("Post-build env:\nJAVA_HOME set to ${env.JAVA_HOME}\nJAVACMD set to ${env.JAVACMD}\nPATH set to ${env.PATH}")
+
                                     }
                                 }
                                 whenTrue(Boolean.valueOf(params.agent_config)) {
