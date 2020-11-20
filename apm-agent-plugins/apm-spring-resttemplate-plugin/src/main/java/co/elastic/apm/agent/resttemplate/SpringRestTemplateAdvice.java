@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -46,10 +46,11 @@ public class SpringRestTemplateAdvice {
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object beforeExecute(@Advice.This ClientHttpRequest request) {
         logger.trace("Enter advice for method {}#execute()", request.getClass().getName());
-        if (TracerAwareInstrumentation.tracer.getActive() == null) {
+
+        final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
+        if (parent == null) {
             return null;
         }
-        final AbstractSpan<?> parent = TracerAwareInstrumentation.tracer.getActive();
         Span span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(), request.getURI().getHost());
         if (span != null) {
             span.activate();

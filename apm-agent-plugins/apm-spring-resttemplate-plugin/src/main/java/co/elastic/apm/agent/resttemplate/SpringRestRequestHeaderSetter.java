@@ -25,15 +25,18 @@
 package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
+import org.springframework.http.HttpMessage;
 import org.springframework.http.HttpRequest;
 
 @SuppressWarnings("unused")
-public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpRequest> {
+public class SpringRestRequestHeaderSetter implements TextHeaderSetter<HttpMessage> {
 
     public static final SpringRestRequestHeaderSetter INSTANCE = new SpringRestRequestHeaderSetter();
 
     @Override
-    public void setHeader(String headerName, String headerValue, HttpRequest request) {
+    public void setHeader(String headerName, String headerValue, HttpMessage request) {
+        // Here using 'HttpMessage' allows to keep it compatible with Spring MVC 3.0
+        // the org.springframework.http.HttpRequest has only be introduced in 3.1
         request.getHeaders().add(headerName, headerValue);
     }
 }
