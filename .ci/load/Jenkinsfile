@@ -112,14 +112,23 @@ pipeline {
                         }
                         stage('Provision test application') {
                             steps {
-                                echo 'Checking out test application'
-                                gitCheckout(
-                                    basedir: "${APP_BASE_DIR}",
-                                    branch: 'main',
-                                    repo: "https://github.com/spring-projects/${APP}.git",
-                                    credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
-                                    shallow: false
-                                )
+                                echo 'Determining version to checkout'
+                                script {
+                                    def ver = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+                                    def app_branch = "main"
+                                    if(ver == '7'){
+                                        echo "Java 7.x detected. Installing compliant version of test application"
+                                        app_branch = "3450c3d99ecaaf46231feb2c404b72d1727517e1"
+                                    }
+                                    echo "Installing test application from: ${app_branch}"
+                                    gitCheckout(
+                                        basedir: "${APP_BASE_DIR}",
+                                        branch: "${app_branch}",
+                                        repo: "https://github.com/spring-projects/${APP}.git",
+                                        credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                                        shallow: false
+                                    )
+                                }
                             }
                         }
                         stage('Provision local metrics collection') {
