@@ -360,8 +360,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         long expectedAffected = 2;
-        if (isKnownDatabase("MySQL", "10.") || isKnownDatabase("Oracle", "")) {
-            // for an unknown reason mariadb 10 and Oracle express have unexpected but somehow consistent behavior here
+        if (isKnownDatabase("Oracle", "")) {
+            // for an unknown reason Oracle express have unexpected but somehow consistent behavior here
             assertThat(updates).containsExactly(-2, -2);
             expectedAffected = -4;
         } else {

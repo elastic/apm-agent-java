@@ -120,7 +120,7 @@ function startLoad() {
     \"hostname\": \"test_app\", \
     \"port\": \"8080\"}" \
     $ORCH_URL/api/ready 
-    docker run -e "LOCUST_EXIT_CODE_ON_ERROR=$LOCUST_EXIT_CODE_ON_ERROR" -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -e "LOCUST_USERS=$LOCUST_USERS" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py -u 10 --headless
+    docker run -e "LOCUST_EXIT_CODE_ON_ERROR=$LOCUST_EXIT_CODE_ON_ERROR" -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -e "LOCUST_USERS=$LOCUST_USERS" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py --headless
 }
 
 
