@@ -20,12 +20,24 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.0]]
-==== 1.19.0 - YYYY/MM/DD
+[[release-notes-1.19.1]]
+==== 1.19.1 - YYYY/MM/DD
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
 
 [float]
 ===== Refactors
-* Replace System Rules with System Lambda {pull}1434[#1434]
+* Migrate some plugins to indy dispatcher {pull}1405[1405]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.19.0]]
+==== 1.19.0 - 2020/11/10
 
 [float]
 ===== Features
@@ -40,6 +52,8 @@ endif::[]
 * Add Sampling Profiler support for AArch64 architectures - {pull}1443[1443]
 * Support proper transaction naming when using Spring's `ServletWrappingController` - {pull}1461[#1461]
 * Update async-profiler to 1.8.2 {pull}1471[1471]
+* Update existing Hibernate Search 6 instrumentation to work with the latest CR1 release
+* Deprecating the `addLabel` public API in favor of `setLabel` (still supporting `addLabel`) - {pull}1449[#1449]
 
 [float]
 ===== Bug fixes
@@ -49,12 +63,15 @@ endif::[]
 * Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1444]
 * Avoid `UnsupportedOperationException` on some spring application startup {pull}1464[1464]
 * Fix ignored runtime attach `config_file` {pull}1469[1469]
+* Fix `IllegalAccessError: Module 'java.base' no access to: package 'java.lang'...` in J9 VMs of Java version >= 9 -
+  {pull}1468[#1468]
+* Fix JVM version parsing on HP-UX {pull}1477[#1477]
+* Fix Spring-JMS transactions lifecycle management when using multiple concurrent consumers - {pull}1496[#1496]
 
+[float]
 ===== Refactors
-* Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1405[1405]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1411[1411]
+* Replace System Rules with System Lambda {pull}1434[#1434]
 
 [[release-notes-1.18.1]]
 ==== 1.18.1 - 2020/10/06

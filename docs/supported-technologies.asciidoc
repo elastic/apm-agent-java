@@ -52,7 +52,11 @@ the agent does not capture transactions.
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
-|8 service refresh 5+
+|8 service refresh 5+ (build 2.8)
+|
+
+|HP-UX JVM
+| 7.0.10+, 8.0.02+
 |
 |===
 
@@ -63,8 +67,12 @@ Similarly, Java 7 versions before update 60 are not supported as they are buggy 
 
 Here is an example of the message displayed when this happens.
 ```
-Failed ot start agent - JVM version not supported: 1.8.0_31
+Failed to start agent - JVM version not supported: 1.8.0_31 Java HotSpot(TM) 64-Bit Server VM 25.31-b07.
+To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.
 ```
+
+As this message states, you can disable this check if required by adding `-Delastic.apm.disable_bootstrap_checks` to
+the JVM arguments.
 
 
 [float]
@@ -477,7 +485,7 @@ If you are seeing gaps in the span timeline and want to include additional metho
 |Set the configuration option <<config-capture-jmx-metrics, `capture_jmx_metrics`>> in order to monitor any JMX metric.
 |1.11.0
 
-|Micrometer
+|Micrometer (<<metrics-micrometer-beta-caveats,beta>>)
 |Automatically detects and reports the metrics of each `MeterRegistry`.
  See <<metrics-micrometer>> for more details.
 |1.18.0

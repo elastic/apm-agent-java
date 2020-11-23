@@ -73,35 +73,38 @@ public interface Span {
     Span addTag(String key, String value);
 
     /**
-     * <p>
-     * Labels are used to add indexed information to transactions, spans, and errors.
-     * Indexed means the data is searchable and aggregatable in Elasticsearch.
-     * Multiple labels can be defined with different key-value pairs.
-     * </p>
-     * <ul>
-     *     <li>Indexed: Yes</li>
-     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
-     * </ul>
-     * <p>
-     * Label values can be a string, boolean, or number.
-     * Because labels for a given key are stored in the same place in Elasticsearch, all label values of a given key must have the same data type.
-     * Multiple data types per key will throw an exception, e.g. {@code {foo: bar}} and {@code {foo: 42}}
-     * </p>
-     * <p>
-     * Important: Avoid defining too many user-specified labels.
-     * Defining too many unique fields in an index is a condition that can lead to a
-     * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings">mapping explosion</a>.
-     * </p>
-     *
      * @param key   The label key.
      * @param value The label value.
      * @since 1.5.0
+     * @deprecated use {@link #setLabel(String, String)}
      */
     @Nonnull
+    @Deprecated
     Span addLabel(String key, String value);
 
     /**
+     * @deprecated use {@link #setLabel(String, Number)}
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.5.0, APM Server 6.7
+     */
+    @Nonnull
+    @Deprecated
+    Span addLabel(String key, Number value);
+
+    /**
+     * @deprecated use {@link #setLabel(String, boolean)}
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.5.0, APM Server 6.7
+     */
+    @Nonnull
+    @Deprecated
+    Span addLabel(String key, boolean value);
+
+    /**
      * <p>
      * Labels are used to add indexed information to transactions, spans, and errors.
      * Indexed means the data is searchable and aggregatable in Elasticsearch.
@@ -118,10 +121,6 @@ public interface Span {
      * Multiple data types per key will throw an exception, e.g. {@code {foo: bar}} and {@code {foo: 42}}
      * </p>
      * <p>
-     * Note: Number and boolean labels were only introduced in APM Server 6.7+.
-     * Using this API in combination with an older APM Server versions leads to validation errors.
-     * </p>
-     * <p>
      * Important: Avoid defining too many user-specified labels.
      * Defining too many unique fields in an index is a condition that can lead to a
      * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings">mapping explosion</a>.
@@ -129,10 +128,10 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.5.0, APM Server 6.7
+     * @since 1.19.0
      */
     @Nonnull
-    Span addLabel(String key, Number value);
+    Span setLabel(String key, String value);
 
     /**
      * <p>
@@ -162,10 +161,43 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
-     * @since 1.5.0, APM Server 6.7
+     * @since 1.19.0, APM Server 6.7
      */
     @Nonnull
-    Span addLabel(String key, boolean value);
+    Span setLabel(String key, Number value);
+
+    /**
+     * <p>
+     * Labels are used to add indexed information to transactions, spans, and errors.
+     * Indexed means the data is searchable and aggregatable in Elasticsearch.
+     * Multiple labels can be defined with different key-value pairs.
+     * </p>
+     * <ul>
+     *     <li>Indexed: Yes</li>
+     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     * </ul>
+     * <p>
+     * Label values can be a string, boolean, or number.
+     * Because labels for a given key are stored in the same place in Elasticsearch, all label values of a given key must have the same data type.
+     * Multiple data types per key will throw an exception, e.g. {@code {foo: bar}} and {@code {foo: 42}}
+     * </p>
+     * <p>
+     * Note: Number and boolean labels were only introduced in APM Server 6.7+.
+     * Using this API in combination with an older APM Server versions leads to validation errors.
+     * </p>
+     * <p>
+     * Important: Avoid defining too many user-specified labels.
+     * Defining too many unique fields in an index is a condition that can lead to a
+     * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings">mapping explosion</a>.
+     * </p>
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.19.0, APM Server 6.7
+     */
+    @Nonnull
+    Span setLabel(String key, boolean value);
 
     /**
      * Sets the start timestamp of this event.

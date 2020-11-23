@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.hibernatesearch;
 
+import org.hibernate.search.engine.backend.types.Sortable;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
@@ -40,7 +41,7 @@ public class Dog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @GenericField
+    @GenericField(sortable = Sortable.YES)
     private String name;
 
     public Dog() {

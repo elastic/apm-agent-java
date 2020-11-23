@@ -314,7 +314,7 @@ You can filter and group by these dimensions:
 
 [float]
 [[metrics-micrometer]]
-=== Custom metrics using Micrometer
+=== Custom metrics using Micrometer (beta)
 
 The Elastic APM Java agent lets you use the popular metrics collection framework https://micrometer.io/[Micrometer] to track custom application metrics.
 
@@ -332,6 +332,24 @@ The tradeoff here is that you either have to do 100% sampling or account for the
 The reason for that is that if you set your sampling rate to 10%, for example,
 you'll only be storing one out of 10 requests.
 The labels you set on non-sampled transactions will be lost.
+
+
+[float]
+[[metrics-micrometer-beta-caveats]]
+==== Beta caveats
+* To fix some of the caveats listed here, we may have to introduce breaking changes.
+  So please watch release notes Micrometer-related changes before updating.
+* Metrics with dots in their name can result in mapping conflicts.
+See https://github.com/elastic/apm/issues/347[elastic/apm#347]
+* Histograms aren't supported yet
+* When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id.
+  However, it is non-deterministic which metrics are favored if multiple meter registries are used within a compound meter registry.
+See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
+* When using `CountingMode.STEP`, the step duration has to be aligned with <<config-metrics-interval, `metrics_interval`>>.
+  But even if doing that there can be missing values. - see https://github.com/elastic/apm-agent-java/issues/1476[#1476]
+* When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
+  But you have to remember to group by a combination of dimensions that uniquely identify the time series.
+  This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
 
 [float]
 [[metrics-micrometer-get-started-existing]]
@@ -386,7 +404,7 @@ When using Spring Boot, you can use the `management.metrics.export.simple` prefi
 
 ```
 management.metrics.export.simple.enabled=true
-management.metrics.export.simple.step=1m
+management.metrics.export.simple.step=30s
 management.metrics.export.simple.mode=STEP
 ```
 

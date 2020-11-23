@@ -61,13 +61,13 @@ public class HibernateSearch6Instrumentation extends TracerAwareInstrumentation 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.hibernate.search.engine.search.query.SearchFetchable"));
+            .and(classLoaderCanLoadClass("org.hibernate.search.engine.search.query.SearchQuery"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("org.hibernate.search.engine.search.query.SearchFetchable")));
+            .and(hasSuperType(named("org.hibernate.search.engine.search.query.SearchQuery")));
     }
 
     @Override
@@ -86,7 +86,7 @@ public class HibernateSearch6Instrumentation extends TracerAwareInstrumentation 
         public static Object onBeforeExecute(@Advice.This SearchQuery<?> query,
                                              @Advice.Origin("#m") String methodName) {
 
-            return HibernateSearchHelper.createAndActivateSpan(tracer, methodName, query.getQueryString());
+            return HibernateSearchHelper.createAndActivateSpan(tracer, methodName, query.queryString());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)

@@ -209,7 +209,7 @@ Annotating a method with `@CaptureTransaction` creates a transaction for that me
 
 Note that this only works when there is no active transaction on the same thread.
 
-* `value`: The name of the span. Defaults to `ClassName#methodName`
+* `value`: The name of the transaction. Defaults to `ClassName#methodName`
 * `type`: The type of the transaction. Defaults to `request`
 
 NOTE: Using this annotation implicitly creates a Transaction and activates it when entering the annotated
@@ -312,7 +312,7 @@ transaction.setType(Transaction.TYPE_REQUEST);
 
 [float]
 [[api-transaction-add-tag]]
-==== `Transaction addLabel(String key, value)` added[1.5.0,Number and boolean labels require APM Server 6.7]
+==== `Transaction setLabel(String key, value)` added[1.5.0 as `addLabel`,Number and boolean labels require APM Server 6.7]
 Labels are used to add *indexed* information to transactions, spans, and errors.
 Indexed means the data is searchable and aggregatable in Elasticsearch.
 Multiple labels can be defined with different key-value pairs.
@@ -334,7 +334,7 @@ Defining too many unique fields in an index is a condition that can lead to a
 
 [source,java]
 ----
-transaction.addLabel("foo", "bar");
+transaction.setLabel("foo", "bar");
 ----
 
 * `String key`:   The tag key
@@ -644,7 +644,7 @@ span.setName("SELECT FROM customer");
 
 [float]
 [[api-span-add-tag]]
-==== `Span addLabel(String key, value)` added[1.5.0]
+==== `Span setLabel(String key, value)` added[1.5.0 as `addLabel`]
 A flat mapping of user-defined labels with string, number or boolean values.
 
 NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
@@ -658,7 +658,7 @@ is used as a tag key as it can lead to mapping explosions.
 
 [source,java]
 ----
-span.addLabel("foo", "bar");
+span.setLabel("foo", "bar");
 ----
 
 * `String key`:   The tag key

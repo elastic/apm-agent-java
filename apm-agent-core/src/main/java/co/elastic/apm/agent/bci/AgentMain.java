@@ -82,9 +82,26 @@ public class AgentMain {
             // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
             // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
             // for JVM internals, there is no other option but to use an up-to-date JVM instead.
-            System.err.println(String.format("Failed to start agent - JVM version not supported: %s %s %s",
+
+            String msgTemplate;
+
+            boolean doDisable;
+            if (Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks"))) {
+                // safety check disabled, warn end user that it might
+                doDisable = false;
+                msgTemplate = "WARNING : JVM version unknown or not supported, safety check disabled - %s %s %s";
+            } else {
+                doDisable = true;
+                msgTemplate = "Failed to start agent - JVM version not supported: %s %s %s.\nTo override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.";
+            }
+
+            System.err.println(String.format(msgTemplate,
                 JvmRuntimeInfo.getJavaVersion(), JvmRuntimeInfo.getJavaVmName(), JvmRuntimeInfo.getJavaVmVersion()));
-            return;
+
+            if (doDisable) {
+                return;
+            }
+
         }
 
         try {

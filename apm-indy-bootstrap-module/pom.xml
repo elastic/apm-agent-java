@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-parent</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.19.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-indy-bootstrap-module</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+
+        <maven.compiler.target>9</maven.compiler.target>
+
+        <!-- using release to enforce java 9 API (animal sniffer not supported) -->
+        <maven.compiler.release>${maven.compiler.target}</maven.compiler.release>
+
+        <!-- not supported/relevant beyond java9, see https://github.com/mojohaus/animal-sniffer/issues/62
+        now enforced through the maven.compiler.release property -->
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+    </properties>
+</project>
