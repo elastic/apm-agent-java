@@ -139,18 +139,35 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         @AssignTo(arguments = @AssignTo.Argument(index = 0, value = 4))
         @Nullable
         public static Object[] onBasicPublish(@Advice.This Channel channel,
-                                              @Advice.Argument(0) final String exchange,
+                                              @Advice.Argument(0) String exchange,
+                                              @Advice.Argument(1) String routingKey,
                                               @Advice.Argument(4) @Nullable AMQP.BasicProperties properties) {
             if (!tracer.isRunning()) {
                 return null;
             }
 
-            final AbstractSpan<?> activeSpan = tracer.getActive();
-            if (activeSpan == null || isExchangeIgnored(exchange)) {
+            exchange = normalizeExchangeName(exchange);
+            routingKey = normalizeRoutingKey(routingKey);
+
+            Span exitSpan = createExitSpan(tracer.getActive(), properties, exchange, routingKey);
+            if (null == exitSpan) {
                 return null;
             }
 
-            Span exitSpan = activeSpan.createExitSpan();
+            properties = propagateTraceContext(exitSpan, properties);
+
+            captureMessage(exchange, properties, exitSpan);
+            captureDestination(exchange, channel, exitSpan);
+
+            return new Object[]{properties, exitSpan.activate()};
+        }
+
+        @Nullable
+        private static Span createExitSpan(@Nullable AbstractSpan<?> context, @Nullable AMQP.BasicProperties properties, String exchange, String routingKey){
+            if (context == null || isExchangeIgnored(exchange)) {
+                return null;
+            }
+            Span exitSpan = context.createExitSpan();
             if (null == exitSpan) {
                 return null;
             }
@@ -158,14 +175,13 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             exitSpan.withType("messaging")
                 .withSubtype("rabbitmq")
                 .withAction("send")
-                .withName("RabbitMQ SEND to ")
-                .appendToName(exchange);
+                .withName("RabbitMQ SEND to ").appendToName(exchange).appendToName("/").appendToName(routingKey);
 
-            properties = propagateTraceContext(exitSpan, properties);
+            return exitSpan;
+        }
 
-            captureMessage(exchange, properties, exitSpan);
-
-            Destination destination = exitSpan.getContext().getDestination();
+        private static void captureDestination(String exchange, Channel channel, Span span){
+            Destination destination = span.getContext().getDestination();
 
             destination.getService()
                 .withType("messaging")
@@ -175,10 +191,6 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             Connection connection = channel.getConnection();
             destination.withAddress(connection.getAddress().getHostName());
             destination.withPort(connection.getPort());
-
-            exitSpan.activate();
-
-            return new Object[]{properties, exitSpan};
         }
 
         private static AMQP.BasicProperties propagateTraceContext(Span exitSpan,

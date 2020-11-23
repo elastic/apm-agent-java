@@ -72,6 +72,25 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
             .withAge(getTimestamp(properties));
     }
 
+    protected static String normalizeExchangeName(@Nullable String exchange) {
+        if (exchange == null) {
+            return "<unknown>";
+        } else if (exchange.isEmpty()) {
+            return "<default>";
+        }
+        return exchange;
+    }
+
+    protected static String normalizeRoutingKey(@Nullable String routingKey) {
+        if (routingKey == null) {
+            return "<unknown>";
+        } else if (routingKey.startsWith("amq.gen-")) {
+            // generated routing keys create high cardinality transaction/span names
+            return "amq.gen-*";
+        }
+        return routingKey;
+    }
+
     private static long getTimestamp(@Nullable AMQP.BasicProperties properties) {
         long age = -1L;
         if (null != properties) {

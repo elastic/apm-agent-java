@@ -54,6 +54,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -93,6 +96,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         factory.setPort(container.getAmqpPort());
         factory.setUsername(container.getAdminUsername());
         factory.setPassword(container.getAdminPassword());
+
     }
 
     @AfterEach
@@ -233,16 +237,11 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             }
         });
 
-        Transaction rootTransaction = getTracer().startRootTransaction(getClass().getClassLoader())
-            .withName("Rabbit-Test Root Transaction")
-            .withType("request")
-            .withResult("success")
-            .activate();
-
+        Transaction rootTransaction = startRootTransaction();
 
         channel.basicPublish(exchange, ROUTING_KEY, properties, MSG);
 
-        rootTransaction.deactivate().end();
+        endRootTransaction(rootTransaction);
 
         messageReceived.await(1, TimeUnit.SECONDS);
 
@@ -266,18 +265,12 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         getReporter().awaitTransactionCount(2);
         getReporter().awaitSpanCount(1);
 
-        Transaction childTransaction = null;
-        for (Transaction t : getReporter().getTransactions()) {
-            if (t != rootTransaction) {
-                assertThat(childTransaction).isNull();
-                childTransaction = t;
-            }
-        }
-        assertThat(childTransaction).isNotNull();
-        checkTransaction(childTransaction, exchange);
+        Transaction childTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
+
+        checkTransaction(childTransaction, exchange, ROUTING_KEY);
 
         Span span = getReporter().getSpans().get(0);
-        checkSpan(span, exchange);
+        checkSpan(span, exchange, ROUTING_KEY);
 
         // span should be child of the first transaction
         checkParentChild(rootTransaction, span);
@@ -294,12 +287,164 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     }
 
-    protected Connection createConnection() {
+    private void endRootTransaction(Transaction rootTransaction) {
+        rootTransaction.deactivate().end();
+    }
+
+    private Transaction startRootTransaction() {
+        return getTracer().startRootTransaction(getClass().getClassLoader())
+            .withName("Rabbit-Test Root Transaction")
+            .withType("request")
+            .withResult("success")
+            .activate();
+    }
+
+    @Test
+    void testRpcCall() throws IOException, InterruptedException {
+        // with an RPC call, the message consumer might be executed within the caller thread
+        // as a result, if there is an active transaction we should create a span for the message processing
+
+        Connection connection = createConnection();
+        Channel channel = connection.createChannel();
+
+        // using an empty name for exchange allows to use the default exchange
+        // which has the property to send message to any queue by name using routing key
+        final String exchange = "";
+
+        channel.basicQos(1);
+
+        String rpcQueueName = randString("rpc_queue");
+        channel.queueDeclare(rpcQueueName, false, false, false, null);
+        // because we use a random queue, we don't have to purge it
+        // if it was persistent, any previous message should be discarded with a call to 'queuePurge'
+
+        // RPC server implementation
+        String serverConsumerTag = channel.basicConsume(rpcQueueName, false, new DefaultConsumer(channel) {
+
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+
+                AMQP.BasicProperties replyProperties = new AMQP.BasicProperties
+                    .Builder()
+                    .correlationId(properties.getCorrelationId())
+                    .build();
+
+                String reply = "reply from RPC server: " + new String(body);
+                channel.basicPublish(exchange, properties.getReplyTo(), replyProperties, reply.getBytes());
+                channel.basicAck(envelope.getDeliveryTag(), false);
+            }
+        });
+
+        final String correlationId = UUID.randomUUID().toString();
+
+        String replyQueueName = channel.queueDeclare().getQueue();
+        AMQP.BasicProperties properties = new AMQP.BasicProperties
+            .Builder()
+            .correlationId(correlationId)
+            .replyTo(replyQueueName)
+            .build();
+
+
+        Transaction rootTransaction = startRootTransaction();
+
+        channel.basicPublish(exchange, rpcQueueName, properties, MSG);
+
+        ArrayBlockingQueue<String> rpcResult = new ArrayBlockingQueue<String>(1);
+
+        // here we could have used the DeliverCallback functional interface added in rabbitmq 5.x driver
+        // however, internally it only delegates to a regular Consumer
+        String clientConsumerTag = channel.basicConsume(replyQueueName, true, new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                if (correlationId.equals(properties.getCorrelationId())) {
+                    rpcResult.offer(new String(body));
+                }
+            }
+        });
+
+        assertThat(rpcResult.take()).isEqualTo("reply from RPC server: Testing APM!");
+
+        endRootTransaction(rootTransaction);
+
+        // we need to cancel consumers after usage
+        channel.basicCancel(clientConsumerTag);
+        channel.basicCancel(serverConsumerTag);
+
+
+        // we should have captured the following:
+        // 3 transactions:
+        // - root transaction
+        // - transaction for the server-side of the RPC call
+        // - transaction for the client-side of the RPC call
+        // 2 spans:
+        // - span for sending the RPC request message in the root transaction
+        // - span for sending the RPC response message in server-side processing
+
+        getReporter().awaitTransactionCount(3);
+        getReporter().awaitSpanCount(2);
+
+        Transaction serverSideRpc = null;
+        Transaction clientSideRpc = null;
+        List<Transaction> transactions = getReporter().getTransactions();
+        for (Transaction t : transactions) {
+            if (t != rootTransaction) {
+                if (t.getNameAsString().contains(rpcQueueName)) {
+                    serverSideRpc = t;
+                } else {
+                    clientSideRpc = t;
+                }
+            }
+        }
+
+        Span clientRequestRpc = null;
+        Span serverReplyRpc = null;
+        for (Span s : getReporter().getSpans()) {
+            if (s.getNameAsString().contains(rpcQueueName)) {
+                clientRequestRpc = s;
+            } else {
+                serverReplyRpc = s;
+            }
+        }
+
+        assertThat(clientRequestRpc).isNotNull();
+        checkSpan(clientRequestRpc, "<default>", rpcQueueName);
+        checkParentChild(rootTransaction, clientRequestRpc);
+
+        assertThat(serverSideRpc).isNotNull();
+        checkTransaction(serverSideRpc, "<default>", rpcQueueName);
+        assertThat(serverSideRpc.getNameAsString()).isEqualTo("RabbitMQ message RECEIVE from <default>/%s", rpcQueueName);
+        checkParentChild(clientRequestRpc, serverSideRpc);
+
+        assertThat(serverReplyRpc).isNotNull();
+        checkSpan(serverReplyRpc, "<default>", "amq.gen-*");
+        checkParentChild(serverSideRpc, serverReplyRpc);
+
+        assertThat(clientSideRpc).isNotNull();
+        checkTransaction(clientSideRpc, "<default>", "amq.gen-*");
+        checkParentChild(serverReplyRpc, clientSideRpc);
+
+    }
+
+    private static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions){
+        Transaction childTransaction = null;
+        for (Transaction t : transactions) {
+            if (t != rootTransaction) {
+                assertThat(childTransaction).isNull();
+                childTransaction = t;
+            }
+        }
+        assertThat(childTransaction).isNotNull();
+        return childTransaction;
+    }
+
+    private Connection createConnection() {
         if (connection != null && connection.isOpen()) {
             throw new IllegalStateException("unclosed connection");
         }
         try {
+            Objects.requireNonNull(factory);
             connection = factory.newConnection();
+            Objects.requireNonNull(connection);
             logger.info("created connection id = {}", connection);
             return connection;
         } catch (IOException | TimeoutException e) {
@@ -347,10 +492,10 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             .isEqualTo(parent.getTraceContext().getTraceId());
     }
 
-    private static void checkTransaction(Transaction transaction, String exchange) {
+    private static void checkTransaction(Transaction transaction, String exchange, String routingKey) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString())
-            .isEqualTo("RabbitMQ message RECEIVE from %s", exchange);
+            .isEqualTo("RabbitMQ message RECEIVE from %s/%s", exchange, routingKey);
         assertThat(transaction.getFrameworkName()).isEqualTo("RabbitMQ");
 
         checkMessage(transaction.getContext().getMessage(), exchange);
@@ -404,13 +549,13 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         return headersMap;
     }
 
-    private static void checkSpan(Span span, String exchange) {
+    private static void checkSpan(Span span, String exchange, String routingKey) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo("send");
 
         assertThat(span.getNameAsString())
-            .isEqualTo("RabbitMQ SEND to %s", exchange);
+            .isEqualTo("RabbitMQ SEND to %s/%s", exchange, routingKey);
 
         checkMessage(span.getContext().getMessage(), exchange);
 

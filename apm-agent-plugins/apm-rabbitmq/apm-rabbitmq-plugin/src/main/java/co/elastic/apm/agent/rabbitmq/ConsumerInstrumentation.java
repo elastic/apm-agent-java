@@ -89,35 +89,40 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
                                               @Advice.This Consumer consumer,
                                               @Advice.Argument(value = 1) @Nullable Envelope envelope,
                                               @Advice.Argument(value = 2) @Nullable AMQP.BasicProperties properties) {
-            if (!tracer.isRunning() || tracer.currentTransaction() != null) {
+            if (!tracer.isRunning()) {
                 return null;
             }
 
-            String exchange = envelope != null ? envelope.getExchange() : null;
-            if (exchange == null) {
-                exchange = "unknown";
-            }
+            String routingKey = normalizeRoutingKey(envelope != null ? envelope.getRoutingKey() : null);
+            String exchange = normalizeExchangeName(envelope != null ? envelope.getExchange() : null);
 
             if (isExchangeIgnored(exchange)) {
                 return null;
             }
 
-            Transaction transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
+            Transaction transaction = tracer.currentTransaction();
+            if (transaction != null) {
+                // TODO when transaction != null we should create an exit span
+                return null;
+            }
+
+            transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
             if (transaction == null) {
                 return null;
             }
 
             transaction.withType("messaging")
-                .withName("RabbitMQ message RECEIVE from ").appendToName(exchange);
+                .withName("RabbitMQ message RECEIVE from ").appendToName(exchange).appendToName("/").appendToName(routingKey);
 
             transaction.setFrameworkName("RabbitMQ");
-
 
             Message message = captureMessage(exchange, properties, transaction);
             // only capture incoming messages headers for now (consistent with other messaging plugins)
             captureHeaders(properties, message);
 
             return transaction.activate();
+
+
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)

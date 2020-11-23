@@ -230,7 +230,7 @@ public class MockReporter implements Reporter {
 
     public void awaitTransactionCount(int count) {
         awaitUntilAsserted(() -> assertThat(getNumReportedTransactions())
-            .describedAs("expecting %d transactions", count)
+            .describedAs("expecting %d transactions, transactions = %s", count, transactions)
             .isEqualTo(count));
     }
 
