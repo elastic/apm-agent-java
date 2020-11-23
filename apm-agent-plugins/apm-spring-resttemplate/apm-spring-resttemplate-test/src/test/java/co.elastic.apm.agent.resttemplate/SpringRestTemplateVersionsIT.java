@@ -35,19 +35,19 @@ import java.util.stream.Stream;
 public class SpringRestTemplateVersionsIT {
 
     @ParameterizedTest
-    @CsvSource({
-        "3.0.0.RELEASE,false",
-        "3.1.0.RELEASE,false",
-        "3.1.1.RELEASE,true", // lower versions are not supported (3.1.1 is from 2012)
-        "3.2.0.RELEASE,true",
-        "4.0.0.RELEASE,true",
-        "4.1.0.RELEASE,true",
-        "4.2.0.RELEASE,true",
-        "4.3.0.RELEASE,true",
-        "5.0.0.RELEASE,true",
-        "5.1.0.RELEASE,true",
-        "5.2.0.RELEASE,true",
-        "5.3.0,true"
+    @CsvSource(delimiterString = "|", value = {
+        "3.0.0.RELEASE|false",
+        "3.1.0.RELEASE|false",
+        "3.1.1.RELEASE|true", // lower versions are not supported (3.1.1 is from 2012)
+        "3.2.0.RELEASE|true",
+        "4.0.0.RELEASE|true",
+        "4.1.0.RELEASE|true",
+        "4.2.0.RELEASE|true",
+        "4.3.0.RELEASE|true",
+        "5.0.0.RELEASE|true",
+        "5.1.0.RELEASE|true",
+        "5.2.0.RELEASE|true",
+        "[5.3.0,)|true" // using ivy range specifier to make test against later versions
     })
     void testVersion(String version, boolean isSupported) throws Exception {
         List<String> dependencies = Stream.of(
