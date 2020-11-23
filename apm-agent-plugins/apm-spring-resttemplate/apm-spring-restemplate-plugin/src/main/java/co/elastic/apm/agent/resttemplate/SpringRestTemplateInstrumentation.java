@@ -41,6 +41,9 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * Instruments {@link org.springframework.http.client.ClientHttpRequest#execute()}
+ */
 public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentation {
 
     @Override
