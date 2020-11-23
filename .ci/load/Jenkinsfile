@@ -112,14 +112,23 @@ pipeline {
                         }
                         stage('Provision test application') {
                             steps {
-                                echo 'Checking out test application'
-                                gitCheckout(
-                                    basedir: "${APP_BASE_DIR}",
-                                    branch: 'main',
-                                    repo: "https://github.com/spring-projects/${APP}.git",
-                                    credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
-                                    shallow: false
-                                )
+                                echo 'Determining version to checkout'
+                                script {
+                                    def ver = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+                                    def app_branch = "main"
+                                    if(ver == '7'){
+                                        echo "Java 7.x detected. Installing compliant version of test application"
+                                        app_branch = "3450c3d99ecaaf46231feb2c404b72d1727517e1"
+                                    }
+                                    echo "Installing test application from: ${app_branch}"
+                                    gitCheckout(
+                                        basedir: "${APP_BASE_DIR}",
+                                        branch: "${app_branch}",
+                                        repo: "https://github.com/spring-projects/${APP}.git",
+                                        credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                                        shallow: false
+                                    )
+                                }
                             }
                         }
                         stage('Provision local metrics collection') {
@@ -154,7 +163,15 @@ pipeline {
                                         // Start with packaging things up
                                         sh(script: "./mvnw package")
                                         echo "start application with JVM options '${params.jvm_options}'"
-                                        sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
+                                        script {
+                                            def ver = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+                                            if(ver == '7'){
+                                                echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
+                                                sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/petclinic.war &")
+                                            } else {
+                                                sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
+                                            }
+                                        }
                                     }
                                 }
                                 echo 'Starting bandstand client..'
