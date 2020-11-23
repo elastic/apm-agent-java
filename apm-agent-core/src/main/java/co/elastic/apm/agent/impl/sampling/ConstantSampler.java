@@ -38,13 +38,11 @@ public class ConstantSampler implements Sampler {
     private final boolean decision;
     private final double rate;
 
-    private final String rateString;
     private final String traceStateHeader;
 
     private ConstantSampler(boolean decision) {
         this.decision = decision;
         this.rate = decision ? 1.0d : 0.0d;
-        this.rateString = Double.toString(rate);
         this.traceStateHeader = TraceState.getHeaderValue(rate);
     }
 

@@ -65,7 +65,7 @@ public class ProbabilitySampler implements Sampler {
         this.traceStateHeader = TraceState.getHeaderValue(samplingRate);
     }
 
-    public static Sampler of(double samplingRate) { // use 'Double' here
+    public static Sampler of(double samplingRate) {
         if (samplingRate == 1) {
             return ConstantSampler.of(true);
         }

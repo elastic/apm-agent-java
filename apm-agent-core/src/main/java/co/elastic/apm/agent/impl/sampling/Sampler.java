@@ -57,10 +57,14 @@ public interface Sampler {
      */
     double getSampleRate();
 
-    // While header is not related to sampler itself, putting this here allows to reuse the same
-    // String instance as long as the sample rate does not change to minimize allocation
+
     /**
-     * @return sample rate as String header for context propagation
+     * @return sample rate as (constant) header for context propagation
+     *
+     * <p>
+     * While the {@code tracestate} header is not related to sampler itself, putting this here allows to reuse the same
+     * {@link String} instance as long as the sample rate does not change to minimize allocation
+     * </p>
      */
     String getTraceStateHeader();
 }
