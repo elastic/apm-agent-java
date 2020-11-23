@@ -71,8 +71,8 @@ public class SpringRestTemplateAdvice {
             Span span = (Span) spanObj;
             try {
                 if (clientHttpResponse != null) {
-                    int statusCode = clientHttpResponse.getRawStatusCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
+                    // getRawStatusCode has been introduced in 3.1.1
+                    span.getContext().getHttp().withStatusCode(clientHttpResponse.getRawStatusCode());
                 }
                 span.captureException(t);
             } finally {

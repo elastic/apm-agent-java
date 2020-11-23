@@ -50,8 +50,15 @@ public class SprintRestTemplateIntegration extends AbstractInstrumentationTest {
 
     private Transaction rootTransaction;
 
+    private final boolean expectSpan;
+
     public SprintRestTemplateIntegration() {
-        restTemplate = new RestTemplate();
+        this(true);
+    }
+
+    protected SprintRestTemplateIntegration(boolean expectSpan){
+        this.restTemplate = new RestTemplate();
+        this.expectSpan = expectSpan;
     }
 
     @Before
@@ -77,11 +84,15 @@ public class SprintRestTemplateIntegration extends AbstractInstrumentationTest {
         String url = String.format("http://127.0.0.1:%d/", wireMockRule.port());
         restTemplate.getForObject(url, String.class);
 
-        reporter.awaitSpanCount(1);
+        if (!expectSpan) {
+            reporter.assertNoSpan(1000);
+        } else {
+            reporter.awaitSpanCount(1);
 
-        Span span = reporter.getFirstSpan();
-        Http http = span.getContext().getHttp();
-        assertThat(http.getMethod()).isEqualTo("GET");
-        assertThat(http.getUrl()).isEqualTo(url);
+            Span span = reporter.getFirstSpan();
+            Http http = span.getContext().getHttp();
+            assertThat(http.getMethod()).isEqualTo("GET");
+            assertThat(http.getUrl()).isEqualTo(url);
+        }
     }
 }

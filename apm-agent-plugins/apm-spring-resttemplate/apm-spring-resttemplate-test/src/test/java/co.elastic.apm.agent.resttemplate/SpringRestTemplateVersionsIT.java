@@ -36,18 +36,20 @@ public class SpringRestTemplateVersionsIT {
 
     @ParameterizedTest
     @CsvSource({
-        "3.0.3.RELEASE", // lower versions are not supported
-        "3.1.0.RELEASE",
-        "3.2.0.RELEASE",
-        "4.0.0.RELEASE",
-        "4.1.0.RELEASE",
-        "4.2.0.RELEASE",
-        "4.3.0.RELEASE",
-        "5.0.0.RELEASE",
-        "5.1.0.RELEASE",
-        "5.2.0.RELEASE",
-        "5.3.0"})
-    void testVersion(String version) throws Exception {
+        "3.0.0.RELEASE,false",
+        "3.1.0.RELEASE,false",
+        "3.1.1.RELEASE,true", // lower versions are not supported (3.1.1 is from 2012)
+        "3.2.0.RELEASE,true",
+        "4.0.0.RELEASE,true",
+        "4.1.0.RELEASE,true",
+        "4.2.0.RELEASE,true",
+        "4.3.0.RELEASE,true",
+        "5.0.0.RELEASE,true",
+        "5.1.0.RELEASE,true",
+        "5.2.0.RELEASE,true",
+        "5.3.0,true"
+    })
+    void testVersion(String version, boolean isSupported) throws Exception {
         List<String> dependencies = Stream.of(
             "spring-webmvc",
             "spring-aop",
@@ -65,7 +67,14 @@ public class SpringRestTemplateVersionsIT {
             dependencies.add("org.slf4j:jcl-over-slf4j:1.7.30");
         }
 
-        TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies, SprintRestTemplateIntegration.class);
+
+        Class<?> testClass = SprintRestTemplateIntegration.class;
+        Class<?>[] otherClasses = new Class<?>[0];
+        if (!isSupported) {
+            otherClasses = new Class[]{SprintRestTemplateIntegration.class};
+            testClass = SpringRestTemplateIntegrationNoOp.class;
+        }
+        TestClassWithDependencyRunner runner = new TestClassWithDependencyRunner(dependencies, testClass, otherClasses);
         runner.run();
     }
 
