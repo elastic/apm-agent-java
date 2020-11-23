@@ -252,7 +252,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 1.6.0
 
 |Spring RestTemplate
-|3.0.3+
+|3.1.1+
 |
 | 0.7.0
 
