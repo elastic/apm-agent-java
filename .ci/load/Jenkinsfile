@@ -160,6 +160,10 @@ pipeline {
                                 dir("${APP_BASE_DIR}"){
                                     // Launch app in background
                                     withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY'){
+                                        // ensure that wrapper downloads with a recent JVM to avoid TLS issues with old JVMs
+                                        withEnv(["JAVA_HOME=${env.HUDSON_HOME}/.java/java11"]){
+                                            sh(script: "./mvnw clean")
+                                        }
                                         // Start with packaging things up
                                         sh(script: "./mvnw package")
                                         echo "start application with JVM options '${params.jvm_options}'"
@@ -167,10 +171,11 @@ pipeline {
                                             def ver = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
                                             if(ver == '7'){
                                                 echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
-                                                sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/petclinic.war &")
+                                                binaryPath = './target/petclinic.war'
                                             } else {
-                                                sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ./target/spring-petclinic-*.jar &")
+                                                binaryPath = './target/spring-petclinic-*.jar'
                                             }
+                                            sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ${binaryPath} &")
                                         }
                                     }
                                 }
