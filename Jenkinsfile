@@ -8,7 +8,7 @@ pipeline {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
     NOTIFY_TO = credentials('notify-to')
-    JOB_GCS_BUCKET = 'apm-ci-temp'
+    JOB_GCS_BUCKET = credentials('gcs-bucket')
     DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
     ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
@@ -16,7 +16,6 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
-    JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -88,7 +87,7 @@ pipeline {
                 sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
                 sh label: 'mvn license', script: "./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
-              stashV2(name: 'build', bucket: "${JOB_GCS_BUCKET}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
               archiveArtifacts allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
                       ${BASE_DIR}/target/site/aggregate-third-party-report.html",
@@ -125,7 +124,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Unit Tests', tab: 'tests') {
               deleteDir()
-              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              unstash 'build'
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
@@ -158,7 +157,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
               deleteDir()
-              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              unstash 'build'
               dir("${BASE_DIR}"){
                 sh './scripts/jenkins/smoketests-01.sh'
               }
@@ -188,7 +187,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
               deleteDir()
-              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              unstash 'build'
               dir("${BASE_DIR}"){
                 sh './scripts/jenkins/smoketests-02.sh'
               }
@@ -230,7 +229,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
               deleteDir()
-              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              unstash 'build'
               dir("${BASE_DIR}"){
                 script {
                   env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
@@ -269,7 +268,7 @@ pipeline {
           steps {
             withGithubNotify(context: 'Javadoc') {
               deleteDir()
-              unstashV2(name: 'build', bucket: "${JOB_GCS_BUCKET}", credentialsId: "${JOB_GCS_CREDENTIALS}")
+              unstash 'build'
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
