@@ -56,7 +56,7 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTIONS", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
+        servletContainer.withEnv("JAVA_OPTIONS", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005");
     }
 
     public List<String> getPathsToTestErrors() {
