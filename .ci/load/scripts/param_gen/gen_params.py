@@ -71,7 +71,7 @@ parser.add_argument(
     '--gh-token',
     help='GitHub token to gather supported releases',
     type=str,
-    required=False
+    required=True
 )
 parser.add_argument(
     '--min-ver',
@@ -119,13 +119,15 @@ print(
     '// The following snippet is auto-generated. To update it, run the script located in .ci/load/scripts/param_gen and copy in the output',  # noqa E501
     'choice(choices: {}, name: "apm_version", description: "APM Java Agent version")'.format(agent_releases),  # noqa E501
     'choice(choices: {}, name: "jvm_version", description: "JVM")'.format(supported_jdks),  # noqa E501
+    'string(name: "jvm_options", defaultValue: "", description: "Extra JVM options")',  # noqa E501
     'string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")',  # noqa E501
-    'string(name: "duration", defaultValue: "10", description: "Test duration in minutes. Max: 280")',  # noqa E501
+    'string(name: "duration", defaultValue: "10m", description: "Test duration. Specify with unit. Ex: 30m, 1h")',  # noqa E501
     '// num_of_runs currently unsupported',
     '// string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")',  # noqa E501
     'text(name: "agent_config", "defaultValue": "", description: "Custom APM Agent configuration. (WARNING: May echo to console. Do not supply sensitive data.)")',  # noqa E501
     'text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")',  # noqa E5011
     'booleanParam(name: "local_metrics", description: "Enable local metrics collection?", defaultValue: false)',  # noqa E501
+    'booleanParam(name: "ignore_application_errors", description: "Instruct the load generator to ignore non-2xx errors on exit", defaultValue: true)',  # noqa E501
     '// End script auto-generation',
     sep="\n"
 )

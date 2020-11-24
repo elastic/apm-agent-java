@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.impl.sampling;
 
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.TraceState;
 
 /**
  * This is a implementation of {@link Sampler} which always returns the same sampling decision.
@@ -36,12 +37,13 @@ public class ConstantSampler implements Sampler {
 
     private final boolean decision;
     private final double rate;
-    private final String rateString;
+
+    private final String traceStateHeader;
 
     private ConstantSampler(boolean decision) {
         this.decision = decision;
-        rate = decision ? 1.0d : 0.0d;
-        rateString = Double.toString(rate);
+        this.rate = decision ? 1.0d : 0.0d;
+        this.traceStateHeader = TraceState.getHeaderValue(rate);
     }
 
     public static Sampler of(boolean decision) {
@@ -63,7 +65,7 @@ public class ConstantSampler implements Sampler {
     }
 
     @Override
-    public String getSampleRateString() {
-        return rateString;
+    public String getTraceStateHeader() {
+        return traceStateHeader;
     }
 }

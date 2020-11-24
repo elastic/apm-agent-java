@@ -28,6 +28,11 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1405[1405]
 
 [float]
 ===== Refactors
