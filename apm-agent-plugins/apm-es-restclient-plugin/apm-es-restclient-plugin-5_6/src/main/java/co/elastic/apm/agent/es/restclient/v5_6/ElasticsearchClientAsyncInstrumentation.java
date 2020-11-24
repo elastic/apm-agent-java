@@ -79,6 +79,7 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
     public static class ElasticsearchRestClientAsyncAdvice {
         @VisibleForAdvice
         public static final GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
+
         @AssignTo.Argument(5)
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static ResponseListener onBeforeExecute(@Advice.Argument(0) String method,
@@ -89,8 +90,8 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
             ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper = esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
             if (helper != null) {
                 Span span = helper.createClientSpan(method, endpoint, entity);
-                spanTls.set(span);
                 if (span != null) {
+                    spanTls.set(span);
                     return helper.<ResponseListener>wrapResponseListener(responseListener, span);
                 }
             }
