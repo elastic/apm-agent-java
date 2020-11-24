@@ -14,13 +14,13 @@ for a specific log, see in which context it has been logged and which parameters
 === Step 1: Ingest your application logs into Elasticsearch
 
 To get started with log correlation, your logs have to be ingested into Elasticsearch first.
-The easiest way to get started with that is https://github.com/elastic/java-ecs-logging[Java ECS logging] which provides layouts/encoders
+The easiest way to get started with that is {ecs-logging-java-ref}/intro.html[Java ECS logging] which provides layouts/encoders
 for Logback, log4j2, and log4j.
 These layouts/encoders convert a log event into an ECS-compatible JSON structure.
 Using minimal Filebeat configuration,
 you can ingest these logs into Elasticsearch.
 
-Head over to the documentation to learn more: https://github.com/elastic/java-ecs-logging[Java ECS logging documentation].
+Head over to the documentation to learn more: {ecs-logging-java-ref}/intro.html[Java ECS logging documentation].
 
 If you’re using plain-text logs it's recommended to parse out specific parts of the logs,
 like the timestamp, the log level, and the message. One way to do this is by using an {ref}/ingest.html[ingest pipeline] with a {ref}/grok-processor.html[grok processor].
