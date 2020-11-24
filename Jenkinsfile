@@ -80,7 +80,7 @@ pipeline {
               deleteDir()
               unstash 'source'
               // prepare m2 repository with the existing dependencies
-              if (fileExists('/var/lib/jenkins/.m2/repository')) {
+              whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
                 sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -rf /var/lib/jenkins/.m2/repository .m2'
               }
               dir("${BASE_DIR}"){
