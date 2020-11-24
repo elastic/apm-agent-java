@@ -54,8 +54,12 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return Collections.singletonList("rabbitmq");
     }
 
-    protected static boolean isExchangeIgnored(String exchange) {
-        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), exchange);
+    /**
+     * @param name name of the exchange or queue
+     * @return {@literal true} when exchange or queue is ignored, {@literal false otherwise}
+     */
+    protected static boolean isIgnored(String name) {
+        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), name);
     }
 
     private static boolean isCaptureHeaders() {
@@ -81,14 +85,14 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return exchange;
     }
 
-    protected static String normalizeRoutingKey(@Nullable String routingKey) {
-        if (routingKey == null) {
+    protected static String normalizeQueueOrRoutingKey(@Nullable String name) {
+        if (name == null) {
             return "<unknown>";
-        } else if (routingKey.startsWith("amq.gen-")) {
-            // generated routing keys create high cardinality transaction/span names
+        } else if (name.startsWith("amq.gen-")) {
+            // generated routing keys & queues create high cardinality transaction/span names
             return "amq.gen-*";
         }
-        return routingKey;
+        return name;
     }
 
     private static long getTimestamp(@Nullable AMQP.BasicProperties properties) {

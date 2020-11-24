@@ -60,6 +60,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -145,7 +146,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     @Test
     void headersCaptureEnabledByDefault() throws IOException, InterruptedException {
-        Map<String,String> headers = Map.of("message-header", "header value");
+        Map<String, String> headers = Map.of("message-header", "header value");
         Map<String, String> headersWithNullValue = new HashMap<>(headers);
         headersWithNullValue.put("null-header", null);
         testHeadersCapture(headersWithNullValue,
@@ -286,16 +287,85 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     }
 
-    private void endRootTransaction(Transaction rootTransaction) {
-        rootTransaction.deactivate().end();
+    @Test
+    void testPollingWithinTransaction() throws IOException {
+        Channel channel = connection.createChannel();
+        String exchange = createExchange(channel, "exchange");
+
+        pollingTest(true, false, () -> declareAndBindQueue("queue", exchange, channel), exchange);
+
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
     }
 
-    private Transaction startRootTransaction() {
-        return getTracer().startRootTransaction(getClass().getClassLoader())
-            .withName("Rabbit-Test Root Transaction")
-            .withType("request")
-            .withResult("success")
-            .activate();
+    @Test
+    void testPollingOutsideTransaction() throws IOException {
+        Channel channel = connection.createChannel();
+        String exchange = createExchange(channel, "exchange");
+
+        pollingTest(false, false, () -> declareAndBindQueue("queue", exchange, channel), exchange);
+
+        reporter.assertNoTransaction(100);
+        reporter.assertNoSpan(100);
+    }
+
+    @Test
+    void testPollingIgnoreQueueName() throws IOException {
+        Channel channel = connection.createChannel();
+        String exchange = createExchange(channel, "exchange");
+
+        MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
+        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-qu*")));
+
+        pollingTest(true, false, () -> declareAndBindQueue("ignored-queue", exchange, channel), exchange);
+
+        reporter.awaitTransactionCount(1);
+        reporter.assertNoSpan(100);
+    }
+
+    @Test
+    void testPollingIgnoreExchangeName() throws IOException {
+        Channel channel = connection.createChannel();
+        String exchange = createExchange(channel, "ignored-exchange");
+
+        MessagingConfiguration messagingConfiguration = config.getConfig(MessagingConfiguration.class);
+        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf("ignored-ex*")));
+
+        pollingTest(true, true, () -> declareAndBindQueue("queue", exchange, channel), exchange);
+
+        reporter.awaitTransactionCount(1);
+        reporter.assertNoSpan(100);
+    }
+
+    private String declareAndBindQueue(String queue, String exchange, Channel channel) {
+        try {
+            channel.queueDeclare(queue, false, false, false, null);
+            channel.queueBind(queue, exchange, ROUTING_KEY);
+            return queue;
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private void pollingTest(boolean withinTransaction, boolean withResult, Supplier<String> createQueue, String exchange) throws IOException {
+        Channel channel = connection.createChannel();
+
+        String queue = createQueue.get();
+
+        if (withResult) {
+            channel.basicPublish(exchange, ROUTING_KEY, emptyProperties(), MSG);
+        }
+
+        Transaction rootTransaction = null;
+        if (withinTransaction) {
+            rootTransaction = startRootTransaction();
+        }
+
+        channel.basicGet(queue, true);
+
+        if (withinTransaction) {
+            endRootTransaction(rootTransaction);
+        }
     }
 
     @Test
@@ -423,7 +493,19 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     }
 
-    private static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions){
+    private void endRootTransaction(Transaction rootTransaction) {
+        rootTransaction.deactivate().end();
+    }
+
+    private Transaction startRootTransaction() {
+        return getTracer().startRootTransaction(getClass().getClassLoader())
+            .withName("Rabbit-Test Root Transaction")
+            .withType("request")
+            .withResult("success")
+            .activate();
+    }
+
+    private static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions) {
         Transaction childTransaction = null;
         for (Transaction t : transactions) {
             if (t != rootTransaction) {
@@ -551,7 +633,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
-        assertThat(service.getResource().toString()).isEqualTo("rabbitmq/%s", exchange);
+        assertThat(service.getResource().toString()).isEqualTo("rabbitmq");
 
     }
 }

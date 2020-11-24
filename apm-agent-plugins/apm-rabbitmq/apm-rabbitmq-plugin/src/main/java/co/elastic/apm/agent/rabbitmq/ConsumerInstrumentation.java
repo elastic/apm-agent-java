@@ -93,16 +93,15 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
                 return null;
             }
 
-            String routingKey = normalizeRoutingKey(envelope != null ? envelope.getRoutingKey() : null);
+            String routingKey = normalizeQueueOrRoutingKey(envelope != null ? envelope.getRoutingKey() : null);
             String exchange = normalizeExchangeName(envelope != null ? envelope.getExchange() : null);
 
-            if (isExchangeIgnored(exchange)) {
+            if (isIgnored(exchange)) {
                 return null;
             }
 
             Transaction transaction = tracer.currentTransaction();
             if (transaction != null) {
-                // TODO when transaction != null we should create an exit span
                 return null;
             }
 
