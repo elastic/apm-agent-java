@@ -41,7 +41,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -79,11 +78,9 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     private static final byte[] MSG = "Testing APM!".getBytes();
 
-    @Nullable
     private static ConnectionFactory factory;
 
-    @Nullable
-    private Connection connection;
+    private static Connection connection;
 
     @BeforeAll
     static void before() {
@@ -97,21 +94,24 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         factory.setUsername(container.getAdminUsername());
         factory.setPassword(container.getAdminPassword());
 
-    }
-
-    @AfterEach
-    void cleanup() throws IOException {
-        if (connection != null) {
-            if (connection.isOpen()) {
-                logger.info("silently closing open connection id = {}", connection);
-                connection.close();
-            }
+        try {
+            connection = factory.newConnection();
+            Objects.requireNonNull(connection);
+            logger.info("created connection id = {}", connection);
+        } catch (IOException | TimeoutException e) {
+            throw new IllegalStateException(e);
         }
     }
 
+
     @AfterAll
-    static void after() {
+    static void after() throws IOException {
         container.close();
+
+        if (connection.isOpen()) {
+            logger.info("silently closing open connection id = {}", connection);
+            connection.close();
+        }
     }
 
 
@@ -212,7 +212,6 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
                              String channelName,
                              BiConsumer<Message, Message> messageCheck) throws IOException, InterruptedException {
 
-        Connection connection = createConnection();
         Channel channel = connection.createChannel();
         String exchange = createExchange(channel, channelName);
         String queue = createQueue(channel, exchange);
@@ -304,7 +303,6 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         // with an RPC call, the message consumer might be executed within the caller thread
         // as a result, if there is an active transaction we should create a span for the message processing
 
-        Connection connection = createConnection();
         Channel channel = connection.createChannel();
 
         // using an empty name for exchange allows to use the default exchange
@@ -349,7 +347,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         channel.basicPublish(exchange, rpcQueueName, properties, MSG);
 
-        ArrayBlockingQueue<String> rpcResult = new ArrayBlockingQueue<String>(1);
+        ArrayBlockingQueue<String> rpcResult = new ArrayBlockingQueue<>(1);
 
         // here we could have used the DeliverCallback functional interface added in rabbitmq 5.x driver
         // however, internally it only delegates to a regular Consumer
@@ -435,21 +433,6 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         }
         assertThat(childTransaction).isNotNull();
         return childTransaction;
-    }
-
-    private Connection createConnection() {
-        if (connection != null && connection.isOpen()) {
-            throw new IllegalStateException("unclosed connection");
-        }
-        try {
-            Objects.requireNonNull(factory);
-            connection = factory.newConnection();
-            Objects.requireNonNull(connection);
-            logger.info("created connection id = {}", connection);
-            return connection;
-        } catch (IOException | TimeoutException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     private String createQueue(Channel channel, String exchange) throws IOException {
