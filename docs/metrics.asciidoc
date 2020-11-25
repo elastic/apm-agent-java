@@ -312,9 +312,10 @@ You can filter and group by these dimensions:
 --
 
 
-[float]
 [[metrics-micrometer]]
-=== Custom metrics using Micrometer (beta)
+=== Custom metrics using Micrometer
+
+experimental::[]
 
 The Elastic APM Java agent lets you use the popular metrics collection framework https://micrometer.io/[Micrometer] to track custom application metrics.
 
@@ -333,12 +334,13 @@ The reason for that is that if you set your sampling rate to 10%, for example,
 you'll only be storing one out of 10 requests.
 The labels you set on non-sampled transactions will be lost.
 
-
 [float]
 [[metrics-micrometer-beta-caveats]]
-==== Beta caveats
-* To fix some of the caveats listed here, we may have to introduce breaking changes.
-  So please watch release notes Micrometer-related changes before updating.
+==== Caveats
+
+To fix some of the caveats listed here, we may have to introduce breaking changes.
+Please look for Micrometer-related release notes before updating.
+
 * Metrics with dots in their name can result in mapping conflicts.
 See https://github.com/elastic/apm/issues/347[elastic/apm#347]
 * Histograms aren't supported yet
@@ -350,6 +352,45 @@ See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
 * When using `CountingMode.CUMULATIVE`, you can use TSVB's "Positive Rate" aggregation to convert the counter to a rate.
   But you have to remember to group by a combination of dimensions that uniquely identify the time series.
   This may be a combination of `host.name` and `service.name`, or the `kubernetes.pod.id`.
+
+[float]
+[[micrometer-get-started]]
+==== Get started with Micrometer
+
+Attach the agent and you’re done!
+The agent automatically detects all `MeterRegistry` instances and reports all metrics to APM Server (in addition to where they originally report).
+When attaching the agent after the application has already started, the agent detects a `MeterRegistry` when calling any public method on it.
+If you are using multiple registries within a `CompoundMeterRegistry`, the agent only reports the metrics once.
+
+[float]
+[[verify-micrometer-data]]
+==== Verify micrometer data
+
+The easiest way to validate that metrics are successfully being reported to Kibana is by using Discover:
+
+* Select the `apm-*` index.
+* Filter the data to only show documents with metrics: `processor.name :"metric"`.
+* Optionally, apply additional filters by service or host names if micrometer was only instrumented on a subset of your environment.
+
+You should now see documents containing both metrics collected by the APM agent and custom metrics from micrometer.
+Narrow your search with a known micrometer metric field.
+For example, if you know `cache.puts` is a micrometer field, add `cache.puts: *` to your search to return only micrometer metrics documents:
+
+[float]
+[[visualize-micrometer-data]]
+==== Visualize micrometer data
+
+NOTE: Monotonically increased counters and Positive rate aggregations are not fully supported in the current version.
+
+TSVB is the recommended visualization for micrometer metrics.
+First, make sure to select right aggregation. The most common options are:
+
+* Sum -- Useful for business metrics
+* Average -- Usually used for performance related metrics
+
+It's a common task to group metrics by attributes, including micrometer labels or attributes already collected by APM agents. This could be service versions, runtime versions, or even cloud metadata.
+
+TIP: See the https://www.elastic.co/blog/visualizing-observability-with-kibana-event-rates-and-rate-of-change-in-tsvb[Event rates and rate of change in TSVB] blog post for more information.
 
 [float]
 [[metrics-micrometer-get-started-existing]]
@@ -367,16 +408,18 @@ the agent makes sure to only report the metrics once.
 ==== Get started from scratch
 
 Declare a dependency to Micrometer:
-```xml
+[source,xml]
+----
 <dependency>
     <groupId>io.micrometer</groupId>
     <artifactId>micrometer-core</artifactId>
     <version>${micrometer.version}</version>
 </dependency>
-```
+----
 
 Create a Micrometer `MeterRegistry`.
-```java
+[source,java]
+----
 MeterRegistry registry = new SimpleMeterRegistry(new SimpleConfig() {
 
         @Override
@@ -397,16 +440,16 @@ MeterRegistry registry = new SimpleMeterRegistry(new SimpleConfig() {
             return null;
         }
     }, Clock.SYSTEM);
-
-```
+----
 
 When using Spring Boot, you can use the `management.metrics.export.simple` prefix to configure via `application.properties`
 
-```
+[source,properties]
+----
 management.metrics.export.simple.enabled=true
 management.metrics.export.simple.step=30s
 management.metrics.export.simple.mode=STEP
-```
+----
 
 [float]
 [[metrics-micrometer-fields]]
