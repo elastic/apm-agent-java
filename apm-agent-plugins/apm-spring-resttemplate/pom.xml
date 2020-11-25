@@ -17,7 +17,7 @@
     </properties>
 
     <modules>
-        <module>apm-spring-restemplate-plugin</module>
+        <module>apm-spring-resttemplate-plugin</module>
         <module>apm-spring-resttemplate-test</module>
     </modules>
 

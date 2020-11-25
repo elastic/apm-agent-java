@@ -1,3 +1,4 @@
+package co.elastic.apm.agent.resttemplate;
 /*-
  * #%L
  * Elastic APM Java agent
@@ -22,7 +23,6 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.TestClassWithDependencyRunner;
 import org.junit.jupiter.params.ParameterizedTest;
