@@ -83,7 +83,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             return MessageProducerNoDestinationAdvice.class;
         }
 
-        public static class MessageProducerNoDestinationAdvice {
+        public static class MessageProducerNoDestinationAdvice extends BaseAdvice {
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
             public static Object beforeSend(@Advice.Argument(0) final Message message,
@@ -126,9 +126,10 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             return MessageProducerWithDestinationAdvice.class;
         }
 
-        public static class MessageProducerWithDestinationAdvice {
-            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static class MessageProducerWithDestinationAdvice extends BaseAdvice {
+
             @Nullable
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             public static Object startSpan(@Advice.Argument(0) final Destination destination,
                                            @Advice.Argument(1) final Message message) {
                 return helper.startJmsSendSpan(destination, message);

@@ -87,7 +87,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             return MessageConsumerAdvice.class;
         }
 
-        public static class MessageConsumerAdvice {
+        public static class MessageConsumerAdvice extends BaseAdvice {
 
             @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
@@ -125,10 +125,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 }
 
-                if (messagingConfiguration != null) {
-                    createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
-                    createPollingTransaction |= "receiveNoWait".equals(methodName);
-                }
+                createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
+                createPollingTransaction |= "receiveNoWait".equals(methodName);
 
                 if (createPollingSpan) {
                     createdSpan = parent.createSpan()
@@ -206,7 +204,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 }
 
                 if (!discard && tracer.currentTransaction() == null
-                    && message != null && messagingConfiguration != null
+                    && message != null
                     && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
 
@@ -241,7 +239,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             return ListenerWrappingAdvice.class;
         }
 
-        public static class ListenerWrappingAdvice {
+        public static class ListenerWrappingAdvice extends BaseAdvice {
 
             @Nullable
             @AssignTo.Argument(0)

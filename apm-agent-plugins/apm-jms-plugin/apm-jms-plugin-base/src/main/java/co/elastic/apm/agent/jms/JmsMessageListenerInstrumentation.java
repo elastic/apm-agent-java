@@ -67,7 +67,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
         return MessageListenerAdvice.class;
     }
 
-    public static class MessageListenerAdvice {
+    public static class MessageListenerAdvice extends BaseAdvice {
 
         @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
