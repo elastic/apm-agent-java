@@ -82,6 +82,7 @@ pipeline {
               // prepare m2 repository with the existing dependencies
               whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
                 sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -rf /var/lib/jenkins/.m2/repository .m2'
+                sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
                 sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
