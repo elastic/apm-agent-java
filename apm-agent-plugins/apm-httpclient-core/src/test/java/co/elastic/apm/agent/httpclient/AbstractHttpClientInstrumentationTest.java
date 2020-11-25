@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
@@ -50,6 +51,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.seeOther;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -63,10 +65,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Before
     public final void setUpWiremock() {
         wireMockRule.stubFor(any(urlEqualTo("/"))
-            .willReturn(aResponse()
+            .willReturn(dummyResponse()
                 .withStatus(200)));
         wireMockRule.stubFor(get(urlEqualTo("/error"))
-            .willReturn(aResponse()
+            .willReturn(dummyResponse()
                 .withStatus(515)));
         wireMockRule.stubFor(get(urlEqualTo("/redirect"))
             .willReturn(seeOther("/")));
@@ -74,6 +76,13 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .willReturn(seeOther("/circular-redirect")));
         final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
         transaction.withName("parent of http span").withType("request").activate();
+    }
+
+    protected ResponseDefinitionBuilder dummyResponse() {
+        return aResponse()
+            // old spring 3.0 require content type
+            .withHeader("Content-Type", "text/plain")
+            .withBody("hello");
     }
 
     @After

@@ -68,9 +68,10 @@ public class HttpClientHelper {
                 .withSubtype(HTTP_SUBTYPE)
                 .appendToName(method).appendToName(" ").appendToName(hostName);
 
-            if (uri != null) {
-                span.getContext().getHttp().withUrl(uri);
-            }
+            span.getContext().getHttp()
+                .withUrl(uri)
+                .withMethod(method);
+
             setDestinationServiceDetails(span, scheme, hostName, port);
         }
         if (logger.isTraceEnabled()) {
