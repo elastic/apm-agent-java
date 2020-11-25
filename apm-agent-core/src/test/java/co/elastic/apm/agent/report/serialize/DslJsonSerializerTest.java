@@ -120,6 +120,7 @@ class DslJsonSerializerTest {
     void testErrorSerialization() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -127,6 +128,11 @@ class DslJsonSerializerTest {
         error.getContext().addLabel("foo", "bar");
 
         JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+
+        assertThat(errorTree.get("id")).isNotNull();
+        assertThat(errorTree.get("trace_id")).isNotNull();
+        assertThat(errorTree.get("parent_id")).isNotNull();
+        assertThat(errorTree.get("transaction_id")).isNotNull();
 
         assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
         assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
@@ -139,6 +145,25 @@ class DslJsonSerializerTest {
 
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
         assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
+    }
+
+    @Test
+    void testErrorSerializationWithEmptyTraceId() {
+        ElasticApmTracer tracer = MockTracer.create();
+        Transaction transaction = new Transaction(tracer);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
+        transaction.getTraceContext().getTraceId().resetState();
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
+
+        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+
+        assertThat(errorTree.get("id")).isNotNull();
+        assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
+
+        // Verify the limitation of not sending an Error event with parent_id and/or transaction_id without trace_id
+        assertThat(errorTree.get("trace_id")).isNull();
+        assertThat(errorTree.get("parent_id")).isNull();
+        assertThat(errorTree.get("transaction_id")).isNull();
     }
 
     @Test
