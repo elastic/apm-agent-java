@@ -36,6 +36,7 @@ endif::[]
 ===== Bug fixes
 * Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
 * Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[1531]
+* Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[1537]
 * Fix `ClassNotFoundError` with old versions of Spring resttemplate {pull}1524[#1524]
 
 [float]
