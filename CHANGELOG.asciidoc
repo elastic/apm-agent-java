@@ -24,6 +24,12 @@ endif::[]
 ==== 1.19.1 - YYYY/MM/DD
 
 [float]
+===== Breaking changes
+* The following public API types were `public` so far and became package-private: `NoopScope`, `ScopeImpl` and `AbstractSpanImpl`.
+  If your code is using them, you will need to change that when upgrading to this version.
+  Related PR: {pull}1532[#1532]
+
+[float]
 ===== Features
 
 [float]
