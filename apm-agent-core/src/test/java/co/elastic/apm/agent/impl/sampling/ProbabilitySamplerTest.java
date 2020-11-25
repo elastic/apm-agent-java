@@ -53,12 +53,12 @@ class ProbabilitySamplerTest {
         // will indirectly test ConstantSampler as we delegate to it for 0 and 1 values
         sampler = ProbabilitySampler.of(rate);
 
-        String rateString = sampler.getSampleRateString();
-        assertThat(rateString).isEqualTo(Double.toString(rate));
+        String rateHeader = sampler.getTraceStateHeader();
+        assertThat(rateHeader).isEqualTo(TraceState.getHeaderValue(rate));
 
-        assertThat(rateString)
-            .describedAs("rate as string should return same instance on each call")
-            .isSameAs(sampler.getSampleRateString());
+        assertThat(rateHeader)
+            .describedAs("sample rate header should return same instance on each call")
+            .isSameAs(sampler.getTraceStateHeader());
     }
 
     @Test

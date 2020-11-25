@@ -427,7 +427,7 @@ public class TraceContext implements Recyclable {
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
             flags = FLAG_RECORDED;
-            traceState.set(sampler.getSampleRate(), sampler.getSampleRateString());
+            traceState.set(sampler.getSampleRate(), sampler.getTraceStateHeader());
         }
         clock.init();
         onMutation();

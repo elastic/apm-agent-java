@@ -28,6 +28,8 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
+* Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[1531]
 
 [float]
 ===== Refactors
