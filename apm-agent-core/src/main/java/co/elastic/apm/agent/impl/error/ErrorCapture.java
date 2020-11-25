@@ -134,6 +134,12 @@ public class ErrorCapture implements Recyclable {
      */
     public ErrorCapture asChildOf(AbstractSpan<?> parent) {
         this.traceContext.asChildOf(parent.getTraceContext());
+        if (traceContext.getTraceId().isEmpty()) {
+            logger.debug("Creating an Error as child of {} with a null trace_id", parent.getNameAsString());
+            if (logger.isTraceEnabled()) {
+                logger.trace("Stack trace related to Error capture: ", new Throwable());
+            }
+        }
         if (parent instanceof Transaction) {
             Transaction transaction = (Transaction) parent;
             // The error might have occurred in a different thread than the one the transaction was recorded
