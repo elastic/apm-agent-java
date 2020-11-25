@@ -16,8 +16,6 @@ endif::[]
 
 [float]
 ===== Bug fixes
-* Fix formatting for trace_methods_duration_threshold in documentation
-
 ////
 
 === Unreleased

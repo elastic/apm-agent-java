@@ -997,12 +997,10 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 Such methods will be traced and reported if one of the following applies:
-
  - This method's duration crossed the configured threshold.
  - This method ended with Exception.
  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
- 
 Set to 0 to disable.
 
 NOTE: Transactions are never discarded, regardless of their duration.
