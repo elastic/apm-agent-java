@@ -14,6 +14,10 @@ pipeline {
         LOCUST_RUN_TIME = "${params.duration}"
         LOCUST_USERS = "${params.concurrent_requests}"
         LOCUST_IGNORE_ERRORS = "${params.ignore_application_errors}"
+        //
+        JAVA_HOME_BUILD_AGENT = "${env.HUDSON_HOME}/.java/java11" // agent should always be built with Java 11
+        JAVA_HOME_BUILD_APP = '' // set at a later state depending on JDK
+        JDK_MAJOR_VERSION = '' // set at a later state depending on JDK
     }
     options {
         timeout(time: 72, unit: 'HOURS')
@@ -46,7 +50,7 @@ pipeline {
                 withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
                     setEnvVar('SESSION_TOKEN', sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim())
                 }
-            }    
+            }
         }
         stage('Load test') {
             parallel {
@@ -75,6 +79,15 @@ pipeline {
                                 setEnvVar('JAVA_HOME', sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim())
                                 setEnvVar('JAVACMD', "${env.JAVA_HOME}/bin/java")
                                 setEnvVar('PATH', "${env.JAVA_HOME}/bin:$PATH")
+
+                                def jdk_major = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim())
+                                def app_build_jdk = "${env.JAVA_HOME}"
+                                if(jdk_major == '7'){
+                                    // build application with a more recent JDK that don't have TLS issues
+                                    app_build_jdk = sh(script: ".ci/load/scripts/fetch_sdk.sh zulu-8.0.272-linux", returnStdout: true).trim()
+                                }
+                                setEnvVar('JAVA_HOME_BUILD_APP', app_build_jdk)
+                                setEnvVar('JDK_MAJOR_VERSION', jdk_major)
                             }
                         }
                         stage ('Provision agent') {
@@ -92,13 +105,13 @@ pipeline {
                                         echo 'Switching to requested version'
                                         sh(script: "git checkout v${params.apm_version}")
                                         echo 'Building agent'
-                                        withEnv(["JAVA_HOME=${env.HUDSON_HOME}/.java/java11"]){
+                                        withEnv(["JAVA_HOME=${env.JAVA_HOME_BUILD_AGENT}"]){
                                             withEnv(["JAVACMD=${env.JAVA_HOME}/bin/java", "PATH=${env.JAVA_HOME}/bin:$ORIG_PATH"]){
                                                 echo("Building the Agent with Java 11\nJAVA_HOME set to ${env.JAVA_HOME}\nJAVACMD set to ${env.JAVACMD}\nPATH set to ${env.PATH}")
                                                 sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
                                             }
                                         }
-                                            echo("Post-build env:\nJAVA_HOME set to ${env.JAVA_HOME}\nJAVACMD set to ${env.JAVACMD}\nPATH set to ${env.PATH}")
+                                        echo("Post-build env:\nJAVA_HOME set to ${env.JAVA_HOME}\nJAVACMD set to ${env.JAVACMD}\nPATH set to ${env.PATH}")
 
                                     }
                                 }
@@ -114,10 +127,9 @@ pipeline {
                             steps {
                                 echo 'Determining version to checkout'
                                 script {
-                                    def ver = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
                                     def app_branch = "main"
-                                    if(ver == '7'){
-                                        echo "Java 7.x detected. Installing compliant version of test application"
+                                    if(env.JDK_MAJOR_VERSION == '7'){
+                                        echo "Java 7.x detected. Installing compliant version of test application and JDK"
                                         app_branch = "3450c3d99ecaaf46231feb2c404b72d1727517e1"
                                     }
                                     echo "Installing test application from: ${app_branch}"
@@ -128,6 +140,11 @@ pipeline {
                                         credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
                                         shallow: false
                                     )
+
+                                    echo "Building test application using JDK = ${env.JAVA_HOME_BUILD_APP}"
+                                    withEnv(["JAVA_HOME=${JAVA_HOME_BUILD_APP}"]){
+                                        sh(script: "./mvnw package")
+                                    }
                                 }
                             }
                         }
@@ -160,16 +177,9 @@ pipeline {
                                 dir("${APP_BASE_DIR}"){
                                     // Launch app in background
                                     withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY'){
-                                        // ensure that wrapper downloads with a recent JVM to avoid TLS issues with old JVMs
-                                        withEnv(["JAVA_HOME=${env.HUDSON_HOME}/.java/java11"]){
-                                            sh(script: "./mvnw clean")
-                                        }
-                                        // Start with packaging things up
-                                        sh(script: "./mvnw package")
                                         echo "start application with JVM options '${params.jvm_options}'"
                                         script {
-                                            def ver = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
-                                            if(ver == '7'){
+                                            if(env.JDK_MAJOR_VERSION == '7'){
                                                 echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
                                                 binaryPath = './target/petclinic.war'
                                             } else {
