@@ -360,7 +360,7 @@ side will be a part of the same trace containing the producer side as well. Kafk
 |3.x - 5.x
 |The agent captures RabbitMQ Message sends and consumes.  
 When the producer sends a message within a traced transaction, a send span will be created and the transaction resulting from the message consumption will be correlated to the same trace. When a message is consumed, a transaction is created, regardless if the send action is traced.
-|1.19.1
+|1.19.0
 
 |===
 
