@@ -38,8 +38,8 @@ import java.util.Arrays;
 @RunWith(Parameterized.class)
 public class JBossIT extends AbstractServletContainerIntegrationTest {
 
-    public JBossIT(final String jbossVersion) {
-        super(new GenericContainer<>("registry.access.redhat.com/" + jbossVersion)
+    public JBossIT(final String jbossImageName) {
+        super(new GenericContainer<>(jbossImageName)
                 // this overrides the defaults, so we have to manually re-add preferIPv4Stack
                 // the other defaults don't seem to be important
                 .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
@@ -52,10 +52,12 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
     @Parameterized.Parameters(name = "JBoss {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"jboss-eap-6/eap64-openshift"},
-            {"jboss-eap-7/eap70-openshift"},
-            {"jboss-eap-7/eap71-openshift"},
-            {"jboss-eap-7/eap72-openshift"}
+            {"registry.access.redhat.com/jboss-eap-6/eap64-openshift"},
+            {"registry.access.redhat.com/jboss-eap-7/eap70-openshift"},
+            {"registry.access.redhat.com/jboss-eap-7/eap71-openshift"},
+            {"registry.access.redhat.com/jboss-eap-7/eap72-openshift"},
+            {"registry.redhat.io/jboss-eap-7/eap73-openjdk8-openshift-rhel7"},
+            {"registry.redhat.io/jboss-eap-7/eap73-openjdk11-openshift-rhel8"}
         });
     }
 
