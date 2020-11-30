@@ -27,3 +27,4 @@ updates:
       - dependency-name: "org.testcontainers:testcontainers"
       - dependency-name: "net.bytebuddy:*"
       - dependency-name: "org.ow2.asm:asm-tree"
+      - dependency-name: "com.blogspot.mydailyjava:weak-lock-free"
