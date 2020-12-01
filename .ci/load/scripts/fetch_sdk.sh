@@ -46,13 +46,11 @@ CATALOG_URL="https://jvm-catalog.elastic.co/jdks"
 
 read -d'\n' -r SDK_URL SDK_FILENAME <<<$(curl -s $CATALOG_URL|jq -Mr '.['\"$1\"'].url, .['\"$1\"'].filename')
 
-curl -s -o $SDK_FILENAME $SDK_URL
+curl -s -o /tmp/${SDK_FILENAME} ${SDK_URL}
 
-if [ ! -e tmp_java ]; then
-    mkdir tmp_java/
-fi
+JDK_FOLDER=$(mktemp -d)
 
-tar xfz $SDK_FILENAME -C tmp_java/
+tar xfz /tmp/${SDK_FILENAME} -C ${JDK_FOLDER}
 
-UNPACKED_JDK_DIR=$(ls tmp_java)
-echo $PWD/tmp_java/$UNPACKED_JDK_DIR
+SUB_FOLDER=$(ls ${JDK_FOLDER})
+echo $(readlink -f ${JDK_FOLDER}/${SUB_FOLDER})
