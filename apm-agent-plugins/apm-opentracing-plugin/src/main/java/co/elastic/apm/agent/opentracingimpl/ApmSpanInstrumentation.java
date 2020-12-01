@@ -37,7 +37,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -71,14 +70,14 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj,
+        public static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object context,
                                            @Advice.Argument(0) long finishMicros) {
-            if (abstractSpanObj instanceof AbstractSpan<?>) {
-                doFinishInternal((AbstractSpan<?>) abstractSpanObj, finishMicros);
+            if (context instanceof AbstractSpan<?>) {
+                doFinishInternal((AbstractSpan<?>) context, finishMicros);
             }
         }
 
-        public static void doFinishInternal(@Nonnull AbstractSpan<?> abstractSpan, long finishMicros) {
+        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros) {
             abstractSpan.incrementReferences();
             if (abstractSpan instanceof Transaction) {
                 Transaction transaction = (Transaction) abstractSpan;
@@ -110,10 +109,10 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj,
+        public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object context,
                                             @Advice.Argument(0) @Nullable String operationName) {
-            if (abstractSpanObj instanceof AbstractSpan<?>) {
-                ((AbstractSpan<?>) abstractSpanObj).withName(operationName, PRIO_USER_SUPPLIED);
+            if (context instanceof AbstractSpan<?>) {
+                ((AbstractSpan<?>) context).withName(operationName, PRIO_USER_SUPPLIED);
             } else {
                 logger.warn("Calling setOperationName on an already finished span");
             }
@@ -126,12 +125,12 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void log(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object abstractSpanObj,
+        public static void log(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable Object context,
                                @Advice.Argument(0) long epochTimestampMicros,
                                @Advice.Argument(1) Map<String, ?> fields) {
 
-            if (abstractSpanObj instanceof AbstractSpan<?>) {
-                AbstractSpan<?> span = (AbstractSpan<?>) abstractSpanObj;
+            if (context instanceof AbstractSpan<?>) {
+                AbstractSpan<?> span = (AbstractSpan<?>) context;
                 if ("error".equals(fields.get("event"))) {
                     final Object errorObject = fields.get("error.object");
                     if (errorObject instanceof Throwable) {
@@ -170,19 +169,19 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             }
         }
 
-        private static void handleTransactionTag(@Nonnull Transaction transaction, String key, Object value) {
+        private static void handleTransactionTag(Transaction transaction, String key, Object value) {
             if (!handleSpecialTransactionTag(transaction, key, value)) {
                 addTag(transaction, key, value);
             }
         }
 
-        private static void handleSpanTag(@Nonnull Span span, String key, Object value) {
+        private static void handleSpanTag(Span span, String key, Object value) {
             if (!handleSpecialSpanTag(span, key, value)) {
                 addTag(span, key, value);
             }
         }
 
-        private static void addTag(@Nonnull AbstractSpan transaction, String key, Object value) {
+        private static void addTag(AbstractSpan<?> transaction, String key, Object value) {
             if (value instanceof Number) {
                 transaction.addLabel(key, (Number) value);
             } else if (value instanceof Boolean) {
@@ -194,7 +193,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         // unfortunately, we can't use the constants in io.opentracing.tag.Tags,
         // as we can't declare a direct dependency on the OT API
-        private static boolean handleSpecialTransactionTag(@Nonnull Transaction transaction, String key, Object value) {
+        private static boolean handleSpecialTransactionTag(Transaction transaction, String key, Object value) {
             if ("type".equals(key)) {
                 transaction.withType(value.toString());
                 return true;
@@ -235,7 +234,8 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             return false;
         }
 
-        private static boolean handleSpecialSpanTag(@Nonnull Span span, String key, Object value) {
+        private static boolean handleSpecialSpanTag(Span span, String key, Object value) {
+            //noinspection IfCanBeSwitch
             if ("type".equals(key)) {
                 if (span.getSubtype() == null && span.getAction() == null) {
                     span.setType(value.toString(), null, null);

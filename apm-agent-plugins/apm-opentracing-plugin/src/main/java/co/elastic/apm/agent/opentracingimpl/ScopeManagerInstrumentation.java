@@ -61,10 +61,9 @@ public class ScopeManagerInstrumentation extends OpenTracingBridgeInstrumentatio
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object spanObj) {
-            if (spanObj instanceof AbstractSpan<?>) {
-                AbstractSpan<?> span = (AbstractSpan<?>) spanObj;
-                span.activate();
+        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+            if (context instanceof AbstractSpan<?>) {
+                ((AbstractSpan<?>) context).activate();
             }
         }
     }

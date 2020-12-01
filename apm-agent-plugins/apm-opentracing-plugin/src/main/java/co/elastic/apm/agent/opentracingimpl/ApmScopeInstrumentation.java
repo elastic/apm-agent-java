@@ -38,10 +38,9 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object dispatcherAbstractSpanObj) {
-        if (dispatcherAbstractSpanObj instanceof AbstractSpan<?>) {
-            AbstractSpan<?> dispatcher = (AbstractSpan<?>) dispatcherAbstractSpanObj;
-            dispatcher.deactivate();
+    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+        if (context instanceof AbstractSpan<?>) {
+            ((AbstractSpan<?>) context).deactivate();
         }
     }
 

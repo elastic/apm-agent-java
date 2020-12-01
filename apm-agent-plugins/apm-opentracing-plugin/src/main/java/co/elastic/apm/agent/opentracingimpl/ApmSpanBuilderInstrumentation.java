@@ -76,14 +76,17 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object parentContextAbstractSpanObj,
-                                      @Advice.Origin Class<?> spanBuilderClass,
-                                      @Advice.FieldValue(value = "tags") Map<String, Object> tags,
-                                      @Advice.FieldValue(value = "operationName") String operationName,
-                                      @Advice.FieldValue(value = "microseconds") long microseconds,
-                                      @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage) {
-            AbstractSpan<?> parentContext = (parentContextAbstractSpanObj instanceof AbstractSpan<?>) ? (AbstractSpan<?>) parentContextAbstractSpanObj : null;
-            return doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
+        public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object parentContext,
+                                        @Advice.Origin Class<?> spanBuilderClass,
+                                        @Advice.FieldValue(value = "tags") Map<String, Object> tags,
+                                        @Advice.FieldValue(value = "operationName") String operationName,
+                                        @Advice.FieldValue(value = "microseconds") long microseconds,
+                                        @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage) {
+            AbstractSpan<?> parent = null;
+            if (parentContext instanceof AbstractSpan<?>) {
+                parent = (AbstractSpan<?>) parentContext;
+            }
+            return doCreateTransactionOrSpan(parent, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
         }
 
         @Nullable
