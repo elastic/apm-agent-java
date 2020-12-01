@@ -605,6 +605,8 @@ You must use the query bar to filter for a specific environment in versions prio
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
 
+Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
+
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
@@ -696,7 +698,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -995,10 +997,12 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 Such methods will be traced and reported if one of the following applies:
+
  - This method's duration crossed the configured threshold.
  - This method ended with Exception.
  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+
 Set to 0 to disable.
 
 NOTE: Transactions are never discarded, regardless of their duration.
@@ -1512,12 +1516,13 @@ The resulting documents in Elasticsearch look similar to this:
 ==== `log_level`
 
 Sets the logging level for the agent.
-
 This option is case-insensitive.
+
+NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `CRITICAL`, `WARN`, `WARNING`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
@@ -2513,6 +2518,8 @@ The default unit for this option is `ms`.
 # environment=
 
 # By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+# 
+# Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
 #
 # This setting can be changed at runtime
 # Type: Double
@@ -2560,7 +2567,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2739,10 +2746,12 @@ The default unit for this option is `ms`.
 # If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 # duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 # Such methods will be traced and reported if one of the following applies:
+# 
 #  - This method's duration crossed the configured threshold.
 #  - This method ended with Exception.
 #  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+# 
 # Set to 0 to disable.
 # 
 # NOTE: Transactions are never discarded, regardless of their duration.
@@ -3050,10 +3059,11 @@ The default unit for this option is `ms`.
 ############################################
 
 # Sets the logging level for the agent.
-# 
 # This option is case-insensitive.
+# 
+# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
 #
-# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, CRITICAL, WARN, WARNING, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
 # Type: LogLevel
 # Default value: INFO

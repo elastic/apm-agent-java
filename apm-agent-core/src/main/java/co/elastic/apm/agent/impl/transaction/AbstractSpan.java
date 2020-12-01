@@ -194,6 +194,10 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return references.get() > 0;
     }
 
+    public boolean isFinished() {
+        return finished;
+    }
+
     /**
      * How long the transaction took to complete, in µs
      */

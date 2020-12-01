@@ -29,9 +29,9 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.collections.LongList;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -41,6 +41,7 @@ import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -60,6 +61,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
@@ -71,6 +73,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -117,6 +120,7 @@ class DslJsonSerializerTest {
     void testErrorSerialization() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
@@ -125,17 +129,41 @@ class DslJsonSerializerTest {
 
         JsonNode errorTree = readJsonString(serializer.toJsonString(error));
 
+        assertThat(errorTree.get("id")).isNotNull();
+        assertThat(errorTree.get("trace_id")).isNotNull();
+        assertThat(errorTree.get("parent_id")).isNotNull();
+        assertThat(errorTree.get("transaction_id")).isNotNull();
+
         assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
         assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
         JsonNode context = errorTree.get("context");
         assertThat(context.get("tags").get("foo").textValue()).isEqualTo("bar");
 
-        JsonNode exception = checkException(errorTree.get("exception"), Exception.class, "test"); ;
+        JsonNode exception = checkException(errorTree.get("exception"), Exception.class, "test");
         JsonNode stacktrace = exception.get("stacktrace");
         assertThat(stacktrace).hasSize(15);
 
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
         assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
+    }
+
+    @Test
+    void testErrorSerializationWithEmptyTraceId() {
+        ElasticApmTracer tracer = MockTracer.create();
+        Transaction transaction = new Transaction(tracer);
+        transaction.start(TraceContext.asRoot(), null, -1, ConstantSampler.of(true), null);
+        transaction.getTraceContext().getTraceId().resetState();
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
+
+        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+
+        assertThat(errorTree.get("id")).isNotNull();
+        assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
+
+        // Verify the limitation of not sending an Error event with parent_id and/or transaction_id without trace_id
+        assertThat(errorTree.get("trace_id")).isNull();
+        assertThat(errorTree.get("parent_id")).isNull();
+        assertThat(errorTree.get("transaction_id")).isNull();
     }
 
     @Test
@@ -598,7 +626,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testBodyBuffer() throws IOException {
-        final Transaction transaction = createTransactionWithRequiredValues();
+        final Transaction transaction = createRootTransaction();
         final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
         IOUtils.decodeUtf8Bytes("{f".getBytes(StandardCharsets.UTF_8), bodyBuffer);
         IOUtils.decodeUtf8Bytes(new byte[]{0, 0, 'o', 'o', 0}, 2, 2, bodyBuffer);
@@ -615,12 +643,12 @@ class DslJsonSerializerTest {
 
     @Test
     void testBodyBufferCopy() throws IOException {
-        final Transaction transaction = createTransactionWithRequiredValues();
+        final Transaction transaction = createRootTransaction();
         final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
         IOUtils.decodeUtf8Bytes("{foo}".getBytes(StandardCharsets.UTF_8), bodyBuffer);
         bodyBuffer.flip();
 
-        Transaction copy = createTransactionWithRequiredValues();
+        Transaction copy = createRootTransaction();
         copy.getContext().copyFrom(transaction.getContext());
 
         assertThat(objectMapper.readTree(serializer.toJsonString(copy)).get("context"))
@@ -629,7 +657,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testCustomContext() throws Exception {
-        final Transaction transaction = createTransactionWithRequiredValues();
+        final Transaction transaction = createRootTransaction();
         transaction.addCustomContext("string", "foo");
         final String longString = RandomStringUtils.randomAlphanumeric(10001);
         transaction.addCustomContext("long_string", longString);
@@ -685,13 +713,17 @@ class DslJsonSerializerTest {
     }
 
 
-    private Transaction createTransactionWithRequiredValues() {
+    private Transaction createRootTransaction(Sampler sampler) {
         Transaction t = new Transaction(MockTracer.create());
-        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), getClass().getClassLoader());
+        t.start(TraceContext.asRoot(), null, 0, sampler, getClass().getClassLoader());
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
         return t;
+    }
+
+    private Transaction createRootTransaction() {
+        return createRootTransaction(ConstantSampler.of(true));
     }
 
     @Test
@@ -716,6 +748,55 @@ class DslJsonSerializerTest {
         assertThat(jsonStackTrace.get(1).get("library_frame").booleanValue()).isTrue();
         assertThat(jsonStackTrace.get(1).get("lineno").intValue()).isEqualTo(-1);
         assertThat(jsonStackTrace.get(1).get("module")).isNull();
+    }
+
+    @Test
+    void testSampledRootTransaction() {
+        // take sampler rate when sampled
+        testRootTransactionSampleRate(true, 0.5d, 0.5d);
+
+        // take zero when not sampled
+        testRootTransactionSampleRate(false, 1.0d, 0d);
+    }
+
+    private void testRootTransactionSampleRate(boolean sampled, double samplerRate, @Nullable Double expectedRate){
+        Sampler sampler = mock(Sampler.class);
+        when(sampler.isSampled(any(Id.class))).thenReturn(sampled);
+        when(sampler.getSampleRate()).thenReturn(samplerRate);
+
+        Transaction transaction = createRootTransaction(sampler);
+
+        JsonNode jsonTransaction = readJsonString(serializer.toJsonString(transaction));
+
+        JsonNode jsonSampleRate = jsonTransaction.get("sample_rate");
+        JsonNode jsonSampled = jsonTransaction.get("sampled");
+        assertThat(jsonSampled.asBoolean()).isEqualTo(sampled);
+        if(null == expectedRate){
+            assertThat(jsonSampleRate).isNull();
+        } else {
+            assertThat(jsonSampleRate.asDouble()).isEqualTo(expectedRate);
+        }
+
+    }
+
+    @Test
+    void testSampledSpan_rateFromParent() {
+
+        Sampler sampler = mock(Sampler.class);
+        when(sampler.isSampled(any(Id.class))).thenReturn(true);
+        when(sampler.getSampleRate()).thenReturn(0.42d);
+
+        Transaction transaction = createRootTransaction(sampler);
+        TraceContext transactionContext = transaction.getTraceContext();
+        assertThat(transactionContext.isSampled()).isTrue();
+        assertThat(transactionContext.getSampleRate()).isEqualTo(0.42d);
+
+        Span span = new Span(MockTracer.create());
+        span.getTraceContext().asChildOf(transactionContext);
+
+        JsonNode jsonSpan = readJsonString(serializer.toJsonString(span));
+
+        assertThat(jsonSpan.get("sample_rate").asDouble()).isEqualTo(0.42d);
     }
 
     private JsonNode readJsonString(String jsonString) {

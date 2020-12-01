@@ -48,6 +48,7 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.JvmRuntimeInfo;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,7 +212,7 @@ public class ElasticApmTracer implements Tracer {
 
     private void afterTransactionStart(@Nullable ClassLoader initiatingClassLoader, Transaction transaction) {
         if (logger.isDebugEnabled()) {
-            logger.debug("startTransaction {} {", transaction);
+            logger.debug("startTransaction {}", transaction);
             if (logger.isTraceEnabled()) {
                 logger.trace("starting transaction at",
                     new RuntimeException("this exception is just used to record where the transaction has been started from"));
@@ -496,6 +497,13 @@ public class ElasticApmTracer implements Tracer {
         }
     }
 
+    /**
+     * Starts the tracer. Depending on several environment and setup parameters, the tracer may be started synchronously
+     * on this thread, or its start may be delayed and invoked on a dedicated thread.
+     *
+     * @param premain true if this tracer is attached through the {@code premain()} method (i.e. using the `javaagent`
+     *                jvm parameter); false otherwise
+     */
     public synchronized void start(boolean premain) {
         long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
         if (premain && shouldDelayOnPremain()) {
@@ -509,9 +517,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private boolean shouldDelayOnPremain() {
-        String javaVersion = System.getProperty("java.version");
-        return javaVersion != null &&
-            (javaVersion.startsWith("1.7") || javaVersion.startsWith("1.8")) &&
+        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 

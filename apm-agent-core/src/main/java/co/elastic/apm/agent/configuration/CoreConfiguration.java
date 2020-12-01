@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
+import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
@@ -60,9 +61,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String CORE_CATEGORY = "Core";
     private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
+    public static final String ENABLED_KEY = "enabled";
 
     private final ConfigurationOption<Boolean> enabled = ConfigurationOption.booleanOption()
-        .key("enabled")
+        .key(ENABLED_KEY)
         .configurationCategory(CORE_CATEGORY)
         .description("Setting to false will completely disable the agent, including instrumentation and remote config polling.\n" +
             "If you want to dynamically change the status of the agent, use <<config-recording,`recording`>> instead.")
@@ -162,14 +164,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
-    private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
+    private final ConfigurationOption<Double> sampleRate = RoundedDoubleConverter.withPrecision(4)
         .key(SAMPLE_RATE)
         .aliasKeys("sample_rate")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
-            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.")
+            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.\n\n" +
+            "Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
         .buildWithDefault(1.0);
@@ -329,6 +332,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<String> bytecodeDumpPath = ConfigurationOption.stringOption()
+        .key("bytecode_dump_path")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When set, the agent will create a directory in the provided path if such does not already " +
+            "exist and use it to dump bytecode of instrumented classes.")
+        .buildWithDefault("");
+
     private final ConfigurationOption<Boolean> typeMatchingWithNamePreFilter = ConfigurationOption.booleanOption()
         .key("enable_type_matching_name_pre_filtering")
         .configurationCategory(CORE_CATEGORY)
@@ -466,10 +477,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded " +
             "by default.\n" +
             "Such methods will be traced and reported if one of the following applies:\n" +
+            "\n" +
             " - This method's duration crossed the configured threshold.\n" +
             " - This method ended with Exception.\n" +
             " - A method executed as part of the execution of this method crossed the threshold or ended with Exception.\n" +
             " - A \"forcibly-traced method\" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.\n" +
+            "\n" +
             "Set to 0 to disable.\n" +
             "\n" +
             "NOTE: Transactions are never discarded, regardless of their duration.\n" +
@@ -645,6 +658,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
+    }
+
+    @Nullable
+    public String getBytecodeDumpPath() {
+        return bytecodeDumpPath.get();
     }
 
     public boolean isTypeMatchingWithNamePreFilter() {
