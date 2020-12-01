@@ -80,8 +80,8 @@ pipeline {
                                 setEnvVar('JAVACMD', "${env.JAVA_HOME}/bin/java")
                                 setEnvVar('PATH', "${env.JAVA_HOME}/bin:$PATH")
 
-                                def jdk_major = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
-                                def app_build_jdk = "${env.JAVA_HOME}"
+                                jdk_major = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+                                app_build_jdk = "${env.JAVA_HOME}"
                                 if(jdk_major == '7'){
                                     // build application with a more recent JDK that don't have TLS issues
                                     app_build_jdk = sh(script: ".ci/load/scripts/fetch_sdk.sh zulu-8.0.272-linux", returnStdout: true).trim()
