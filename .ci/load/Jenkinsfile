@@ -70,8 +70,10 @@ pipeline {
                                         sh(script: "git checkout v${params.apm_version}")
                                         echo 'Building agent'
                                         withEnv(["JAVA_HOME=${env.HUDSON_HOME}/.java/java11"]){
-                                            echo("Building the Agent with Java 11\nJAVA_HOME set to ${env.JAVA_HOME}")
-                                            sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
+                                            withEnv("PATH=${env.JAVA_HOME}/bin:$env.PATH"){
+                                                echo("Building the Agent with Java 11\nJAVA_HOME set to ${env.JAVA_HOME}")
+                                                sh(script: './mvnw  clean install -DskipTests=true -Dmaven.javadoc.skip=true')
+                                            }
                                         }
                                         echo("Post-build env:\nJAVA_HOME set to ${env.JAVA_HOME}")
 
