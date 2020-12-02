@@ -1,4 +1,8 @@
 // For documentation on this pipeline, please see the README.md in this directory
+
+def java_home_run = ''
+def java_home_build_agent = ''
+
 pipeline {
     agent { label 'linux && immutable' }
     environment {
@@ -54,7 +58,9 @@ pipeline {
                                 echo "Provisioning Java version: ${params.jvm_version}"
                                 script {
                                     echo "--- 1"
-                                    env.JAVA_HOME_RUN=sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
+                                    java_home_run=sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
+                                    env.JAVA_HOME_RUN=java_home_run
+                                    echo "env.JAVA_HOME_RUN = ${env.JAVA_HOME_RUN}"
 
                                     echo "--- 2"
                                     echo "${env.JDK_MAJOR_VERSION}"
