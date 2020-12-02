@@ -40,9 +40,33 @@ pipeline {
     }
 
     stages {
+        stage('Pre-flight'){
+            steps {
+                echo 'Getting authentication information from Vault'
+                withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                    setEnvVar('SESSION_TOKEN', sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim())
+                }
+            }
+        }
         stage('Load test') {
             parallel {
+                stage('Load generation') {
+                    agent { label 'metal' }
+                    steps {
+                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                            echo 'Preparing load generation..'
+                            whenTrue(Boolean.valueOf(params.locustfile)) {
+                                echo 'Using user-supplied plan for load-generation with Locust'
+                                sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
+                            }
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                sh(script: ".ci/load/scripts/load_agent.sh")
+                            }
+                        }
+                    }
+                }
                 stage('Test application') {
+                    agent { label 'benchmarks' }
                     stages{
                         stage('Provision Java') {
                             steps {
@@ -66,14 +90,11 @@ pipeline {
                                         shallow: false
                                     )
                                     dir("apm-agent-java"){
-                                        echo 'Switching to requested version'
+                                        echo 'Switch to requested agent version = {params.apm_version}'
                                         sh(script: "git checkout v${params.apm_version}")
-                                        echo 'Building agent'
 
-                                        sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true")
-
-                                        echo("Post-build env:\nJAVA_HOME set to ${env.JAVA_HOME}")
-
+                                        echo 'Building agent with Java 11'
+                                        sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw --batch-mode clean install -DskipTests=true -Dmaven.javadoc.skip=true")
                                     }
                                 }
                                 whenTrue(Boolean.valueOf(params.agent_config)) {
@@ -86,7 +107,6 @@ pipeline {
                         }
                         stage('Provision test application') {
                             steps {
-                                echo 'Determining version to checkout'
                                 script {
                                     def app_branch = "main"
                                     def build_jdk_path = "${env.JAVA_HOME}"
@@ -97,7 +117,7 @@ pipeline {
                                         app_branch = "3450c3d99ecaaf46231feb2c404b72d1727517e1"
                                         build_jdk_path = sh(script: ".ci/load/scripts/fetch_sdk.sh zulu-8.0.272-linux", returnStdout: true).trim()
                                     }
-                                    echo "Installing test application from: ${app_branch}"
+                                    echo "Checkout test application from: ${app_branch}"
                                     gitCheckout(
                                         basedir: "${APP_BASE_DIR}",
                                         branch: "${app_branch}",
@@ -106,12 +126,66 @@ pipeline {
                                         shallow: false
                                     )
                                     echo "Building test application using JDK = ${build_jdk_path}"
-                                    withEnv(["JAVA_HOME=${build_jdk_path}"]){
-                                        sh(script: "./mvnw package")
-                                    }
+                                    sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true")
                                 }
                             }
                         }
+                        stage('Provision local metrics collection') {
+                                when {
+                                    expression {
+                                        return params.local_metrics
+                                    }
+                                }
+                                steps {
+                                    echo 'Enable local metric collection'
+                                    gitCheckout(
+                                        basedir: "${METRICS_BASE_DIR}",
+                                        branch: 'master',
+                                        repo: "https://github.com/pstadler/metrics.sh",
+                                        credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                                        shallow: false
+                                    )
+                                    sh(script: "touch metrics.out")
+                                    dir("${METRICS_BASE_DIR}"){
+                                        withEnv(["FILE_LOCATION=./metrics.out"]) {
+                                            sh(script: "./metrics.sh -r file &")
+                                        }
+                                    }
+                                }
+                            }
+                            stage('Application load') {
+                                steps {
+                                    echo 'Starting test application in background..'
+                                    dir("${APP_BASE_DIR}"){
+                                        // Launch app in background
+                                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY'){
+                                            echo "start application with JVM options '${params.jvm_options}'"
+                                            script {
+                                                if(env.JDK_MAJOR_VERSION == '7'){
+                                                    echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
+                                                    binaryPath = './target/petclinic.war'
+                                                } else {
+                                                    binaryPath = './target/spring-petclinic-*.jar'
+                                                }
+                                                sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ${binaryPath} &")
+                                            }
+                                        }
+                                    }
+                                    echo 'Starting bandstand client..'
+                                    // Foreground the orchestrator script for execution control
+                                    withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                                        sh(script: ".ci/load/scripts/app.sh")
+                                    }
+                                }
+                            }
+                            stage('Collecting results') {
+                                steps {
+                                    echo "To view results, JMC is required. Get it here: https://jdk.java.net/jmc/"
+                                    archiveArtifacts(allowEmptyArchive: true,
+                                        artifacts: "${APP_BASE_DIR}/**/*.jfr,${METRICS_BASE_DIR}/**/*.out",
+                                        onlyIfSuccessful: false)
+                                }
+                            }
                     }
                 }
             }
