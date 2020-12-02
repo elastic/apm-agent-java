@@ -143,7 +143,7 @@ pipeline {
                                     )
 
                                     echo "Building test application using JDK = ${env.JAVA_HOME_BUILD_APP}"
-                                    withEnv(["JAVA_HOME=${JAVA_HOME_BUILD_APP}"]){
+                                    withEnv(["JAVA_HOME=${env.JAVA_HOME_BUILD_APP}"]){
                                         sh(script: "./mvnw package")
                                     }
                                 }
