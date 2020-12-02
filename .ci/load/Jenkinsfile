@@ -47,7 +47,6 @@ pipeline {
         stage('Load test') {
             parallel {
                 stage('Test application') {
-                    agent { label 'benchmarks' }
                     stages{
                         stage('Provision Java') {
                             steps {
