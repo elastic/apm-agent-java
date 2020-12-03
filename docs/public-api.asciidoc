@@ -850,3 +850,81 @@ public Response onOutgoingRequest(Request request) throws Exception {
     }
 }
 ----
+
+[float]
+[[api-span-inject-trace-headers]]
+==== `Span withDestinationServiceResource(String resource)` added[1.9.1]
+
+* `resource`: an appended destination service resource value
+
+
+Appends destination service resource value
+
+Example:
+
+[source,java]
+----
+Span span = parent.startSpan("db", "mongodb", "find");
+try {
+    span.setName("test")
+        .withDestinationServiceResource("mongodb");
+    // do your thing...
+} catch (Exception e) {
+    span.captureException(e);
+    throw e;
+} finally {
+    span.end();
+}
+----
+
+[float]
+[[api-span-inject-trace-headers]]
+==== `Span withDestinationServiceName(String name)` added[1.9.1]
+
+* `name`: an appended destination service name value
+
+
+Appends destination service name value
+
+Example:
+
+[source,java]
+----
+Span span = parent.startSpan("db", "mongodb", "find");
+try {
+    span.setName("test")
+        .withDestinationServiceName("mongodb");
+    // do your thing...
+} catch (Exception e) {
+    span.captureException(e);
+    throw e;
+} finally {
+    span.end();
+}
+----
+
+[float]
+[[api-span-inject-trace-headers]]
+==== `Span setDestinationServiceType(String type)` added[1.9.1]
+
+* `type`: a destination service type value
+
+
+Sets destination service type value
+
+Example:
+
+[source,java]
+----
+Span span = parent.startSpan("db", "mongodb", "find");
+try {
+    span.setName("test")
+        .setDestinationServiceType("db");
+    // do your thing...
+} catch (Exception e) {
+    span.captureException(e);
+    throw e;
+} finally {
+    span.end();
+}
+----
