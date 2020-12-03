@@ -141,9 +141,10 @@ pipeline {
         }
         stage('execute test') {
             parallel {
-//                stage('Load generation') {
-//                    agent { label 'metal' }
-//                    steps {
+                stage('Load generation') {
+                    agent { label 'metal' }
+                    steps {
+                        sh(script: "sleep 30") // emulate test duration
 //                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
 //                            echo 'Preparing load generation..'
 //                            whenTrue(Boolean.valueOf(params.locustfile)) {
@@ -154,8 +155,8 @@ pipeline {
 //                                sh(script: ".ci/load/scripts/load_agent.sh")
 //                            }
 //                        }
-//                    }
-//                }
+                    }
+                }
                 stage('Run app') {
                     agent { label 'benchmarks' }
                     steps {
@@ -171,7 +172,7 @@ pipeline {
                                     binaryPath = './target/spring-petclinic-*.jar'
                                 }
                                 dir("${APP_BASE_DIR}"){
-                                    sh(script: "${JAVA_HOME}/bin/java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ${binaryPath} &")
+                                    sh(script: "${JAVA_HOME}/bin/java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ${binaryPath} > app.log & echo \\\$\\? > ${APP_BASE_DIR}/app.pid")
                                 }
 //                            }
                         }
@@ -185,14 +186,16 @@ pipeline {
 
             }
         }
-//        stage('Collecting results') {
-//            agent { label 'benchmarks' }
-//            steps {
-//                echo "To view results, JMC is required. Get it here: https://jdk.java.net/jmc/"
-//                archiveArtifacts(allowEmptyArchive: true,
-//                    artifacts: "${APP_BASE_DIR}/**/*.jfr,${METRICS_BASE_DIR}/**/*.out",
-//                    onlyIfSuccessful: false)
-//            }
-//        }
+        stage('Collect results') {
+            agent { label 'benchmarks' }
+            steps {
+                echo "stop test application"
+                sh(script: "kill \$(cat ${APP_BASE_DIR}/app.pid && rm ${APP_BASE_DIR}/app.pid)")
+                echo "To view results, JMC is required. Get it here: https://jdk.java.net/jmc/"
+                archiveArtifacts(allowEmptyArchive: true,
+                    artifacts: "${APP_BASE_DIR}/**/app.log,${APP_BASE_DIR}/**/*.jfr,${METRICS_BASE_DIR}/**/*.out",
+                    onlyIfSuccessful: false)
+            }
+        }
     }
 }
