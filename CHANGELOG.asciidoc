@@ -31,6 +31,7 @@ endif::[]
 
 [float]
 ===== Features
+* Added support for adding span destination fields via public API {pull}1551[#1551]
 
 [float]
 ===== Bug fixes

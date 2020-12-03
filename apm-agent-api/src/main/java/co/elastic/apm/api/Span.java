@@ -417,12 +417,33 @@ public interface Span {
      */
     void injectTraceHeaders(HeaderInjector headerInjector);
 
+    /**
+     * Appends destination service resource value
+     *
+     * @param resource - an appended destination service resource value
+     * @return the current active span, never {@code null}
+     * @since 1.19.1
+     */
     @Nonnull
     Span withDestinationServiceResource(@Nullable String resource);
 
+    /**
+     * Appends destination service name value
+     *
+     * @param name - an appended destination service name value
+     * @return the current active span, never {@code null}
+     * @since 1.19.1
+     */
     @Nonnull
     Span withDestinationServiceName(@Nullable String name);
 
+    /**
+     * Sets destination service type value
+     *
+     * @param type - a destination service type value
+     * @return the current active span, never {@code null}
+     * @since 1.19.1
+     */
     @Nonnull
     Span setDestinationServiceType(@Nullable String type);
 }
