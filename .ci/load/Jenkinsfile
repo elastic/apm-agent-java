@@ -172,7 +172,15 @@ pipeline {
                                     binaryPath = './target/spring-petclinic-*.jar'
                                 }
                                 dir("${APP_BASE_DIR}"){
-                                    sh(script: "${JAVA_HOME}/bin/java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr -XX:ErrorFile=${APP_BASE_DIR}/hs_err_pid%p.log ${binaryPath} > app.log")
+                                    def cmd = "${JAVA_HOME}/bin/java "
+                                    cmd = "${cmd} -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar"
+                                    cmd = "${cmd} -Delastic.apm.server_urls=${env.APM_SERVER_URL}"
+                                    cmd = "${cmd} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY}"
+                                    cmd = "${cmd} ${params.jvm_options}"
+                                    cmd = "${cmd} -XX:ErrorFile=${APP_BASE_DIR}/hs_err_pid%p.log"
+                                    cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr"
+                                    cmd = "${cmd} -jar ${binaryPath}"
+                                    sh(script: "${cmd} > app.log")
                                 }
 //                            }
                         }
