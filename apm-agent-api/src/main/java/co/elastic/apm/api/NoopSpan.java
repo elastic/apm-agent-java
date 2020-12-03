@@ -156,4 +156,22 @@ enum NoopSpan implements Span {
     public void injectTraceHeaders(HeaderInjector headerInjector) {
         // noop
     }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceResource(@Nullable String resource) {
+        return INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceName(@Nullable String name) {
+        return INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceType(@Nullable String type) {
+        return INSTANCE;
+    }
 }

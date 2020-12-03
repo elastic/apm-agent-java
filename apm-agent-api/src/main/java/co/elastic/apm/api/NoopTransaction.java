@@ -193,4 +193,22 @@ enum NoopTransaction implements Transaction {
     public void injectTraceHeaders(HeaderInjector headerInjector) {
         // noop
     }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceResource(@Nullable String resource) {
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceName(@Nullable String name) {
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceType(@Nullable String type) {
+        return NoopSpan.INSTANCE;
+    }
 }

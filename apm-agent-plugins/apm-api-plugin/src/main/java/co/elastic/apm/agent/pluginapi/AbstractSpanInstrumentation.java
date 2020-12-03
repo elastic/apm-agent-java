@@ -333,4 +333,43 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             }
         }
     }
+
+    public static class WithDestinationServiceResourceInstrumentation extends AbstractSpanInstrumentation {
+
+        public WithDestinationServiceResourceInstrumentation() { super(named("appendDestinationServiceResource")); }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void withDestinationServiceResource(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                              @Advice.Argument(0) @Nullable String resource) {
+            if (resource != null && context instanceof Span) {
+                ((Span) context).getContext().getDestination().getService().withResource(resource);
+            }
+        }
+    }
+
+    public static class WithDestinationServiceNameInstrumentation extends AbstractSpanInstrumentation {
+
+        public WithDestinationServiceNameInstrumentation() { super(named("appendDestinationServiceName")); }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void withDestinationServiceResource(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                               @Advice.Argument(0) @Nullable String name) {
+            if (name != null && context instanceof Span) {
+                ((Span) context).getContext().getDestination().getService().withName(name);
+            }
+        }
+    }
+
+    public static class WithDestinationServiceTypeInstrumentation extends AbstractSpanInstrumentation {
+
+        public WithDestinationServiceTypeInstrumentation() { super(named("appendDestinationServiceType")); }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static void withDestinationServiceType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                               @Advice.Argument(0) @Nullable String type) {
+            if (type != null && context instanceof Span) {
+                ((Span) context).getContext().getDestination().getService().withType(type);
+            }
+        }
+    }
 }

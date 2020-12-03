@@ -417,4 +417,12 @@ public interface Span {
      */
     void injectTraceHeaders(HeaderInjector headerInjector);
 
+    @Nonnull
+    Span withDestinationServiceResource(@Nullable String resource);
+
+    @Nonnull
+    Span withDestinationServiceName(@Nullable String name);
+
+    @Nonnull
+    Span withDestinationServiceType(@Nullable String type);
 }

@@ -151,4 +151,40 @@ abstract class AbstractSpanImpl implements Span {
     private void doInjectTraceHeaders(MethodHandle addHeader, HeaderInjector headerInjector) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.InjectTraceHeadersInstrumentation
     }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceResource(String resource) {
+        Object span = appendDestinationServiceResource(resource);
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceName(String name) {
+        Object span = appendDestinationServiceName(name);
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span withDestinationServiceType(String type) {
+        Object span = appendDestinationServiceType(type);
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+    }
+
+    private Object appendDestinationServiceResource(@Nullable String resource) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+        return null;
+    }
+
+    private Object appendDestinationServiceName(@Nullable String name) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+        return null;
+    }
+
+    private Object appendDestinationServiceType(@Nullable String type) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+        return null;
+    }
 }
