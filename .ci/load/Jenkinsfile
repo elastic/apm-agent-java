@@ -160,17 +160,18 @@ pipeline {
                     agent { label 'benchmarks' }
                     steps {
                         echo 'Starting test application in background..'
-                        dir("${APP_BASE_DIR}"){
-                            // Launch app in background
-                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY'){
-                                echo "start application with JVM options '${params.jvm_options}'"
-                                script {
-                                    if(env.JDK_MAJOR_VERSION == '7'){
-                                        echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
-                                        binaryPath = './target/petclinic.war'
-                                    } else {
-                                        binaryPath = './target/spring-petclinic-*.jar'
-                                    }
+                        // Launch app in background
+                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY'){
+                            echo "start application with JVM options '${params.jvm_options}'"
+                            script {
+                                def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+                                if(major_jdk_version == '7'){
+                                    echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
+                                    binaryPath = './target/petclinic.war'
+                                } else {
+                                    binaryPath = './target/spring-petclinic-*.jar'
+                                }
+                                dir("${APP_BASE_DIR}"){
                                     sh(script: "java -jar -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar -Delastic.apm.server_urls=${env.APM_SERVER_URL} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY} ${params.jvm_options} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr ${binaryPath} &")
                                 }
                             }
