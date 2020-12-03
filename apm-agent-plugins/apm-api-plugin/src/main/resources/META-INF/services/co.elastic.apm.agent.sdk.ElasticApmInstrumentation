@@ -23,6 +23,9 @@ co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$AddBooleanLabelInstru
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$ActivateInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$IsSampledInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$InjectTraceHeadersInstrumentation
+co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$WithDestinationServiceNameInstrumentation
+co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$WithDestinationServiceResourceInstrumentation
+co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$WithDestinationServiceTypeInstrumentation
 co.elastic.apm.agent.pluginapi.CaptureExceptionInstrumentation
 co.elastic.apm.agent.pluginapi.ApiScopeInstrumentation
 co.elastic.apm.agent.pluginapi.CaptureTransactionInstrumentation

@@ -424,5 +424,5 @@ public interface Span {
     Span withDestinationServiceName(@Nullable String name);
 
     @Nonnull
-    Span withDestinationServiceType(@Nullable String type);
+    Span setDestinationServiceType(@Nullable String type);
 }

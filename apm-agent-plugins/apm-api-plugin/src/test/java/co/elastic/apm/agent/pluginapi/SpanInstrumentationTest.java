@@ -97,7 +97,11 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
             .addLabel("foo", "bar")
             .setLabel("stringKey", randomString)
             .setLabel("numberKey", randomInt)
-            .setLabel("booleanKey", randomBoolean);
+            .setLabel("booleanKey", randomBoolean)
+            .withDestinationServiceName("foo-service")
+            .withDestinationServiceResource("foo-host")
+            .setDestinationServiceType("foo-type");
+
         endSpan(span);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
@@ -105,6 +109,41 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstSpan().getContext().getLabel("stringKey")).isEqualTo(randomString);
         assertThat(reporter.getFirstSpan().getContext().getLabel("numberKey")).isEqualTo(randomInt);
         assertThat(reporter.getFirstSpan().getContext().getLabel("booleanKey")).isEqualTo(randomBoolean);
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getName().toString()).isEqualTo("foo-service");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("foo-host");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getType()).isEqualTo("foo-type");
+    }
+
+    @Test
+    void testDestinationServiceFieldsWithNullValues() {
+        Span span = transaction.startSpan("foo", null, null)
+            .setName("foo")
+            .withDestinationServiceName(null)
+            .withDestinationServiceResource(null)
+            .setDestinationServiceType(null);
+
+        endSpan(span);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
+        assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getName().toString()).isEqualTo("");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getType()).isEqualTo(null);
+    }
+
+    @Test
+    void testDestinationServiceFieldsWithAppendCheck() {
+        Span span = transaction.startSpan("foo", null, null)
+            .setName("foo")
+            .withDestinationServiceName("hello").withDestinationServiceName("-world!")
+            .withDestinationServiceResource("foo").withDestinationServiceResource("-bar")
+            .setDestinationServiceType("foo").setDestinationServiceType("-type");
+
+        endSpan(span);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
+        assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getName().toString()).isEqualTo("hello-world!");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("foo-bar");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getType()).isEqualTo("-type");
     }
 
     private void endSpan(Span span) {

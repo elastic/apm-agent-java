@@ -155,36 +155,36 @@ abstract class AbstractSpanImpl implements Span {
     @Nonnull
     @Override
     public Span withDestinationServiceResource(String resource) {
-        Object span = appendDestinationServiceResource(resource);
+        Object span = doAppendDestinationServiceResource(resource);
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
     @Nonnull
     @Override
     public Span withDestinationServiceName(String name) {
-        Object span = appendDestinationServiceName(name);
+        Object span = doAppendDestinationServiceName(name);
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
     @Nonnull
     @Override
-    public Span withDestinationServiceType(String type) {
-        Object span = appendDestinationServiceType(type);
+    public Span setDestinationServiceType(String type) {
+        Object span = doSetDestinationServiceType(type);
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
-    private Object appendDestinationServiceResource(@Nullable String resource) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+    private Object doAppendDestinationServiceResource(@Nullable String resource) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceResourceInstrumentation
         return null;
     }
 
-    private Object appendDestinationServiceName(@Nullable String name) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+    private Object doAppendDestinationServiceName(@Nullable String name) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceNameInstrumentation
         return null;
     }
 
-    private Object appendDestinationServiceType(@Nullable String type) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+    private Object doSetDestinationServiceType(@Nullable String type) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceTypeInstrumentation
         return null;
     }
 }
