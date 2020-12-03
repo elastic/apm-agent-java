@@ -90,7 +90,7 @@ pipeline {
                                         shallow: false
                                     )
                                     dir("apm-agent-java"){
-                                        echo 'Switch to requested agent version = {params.apm_version}'
+                                        echo "Switch to requested agent version = ${params.apm_version}"
                                         sh(script: "git checkout v${params.apm_version}")
 
                                         echo 'Building agent with Java 11'
