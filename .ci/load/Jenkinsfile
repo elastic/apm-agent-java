@@ -59,7 +59,7 @@ pipeline {
                 }
             }
         }
-        stage('Provision agent') {
+        stage('Build agent') {
             agent { label 'benchmarks' }
             steps {
                 echo 'Checking out master branch'
@@ -87,7 +87,7 @@ pipeline {
                 }
             }
         }
-        stage('Provision test application') {
+        stage('Build test application') {
             agent { label 'benchmarks' }
             steps {
                 script {
@@ -110,7 +110,7 @@ pipeline {
                     )
                     dir("${APP_BASE_DIR}") {
                         echo "Building test application using JDK = ${build_jdk_path}"
-                        sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true")
+                        sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true -Dcheckstyle.skip")
                     }
                 }
             }
