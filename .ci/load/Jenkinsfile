@@ -144,7 +144,7 @@ pipeline {
                 stage('Load generation') {
                     agent { label 'metal' }
                     steps {
-                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
+                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
                             echo 'Preparing load generation..'
                             whenTrue(Boolean.valueOf(params.locustfile)) {
                                 echo 'Using user-supplied plan for load-generation with Locust'
@@ -160,17 +160,17 @@ pipeline {
                     agent { label 'benchmarks' }
                     steps {
                         echo 'Starting test application in background..'
-                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY'){
+                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
                             echo "start application with JVM options '${params.jvm_options}'"
                             script {
                                 def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
-                                if(major_jdk_version == '7'){
+                                if (major_jdk_version == '7') {
                                     echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
                                     binaryPath = './target/petclinic.war'
                                 } else {
                                     binaryPath = './target/spring-petclinic-*.jar'
                                 }
-                                dir("${APP_BASE_DIR}"){
+                                dir("${APP_BASE_DIR}") {
                                     def cmd = "${JAVA_HOME}/bin/java "
                                     cmd = "${cmd} -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/apm-agent-java/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar"
                                     cmd = "${cmd} -Delastic.apm.server_urls=${env.APM_SERVER_URL}"
@@ -183,15 +183,16 @@ pipeline {
                                     sh(script: "${cmd} > app.log")
                                 }
 //                            }
-                        }
-                        echo 'Starting bandstand client..'
-                        // Foreground the orchestrator script for execution control
-                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN'){
-                            sh(script: ".ci/load/scripts/app.sh")
+                            }
+                            echo 'Starting bandstand client..'
+                            // Foreground the orchestrator script for execution control
+                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                                sh(script: ".ci/load/scripts/app.sh")
+                            }
                         }
                     }
-                }
 
+                }
             }
         }
         stage('Collect results') {
