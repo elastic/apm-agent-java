@@ -155,36 +155,33 @@ abstract class AbstractSpanImpl implements Span {
     @Nonnull
     @Override
     public Span withDestinationServiceResource(String resource) {
-        Object span = doAppendDestinationServiceResource(resource);
-        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+        doAppendDestinationServiceResource(resource);
+        return this;
     }
 
     @Nonnull
     @Override
     public Span withDestinationServiceName(String name) {
-        Object span = doAppendDestinationServiceName(name);
-        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+        doAppendDestinationServiceName(name);
+        return this;
     }
 
     @Nonnull
     @Override
     public Span setDestinationServiceType(String type) {
-        Object span = doSetDestinationServiceType(type);
-        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+        doSetDestinationServiceType(type);
+        return this;
     }
 
-    private Object doAppendDestinationServiceResource(@Nullable String resource) {
+    private void doAppendDestinationServiceResource(@Nullable String resource) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceResourceInstrumentation
-        return null;
     }
 
-    private Object doAppendDestinationServiceName(@Nullable String name) {
+    private void doAppendDestinationServiceName(@Nullable String name) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceNameInstrumentation
-        return null;
     }
 
-    private Object doSetDestinationServiceType(@Nullable String type) {
+    private void doSetDestinationServiceType(@Nullable String type) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceTypeInstrumentation
-        return null;
     }
 }
