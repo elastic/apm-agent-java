@@ -65,7 +65,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+        public static void setUser(@Advice.FieldValue(value = "baseSpan", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                    @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
             if (transaction instanceof Transaction) {
                 ((Transaction) transaction).setUser(id, email, username);
@@ -80,7 +80,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
 
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+        public static String ensureParentId(@Advice.FieldValue(value = "baseSpan", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                             @Advice.Return String returnValue) {
             if (transaction instanceof Transaction) {
                 final TraceContext traceContext = ((Transaction) transaction).getTraceContext();
@@ -100,7 +100,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void setResult(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
+        public static void setResult(@Advice.FieldValue(value = "baseSpan", typing = Assigner.Typing.DYNAMIC) Object transaction,
                                      @Advice.Argument(0) String result) {
             if (transaction instanceof Transaction) {
                 ((Transaction) transaction).withResult(result);
@@ -114,7 +114,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
+        public static void addCustomContext(@Advice.FieldValue(value = "baseSpan", typing = Assigner.Typing.DYNAMIC) Object transactionObj,
                                             @Advice.Argument(0) String key,
                                             @Advice.Argument(1) @Nullable Object value) {
             if (value != null && transactionObj instanceof Transaction) {

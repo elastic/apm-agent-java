@@ -36,7 +36,7 @@ public class SpanInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void withDestinationServiceResource(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+        public static void withDestinationServiceResource(@Advice.FieldValue(value = "baseSpan", typing = Assigner.Typing.DYNAMIC) Object context,
                                                           @Advice.Argument(0) @Nullable String resource) {
             if (resource != null && context instanceof Span) {
                 ((Span) context).getContext().getDestination().getService().withResource(resource);
@@ -51,7 +51,7 @@ public class SpanInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void withDestinationServiceName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+        public static void withDestinationServiceName(@Advice.FieldValue(value = "baseSpan", typing = Assigner.Typing.DYNAMIC) Object context,
                                                       @Advice.Argument(0) @Nullable String name) {
             if (name != null && context instanceof Span) {
                 ((Span) context).getContext().getDestination().getService().withName(name);
@@ -66,7 +66,7 @@ public class SpanInstrumentation extends ApiInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void doSetDestinationServiceType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+        public static void doSetDestinationServiceType(@Advice.FieldValue(value = "baseSpan", typing = Assigner.Typing.DYNAMIC) Object context,
                                                        @Advice.Argument(0) @Nullable String type) {
             if (type != null && context instanceof Span) {
                 ((Span) context).getContext().getDestination().getService().withType(type);
