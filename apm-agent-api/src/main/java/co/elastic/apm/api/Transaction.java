@@ -33,7 +33,7 @@ import javax.annotation.Nonnull;
  * To get a reference to the current transaction, call {@link ElasticApm#currentTransaction()}.
  * </p>
  */
-public interface Transaction extends Span {
+public interface Transaction extends BaseSpan<Transaction> {
 
     String TYPE_REQUEST = "request";
 
@@ -79,7 +79,6 @@ public interface Transaction extends Span {
      */
     @Nonnull
     @Deprecated
-    @Override
     Transaction addLabel(String key, String value);
 
     /**
@@ -198,6 +197,7 @@ public interface Transaction extends Span {
      * Should be called e.g. at the end of a request or when ending a background task.
      * </p>
      */
+    @Override
     void end();
 
     /**

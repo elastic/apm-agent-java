@@ -194,21 +194,4 @@ enum NoopTransaction implements Transaction {
         // noop
     }
 
-    @Nonnull
-    @Override
-    public Span withDestinationServiceResource(@Nullable String resource) {
-        return NoopSpan.INSTANCE;
-    }
-
-    @Nonnull
-    @Override
-    public Span withDestinationServiceName(@Nullable String name) {
-        return NoopSpan.INSTANCE;
-    }
-
-    @Nonnull
-    @Override
-    public Span setDestinationServiceType(@Nullable String type) {
-        return NoopSpan.INSTANCE;
-    }
 }

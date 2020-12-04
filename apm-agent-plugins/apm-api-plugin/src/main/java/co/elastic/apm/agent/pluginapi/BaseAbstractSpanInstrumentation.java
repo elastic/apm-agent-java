@@ -45,17 +45,17 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.SpanImpl.
  */
-public class AbstractSpanInstrumentation extends ApiInstrumentation {
+public class BaseAbstractSpanInstrumentation extends ApiInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
-    public AbstractSpanInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
+    public BaseAbstractSpanInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
         this.methodMatcher = methodMatcher;
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.api.AbstractSpanImpl");
+        return named("co.elastic.apm.api.BaseAbstractSpanImpl");
     }
 
     @Override
@@ -63,7 +63,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
-    public static class SetNameInstrumentation extends AbstractSpanInstrumentation {
+    public static class SetNameInstrumentation extends BaseAbstractSpanInstrumentation {
         public SetNameInstrumentation() {
             super(named("doSetName"));
         }
@@ -77,7 +77,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class SetTypeInstrumentation extends AbstractSpanInstrumentation {
+    public static class SetTypeInstrumentation extends BaseAbstractSpanInstrumentation {
         public SetTypeInstrumentation() {
             super(named("doSetType"));
         }
@@ -93,7 +93,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class SetTypesInstrumentation extends AbstractSpanInstrumentation {
+    public static class SetTypesInstrumentation extends BaseAbstractSpanInstrumentation {
         public SetTypesInstrumentation() {
             super(named("doSetTypes"));
         }
@@ -109,7 +109,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class DoCreateSpanInstrumentation extends AbstractSpanInstrumentation {
+    public static class DoCreateSpanInstrumentation extends BaseAbstractSpanInstrumentation {
         public DoCreateSpanInstrumentation() {
             super(named("doCreateSpan"));
         }
@@ -127,7 +127,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class SetStartTimestampInstrumentation extends AbstractSpanInstrumentation {
+    public static class SetStartTimestampInstrumentation extends BaseAbstractSpanInstrumentation {
         public SetStartTimestampInstrumentation() {
             super(named("doSetStartTimestamp").and(takesArguments(long.class)));
         }
@@ -141,7 +141,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class EndInstrumentation extends AbstractSpanInstrumentation {
+    public static class EndInstrumentation extends BaseAbstractSpanInstrumentation {
         public EndInstrumentation() {
             super(named("end").and(takesArguments(0)));
         }
@@ -154,7 +154,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class EndWithTimestampInstrumentation extends AbstractSpanInstrumentation {
+    public static class EndWithTimestampInstrumentation extends BaseAbstractSpanInstrumentation {
         public EndWithTimestampInstrumentation() {
             super(named("end").and(takesArguments(long.class)));
         }
@@ -171,7 +171,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
     /**
      * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
      */
-    public static class CaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
+    public static class CaptureExceptionInstrumentation extends BaseAbstractSpanInstrumentation {
         public CaptureExceptionInstrumentation() {
             super(named("captureException")
                 .and(takesArguments(Throwable.class))
@@ -196,7 +196,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
      * Instruments previous version of API where {@code co.elastic.apm.api.AbstractSpanImpl#captureException(Throwable)}
      * returns void.
      */
-    public static class LegacyCaptureExceptionInstrumentation extends AbstractSpanInstrumentation {
+    public static class LegacyCaptureExceptionInstrumentation extends BaseAbstractSpanInstrumentation {
         public LegacyCaptureExceptionInstrumentation() {
             super(named("captureException")
                 .and(takesArguments(Throwable.class))
@@ -212,7 +212,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class GetIdInstrumentation extends AbstractSpanInstrumentation {
+    public static class GetIdInstrumentation extends BaseAbstractSpanInstrumentation {
         public GetIdInstrumentation() {
             super(named("getId").and(takesArguments(0)));
         }
@@ -229,7 +229,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class GetTraceIdInstrumentation extends AbstractSpanInstrumentation {
+    public static class GetTraceIdInstrumentation extends BaseAbstractSpanInstrumentation {
         public GetTraceIdInstrumentation() {
             super(named("getTraceId").and(takesArguments(0)));
         }
@@ -246,7 +246,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class AddStringLabelInstrumentation extends AbstractSpanInstrumentation {
+    public static class AddStringLabelInstrumentation extends BaseAbstractSpanInstrumentation {
         public AddStringLabelInstrumentation() {
             super(named("doAddTag").or(named("doAddStringLabel")));
         }
@@ -260,7 +260,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class AddNumberLabelInstrumentation extends AbstractSpanInstrumentation {
+    public static class AddNumberLabelInstrumentation extends BaseAbstractSpanInstrumentation {
         public AddNumberLabelInstrumentation() {
             super(named("doAddNumberLabel"));
         }
@@ -274,7 +274,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class AddBooleanLabelInstrumentation extends AbstractSpanInstrumentation {
+    public static class AddBooleanLabelInstrumentation extends BaseAbstractSpanInstrumentation {
         public AddBooleanLabelInstrumentation() {
             super(named("doAddBooleanLabel"));
         }
@@ -288,7 +288,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class ActivateInstrumentation extends AbstractSpanInstrumentation {
+    public static class ActivateInstrumentation extends BaseAbstractSpanInstrumentation {
         public ActivateInstrumentation() {
             super(named("activate"));
         }
@@ -301,7 +301,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class IsSampledInstrumentation extends AbstractSpanInstrumentation {
+    public static class IsSampledInstrumentation extends BaseAbstractSpanInstrumentation {
         public IsSampledInstrumentation() {
             super(named("isSampled"));
         }
@@ -318,7 +318,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class InjectTraceHeadersInstrumentation extends AbstractSpanInstrumentation {
+    public static class InjectTraceHeadersInstrumentation extends BaseAbstractSpanInstrumentation {
 
         public InjectTraceHeadersInstrumentation() {
             super(named("doInjectTraceHeaders"));
@@ -334,48 +334,4 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class WithDestinationServiceResourceInstrumentation extends AbstractSpanInstrumentation {
-
-        public WithDestinationServiceResourceInstrumentation() {
-            super(named("doAppendDestinationServiceResource"));
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void withDestinationServiceResource(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                                          @Advice.Argument(0) @Nullable String resource) {
-            if (resource != null && context instanceof Span) {
-                ((Span) context).getContext().getDestination().getService().withResource(resource);
-            }
-        }
-    }
-
-    public static class WithDestinationServiceNameInstrumentation extends AbstractSpanInstrumentation {
-
-        public WithDestinationServiceNameInstrumentation() {
-            super(named("doAppendDestinationServiceName"));
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void withDestinationServiceName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                                      @Advice.Argument(0) @Nullable String name) {
-            if (name != null && context instanceof Span) {
-                ((Span) context).getContext().getDestination().getService().withName(name);
-            }
-        }
-    }
-
-    public static class WithDestinationServiceTypeInstrumentation extends AbstractSpanInstrumentation {
-
-        public WithDestinationServiceTypeInstrumentation() {
-            super(named("doSetDestinationServiceType"));
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-        public static void doSetDestinationServiceType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                                       @Advice.Argument(0) @Nullable String type) {
-            if (type != null && context instanceof Span) {
-                ((Span) context).getContext().getDestination().getService().withType(type);
-            }
-        }
-    }
 }

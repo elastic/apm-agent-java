@@ -204,11 +204,29 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         }
     }
 
+    private void assertContainsNoTracingHeaders(Transaction transaction) {
+        try (Scope scope = transaction.activate()) {
+            final Map<String, String> tracingHeaders = new HashMap<>();
+            transaction.injectTraceHeaders(tracingHeaders::put);
+            transaction.injectTraceHeaders(null);
+            assertThat(tracingHeaders).isEmpty();
+        }
+    }
+
     private void assertContainsTracingHeaders(Span span) {
         try (Scope scope = span.activate()) {
             final Map<String, String> tracingHeaders = new HashMap<>();
             span.injectTraceHeaders(tracingHeaders::put);
             span.injectTraceHeaders(null);
+            assertThat(TraceContext.containsTraceContextTextHeaders(tracingHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
+        }
+    }
+
+    private void assertContainsTracingHeaders(Transaction transaction) {
+        try (Scope scope = transaction.activate()) {
+            final Map<String, String> tracingHeaders = new HashMap<>();
+            transaction.injectTraceHeaders(tracingHeaders::put);
+            transaction.injectTraceHeaders(null);
             assertThat(TraceContext.containsTraceContextTextHeaders(tracingHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
         }
     }

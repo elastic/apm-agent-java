@@ -34,7 +34,7 @@ import javax.annotation.Nonnull;
  * Otherwise, this class is a noop.
  * </p>
  */
-class TransactionImpl extends AbstractSpanImpl implements Transaction {
+class TransactionImpl extends BaseAbstractSpanImpl<Transaction> implements Transaction {
 
     TransactionImpl(@Nonnull Object transaction) {
         super(transaction);
