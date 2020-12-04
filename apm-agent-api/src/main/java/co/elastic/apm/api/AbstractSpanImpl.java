@@ -30,14 +30,14 @@ abstract class AbstractSpanImpl extends BaseAbstractSpanImpl<Span> implements Sp
     }
 
     private void doAppendDestinationServiceResource(@Nullable String resource) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceResourceInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$WithDestinationServiceResourceInstrumentation
     }
 
     private void doAppendDestinationServiceName(@Nullable String name) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceNameInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$WithDestinationServiceNameInstrumentation
     }
 
     private void doSetDestinationServiceType(@Nullable String type) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$WithDestinationServiceTypeInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$WithDestinationServiceTypeInstrumentation
     }
 }
