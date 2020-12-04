@@ -182,7 +182,6 @@ pipeline {
                                     cmd = "${cmd} -jar ${binaryPath}"
                                     sh(script: "${cmd} > app.log")
                                 }
-//                            }
                             }
                             echo 'Starting bandstand client..'
                             // Foreground the orchestrator script for execution control
@@ -191,7 +190,6 @@ pipeline {
                             }
                         }
                     }
-
                 }
             }
         }
