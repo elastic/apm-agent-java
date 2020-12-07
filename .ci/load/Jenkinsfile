@@ -157,6 +157,7 @@ pipeline {
                     agent { label 'metal' }
                     steps {
                         echo 'Preparing load generation..'
+                        sh('sleep 30')
 //                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
 //                            whenTrue(Boolean.valueOf(params.locustfile)) {
 //                                echo 'Using user-supplied plan for load-generation with Locust'
@@ -192,7 +193,9 @@ pipeline {
                                     // flight recorder disabled for now as not compatible with older JDKs
                                     // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
                                     cmd = "${cmd} -jar ${app_binary}"
-                                    sh(script: "${cmd} > ${WORKSPACE}/app.log &")
+                                    cmd = "${cmd} > ${WORKSPACE}/app.log &"
+                                    echo "start app with command: ${cmd}"
+                                    sh(script: "${cmd}", returnStdout: true)
                                 }
 
                             }
