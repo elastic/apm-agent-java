@@ -38,7 +38,6 @@ pipeline {
         // End script auto-generation
     }
     stages {
-        /*
         stage('Pre-flight') {
             steps {
                 echo 'Getting authentication information from Vault'
@@ -47,7 +46,6 @@ pipeline {
                 }
             }
         }
-        */
         stage('Provision JDK') {
             agent { label 'benchmarks' }
             steps {
@@ -149,7 +147,6 @@ pipeline {
         }
         stage('execute test') {
             parallel {
-                /*
                 stage('Load generation') {
                     agent { label 'metal' }
                     steps {
@@ -165,12 +162,11 @@ pipeline {
                         }
                     }
                 }
-                */
                 stage('Run app') {
                     agent { label 'benchmarks' }
                     steps {
                         echo 'Starting test application in background..'
-//                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
+                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
                             echo "start application with JVM options '${params.jvm_options}'"
                             script {
                                 def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
@@ -200,7 +196,7 @@ pipeline {
                             withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
                                 sh(script: ".ci/load/scripts/app.sh")
                             }
-//                        }
+                        }
                     }
                 }
             }
