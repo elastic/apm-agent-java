@@ -145,7 +145,7 @@ function checkLoadGenFinish(){
 
 
 function stopApp() {
-    ps -ef|egrep spring-petclinic|egrep java|awk '{print $2}'|xargs kill
+    ps -ef|egrep petclinic|egrep java|awk '{print $2}'|xargs kill
 }
 
 function tearDown() {
