@@ -17,4 +17,4 @@
 # specific language governing permissions and limitations
 # under the License.
 
-echo $1 |cut -d '-' -f2|awk -F'\\+|\\.' '{print $1}'
+echo $1 |cut -d '-' -f2|awk -F'\\+|\\.|u' '{print $1}'
