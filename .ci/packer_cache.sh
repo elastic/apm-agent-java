@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 source /usr/local/bin/bash_standard_lib.sh
 
+JAVA_HOME=$HOME/.java/java11 \
+  ./mvnw dependency:go-offline --fail-never -q -B
+
 JAVA_HOME=$HOME/.java/java11 ./mvnw clean verify \
   --fail-never -q -B \
   -Dmaven.javadoc.skip=true \
