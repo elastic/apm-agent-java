@@ -85,9 +85,7 @@ pipeline {
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
-                retryWithSleep(retries: 3, seconds: 10, backoff: true) {
-                  sh label: 'mvn dependencies', script: './mvnw dependency:go-offline'
-                }
+                sh label: 'mvn dependencies', script: './mvnw -q dependency:go-offline --fail-never'
                 sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
                 sh label: 'mvn license', script: "./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
