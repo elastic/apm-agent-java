@@ -8,6 +8,7 @@ pipeline {
         METRICS_BASE_DIR="metrics"
         AGENT_BASE_DIR = "src/${REPO}"
         ORCH_URL = 'https://obs-load-orch.app.elstc.co'
+        CREDENTIALS_ID = 'f6c7695a-671e-4f4f-a331-acdce44ff9ba'
         // Set below for local development
         // ORCH_URL='10.0.2.2:8000'
         DEBUG_MODE = '0' // set to '0' for production
@@ -63,13 +64,13 @@ pipeline {
                     basedir: "${AGENT_BASE_DIR}",
                     branch: 'master',
                     repo: "https://github.com/elastic/${REPO}.git",
-                    credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                    credentialsId: "${CREDENTIALS_ID}",
                     shallow: false
                 )
 
                 dir("${AGENT_BASE_DIR}") {
                     echo "Switch to requested agent version = ${params.apm_version}"
-                    sh(script: "git checkout v${params.apm_version}")
+                    sh(script: "git checkout ${params.apm_version}")
 
                     echo 'Building agent with Java 11'
                     sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw --batch-mode clean install -DskipTests=true -Dmaven.javadoc.skip=true")
@@ -106,7 +107,7 @@ pipeline {
                         basedir: "${APP_BASE_DIR}",
                         branch: "${app_branch}",
                         repo: "https://github.com/spring-projects/${APP}.git",
-                        credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                        credentialsId: "${CREDENTIALS_ID}",
                         shallow: false
                     )
                     dir("${APP_BASE_DIR}") {
@@ -134,7 +135,7 @@ pipeline {
                     basedir: "${METRICS_BASE_DIR}",
                     branch: 'master',
                     repo: "https://github.com/pstadler/metrics.sh",
-                    credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                    credentialsId: "${CREDENTIALS_ID}",
                     shallow: false
                 )
                 sh(script: "touch metrics.out")
