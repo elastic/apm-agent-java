@@ -17,4 +17,5 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# TODO : this won't work for 'amazon-corretto-XXX' JVMs
 echo $1 |cut -d '-' -f2|awk -F'\\+|\\.|u' '{print $1}'
