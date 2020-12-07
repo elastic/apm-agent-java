@@ -74,8 +74,9 @@ pipeline {
                     echo 'Building agent with Java 11'
                     sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw --batch-mode clean install -DskipTests=true -Dmaven.javadoc.skip=true")
 
-                    archiveArtifacts(allowEmptyArchive: true,
-                            artifacts: "./elastic-apm-agent/target/elastic-apm-agent-*.jar",
+                    archiveArtifacts(
+                            artifacts: "elastic-apm-agent/target/elastic-apm-agent-*.jar",
+                            allowEmptyArchive: true,
                             onlyIfSuccessful: false)
                 }
 
@@ -112,8 +113,9 @@ pipeline {
                         echo "Building test application using JDK = ${build_jdk_path}"
                         sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true -Dcheckstyle.skip")
 
-                        archiveArtifacts(allowEmptyArchive: true,
-                                artifacts: "./target/*.war,./target/*.jar",
+                        archiveArtifacts(
+                                artifacts: "target/*.war,target/*.jar",
+                                allowEmptyArchive: true,
                                 onlyIfSuccessful: false)
                     }
                 }
@@ -163,7 +165,7 @@ pipeline {
                 stage('Run app') {
                     agent { label 'benchmarks' }
                     steps {
-                        echo 'Starting test application in background..'
+                        echo "Starting test application in background.. with JVM = ${params.jvm_version}"
 //                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
                             echo "start application with JVM options '${params.jvm_options}'"
                             script {
@@ -203,8 +205,9 @@ pipeline {
             agent { label 'benchmarks' }
             steps {
                 echo "To view results, JMC is required. Get it here: https://jdk.java.net/jmc/"
-                archiveArtifacts(allowEmptyArchive: true,
+                archiveArtifacts(
                     artifacts: "${APP_BASE_DIR}/**/*.log,${APP_BASE_DIR}/**/*.jfr,${METRICS_BASE_DIR}/**/*.out",
+                    allowEmptyArchive: true,
                     onlyIfSuccessful: false)
             }
         }
