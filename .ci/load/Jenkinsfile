@@ -25,7 +25,7 @@ pipeline {
     }
     parameters {
         string(name: "apm_version", defaultValue: "master", description: "Java agent version, use git ref or values from curl -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/elastic/apm-agent-java/tags | jq '.[] | .name'")
-        string(name: "jvm_version", defaultValue: "", description: "JVM, use values from: curl -s https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64 | jq '.[] | .id'")
+        string(name: "jvm_version", defaultValue: "adoptopenjdk-8u275-linux", description: "JVM, use values from: curl -s https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64 | jq '.[] | .id'")
         string(name: "jvm_options", defaultValue: "", description: "Extra JVM options")
         string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")
         string(name: "duration", defaultValue: "10m", description: "Test duration. Specify with unit. Ex: 30m, 1h")
@@ -73,10 +73,13 @@ pipeline {
                     sh(script: "git checkout ${params.apm_version}")
 
                     echo 'Building agent with Java 11'
-                    sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw --batch-mode clean install -DskipTests=true -Dmaven.javadoc.skip=true")
+                    sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw --batch-mode clean package -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.sources.skip=true")
+
+                    // copy agent jar to a known filename that don't change with version
+                    sh(script: "cp -v \$(find ./elastic-apm-agent/target -name '*.jar' | grep -v sources | grep -v original | grep -v javadoc) ${WORKSPACE}/elastic-apm-agent.jar")
 
                     archiveArtifacts(
-                            artifacts: "elastic-apm-agent/target/elastic-apm-agent-*.jar",
+                            artifacts: "${WORKSPACE}/elastic-apm-agent.jar",
                             allowEmptyArchive: true,
                             onlyIfSuccessful: false)
                 }
@@ -180,7 +183,7 @@ pipeline {
 
                                 dir("${APP_BASE_DIR}") {
                                     def cmd = "${JAVA_HOME}/bin/java "
-                                    cmd = "${cmd} -javaagent:${WORKSPACE}/${AGENT_BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-${params.apm_version}.jar"
+                                    cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
                                     cmd = "${cmd} -Delastic.apm.server_urls=${env.APM_SERVER_URL}"
                                     cmd = "${cmd} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY}"
                                     cmd = "${cmd} ${params.jvm_options}"
