@@ -36,14 +36,14 @@ pipeline {
         booleanParam(name: "ignore_application_errors", description: "Instruct the load generator to ignore non-2xx errors on exit", defaultValue: true)
     }
     stages {
-        stage('Pre-flight') {
+/*        stage('Pre-flight') {
             steps {
                 echo 'Getting authentication information from Vault'
                 withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
                     setEnvVar('SESSION_TOKEN', sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim())
                 }
             }
-        }
+        }*/
         stage('Provision JDK') {
             agent { label 'benchmarks' }
             steps {
@@ -145,7 +145,7 @@ pipeline {
         }
         stage('execute test') {
             parallel {
-                stage('Load generation') {
+/*                stage('Load generation') {
                     agent { label 'metal' }
                     steps {
                         withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
@@ -159,12 +159,12 @@ pipeline {
                             }
                         }
                     }
-                }
+                }*/
                 stage('Run app') {
                     agent { label 'benchmarks' }
                     steps {
                         echo 'Starting test application in background..'
-                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
+//                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
                             echo "start application with JVM options '${params.jvm_options}'"
                             script {
                                 def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
@@ -191,10 +191,10 @@ pipeline {
                             }
                             echo 'Starting bandstand client..'
                             // Foreground the orchestrator script for execution control
-                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+/*                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
                                 sh(script: ".ci/load/scripts/app.sh")
-                            }
-                        }
+                            }*/
+//                        }
                     }
                 }
             }
