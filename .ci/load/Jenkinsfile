@@ -107,6 +107,8 @@ pipeline {
                     echo "JDK VERSION = ${major_jdk_version}"
                     if(major_jdk_version == '7') {
                         echo "Java 7.x detected. Installing compliant version of test application and JDK"
+                        // We are using a recent Java8 JDK here to allow avoid TLS/SSL issues, the app will still
+                        // target and run with Java 7.
                         app_branch = "3450c3d99ecaaf46231feb2c404b72d1727517e1"
                         build_jdk_path = sh(script: ".ci/load/scripts/fetch_sdk.sh zulu-8.0.272-linux", returnStdout: true).trim()
                         binary_ext = 'war'
