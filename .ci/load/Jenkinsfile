@@ -84,6 +84,8 @@ pipeline {
                         allowEmptyArchive: true,
                         onlyIfSuccessful: false)
 
+                stash(name: "agent", includes: "elastic-apm-agent.jar")
+
                 whenTrue(Boolean.valueOf(params.agent_config)) {
                     echo 'Writing user-supplied agent configuration'
                     dir("${AGENT_BASE_DIR}") {
@@ -126,6 +128,8 @@ pipeline {
                             artifacts: "app.${binary_ext}",
                             allowEmptyArchive: true,
                             onlyIfSuccessful: false)
+
+                    stash(name: "app", includes: "app.${binary_ext}")
                 }
             }
         }
@@ -175,6 +179,10 @@ pipeline {
                         echo "Starting test application in background.. with JVM = ${params.jvm_version}"
 //                        withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
                             echo "start application with JVM options '${params.jvm_options}'"
+
+                            unstash('app')
+                            unstash('agent')
+
                             script {
                                 def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
                                 def app_binary = "${WORKSPACE}/app.jar"
