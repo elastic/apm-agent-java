@@ -183,8 +183,10 @@ pipeline {
                                     app_binary = "${WORKSPACE}/app.war"
                                 }
 
+                                sh(script: "${env.JAVA_HOME}/bin/java -version");
+
                                 dir("${APP_BASE_DIR}") {
-                                    def cmd = "${JAVA_HOME}/bin/java "
+                                    def cmd = "${env.JAVA_HOME}/bin/java "
                                     cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
                                     cmd = "${cmd} -Delastic.apm.server_urls=${env.APM_SERVER_URL}"
                                     cmd = "${cmd} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY}"
