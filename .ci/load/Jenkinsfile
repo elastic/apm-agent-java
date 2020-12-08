@@ -22,6 +22,7 @@ pipeline {
         timestamps()
         ansiColor('xterm')
         durabilityHint('PERFORMANCE_OPTIMIZED')
+        skipDefaultCheckout() // don't re-checkout at avery stage
     }
     parameters {
         string(name: "apm_version", defaultValue: "master", description: "Java agent version, use git ref or values from curl -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/elastic/apm-agent-java/tags | jq '.[] | .name'")
@@ -77,12 +78,14 @@ pipeline {
 
                     // copy agent jar to a known filename that don't change with version
                     sh(script: "cp -v \$(find ./elastic-apm-agent/target -name '*.jar' | grep -v sources | grep -v original | grep -v javadoc) ${WORKSPACE}/elastic-apm-agent.jar")
-
-                    archiveArtifacts(
-                            artifacts: "${WORKSPACE}/elastic-apm-agent.jar",
-                            allowEmptyArchive: true,
-                            onlyIfSuccessful: false)
                 }
+
+                archiveArtifacts(
+                        artifacts: "elastic-apm-agent.jar",
+                        allowEmptyArchive: true,
+                        onlyIfSuccessful: false)
+
+                stash(name: "agent", includes: "elastic-apm-agent.jar")
 
                 whenTrue(Boolean.valueOf(params.agent_config)) {
                     echo 'Writing user-supplied agent configuration'
@@ -98,12 +101,17 @@ pipeline {
                 script {
                     def app_branch = "main"
                     def build_jdk_path = "${env.JAVA_HOME}"
+                    def binary_ext = 'jar'
 
-                    def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
-                    if(major_jdk_version == '7'){
+                    def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
+                    echo "JDK VERSION = ${major_jdk_version}"
+                    if(major_jdk_version == '7') {
                         echo "Java 7.x detected. Installing compliant version of test application and JDK"
+                        // We are using a recent Java8 JDK here to allow avoid TLS/SSL issues, the app will still
+                        // target and run with Java 7.
                         app_branch = "3450c3d99ecaaf46231feb2c404b72d1727517e1"
                         build_jdk_path = sh(script: ".ci/load/scripts/fetch_sdk.sh zulu-8.0.272-linux", returnStdout: true).trim()
+                        binary_ext = 'war'
                     }
                     echo "Checkout test application from: ${app_branch}"
                     gitCheckout(
@@ -116,12 +124,15 @@ pipeline {
                     dir("${APP_BASE_DIR}") {
                         echo "Building test application using JDK = ${build_jdk_path}"
                         sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true -Dcheckstyle.skip")
-
-                        archiveArtifacts(
-                                artifacts: "target/*.war,target/*.jar",
-                                allowEmptyArchive: true,
-                                onlyIfSuccessful: false)
+                        sh(script: "cp -v target/*.${binary_ext} ${WORKSPACE}/app.${binary_ext}")
                     }
+
+                    archiveArtifacts(
+                            artifacts: "app.${binary_ext}",
+                            allowEmptyArchive: true,
+                            onlyIfSuccessful: false)
+
+                    stash(name: "app", includes: "app.${binary_ext}")
                 }
             }
         }
@@ -141,11 +152,10 @@ pipeline {
                     credentialsId: "${CREDENTIALS_ID}",
                     shallow: false
                 )
-                sh(script: "touch metrics.out")
-                dir("${METRICS_BASE_DIR}"){
-                    withEnv(["FILE_LOCATION=./metrics.out"]) {
-                        sh(script: "./metrics.sh -r file &")
-                    }
+
+                dir("${METRICS_BASE_DIR}") {
+                    sh(script: "touch ${WORKSPACE}/metrics.out")
+                    sh(script: "FILE_LOCATION=${WORKSPACE}/metrics.out ./metrics.sh -r file &")
                 }
             }
         }
@@ -154,8 +164,8 @@ pipeline {
                 stage('Load generation') {
                     agent { label 'metal' }
                     steps {
+                        echo 'Preparing load generation..'
                         withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
-                            echo 'Preparing load generation..'
                             whenTrue(Boolean.valueOf(params.locustfile)) {
                                 echo 'Using user-supplied plan for load-generation with Locust'
                                 sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
@@ -172,26 +182,34 @@ pipeline {
                         echo "Starting test application in background.. with JVM = ${params.jvm_version}"
                         withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
                             echo "start application with JVM options '${params.jvm_options}'"
+
+                            unstash('app')
+                            unstash('agent')
+
                             script {
-                                def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+
+                                def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
+                                def app_binary = "${WORKSPACE}/app.jar"
                                 if (major_jdk_version == '7') {
                                     echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
-                                    binaryPath = './target/petclinic.war'
-                                } else {
-                                    binaryPath = './target/spring-petclinic-*.jar'
+                                    app_binary = "${WORKSPACE}/app.war"
                                 }
 
+                                sh(script: "${env.JAVA_HOME}/bin/java -version");
+
                                 dir("${APP_BASE_DIR}") {
-                                    def cmd = "${JAVA_HOME}/bin/java "
+                                    def cmd = "${env.JAVA_HOME}/bin/java "
                                     cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
                                     cmd = "${cmd} -Delastic.apm.server_urls=${env.APM_SERVER_URL}"
                                     cmd = "${cmd} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY}"
                                     cmd = "${cmd} ${params.jvm_options}"
-                                    cmd = "${cmd} -XX:ErrorFile=${APP_BASE_DIR}/hs_err_pid%p.log"
+                                    cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid%p.log"
                                     // flight recorder disabled for now as not compatible with older JDKs
-                                    // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=flight.jfr"
-                                    cmd = "${cmd} -jar ${binaryPath}"
-                                    sh(script: "${cmd} > app.log")
+                                    // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
+                                    cmd = "${cmd} -jar ${app_binary}"
+                                    cmd = "${cmd} > ${WORKSPACE}/app.log &"
+                                    echo "CMD = ${cmd}"
+                                    sh(script: "${cmd}")
                                 }
 
                             }
@@ -210,7 +228,7 @@ pipeline {
             steps {
                 echo "To view results, JMC is required. Get it here: https://jdk.java.net/jmc/"
                 archiveArtifacts(
-                    artifacts: "${APP_BASE_DIR}/**/*.log,${APP_BASE_DIR}/**/*.jfr,${METRICS_BASE_DIR}/**/*.out",
+                    artifacts: "*.log,*.jfr,metrics.out",
                     allowEmptyArchive: true,
                     onlyIfSuccessful: false)
             }

@@ -39,18 +39,28 @@
 # 3. tar    [https://www.gnu.org/software/tar/]
 # ================================================================
 
-# set -exuo pipefail 
+#set -exuo pipefail
 
+CATALOG_URL="https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64"
+JDK_ID="${1}"
 
-CATALOG_URL="https://jvm-catalog.elastic.co/jdks"
+JDK_FOLDER="/tmp/${JDK_ID}"
 
-read -d'\n' -r SDK_URL SDK_FILENAME <<<$(curl -s $CATALOG_URL|jq -Mr '.['\"$1\"'].url, .['\"$1\"'].filename')
+JDK_JSON="${JDK_FOLDER}/jdk.json"
+mkdir -p "${JDK_FOLDER}"
 
-curl -s -o /tmp/${SDK_FILENAME} ${SDK_URL}
+curl -s "${CATALOG_URL}" | jq ".[] | select(.id==\"${JDK_ID}\")" > "${JDK_JSON}"
+read -d'\n' -r SDK_URL SDK_FILENAME <<<$(jq -Mr '.url, .filename' < "${JDK_JSON}")
 
-JDK_FOLDER=$(mktemp -d)
+JDK_ARCHIVE="${JDK_FOLDER}/${SDK_FILENAME}"
 
-tar xfz /tmp/${SDK_FILENAME} -C ${JDK_FOLDER}
+# we can't compute a hash on JSON because the URL is dynamically generated
+# which makes the hash change at each request
+if [[ ! -f "${JDK_ARCHIVE}" ]]
+then
+  curl -s -o "${JDK_ARCHIVE}" "${SDK_URL}"
+  tar xfz "${JDK_ARCHIVE}" -C "${JDK_FOLDER}"
+fi
 
-SUB_FOLDER=$(ls ${JDK_FOLDER})
-echo $(readlink -f ${JDK_FOLDER}/${SUB_FOLDER})
+# JDK is stored within a sub-folder
+find "${JDK_FOLDER}" -maxdepth 1 -mindepth 1 -type d
