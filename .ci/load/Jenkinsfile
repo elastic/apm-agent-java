@@ -210,7 +210,6 @@ pipeline {
                                     cmd = "${cmd} > ${WORKSPACE}/app.log &"
                                     echo "CMD = ${cmd}"
                                     sh(script: "${cmd}")
-                                    sh('sleep 30')
                                 }
 
                             }
