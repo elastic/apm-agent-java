@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 
 # Licensed to Elasticsearch B.V. under one or more contributor
 # license agreements. See the NOTICE file distributed with
@@ -52,12 +52,14 @@ mkdir -p "${JDK_FOLDER}"
 curl -s "${CATALOG_URL}" | jq ".[] | select(.id==\"${JDK_ID}\")" > "${JDK_JSON}"
 read -d'\n' -r SDK_URL SDK_FILENAME <<<$(jq -Mr '.url, .filename' < "${JDK_JSON}")
 
+JDK_ARCHIVE="${JDK_FOLDER}/${SDK_FILENAME}"
+
 # we can't compute a hash on JSON because the URL is dynamically generated
 # which makes the hash change at each request
-if [[ ! -f "/tmp/${SDK_FILENAME}" ]]
+if [[ ! -f "${JDK_ARCHIVE}" ]]
 then
-  curl -s -o "/tmp/${SDK_FILENAME}" "${SDK_URL}"
-  tar xfz "/tmp/${SDK_FILENAME}" -C "${JDK_FOLDER}"
+  curl -s -o "${JDK_ARCHIVE}" "${SDK_URL}"
+  tar xfz "${JDK_ARCHIVE}" -C "${JDK_FOLDER}"
 fi
 
 # JDK is stored within a sub-folder
