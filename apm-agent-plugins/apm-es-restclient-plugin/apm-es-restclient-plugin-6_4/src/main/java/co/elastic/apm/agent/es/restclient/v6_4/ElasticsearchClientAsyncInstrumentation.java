@@ -24,13 +24,11 @@
  */
 package co.elastic.apm.agent.es.restclient.v6_4;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -71,30 +69,34 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
     }
 
     public static class ElasticsearchRestClientAsyncAdvice {
-        @VisibleForAdvice
-        public static final GlobalThreadLocal<Span> spanTls = GlobalThreadLocal.get(ElasticsearchRestClientAsyncAdvice.class, "spanTls");
 
-        @AssignTo.Argument(1)
+        @Nullable
+        @AssignTo.Argument(index = 1, value = 1)
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static ResponseListener onBeforeExecute(@Advice.Argument(0) Request request,
-                                                       @Advice.Argument(1) ResponseListener responseListener) {
+        public static Object[] onBeforeExecute(@Advice.Argument(0) Request request,
+                                               @Advice.Argument(1) ResponseListener responseListener) {
             ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper = esClientInstrHelperManager.getForClassLoaderOfClass(Request.class);
             if (helper != null) {
                 Span span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
                 if (span != null) {
-                    spanTls.set(span);
-                    return helper.<ResponseListener>wrapResponseListener(responseListener, span);
+                    Object[] ret = new Object[2];
+                    ret[0] = span;
+                    ret[1] = helper.<ResponseListener>wrapResponseListener(responseListener, span);
+                    return ret;
                 }
             }
-            return responseListener;
+            return null;
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t) {
-            final Span span = spanTls.getAndRemove();
-            if (span != null) {
-                // Deactivate in this thread. Span will be ended and reported by the listener
-                span.deactivate();
+        public static void onAfterExecute(@Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Enter @Nullable Object[] entryArgs) {
+            if (entryArgs != null) {
+                final Span span = (Span) entryArgs[0];
+                if (span != null) {
+                    // Deactivate in this thread. Span will be ended and reported by the listener
+                    span.deactivate();
+                }
             }
         }
     }
