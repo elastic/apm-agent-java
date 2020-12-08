@@ -102,7 +102,7 @@ pipeline {
                     def build_jdk_path = "${env.JAVA_HOME}"
                     def binary_ext = 'jar'
 
-                    def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+                    def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
                     echo "JDK VERSION = ${major_jdk_version}"
                     if(major_jdk_version == '7') {
                         echo "Java 7.x detected. Installing compliant version of test application and JDK"
@@ -184,7 +184,8 @@ pipeline {
                             unstash('agent')
 
                             script {
-                                def major_jdk_version = sh(script: ".ci/load/scripts/java_major.sh ${params.jvm_version}", returnStdout: true).trim()
+
+                                def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
                                 def app_binary = "${WORKSPACE}/app.jar"
                                 if (major_jdk_version == '7') {
                                     echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
