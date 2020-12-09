@@ -220,24 +220,25 @@ pipeline {
                                 }
 
                             }
-                            echo 'Starting bandstand client..'
-                            // Foreground the orchestrator script for execution control
-                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
-                                sh(script: ".ci/load/scripts/app.sh")
+
+                            // we use try/catch here to
+                            try {
+                                // Foreground the orchestrator script for execution control
+                                echo 'Starting bandstand client..'
+                                withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                                    sh(script: ".ci/load/scripts/app.sh")
+                                }
+                            } finally {
+                                echo "Collect results"
+                                archiveArtifacts(
+                                        artifacts: "*.log,*.jfr,metrics.out",
+                                        allowEmptyArchive: true,
+                                        onlyIfSuccessful: false)
                             }
+
                         }
                     }
                 }
-            }
-        }
-        stage('Collect results') {
-            agent { label 'benchmarks' }
-            steps {
-                echo "To view results, JMC is required. Get it here: https://jdk.java.net/jmc/"
-                archiveArtifacts(
-                    artifacts: "*.log,*.jfr,metrics.out",
-                    allowEmptyArchive: true,
-                    onlyIfSuccessful: false)
             }
         }
     }
