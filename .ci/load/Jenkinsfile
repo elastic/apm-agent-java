@@ -46,7 +46,7 @@ pipeline {
                     setEnvVar('SESSION_TOKEN', sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim())
                 }
 
-                stash('scripts', '.ci/load/**')
+                stash(name:'scripts', includes: '.ci/load/**')
             }
         }
         stage('Build agent') {
