@@ -194,7 +194,16 @@ pipeline {
                                     cmd = "${cmd} -Delastic.apm.server_urls=${env.APM_SERVER_URL}"
                                     cmd = "${cmd} -Delastic.apm.secret_token=${env.ELASTIC_APM_API_KEY}"
                                     cmd = "${cmd} ${params.jvm_options}"
+
+                                    // Crash reports in case things go wrong
                                     cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid%p.log"
+
+                                    // GC log
+                                    cmd = "${cmd} -XX:+PrintGCDetails"
+                                    cmd = "${cmd} -XX:+PrintGCTimeStamps"
+                                    cmd = "${cmd} -XX:+PrintTenuringDistribution"
+                                    cmd = "${cmd} -Xloggc:${WORKSPACE}/gc_%p.log"
+
                                     // flight recorder disabled for now as not compatible with older JDKs
                                     // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
                                     cmd = "${cmd} -jar ${app_binary}"
