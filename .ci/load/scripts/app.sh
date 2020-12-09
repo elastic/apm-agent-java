@@ -145,12 +145,7 @@ function checkLoadGenFinish(){
 
 
 function stopApp() {
-    if [ -f app.pid ]
-    then
-      kill "$(cat app.pid)"
-    else
-      ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'|xargs kill
-    fi
+    ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'|xargs kill
 }
 
 function tearDown() {

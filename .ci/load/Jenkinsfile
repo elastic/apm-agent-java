@@ -214,7 +214,7 @@ pipeline {
                                     // flight recorder disabled for now as not compatible with older JDKs
                                     // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
                                     cmd = "${cmd} -jar ${app_binary}"
-                                    cmd = "${cmd} > ${WORKSPACE}/app.log & echo \$? > ${WORKSPACE}/app.pid"
+                                    cmd = "${cmd} > ${WORKSPACE}/app.log &"
                                     echo "CMD = ${cmd}"
                                     sh(script: "${cmd}")
                                 }
