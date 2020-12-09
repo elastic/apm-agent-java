@@ -255,15 +255,12 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             String exchange = "";
 
             if (null != envelope) {
-                exchange = envelope.getExchange();
-                captureMessage(exchange, properties, span);
-
                 // since exchange name is only known when receiving the message, we might have to discard it
-                if (isIgnored(exchange)) {
+                if (isIgnored(envelope.getExchange())) {
                     span.requestDiscarding();
                 }
             }
-
+            captureMessage(queue, properties, span);
             captureDestination(exchange, channel, span);
 
             span.captureException(thrown)

@@ -358,12 +358,20 @@ side will be a part of the same trace containing the producer side as well. Kafk
 
 |RabbitMQ
 |3.x - 5.x
-|The agent captures RabbitMQ Message sends and consumes.  
-When the producer sends a message within a traced transaction, a send span will be created and the transaction resulting from the message consumption will be correlated to the same trace. When a message is consumed, a transaction is created, regardless if the send action is traced.
+|The agent captures RabbitMQ Message sends, consumption and polling.
+When the producer sends a message within a traced transaction, a send span will be created and the transaction resulting
+from the message consumption will be correlated to the same trace.
+When a message is consumed, a transaction is created, regardless if the send action is traced.
+When a message is polled, a span is created for the polling operation and optionally have message fields if a message
+has been returned.
 |1.19.1
 
 |===
 
+For RabbitMQ:
+
+- `context.message.queue.name` field will contain queue name when using polling, exchange name otherwise.
+- `context.message.destination.resource` field will contain `rabbitmq` for the default exchange and `rabbitmq/XXX` for named exchanges
 
 [float]
 [[supported-scheduling-frameworks]]

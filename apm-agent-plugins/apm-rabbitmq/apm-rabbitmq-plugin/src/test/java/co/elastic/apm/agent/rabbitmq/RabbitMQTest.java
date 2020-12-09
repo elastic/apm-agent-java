@@ -271,7 +271,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         checkTransaction(childTransaction, exchange);
 
         Span span = getReporter().getSpans().get(0);
-        checkSpan(span, exchange);
+        checkSendSpan(span, exchange);
 
         // span should be child of the first transaction
         checkParentChild(rootTransaction, span);
@@ -293,10 +293,15 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         Channel channel = connection.createChannel();
         String exchange = createExchange(channel, "exchange");
 
-        pollingTest(true, false, () -> declareAndBindQueue("queue", exchange, channel), exchange);
+        String queueName = randString("queue-");
+
+        pollingTest(true, false, () -> declareAndBindQueue(queueName, exchange, channel), exchange);
 
         reporter.awaitTransactionCount(1);
         reporter.awaitSpanCount(1);
+
+        Span pollingSpan = reporter.getFirstSpan();
+        checkPollSpan(pollingSpan, queueName);
     }
 
     @Test
@@ -489,14 +494,14 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         assertThat(serverSideRpc).isNotNull();
         assertThat(clientSideRpc).isNotNull();
 
-        checkSpan(clientRequestRpc, exchange);
+        checkSendSpan(clientRequestRpc, exchange);
         checkParentChild(rootTransaction, clientRequestRpc);
 
         checkTransaction(serverSideRpc, exchange);
         assertThat(serverSideRpc.getNameAsString()).isEqualTo("RabbitMQ message RECEIVE from <default>");
         checkParentChild(clientRequestRpc, serverSideRpc);
 
-        checkSpan(serverReplyRpc, exchange);
+        checkSendSpan(serverReplyRpc, exchange);
         checkParentChild(serverSideRpc, serverReplyRpc);
 
         checkTransaction(clientSideRpc, exchange);
@@ -625,15 +630,33 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         return headersMap;
     }
 
-    private static void checkSpan(Span span, String exchange) {
+    private static void checkSendSpan(Span span, String exchange) {
+        String expectedResource = exchange.isEmpty() ? "rabbitmq" : String.format("rabbitmq/%s", exchange);
+        checkSpanCommon(span,
+            "send",
+            String.format("RabbitMQ SEND to %s", exchange.isEmpty() ? "<default>" : exchange),
+            exchange,
+            expectedResource);
+
+    }
+
+    private static void checkPollSpan(Span span, String queue){
+        checkSpanCommon(span,
+            "poll",
+            String.format("RabbitMQ POLL from %s", queue),
+            queue,
+            "rabbitmq");
+    }
+
+    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName, String expectedResource){
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
-        assertThat(span.getAction()).isEqualTo("send");
+        assertThat(span.getAction()).isEqualTo(expectedAction);
 
         assertThat(span.getNameAsString())
-            .isEqualTo("RabbitMQ SEND to %s", exchange.isEmpty() ? "<default>" : exchange);
+            .isEqualTo(expectedName);
 
-        checkMessage(span.getContext().getMessage(), exchange);
+        checkMessage(span.getContext().getMessage(), expectedQueueName);
 
         Destination destination = span.getContext().getDestination();
 
@@ -644,8 +667,6 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
-        String expectedResource = exchange.isEmpty() ? "rabbitmq" : String.format("rabbitmq/%s", exchange);
         assertThat(service.getResource().toString()).isEqualTo(expectedResource);
-
     }
 }
