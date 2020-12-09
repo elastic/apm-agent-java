@@ -93,10 +93,9 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
                 return null;
             }
 
-            String routingKey = normalizeQueueOrRoutingKey(envelope != null ? envelope.getRoutingKey() : null);
-            String exchange = normalizeExchangeName(envelope != null ? envelope.getExchange() : null);
+            String exchange = envelope != null ? envelope.getExchange() : null;
 
-            if (isIgnored(exchange)) {
+            if (null == exchange || isIgnored(exchange)) {
                 return null;
             }
 
@@ -111,7 +110,7 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
             }
 
             transaction.withType("messaging")
-                .withName("RabbitMQ message RECEIVE from ").appendToName(exchange).appendToName("/").appendToName(routingKey);
+                .withName("RabbitMQ message RECEIVE from ").appendToName(normalizeExchangeName(exchange));
 
             transaction.setFrameworkName("RabbitMQ");
 

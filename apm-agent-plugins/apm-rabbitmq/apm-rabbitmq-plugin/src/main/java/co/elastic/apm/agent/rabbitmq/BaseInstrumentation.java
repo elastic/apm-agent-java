@@ -70,14 +70,15 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return !WildcardMatcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
     }
 
-    protected static Message captureMessage(String exchange, @Nullable AMQP.BasicProperties properties, AbstractSpan<?> context) {
+    protected static Message captureMessage(String queueOrExchange, @Nullable AMQP.BasicProperties properties, AbstractSpan<?> context) {
         return context.getContext().getMessage()
-            .withQueue(exchange)
+            .withQueue(queueOrExchange)
             .withAge(getTimestamp(properties));
     }
 
     protected static String normalizeExchangeName(@Nullable String exchange) {
         if (exchange == null) {
+            // unlikely but allows to avoid propagating a nullable field
             return "<unknown>";
         } else if (exchange.isEmpty()) {
             return "<default>";
@@ -85,14 +86,15 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return exchange;
     }
 
-    protected static String normalizeQueueOrRoutingKey(@Nullable String name) {
-        if (name == null) {
+    protected static String normalizeQueueName(@Nullable String queue) {
+        if (queue == null) {
+            // unlikely but allows to avoid propagating a nullable field
             return "<unknown>";
-        } else if (name.startsWith("amq.gen-")) {
-            // generated routing keys & queues create high cardinality transaction/span names
+        } else if (queue.startsWith("amq.gen-")) {
+            // generated queues create high cardinality transaction/span names
             return "amq.gen-*";
         }
-        return name;
+        return queue;
     }
 
     private static long getTimestamp(@Nullable AMQP.BasicProperties properties) {

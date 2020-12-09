@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -267,10 +268,10 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         Transaction childTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
 
-        checkTransaction(childTransaction, exchange, ROUTING_KEY);
+        checkTransaction(childTransaction, exchange);
 
         Span span = getReporter().getSpans().get(0);
-        checkSpan(span, exchange, ROUTING_KEY);
+        checkSpan(span, exchange);
 
         // span should be child of the first transaction
         checkParentChild(rootTransaction, span);
@@ -442,8 +443,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         // we should have captured the following:
         // 3 transactions:
         // - root transaction
-        // - transaction for the server-side of the RPC call
-        // - transaction for the client-side of the RPC call
+        // - transaction for the server-side of the RPC call (processing request)
+        // - transaction for the client-side of the RPC call (processing response)
         // 2 spans:
         // - span for sending the RPC request message in the root transaction
         // - span for sending the RPC response message in server-side processing
@@ -451,44 +452,54 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         getReporter().awaitTransactionCount(3);
         getReporter().awaitSpanCount(2);
 
-        Transaction serverSideRpc = null;
-        Transaction clientSideRpc = null;
-        List<Transaction> transactions = getReporter().getTransactions();
-        for (Transaction t : transactions) {
-            if (t != rootTransaction) {
-                if (t.getNameAsString().contains(rpcQueueName)) {
-                    serverSideRpc = t;
-                } else {
-                    clientSideRpc = t;
-                }
-            }
-        }
+        // start with the spans as we can identify them using the root transaction
+        // parent/child relationships are used to find who is who as we don't have other fields like name
+        // to distinguish them
 
         Span clientRequestRpc = null;
         Span serverReplyRpc = null;
         for (Span s : getReporter().getSpans()) {
-            if (s.getNameAsString().contains(rpcQueueName)) {
+            Id spanParentId = s.getTraceContext().getParentId();
+            if (rootTransaction.getTraceContext().getId().equals(spanParentId)) {
+                // client request is child of root transaction
+                assertThat(clientRequestRpc).isNull();
                 clientRequestRpc = s;
             } else {
+                assertThat(serverReplyRpc).isNull();
                 serverReplyRpc = s;
             }
         }
-
         assertThat(clientRequestRpc).isNotNull();
-        checkSpan(clientRequestRpc, "<default>", rpcQueueName);
+        assertThat(serverReplyRpc).isNotNull();
+
+        Transaction serverSideRpc = null;
+        Transaction clientSideRpc = null;
+        for (Transaction t : getReporter().getTransactions()) {
+            if (t != rootTransaction) {
+                Id transactionParentId = t.getTraceContext().getParentId();
+                if (clientRequestRpc.getTraceContext().getId().equals(transactionParentId)) {
+                    assertThat(serverSideRpc).isNull();
+                    serverSideRpc = t;
+                } else {
+                    assertThat(clientSideRpc).isNull();
+                    clientSideRpc = t;
+                }
+            }
+        }
+        assertThat(serverSideRpc).isNotNull();
+        assertThat(clientSideRpc).isNotNull();
+
+        checkSpan(clientRequestRpc, exchange);
         checkParentChild(rootTransaction, clientRequestRpc);
 
-        assertThat(serverSideRpc).isNotNull();
-        checkTransaction(serverSideRpc, "<default>", rpcQueueName);
-        assertThat(serverSideRpc.getNameAsString()).isEqualTo("RabbitMQ message RECEIVE from <default>/%s", rpcQueueName);
+        checkTransaction(serverSideRpc, exchange);
+        assertThat(serverSideRpc.getNameAsString()).isEqualTo("RabbitMQ message RECEIVE from <default>");
         checkParentChild(clientRequestRpc, serverSideRpc);
 
-        assertThat(serverReplyRpc).isNotNull();
-        checkSpan(serverReplyRpc, "<default>", "amq.gen-*");
+        checkSpan(serverReplyRpc, exchange);
         checkParentChild(serverSideRpc, serverReplyRpc);
 
-        assertThat(clientSideRpc).isNotNull();
-        checkTransaction(clientSideRpc, "<default>", "amq.gen-*");
+        checkTransaction(clientSideRpc, exchange);
         checkParentChild(serverReplyRpc, clientSideRpc);
 
     }
@@ -557,17 +568,17 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             .isEqualTo(parent.getTraceContext().getTraceId());
     }
 
-    private static void checkTransaction(Transaction transaction, String exchange, String routingKey) {
+    private static void checkTransaction(Transaction transaction, String exchange) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString())
-            .isEqualTo("RabbitMQ message RECEIVE from %s/%s", exchange, routingKey);
+            .isEqualTo("RabbitMQ message RECEIVE from %s", exchange.isEmpty() ? "<default>" : exchange);
         assertThat(transaction.getFrameworkName()).isEqualTo("RabbitMQ");
 
         checkMessage(transaction.getContext().getMessage(), exchange);
     }
 
-    private static void checkMessage(Message message, String exchange) {
-        assertThat(message.getQueueName()).isEqualTo(exchange);
+    private static void checkMessage(Message message, String queueName) {
+        assertThat(message.getQueueName()).isEqualTo(queueName);
 
         // RabbitMQ does not provide timestamp by default
         assertThat(message.getAge()).isLessThan(0);
@@ -614,13 +625,13 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         return headersMap;
     }
 
-    private static void checkSpan(Span span, String exchange, String routingKey) {
+    private static void checkSpan(Span span, String exchange) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo("send");
 
         assertThat(span.getNameAsString())
-            .isEqualTo("RabbitMQ SEND to %s/%s", exchange, routingKey);
+            .isEqualTo("RabbitMQ SEND to %s", exchange.isEmpty() ? "<default>" : exchange);
 
         checkMessage(span.getContext().getMessage(), exchange);
 
@@ -633,7 +644,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
-        assertThat(service.getResource().toString()).isEqualTo("rabbitmq");
+        String expectedResource = exchange.isEmpty() ? "rabbitmq" : String.format("rabbitmq/%s", exchange);
+        assertThat(service.getResource().toString()).isEqualTo(expectedResource);
 
     }
 }

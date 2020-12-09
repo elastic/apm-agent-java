@@ -141,28 +141,25 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         @AssignTo(arguments = @AssignTo.Argument(index = 0, value = 4))
         @Nullable
         public static Object[] onBasicPublish(@Advice.This Channel channel,
-                                              @Advice.Argument(0) String exchange,
-                                              @Advice.Argument(1) String routingKey,
+                                              @Advice.Argument(0) @Nullable String exchange,
                                               @Advice.Argument(4) @Nullable AMQP.BasicProperties properties) {
             if (!tracer.isRunning()) {
                 return null;
             }
 
-            exchange = normalizeExchangeName(exchange);
-            routingKey = normalizeQueueOrRoutingKey(routingKey);
-
             Span exitSpan = createExitSpan(exchange);
             if (exitSpan == null) {
+                // tracer disabled or ignored exchange
                 return null;
             }
 
             exitSpan.withAction("send")
-                .withName("RabbitMQ SEND to ").appendToName(exchange).appendToName("/").appendToName(routingKey);
+                .withName("RabbitMQ SEND to ").appendToName(normalizeExchangeName(exchange));
 
             properties = propagateTraceContext(exitSpan, properties);
 
             captureMessage(exchange, properties, exitSpan);
-            captureDestination(channel, exitSpan);
+            captureDestination(exchange, channel, exitSpan);
 
             return new Object[]{properties, exitSpan};
         }
@@ -218,15 +215,13 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onEnter(@Advice.Argument(0) String queue) {
+        public static Object onEnter(@Advice.Argument(0) @Nullable String queue) {
 
             if (!tracer.isRunning()) {
                 return null;
             }
 
-            queue = normalizeQueueOrRoutingKey(queue);
-
-            return createExitSpan(queue);
+            return createExitSpan(normalizeQueueName(queue));
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -241,14 +236,13 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             }
             Span span = (Span) objSpan;
 
-            queue = normalizeQueueOrRoutingKey(queue);
             if (isIgnored(queue)) {
                 // allow to ignore on queue name when there is no answer
                 span.requestDiscarding();
             }
 
             span.withAction("poll")
-                .withName("RabbitMQ POLL from ").appendToName(queue);
+                .withName("RabbitMQ POLL from ").appendToName(normalizeQueueName(queue));
 
             Envelope envelope = null;
             AMQP.BasicProperties properties = null;
@@ -258,24 +252,19 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
                 properties = rv.getProps();
             }
 
+            String exchange = "";
+
             if (null != envelope) {
-                String routingKey = normalizeQueueOrRoutingKey(envelope.getRoutingKey());
-                String exchange = normalizeExchangeName(envelope.getExchange());
+                exchange = envelope.getExchange();
+                captureMessage(exchange, properties, span);
 
+                // since exchange name is only known when receiving the message, we might have to discard it
                 if (isIgnored(exchange)) {
-                    // as exchange name is known late, we discard the span if applicable
-                    // that means that ignoring spans for polling could be done using either queue or exchange name
                     span.requestDiscarding();
-                } else {
-                    // span name will be different when there is or is not a reply
-                    // which helps to emphasize that polling without result is inefficient.
-                    span.appendToName(" ").appendToName(exchange).appendToName("/").appendToName(routingKey);
-
-                    captureMessage(exchange, properties, span);
                 }
             }
 
-            captureDestination(channel, span);
+            captureDestination(exchange, channel, span);
 
             span.captureException(thrown)
                 .deactivate()
@@ -286,13 +275,13 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
     /**
      * Creates a messaging exit span
      *
-     * @param name exchange or queue name
+     * @param exchangeOrQueue exchange or queue name
      * @return exit span if applicable, {@literal null} otherwise
      */
     @Nullable
-    private static Span createExitSpan(String name) {
+    private static Span createExitSpan(@Nullable String exchangeOrQueue) {
         AbstractSpan<?> context = tracer.getActive();
-        if (context == null || isIgnored(name)) {
+        if (exchangeOrQueue == null || context == null || isIgnored(exchangeOrQueue)) {
             return null;
         }
         Span exitSpan = context.createExitSpan();
@@ -305,13 +294,18 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             .withSubtype("rabbitmq");
     }
 
-    private static void captureDestination(Channel channel, Span span) {
+    private static void captureDestination(String exchange, Channel channel, Span span) {
         Destination destination = span.getContext().getDestination();
 
-        destination.getService()
-            .withType("messaging")
+        Destination.Service service = destination.getService();
+        service.withType("messaging")
             .withName("rabbitmq")
             .withResource("rabbitmq");
+
+        if (!exchange.isEmpty()) {
+            // include non-default exchange name in resource
+            service.getResource().append("/").append(exchange);
+        }
 
         Connection connection = channel.getConnection();
         destination.withAddress(connection.getAddress().getHostName());
