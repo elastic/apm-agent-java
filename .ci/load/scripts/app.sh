@@ -145,7 +145,12 @@ function checkLoadGenFinish(){
 
 
 function stopApp() {
-    ps -ef|egrep petclinic|egrep java|awk '{print $2}'|xargs kill
+    if [ -f app.pid ]
+    then
+      kill "$(cat app.pid)"
+    else
+      ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'|xargs kill
+    fi
 }
 
 function tearDown() {

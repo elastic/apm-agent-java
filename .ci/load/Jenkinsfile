@@ -203,7 +203,7 @@ pipeline {
                                     cmd = "${cmd} ${params.jvm_options}"
 
                                     // Crash reports in case things go wrong
-                                    cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid%p.log"
+                                    cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid_%p.log"
 
                                     // GC log
                                     cmd = "${cmd} -XX:+PrintGCDetails"
@@ -214,7 +214,7 @@ pipeline {
                                     // flight recorder disabled for now as not compatible with older JDKs
                                     // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
                                     cmd = "${cmd} -jar ${app_binary}"
-                                    cmd = "${cmd} > ${WORKSPACE}/app.log &"
+                                    cmd = "${cmd} > ${WORKSPACE}/app.log & echo \$? > ${WORKSPACE}/app.pid"
                                     echo "CMD = ${cmd}"
                                     sh(script: "${cmd}")
                                 }
