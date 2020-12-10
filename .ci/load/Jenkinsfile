@@ -208,13 +208,13 @@ pipeline {
                                     cmd = "${cmd} ${params.jvm_options}"
 
                                     // Crash reports in case things go wrong
-                                    cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid_%p.log"
+                                    cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid.log"
 
                                     // GC log
                                     cmd = "${cmd} -XX:+PrintGCDetails"
                                     cmd = "${cmd} -XX:+PrintGCTimeStamps"
                                     cmd = "${cmd} -XX:+PrintTenuringDistribution"
-                                    cmd = "${cmd} -Xloggc:${WORKSPACE}/gc_%p.log"
+                                    cmd = "${cmd} -Xloggc:${WORKSPACE}/gc.log"
 
                                     // compilation log
                                     cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
