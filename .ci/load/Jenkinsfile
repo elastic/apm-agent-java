@@ -212,6 +212,12 @@ pipeline {
                                     cmd = "${cmd} -XX:+PrintTenuringDistribution"
                                     cmd = "${cmd} -Xloggc:${WORKSPACE}/gc_%p.log"
 
+                                    // compilation log
+                                    cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
+                                    cmd = "${cmd} -XX:+PrintCompilation"
+                                    cmd = "${cmd} -XX:+LogCompilation"
+                                    cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"
+
                                     // flight recorder disabled for now as not compatible with older JDKs
                                     // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
                                     cmd = "${cmd} -jar ${app_binary}"
