@@ -176,6 +176,10 @@ pipeline {
                 stage('Run app') {
                     agent { label 'benchmarks' }
                     steps {
+
+                        // remove previous log files in workspace (if any)
+                        sh(script: "rm ${WORKSPACE}/*.log")
+
                         unstash('scripts')
                         unstash('app')
                         unstash('agent')
