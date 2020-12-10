@@ -507,6 +507,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDurationMs());
         writeField("result", transaction.getResult());
+        writeField("outcome", transaction.getOutcome().stringValue());
         serializeContext(transaction, transaction.getContext(), traceContext);
         serializeSpanCount(transaction.getSpanCount());
         double sampleRate = traceContext.getSampleRate();
@@ -548,11 +549,11 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeSpan(final Span span) {
         TraceContext traceContext = span.getTraceContext();
-
         jw.writeByte(OBJECT_START);
         writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
 
+        writeField("outcome", span.getOutcome().stringValue());
         serializeTraceContext(traceContext, true);
         writeField("duration", span.getDurationMs());
         if (span.getStacktrace() != null) {

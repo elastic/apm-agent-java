@@ -70,6 +70,12 @@ class TransactionTest {
             transaction.setOutcome(null);
         });
 
+        transaction.setOutcome(AbstractSpan.Outcome.ERROR);
+        transaction.resetState();
+        assertThat(transaction.getOutcome())
+            .describedAs("reset should reset to unknown state")
+            .isEqualTo(AbstractSpan.Outcome.UNKNOWN);
+
     }
 
 

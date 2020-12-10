@@ -113,7 +113,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             this.stringValue = stringValue;
         }
 
-        String stringValue() {
+        public String stringValue() {
             return stringValue;
         }
     }
@@ -351,6 +351,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         discardRequested = false;
         isExit = false;
         childIds = null;
+        outcome = Outcome.UNKNOWN;
     }
 
     public Span createSpan() {
