@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 class TransactionTest {
@@ -51,4 +52,25 @@ class TransactionTest {
         transaction.resetState();
         assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction(MockTracer.create())));
     }
+
+    @Test
+    void getAndSetOutcome() {
+        Transaction transaction = new Transaction(MockTracer.create());
+
+        assertThat(transaction.getOutcome())
+            .describedAs("default outcome should be unknown")
+            .isEqualTo(AbstractSpan.Outcome.UNKNOWN);
+
+        for (AbstractSpan.Outcome value : AbstractSpan.Outcome.values()) {
+            transaction.setOutcome(value);
+            assertThat(transaction.getOutcome()).isSameAs(value);
+        }
+
+        assertThatThrownBy(() -> {
+            transaction.setOutcome(null);
+        });
+
+    }
+
+
 }

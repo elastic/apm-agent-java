@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -95,6 +96,27 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      */
     @Nullable
     private LongList childIds;
+
+    private Outcome outcome = Outcome.UNKNOWN;
+
+    public enum Outcome {
+        SUCCESS("success"),
+        ERROR("error"),
+        UNKNOWN("unknown");
+
+        /**
+         * String value used for serialization
+         */
+        private final String stringValue;
+
+        Outcome(String stringValue) {
+            this.stringValue = stringValue;
+        }
+
+        String stringValue() {
+            return stringValue;
+        }
+    }
 
     public int getReferenceCount() {
         return references.get();
@@ -259,7 +281,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     /**
      * Only intended for testing purposes as this allocates a {@link String}
      *
-     * @return
+     * @return name
      */
     public String getNameAsString() {
         return name.toString();
@@ -584,4 +606,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     protected abstract T thiz();
+
+    public Outcome getOutcome() {
+        return outcome;
+    }
+
+    public void setOutcome(Outcome outcome) {
+        Objects.requireNonNull(outcome);
+        this.outcome = outcome;
+    }
 }
