@@ -786,6 +786,27 @@ class CallTreeTest {
         });
     }
 
+    /*
+     * [1   ]     [1   ]
+     *  [2]   ->   [a ]
+     *   [a]       [2]
+     *
+     * Note: this test is currently failing
+     */
+    @Test
+    void testNestedActivationBeforeCallTree() throws Exception {
+        assertCallTree(new String[]{
+            "  aaa ",
+            "12 2 1"
+        }, new Object[][]{
+            {"a",     3},
+        }, new Object[][]{
+            {"1",     5},
+            {"  a",   3}, // a is actually a child of the transaction
+            {"    2", 2}, // 2 is not within the child_ids of a
+        });
+    }
+
     private void assertCallTree(String[] stackTraces, Object[][] expectedTree) throws Exception {
         assertCallTree(stackTraces, expectedTree, null);
     }
