@@ -172,9 +172,7 @@ pipeline {
                         // create agent configuration
                         whenTrue(Boolean.valueOf(params.agent_config)) {
                             echo 'Writing user-supplied agent configuration'
-                            dir("${AGENT_BASE_DIR}") {
-                                sh script: "echo \"${params.agent_config}\" >> ${WORKSPACE}/agent_config.properties"
-                            }
+                            writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
                         }
 
                         // remove previous log files in workspace (if any)
@@ -251,7 +249,7 @@ pipeline {
 
                                 }
                             } finally {
-                                sh(script: "rm ${WORKSPACE}/agent_config.properties")
+                                sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
                             }
                         }
                     }
