@@ -207,6 +207,7 @@ pipeline {
                                         def cmd = "${java_home}/bin/java "
                                         cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
                                         cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
+                                        cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
                                         cmd = "${cmd} ${params.jvm_options}"
 
                                         // Crash reports in case things go wrong
