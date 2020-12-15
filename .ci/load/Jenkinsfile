@@ -188,10 +188,7 @@ pipeline {
 
                         script {
                             try {
-                                withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_API_KEY') {
-
-                                    // writing sensitive values to configuration
-                                    writeFile(file: "${WORKSPACE}/agent_config.properties", text: "\nserver_urls=${env.APM_SERVER_URL}\nsecret_token=${env.ELASTIC_APM_API_KEY}\n")
+                                withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
 
                                     echo "start application with JVM options '${params.jvm_options}'"
 
