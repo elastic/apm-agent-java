@@ -498,7 +498,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         checkParentChild(rootTransaction, clientRequestRpc);
 
         checkTransaction(serverSideRpc, exchange);
-        assertThat(serverSideRpc.getNameAsString()).isEqualTo("RabbitMQ message RECEIVE from <default>");
+        assertThat(serverSideRpc.getNameAsString()).isEqualTo("RabbitMQ RECEIVE from <default>");
         checkParentChild(clientRequestRpc, serverSideRpc);
 
         checkSendSpan(serverReplyRpc, exchange);
@@ -576,7 +576,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     private static void checkTransaction(Transaction transaction, String exchange) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString())
-            .isEqualTo("RabbitMQ message RECEIVE from %s", exchange.isEmpty() ? "<default>" : exchange);
+            .isEqualTo("RabbitMQ RECEIVE from %s", exchange.isEmpty() ? "<default>" : exchange);
         assertThat(transaction.getFrameworkName()).isEqualTo("RabbitMQ");
 
         checkMessage(transaction.getContext().getMessage(), exchange);

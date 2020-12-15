@@ -110,7 +110,7 @@ public class ConsumerInstrumentation extends BaseInstrumentation {
             }
 
             transaction.withType("messaging")
-                .withName("RabbitMQ message RECEIVE from ").appendToName(normalizeExchangeName(exchange));
+                .withName("RabbitMQ RECEIVE from ").appendToName(normalizeExchangeName(exchange));
 
             transaction.setFrameworkName("RabbitMQ");
 

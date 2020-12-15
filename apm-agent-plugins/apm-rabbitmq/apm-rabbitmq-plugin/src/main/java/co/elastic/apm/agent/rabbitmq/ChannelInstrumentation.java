@@ -149,7 +149,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
             Span exitSpan = createExitSpan(exchange);
             if (exitSpan == null) {
-                // tracer disabled or ignored exchange
+                // tracer disabled or ignored exchange or this is nested within another exit span
                 return null;
             }
 
