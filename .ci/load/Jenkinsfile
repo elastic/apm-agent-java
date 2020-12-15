@@ -176,7 +176,7 @@ pipeline {
                         }
 
                         // remove previous log files in workspace (if any)
-                        sh(script: "rm ${WORKSPACE}/*.log")
+                        sh(script: "rm -f ${WORKSPACE}/*.log")
 
                         unstash('scripts')
                         unstash('app')
@@ -185,72 +185,70 @@ pipeline {
                         echo "Starting test application in background.. with JVM = ${params.jvm_version}"
 
                         script {
+                            echo "start application with JVM options '${params.jvm_options}'"
+
+                            def java_home = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
+                            def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
+
+                            def app_binary = "${WORKSPACE}/app.jar"
+                            if (major_jdk_version == '7') {
+                                echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
+                                app_binary = "${WORKSPACE}/app.war"
+                            }
+
+                            sh(script: "${java_home}/bin/java -version");
+
+                            def cmd = "${java_home}/bin/java "
+                            cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
+                            cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
+                            cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
+                            cmd = "${cmd} ${params.jvm_options}"
+
+                            // Crash reports in case things go wrong
+                            cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid.log"
+
+                            // GC log
+                            cmd = "${cmd} -XX:+PrintGCDetails"
+                            cmd = "${cmd} -XX:+PrintGCTimeStamps"
+                            cmd = "${cmd} -XX:+PrintTenuringDistribution"
+                            cmd = "${cmd} -Xloggc:${WORKSPACE}/gc.log"
+
+                            // compilation log
+                            /* disabled for now, we should maybe add a pipeline parameter to enable it on-demand
+                            cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
+                            cmd = "${cmd} -XX:+PrintCompilation"
+                            cmd = "${cmd} -XX:+LogCompilation"
+                            cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"h
+                             */
+
+                            // flight recorder disabled for now as not compatible with older JDKs
+                            // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
+                            cmd = "${cmd} -jar ${app_binary}"
+                            cmd = "${cmd} > ${WORKSPACE}/app.log &"
+
+                            // we use try/catch here to always capture log files
                             try {
                                 withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
+                                    sh(script: "${cmd}")
+                                }
 
-                                    echo "start application with JVM options '${params.jvm_options}'"
-
-                                    def java_home = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
-                                    def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
-
-                                    def app_binary = "${WORKSPACE}/app.jar"
-                                    if (major_jdk_version == '7') {
-                                        echo "Detected 7.x Java version. Switching to 7.x compat mode and calling .war"
-                                        app_binary = "${WORKSPACE}/app.war"
-                                    }
-
-                                    sh(script: "${java_home}/bin/java -version");
-
-                                    dir("${APP_BASE_DIR}") {
-                                        def cmd = "${java_home}/bin/java "
-                                        cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
-                                        cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
-                                        cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
-                                        cmd = "${cmd} ${params.jvm_options}"
-
-                                        // Crash reports in case things go wrong
-                                        cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid.log"
-
-                                        // GC log
-                                        cmd = "${cmd} -XX:+PrintGCDetails"
-                                        cmd = "${cmd} -XX:+PrintGCTimeStamps"
-                                        cmd = "${cmd} -XX:+PrintTenuringDistribution"
-                                        cmd = "${cmd} -Xloggc:${WORKSPACE}/gc.log"
-
-                                        // compilation log
-                                        /* disabled for now, we should maybe add a pipeline parameter to enable it on-demand
-                                        cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
-                                        cmd = "${cmd} -XX:+PrintCompilation"
-                                        cmd = "${cmd} -XX:+LogCompilation"
-                                        cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"h
-                                         */
-
-                                        // flight recorder disabled for now as not compatible with older JDKs
-                                        // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
-                                        cmd = "${cmd} -jar ${app_binary}"
-                                        cmd = "${cmd} > ${WORKSPACE}/app.log &"
-                                        sh(script: "${cmd}")
-                                    }
-
-                                    // we use try/catch here to always capture log files
-                                    try {
-                                        // Foreground the orchestrator script for execution control
-                                        echo 'Starting bandstand client..'
-                                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
-                                            sh(script: ".ci/load/scripts/app.sh")
-                                        }
-                                    } finally {
-                                        echo "Collect results"
-                                        archiveArtifacts(
-                                                artifacts: "*.log,*.jfr,metrics.out",
-                                                allowEmptyArchive: true,
-                                                onlyIfSuccessful: false)
-                                    }
-
+                                // Foreground the orchestrator script for execution control
+                                echo 'Starting bandstand client..'
+                                withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                                    sh(script: ".ci/load/scripts/app.sh")
                                 }
                             } finally {
+                                // always remove configuration so we don't leave user-input
                                 sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
+
+                                // always capture log files
+                                echo "Collect results"
+                                archiveArtifacts(
+                                        artifacts: "*.log,*.jfr,metrics.out",
+                                        allowEmptyArchive: true,
+                                        onlyIfSuccessful: false)
                             }
+
                         }
                     }
                 }
