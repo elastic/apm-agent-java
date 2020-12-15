@@ -220,10 +220,12 @@ pipeline {
                                         cmd = "${cmd} -Xloggc:${WORKSPACE}/gc.log"
 
                                         // compilation log
+                                        /* disabled for now, we should maybe add a pipeline parameter to enable it on-demand
                                         cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
                                         cmd = "${cmd} -XX:+PrintCompilation"
                                         cmd = "${cmd} -XX:+LogCompilation"
-                                        cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"
+                                        cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"h
+                                         */
 
                                         // flight recorder disabled for now as not compatible with older JDKs
                                         // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
