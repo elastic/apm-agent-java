@@ -160,7 +160,7 @@ function tearDown() {
     done
 }
 
-if [ $1 == "stopApp" ]; then
+if [ "${1:-}" == "stopApp" ]; then
   stopApp
   exit 0
 fi
