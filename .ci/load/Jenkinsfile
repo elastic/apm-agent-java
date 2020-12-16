@@ -176,7 +176,7 @@ pipeline {
                         }
 
                         // remove previous log files in workspace (if any)
-                        sh(script: "rm -f ${WORKSPACE}/*.log")
+                        sh(script: "rm -f ${WORKSPACE}/*.log ${WORKSPACE}/*.pid")
 
                         unstash('scripts')
                         unstash('app')
@@ -238,21 +238,22 @@ pipeline {
 
                         }
                     }
+                    post {
+                        always {
+                            // always remove configuration so we don't leave user-input
+                            sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
+
+                            // always capture log files
+                            echo "Collect results and logs"
+                            archiveArtifacts(
+                                    artifacts: "*.log,*.jfr,metrics.out",
+                                    allowEmptyArchive: true,
+                                    onlyIfSuccessful: false)
+                        }
+                    }
                 }
             }
         }
     }
-    post {
-        always {
-            // always remove configuration so we don't leave user-input
-            sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
 
-            // always capture log files
-            echo "Collect results and logs"
-            archiveArtifacts(
-                    artifacts: "*.log,*.jfr,metrics.out",
-                    allowEmptyArchive: true,
-                    onlyIfSuccessful: false)
-        }
-    }
 }
