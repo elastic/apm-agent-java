@@ -39,7 +39,7 @@
 # 3. tar    [https://www.gnu.org/software/tar/]
 # ================================================================
 
-#set -exuo pipefail
+set -euo pipefail
 
 CATALOG_URL="https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64"
 JDK_ID="${1}"
@@ -50,6 +50,12 @@ JDK_JSON="${JDK_FOLDER}/jdk.json"
 mkdir -p "${JDK_FOLDER}"
 
 curl -s "${CATALOG_URL}" | jq ".[] | select(.id==\"${JDK_ID}\")" > "${JDK_JSON}"
+if [ ! -s "${JDK_JSON}" ]
+then
+  echo "unknown JDK ID = ${JDK_ID}"
+  exit 1
+fi
+
 read -d'\n' -r SDK_URL SDK_FILENAME <<<$(jq -Mr '.url, .filename' < "${JDK_JSON}")
 
 JDK_ARCHIVE="${JDK_FOLDER}/${SDK_FILENAME}"
