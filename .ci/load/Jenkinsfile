@@ -246,6 +246,9 @@ pipeline {
                     }
                     post {
                         always {
+                            // stop the running application in case it hasn't been properly stopped
+                            sh(script: ".ci/load/scripts/app.sh stopApp")
+
                             // always remove configuration so we don't leave user-input
                             sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
 

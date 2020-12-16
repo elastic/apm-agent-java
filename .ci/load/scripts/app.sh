@@ -160,6 +160,11 @@ function tearDown() {
     done
 }
 
+if [ $1 == "stopApp" ]; then
+  stopApp
+  exit 0
+fi
+
 if [ ! $DEBUG_MODE ]; then
     trap "tearDown" ERR EXIT
     setUp
