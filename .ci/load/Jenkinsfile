@@ -170,10 +170,7 @@ pipeline {
                     steps {
 
                         // create agent configuration
-                        whenTrue(Boolean.valueOf(params.agent_config)) {
-                            echo 'Writing user-supplied agent configuration'
-                            writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
-                        }
+                        writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
 
                         // remove previous log files in workspace (if any)
                         sh(script: "rm -f ${WORKSPACE}/*.log ${WORKSPACE}/*.pid")
