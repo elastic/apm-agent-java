@@ -182,7 +182,7 @@ pipeline {
                         echo "Starting test application in background.. with JVM = ${params.jvm_version}"
 
                         // force kill any remaining app instance to ensure app can start
-                        sh(script: ".ci/load/scripts/app.sh stopAppForce")
+                        sh(script: ".ci/load/scripts/app.sh stopApp")
 
                         script {
                             echo "start application with JVM options '${params.jvm_options}'"
