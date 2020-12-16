@@ -145,7 +145,7 @@ function checkLoadGenFinish(){
 
 
 function stopApp() {
-    ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'|xargs kill
+    ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'|xargs kill -9
 }
 
 function tearDown() {
@@ -163,10 +163,6 @@ function tearDown() {
 case "${1:-}" in
   stopApp)
     stopApp
-    exit 0
-    ;;
-  stopAppForce)
-    lsof -i :${APP_PORT} | grep LISTEN | awk '{print $2}' | xargs kill -9
     exit 0
     ;;
 esac
