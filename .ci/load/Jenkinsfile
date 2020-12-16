@@ -226,33 +226,33 @@ pipeline {
                             cmd = "${cmd} -jar ${app_binary}"
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
-                            // we use try/catch here to always capture log files
-                            try {
-                                withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
-                                    sh(script: "${cmd}")
-                                }
+                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
+                                sh(script: "${cmd}")
+                            }
 
-                                // Foreground the orchestrator script for execution control
-                                echo 'Starting bandstand client..'
-                                withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
-                                    sh(script: ".ci/load/scripts/app.sh")
-                                }
-                            } finally {
-                                // always remove configuration so we don't leave user-input
-                                sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
-
-                                // always capture log files
-                                echo "Collect results"
-                                archiveArtifacts(
-                                        artifacts: "*.log,*.jfr,metrics.out",
-                                        allowEmptyArchive: true,
-                                        onlyIfSuccessful: false)
+                            // Foreground the orchestrator script for execution control
+                            echo 'Starting bandstand client..'
+                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                                sh(script: ".ci/load/scripts/app.sh")
                             }
 
                         }
                     }
                 }
             }
+        }
+    }
+    post {
+        always {
+            // always remove configuration so we don't leave user-input
+            sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
+
+            // always capture log files
+            echo "Collect results and logs"
+            archiveArtifacts(
+                    artifacts: "*.log,*.jfr,metrics.out",
+                    allowEmptyArchive: true,
+                    onlyIfSuccessful: false)
         }
     }
 }
