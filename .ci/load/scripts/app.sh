@@ -160,15 +160,22 @@ function tearDown() {
     done
 }
 
-if [ "${1:-}" == "stopApp" ]; then
-  stopApp
-  exit 0
-fi
+case "${1:-}" in
+  stopApp)
+    stopApp
+    exit 0
+    ;;
+  stopAppForce)
+    lsof -i :${APP_PORT} | grep LISTEN | awk '{print $2}' | xargs kill -9
+    exit 0
+    ;;
+esac
 
 if [ ! $DEBUG_MODE ]; then
     trap "tearDown" ERR EXIT
     setUp
 fi
+
 waitForApp
 sendAppReady
 waitForLoad
