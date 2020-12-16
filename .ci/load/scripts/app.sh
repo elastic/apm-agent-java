@@ -145,7 +145,9 @@ function checkLoadGenFinish(){
 
 
 function stopApp() {
-    ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'|xargs kill -9
+    for pid in $(ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'); do
+      kill -9 "${pid}"
+    done
 }
 
 function tearDown() {
