@@ -194,6 +194,10 @@ pipeline {
                             cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
                             cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
                             cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
+                            if (is_java7) {
+                                echo "Detected Java 7.x using TLSv1.2"
+                                cmd = "${cmd} -Dhttps.protocols=TLSv1.2"
+                            }
                             cmd = "${cmd} ${params.jvm_options}"
 
                             // Crash reports in case things go wrong
@@ -218,13 +222,8 @@ pipeline {
 
                             def app_binary = "${WORKSPACE}/app.jar"
                             if (is_java7) {
-                                echo "Detected Java 7.x using application packaged as a .war file + force TLSv1.2"
+                                echo "Detected Java 7.x using application packaged as a .war file"
                                 app_binary = "${WORKSPACE}/app.war"
-
-                                // Note that we have to use exactly this value, using '-Dhttps.protocols=TLSv1.1,TLSv1.2'
-                                // does NOT work
-                                cmd = "${cmd} -Dhttps.protocols=TLSv1.2"
-
                             }
 
                             cmd = "${cmd} -jar ${app_binary}"
