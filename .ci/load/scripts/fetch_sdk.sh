@@ -39,7 +39,7 @@
 # 3. tar    [https://www.gnu.org/software/tar/]
 # ================================================================
 
-set -euo pipefail
+#set -euo pipefail
 
 CATALOG_URL="https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64"
 JDK_ID="${1}"
