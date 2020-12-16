@@ -195,6 +195,8 @@ pipeline {
                             cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
                             cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
                             if (is_java7) {
+                                // BOTH properties are REQUIRED here, the cipher suite may be available but not
+                                // enabled by default
                                 echo "Detected Java 7.x using TLSv1.2 + enable cipher suite"
                                 cmd = "${cmd} -Dhttps.protocols=TLSv1.2"
                                 cmd = "${cmd} -Dhttps.cipherSuites=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
