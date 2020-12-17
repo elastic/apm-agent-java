@@ -100,8 +100,22 @@ public class ServletApiAdvice {
                 if (Boolean.TRUE != excluded.get()) {
                     ServletContext servletContext = servletRequest.getServletContext();
                     if (servletContext != null) {
+
+                        // getClassloader might throw UnsupportedOperationException
+                        // see Section 4.4 of the Servlet 3.0 specification
+                        ClassLoader classLoader = null;
+                        try {
+                            ClassLoader servletClassloader = servletContext.getClassLoader();
+                            if (servletClassloader != null) {
+                                classLoader = servletClassloader;
+                            }
+                        } catch (UnsupportedOperationException e) {
+                            // silently ignored
+                        }
+
                         // this makes sure service name discovery also works when attaching at runtime
-                        determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
+                        determineServiceName(servletContext.getServletContextName(), classLoader, servletContext.getContextPath());
+
                     }
 
                     Transaction transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
