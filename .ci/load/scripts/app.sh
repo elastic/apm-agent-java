@@ -19,7 +19,11 @@
 
 set -exuo pipefail 
 
-POLL_FREQ=1
+# polling frequency in seconds
+POLL_FREQ=30
+# application start polling frequency and max retries
+APP_START_POLL_FREQ=5
+APP_START_MAX_RETRIES=4
 
 APP_PORT=8080
 
@@ -71,7 +75,7 @@ function setUp() {
 
 function appIsReady() {
     # Poll the app until it is ready
-    curl -Is http://localhost:$APP_PORT/| head -1|egrep 200
+    curl -Is http://localhost:$APP_PORT/| head -1|grep 200
 }
 
 function sendAppReady() {
@@ -81,46 +85,46 @@ function sendAppReady() {
     \"service\": \"application\", \
     \"hostname\": \""$(hostname -I|cut -f1 -d ' ')"\", \
     \"port\": \"8080\"}" \
-    $ORCH_URL/api/ready 
-    
-    
+    $ORCH_URL/api/ready
+}
+
+function getAppPids() {
+  ps -ef|grep -e 'app\.[wj]ar'|grep -e java|awk '{print $2}'
 }
 
 function waitForApp() {
-    # Wait for the load generation to finish before we kill the app
+    # Wait for the app to start
+    left=${APP_START_MAX_RETRIES}
     while :
     do
         if appIsReady; then 
             break 
         fi
-        sleep $POLL_FREQ;
+        if [[ 0 == "${left}" ]]; then
+          echo "application did not start properly"
+        fi
+        sleep ${APP_START_POLL_FREQ};
+        left=$((left-1))
     done
 }
 
-function waitForLoad() {
+function waitForLoadGenState() {
     # Wait for the load generation to finish before we kill the app
     while :
     do
-        if checkLoadGen; then 
+        if [ '' = "$(getAppPids)" ]; then
+          echo "App JVM is not running anymore, stop polling"
+          break;
+        fi
+        if checkLoadGenState "${1:-ready}"; then
             break 
         fi
         sleep $POLL_FREQ;
     done
 }
 
-function waitForLoadFinish() {
-    # Wait for the load generation to finish before we kill the app
-    while :
-    do
-        if checkLoadGenFinish; then 
-            break 
-        fi
-        sleep $POLL_FREQ;
-    done
-}
-
-
-function checkLoadGen(){
+function checkLoadGenState(){
+    expected_state=${1:-ready}
     # Check to see if the load generation piece is sending requests
     curl -s -X POST -H "Content-Type: application/json" -d \
     "{\"app_token\": \""$APP_TOKEN"\", \
@@ -128,24 +132,12 @@ function checkLoadGen(){
     \"service\": \"load_generation\", \
     \"hostname\": \"test_app\", \
     \"port\": \"8080\"}" \
-    $ORCH_URL/api/poll | jq '.services.load_generation.state' | egrep 'ready'
-}
-
-
-function checkLoadGenFinish(){
-    # Check to see if the load generation piece is sending requests
-    curl -s -X POST -H "Content-Type: application/json" -d \
-    "{\"app_token\": \""$APP_TOKEN"\", \
-    \"session_token\": \""$SESSION_TOKEN"\", \
-    \"service\": \"load_generation\", \
-    \"hostname\": \"test_app\", \
-    \"port\": \"8080\"}" \
-    $ORCH_URL/api/poll | jq '.services.load_generation.state' | egrep 'stopped'
+    $ORCH_URL/api/poll | jq '.services.load_generation.state' | grep "${expected_state}"
 }
 
 
 function stopApp() {
-    for pid in $(ps -ef|egrep 'app\.[wj]ar'|egrep java|awk '{print $2}'); do
+    for pid in $(getAppPids); do
       kill -9 "${pid}"
     done
 }
@@ -176,6 +168,6 @@ fi
 
 waitForApp
 sendAppReady
-waitForLoad
-waitForLoadFinish
+waitForLoadGenState 'ready'
+waitForLoadGenState 'stopped'
 stopApp
