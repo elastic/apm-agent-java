@@ -170,4 +170,18 @@ waitForApp
 sendAppReady
 waitForLoadGenState 'ready'
 waitForLoadGenState 'stopped'
-stopApp
+
+if [ '' = "$(getAppPids)" ]; then
+  echo "abnormal application stop detected, stop load injection"
+  # application crashed or stopped before we intentionally stopped it
+  # end the load injection
+    curl -s -X POST -H "Content-Type: application/json" -d \
+    "{\"app_token\": \""$APP_TOKEN"\", \
+    \"session_token\": \""$SESSION_TOKEN"\", \
+    \"service\": \"load_generation\", \
+    \"hostname\": \"test_app\", \
+    \"port\": \"8080\"}" \
+    $ORCH_URL/api/stop
+else
+      stopApp
+fi
