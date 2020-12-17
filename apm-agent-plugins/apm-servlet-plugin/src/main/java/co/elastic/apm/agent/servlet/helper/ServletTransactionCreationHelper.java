@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
@@ -54,7 +55,8 @@ public class ServletTransactionCreationHelper {
         // only create a transaction if there is not already one
         if (tracer.currentTransaction() == null &&
             !isExcluded(request.getServletPath(), request.getPathInfo(), request.getHeader("User-Agent"))) {
-            transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), request.getServletContext().getClassLoader());
+            ClassLoader cl = getClassloader(request.getServletContext());
+            transaction = tracer.startChildTransaction(request, ServletRequestHeaderGetter.getInstance(), cl);
             if (transaction != null) {
                 transaction.activate();
             }
@@ -79,5 +81,18 @@ public class ServletTransactionCreationHelper {
                 servletPath, pathInfo, userAgentHeader);
         }
         return isExcluded;
+    }
+
+    @Nullable
+    public ClassLoader getClassloader(ServletContext servletContext){
+        // getClassloader might throw UnsupportedOperationException
+        // see Section 4.4 of the Servlet 3.0 specification
+        ClassLoader classLoader = null;
+        try {
+            return servletContext.getClassLoader();
+        } catch (UnsupportedOperationException e) {
+            // silently ignored
+            return null;
+        }
     }
 }
