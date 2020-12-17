@@ -14,7 +14,7 @@ pipeline {
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
-    MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
+    MAVEN_CONFIG = '-Dmaven.repo.local=.m2 -s .ci/settings.xml -Pci'
     OPBEANS_REPO = 'opbeans-java'
   }
   options {
