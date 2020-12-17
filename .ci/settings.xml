@@ -35,7 +35,7 @@
                 <repository>
                     <id>jcenter</id>
                     <name>jcenter mirror</name>
-                    <url>https://jcenter.bintray.com/maven/</url>
+                    <url>https://jcenter.bintray.com</url>
                     <layout>default</layout>
                 </repository>
             </repositories>
