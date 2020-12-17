@@ -197,6 +197,7 @@ pipeline {
                             cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
                             cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
                             cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
+                            cmd = "${cmd} -Delastic.apm.service_name=load-testing"
                             cmd = "${cmd} -Delastic.apm.global_labels=build_number=${env.BUILD_NUMBER}"
                             if (is_java7) {
                                 // BOTH properties are REQUIRED here, the cipher suite may be available but not
