@@ -209,7 +209,8 @@ pipeline {
                             cmd = "${cmd} ${params.jvm_options}"
 
                             // Crash reports in case things go wrong
-                            cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid.log"
+                            // keep PID in file, as it won't be overwritten if file exists
+                            cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid%p.log"
 
                             // GC log
                             cmd = "${cmd} -XX:+PrintGCDetails"
