@@ -74,6 +74,8 @@ then
 
 fi
 
+set -x
+
 # JDK is stored within a sub-folder
 SUB_FOLDER="$(find "${JDK_FOLDER}" -maxdepth 1 -mindepth 1 -type d)"
 if [[ ! -d "${SUB_FOLDER}" ]]
