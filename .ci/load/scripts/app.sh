@@ -17,7 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-set -exuo pipefail 
+set -euo pipefail
 
 # polling frequency in seconds
 POLL_FREQ=30
@@ -102,6 +102,7 @@ function waitForApp() {
         fi
         if [[ 0 == "${left}" ]]; then
           echo "application did not start properly"
+          exit 1
         fi
         sleep ${APP_START_POLL_FREQ};
         left=$((left-1))
@@ -172,16 +173,20 @@ waitForLoadGenState 'ready'
 waitForLoadGenState 'stopped'
 
 if [ '' = "$(getAppPids)" ]; then
-  echo "abnormal application stop detected, stop load injection"
-  # application crashed or stopped before we intentionally stopped it
-  # end the load injection
+    echo "abnormal application termination detected, stop load injection"
+
+    # application crashed or stopped before we intentionally stopped it
+    # (try to) end the load injection
     curl -s -X POST -H "Content-Type: application/json" -d \
-    "{\"app_token\": \""$APP_TOKEN"\", \
-    \"session_token\": \""$SESSION_TOKEN"\", \
-    \"service\": \"load_generation\", \
-    \"hostname\": \"test_app\", \
-    \"port\": \"8080\"}" \
-    $ORCH_URL/api/stop
+        "{\"app_token\": \""$APP_TOKEN"\", \
+        \"session_token\": \""$SESSION_TOKEN"\", \
+        \"service\": \"load_generation\", \
+        \"hostname\": \"test_app\", \
+        \"port\": \"8080\"}" \
+        $ORCH_URL/api/stop
+
+    # will mark the build step as failed
+    exit 2
 else
-      stopApp
+    stopApp
 fi
