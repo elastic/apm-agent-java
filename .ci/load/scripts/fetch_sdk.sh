@@ -67,7 +67,7 @@ then
   curl -s -o "${JDK_ARCHIVE}" "${SDK_URL}"
   if [ "${JDK_ARCHIVE: -4}" == ".zip" ]
   then
-      unzip "${JDK_ARCHIVE}" -d "${JDK_FOLDER}"
+      unzip -qq "${JDK_ARCHIVE}" -d "${JDK_FOLDER}"
   else
       tar xfz "${JDK_ARCHIVE}" -C "${JDK_FOLDER}"
   fi
