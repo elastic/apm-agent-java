@@ -75,4 +75,9 @@ then
 fi
 
 # JDK is stored within a sub-folder
-find "${JDK_FOLDER}" -maxdepth 1 -mindepth 1 -type d
+SUB_FOLDER="$(find "${JDK_FOLDER}" -maxdepth 1 -mindepth 1 -type d)"
+if [[ ! -d ${SUB_FOLDER} ]]
+then
+  echo "JDK sub-folder not found in ${JDK_FOLDER}"
+  exit 2
+fi
