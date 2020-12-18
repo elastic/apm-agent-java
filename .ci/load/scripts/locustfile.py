@@ -18,7 +18,7 @@ class QuickstartUser(HttpUser):
         with self.client.get("/oups", catch_response=True) as response:
             if response.status_code == 500:
                 response.success()
-            else
+            else:
                 response.failure()
 
 @events.quitting.add_listener
