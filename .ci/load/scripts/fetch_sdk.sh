@@ -65,7 +65,13 @@ JDK_ARCHIVE="${JDK_FOLDER}/${SDK_FILENAME}"
 if [[ ! -f "${JDK_ARCHIVE}" ]]
 then
   curl -s -o "${JDK_ARCHIVE}" "${SDK_URL}"
-  tar xfz "${JDK_ARCHIVE}" -C "${JDK_FOLDER}"
+  if [ "${JDK_ARCHIVE: -4}" == ".zip" ]
+  then
+      unzip "${JDK_ARCHIVE}" -d "${JDK_FOLDER}"
+  else
+      tar xfz "${JDK_ARCHIVE}" -C "${JDK_FOLDER}"
+  fi
+
 fi
 
 # JDK is stored within a sub-folder
