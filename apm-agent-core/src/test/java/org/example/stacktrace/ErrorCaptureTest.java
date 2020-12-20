@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,8 +27,10 @@ package org.example.stacktrace;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -82,4 +84,34 @@ class ErrorCaptureTest {
         }
     }
 
+    @Test
+    void testTransactionContextTransfer() {
+        final Transaction transaction = new Transaction(tracer);
+        Request transactionRequest = transaction.getContext().getRequest()
+            .withMethod("GET")
+            .addHeader("key", "value");
+        transactionRequest.withBodyBuffer().append("TEST");
+        transactionRequest.endOfBufferInput();
+        final ErrorCapture errorCapture = new ErrorCapture(tracer).asChildOf(transaction);
+        Request errorRequest = errorCapture.getContext().getRequest();
+        assertThat(errorRequest.getMethod()).isEqualTo("GET");
+        assertThat(errorRequest.getHeaders().get("key")).isEqualTo("value");
+        assertThat((Object)errorRequest.getBodyBufferForSerialization()).isNotNull();
+        assertThat(errorRequest.getBodyBufferForSerialization().toString()).isEqualTo("TEST");
+    }
+
+    @Test
+    void testTransactionContextTransferNonFinishedBody() {
+        final Transaction transaction = new Transaction(tracer);
+        Request transactionRequest = transaction.getContext().getRequest()
+            .withMethod("GET")
+            .addHeader("key", "value");
+        transactionRequest.withBodyBuffer().append("TEST");
+        final ErrorCapture errorCapture = new ErrorCapture(tracer).asChildOf(transaction);
+        Request errorRequest = errorCapture.getContext().getRequest();
+        assertThat(errorRequest.getMethod()).isEqualTo("GET");
+        assertThat(errorRequest.getHeaders().get("key")).isEqualTo("value");
+        // Since body capturing was not finished, we shouldn't copy it to the error capture
+        assertThat((Object)errorRequest.getBodyBufferForSerialization()).isNull();
+    }
 }
