@@ -1,0 +1,113 @@
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+         http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         version="3.0">
+    <display-name>Simple Web App</display-name>
+
+    <servlet>
+        <servlet-name>TestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.TestServlet</servlet-class>
+        <!--initializes servlet eagerly so that the db initialization is not part of the transaction-->
+        <load-on-startup>0</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TestServlet</servlet-name>
+        <url-pattern>/servlet</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>AsyncDispatchServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.AsyncDispatchTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AsyncDispatchServlet</servlet-name>
+        <url-pattern>/async-dispatch-servlet</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>AsyncStartServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.AsyncStartTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AsyncStartServlet</servlet-name>
+        <url-pattern>/async-start-servlet</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ExecutorServiceTestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ExecutorServiceTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ExecutorServiceTestServlet</servlet-name>
+        <url-pattern>/executor-service-servlet</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>HttpUrlConnectionTestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.HttpUrlConnectionTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>HttpUrlConnectionTestServlet</servlet-name>
+        <url-pattern>/http-url-connection</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>EchoServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.EchoServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>EchoServlet</servlet-name>
+        <url-pattern>/echo</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ExecuteCmdServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ExecuteCmdServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ExecuteCmdServlet</servlet-name>
+        <url-pattern>/execute-cmd-servlet</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ForwardingServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ForwardingServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ForwardingServlet</servlet-name>
+        <url-pattern>/forward</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>IncludingServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.IncludingServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>IncludingServlet</servlet-name>
+        <url-pattern>/include</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>TestApiServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.TestApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TestApiServlet</servlet-name>
+        <url-pattern>/test-public-api</url-pattern>
+    </servlet-mapping>
+
+</web-app>

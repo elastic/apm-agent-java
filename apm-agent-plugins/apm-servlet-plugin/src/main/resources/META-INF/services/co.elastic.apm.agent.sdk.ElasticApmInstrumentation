@@ -5,3 +5,10 @@ co.elastic.apm.agent.servlet.FilterChainInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation
 co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation
+co.elastic.apm.agent.servlet.JakartaEEServletInstrumentation
+co.elastic.apm.agent.servlet.JakartaEEServletVersionInstrumentation$Init
+co.elastic.apm.agent.servlet.JakartaEEServletVersionInstrumentation$Service
+co.elastic.apm.agent.servlet.JakartaEEFilterChainInstrumentation
+co.elastic.apm.agent.servlet.JakartaEEAsyncInstrumentation$StartAsyncInstrumentation
+co.elastic.apm.agent.servlet.JakartaEEAsyncInstrumentation$AsyncContextInstrumentation
+co.elastic.apm.agent.servlet.JakartaEERequestStreamRecordingInstrumentation
