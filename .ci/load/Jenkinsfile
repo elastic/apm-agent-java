@@ -36,6 +36,9 @@ pipeline {
         text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")
         booleanParam(name: "local_metrics", description: "Enable local metrics collection?", defaultValue: false)
         booleanParam(name: "ignore_application_errors", description: "Instruct the load generator to ignore non-2xx errors on exit", defaultValue: true)
+        booleanParam(name: "log_compilation", description: "Enable JIT compilation debug (verbose)", defaultValue: false)
+        booleanParam(name: "jfr", description: "Enable Java Flight Recorder (not supported by all JVMs)", defaultValue: false)
+        booleanParam(name: "attach_agent", description: "Attach APM agent, set to 'false' to disable agent completely", defaultValue: true)
     }
     stages {
         stage('Pre-flight') {
@@ -194,11 +197,15 @@ pipeline {
                             sh(script: "${java_home}/bin/java -version");
 
                             def cmd = "${java_home}/bin/java "
-                            cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
-                            cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
-                            cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
-                            cmd = "${cmd} -Delastic.apm.service_name=load-testing"
-                            cmd = "${cmd} -Delastic.apm.global_labels=build_number=${env.BUILD_NUMBER}"
+
+                            if (params.attach_agent) {
+                                cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
+                                cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
+                                cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
+                                cmd = "${cmd} -Delastic.apm.service_name=load-testing"
+                                cmd = "${cmd} -Delastic.apm.global_labels=build_number=${env.BUILD_NUMBER}"
+                            }
+
                             if (is_java7) {
                                 // BOTH properties are REQUIRED here, the cipher suite may be available but not
                                 // enabled by default
@@ -219,15 +226,17 @@ pipeline {
                             cmd = "${cmd} -Xloggc:${WORKSPACE}/gc.log"
 
                             // compilation log
-                            /* disabled for now, we should maybe add a pipeline parameter to enable it on-demand
-                            cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
-                            cmd = "${cmd} -XX:+PrintCompilation"
-                            cmd = "${cmd} -XX:+LogCompilation"
-                            cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"h
-                             */
+                            if (params.log_compilation) {
+                                cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
+                                cmd = "${cmd} -XX:+LogCompilation"
+                                cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"
+                            }
 
-                            // flight recorder disabled for now as not compatible with older JDKs
-                            // cmd = "${cmd} -XX:+FlightRecorder -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
+                            // flight recorder is not supported on all JDKs
+                            if(params.jfr) {
+                                cmd = "${cmd} -XX:+FlightRecorder"
+                                cmd = "${cmd} -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
+                            }
 
                             def app_binary = "${WORKSPACE}/app.jar"
                             if (is_java7) {
