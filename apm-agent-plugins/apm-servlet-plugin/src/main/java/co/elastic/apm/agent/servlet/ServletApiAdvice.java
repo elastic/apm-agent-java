@@ -100,9 +100,9 @@ public class ServletApiAdvice {
                 if (Boolean.TRUE != excluded.get()) {
                     ServletContext servletContext = servletRequest.getServletContext();
                     if (servletContext != null) {
-                        ClassLoader cl = servletTransactionCreationHelper.getClassloader(servletContext);
+                        ClassLoader servletCL = servletTransactionCreationHelper.getClassloader(servletContext);
                         // this makes sure service name discovery also works when attaching at runtime
-                        determineServiceName(servletContext.getServletContextName(), cl, servletContext.getContextPath());
+                        determineServiceName(servletContext.getServletContextName(), servletCL, servletContext.getContextPath());
 
                     }
 
