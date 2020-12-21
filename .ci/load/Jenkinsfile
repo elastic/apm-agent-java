@@ -54,6 +54,12 @@ pipeline {
         }
         stage('Build agent') {
             agent { label 'benchmarks' }
+            when {
+                expression {
+                    // when not using agent, building is not required
+                    return params.attach_agent
+                }
+            }
             steps {
                 echo 'Checking out master branch'
                 gitCheckout(
@@ -180,7 +186,6 @@ pipeline {
 
                         unstash('scripts')
                         unstash('app')
-                        unstash('agent')
 
                         echo "Starting test application in background.. with JVM = ${params.jvm_version}"
 
@@ -199,6 +204,8 @@ pipeline {
                             def cmd = "${java_home}/bin/java "
 
                             if (params.attach_agent) {
+                                unstash('agent')
+
                                 cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
                                 cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
                                 cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
