@@ -26,15 +26,14 @@ endif::[]
 [float]
 ===== Breaking changes
 * The following public API types were `public` so far and became package-private: `NoopScope`, `ScopeImpl` and `AbstractSpanImpl`.
-If your code is using them, you will need to change that when upgrading to this version.
-Related PR: {pull}1532[#1532]
+  If your code is using them, you will need to change that when upgrading to this version.
+  Related PR: {pull}1532[#1532]
 
 [float]
 ===== Features
 
 [float]
 ===== Bug fixes
-
 * Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
 * Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[#1531]
 * Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[#1537]
@@ -45,7 +44,6 @@ Related PR: {pull}1532[#1532]
 
 [float]
 ===== Refactors
-
 * Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
 
 [[release-notes-1.x]]
