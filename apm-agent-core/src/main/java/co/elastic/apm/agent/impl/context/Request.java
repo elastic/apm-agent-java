@@ -193,10 +193,11 @@ public class Request implements Recyclable {
 
     /**
      * Returns the body buffer if it was written to and writing to it was finished through {@link Request#endOfBufferInput()}
+     *
      * @return body buffer if it was written to and writing was finished; returns {@code null} otherwise.
      */
     @Nullable
-    public CharBuffer getBodyBufferForSerialization() {
+    public CharSequence getBodyBufferForSerialization() {
         if (bodyBufferFinished) {
             return bodyBuffer;
         } else {
@@ -320,7 +321,7 @@ public class Request implements Recyclable {
         this.url.copyFrom(other.url);
         this.cookies.copyFrom(other.cookies);
         // Using getBodyBufferForSerialization to make sure we copy body buffer only if it was written to and writing was finished
-        final CharBuffer otherBuffer = other.getBodyBufferForSerialization();
+        final CharSequence otherBuffer = other.getBodyBufferForSerialization();
         if (otherBuffer != null) {
             final CharBuffer thisBuffer = this.withBodyBuffer();
             for (int i = 0; i < otherBuffer.length(); i++) {

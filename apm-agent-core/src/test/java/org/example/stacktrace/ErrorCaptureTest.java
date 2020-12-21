@@ -96,7 +96,7 @@ class ErrorCaptureTest {
         Request errorRequest = errorCapture.getContext().getRequest();
         assertThat(errorRequest.getMethod()).isEqualTo("GET");
         assertThat(errorRequest.getHeaders().get("key")).isEqualTo("value");
-        assertThat((Object)errorRequest.getBodyBufferForSerialization()).isNotNull();
+        assertThat(errorRequest.getBodyBufferForSerialization()).isNotNull();
         assertThat(errorRequest.getBodyBufferForSerialization().toString()).isEqualTo("TEST");
     }
 
@@ -111,7 +111,8 @@ class ErrorCaptureTest {
         Request errorRequest = errorCapture.getContext().getRequest();
         assertThat(errorRequest.getMethod()).isEqualTo("GET");
         assertThat(errorRequest.getHeaders().get("key")).isEqualTo("value");
-        // Since body capturing was not finished, we shouldn't copy it to the error capture
-        assertThat((Object)errorRequest.getBodyBufferForSerialization()).isNull();
+        assertThat(errorRequest.getBodyBufferForSerialization())
+            .describedAs("Body buffer should be null when copying from a transaction where capturing was not finished yet")
+            .isNull();
     }
 }
