@@ -646,6 +646,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         boolean topMostElasticApmPackagesSkipped = false;
         int collectedStackFrames = 0;
         int stackTraceLimit = stacktraceConfiguration.getStackTraceLimit();
+        if (stackTraceLimit < 0) {
+            stackTraceLimit = stacktrace.length;
+        }
         for (int i = 0; i < stacktrace.length && collectedStackFrames < stackTraceLimit; i++) {
             StackTraceElement stackTraceElement = stacktrace[i];
             // only skip the top most apm stack frames

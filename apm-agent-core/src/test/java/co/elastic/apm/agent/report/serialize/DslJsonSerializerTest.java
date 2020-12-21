@@ -148,6 +148,21 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testErrorSerializationAllFrames() {
+        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(-1);
+        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient);
+
+        ErrorCapture error = new ErrorCapture(MockTracer.create()).withTimestamp(5000);
+        Exception exception = new Exception("test");
+        error.setException(exception);
+
+        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+        JsonNode stacktrace = checkException(errorTree.get("exception"), Exception.class, "test").get("stacktrace");
+        assertThat(stacktrace).hasSizeGreaterThan(15);
+    }
+
+    @Test
     void testErrorSerializationWithEmptyTraceId() {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
