@@ -19,4 +19,4 @@ class QuickstartUser(HttpUser):
             if response.status_code == 500:
                 response.success()
             else:
-                response.failure()
+                response.failure('unexpected status code = {}'.format(response.status_code))
