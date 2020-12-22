@@ -371,7 +371,12 @@ has been returned.
 For RabbitMQ:
 
 - `context.message.queue.name` field will contain queue name when using polling, exchange name otherwise.
-- `context.message.destination.resource` field will contain `rabbitmq` for the default exchange and `rabbitmq/XXX` for named exchanges
+- `context.message.destination.resource` field will contain `rabbitmq/XXX` where `XXX` is exchange name.
+
+Some exchange/queue names are normalized in order to keep low cardinality and user-friendlyness
+- default exchange is indicated with `<default>`.
+- `null` exchange is normalized to `<unknown>`, for example when polling without a message.
+- generated queues whose name start with `amq.gen-` are normalized to `amq.gen-*`.
 
 [float]
 [[supported-scheduling-frameworks]]
