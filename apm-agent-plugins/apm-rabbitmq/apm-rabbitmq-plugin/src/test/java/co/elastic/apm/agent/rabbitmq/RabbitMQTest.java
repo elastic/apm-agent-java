@@ -289,11 +289,11 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testPollingWithinTransaction() throws IOException {
+    void testPollingWithinTransactionNoMessage() throws IOException {
         Channel channel = connection.createChannel();
         String exchange = createExchange(channel, "exchange");
 
-        String queueName = randString("queue-");
+        String queueName = randString("queue");
 
         pollingTest(true, false, () -> declareAndBindQueue(queueName, exchange, channel), exchange);
 
@@ -301,8 +301,25 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         reporter.awaitSpanCount(1);
 
         Span pollingSpan = reporter.getFirstSpan();
-        checkPollSpan(pollingSpan, queueName);
+        checkPollSpan(pollingSpan, queueName, "<unknown>");
     }
+
+    @Test
+    void testPollingWithinTransactionGetMessage() throws IOException {
+        Channel channel = connection.createChannel();
+        String exchange = createExchange(channel, "exchange");
+
+        String queueName = randString("queue");
+
+        pollingTest(true, true, () -> declareAndBindQueue(queueName, exchange, channel), exchange);
+
+        reporter.awaitTransactionCount(1);
+        reporter.awaitSpanCount(1);
+
+        Span pollingSpan = reporter.getFirstSpan();
+        checkPollSpan(pollingSpan, queueName, exchange);
+    }
+
 
     @Test
     void testPollingOutsideTransaction() throws IOException {
@@ -631,21 +648,21 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     }
 
     private static void checkSendSpan(Span span, String exchange) {
-        String expectedResource = exchange.isEmpty() ? "rabbitmq" : String.format("rabbitmq/%s", exchange);
+        String exchangeName = exchange.isEmpty() ? "<default>" : exchange;
         checkSpanCommon(span,
             "send",
-            String.format("RabbitMQ SEND to %s", exchange.isEmpty() ? "<default>" : exchange),
-            exchange,
-            expectedResource);
+            String.format("RabbitMQ SEND to %s", exchangeName),
+            exchangeName,
+            String.format("rabbitmq/%s", exchangeName));
 
     }
 
-    private static void checkPollSpan(Span span, String queue){
+    private static void checkPollSpan(Span span, String queue, String normalizedExchange){
         checkSpanCommon(span,
             "poll",
             String.format("RabbitMQ POLL from %s", queue),
             queue,
-            "rabbitmq");
+            String.format("rabbitmq/%s", normalizedExchange));
     }
 
     private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName, String expectedResource){

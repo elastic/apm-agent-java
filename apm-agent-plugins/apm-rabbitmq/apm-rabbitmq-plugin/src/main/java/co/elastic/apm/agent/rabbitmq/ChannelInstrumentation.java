@@ -65,10 +65,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  */
 public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
-    public ChannelInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameStartsWith("com.rabbitmq.client")
@@ -97,10 +93,6 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
         public static final Collection<Class<? extends ElasticApmInstrumentation>> CONSUMER_INSTRUMENTATION =
             Collections.<Class<? extends ElasticApmInstrumentation>>singleton(ConsumerInstrumentation.class);
 
-        public BasicConsume(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("basicConsume")
@@ -127,10 +119,6 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
      */
     public static class BasicPublish extends ChannelInstrumentation {
 
-        public BasicPublish(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("basicPublish")
@@ -153,8 +141,10 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
                 return null;
             }
 
+            exchange = normalizeExchangeName(exchange);
+
             exitSpan.withAction("send")
-                .withName("RabbitMQ SEND to ").appendToName(normalizeExchangeName(exchange));
+                .withName("RabbitMQ SEND to ").appendToName(exchange);
 
             properties = propagateTraceContext(exitSpan, properties);
 
@@ -203,10 +193,6 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
      */
     public static class BasicGet extends ChannelInstrumentation {
 
-        public BasicGet(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("basicGet")
@@ -252,14 +238,15 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
                 properties = rv.getProps();
             }
 
-            String exchange = "";
+            String exchange = null != envelope ? envelope.getExchange() : null;
 
-            if (null != envelope) {
-                // since exchange name is only known when receiving the message, we might have to discard it
-                if (isIgnored(envelope.getExchange())) {
-                    span.requestDiscarding();
-                }
+            // since exchange name is only known when receiving the message, we might have to discard it
+            // also, using normalized name allows to ignore it otherwise it might be an empty string
+            exchange = normalizeExchangeName(exchange);
+            if (isIgnored(exchange)) {
+                span.requestDiscarding();
             }
+
             captureMessage(queue, properties, span);
             captureDestination(exchange, channel, span);
 
@@ -291,6 +278,13 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             .withSubtype("rabbitmq");
     }
 
+    /**
+     * Updates span destination
+     *
+     * @param exchange normalized exchange name
+     * @param channel  channel
+     * @param span     span
+     */
     private static void captureDestination(String exchange, Channel channel, Span span) {
         Destination destination = span.getContext().getDestination();
 
@@ -299,10 +293,8 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
             .withName("rabbitmq")
             .withResource("rabbitmq");
 
-        if (!exchange.isEmpty()) {
-            // include non-default exchange name in resource
-            service.getResource().append("/").append(exchange);
-        }
+
+        service.getResource().append("/").append(exchange);
 
         Connection connection = channel.getConnection();
         destination.withAddress(connection.getAddress().getHostName());

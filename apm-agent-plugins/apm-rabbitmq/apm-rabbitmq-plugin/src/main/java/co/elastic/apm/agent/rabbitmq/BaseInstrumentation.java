@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -41,13 +42,8 @@ import java.util.Map;
 
 public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
 
-    private static CoreConfiguration coreConfiguration;
-    private static MessagingConfiguration messagingConfiguration;
-
-    public BaseInstrumentation(ElasticApmTracer tracer) {
-        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
-        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
-    }
+    private static final CoreConfiguration coreConfiguration = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
+    private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -70,6 +66,14 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return !WildcardMatcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
     }
 
+    /**
+     * Captures que name and optional timestamp
+     *
+     * @param queueOrExchange queue or exchange name to use in message.queue.name
+     * @param properties      properties (if any)
+     * @param context         span/transaction context
+     * @return captured message
+     */
     protected static Message captureMessage(String queueOrExchange, @Nullable AMQP.BasicProperties properties, AbstractSpan<?> context) {
         return context.getContext().getMessage()
             .withQueue(queueOrExchange)

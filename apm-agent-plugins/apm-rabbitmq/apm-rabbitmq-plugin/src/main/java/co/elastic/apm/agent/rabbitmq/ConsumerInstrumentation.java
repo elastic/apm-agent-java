@@ -52,10 +52,6 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  */
 public class ConsumerInstrumentation extends BaseInstrumentation {
 
-    public ConsumerInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         // Instrumentation applied at runtime, thus no need to check type
