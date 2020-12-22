@@ -24,15 +24,27 @@ endif::[]
 ==== 1.19.1 - YYYY/MM/DD
 
 [float]
+===== Breaking changes
+* The following public API types were `public` so far and became package-private: `NoopScope`, `ScopeImpl` and `AbstractSpanImpl`.
+  If your code is using them, you will need to change that when upgrading to this version.
+  Related PR: {pull}1532[#1532]
+
+[float]
 ===== Features
 * Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
 ===== Bug fixes
+* Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
+* Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[#1531]
+* Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[#1537]
+* Fix `ClassNotFoundError` with old versions of Spring resttemplate {pull}1524[#1524]
+* Fix Micrometer-driven metrics validation errors by the APM Server when sending with illegal values - {pull}1559[#1559]
+* Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
 
 [float]
 ===== Refactors
-* Migrate some plugins to indy dispatcher {pull}1405[1405]
+* Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

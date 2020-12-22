@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.dslplatform.json.JsonWriter.COMMA;
@@ -96,46 +95,27 @@ public class MicrometerMeterRegistrySerializer {
                 for (int i = 0, size = meters.size(); i < size; i++) {
                     Meter meter = meters.get(i);
                     if (meter instanceof Timer) {
-                        if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         Timer timer = (Timer) meter;
-                        serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS));
-                        hasValue = true;
+                        hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
                     } else if (meter instanceof FunctionTimer) {
-                        if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         FunctionTimer timer = (FunctionTimer) meter;
-                        serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS));
-                        hasValue = true;
+                        hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
                     } else if (meter instanceof LongTaskTimer) {
-                        if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         LongTaskTimer timer = (LongTaskTimer) meter;
-                        serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS));
-                        hasValue = true;
+                        hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue);
                     } else if (meter instanceof DistributionSummary) {
-                        if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         DistributionSummary timer = (DistributionSummary) meter;
-                        serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount());
-                        hasValue = true;
+                        hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue);
                     } else if (meter instanceof Gauge) {
                         Gauge gauge = (Gauge) meter;
-
-                        // gauge values can be Double.NaN or +/-Infinite
-                        double value = gauge.value();
-                        if (isValidValue(value)) {
-                            if (hasValue) jw.writeByte(JsonWriter.COMMA);
-                            serializeValue(gauge.getId(), value, jw);
-                            hasValue = true;
-                        }
+                        hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw);
 
                     } else if (meter instanceof Counter) {
-                        if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         Counter counter = (Counter) meter;
-                        serializeValue(counter.getId(), counter.count(), jw);
-                        hasValue = true;
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
                     } else if (meter instanceof FunctionCounter) {
-                        if (hasValue) jw.writeByte(JsonWriter.COMMA);
                         FunctionCounter counter = (FunctionCounter) meter;
-                        serializeValue(counter.getId(), counter.count(), jw);
-                        hasValue = true;
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
                     }
                 }
                 jw.writeByte(JsonWriter.OBJECT_END);
@@ -164,16 +144,46 @@ public class MicrometerMeterRegistrySerializer {
         jw.writeByte(COMMA);
     }
 
-    private static void serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime) {
-        serializeValue(id, ".count", count, jw);
-        jw.writeByte(JsonWriter.COMMA);
-        serializeValue(id, ".sum.us", totalTime, jw);
+    /**
+     * Conditionally serializes a {@link Timer} if the total time is valid, i.e. neither Double.NaN nor +/-Infinite
+     *
+     * @param jw        writer
+     * @param id        meter ID
+     * @param count     count
+     * @param totalTime total time
+     * @param hasValue  whether a value has already been written
+     * @return true if a value has been written before, including this one; false otherwise
+     */
+    private static boolean serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime, boolean hasValue) {
+        if (isValidValue(totalTime)) {
+            if (hasValue) jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".count", count, jw);
+            jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".sum.us", totalTime, jw);
+            return true;
+        }
+        return hasValue;
     }
 
-    private static void serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalTime) {
-        serializeValue(id, ".count", count, jw);
-        jw.writeByte(JsonWriter.COMMA);
-        serializeValue(id, ".sum", totalTime, jw);
+    /**
+     * Conditionally serializes a {@link DistributionSummary} if the total amount is valid, i.e. neither Double.NaN nor +/-Infinite
+     *
+     * @param jw          writer
+     * @param id          meter ID
+     * @param count       count
+     * @param totalAmount total amount of recorded events
+     * @param hasValue    whether a value has already been written
+     * @return true if a value has been written before, including this one; false otherwise
+     */
+    private static boolean serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalAmount, boolean hasValue) {
+        if (isValidValue(totalAmount)) {
+            if (hasValue) jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".count", count, jw);
+            jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".sum", totalAmount, jw);
+            return true;
+        }
+        return hasValue;
     }
 
     private static void serializeValue(Meter.Id id, String suffix, long value, JsonWriter jw) {
@@ -182,8 +192,22 @@ public class MicrometerMeterRegistrySerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeValue(Meter.Id id, double value, JsonWriter jw) {
-        serializeValue(id, "", value, jw);
+    /**
+     * Conditionally serializes a {@code double} value if the value is valid, i.e. neither Double.NaN nor +/-Infinite
+     *
+     * @param id       meter ID
+     * @param value    meter value
+     * @param hasValue whether a value has already been written
+     * @param jw       writer
+     * @return true if a value has been written before, including this one; false otherwise
+     */
+    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, JsonWriter jw) {
+        if (isValidValue(value)) {
+            if (hasValue) jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, "", value, jw);
+            return true;
+        }
+        return hasValue;
     }
 
     private static void serializeValue(Meter.Id id, String suffix, double value, JsonWriter jw) {

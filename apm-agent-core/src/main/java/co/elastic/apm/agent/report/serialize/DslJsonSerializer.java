@@ -522,12 +522,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeHexField("id", traceContext.getId());
         if (!traceContext.getTraceId().isEmpty()) {
             writeHexField("trace_id", traceContext.getTraceId());
-        }
-        if (serializeTransactionId && !traceContext.getTransactionId().isEmpty()) {
-            writeHexField("transaction_id", traceContext.getTransactionId());
-        }
-        if (!traceContext.getParentId().isEmpty()) {
-            writeHexField("parent_id", traceContext.getParentId());
+            // transaction_id and parent_id may only be sent alongside a valid trace_id
+            if (serializeTransactionId && !traceContext.getTransactionId().isEmpty()) {
+                writeHexField("transaction_id", traceContext.getTransactionId());
+            }
+            if (!traceContext.getParentId().isEmpty()) {
+                writeHexField("parent_id", traceContext.getParentId());
+            }
         }
     }
 
@@ -645,6 +646,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         boolean topMostElasticApmPackagesSkipped = false;
         int collectedStackFrames = 0;
         int stackTraceLimit = stacktraceConfiguration.getStackTraceLimit();
+        if (stackTraceLimit < 0) {
+            stackTraceLimit = stacktrace.length;
+        }
         for (int i = 0; i < stacktrace.length && collectedStackFrames < stackTraceLimit; i++) {
             StackTraceElement stackTraceElement = stacktrace[i];
             // only skip the top most apm stack frames

@@ -37,7 +37,7 @@
         <dependency>
             <groupId>org.jctools</groupId>
             <artifactId>jctools-core</artifactId>
-            <version>2.1.2</version>
+            <version>3.1.0</version>
         </dependency>
 
         <dependency>
@@ -53,7 +53,7 @@
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j2-ecs-layout</artifactId>
-            <version>0.3.0</version>
+            <version>0.5.2</version>
         </dependency>
 
         <dependency>

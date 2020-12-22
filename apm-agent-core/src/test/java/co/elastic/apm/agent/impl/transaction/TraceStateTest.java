@@ -75,7 +75,7 @@ class TraceStateTest {
         "17|one=two_three=four,five=six,seven=eight_nine=ten,eleven-twelve|one=two,nine=ten", // just fits
     })
     void sizeLimit(int limit, String headers, @Nullable String expected) {
-        Function<String,String> replaceSpaces = s -> s == null ? null : s.replace('X', ' ');
+        Function<String, String> replaceSpaces = s -> s == null ? null : s.replace('X', ' ');
 
         traceState.setSizeLimit(limit);
         for (String h : headers.split("_")) {
@@ -89,9 +89,14 @@ class TraceStateTest {
 
     @Test
     void addSampleRate() {
-        traceState.set(0.5d, Double.toString(0.5d));
+        String headerValue = TraceState.getHeaderValue(0.5d);
+        assertThat(headerValue).isEqualTo("es=s:0.5");
+        traceState.set(0.5d, headerValue);
         assertThat(traceState.getSampleRate()).isEqualTo(0.5d);
-        assertThat(traceState.toTextHeader()).isEqualTo("es=s:0.5");
+
+        assertThat(traceState.toTextHeader())
+            .describedAs("should reuse the same string without allocating a new one")
+            .isSameAs(headerValue);
     }
 
     @Test
@@ -123,7 +128,7 @@ class TraceStateTest {
         traceState.addTextHeader("aa=1|2|3");
         traceState.addTextHeader("bb=4|5|6");
 
-        traceState.set(0.444d, Double.toString(0.444d));
+        traceState.set(0.444d, TraceState.getHeaderValue(0.444d));
         assertThat(traceState.getSampleRate()).isEqualTo(0.444d);
         assertThat(traceState.toTextHeader()).isEqualTo("aa=1|2|3,bb=4|5|6,es=s:0.444");
     }
@@ -131,7 +136,8 @@ class TraceStateTest {
     @Test
     void buildCopy() {
         TraceState other = new TraceState();
-        other.set(0.2d, Double.toString(0.2d));
+
+        other.set(0.2d, TraceState.getHeaderValue(0.2d));
         other.addTextHeader("aa=1_2");
 
         traceState.copyFrom(other);
@@ -162,7 +168,7 @@ class TraceStateTest {
         "es=s:aa"
     })
     void invalidValuesIgnored(String header) {
-        traceState.addTextHeader( header);
+        traceState.addTextHeader(header);
         assertThat(traceState.getSampleRate()).isNaN();
     }
 
@@ -175,17 +181,6 @@ class TraceStateTest {
         traceState.addTextHeader("es=s:" + headerRate);
         assertThat(traceState.getSampleRate()).isEqualTo(expectedRate);
         assertThat(traceState.toTextHeader()).isEqualTo("es=s:" + expectedRate);
-    }
-
-    @Test
-    void useProvidedValueForTextHeader() {
-        double rate = 0.43d;
-        String headerValue = Double.toString(rate + 0.01d);
-        traceState.set(rate, headerValue);
-        assertThat(traceState.getSampleRate()).isEqualTo(rate);
-
-        String textHeader = traceState.toTextHeader();
-        assertThat(textHeader).isEqualTo("es=s:0.44"); // not exactly the same on purpose
     }
 
 }

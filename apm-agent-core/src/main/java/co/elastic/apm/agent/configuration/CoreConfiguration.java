@@ -477,10 +477,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded " +
             "by default.\n" +
             "Such methods will be traced and reported if one of the following applies:\n" +
+            "\n" +
             " - This method's duration crossed the configured threshold.\n" +
             " - This method ended with Exception.\n" +
             " - A method executed as part of the execution of this method crossed the threshold or ended with Exception.\n" +
             " - A \"forcibly-traced method\" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.\n" +
+            "\n" +
             "Set to 0 to disable.\n" +
             "\n" +
             "NOTE: Transactions are never discarded, regardless of their duration.\n" +

@@ -24,17 +24,13 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
-import javax.jms.Destination;
-import javax.jms.Message;
-import javax.jms.MessageListener;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -43,31 +39,6 @@ import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation {
-    @SuppressWarnings("WeakerAccess")
-    @Nullable
-    @VisibleForAdvice
-    // Referencing JMS classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
-    public static HelperClassManager<JmsInstrumentationHelper<Destination, Message, MessageListener>> jmsInstrHelperManager;
-
-    @SuppressWarnings("WeakerAccess")
-    @Nullable
-    @VisibleForAdvice
-    public static MessagingConfiguration messagingConfiguration;
-
-    private synchronized static void init(ElasticApmTracer tracer) {
-        if (jmsInstrHelperManager == null) {
-            jmsInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl",
-                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapper",
-                "co.elastic.apm.agent.jms.JmsMessagePropertyAccessor");
-        }
-
-        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
-    }
-
-    BaseJmsInstrumentation(ElasticApmTracer tracer) {
-        init(tracer);
-    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -79,8 +50,22 @@ public abstract class BaseJmsInstrumentation extends TracerAwareInstrumentation 
         return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("javax.jms.Message"));
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
+    protected static class BaseAdvice {
+
+        protected static final JmsInstrumentationHelper helper;
+        protected static final MessagingConfiguration messagingConfiguration;
+        protected static final CoreConfiguration coreConfiguration;
+
+        static {
+            ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
+
+            // loading helper class will load JMS-related classes if loaded from Instrumentation static init
+            // that fails when trying to load instrumentation classes without JMS dependencies, for example when generating
+            // documentation that relies on instrumentation group names
+            helper = new JmsInstrumentationHelper(elasticApmTracer);
+
+            messagingConfiguration = elasticApmTracer.getConfig(MessagingConfiguration.class);
+            coreConfiguration = elasticApmTracer.getConfig(CoreConfiguration.class);
+        }
     }
 }

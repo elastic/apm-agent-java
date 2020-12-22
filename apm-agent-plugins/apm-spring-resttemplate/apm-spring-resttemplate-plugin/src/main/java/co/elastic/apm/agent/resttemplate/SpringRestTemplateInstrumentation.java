@@ -41,6 +41,9 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * Instruments {@link org.springframework.http.client.ClientHttpRequest#execute()}
+ */
 public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentation {
 
     @Override
@@ -56,7 +59,11 @@ public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentatio
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("execute")
             .and(takesArguments(0))
-            .and(returns(hasSuperType(named("org.springframework.http.client.ClientHttpResponse"))));
+            .and(returns(
+                hasSuperType(named("org.springframework.http.client.ClientHttpResponse"))
+                    // getRawStatusCode added in 3.1.1 thus we rely on that to filter unsupported versions
+                    .and(declaresMethod(named("getRawStatusCode")))
+            ));
     }
 
     @Override
