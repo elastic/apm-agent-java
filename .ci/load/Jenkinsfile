@@ -15,6 +15,7 @@ pipeline {
         LOCUST_RUN_TIME = "${params.duration}"
         LOCUST_USERS = "${params.concurrent_requests}"
         LOCUST_IGNORE_ERRORS = "${params.ignore_application_errors}"
+        ELASTIC_APM_VERIFY_SERVER_CERT = "false"
     }
     options {
         timeout(time: 72, unit: 'HOURS')
