@@ -107,7 +107,7 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.json-schema-validator>0.1.19</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
-        <version.byte-buddy>1.10.18</version.byte-buddy>
+        <version.byte-buddy>1.10.19</version.byte-buddy>
         <version.asm>9.0</version.asm>
 
         <!-- used both for plugin & annotations dependency -->
@@ -594,7 +594,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-standalone</artifactId>
-            <version>2.18.0</version>
+            <version>2.27.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -15,6 +15,7 @@ pipeline {
         LOCUST_RUN_TIME = "${params.duration}"
         LOCUST_USERS = "${params.concurrent_requests}"
         LOCUST_IGNORE_ERRORS = "${params.ignore_application_errors}"
+        ELASTIC_APM_VERIFY_SERVER_CERT = "false"
     }
     options {
         timeout(time: 72, unit: 'HOURS')
@@ -100,8 +101,7 @@ pipeline {
                     def binary_ext = 'jar'
 
                     def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
-                    echo "JDK VERSION = ${major_jdk_version}"
-                    if(major_jdk_version == '7') {
+                    if(major_jdk_version.startsWith("7")) {
                         echo "Java 7.x detected. Installing compliant version of test application and JDK"
                         // We are using a recent Java8 JDK here to allow avoid TLS/SSL issues, the app will still
                         // target and run with Java 7.
@@ -197,7 +197,8 @@ pipeline {
 
                             def java_home = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
                             def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
-                            def is_java7 = major_jdk_version == '7';
+                            def is_java7 = major_jdk_version.startsWith("7")
+                            def is_java8 = major_jdk_version.startsWith("8")
 
                             sh(script: "${java_home}/bin/java -version");
 
@@ -228,8 +229,10 @@ pipeline {
 
                             // GC log
                             cmd = "${cmd} -XX:+PrintGCDetails"
-                            cmd = "${cmd} -XX:+PrintGCTimeStamps"
-                            cmd = "${cmd} -XX:+PrintTenuringDistribution"
+                            if (is_java7 || is_java8) {
+                                cmd = "${cmd} -XX:+PrintGCTimeStamps"
+                                cmd = "${cmd} -XX:+PrintTenuringDistribution"
+                            }
                             cmd = "${cmd} -Xloggc:${WORKSPACE}/gc.log"
 
                             // compilation log
