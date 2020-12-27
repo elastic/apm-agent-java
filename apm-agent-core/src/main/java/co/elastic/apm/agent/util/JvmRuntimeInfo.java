@@ -28,20 +28,20 @@ import javax.annotation.Nullable;
 
 public class JvmRuntimeInfo {
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    private static String javaVersion;
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    private static String javaVmName;
-    @Nullable private static String javaVmVersion;
-    private static int majorVersion;
-    private static int updateVersion;
-    private static boolean isHotSpot;
-    private static boolean isIbmJ9;
-    private static boolean isJ9;
-    private static boolean isHpUx;
+    private static final JvmRuntimeInfo CURRENT_VM = new JvmRuntimeInfo(System.getProperty("java.version"), System.getProperty("java.vm.name"), System.getProperty("java.vm.version"));
 
-    static {
-        parseVmInfo(System.getProperty("java.version"), System.getProperty("java.vm.name"), System.getProperty("java.vm.version"));
+    private final String javaVersion;
+    private final String javaVmName;
+    @Nullable private final String javaVmVersion;
+    private final int majorVersion;
+    private final int updateVersion;
+    private final boolean isHotSpot;
+    private final boolean isIbmJ9;
+    private final boolean isJ9;
+    private final boolean isHpUx;
+
+    public static JvmRuntimeInfo ofCurrentVM() {
+        return CURRENT_VM;
     }
 
     /**
@@ -53,7 +53,7 @@ public class JvmRuntimeInfo {
      * @param vmName    jvm name, from {@code System.getProperty("java.vm.name")}
      * @param vmVersion jvm version, from {@code System.getProperty("java.vm.version")}
      */
-    static void parseVmInfo(String version, String vmName, @Nullable String vmVersion) {
+    public JvmRuntimeInfo(String version, String vmName, @Nullable String vmVersion) {
         javaVersion = version;
         javaVmName = vmName;
         javaVmVersion = vmVersion;
@@ -80,6 +80,11 @@ public class JvmRuntimeInfo {
             majorVersion = Integer.parseInt(majorAsString);
         }
 
+        updateVersion = getUpdateVersion(version);
+    }
+
+    private int getUpdateVersion(String version) {
+        int updateVersion;
         int updateIndex = version.lastIndexOf("_");
         if (updateIndex <= 0) {
 
@@ -114,91 +119,48 @@ public class JvmRuntimeInfo {
         if (updateVersion < 0) {
             System.err.println("Unsupported format of the java.version system property - " + version);
         }
-
+        return updateVersion;
     }
 
-    public static String getJavaVersion() {
+    public String getJavaVersion() {
         return javaVersion;
     }
 
-    public static String getJavaVmName() {
+    public String getJavaVmName() {
         return javaVmName;
     }
 
     @Nullable
-    public static String getJavaVmVersion() {
+    public String getJavaVmVersion() {
         return javaVmVersion;
     }
 
-    public static int getMajorVersion() {
+    public int getMajorVersion() {
         return majorVersion;
     }
 
-    public static boolean isJ9VM() {
+    public int getUpdateVersion() {
+        return updateVersion;
+    }
+
+    public boolean isJ9VM() {
         return isJ9;
     }
 
-    public static boolean isIsHpUx(){
+    public boolean isIsHpUx(){
         return isHpUx;
     }
 
-    /**
-     * Checks if a given version of the JVM is likely supported by this agent.
-     * <br>
-     * Supports values provided before and after https://openjdk.java.net/jeps/223, in case parsing fails due to an
-     * unknown version format, we assume it's supported, thus this method might return false positives, but never false
-     * negatives.
-     *
-     * @return true if the version is supported, false otherwise
-     */
-    public static boolean isJavaVersionSupported() {
-        if (majorVersion < 7) {
-            // given code is compiled with java 7, this one is unlikely in practice
-            return false;
-        }
-        if (isHotSpot) {
-            return isHotSpotVersionSupported();
-        } else if (isIbmJ9) {
-            return isIbmJ9VersionSupported();
-        }
-        // innocent until proven guilty
-        return true;
+    public boolean isHotSpot() {
+        return isHotSpot;
     }
 
-    private static boolean isHotSpotVersionSupported() {
-        if (updateVersion < 0) {
-            return true;
-        }
-
-        // versions prior to that have unreliable invoke dynamic support according to https://groovy-lang.org/indy.html
-        int java7min = 60;
-        int java8min = 40;
-        if (isIsHpUx()) {
-            java7min = 10; // hotspot 7u65
-            java8min = 2; // hotspot 8u45
-        }
-
-        switch (majorVersion) {
-            case 7:
-                return updateVersion >= java7min;
-            case 8:
-                return updateVersion >= java8min;
-            default:
-                return true;
-        }
+    public boolean isIbmJ9() {
+        return isIbmJ9;
     }
 
-    private static boolean isIbmJ9VersionSupported() {
-        switch (majorVersion) {
-            case 7:
-                return false;
-            case 8:
-                // early versions crash during invokedynamic bootstrap
-                // the exact version that fixes that error is currently not known
-                // presumably, service refresh 5 (build 2.8) fixes the issue
-                return !"2.8".equals(javaVmVersion);
-            default:
-                return true;
-        }
+    @Override
+    public String toString() {
+        return String.format("%s %s %s", javaVersion, javaVmName, javaVmVersion);
     }
 }

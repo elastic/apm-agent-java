@@ -213,7 +213,7 @@ public class IndyBootstrap {
             indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
         }
 
-        if (JvmRuntimeInfo.getMajorVersion() >= 9 && JvmRuntimeInfo.isJ9VM()) {
+        if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 9 && JvmRuntimeInfo.ofCurrentVM().isJ9VM()) {
             try {
                 logger.info("Overriding IndyBootstrapDispatcher class's module to java.base module. This is required in J9 VMs.");
                 setJavaBaseModule(indyBootstrapDispatcherClass);
