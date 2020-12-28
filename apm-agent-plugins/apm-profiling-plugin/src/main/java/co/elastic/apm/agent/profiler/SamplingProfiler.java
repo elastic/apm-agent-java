@@ -83,12 +83,12 @@ import static java.nio.file.StandardOpenOption.WRITE;
  * </p>
  * <p>
  * The {@link #onActivation} and {@link #onDeactivation} methods are called by {@link ProfilingActivationListener}
- * which register an {@link ActivationEvent} in to a {@linkplain #eventBuffer ring buffer} whenever a {@link Span}
+ * which register an {@link ActivationEvent} to a {@linkplain #eventBuffer ring buffer} whenever a {@link Span}
  * gets {@link Span#activate()}d or {@link Span#deactivate()}d while a {@linkplain #profilingSessionOngoing profiling session is ongoing}.
  * A background thread consumes the {@link ActivationEvent}s and writes them to a {@linkplain #activationEventsBuffer direct buffer}
  * which is flushed to a {@linkplain #activationEventsFileChannel file}.
  * That is necessary because within a profiling session (which lasts 10s by default) there may be many more {@link ActivationEvent}s
- * than the ring buffer can hold {@link #RING_BUFFER_SIZE}.
+ * than the ring buffer {@link #RING_BUFFER_SIZE can hold}.
  * The file can hold {@link #ACTIVATION_EVENTS_IN_FILE} events and each is {@link ActivationEvent#SERIALIZED_SIZE} in size.
  * This process is completely garbage free thanks to the {@link RingBuffer} acting as an object pool for {@link ActivationEvent}s.
  * </p>
@@ -418,17 +418,22 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
      * we have to tell async-profiler which threads it should profile after re-starting it.
      */
     private void restoreFilterState(AsyncProfiler asyncProfiler) {
-        threadMatcher.forEachThread(new ThreadMatcher.NonCapturingPredicate<Thread, Long2ObjectHashMap<?>.KeySet>() {
-            @Override
-            public boolean test(Thread thread, Long2ObjectHashMap<?>.KeySet profiledThreads) {
-                return profiledThreads.contains(thread.getId());
-            }
-        }, profiledThreads.keySet(), new ThreadMatcher.NonCapturingConsumer<Thread, AsyncProfiler>() {
-            @Override
-            public void accept(Thread thread, AsyncProfiler asyncProfiler) {
-                asyncProfiler.enableProfilingThread(thread);
-            }
-        }, asyncProfiler);
+        threadMatcher.forEachThread(
+            new ThreadMatcher.NonCapturingPredicate<Thread, Long2ObjectHashMap<?>.KeySet>() {
+                @Override
+                public boolean test(Thread thread, Long2ObjectHashMap<?>.KeySet profiledThreads) {
+                    return profiledThreads.contains(thread.getId());
+                }
+            },
+            profiledThreads.keySet(),
+            new ThreadMatcher.NonCapturingConsumer<Thread, AsyncProfiler>() {
+                @Override
+                public void accept(Thread thread, AsyncProfiler asyncProfiler) {
+                    asyncProfiler.enableProfilingThread(thread);
+                }
+            },
+            asyncProfiler
+        );
     }
 
     private void consumeActivationEventsFromRingBufferAndWriteToFile(TimeDuration profilingDuration) throws Exception {
@@ -692,6 +697,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     public void clearProfiledThreads() {
         for (CallTree.Root root : profiledThreads.values()) {
             root.recycle(callTreePool);
+            rootPool.recycle(root);
         }
         profiledThreads.clear();
     }

@@ -735,6 +735,8 @@ public class CallTree implements Recyclable {
             super.resetState();
             activeSpan = null;
             activationTimestamp = -1;
+            // todo - should we reset activeSpanSerialized?
+            previousTopOfStack = null;
             topOfStack = null;
             activeSet.clear();
         }
