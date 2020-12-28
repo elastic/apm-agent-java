@@ -75,7 +75,6 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1057,7 +1056,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             } else if (request.getRawBody() != null) {
                 writeField("body", request.getRawBody());
             } else {
-                final CharBuffer bodyBuffer = request.getBodyBufferForSerialization();
+                final CharSequence bodyBuffer = request.getBodyBufferForSerialization();
                 if (bodyBuffer != null && bodyBuffer.length() > 0) {
                     writeFieldName("body");
                     jw.writeString(bodyBuffer);

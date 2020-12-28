@@ -134,7 +134,9 @@ class BodyProcessorTest {
 
     private Transaction processTransaction() {
         final Transaction transaction = new Transaction(tracer);
-        transaction.getContext().getRequest().withBodyBuffer().append("foo").flip();
+        Request request = transaction.getContext().getRequest();
+        request.withBodyBuffer().append("foo");
+        request.endOfBufferInput();
         transaction.getContext().getMessage().withBody("bar");
         bodyProcessor.processBeforeReport(transaction);
         return transaction;
@@ -142,7 +144,9 @@ class BodyProcessorTest {
 
     private ErrorCapture processError() {
         final ErrorCapture error = new ErrorCapture(tracer);
-        error.getContext().getRequest().withBodyBuffer().append("foo").flip();
+        Request request = error.getContext().getRequest();
+        request.withBodyBuffer().append("foo");
+        request.endOfBufferInput();
         error.getContext().getMessage().withBody("bar");
         bodyProcessor.processBeforeReport(error);
         return error;
