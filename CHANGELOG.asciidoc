@@ -32,6 +32,7 @@ endif::[]
 [float]
 ===== Features
 * Add support for RabbitMQ clients - {pull}1328[#1328]
+* Avoid starting the agent if `-Xverify:none` or `-noverify` flags are set as this can lead to crashes that are very difficult to debug - {pull}1593[#1593]
 
 [float]
 ===== Bug fixes
