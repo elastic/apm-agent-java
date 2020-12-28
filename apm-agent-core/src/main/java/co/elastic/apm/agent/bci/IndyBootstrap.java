@@ -153,7 +153,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     <li>
  *         The {@code INVOKEDYNAMIC} support of early Java 7 versions is not reliable.
  *         That's why we disable the agent on them.
- *         See also {@link JvmRuntimeInfo#isJavaVersionSupported}
+ *         See also {@link JavaVersionBootstrapCheck}
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
