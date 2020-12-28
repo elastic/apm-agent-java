@@ -24,7 +24,7 @@ class FutureInstrumentationSpec extends FunSuite {
 
   override def beforeEach(context: BeforeEach): Unit = {
     reporter = new MockReporter
-    val config: ConfigurationRegistry = SpyConfiguratiEndpointMessageListeneron.createSpyConfig
+    val config: ConfigurationRegistry = SpyConfiguration.createSpyConfig
     coreConfiguration = config.getConfig(classOf[CoreConfiguration])
     tracer = new ElasticApmTracerBuilder().configurationRegistry(config).reporter(reporter).build
     ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install)
