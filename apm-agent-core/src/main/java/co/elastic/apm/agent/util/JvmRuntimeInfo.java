@@ -142,6 +142,10 @@ public class JvmRuntimeInfo {
         return isHpUx;
     }
 
+    public static boolean isIsHotSpot() {
+        return isHotSpot;
+    }
+
     /**
      * Checks if a given version of the JVM is likely supported by this agent.
      * <br>

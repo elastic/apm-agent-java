@@ -134,7 +134,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .aliasKeys("delay_initialization_ms")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
-        .description("If set to a value greater than 0ms, the agent will delay it's initialization.")
+        .description("If set to a value greater than 0ms, the agent will delay tracer initialization.")
+        .buildWithDefault(TimeDuration.of("0ms"));
+
+    private final ConfigurationOption<TimeDuration> delayInstrumentation = TimeDurationValueConverter.durationOption("ms")
+        .key("delay_instrumentation")
+        .aliasKeys("delay_instrumentation_ms")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("If set to a value greater than 0ms, the agent will delay instrumentation.")
         .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
@@ -610,6 +618,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public long getDelayInitMs() {
         return delayInit.get().getMillis();
+    }
+
+    public long getDelayInstrumentationMs() {
+        return delayInstrumentation.get().getMillis();
     }
 
     public String getServiceVersion() {

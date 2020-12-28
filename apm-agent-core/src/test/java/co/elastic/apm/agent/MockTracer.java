@@ -80,7 +80,7 @@ public class MockTracer {
             }))
             .build();
 
-        tracer.start(false);
+        tracer.start();
         return tracer;
     }
 

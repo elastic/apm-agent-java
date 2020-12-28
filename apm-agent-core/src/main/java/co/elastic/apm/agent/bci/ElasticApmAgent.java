@@ -45,6 +45,7 @@ import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.ObjectUtils;
 import co.elastic.apm.agent.util.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -143,12 +144,90 @@ public class ElasticApmAgent {
             if (enabled != null && !Boolean.parseBoolean(enabled)) {
                 return;
             }
-
         }
 
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
-        initInstrumentation(tracer, instrumentation, premain);
-        tracer.start(premain);
+        doInitialize(tracer, instrumentation, premain);
+    }
+
+    /**
+     * Initializes instrumentation and starts the tracer, synchronously or asynchronously.
+     * Depending on several environment and setup parameters, instrumentation and tracer may be started synchronously
+     * on this thread, or the may be started with a delay on a dedicated thread.
+     *
+     * @param premain true if this tracer is attached through the {@code premain()} method (i.e. using the `javaagent`
+     *                jvm parameter); false otherwise
+     */
+    private static void doInitialize(final ElasticApmTracer tracer, final Instrumentation instrumentation, final boolean premain) {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("agent-initializer", 1);
+        final Logger localLogger = getLogger();
+
+        try {
+            CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+
+            final long delayInstrumentationMs;
+            if (premain && shouldDelayInstrumentationOnPremain()) {
+                delayInstrumentationMs = Math.max(coreConfig.getDelayInstrumentationMs(), 2000L);
+            } else {
+                delayInstrumentationMs = coreConfig.getDelayInstrumentationMs();
+            }
+            if (delayInstrumentationMs > 0) {
+                pool.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            localLogger.info("Delaying initialization of instrumentation for " + delayInstrumentationMs + "ms");
+                            Thread.sleep(delayInstrumentationMs);
+                            localLogger.info("end wait");
+                        } catch (InterruptedException e) {
+                            localLogger.error(e.getMessage(), e);
+                        } finally {
+                            initInstrumentation(tracer, instrumentation, premain);
+                        }
+                    }
+                });
+            } else {
+                initInstrumentation(tracer, instrumentation, premain);
+            }
+
+            final long delayInitMs;
+            if (premain && shouldDelayTracerStartOnPremain()) {
+                delayInitMs = Math.max(coreConfig.getDelayInitMs(), 3000L);
+            } else {
+                delayInitMs = coreConfig.getDelayInitMs();
+            }
+            if (delayInitMs > 0) {
+                pool.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            localLogger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
+                            Thread.sleep(delayInitMs);
+                            localLogger.info("end wait");
+                        } catch (InterruptedException e) {
+                            localLogger.error(e.getMessage(), e);
+                        } finally {
+                            tracer.start();
+                        }
+                    }
+                });
+            } else {
+                tracer.start();
+            }
+        } catch (Exception e) {
+            localLogger.error("Failed to initialize the agent");
+        } finally {
+            pool.shutdown();
+        }
+    }
+
+    private static boolean shouldDelayInstrumentationOnPremain() {
+        return JvmRuntimeInfo.getMajorVersion() == 7 && JvmRuntimeInfo.isIsHotSpot();
+    }
+
+    private static boolean shouldDelayTracerStartOnPremain() {
+        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
+            ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {

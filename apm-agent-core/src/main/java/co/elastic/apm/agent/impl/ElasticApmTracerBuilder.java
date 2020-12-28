@@ -170,7 +170,7 @@ public class ElasticApmTracerBuilder {
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.init(lifecycleListeners);
         if (startTracer) {
-            tracer.start(false);
+            tracer.start();
         }
         return tracer;
     }
