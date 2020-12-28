@@ -573,7 +573,8 @@ class TraceContextTest {
 
         assertThat(child.getSampleRate())
             .describedAs("tracestate = '%s' should have sample rate = %s", traceState, expectedRate)
-            .isEqualTo(expectedRate);
+            // Casting to Double is required so that comparison of two Double#NaN will be correct (see Double#equals javadoc for info)
+            .isEqualTo(Double.valueOf(expectedRate));
 
         assertThat(child.getTraceState().toTextHeader())
                 .describedAs("tracestate should be kept as-is")
