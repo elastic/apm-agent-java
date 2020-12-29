@@ -138,11 +138,11 @@ public class JvmRuntimeInfo {
         return isJ9;
     }
 
-    public static boolean isIsHpUx(){
+    public static boolean isHpUx() {
         return isHpUx;
     }
 
-    public static boolean isIsHotSpot() {
+    public static boolean isHotSpot() {
         return isHotSpot;
     }
 
@@ -177,7 +177,7 @@ public class JvmRuntimeInfo {
         // versions prior to that have unreliable invoke dynamic support according to https://groovy-lang.org/indy.html
         int java7min = 60;
         int java8min = 40;
-        if (isIsHpUx()) {
+        if (isHpUx()) {
             java7min = 10; // hotspot 7u65
             java8min = 2; // hotspot 8u45
         }

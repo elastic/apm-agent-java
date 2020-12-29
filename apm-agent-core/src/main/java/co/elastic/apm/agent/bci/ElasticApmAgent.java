@@ -147,6 +147,7 @@ public class ElasticApmAgent {
         }
 
         ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
+        GlobalTracer.init(tracer);
         doInitialize(tracer, instrumentation, premain);
     }
 
@@ -159,9 +160,9 @@ public class ElasticApmAgent {
      *                jvm parameter); false otherwise
      */
     private static void doInitialize(final ElasticApmTracer tracer, final Instrumentation instrumentation, final boolean premain) {
-        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("agent-initializer", 1);
         final Logger localLogger = getLogger();
 
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("agent-initializer", 1);
         try {
             CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
@@ -222,7 +223,7 @@ public class ElasticApmAgent {
     }
 
     private static boolean shouldDelayInstrumentationOnPremain() {
-        return JvmRuntimeInfo.getMajorVersion() == 7 && JvmRuntimeInfo.isIsHotSpot();
+        return JvmRuntimeInfo.getMajorVersion() == 7 && JvmRuntimeInfo.isHotSpot();
     }
 
     private static boolean shouldDelayTracerStartOnPremain() {
@@ -230,7 +231,16 @@ public class ElasticApmAgent {
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
+    /**
+     * NOTE: This method should only be used in tests
+     *
+     * @param tracer          tracer
+     * @param instrumentation the {@link Instrumentation} provided by the JVM
+     */
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
+        if (GlobalTracer.isNoop()) {
+            GlobalTracer.init(tracer);
+        }
         initInstrumentation(tracer, instrumentation, false);
     }
 
@@ -238,7 +248,6 @@ public class ElasticApmAgent {
         if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
             return;
         }
-        GlobalTracer.init(tracer);
         // ensure classes can be instrumented before LifecycleListeners use them by starting the tracer after initializing instrumentation
         initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer), premain);
     }
