@@ -335,11 +335,14 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
         if (!config.isProfilingEnabled() || !tracer.isRunning()) {
             if (jfrParser != null) {
                 jfrParser = null;
-                rootPool.clear();
-                callTreePool.clear();
             }
             if (!scheduler.isShutdown()) {
                 scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
+            }
+            try {
+                clear();
+            } catch (Throwable throwable) {
+                logger.error("Error while trying to clear profiler constructs", throwable);
             }
             return;
         }
@@ -391,6 +394,8 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             if (!profiledThreads.isEmpty()) {
                 restoreFilterState(asyncProfiler);
             }
+            // Doesn't need to be atomic as this field is being updated only by a single thread
+            //noinspection NonAtomicOperationOnVolatileField
             profilingSessions++;
 
             // When post-processing is disabled activation events are ignored, but we still need to invoke this method
@@ -628,7 +633,9 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     public void resetActivationEventBuffer() throws IOException {
         ((Buffer) activationEventsBuffer).clear();
-        activationEventsFileChannel.position(0L);
+        if (activationEventsFileChannel != null) {
+            activationEventsFileChannel.position(0L);
+        }
     }
 
     private void flushActivationEvents() throws IOException {
@@ -696,8 +703,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     public void clearProfiledThreads() {
         for (CallTree.Root root : profiledThreads.values()) {
-            root.recycle(callTreePool);
-            rootPool.recycle(root);
+            root.recycle(callTreePool, rootPool);
         }
         profiledThreads.clear();
     }
@@ -708,7 +714,6 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     }
 
     void clear() throws IOException {
-        profiledThreads.clear();
         // consume all remaining events from the ring buffer
         try {
             poller.poll(new EventPoller.Handler<ActivationEvent>() {
@@ -722,6 +727,9 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             throw new RuntimeException(e);
         }
         resetActivationEventBuffer();
+        profiledThreads.clear();
+        callTreePool.clear();
+        rootPool.clear();
     }
 
     int getProfilingSessions() {
@@ -840,8 +848,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                 if (logger.isDebugEnabled()) {
                     logger.warn("Illegal state when stopping profiling for thread {}: orphaned root", threadId);
                 }
-                orphaned.recycle(samplingProfiler.callTreePool);
-                samplingProfiler.rootPool.recycle(orphaned);
+                orphaned.recycle(samplingProfiler.callTreePool, samplingProfiler.rootPool);
             }
         }
 
@@ -873,17 +880,19 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                     logger.debug("End call tree ({}) for thread {}", deserialize(samplingProfiler, traceContextBuffer), threadId);
                 }
                 samplingProfiler.profiledThreads.remove(threadId);
-                callTree.end(samplingProfiler.callTreePool, samplingProfiler.getInferredSpansMinDurationNs());
-                int createdSpans = callTree.spanify();
-                if (logger.isDebugEnabled()) {
-                    if (createdSpans > 0) {
-                        logger.debug("Created spans ({}) for thread {}", createdSpans, threadId);
-                    } else {
-                        logger.debug("Created no spans for thread {} (count={})", threadId, callTree.getCount());
+                try {
+                    callTree.end(samplingProfiler.callTreePool, samplingProfiler.getInferredSpansMinDurationNs());
+                    int createdSpans = callTree.spanify();
+                    if (logger.isDebugEnabled()) {
+                        if (createdSpans > 0) {
+                            logger.debug("Created spans ({}) for thread {}", createdSpans, threadId);
+                        } else {
+                            logger.debug("Created no spans for thread {} (count={})", threadId, callTree.getCount());
+                        }
                     }
+                } finally {
+                    callTree.recycle(samplingProfiler.callTreePool, samplingProfiler.rootPool);
                 }
-                callTree.recycle(samplingProfiler.callTreePool);
-                samplingProfiler.rootPool.recycle(callTree);
             }
         }
 
