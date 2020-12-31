@@ -633,7 +633,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
 
     public void resetActivationEventBuffer() throws IOException {
         ((Buffer) activationEventsBuffer).clear();
-        if (activationEventsFileChannel != null) {
+        if (activationEventsFileChannel != null && activationEventsFileChannel.isOpen()) {
             activationEventsFileChannel.position(0L);
         }
     }
