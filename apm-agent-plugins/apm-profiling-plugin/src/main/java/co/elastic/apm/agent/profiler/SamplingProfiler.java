@@ -896,7 +896,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                     }
                 } finally {
                     // COMMENTING OUT TO CREATE AN INTENTIONAL MEMORY LEAK FOR TESTING
-                    callTree.recycle(samplingProfiler.callTreePool, samplingProfiler.rootPool);
+                    // callTree.recycle(samplingProfiler.callTreePool, samplingProfiler.rootPool);
                 }
             }
         }
