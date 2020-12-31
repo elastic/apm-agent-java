@@ -24,7 +24,6 @@ updates:
       - dependency-name: "com.github.tomakehurst:wiremock-standalone"
       - dependency-name: "org.awaitility:awaitility"
       - dependency-name: "org.apache.ivy:ivy"
-      - dependency-name: "org.testcontainers:testcontainers"
       - dependency-name: "net.bytebuddy:*"
       - dependency-name: "org.ow2.asm:asm-tree"
       - dependency-name: "com.blogspot.mydailyjava:weak-lock-free"
