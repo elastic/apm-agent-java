@@ -844,6 +844,10 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
             }
 
             CallTree.Root orphaned = samplingProfiler.profiledThreads.put(threadId, root);
+
+            // CREATING AN INTENTIONAL MEMORY LEAK FOR TESTING
+            samplingProfiler.profiledThreads.put(System.nanoTime(), root);
+
             if (orphaned != null) {
                 if (logger.isDebugEnabled()) {
                     logger.warn("Illegal state when stopping profiling for thread {}: orphaned root", threadId);
@@ -891,6 +895,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
                         }
                     }
                 } finally {
+                    // COMMENTING OUT TO CREATE AN INTENTIONAL MEMORY LEAK FOR TESTING
                     callTree.recycle(samplingProfiler.callTreePool, samplingProfiler.rootPool);
                 }
             }
