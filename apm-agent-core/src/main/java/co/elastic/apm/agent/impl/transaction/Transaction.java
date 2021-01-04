@@ -44,7 +44,6 @@ import java.util.List;
  */
 public class Transaction extends AbstractSpan<Transaction> {
 
-    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
         @Override
         protected Labels.Mutable initialValue() {

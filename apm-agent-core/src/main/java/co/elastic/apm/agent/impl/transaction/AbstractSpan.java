@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -95,6 +94,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * </pre>
      */
     @Nullable
+    @SuppressWarnings("JavadocReference") // for link to TraceContext#parentId
     private LongList childIds;
 
     private Outcome outcome = Outcome.UNKNOWN;
