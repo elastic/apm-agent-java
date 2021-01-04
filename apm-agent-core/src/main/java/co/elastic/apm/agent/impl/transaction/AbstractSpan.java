@@ -113,7 +113,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             this.stringValue = stringValue;
         }
 
-        public String stringValue() {
+        @Override
+        public String toString() {
             return stringValue;
         }
     }
@@ -608,12 +609,31 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     protected abstract T thiz();
 
+    /**
+     * @return outcome
+     */
     public Outcome getOutcome() {
         return outcome;
     }
 
-    public void setOutcome(Outcome outcome) {
-        Objects.requireNonNull(outcome);
-        this.outcome = outcome;
+    /**
+     * Sets outcome
+     *
+     * @param outcome outcome
+     * @return this
+     */
+    public T withOutcome(@Nullable Outcome outcome) {
+        this.outcome = null != outcome ? outcome : Outcome.UNKNOWN;
+        return thiz();
+    }
+
+    /**
+     * Set outcome from boolean
+     *
+     * @param success {@literal true} for success, {@literal false} for error.
+     * @return this
+     */
+    public T withOutcome(boolean success) {
+        return withOutcome(success ? Outcome.SUCCESS : Outcome.ERROR);
     }
 }

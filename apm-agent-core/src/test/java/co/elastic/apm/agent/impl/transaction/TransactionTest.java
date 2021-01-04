@@ -32,8 +32,9 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 class TransactionTest {
@@ -61,16 +62,18 @@ class TransactionTest {
             .describedAs("default outcome should be unknown")
             .isEqualTo(AbstractSpan.Outcome.UNKNOWN);
 
+        assertThat(transaction.withOutcome(true).getOutcome())
+            .isSameAs(AbstractSpan.Outcome.SUCCESS);
+
+        assertThat(transaction.withOutcome(false).getOutcome())
+            .isSameAs(AbstractSpan.Outcome.ERROR);
+
+        // test set with enum after with boolean as boolean does not allow to set it back to 'unknown'
         for (AbstractSpan.Outcome value : AbstractSpan.Outcome.values()) {
-            transaction.setOutcome(value);
+            transaction.withOutcome(value);
             assertThat(transaction.getOutcome()).isSameAs(value);
         }
 
-        assertThatThrownBy(() -> {
-            transaction.setOutcome(null);
-        });
-
-        transaction.setOutcome(AbstractSpan.Outcome.ERROR);
         transaction.resetState();
         assertThat(transaction.getOutcome())
             .describedAs("reset should reset to unknown state")

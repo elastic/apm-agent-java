@@ -37,10 +37,11 @@ import java.util.List;
 public class TransactionUtils {
 
     public static void fillTransaction(Transaction t) {
-        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), TransactionUtils.class.getClassLoader());
-        t.withName("GET /api/types");
-        t.withType("request");
-        t.withResult("success");
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), TransactionUtils.class.getClassLoader())
+            .withName("GET /api/types")
+            .withType("request")
+            .withResult("success")
+            .withOutcome(true);
 
         TransactionContext context = t.getContext();
         Request request = context.getRequest();
