@@ -26,5 +26,19 @@
                 <gpg.passphrase>${env.KEYPASS}</gpg.passphrase>
             </properties>
         </profile>
+        <profile>
+            <id>ci</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>jcenter</id>
+                    <name>jcenter mirror</name>
+                    <url>https://jcenter.bintray.com</url>
+                    <layout>default</layout>
+                </repository>
+            </repositories>
+        </profile>
     </profiles>
 </settings>
