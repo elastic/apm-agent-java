@@ -152,7 +152,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                                             @Advice.Origin("#m") String methodName,
                                             @Advice.Enter @Nullable final Object abstractSpanObj,
                                             @Advice.Return @Nullable final Message message,
-                                            @Advice.Thrown final Throwable throwable) {
+                                            @Advice.Thrown @Nullable final Throwable throwable) {
                 AbstractSpan<?> abstractSpan = null;
                 if (abstractSpanObj instanceof AbstractSpan<?>) {
                     abstractSpan = (AbstractSpan<?>) abstractSpanObj;

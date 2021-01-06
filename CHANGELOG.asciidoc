@@ -43,6 +43,7 @@ endif::[]
 * Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
 * Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
 * Fix improper request body capturing - {pull}1579[#1579]
+* avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
 
 [float]
 ===== Refactors

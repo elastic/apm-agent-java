@@ -1,4 +1,4 @@
-# APM Java Agent Load Geneator
+# APM Java Agent Load Generator
 
 This directory contains configuration files for load-testing the APM Java Agent.
 
