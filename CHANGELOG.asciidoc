@@ -43,6 +43,7 @@ endif::[]
 * Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
 * Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
 * Fix improper request body capturing - {pull}1579[#1579]
+* Update async-profiler to 1.8.3 {pull}1602[1602]
 
 [float]
 ===== Refactors
