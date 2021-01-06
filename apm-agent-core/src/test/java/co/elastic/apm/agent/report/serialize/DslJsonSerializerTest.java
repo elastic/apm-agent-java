@@ -642,26 +642,43 @@ class DslJsonSerializerTest {
     @Test
     void testBodyBuffer() throws IOException {
         final Transaction transaction = createRootTransaction();
-        final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
+        Request request = transaction.getContext().getRequest();
+        final CharBuffer bodyBuffer = request.withBodyBuffer();
         IOUtils.decodeUtf8Bytes("{f".getBytes(StandardCharsets.UTF_8), bodyBuffer);
         IOUtils.decodeUtf8Bytes(new byte[]{0, 0, 'o', 'o', 0}, 2, 2, bodyBuffer);
         IOUtils.decodeUtf8Byte((byte) '}', bodyBuffer);
-        bodyBuffer.flip();
+        request.endOfBufferInput();
         final String content = serializer.toJsonString(transaction);
         System.out.println(content);
         final JsonNode transactionJson = objectMapper.readTree(content);
         assertThat(transactionJson.get("context").get("request").get("body").textValue()).isEqualTo("{foo}");
 
         transaction.resetState();
-        assertThat((Object) transaction.getContext().getRequest().getBodyBuffer()).isNull();
+        assertThat((Object) request.getBodyBuffer()).isNull();
+    }
+
+    /**
+     * Tests that body not properly finished (not properly flipped) is ignored from serialization
+     * @throws IOException indicates failure in deserialization
+     */
+    @Test
+    void testNonFlippedTransactionBodyBuffer() throws IOException {
+        final Transaction transaction = createRootTransaction();
+        Request request = transaction.getContext().getRequest();
+        request.withBodyBuffer().append("TEST");
+        final String content = serializer.toJsonString(transaction);
+        System.out.println(content);
+        final JsonNode transactionJson = objectMapper.readTree(content);
+        assertThat(transactionJson.get("context").get("request").get("body")).isNull();
     }
 
     @Test
     void testBodyBufferCopy() throws IOException {
         final Transaction transaction = createRootTransaction();
-        final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
+        Request request = transaction.getContext().getRequest();
+        final CharBuffer bodyBuffer = request.withBodyBuffer();
         IOUtils.decodeUtf8Bytes("{foo}".getBytes(StandardCharsets.UTF_8), bodyBuffer);
-        bodyBuffer.flip();
+        request.endOfBufferInput();
 
         Transaction copy = createRootTransaction();
         copy.getContext().copyFrom(transaction.getContext());
