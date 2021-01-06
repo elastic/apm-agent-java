@@ -57,6 +57,19 @@ public class CloudMetadataProvider {
 
     private static final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
 
+    /**
+     * Automatic discovery of cloud provider and related metadata. This method is fetching data from public APIs
+     * exposed by known cloud provider services through HTTP.
+     * When a specific {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider} is specified, only
+     * the relevant API will be queried.
+     * However, when called with {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider#AUTO}, all
+     * known endpoints are queried concurrently. In such cases, blocking is expected to be long, bounded by the
+     * HTTP requests timing out.
+     *
+     * @param cloudProvider  the expected {@link co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider}
+     * @param queryTimeoutMs timeout in milliseconds to limit the discovery duration
+     * @return Automatically discovered {@link CloudProviderInfo}, or {@code null} if none found.
+     */
     @Nullable
     static CloudProviderInfo fetchAndParseCloudProviderInfo(CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
 

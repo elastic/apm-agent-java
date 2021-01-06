@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,11 +34,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AUTO;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -45,11 +50,17 @@ class MetaDataTest {
 
     private static ConfigurationRegistry config;
     private static CoreConfiguration coreConfiguration;
+    @Nullable
+    private static CoreConfiguration.CloudProvider currentCloudProvider;
 
     @BeforeAll
     static void setup() {
         config = SpyConfiguration.createSpyConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
+        CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(AUTO, 1000);
+        if (cloudProviderInfo != null) {
+            currentCloudProvider = CoreConfiguration.CloudProvider.valueOf(cloudProviderInfo.getProvider().toUpperCase());
+        }
     }
 
     @BeforeEach
@@ -59,10 +70,11 @@ class MetaDataTest {
 
     @Test
     void testCloudProvider_NONE() throws InterruptedException, ExecutionException, TimeoutException {
+        // The default configuration for cloud_provide is NONE
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         assertThat(metaDataFuture).isInstanceOf(MetaData.NoWaitFuture.class);
         MetaData metaData = metaDataFuture.get(0, TimeUnit.MILLISECONDS);
-        verifyMetaData(metaData);
+        verifyMetaData(metaData, NONE);
     }
 
     @ParameterizedTest
@@ -77,18 +89,18 @@ class MetaDataTest {
         } catch (TimeoutException e) {
             timeoutException = e;
         }
-        if (provider != CoreConfiguration.CloudProvider.GCP) {
+        if (provider != GCP && provider != currentCloudProvider) {
             // The GCP fails quickly on DNS lookup
             assertThat(timeoutException).isInstanceOf(TimeoutException.class);
         }
         long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * 1.5);
         MetaData metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
-        verifyMetaData(metaData);
+        verifyMetaData(metaData, provider);
     }
 
     @Test
     void testTimeoutConfiguration() throws InterruptedException, ExecutionException, TimeoutException {
-        when(coreConfiguration.getCloudProvider()).thenReturn(CoreConfiguration.CloudProvider.AWS);
+        when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
         when(coreConfiguration.geCloudMetadataDiscoveryTimeoutMs()).thenReturn(200L);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         Exception timeoutException = null;
@@ -104,7 +116,7 @@ class MetaDataTest {
 
     @Test
     void testCloudProvider_AUTO() throws InterruptedException, ExecutionException, TimeoutException {
-        when(coreConfiguration.getCloudProvider()).thenReturn(CoreConfiguration.CloudProvider.AUTO);
+        when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         assertThat(metaDataFuture).isNotInstanceOf(MetaData.NoWaitFuture.class);
         Exception timeoutException = null;
@@ -118,14 +130,18 @@ class MetaDataTest {
         // verifying discovery occurs concurrently - should take less than twice the configured timeout (AWS and Azure are timing out)
         long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * 1.5);
         metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
-        verifyMetaData(metaData);
+        verifyMetaData(metaData, AUTO);
     }
 
-    private void verifyMetaData(MetaData metaData) {
+    private void verifyMetaData(MetaData metaData, CoreConfiguration.CloudProvider cloudProvider) {
         assertThat(metaData.getService()).isNotNull();
         assertThat(metaData.getProcess()).isNotNull();
         assertThat(metaData.getSystem()).isNotNull();
         assertThat(metaData.getGlobalLabelKeys()).isEmpty();
-        assertThat(metaData.getCloudProviderInfo()).isNull();
+        if (cloudProvider == currentCloudProvider || (cloudProvider == AUTO && currentCloudProvider != null)) {
+            assertThat(metaData.getCloudProviderInfo()).isNotNull();
+        } else {
+            assertThat(metaData.getCloudProviderInfo()).isNull();
+        }
     }
 }
