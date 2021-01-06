@@ -22,30 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.log.shipper;
+@NonnullApi
+package co.elastic.apm.agent.impl.cloud;
 
-public interface FileChangeListener {
-
-    /**
-     * Retried until success. Implementations are responsible for doing a backoff.
-     *
-     * @param file
-     * @param line
-     * @param offset
-     * @param length
-     * @param eol
-     * @return
-     * @throws Exception If there is an exception while processing the line.
-     *                   Throwing an exception stops tailing the file.
-     */
-    boolean onLineAvailable(TailableFile file, byte[] line, int offset, int length, boolean eol) throws Exception;
-
-    void onIdle();
-
-    /**
-     * May be called from a different thread than the one owned by {@link FileTailer}
-     */
-    void onShutdownInitiated();
-
-    void onShutdownComplete();
-}
+import co.elastic.apm.agent.sdk.NonnullApi;

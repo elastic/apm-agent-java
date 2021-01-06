@@ -1176,23 +1176,18 @@ The default unit for this option is `ms`.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-cloud-provider]]
-==== `cloud_provider` (added[1.18.2])
+==== `cloud_provider` (added[1.21.0])
 
-The config value allows you to specify which cloud provider should be assumed
-for metadata collection. By default, the agent will attempt to detect the cloud
-provider or, if that fails, will use trial and error to collect the metadata.
-Valid options are `"aws"`, `"gcp"` and `"azure"`. If this config value is set
-to `False`, then no cloud metadata will be collected.
+This config value allows you to specify which cloud provider should be assumed for metadata collection.
+By default, the agent will attempt to detect the cloud provider or, if that fails, will use trial and error to collect the metadata.
 
-
-
+Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `None` | String | false
+| `AUTO` | CloudProvider | false
 |============
-
 
 [options="header"]
 |============
@@ -2862,17 +2857,16 @@ The default unit for this option is `ms`.
 #
 # span_min_duration=0ms
 
-# The config value allows you to specify which cloud provider should be assumed
-# for metadata collection. By default, the agent will attempt to detect the cloud
+# This config value allows you to specify which cloud provider should be assumed 
+# for metadata collection. By default, the agent will attempt to detect the cloud 
 # provider or, if that fails, will use trial and error to collect the metadata.
-# Valid options are `"aws"`, `"gcp"` and `"azure"`. If this config value is set
-# to `False`, then no cloud metadata will be collected.
 #
+# Valid options: AUTO, AWS, GCP, AZURE, NONE
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: String
-# Default value: None
+# Type: CloudProvider
+# Default value: AUTO
 #
-# cloud_provider=None
+# cloud_provider=AUTO
 
 ############################################
 # HTTP                                     #

@@ -32,12 +32,17 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.ServiceFactory;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class MetaData {
 
@@ -58,21 +63,35 @@ public class MetaData {
     /**
      * Cloud provider metadata
      */
-    private final CloudProviderInfo cloudProvider;
+    @Nullable
+    private final CloudProviderInfo cloudProviderInfo;
 
     private final ArrayList<String> globalLabelKeys;
     private final ArrayList<String> globalLabelValues;
 
-    public MetaData(ProcessInfo process, Service service, SystemInfo system, CloudProviderInfo cloudProvider, Map<String, String> globalLabels) {
+    MetaData(ProcessInfo process, Service service, SystemInfo system, @Nullable CloudProviderInfo cloudProviderInfo,
+             Map<String, String> globalLabels) {
         this.process = process;
         this.service = service;
         this.system = system;
-        this.cloudProvider = cloudProvider;
+        this.cloudProviderInfo = cloudProviderInfo;
         globalLabelKeys = new ArrayList<>(globalLabels.keySet());
         globalLabelValues = new ArrayList<>(globalLabels.values());
     }
 
-    public static MetaData create(ConfigurationRegistry configurationRegistry, @Nullable String ephemeralId) {
+    /**
+     * Creates a metadata to be used with all events sent by the agent.
+     * <p>
+     * NOTE: This method is blocking, possibly for several seconds, on outgoing HTTP requests, fetching for cloud
+     * metadata, unless the {@link CoreConfiguration#getCloudProvider() cloud_provider} config option is set to
+     * {@link CoreConfiguration.CloudProvider#NONE NONE}.
+     * </p>
+     *
+     * @param configurationRegistry agent config
+     * @param ephemeralId           unique ID generated once per agent bootstrap
+     * @return metadata about the current environment
+     */
+    public static Future<MetaData> create(ConfigurationRegistry configurationRegistry, @Nullable String ephemeralId) {
         if (ephemeralId == null) {
             ephemeralId = UUID.randomUUID().toString();
         }
@@ -82,7 +101,40 @@ public class MetaData {
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        return new MetaData(processInformation, service, SystemInfo.create(coreConfiguration.getHostname()), CloudProviderInfo.create(coreConfiguration.getCloudProvider()), coreConfiguration.getGlobalLabels());
+        final SystemInfo system = SystemInfo.create(coreConfiguration.getHostname());
+
+        final CoreConfiguration.CloudProvider cloudProvider = coreConfiguration.getCloudProvider();
+        if (cloudProvider == CoreConfiguration.CloudProvider.NONE) {
+            MetaData metaData = new MetaData(
+                processInformation,
+                service,
+                system,
+                null,
+                coreConfiguration.getGlobalLabels()
+            );
+            return new NoWaitFuture(metaData);
+        }
+
+        final int cloudDiscoveryTimeoutMs = (int) coreConfiguration.geCloudMetadataDiscoveryTimeoutMs();
+        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDaemonPool("apm-metadata", 1);
+        try {
+            return executor.submit(new Callable<MetaData>() {
+                @Override
+                public MetaData call() {
+                    // This call is blocking on outgoing HTTP connections
+                    CloudProviderInfo cloudProviderInfo = CloudMetadataProvider.fetchAndParseCloudProviderInfo(cloudProvider, cloudDiscoveryTimeoutMs);
+                    return new MetaData(
+                        processInformation,
+                        service,
+                        system,
+                        cloudProviderInfo,
+                        coreConfiguration.getGlobalLabels()
+                    );
+                }
+            });
+        } finally {
+            executor.shutdown();
+        }
     }
 
     /**
@@ -122,7 +174,41 @@ public class MetaData {
     }
 
     @Nullable
-    public CloudProviderInfo getCloudProvider() {
-        return cloudProvider;
+    public CloudProviderInfo getCloudProviderInfo() {
+        return cloudProviderInfo;
+    }
+
+    static class NoWaitFuture implements Future<MetaData> {
+
+        private final MetaData metaData;
+
+        NoWaitFuture(MetaData metaData) {
+            this.metaData = metaData;
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return false;
+        }
+
+        @Override
+        public MetaData get() {
+            return metaData;
+        }
+
+        @Override
+        public MetaData get(long timeout, TimeUnit unit) {
+            return metaData;
+        }
     }
 }

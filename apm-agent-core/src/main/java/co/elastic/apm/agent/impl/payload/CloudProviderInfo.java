@@ -24,36 +24,34 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
-import co.elastic.apm.agent.impl.Cloud;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.stagemonitor.util.StringUtils;
-
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class CloudProviderInfo {
-    private static final Logger logger = LoggerFactory.getLogger(CloudProviderInfo.class);
 
-    private String provider;
+    private final String provider;
 
+    @Nullable
     private String availabilityZone;
 
+    @Nullable
     private String region;
 
+    @Nullable
     private ProviderInstance instance;
 
+    @Nullable
     private ProviderAccount account;
 
+    @Nullable
     private ProviderProject project;
 
+    @Nullable
     private ProviderMachine machine;
 
-    public CloudProviderInfo(@Nonnull String provider) {
+    public CloudProviderInfo(String provider) {
         this.provider = provider;
     }
 
-    @Nonnull
     public String getProvider() {
         return provider;
     }
@@ -63,7 +61,7 @@ public class CloudProviderInfo {
         return availabilityZone;
     }
 
-    public void setAvailabilityZone(String availabilityZone) {
+    public void setAvailabilityZone(@Nullable String availabilityZone) {
         this.availabilityZone = availabilityZone;
     }
 
@@ -81,7 +79,7 @@ public class CloudProviderInfo {
         return instance;
     }
 
-    public void setInstance(@Nonnull ProviderInstance instance) {
+    public void setInstance(ProviderInstance instance) {
         this.instance = instance;
     }
 
@@ -108,60 +106,14 @@ public class CloudProviderInfo {
         return machine;
     }
 
-    public void setMachine(@Nonnull ProviderMachine machine) {
+    public void setMachine(ProviderMachine machine) {
         this.machine = machine;
     }
 
-    @Nullable
-    public static CloudProviderInfo create(@Nullable String cloudProviderName) {
-        cloudProviderName = cloudProviderName != null ? cloudProviderName.toLowerCase() : null;
-        if (StringUtils.isEmpty(cloudProviderName) || "false".equals(cloudProviderName)) {
-            logger.debug("cloud_provider configuration is null or has `false` value.");
-            return null;
-        }
-        CloudProviderInfo data = null;
-        Cloud cloud = new Cloud();
-        if ("aws".equals(cloudProviderName)) {
-            data = cloud.getAwsMetadata();
-            if (data == null) {
-                logger.warn("Cloud provider {} defined, but no metadata was found.", cloudProviderName);
-            }
-            return data;
-        } else if ("gcp".equals(cloudProviderName)) {
-            data = cloud.getGcpMetadata();
-            if (data == null) {
-                logger.warn("Cloud provider {} defined, but no metadata was found.", cloudProviderName);
-            }
-            return data;
-        } else if ("azure".equals(cloudProviderName)) {
-            data = cloud.getAzureMetadata();
-            if (data == null) {
-                logger.warn("Cloud provider {} defined, but no metadata was found.", cloudProviderName);
-            }
-            return data;
-        } else {
-            data = cloud.getAwsMetadata();
-            if (data != null) {
-                logger.debug("Defined aws cloud provider metadata");
-                return data;
-            }
-            data = cloud.getGcpMetadata();
-            if (data != null) {
-                logger.debug("Defined gcp cloud provider metadata");
-                return data;
-            }
-            data = cloud.getAzureMetadata();
-            if (data != null) {
-                logger.debug("Defined azure cloud provider metadata");
-                return data;
-            }
-        }
-        return null;
-    }
-
     public static class ProviderAccount {
+
+        @Nullable
         private String id;
-        private String name;
 
         public ProviderAccount(@Nullable String id) {
             this.id = id;
@@ -175,10 +127,18 @@ public class CloudProviderInfo {
         public void setId(String id) {
             this.id = id;
         }
+
+        @Override
+        public String toString() {
+            return String.valueOf(id);
+        }
     }
 
     public static class ProviderInstance {
+
+        @Nullable
         private String id;
+        @Nullable
         private String name;
 
         public ProviderInstance(@Nullable Long id, @Nullable String name) {
@@ -208,10 +168,21 @@ public class CloudProviderInfo {
         public void setName(String name) {
             this.name = name;
         }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("{");
+            sb.append("id='").append(id).append('\'');
+            sb.append(", name='").append(name).append('\'');
+            sb.append("}");
+            return sb.toString();
+        }
     }
 
     public static class ProviderProject {
+        @Nullable
         private String id;
+        @Nullable
         private String name;
 
         public ProviderProject(@Nullable String name) {
@@ -245,10 +216,21 @@ public class CloudProviderInfo {
         public void setId(String id) {
             this.id = id;
         }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("{");
+            sb.append("id='").append(id).append('\'');
+            sb.append(", name='").append(name).append('\'');
+            sb.append("}");
+            return sb.toString();
+        }
     }
 
     public static class ProviderMachine {
-        private String type;
+
+        @Nullable
+        private final String type;
 
         public ProviderMachine(@Nullable String type) {
             this.type = type;
@@ -258,5 +240,24 @@ public class CloudProviderInfo {
         public String getType() {
             return type;
         }
+
+        @Override
+        public String toString() {
+            return String.valueOf(type);
+        }
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("CloudProviderInfo{");
+        sb.append("provider='").append(provider).append('\'');
+        sb.append(", availabilityZone='").append(availabilityZone).append('\'');
+        sb.append(", region='").append(region).append('\'');
+        sb.append(", instance=").append(instance);
+        sb.append(", account=").append(account);
+        sb.append(", project=").append(project);
+        sb.append(", machine=").append(machine);
+        sb.append('}');
+        return sb.toString();
     }
 }

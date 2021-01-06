@@ -22,30 +22,19 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.log.shipper;
+package co.elastic.apm.agent.util;
 
-public interface FileChangeListener {
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLConnection;
 
-    /**
-     * Retried until success. Implementations are responsible for doing a backoff.
-     *
-     * @param file
-     * @param line
-     * @param offset
-     * @param length
-     * @param eol
-     * @return
-     * @throws Exception If there is an exception while processing the line.
-     *                   Throwing an exception stops tailing the file.
-     */
-    boolean onLineAvailable(TailableFile file, byte[] line, int offset, int length, boolean eol) throws Exception;
-
-    void onIdle();
-
-    /**
-     * May be called from a different thread than the one owned by {@link FileTailer}
-     */
-    void onShutdownInitiated();
-
-    void onShutdownComplete();
+public class UrlConnectionUtils {
+    public static URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
+        GlobalLocks.JUL_INIT_LOCK.lock();
+        try {
+            return url.openConnection();
+        } finally {
+            GlobalLocks.JUL_INIT_LOCK.unlock();
+        }
+    }
 }
