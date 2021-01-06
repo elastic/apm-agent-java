@@ -1178,8 +1178,11 @@ The default unit for this option is `ms`.
 [[config-cloud-provider]]
 ==== `cloud_provider` (added[1.21.0])
 
-This config value allows you to specify which cloud provider should be assumed for metadata collection.
-By default, the agent will attempt to detect the cloud provider or, if that fails, will use trial and error to collect the metadata.
+This config value allows you to specify which cloud provider should be assumed 
+for metadata collection. By default, the agent will attempt to detect the cloud 
+provider or, if that fails, will use trial and error to collect the metadata.
+
+
 
 Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 
@@ -1188,6 +1191,7 @@ Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
 | Default                          | Type                | Dynamic
 | `AUTO` | CloudProvider | false
 |============
+
 
 [options="header"]
 |============
