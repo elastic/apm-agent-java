@@ -29,10 +29,10 @@ public class NullCheck {
     }
 
     public static <T> boolean isNullKey(@Nullable T key){
-        return true;
+        return isNull(key, true);
     }
 
     public static <T> boolean isNullValue(@Nullable T value) {
-        return true;
+        return isNull(value, false);
     }
 }
