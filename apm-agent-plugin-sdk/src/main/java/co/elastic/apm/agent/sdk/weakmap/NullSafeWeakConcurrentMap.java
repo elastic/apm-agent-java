@@ -37,9 +37,9 @@ import static co.elastic.apm.agent.sdk.weakmap.NullCheck.isNullValue;
  * @param <K> key type
  * @param <V> value type
  */
-class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
+public class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
 
-    NullSafeWeakConcurrentMap(boolean cleanerThread) {
+    public NullSafeWeakConcurrentMap(boolean cleanerThread) {
         super(cleanerThread);
     }
 
