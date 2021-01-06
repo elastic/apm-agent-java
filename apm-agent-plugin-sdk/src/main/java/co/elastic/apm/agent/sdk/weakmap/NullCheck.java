@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-class NullCheck {
+public class NullCheck {
 
     private static final Logger logger = LoggerFactory.getLogger(NullCheck.class);
 
