@@ -25,20 +25,19 @@
 package co.elastic.apm.agent.sdk.weakmap;
 
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.sdk.weakmap.NullCheck.isNullKey;
+import static co.elastic.apm.agent.sdk.weakmap.NullCheck.isNullValue;
+
 /**
- * WeakConcurrentMap implementation that prevents throwing {@link NullPointerException} and helps debugging if needed
+ * {@link WeakConcurrentMap} implementation that prevents throwing {@link NullPointerException} and helps debugging if needed
  *
  * @param <K> key type
  * @param <V> value type
  */
 class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
-
-    private static final Logger logger = LoggerFactory.getLogger(NullSafeWeakConcurrentMap.class);
 
     NullSafeWeakConcurrentMap(boolean cleanerThread) {
         super(cleanerThread);
@@ -47,8 +46,8 @@ class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
     @Nullable
     @Override
     public V get(K key) {
-        if (isNull(key)) {
-            // overriden implementation silently adds entries from default value when there is none
+        if (isNullKey(key)) {
+            // super implementation silently adds entries from default value when there is none
             // in the case of 'null', we won't return the default value nor create a map entry with it.
             return null;
         }
@@ -58,7 +57,7 @@ class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
     @Nullable
     @Override
     public V getIfPresent(K key) {
-        if (isNull(key)) {
+        if (isNullKey(key)) {
             return null;
         }
         return super.getIfPresent(key);
@@ -66,7 +65,7 @@ class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
 
     @Override
     public boolean containsKey(K key) {
-        if (isNull(key)) {
+        if (isNullKey(key)) {
             return false;
         }
         return super.containsKey(key);
@@ -75,7 +74,7 @@ class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
     @Nullable
     @Override
     public V put(K key, V value) {
-        if (isNull(key) || isNull(value)) {
+        if (isNullKey(key) || isNullValue(value)) {
             return null;
         }
         return super.put(key, value);
@@ -84,7 +83,7 @@ class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
     @Nullable
     @Override
     public V putIfAbsent(K key, V value) {
-        if (isNull(key) || isNull(value)) {
+        if (isNullKey(key) || isNullValue(value)) {
             return null;
         }
         return super.putIfAbsent(key, value);
@@ -93,7 +92,7 @@ class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
     @Nullable
     @Override
     public V putIfProbablyAbsent(K key, V value) {
-        if (isNull(key) || isNull(value)) {
+        if (isNullKey(key) || isNullValue(value)) {
             return null;
         }
         return super.putIfProbablyAbsent(key, value);
@@ -102,28 +101,9 @@ class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
     @Nullable
     @Override
     public V remove(K key) {
-        if (isNull(key)) {
+        if (isNullKey(key)) {
             return null;
         }
         return super.remove(key);
-    }
-
-    /**
-     * checks if key or value is {@literal null}
-     *
-     * @param v key or value
-     * @return {@literal true} if key is non-null, {@literal false} if null
-     */
-    private static <T> boolean isNull(@Nullable T v) {
-        if (null != v) {
-            return false;
-        }
-        String msg = "trying to use null key or value";
-        if (logger.isDebugEnabled()) {
-            logger.debug(msg, new RuntimeException(msg));
-        } else {
-            logger.warn(msg);
-        }
-        return true;
     }
 }

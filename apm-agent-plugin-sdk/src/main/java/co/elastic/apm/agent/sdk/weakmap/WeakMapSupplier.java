@@ -42,8 +42,7 @@ public class WeakMapSupplier {
     }
 
     public static <V> WeakConcurrentSet<V> createSet() {
-        // note: we don't have a NullSafeWeakConcurrentSet here because we can't change the underlying map impl.
-        WeakConcurrentSet<V> weakSet = new WeakConcurrentSet<V>(WeakConcurrentSet.Cleaner.MANUAL);
+        WeakConcurrentSet<V> weakSet = new NullSafeWeakConcurrentSet<>(WeakConcurrentSet.Cleaner.MANUAL);
         registeredSets.add(weakSet);
         return weakSet;
     }
