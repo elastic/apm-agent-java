@@ -58,9 +58,6 @@ endif::[]
 ===== Refactors
 * Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
 
-[[release-notes-1.x]]
-=== Java Agent version 1.x
-
 [[release-notes-1.19.0]]
 ==== 1.19.0 - 2020/11/10
 
