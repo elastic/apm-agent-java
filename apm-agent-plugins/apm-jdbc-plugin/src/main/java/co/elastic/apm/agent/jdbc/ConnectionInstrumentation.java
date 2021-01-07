@@ -30,6 +30,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
@@ -50,9 +51,12 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ConnectionInstrumentation extends JdbcInstrumentation {
 
     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static void storeSql(@Advice.Return PreparedStatement statement,
+    public static void storeSql(@Advice.Return @Nullable PreparedStatement statement,
                                 @Advice.Argument(0) String sql) {
-        getJdbcHelper().mapStatementToSql(statement, sql);
+        if (statement != null) { // might be null if exception is thrown
+            getJdbcHelper().mapStatementToSql(statement, sql);
+        }
+
     }
 
     @Override

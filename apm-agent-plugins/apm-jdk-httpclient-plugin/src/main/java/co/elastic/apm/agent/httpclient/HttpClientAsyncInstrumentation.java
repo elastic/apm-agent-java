@@ -77,6 +77,8 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
             if (completableFuture == null) {
                 span.captureException(t)
                     .end();
+
+                return;
             }
 
             completableFuture.whenComplete((response, throwable) -> {
