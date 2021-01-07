@@ -752,9 +752,10 @@ public class CallTree implements Recyclable {
         @Override
         public void resetState() {
             super.resetState();
+            rootContext.resetState();
             activeSpan = null;
             activationTimestamp = -1;
-            // todo - should we reset activeSpanSerialized?
+            Arrays.fill(activeSpanSerialized, (byte) 0);
             previousTopOfStack = null;
             topOfStack = null;
             activeSet.clear();
