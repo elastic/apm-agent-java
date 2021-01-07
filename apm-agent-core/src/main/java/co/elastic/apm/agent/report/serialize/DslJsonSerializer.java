@@ -217,6 +217,9 @@ public class DslJsonSerializer implements PayloadSerializer {
     /**
      * Blocking until this {@link PayloadSerializer} is ready for use.
      * Blocking will be timed out with a {@link TimeoutException} if the serializer is not ready within 5 seconds.
+     * Since the requirement is to call this method is called on the same thread that calls subsequently calls
+     * {@link DslJsonSerializer#appendMetadataToStream()}, there is no risk of visibility issues with regard to
+     * {@link DslJsonSerializer#serializedMetaData}.
      *
      * @throws Exception if blocking was interrupted, or timed out or an error occurred in the underlying implementation
      */
