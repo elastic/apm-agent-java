@@ -45,6 +45,7 @@ endif::[]
 * Fix improper request body capturing - {pull}1579[#1579]
 * avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
 * Update async-profiler to 1.8.3 {pull}1602[1602]
+* Use null-safe data structures to avoid `NullPointerException` {pull}1597[1597]
 
 [float]
 ===== Refactors
