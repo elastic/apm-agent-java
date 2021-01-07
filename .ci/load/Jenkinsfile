@@ -182,7 +182,7 @@ pipeline {
                         writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
 
                         // remove previous log files in workspace (if any)
-                        sh(script: "rm -f ${WORKSPACE}/*.log ${WORKSPACE}/*.pid")
+                        sh(script: "rm -f ${WORKSPACE}/*.log ${WORKSPACE}/*.pid ${WORKSPACE}/*.jfr")
 
                         unstash('scripts')
                         unstash('app')
