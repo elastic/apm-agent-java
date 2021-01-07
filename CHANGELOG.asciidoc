@@ -20,8 +20,14 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.1]]
-==== 1.19.1 - YYYY/MM/DD
+[[release-notes-1.20.1]]
+==== 1.20.1 - YYYY/MM/DD
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.20.0]]
+==== 1.20.0 - 2021/01/07
 
 [float]
 ===== Breaking changes
