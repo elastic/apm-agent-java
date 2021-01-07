@@ -36,13 +36,13 @@ public class WeakMapSupplier {
     private static final WeakConcurrentSet<WeakConcurrentSet<?>> registeredSets = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.INLINE);
 
     public static <K, V> WeakConcurrentMap<K, V> createMap() {
-        WeakConcurrentMap<K, V> result = new WeakConcurrentMap<>(false);
+        WeakConcurrentMap<K, V> result = new NullSafeWeakConcurrentMap<>(false);
         registeredMaps.add(result);
         return result;
     }
 
     public static <V> WeakConcurrentSet<V> createSet() {
-        WeakConcurrentSet<V> weakSet = new WeakConcurrentSet<V>(WeakConcurrentSet.Cleaner.MANUAL);
+        WeakConcurrentSet<V> weakSet = new NullSafeWeakConcurrentSet<>(WeakConcurrentSet.Cleaner.MANUAL);
         registeredSets.add(weakSet);
         return weakSet;
     }
