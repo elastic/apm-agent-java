@@ -67,7 +67,7 @@ abstract class AbstractSpanImpl implements Span {
     }
 
     public void doSetOutcome(Boolean outcome) {
-        // TODO
+        // co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation.SetOutcomeInstrumentation
     }
 
     private Object doCreateSpan() {

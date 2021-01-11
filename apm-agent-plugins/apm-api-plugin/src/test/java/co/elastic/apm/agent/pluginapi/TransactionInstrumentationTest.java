@@ -222,6 +222,31 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(errorId).isNotNull();
     }
 
+    @Test
+    void setOutcome_unknown() {
+        testSetOutcome(null, Outcome.UNKNOWN);
+    }
+
+    @Test
+    void setOutcome_failure() {
+        testSetOutcome(false, Outcome.FAILURE);
+    }
+
+    @Test
+    void setOutcome_success() {
+        testSetOutcome(true, Outcome.SUCCESS);
+    }
+
+    private void testSetOutcome(@Nullable Boolean outcome, Outcome expected) {
+        // set it first to a different value than the expected one
+        transaction.setOutcome(outcome != null ? outcome : false);
+
+        // only the last value set should be kept
+        transaction.setOutcome(outcome);
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getOutcome()).isSameAs(expected);
+    }
+
     private void endTransaction() {
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);

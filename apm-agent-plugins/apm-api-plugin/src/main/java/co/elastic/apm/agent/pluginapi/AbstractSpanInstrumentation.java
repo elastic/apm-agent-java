@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
@@ -45,6 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.SpanImpl.
  */
+@SuppressWarnings("JavadocReference")
 public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
@@ -137,6 +139,27 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                              @Advice.Argument(value = 0) long epochMicros) {
             if (context instanceof AbstractSpan<?>) {
                 ((AbstractSpan<?>) context).setStartTimestamp(epochMicros);
+            }
+        }
+    }
+
+    /**
+     * Instruments {@link co.elastic.apm.api.AbstractSpanImpl#doSetOutcome(java.lang.Boolean)}
+     */
+    public static class SetOutcomeInstrumentation extends AbstractSpanInstrumentation {
+        public SetOutcomeInstrumentation() {
+            super(named("doSetOutcome").and(takesArguments(Boolean.class)));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setOutcome(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                      @Advice.Argument(value = 0) @Nullable Boolean booleanValue) {
+            if (context instanceof AbstractSpan<?>) {
+                Outcome outcome = Outcome.UNKNOWN;
+                if (booleanValue != null) {
+                    outcome = Boolean.TRUE == booleanValue ? Outcome.SUCCESS : Outcome.FAILURE;
+                }
+                ((AbstractSpan<?>) context).withUserOutcome(outcome);
             }
         }
     }
