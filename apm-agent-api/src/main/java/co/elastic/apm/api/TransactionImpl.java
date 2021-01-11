@@ -153,4 +153,9 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
         return this;
     }
 
+    @Override
+    public Transaction setOutcome(Boolean outcome) {
+        doSetOutcome(outcome);
+        return this;
+    }
 }

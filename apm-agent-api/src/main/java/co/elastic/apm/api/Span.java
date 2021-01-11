@@ -209,6 +209,15 @@ public interface Span {
     Span setStartTimestamp(long epochMicros);
 
     /**
+     * Sets the outcome of this event
+     *
+     * @param outcome {@link Boolean#TRUE} to indicate success, {@link Boolean#FALSE} for failure, {@literal null} to indicate
+     *                unknown outcome
+     * @return this
+     */
+    Span setOutcome(Boolean outcome);
+
+    /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
      * Instead, start a new span through {@link #startSpan()} or {@link #startSpan(String, String, String)}.
      *

@@ -190,6 +190,11 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public Transaction setOutcome(Boolean outcome) {
+        return this;
+    }
+
+    @Override
     public void injectTraceHeaders(HeaderInjector headerInjector) {
         // noop
     }

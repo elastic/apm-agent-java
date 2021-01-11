@@ -111,4 +111,9 @@ class SpanImpl extends AbstractSpanImpl {
         return this;
     }
 
+    @Override
+    public Span setOutcome(Boolean outcome) {
+        doSetOutcome(outcome);
+        return this;
+    }
 }

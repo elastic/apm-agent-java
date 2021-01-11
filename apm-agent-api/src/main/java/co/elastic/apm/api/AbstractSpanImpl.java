@@ -66,6 +66,10 @@ abstract class AbstractSpanImpl implements Span {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
     }
 
+    public void doSetOutcome(Boolean outcome) {
+        // TODO
+    }
+
     private Object doCreateSpan() {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;

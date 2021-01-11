@@ -153,6 +153,11 @@ enum NoopSpan implements Span {
     }
 
     @Override
+    public Span setOutcome(Boolean outcome) {
+        return INSTANCE;
+    }
+
+    @Override
     public void injectTraceHeaders(HeaderInjector headerInjector) {
         // noop
     }
