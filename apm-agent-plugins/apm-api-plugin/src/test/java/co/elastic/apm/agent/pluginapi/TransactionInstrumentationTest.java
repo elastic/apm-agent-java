@@ -97,9 +97,9 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testResult() {
-        transaction.setResult("foo");
+        assertThat(transaction.setResult("foo")).isSameAs(transaction);
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+        checkResult("foo");
     }
 
     @Test
@@ -107,7 +107,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         transaction.setResult("foo");
         endTransaction();
         reporter.getFirstTransaction().withResultIfUnset("200");
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+        checkResult("foo");
     }
 
     @Test
@@ -115,8 +115,14 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         transaction.setResult("foo");
         transaction.setResult("bar");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("bar");
+        checkResult("bar");
     }
+
+    private void checkResult(String expected) {
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo(expected);
+    }
+
+
 
     @Test
     void testChaining() {

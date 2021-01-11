@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
@@ -169,6 +170,7 @@ public class ServletTransactionHelper {
         }
         fillResponse(transaction.getContext().getResponse(), committed, status);
         transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
+        transaction.withOutcome(status < 500 ? Outcome.SUCCESS : Outcome.FAILURE);
         transaction.withType("request");
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
         if (exception != null) {

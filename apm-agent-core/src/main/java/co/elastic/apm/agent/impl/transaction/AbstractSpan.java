@@ -97,27 +97,17 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @SuppressWarnings("JavadocReference") // for link to TraceContext#parentId
     private LongList childIds;
 
-    private Outcome outcome = Outcome.UNKNOWN;
+    /**
+     * outcome set by span/transaction instrumentation
+     */
+    @Nullable
+    private Outcome outcome = null;
 
-    public enum Outcome {
-        SUCCESS("success"),
-        ERROR("error"),
-        UNKNOWN("unknown");
-
-        /**
-         * String value used for serialization
-         */
-        private final String stringValue;
-
-        Outcome(String stringValue) {
-            this.stringValue = stringValue;
-        }
-
-        @Override
-        public String toString() {
-            return stringValue;
-        }
-    }
+    /**
+     * outcome set by user explicitly
+     */
+    @Nullable
+    private Outcome userOutcome = null;
 
     public int getReferenceCount() {
         return references.get();
@@ -352,7 +342,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         discardRequested = false;
         isExit = false;
         childIds = null;
-        outcome = Outcome.UNKNOWN;
+        outcome = null;
     }
 
     public Span createSpan() {
@@ -610,10 +600,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     protected abstract T thiz();
 
     /**
-     * @return outcome
+     * @return user outcome if set, otherwise outcome value
      */
     public Outcome getOutcome() {
-        return outcome;
+        if (userOutcome != null) {
+            return userOutcome;
+        }
+        return outcome == null ? Outcome.UNKNOWN : outcome;
     }
 
     /**
@@ -622,18 +615,22 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @param outcome outcome
      * @return this
      */
-    public T withOutcome(@Nullable Outcome outcome) {
-        this.outcome = null != outcome ? outcome : Outcome.UNKNOWN;
+    public T withOutcome(Outcome outcome) {
+        if (this.outcome == null) {
+            this.outcome = outcome;
+        }
         return thiz();
     }
 
     /**
-     * Set outcome from boolean
+     * Sets user outcome, which has priority over outcome set through {@link #withOutcome(Outcome)}
      *
-     * @param success {@literal true} for success, {@literal false} for error.
+     * @param outcome user outcome
      * @return this
      */
-    public T withOutcome(boolean success) {
-        return withOutcome(success ? Outcome.SUCCESS : Outcome.ERROR);
+    public T withUserOutcome(Outcome outcome) {
+        this.userOutcome = outcome;
+        return thiz();
     }
+
 }

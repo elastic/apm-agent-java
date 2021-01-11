@@ -32,8 +32,6 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -55,31 +53,37 @@ class TransactionTest {
     }
 
     @Test
-    void getAndSetOutcome() {
+    void getSetOutcome() {
         Transaction transaction = new Transaction(MockTracer.create());
 
         assertThat(transaction.getOutcome())
             .describedAs("default outcome should be unknown")
-            .isEqualTo(AbstractSpan.Outcome.UNKNOWN);
+            .isEqualTo(Outcome.UNKNOWN);
 
-        assertThat(transaction.withOutcome(true).getOutcome())
-            .isSameAs(AbstractSpan.Outcome.SUCCESS);
+        assertThat(transaction.withOutcome(Outcome.SUCCESS).getOutcome())
+            .isSameAs(Outcome.SUCCESS);
 
-        assertThat(transaction.withOutcome(false).getOutcome())
-            .isSameAs(AbstractSpan.Outcome.ERROR);
+        assertThat(transaction.withOutcome(Outcome.FAILURE).getOutcome())
+            .describedAs("outcome should not have changed as we aren't overriding")
+            .isSameAs(Outcome.SUCCESS);
 
-        // test set with enum after with boolean as boolean does not allow to set it back to 'unknown'
-        for (AbstractSpan.Outcome value : AbstractSpan.Outcome.values()) {
-            transaction.withOutcome(value);
-            assertThat(transaction.getOutcome()).isSameAs(value);
-        }
+        assertThat(transaction.withUserOutcome(Outcome.FAILURE).getOutcome())
+            .describedAs("user outcome should have higher priority")
+            .isSameAs(Outcome.FAILURE);
+
+        assertThat(transaction
+            .withUserOutcome(Outcome.SUCCESS)
+            .withUserOutcome(Outcome.UNKNOWN)
+            .getOutcome())
+            .describedAs("takes last value when set by user multiple times")
+            .isSameAs(Outcome.UNKNOWN);
 
         transaction.resetState();
+
         assertThat(transaction.getOutcome())
             .describedAs("reset should reset to unknown state")
-            .isEqualTo(AbstractSpan.Outcome.UNKNOWN);
+            .isEqualTo(Outcome.UNKNOWN);
 
     }
-
 
 }
