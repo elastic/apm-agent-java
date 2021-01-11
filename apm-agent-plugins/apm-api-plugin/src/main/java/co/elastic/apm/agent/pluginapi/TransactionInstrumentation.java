@@ -39,7 +39,7 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Injects the actual implementation of the public API class co.elastic.apm.api.TransactionImpl.
+ * Injects the actual implementation of the public API class {@code co.elastic.apm.api.TransactionImpl}.
  */
 public class TransactionInstrumentation extends ApiInstrumentation {
 

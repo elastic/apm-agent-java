@@ -46,7 +46,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.SpanImpl.
  */
-@SuppressWarnings("JavadocReference")
 public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
@@ -65,6 +64,9 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
+    /**
+     * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#doSetName(java.lang.String)}
+     */
     public static class SetNameInstrumentation extends AbstractSpanInstrumentation {
         public SetNameInstrumentation() {
             super(named("doSetName"));
@@ -144,7 +146,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
     }
 
     /**
-     * Instruments {@link co.elastic.apm.api.AbstractSpanImpl#doSetOutcome(java.lang.Boolean)}
+     * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#doSetOutcome(java.lang.Boolean)}
      */
     public static class SetOutcomeInstrumentation extends AbstractSpanInstrumentation {
         public SetOutcomeInstrumentation() {
