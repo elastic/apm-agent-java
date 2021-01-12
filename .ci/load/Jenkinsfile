@@ -179,7 +179,7 @@ pipeline {
                 stage('Run app') {
                     agent { label 'benchmarks' }
                     environment {
-                        BUCKET_URI = """${isPR() ? "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/pr-${env.CHANGE_ID}" : "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/${env.BRANCH_NAME}" """
+                        BUCKET_URI = """${isPR() ? "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/pr-${env.CHANGE_ID}" : "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/${env.BRANCH_NAME}"}"""
                     }
                     steps {
 
