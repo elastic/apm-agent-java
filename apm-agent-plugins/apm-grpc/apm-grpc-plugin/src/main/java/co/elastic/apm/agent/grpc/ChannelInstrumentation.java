@@ -34,9 +34,11 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.*;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -51,7 +53,11 @@ public class ChannelInstrumentation extends BaseInstrumentation {
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameStartsWith("io.grpc")
-            .and(nameContains("Channel"));
+            .and(nameContains("Channel"))
+            // for recent versions (found with 1.35), this implementation creates extra spans
+            // that are not necessary. As those aren't nested, the "active" and "exit span" do not allow to properly
+            // ignore those internal spans
+            .and(not(nameContains("io.grpc.internal.ManagedChannelImpl$RealChannel")));
     }
 
     @Override
