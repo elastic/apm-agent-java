@@ -27,6 +27,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,7 +62,7 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(app.sayHello("bob", 0))
             .isEqualTo("hello(bob)");
 
-        checkUnaryTransaction(getFirstTransaction(), "OK");
+        checkUnaryTransactionSuccess(getFirstTransaction());
     }
 
     @Test
@@ -71,18 +73,18 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         reporter.awaitTransactionCount(2);
 
         for (Transaction transaction : reporter.getTransactions()) {
-            checkUnaryTransaction(transaction, "OK");
+            checkUnaryTransactionSuccess(transaction);
         }
     }
 
     @Test
     void simpleCallWithInvalidArgumentError() {
-        simpleCallWithError(null, "INVALID_ARGUMENT");
+        simpleCallWithError(null, "INVALID_ARGUMENT", Outcome.FAILURE);
     }
 
     @Test
     void simpleCallWithRuntimeError() {
-        simpleCallWithError("boom", "UNKNOWN");
+        simpleCallWithError("boom", "UNKNOWN", Outcome.UNKNOWN);
     }
 
     @Test
@@ -92,15 +94,15 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         assertThat(msg).isEqualTo("hello(bob)");
 
         Transaction transaction = getFirstTransaction();
-        checkUnaryTransaction(transaction, "OK");
+        checkUnaryTransactionSuccess(transaction);
     }
 
-    private void simpleCallWithError(String name, String expectedResult) {
+    private void simpleCallWithError(@Nullable String name, String expectedResult, Outcome expectedOutcome) {
         assertThat(app.sayHello(name, 0))
             .isNull();
 
         Transaction transaction = getFirstTransaction();
-        checkUnaryTransaction(transaction, expectedResult);
+        checkUnaryTransaction(transaction, expectedResult, expectedOutcome);
     }
 
     @Test
@@ -142,24 +144,27 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         String s = app.sayHello("any", 0);
 
         String expectedTransactionStatus;
+        Outcome expectedTransactionOutcome;
         int expectedErrorCount = 0;
         if (method.equals("onCancel") || method.equals("onComplete")) {
             // onCancel is not called, thus exception is not thrown
             // onComplete exception is thrown, but result is already sent, thus we still get it client-side
             assertThat(s).isEqualTo("hello(any)");
             expectedTransactionStatus = "OK";
+            expectedTransactionOutcome = Outcome.SUCCESS;
         } else {
             // with all other listener methods, expected result is not available
             assertThat(s).isNull();
             expectedErrorCount = 1;
             expectedTransactionStatus = "UNKNOWN";
+            expectedTransactionOutcome = Outcome.UNKNOWN;
         }
 
         assertThat(app.getClient().getErrorCount())
             .describedAs("server listener exception should be visible on client")
             .isEqualTo(expectedErrorCount);
 
-        checkUnaryTransaction(getFirstTransaction(), expectedTransactionStatus);
+        checkUnaryTransaction(getFirstTransaction(), expectedTransactionStatus, expectedTransactionOutcome);
     }
 
     @Test
@@ -170,12 +175,17 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         reporter.awaitTransactionCount(1);
     }
 
-    private static void checkUnaryTransaction(Transaction transaction, String expectedResult) {
+    private static void checkUnaryTransactionSuccess(Transaction transaction) {
+        checkUnaryTransaction(transaction, "OK", Outcome.SUCCESS);
+    }
+
+    private static void checkUnaryTransaction(Transaction transaction, String expectedResult, Outcome expectedOutcome) {
         assertThat(transaction).isNotNull();
         assertThat(transaction.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
         assertThat(transaction.getType()).isEqualTo("request");
         assertThat(transaction.getResult()).isEqualTo(expectedResult);
         assertThat(transaction.getFrameworkName()).isEqualTo("gRPC");
+        assertThat(transaction.getOutcome()).isEqualTo(expectedOutcome);
     }
 
     private static void checkNoTransaction() {

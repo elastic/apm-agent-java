@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
@@ -165,9 +166,32 @@ public class GrpcHelper {
         }
     }
 
+    public static Outcome toOutcome(@Nullable Status status){
+        Outcome outcome = Outcome.UNKNOWN;
+
+        if (status != null) {
+            switch (status.getCode()) {
+                case OK:
+                    outcome = Outcome.SUCCESS;
+                    break;
+                case UNKNOWN:
+                    outcome = Outcome.UNKNOWN;
+                    break;
+                default:
+                    outcome = Outcome.FAILURE;
+                    break;
+            }
+        }
+
+        return  outcome;
+
+
+    }
+
     private void setTransactionStatus(Status status, @Nullable Throwable thrown, Transaction transaction) {
         transaction
             .withResultIfUnset(status.getCode().name())
+            .withOutcome(toOutcome(status))
             .captureException(thrown);
     }
 
@@ -321,7 +345,8 @@ public class GrpcHelper {
         // when there is an exception, we have to end span and perform some cleanup
         Span span = clientCallListenerSpans.remove(listener);
         if (span != null) {
-            span.end();
+            span.withOutcome(Outcome.FAILURE)
+                .end();
         }
     }
 
@@ -343,27 +368,30 @@ public class GrpcHelper {
     /**
      * De-activates active span when exiting listener method execution, optionally terminates span when required.
      *
-     * @param thrown       thrown exception (if any)
-     * @param listener     client call listener
-     * @param span         span reference obtained from {@link #enterClientListenerMethod(ClientCall.Listener)}
-     * @param isLastMethod {@literal true} if method is the last executed, {@literal false} if another is expected
+     * @param thrown        thrown exception (if any)
+     * @param listener      client call listener
+     * @param span          span reference obtained from {@link #enterClientListenerMethod(ClientCall.Listener)}
+     * @param onCloseStatus status if method is {@code onClose(...)}, {@literal null} otherwise
      */
     public void exitClientListenerMethod(@Nullable Throwable thrown,
                                          ClientCall.Listener<?> listener,
                                          @Nullable Span span,
-                                         boolean isLastMethod) {
+                                         @Nullable Status onCloseStatus) {
+
+        boolean lastCall = onCloseStatus != null || thrown != null;
 
         if (span != null) {
             span.captureException(thrown)
                 .deactivate();
+
+            if (lastCall) {
+                // span needs to be ended when last listener method is called or on the 1st thrown exception
+                span.withOutcome(toOutcome(onCloseStatus))
+                    .end();
+            }
         }
 
-        if (span != null && (isLastMethod || thrown != null)) {
-            // span needs to be ended when last listener method is called or on the 1st thrown exception
-            span.end();
-        }
-
-        if (isLastMethod) {
+        if (lastCall) {
             clientCallListenerSpans.remove(listener);
         }
 

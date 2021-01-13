@@ -27,6 +27,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
@@ -89,6 +90,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
 
         Span span = reporter.getFirstSpan();
         checkSpan(span);
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
     }
 
@@ -96,6 +98,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("grpc");
         assertThat(span.getNameAsString()).isEqualTo("helloworld.Hello/SayHello");
+
     }
 
     @Test
@@ -145,6 +148,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             //
             // we can't reliably do assertions on the actual duration without introducing flaky tests
             checkSpan(span);
+            assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
 
         } finally {
             // server is still waiting and did not sent response yet
@@ -201,25 +205,42 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             thrown = e;
         }
 
+        int expectedErrors = 0;
+
+        boolean is161 = isVersion161();
         if ("start".equals(method)) {
             // exception is thrown in main thread
             assertThat(thrown).isNotNull();
+            expectedErrors = 1;
         } else {
             assertThat(thrown).isNull();
-            int expectedErrors;
             if (method.equals("onReady")) {
-                expectedErrors = isVersion161() ? 1 : 0;
+                expectedErrors = is161 ? 1 : 0;
             } else {
                 // exceptions are thrown in a separate thread
                 // onReady is not called in this workflow, thus we just ignore it
                 expectedErrors = 1;
             }
+
+            // in this case error should be visible from client side
             assertThat(app.getClient().getErrorCount()).isEqualTo(expectedErrors);
 
         }
 
         // even if there is an exception thrown, we should still have a span created.
-        checkSpan(getFirstSpan());
+
+        Span span = getFirstSpan();
+        checkSpan(span);
+
+        Outcome outcome = span.getOutcome();
+        if (expectedErrors == 0) {
+            assertThat(outcome).isEqualTo(Outcome.SUCCESS);
+        } else {
+            // either failure or unknown
+            // we loosely assert to prevent flakyness, it may be unknown or failure without 100% accuracy
+            assertThat(outcome).isNotEqualTo(Outcome.SUCCESS);
+        }
+
     }
 
     private boolean isVersion161() {
