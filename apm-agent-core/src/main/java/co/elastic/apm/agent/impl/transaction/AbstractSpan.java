@@ -109,6 +109,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     @Nullable
     private Outcome userOutcome = null;
 
+    private boolean hasCapturedExceptions;
+
     public int getReferenceCount() {
         return references.get();
     }
@@ -343,6 +345,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         isExit = false;
         childIds = null;
         outcome = null;
+        userOutcome = null;
+        hasCapturedExceptions = false;
     }
 
     public Span createSpan() {
@@ -384,6 +388,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
+            hasCapturedExceptions = true;
             captureException(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
@@ -449,6 +454,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      */
     protected boolean outcomeNotSet() {
         return userOutcome == null && outcome == null;
+    }
+
+    /**
+     * @return true if an exception has been captured
+     */
+    protected boolean hasCapturedExceptions() {
+        return hasCapturedExceptions;
     }
 
     protected abstract void beforeEnd(long epochMicros);

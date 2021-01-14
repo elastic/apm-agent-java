@@ -73,10 +73,10 @@ class TransactionTest {
 
         assertThat(transaction
             .withUserOutcome(Outcome.SUCCESS)
-            .withUserOutcome(Outcome.UNKNOWN)
+            .withUserOutcome(Outcome.FAILURE)
             .getOutcome())
             .describedAs("takes last value when set by user multiple times")
-            .isSameAs(Outcome.UNKNOWN);
+            .isSameAs(Outcome.FAILURE);
 
         transaction.resetState();
 
