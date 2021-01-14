@@ -27,6 +27,7 @@ package co.elastic.apm.opentracing;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -338,14 +339,30 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 100, 200, 400, 500})
-    void testTransactionResultAndOutcome(int status) {
-        Transaction transaction = createTransactionFromOtTags(Map.of(
-            "span.kind", (Object)"server",
-            "http.url", "http://localhost:8080",
-            "http.method", "GET",
-            "http.status_code", status));
+    void testHttpMappingResultAndOutcome(int status) {
+        String method = "GET";
+        String url = "http://localhost:8080";
+
+        Transaction transaction = createTransactionFromOtTags(httpRequestMap("server", status));
         assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(status));
         assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(status));
+        assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(status);
+        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo(method);
+        assertThat(transaction.getContext().getRequest().getUrl().getFull().toString()).isEqualTo(url);
+
+        co.elastic.apm.agent.impl.transaction.Span span = createSpanFromOtTags(httpRequestMap("client", status));
+        assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
+        Http spanHttp = span.getContext().getHttp();
+        assertThat(spanHttp.getStatusCode()).isEqualTo(status);
+        assertThat(spanHttp.getUrl()).isEqualTo(url);
+        assertThat(spanHttp.getMethod()).isEqualTo(method);
+    }
+
+    private static Map<String,Object> httpRequestMap(String kind, int status){
+        return Map.of("span.kind", (Object) kind,
+            "http.url", "http://localhost:8080",
+            "http.method", "GET",
+            "http.status_code", status);
     }
 
     @Test
@@ -573,7 +590,16 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     private Transaction createTransactionFromOtTags(Map<String, ?> tags) {
         final Tracer.SpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
-        tags.forEach((k,v) -> {
+        applyTags(tags, spanBuilder);
+        spanBuilder.start().finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        reporter.resetWithoutRecycling();
+        return transaction;
+    }
+
+    private void applyTags(Map<String, ?> tags, Tracer.SpanBuilder spanBuilder) {
+        tags.forEach((k, v) -> {
            if(v instanceof String){
                spanBuilder.withTag(k, (String)v);
            } else if (v instanceof Number){
@@ -582,18 +608,13 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
                throw new IllegalStateException("unexpected type");
            }
         });
-        spanBuilder.start().finish();
-        assertThat(reporter.getTransactions()).hasSize(1);
-        final Transaction transaction = reporter.getFirstTransaction();
-        reporter.resetWithoutRecycling();
-        return transaction;
     }
 
-    private co.elastic.apm.agent.impl.transaction.Span createSpanFromOtTags(Map<String, String> tags) {
+    private co.elastic.apm.agent.impl.transaction.Span createSpanFromOtTags(Map<String, Object> tags) {
         final Span transaction = apmTracer.buildSpan("transaction").start();
         try (Scope transactionScope = apmTracer.activateSpan(transaction)) {
             final Tracer.SpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
-            tags.forEach(spanBuilder::withTag);
+            applyTags(tags, spanBuilder);
             spanBuilder.start().finish();
         }
         transaction.finish();
