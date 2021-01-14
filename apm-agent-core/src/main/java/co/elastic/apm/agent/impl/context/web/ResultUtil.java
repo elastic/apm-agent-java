@@ -51,10 +51,16 @@ public class ResultUtil {
     }
 
     public static Outcome getOutcomeByHttpClientStatus(int status) {
+        if (status < 100 || status >= 600) {
+            return Outcome.UNKNOWN;
+        }
         return status < 400 ? Outcome.SUCCESS : Outcome.FAILURE;
     }
 
     public static Outcome getOutcomeByHttpServerStatus(int status) {
+        if (status < 100 || status >= 600) {
+            return Outcome.UNKNOWN;
+        }
         return status < 500 ? Outcome.SUCCESS : Outcome.FAILURE;
     }
 }

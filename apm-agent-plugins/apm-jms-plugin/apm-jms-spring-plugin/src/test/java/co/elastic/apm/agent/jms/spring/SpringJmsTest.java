@@ -78,9 +78,9 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
         try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             Transaction transaction = tracer.startRootTransaction(null).activate();
-            transaction.withName("JMS-Spring-Test Transaction");
-            transaction.withType("request");
-            transaction.withResult("success");
+            transaction.withName("JMS-Spring-Test Transaction")
+                .withType("request")
+                .withResult("success");
 
             final String key1 = "key1";
             final String key2 = "key2";

@@ -27,6 +27,7 @@ package co.elastic.apm.opentracing;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -42,6 +43,8 @@ import io.opentracing.tag.Tags;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -333,6 +336,18 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         });
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 100, 200, 400, 500})
+    void testTransactionResultAndOutcome(int status) {
+        Transaction transaction = createTransactionFromOtTags(Map.of(
+            "span.kind", (Object)"server",
+            "http.url", "http://localhost:8080",
+            "http.method", "GET",
+            "http.status_code", status));
+        assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(status));
+        assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(status));
+    }
+
     @Test
     void testCreatingClientTransactionCreatesNoopSpan() {
         assertThat(apmTracer.scopeManager().activeSpan()).isNull();
@@ -556,9 +571,17 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstSpan().getContext().getLabel("bar")).isEqualTo("baz");
     }
 
-    private Transaction createTransactionFromOtTags(Map<String, String> tags) {
+    private Transaction createTransactionFromOtTags(Map<String, ?> tags) {
         final Tracer.SpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
-        tags.forEach(spanBuilder::withTag);
+        tags.forEach((k,v) -> {
+           if(v instanceof String){
+               spanBuilder.withTag(k, (String)v);
+           } else if (v instanceof Number){
+               spanBuilder.withTag(k, (Number)v);
+           } else {
+               throw new IllegalStateException("unexpected type");
+           }
+        });
         spanBuilder.start().finish();
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();

@@ -33,7 +33,6 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
@@ -147,8 +146,7 @@ public class ServletTransactionHelper {
                 transaction.ignoreTransaction();
             } else {
                 doOnAfter(transaction, exception, committed, status, overrideStatusCodeOnThrowable, method,
-                    parameterMap, servletPath, pathInfo, contentTypeHeader)
-                ;
+                    parameterMap, servletPath, pathInfo, contentTypeHeader);
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -169,13 +167,10 @@ public class ServletTransactionHelper {
             status = 500;
         }
         fillResponse(transaction.getContext().getResponse(), committed, status);
-        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
-        transaction.withOutcome(status < 500 ? Outcome.SUCCESS : Outcome.FAILURE);
-        transaction.withType("request");
+        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status))
+            .withType("request")
+            .captureException(exception);
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
-        if (exception != null) {
-            transaction.captureException(exception);
-        }
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction transaction) {

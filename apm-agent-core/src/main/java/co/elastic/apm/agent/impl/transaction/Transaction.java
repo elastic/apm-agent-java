@@ -27,14 +27,13 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -219,9 +218,17 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (type == null) {
             type = "custom";
         }
+
+        if (outcomeNotSet()) {
+            // set outcome from HTTP status if not already set
+            withOutcome(ResultUtil.getOutcomeByHttpServerStatus(getContext().getResponse().getStatusCode()));
+        }
+
         context.onTransactionEnd();
         incrementTimer("app", null, getSelfDuration());
     }
+
+
 
     @Override
     protected void afterEnd() {

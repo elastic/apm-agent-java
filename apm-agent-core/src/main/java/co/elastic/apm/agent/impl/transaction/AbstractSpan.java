@@ -444,6 +444,13 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         }
     }
 
+    /**
+     * @return true if outcome has NOT been set, either by user or through instrumentation
+     */
+    protected boolean outcomeNotSet() {
+        return userOutcome == null && outcome == null;
+    }
+
     protected abstract void beforeEnd(long epochMicros);
 
     protected abstract void afterEnd();

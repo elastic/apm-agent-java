@@ -186,7 +186,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             }
         }
 
-        private static void addTag(AbstractSpan transaction, String key, Object value) {
+        private static void addTag(AbstractSpan<?> transaction, String key, Object value) {
             if (value instanceof Number) {
                 transaction.addLabel(key, (Number) value);
             } else if (value instanceof Boolean) {
@@ -211,8 +211,9 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 }
                 return true;
             } else if ("http.status_code".equals(key) && value instanceof Number) {
-                transaction.getContext().getResponse().withStatusCode(((Number) value).intValue());
-                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
+                int status = ((Number) value).intValue();
+                transaction.getContext().getResponse().withStatusCode(status);
+                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.method".equals(key)) {

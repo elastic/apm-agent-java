@@ -27,6 +27,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.SpanContext;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,6 +235,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (type == null) {
             type = "custom";
         }
+
+        // set HTTP outcome when not explicitly set by user nor instrumentation
+        if (outcomeNotSet()) {
+            withOutcome(ResultUtil.getOutcomeByHttpClientStatus(context.getHttp().getStatusCode()));
+        }
+
         if (transaction != null) {
             transaction.incrementTimer(type, subtype, getSelfDuration());
         }

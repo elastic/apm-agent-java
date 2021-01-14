@@ -140,10 +140,10 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() {
-        Transaction transaction = tracer.startRootTransaction(null).activate();
-        transaction.withName("Kafka-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        tracer.startRootTransaction(null).activate()
+            .withName("Kafka-Test Transaction")
+            .withType("request")
+            .withResult("success");
         testScenario = TestScenario.NORMAL;
     }
 
