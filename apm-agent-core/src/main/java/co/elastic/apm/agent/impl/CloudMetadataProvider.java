@@ -188,7 +188,7 @@ public class CloudMetadataProvider {
         Map<String, String> documentHeaders = new HashMap<>(1);
         documentHeaders.put("X-aws-ec2-metadata-token", token);
         String metadata = executeRequest(awsMetadataUrl, "GET", documentHeaders, queryTimeoutMs);
-        logger.debug("Got aws metadata = {}", metadata);
+        logger.debug("AWS metadata retrieved");
         return deserializeAwsMetadata(metadata);
     }
 
@@ -245,7 +245,7 @@ public class CloudMetadataProvider {
         Map<String, String> headers = new HashMap<>(1);
         headers.put("Metadata-Flavor", "Google");
         String metadata = executeRequest(gcpUrl, "GET", headers, queryTimeoutMs);
-        logger.debug("Got gcp metadata = {}", metadata);
+        logger.debug("GCP metadata retrieved");
         return deserializeGcpMetadata(metadata);
     }
 
@@ -308,7 +308,7 @@ public class CloudMetadataProvider {
         Map<String, String> headers = new HashMap<>(1);
         headers.put("Metadata", "true");
         String metadata = executeRequest(azureUrl, "GET", headers, queryTimeoutMs);
-        logger.debug("Got azure metadata = {}", metadata);
+        logger.debug("Azure metadata retrieved");
         return deserializeAzureMetadata(metadata);
     }
 
