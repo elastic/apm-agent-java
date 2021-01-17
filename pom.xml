@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.19.1-SNAPSHOT</version>
+    <version>1.20.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -99,7 +99,7 @@
         <version.junit.vintage>4.13.1</version.junit.vintage>
         <version.junit-vintage-engine>5.7.0</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
-        <version.okhttp>3.9.1</version.okhttp>
+        <version.okhttp>4.3.0</version.okhttp>
         <version.slf4j>1.7.25</version.slf4j>
         <!-- this is the last version of log4j that is compatible with Java 7 -->
         <version.log4j>2.12.1</version.log4j>

@@ -220,12 +220,13 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
-                                          @Advice.Thrown Throwable t,
-                                          @Advice.Return Object returnValue) {
-            if (span == null) {
+        public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Return @Nullable Object returnValue) {
+            if (!(spanObj instanceof Span)) {
                 return;
             }
+            Span span = (Span)spanObj;
 
             // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
             // does not seem to return the sum of all elements. As we can use instanceof to check return type
@@ -243,11 +244,11 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                     affectedCount += array[i];
                 }
             }
-            ((Span) span).getContext()
+            span.getContext()
                 .getDb()
                 .withAffectedRowsCount(affectedCount);
 
-            ((Span) span).captureException(t)
+            span.captureException(t)
                 .deactivate()
                 .end();
         }
