@@ -226,6 +226,8 @@ public class Transaction extends AbstractSpan<Transaction> {
             Outcome outcome = Outcome.UNKNOWN;
             if (response.hasContent()) {
                 outcome = ResultUtil.getOutcomeByHttpServerStatus(response.getStatusCode());
+            } else if ("messaging".equals(type)) {
+                outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
             }
             withOutcome(outcome);
         }
