@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -596,6 +597,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             .isEqualTo("RabbitMQ RECEIVE from %s", exchange.isEmpty() ? "<default>" : exchange);
         assertThat(transaction.getFrameworkName()).isEqualTo("RabbitMQ");
 
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
+
         checkMessage(transaction.getContext().getMessage(), exchange);
     }
 
@@ -685,5 +688,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
         assertThat(service.getResource().toString()).isEqualTo(expectedResource);
+
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 }
