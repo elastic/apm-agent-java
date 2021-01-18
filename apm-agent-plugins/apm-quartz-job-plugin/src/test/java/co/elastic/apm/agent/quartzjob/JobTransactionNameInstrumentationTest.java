@@ -24,14 +24,11 @@
  */
 package co.elastic.apm.agent.quartzjob;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,12 +41,18 @@ import org.quartz.JobExecutionException;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SimpleScheduleBuilder;
+import org.quartz.SimpleTrigger;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.jobs.DirectoryScanJob;
 import org.quartz.jobs.DirectoryScanListener;
 import org.springframework.scheduling.quartz.QuartzJobBean;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -68,54 +71,40 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
     @AfterEach
     private void cleanup() throws SchedulerException {
         scheduler.shutdown();
-        reporter.assertRecycledAfterDecrementingReferences();
-    }
-
-    void verifyJobDetails(JobDetail job) {
-        await().untilAsserted(() -> assertThat(reporter.getTransactions().size()).isEqualTo(1));
-        assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("scheduled");
-        assertThat(reporter.getTransactions().get(0).getNameAsString())
-            .isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
-        assertThat(reporter.getTransactions().get(0).getFrameworkName()).isEqualTo("Quartz");
-        assertThat(reporter.getTransactions().get(0).getFrameworkVersion()).isEqualTo("2.3.1");
     }
 
     @Test
     void testJobWithGroup() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestJob.class)
-            .withIdentity("dummyJobName", "group1").build();
-        Trigger trigger = TriggerBuilder
-            .newTrigger()
-            .withIdentity("myTrigger")
-            .withSchedule(
-                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+            .withIdentity("dummyJobName", "group1")
             .build();
-        scheduler.scheduleJob(job, trigger);
-        verifyJobDetails(job);
+        scheduler.scheduleJob(job, createTrigger());
+
+        verifyTransactionFromJobDetails(job);
     }
 
     @Test
     void testJobWithoutGroup() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestJob.class)
-            .withIdentity("dummyJobName").build();
-        Trigger trigger = TriggerBuilder
-            .newTrigger()
-            .withIdentity("myTrigger")
-            .withSchedule(
-                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+            .withIdentity("dummyJobName")
             .build();
-        scheduler.scheduleJob(job, trigger);
-        verifyJobDetails(job);
+        scheduler.scheduleJob(job, createTrigger());
+
+        verifyTransactionFromJobDetails(job);
     }
 
     @Test
     void testJobManualCall() throws SchedulerException, InterruptedException {
         new TestJobCreatingSpan(tracer, true).execute(null);
-        assertThat(reporter.getTransactions().size()).isEqualTo(1);
-        Transaction transaction = reporter.getTransactions().get(0);
-        assertThat(transaction.getNameAsString()).isEqualToIgnoringCase("TestJobCreatingSpan#execute");
-        assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertThat(reporter.getSpans().get(0).getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
+
+        reporter.awaitTransactionCount(1);
+        Transaction transaction = reporter.getFirstTransaction();
+
+        verifyTransaction(transaction, "TestJobCreatingSpan#execute");
+
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
     }
 
     @Test
@@ -135,42 +124,28 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
     @Test
     void testSpringJob() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestSpringJob.class)
-            .withIdentity("dummyJobName", "group1").build();
-        Trigger trigger = TriggerBuilder
-            .newTrigger()
-            .withIdentity("myTrigger")
-            .withSchedule(
-                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+            .withIdentity("dummyJobName", "group1")
             .build();
-        scheduler.scheduleJob(job, trigger);
-        verifyJobDetails(job);
+        scheduler.scheduleJob(job, createTrigger());
+
+        verifyTransactionFromJobDetails(job);
     }
 
     @Test
     void testJobWithResult() throws SchedulerException {
         JobDetail job = JobBuilder.newJob(TestJobWithResult.class)
-            .withIdentity("dummyJobName").build();
-        Trigger trigger = TriggerBuilder
-            .newTrigger()
-            .withIdentity("myTrigger")
-            .withSchedule(
-                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+            .withIdentity("dummyJobName")
             .build();
-        scheduler.scheduleJob(job, trigger);
-        verifyJobDetails(job);
-        assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
+        scheduler.scheduleJob(job, createTrigger());
+
+        Transaction transaction = verifyTransactionFromJobDetails(job);
+        assertThat(transaction.getResult()).isEqualTo("this is the result");
     }
 
     @Test
     void testDirectoryScan() throws SchedulerException, IOException {
         Path directoryScanTest = Files.createTempDirectory("DirectoryScanTest");
 
-        Trigger trigger = TriggerBuilder
-            .newTrigger()
-            .withIdentity("myTrigger")
-            .withSchedule(
-                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
-            .build();
         final JobDetail job = JobBuilder.newJob(DirectoryScanJob.class)
             .withIdentity("dummyJobName")
             .usingJobData(DirectoryScanJob.DIRECTORY_NAME, directoryScanTest.toAbsolutePath().toString())
@@ -178,8 +153,47 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
             .build();
 
         scheduler.getContext().put(TestDirectoryScanListener.class.getSimpleName(), new TestDirectoryScanListener());
-        scheduler.scheduleJob(job, trigger);
-        verifyJobDetails(job);
+        scheduler.scheduleJob(job, createTrigger());
+
+        verifyTransactionFromJobDetails(job);
+    }
+
+    @Test
+    void testJobWithException() throws SchedulerException {
+        JobDetail job = JobBuilder.newJob(TestJobWithException.class).withIdentity("dummyJobName").build();
+        scheduler.scheduleJob(job, createTrigger());
+
+        Transaction transaction = verifyTransactionFromJobDetails(job);
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+    }
+
+    private static SimpleTrigger createTrigger() {
+        return TriggerBuilder.newTrigger()
+            .withIdentity("myTrigger")
+            .withSchedule(
+                SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
+            .build();
+    }
+
+    private Transaction verifyTransactionFromJobDetails(JobDetail job) {
+        reporter.awaitTransactionCount(1);
+
+        Transaction transaction = reporter.getFirstTransaction();
+        await().untilAsserted(() -> assertThat(reporter.getTransactions().size()).isEqualTo(1));
+
+        verifyTransaction(transaction, String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+        return transaction;
+    }
+
+    private Transaction verifyTransaction(Transaction transaction, String expectedName){
+        assertThat(transaction.getType()).isEqualToIgnoringCase("scheduled");
+        assertThat(transaction.getNameAsString())
+            .isEqualTo(expectedName);
+        assertThat(transaction.getFrameworkName()).isEqualTo("Quartz");
+        assertThat(transaction.getFrameworkVersion()).isEqualTo("2.3.1");
+
+        assertThat(transaction.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
+        return transaction;
     }
 
     public static class TestJob implements Job {
@@ -214,6 +228,13 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         @Override
         public void execute(JobExecutionContext context) throws JobExecutionException {
             context.setResult("this is the result");
+        }
+    }
+
+    public static class TestJobWithException implements Job {
+        @Override
+        public void execute(JobExecutionContext context) throws JobExecutionException {
+            throw new JobExecutionException("intentional job exception");
         }
     }
 

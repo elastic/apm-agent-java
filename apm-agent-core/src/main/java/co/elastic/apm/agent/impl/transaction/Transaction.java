@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -221,7 +222,12 @@ public class Transaction extends AbstractSpan<Transaction> {
 
         if (outcomeNotSet()) {
             // set outcome from HTTP status if not already set
-            withOutcome(ResultUtil.getOutcomeByHttpServerStatus(getContext().getResponse().getStatusCode()));
+            Response response = getContext().getResponse();
+            Outcome outcome = Outcome.UNKNOWN;
+            if (response.hasContent()) {
+                outcome = ResultUtil.getOutcomeByHttpServerStatus(response.getStatusCode());
+            }
+            withOutcome(outcome);
         }
 
         context.onTransactionEnd();

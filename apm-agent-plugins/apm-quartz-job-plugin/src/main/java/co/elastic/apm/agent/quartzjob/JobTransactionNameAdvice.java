@@ -27,6 +27,7 @@ package co.elastic.apm.agent.quartzjob;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
@@ -38,55 +39,53 @@ import javax.annotation.Nullable;
 
 public class JobTransactionNameAdvice {
 
-    public static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object setTransactionName(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
-                                           @SimpleMethodSignature String signature,
-                                           @Advice.Origin Class<?> clazz) {
-        if (GlobalTracer.get() != null) {
-            Transaction transaction = null;
-            AbstractSpan<?> active = GlobalTracer.get().getActive();
-            if (context == null) {
-                logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
-                transaction = GlobalTracer.get().startRootTransaction(clazz.getClassLoader());
-                if (transaction != null) {
-                    transaction.withName(signature)
-                        .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
-                        .activate();
-                }
-            } else if (active == null) {
-                transaction = GlobalTracer.get().startRootTransaction(clazz.getClassLoader());
-                if (transaction != null) {
-                    transaction.withName(context.getJobDetail().getKey().toString())
-                        .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
-                        .activate();
-                }
-            } else {
-                logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
-            }
-            if (transaction != null) {
-                transaction.setFrameworkName("Quartz");
-                transaction.setFrameworkVersion(VersionUtils.getVersion(JobExecutionContext.class, "org.quartz-scheduler", "quartz"));
-            }
-            return transaction;
+                                            @SimpleMethodSignature String signature,
+                                            @Advice.Origin Class<?> clazz) {
+        Transaction transaction = null;
+        AbstractSpan<?> active = GlobalTracer.get().getActive();
+        if (context == null) {
+            logger.warn("Cannot correctly name transaction for method {} because JobExecutionContext is null", signature);
+            transaction = createAndActivateTransaction(clazz, signature);
+        } else if (active == null) {
+            transaction = createAndActivateTransaction(clazz, context.getJobDetail().getKey().toString());
+        } else {
+            logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
         }
-        return null;
+        return transaction;
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onMethodExitException(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
                                              @Advice.Enter @Nullable Object transactionObj,
-                                             @Advice.Thrown Throwable t) {
+                                             @Advice.Thrown @Nullable Throwable t) {
         if (transactionObj instanceof Transaction) {
             Transaction transaction = (Transaction) transactionObj;
             if (context != null && context.getResult() != null) {
                 transaction.withResultIfUnset(context.getResult().toString());
             }
             transaction.captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
                 .deactivate()
                 .end();
         }
+    }
+
+    @Nullable
+    private static Transaction createAndActivateTransaction(Class<?> originClass, String name) {
+        Transaction transaction = GlobalTracer.get().startRootTransaction(originClass.getClassLoader());
+        if (transaction != null) {
+            transaction.withName(name)
+                .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
+                .activate();
+
+            transaction.setFrameworkName("Quartz");
+            transaction.setFrameworkVersion(VersionUtils.getVersion(JobExecutionContext.class, "org.quartz-scheduler", "quartz"));
+        }
+        return transaction;
     }
 }
