@@ -51,8 +51,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     // of this instrumentation is. Also, integration test cover this feature for the general case with a packaged
     // agent and thus they don't have such limitation
 
-    @Nullable
-    private Transaction transaction = null;
+    private Transaction transaction;
 
     private WeakConcurrentMap<Process, Span> storageMap;
     private ProcessHelper helper;
