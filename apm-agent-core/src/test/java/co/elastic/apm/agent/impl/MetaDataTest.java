@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AUTO;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -93,7 +94,8 @@ class MetaDataTest {
             // The GCP fails quickly on DNS lookup
             assertThat(timeoutException).isInstanceOf(TimeoutException.class);
         }
-        long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * 1.5);
+        // In AWS we may need two timeouts - one for the API token and one for the metadata itself
+        long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
         MetaData metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, provider);
     }
@@ -128,7 +130,7 @@ class MetaDataTest {
         }
         assertThat(timeoutException).isInstanceOf(TimeoutException.class);
         // verifying discovery occurs concurrently - should take less than twice the configured timeout (AWS and Azure are timing out)
-        long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * 1.5);
+        long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * 2.5);
         metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
         verifyMetaData(metaData, AUTO);
     }

@@ -115,8 +115,8 @@ public  final class HelloRequest extends
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-      userName_ = s;
-      return s;
+        userName_ = s;
+        return s;
     }
   }
   /**
@@ -129,8 +129,8 @@ public  final class HelloRequest extends
         com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-      userName_ = b;
-      return b;
+        userName_ = b;
+        return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
@@ -468,8 +468,8 @@ public  final class HelloRequest extends
           com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
-        userName_ = b;
-        return b;
+          userName_ = b;
+          return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
@@ -479,13 +479,13 @@ public  final class HelloRequest extends
      */
     public Builder setUserName(
         java.lang.String value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
+        if (value == null) {
+            throw new NullPointerException();
+        }
 
         userName_ = value;
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
     /**
      * <code>string userName = 1;</code>
@@ -493,22 +493,22 @@ public  final class HelloRequest extends
     public Builder clearUserName() {
 
         userName_ = getDefaultInstance().getUserName();
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
     /**
      * <code>string userName = 1;</code>
      */
     public Builder setUserNameBytes(
         com.google.protobuf.ByteString value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
+        if (value == null) {
+            throw new NullPointerException();
+        }
+        checkByteStringIsUtf8(value);
 
         userName_ = value;
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
 
     private int depth_ ;
@@ -524,8 +524,8 @@ public  final class HelloRequest extends
     public Builder setDepth(int value) {
 
         depth_ = value;
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
     /**
      * <code>int32 depth = 2;</code>
@@ -533,8 +533,8 @@ public  final class HelloRequest extends
     public Builder clearDepth() {
 
         depth_ = 0;
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
     public final Builder setUnknownFields(
         final com.google.protobuf.UnknownFieldSet unknownFields) {

@@ -71,7 +71,7 @@ public class CloudMetadataProvider {
      * @return Automatically discovered {@link CloudProviderInfo}, or {@code null} if none found.
      */
     @Nullable
-    static CloudProviderInfo fetchAndParseCloudProviderInfo(CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
+    static CloudProviderInfo fetchAndParseCloudProviderInfo(final CoreConfiguration.CloudProvider cloudProvider, final int queryTimeoutMs) {
 
         Throwable unexpectedError = null;
         CloudProviderInfo cloudProviderInfo = null;
@@ -79,7 +79,7 @@ public class CloudMetadataProvider {
             switch (cloudProvider) {
                 case AWS: {
                     try {
-                        cloudProviderInfo = getAwsMetadata(queryTimeoutMs);
+                        cloudProviderInfo = getAwsMetadata(queryTimeoutMs, cloudProvider);
                     } catch (Exception e) {
                         unexpectedError = e;
                     }
@@ -111,7 +111,7 @@ public class CloudMetadataProvider {
                             public CloudProviderInfo call() {
                                 CloudProviderInfo awsInfo = null;
                                 try {
-                                    awsInfo = getAwsMetadata(queryTimeoutMs);
+                                    awsInfo = getAwsMetadata(queryTimeoutMs, cloudProvider);
                                 } catch (Exception e) {
                                     // Expected - trial and error method
                                 }
@@ -178,15 +178,26 @@ public class CloudMetadataProvider {
     }
 
     @Nullable
-    private static CloudProviderInfo getAwsMetadata(int queryTimeoutMs) throws IOException {
+    private static CloudProviderInfo getAwsMetadata(int queryTimeoutMs, CoreConfiguration.CloudProvider configuredProvider) throws IOException {
         String awsTokenUrl = "http://169.254.169.254/latest/api/token";
         Map<String, String> headers = new HashMap<>(1);
         headers.put("X-aws-ec2-metadata-token-ttl-seconds", "300");
-        String token = executeRequest(awsTokenUrl, "PUT", headers, queryTimeoutMs);
-        logger.debug("Got aws token with a length of {} characters", token.length());
+        String token = null;
+        try {
+            token = executeRequest(awsTokenUrl, "PUT", headers, queryTimeoutMs);
+            logger.debug("Got aws token with a length of {} characters", token.length());
+        } catch (Exception e) {
+            if (configuredProvider == AWS) {
+                // This is expected when the token request is made from within a Docker container as described in https://github.com/elastic/apm-agent-python/pull/884
+                logger.info("Unable to obtain API token, probably because running within a Docker container. This mean that AWS metadata may not be available.");
+            }
+        }
         String awsMetadataUrl = "http://169.254.169.254/latest/dynamic/instance-identity/document";
-        Map<String, String> documentHeaders = new HashMap<>(1);
-        documentHeaders.put("X-aws-ec2-metadata-token", token);
+        Map<String, String> documentHeaders = null;
+        if (token != null) {
+            documentHeaders = new HashMap<>(1);
+            documentHeaders.put("X-aws-ec2-metadata-token", token);
+        }
         String metadata = executeRequest(awsMetadataUrl, "GET", documentHeaders, queryTimeoutMs);
         logger.debug("AWS metadata retrieved");
         return deserializeAwsMetadata(metadata);
@@ -364,10 +375,12 @@ public class CloudMetadataProvider {
         return (Map<String, Object>) ObjectConverter.deserializeObject(reader);
     }
 
-    private static String executeRequest(String url, String method, Map<String, String> headers, int queryTimeoutMs) throws IOException {
+    private static String executeRequest(String url, String method, @Nullable Map<String, String> headers, int queryTimeoutMs) throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) UrlConnectionUtils.openUrlConnectionThreadSafely(new URL(url));
-        for (String header : headers.keySet()) {
-            urlConnection.setRequestProperty(header, headers.get(header));
+        if (headers != null) {
+            for (String header : headers.keySet()) {
+                urlConnection.setRequestProperty(header, headers.get(header));
+            }
         }
         urlConnection.setRequestMethod(method);
         urlConnection.setReadTimeout(queryTimeoutMs);

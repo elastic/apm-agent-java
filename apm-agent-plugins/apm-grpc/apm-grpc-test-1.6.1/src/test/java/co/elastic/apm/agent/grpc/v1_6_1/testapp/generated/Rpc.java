@@ -38,16 +38,17 @@ public final class Rpc {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_helloworld_HelloRequest_descriptor;
+
+    static final com.google.protobuf.Descriptors.Descriptor
+        internal_static_helloworld_HelloRequest_descriptor;
     static final
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_helloworld_HelloRequest_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_helloworld_HelloReply_descriptor;
+        internal_static_helloworld_HelloRequest_fieldAccessorTable;
+    static final com.google.protobuf.Descriptors.Descriptor
+        internal_static_helloworld_HelloReply_descriptor;
     static final
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_helloworld_HelloReply_fieldAccessorTable;
+        internal_static_helloworld_HelloReply_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {

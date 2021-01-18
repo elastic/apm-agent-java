@@ -109,8 +109,8 @@ public  final class HelloReply extends
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-      message_ = s;
-      return s;
+        message_ = s;
+        return s;
     }
   }
   /**
@@ -123,8 +123,8 @@ public  final class HelloReply extends
         com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-      message_ = b;
-      return b;
+        message_ = b;
+        return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
@@ -436,8 +436,8 @@ public  final class HelloReply extends
           com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
-        message_ = b;
-        return b;
+          message_ = b;
+          return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
@@ -447,13 +447,13 @@ public  final class HelloReply extends
      */
     public Builder setMessage(
         java.lang.String value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
+        if (value == null) {
+            throw new NullPointerException();
+        }
 
         message_ = value;
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
     /**
      * <code>string message = 1;</code>
@@ -461,22 +461,22 @@ public  final class HelloReply extends
     public Builder clearMessage() {
 
         message_ = getDefaultInstance().getMessage();
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
     /**
      * <code>string message = 1;</code>
      */
     public Builder setMessageBytes(
         com.google.protobuf.ByteString value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
+        if (value == null) {
+            throw new NullPointerException();
+        }
+        checkByteStringIsUtf8(value);
 
         message_ = value;
-      onChanged();
-      return this;
+        onChanged();
+        return this;
     }
     public final Builder setUnknownFields(
         final com.google.protobuf.UnknownFieldSet unknownFields) {
