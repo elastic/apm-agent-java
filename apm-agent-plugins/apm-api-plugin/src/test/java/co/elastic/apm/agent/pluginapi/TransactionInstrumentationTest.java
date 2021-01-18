@@ -26,15 +26,14 @@ package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
-import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Outcome;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nullable;
 import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -226,27 +225,31 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void setOutcome_unknown() {
-        testSetOutcome(null, Outcome.UNKNOWN);
+        testSetOutcome(Outcome.UNKNOWN);
     }
 
     @Test
     void setOutcome_failure() {
-        testSetOutcome(false, Outcome.FAILURE);
+        testSetOutcome(Outcome.FAILURE);
     }
 
     @Test
     void setOutcome_success() {
-        testSetOutcome(true, Outcome.SUCCESS);
+        testSetOutcome(Outcome.SUCCESS);
     }
 
-    private void testSetOutcome(@Nullable Boolean outcome, Outcome expected) {
+    private void testSetOutcome(Outcome outcome) {
         // set it first to a different value than the expected one
-        transaction.setOutcome(outcome != null ? outcome : false);
+        Outcome[] values = Outcome.values();
+        transaction.setOutcome(values[(outcome.ordinal() + 1) % values.length]);
 
         // only the last value set should be kept
         transaction.setOutcome(outcome);
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getOutcome()).isSameAs(expected);
+
+        // test on enum names to avoid importing the two Outcome enums
+        assertThat(reporter.getFirstTransaction().getOutcome().name())
+            .isEqualTo(outcome.name());
     }
 
     private void endTransaction() {

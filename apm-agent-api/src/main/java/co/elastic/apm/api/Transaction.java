@@ -193,14 +193,14 @@ public interface Transaction extends Span {
     Transaction setStartTimestamp(long epochMicros);
 
     /**
-     * Sets transaction outcome
+     * Sets the transaction outcome
      *
-     * @param outcome {@link Boolean#TRUE} to indicate success, {@link Boolean#FALSE} for failure, {@literal null} to indicate
-     *                unknown outcome
-     * @return
+     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure, {
+     * @return this
+     * @link Outcome#UNKNOWN} to indicate unknown outcome
      */
-    @Override
-    Transaction setOutcome(Boolean outcome);
+
+    Transaction setOutcome(Outcome outcome);
 
     /**
      * End tracking the transaction.

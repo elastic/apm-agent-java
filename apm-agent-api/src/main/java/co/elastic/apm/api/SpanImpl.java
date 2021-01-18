@@ -112,7 +112,7 @@ class SpanImpl extends AbstractSpanImpl {
     }
 
     @Override
-    public Span setOutcome(Boolean outcome) {
+    public Span setOutcome(Outcome outcome) {
         doSetOutcome(outcome);
         return this;
     }

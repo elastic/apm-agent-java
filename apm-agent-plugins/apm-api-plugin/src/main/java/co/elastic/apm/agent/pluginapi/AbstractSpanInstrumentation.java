@@ -41,6 +41,7 @@ import java.lang.invoke.MethodHandle;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
@@ -150,16 +151,19 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
      */
     public static class SetOutcomeInstrumentation extends AbstractSpanInstrumentation {
         public SetOutcomeInstrumentation() {
-            super(named("doSetOutcome").and(takesArguments(Boolean.class)));
+            super(named("doSetOutcome")
+                .and(takesArguments(1)
+                    .and(takesArgument(0, named("co.elastic.apm.api.Outcome")))
+                ));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setOutcome(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                      @Advice.Argument(value = 0) @Nullable Boolean booleanValue) {
+                                      @Advice.Argument(value = 0) @Nullable Enum<?> apiOutcome) {
             if (context instanceof AbstractSpan<?>) {
                 Outcome outcome = Outcome.UNKNOWN;
-                if (booleanValue != null) {
-                    outcome = Boolean.TRUE == booleanValue ? Outcome.SUCCESS : Outcome.FAILURE;
+                if (apiOutcome != null) {
+                    outcome = Outcome.valueOf(apiOutcome.name());
                 }
                 ((AbstractSpan<?>) context).withUserOutcome(outcome);
             }

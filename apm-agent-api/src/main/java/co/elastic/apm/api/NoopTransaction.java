@@ -190,7 +190,8 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
-    public Transaction setOutcome(Boolean outcome) {
+    public Transaction setOutcome(Outcome outcome) {
+
         return this;
     }
 

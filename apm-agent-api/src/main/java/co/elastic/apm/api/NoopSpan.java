@@ -153,7 +153,7 @@ enum NoopSpan implements Span {
     }
 
     @Override
-    public Span setOutcome(Boolean outcome) {
+    public Span setOutcome(Outcome outcome) {
         return INSTANCE;
     }
 
