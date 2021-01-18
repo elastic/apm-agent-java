@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -38,17 +38,16 @@ public final class Rpc {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
-
-    static final com.google.protobuf.Descriptors.Descriptor
-        internal_static_helloworld_HelloRequest_descriptor;
-    static final
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_helloworld_HelloRequest_descriptor;
+  static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internal_static_helloworld_HelloRequest_fieldAccessorTable;
-    static final com.google.protobuf.Descriptors.Descriptor
-        internal_static_helloworld_HelloReply_descriptor;
-    static final
+      internal_static_helloworld_HelloRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_helloworld_HelloReply_descriptor;
+  static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internal_static_helloworld_HelloReply_fieldAccessorTable;
+      internal_static_helloworld_HelloReply_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {

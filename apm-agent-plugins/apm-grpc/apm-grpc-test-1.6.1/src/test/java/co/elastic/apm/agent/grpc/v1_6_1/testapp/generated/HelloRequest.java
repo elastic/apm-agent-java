@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -112,11 +112,11 @@ public  final class HelloRequest extends
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        userName_ = s;
-        return s;
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      userName_ = s;
+      return s;
     }
   }
   /**
@@ -126,11 +126,11 @@ public  final class HelloRequest extends
       getUserNameBytes() {
     java.lang.Object ref = userName_;
     if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        userName_ = b;
-        return b;
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      userName_ = b;
+      return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
@@ -465,11 +465,11 @@ public  final class HelloRequest extends
         getUserNameBytes() {
       java.lang.Object ref = userName_;
       if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          userName_ = b;
-          return b;
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        userName_ = b;
+        return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
@@ -479,36 +479,36 @@ public  final class HelloRequest extends
      */
     public Builder setUserName(
         java.lang.String value) {
-        if (value == null) {
-            throw new NullPointerException();
-        }
-
-        userName_ = value;
-        onChanged();
-        return this;
+      if (value == null) {
+    throw new NullPointerException();
+  }
+  
+      userName_ = value;
+      onChanged();
+      return this;
     }
     /**
      * <code>string userName = 1;</code>
      */
     public Builder clearUserName() {
-
-        userName_ = getDefaultInstance().getUserName();
-        onChanged();
-        return this;
+      
+      userName_ = getDefaultInstance().getUserName();
+      onChanged();
+      return this;
     }
     /**
      * <code>string userName = 1;</code>
      */
     public Builder setUserNameBytes(
         com.google.protobuf.ByteString value) {
-        if (value == null) {
-            throw new NullPointerException();
-        }
-        checkByteStringIsUtf8(value);
-
-        userName_ = value;
-        onChanged();
-        return this;
+      if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+      
+      userName_ = value;
+      onChanged();
+      return this;
     }
 
     private int depth_ ;
@@ -522,19 +522,19 @@ public  final class HelloRequest extends
      * <code>int32 depth = 2;</code>
      */
     public Builder setDepth(int value) {
-
-        depth_ = value;
-        onChanged();
-        return this;
+      
+      depth_ = value;
+      onChanged();
+      return this;
     }
     /**
      * <code>int32 depth = 2;</code>
      */
     public Builder clearDepth() {
-
-        depth_ = 0;
-        onChanged();
-        return this;
+      
+      depth_ = 0;
+      onChanged();
+      return this;
     }
     public final Builder setUnknownFields(
         final com.google.protobuf.UnknownFieldSet unknownFields) {

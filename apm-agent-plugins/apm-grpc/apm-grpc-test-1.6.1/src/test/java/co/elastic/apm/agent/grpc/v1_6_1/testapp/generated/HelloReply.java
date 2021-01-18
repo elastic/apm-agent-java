@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -106,11 +106,11 @@ public  final class HelloReply extends
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        message_ = s;
-        return s;
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      message_ = s;
+      return s;
     }
   }
   /**
@@ -120,11 +120,11 @@ public  final class HelloReply extends
       getMessageBytes() {
     java.lang.Object ref = message_;
     if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        message_ = b;
-        return b;
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      message_ = b;
+      return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
@@ -433,11 +433,11 @@ public  final class HelloReply extends
         getMessageBytes() {
       java.lang.Object ref = message_;
       if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          message_ = b;
-          return b;
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        message_ = b;
+        return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
@@ -447,36 +447,36 @@ public  final class HelloReply extends
      */
     public Builder setMessage(
         java.lang.String value) {
-        if (value == null) {
-            throw new NullPointerException();
-        }
-
-        message_ = value;
-        onChanged();
-        return this;
+      if (value == null) {
+    throw new NullPointerException();
+  }
+  
+      message_ = value;
+      onChanged();
+      return this;
     }
     /**
      * <code>string message = 1;</code>
      */
     public Builder clearMessage() {
-
-        message_ = getDefaultInstance().getMessage();
-        onChanged();
-        return this;
+      
+      message_ = getDefaultInstance().getMessage();
+      onChanged();
+      return this;
     }
     /**
      * <code>string message = 1;</code>
      */
     public Builder setMessageBytes(
         com.google.protobuf.ByteString value) {
-        if (value == null) {
-            throw new NullPointerException();
-        }
-        checkByteStringIsUtf8(value);
-
-        message_ = value;
-        onChanged();
-        return this;
+      if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+      
+      message_ = value;
+      onChanged();
+      return this;
     }
     public final Builder setUnknownFields(
         final com.google.protobuf.UnknownFieldSet unknownFields) {
