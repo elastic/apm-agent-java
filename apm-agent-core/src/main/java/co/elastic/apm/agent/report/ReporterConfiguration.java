@@ -127,7 +127,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "A lower value will decrease the heap overhead of the agent,\n" +
             "while a higher value makes it less likely to lose events in case of a temporary spike in throughput.")
-        .dynamic(true)
+        .dynamic(false)
         .buildWithDefault(512);
 
     private final ConfigurationOption<Boolean> reportSynchronously = ConfigurationOption.booleanOption()
