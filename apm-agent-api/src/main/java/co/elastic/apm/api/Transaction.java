@@ -195,9 +195,9 @@ public interface Transaction extends Span {
     /**
      * Sets the transaction outcome
      *
-     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure, {
+     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure,
+     *                {@link Outcome#UNKNOWN} to indicate unknown outcome
      * @return this
-     * @link Outcome#UNKNOWN} to indicate unknown outcome
      */
 
     Transaction setOutcome(Outcome outcome);

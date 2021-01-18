@@ -81,7 +81,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         int spanCount = reporter.getNumReportedSpans();
         if (spanCount > 0) {
             reporter.getSpans().forEach(s -> assertThat(s.getOutcome())
-                .describedAs("span outcome should be unknown")
+                .describedAs("span outcome should be either failure or success")
                 .isNotEqualTo(Outcome.UNKNOWN));
         }
 
