@@ -20,8 +20,20 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.21.0]]
+==== 1.21.0 - YYYY/MM/DD
+[float]
+===== Features
+* The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
+
+[float]
+===== Bug fixes
+
 [[release-notes-1.20.1]]
 ==== 1.20.1 - YYYY/MM/DD
+
+[float]
+===== Bug fixes
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

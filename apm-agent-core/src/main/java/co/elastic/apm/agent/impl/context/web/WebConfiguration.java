@@ -106,7 +106,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> usePathAsName = ConfigurationOption.booleanOption()
         .key("use_path_as_transaction_name")
         .configurationCategory(HTTP_CATEGORY)
-        .tags("experimental")
+        .tags("experimental", "added[1.0.0,Changing this value at runtime is possible since version 1.21.0]")
         .description("If set to `true`,\n" +
             "transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.\n" +
             "\n" +
@@ -114,6 +114,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "you should be very careful when enabling this flag,\n" +
             "as it can lead to an explosion of transaction groups.\n" +
             "Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.")
+        .dynamic(true)
         .buildWithDefault(false);
 
     private final ConfigurationOption<List<WildcardMatcher>> urlGroups = ConfigurationOption
