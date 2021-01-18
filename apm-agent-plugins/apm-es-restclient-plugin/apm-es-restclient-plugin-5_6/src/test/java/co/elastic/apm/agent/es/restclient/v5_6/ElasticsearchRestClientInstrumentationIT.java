@@ -141,6 +141,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         doPerformRequest("DELETE", "/" + SECOND_INDEX);
 
         validateSpanContentAfterIndexDeleteRequest();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
     @Test
