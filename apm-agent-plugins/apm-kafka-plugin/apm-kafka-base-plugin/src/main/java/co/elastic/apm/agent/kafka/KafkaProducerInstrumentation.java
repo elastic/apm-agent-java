@@ -78,7 +78,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         @AssignTo.Argument(1)
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord record,
-                                      @Advice.Argument(1) @Nullable Callback callback) {
+                                          @Advice.Argument(1) @Nullable Callback callback) {
             Span span = null;
 
             //noinspection ConstantConditions

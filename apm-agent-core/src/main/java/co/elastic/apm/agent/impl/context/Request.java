@@ -151,7 +151,11 @@ public class Request implements Recyclable {
      * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
      * </p>
      * <p>
-     * Note: This method is not thread safe
+     * Note: this method is not thread safe
+     * </p>
+     * <p>
+     * Note: In order for the value written to the body buffer to be used, you must call {@link Request#endOfBufferInput()},
+     * which is the only valid way to invoke {@link CharBuffer#flip()} on the body buffer.
      * </p>
      *
      * @return a {@link CharBuffer} to record the request body
@@ -187,9 +191,18 @@ public class Request implements Recyclable {
         }
     }
 
+    /**
+     * Returns the body buffer if it was written to and writing to it was finished through {@link Request#endOfBufferInput()}
+     *
+     * @return body buffer if it was written to and writing was finished; returns {@code null} otherwise.
+     */
     @Nullable
-    public CharBuffer getBodyBufferForSerialization() {
-        return bodyBuffer;
+    public CharSequence getBodyBufferForSerialization() {
+        if (bodyBufferFinished) {
+            return bodyBuffer;
+        } else {
+            return null;
+        }
     }
 
     public PotentiallyMultiValuedMap getFormUrlEncodedParameters() {
@@ -307,13 +320,14 @@ public class Request implements Recyclable {
         this.socket.copyFrom(other.socket);
         this.url.copyFrom(other.url);
         this.cookies.copyFrom(other.cookies);
-        if (other.bodyBuffer != null) {
-            final CharBuffer otherBuffer = other.bodyBuffer;
+        // Using getBodyBufferForSerialization to make sure we copy body buffer only if it was written to and writing was finished
+        final CharSequence otherBuffer = other.getBodyBufferForSerialization();
+        if (otherBuffer != null) {
             final CharBuffer thisBuffer = this.withBodyBuffer();
             for (int i = 0; i < otherBuffer.length(); i++) {
                 thisBuffer.append(otherBuffer.charAt(i));
             }
-            ((Buffer) thisBuffer).flip();
+            endOfBufferInput();
         }
         this.rawBody = other.rawBody;
     }

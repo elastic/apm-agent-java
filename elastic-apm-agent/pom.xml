@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.19.1-SNAPSHOT</version>
+        <version>1.20.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
@@ -177,6 +177,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-profiling-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -208,7 +208,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                               @Advice.Argument(0) Throwable t,
-                                              @Advice.Return String returnValue) {
+                                              @Advice.Return @Nullable String returnValue) {
             if (context instanceof AbstractSpan<?>) {
                 return ((AbstractSpan<?>) context).captureExceptionAndGetErrorId(t);
             } else {
@@ -242,10 +242,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             super(named("getId").and(takesArguments(0)));
         }
 
+        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                   @Advice.Return String returnValue) {
+                                   @Advice.Return @Nullable String returnValue) {
             if (context instanceof AbstractSpan<?>) {
                 return ((AbstractSpan<?>) context).getTraceContext().getId().toString();
             } else {
@@ -259,10 +260,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             super(named("getTraceId").and(takesArguments(0)));
         }
 
+        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                        @Advice.Return String returnValue) {
+                                        @Advice.Return @Nullable String returnValue) {
             if (context instanceof AbstractSpan<?>) {
                 return ((AbstractSpan<?>) context).getTraceContext().getTraceId().toString();
             } else {
@@ -278,7 +280,8 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) String value) {
+                                    @Advice.Argument(0) String key,
+                                    @Advice.Argument(1) @Nullable String value) {
             if (value != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).addLabel(key, value);
             }
@@ -292,7 +295,8 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Number value) {
+                                    @Advice.Argument(0) String key,
+                                    @Advice.Argument(1) @Nullable Number value) {
             if (value != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).addLabel(key, value);
             }
@@ -306,7 +310,8 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Boolean value) {
+                                    @Advice.Argument(0) String key,
+                                    @Advice.Argument(1) @Nullable Boolean value) {
             if (value != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).addLabel(key, value);
             }
