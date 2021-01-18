@@ -25,14 +25,18 @@
 package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.Schedules;
 
 import javax.ejb.Schedule;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
@@ -42,8 +46,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         SpringCounter springCounter = new SpringCounter();
         springCounter.scheduled();
         springCounter.scheduled();
-        assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduled");
+
+        checkTransactions(springCounter, 2, "SpringCounter#scheduled");
     }
 
     @Test
@@ -51,8 +55,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         SpringCounter springCounter = new SpringCounter();
         springCounter.scheduledJava8Repeatable();
         springCounter.scheduledJava8Repeatable();
-        assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduledJava8Repeatable");
+
+        checkTransactions(springCounter, 2, "SpringCounter#scheduledJava8Repeatable");
     }
 
     @Test
@@ -60,8 +64,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         SpringCounter springCounter = new SpringCounter();
         springCounter.scheduledJava7Repeatable();
         springCounter.scheduledJava7Repeatable();
-        assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduledJava7Repeatable");
+
+        checkTransactions(springCounter, 2, "SpringCounter#scheduledJava7Repeatable");
     }
 
     @Test
@@ -69,8 +73,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         JeeCounter jeeCounter = new JeeCounter();
         jeeCounter.scheduled();
         jeeCounter.scheduled();
-        assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("JeeCounter#scheduled");
+        jeeCounter.scheduled();
+        checkTransactions(jeeCounter, 3, "JeeCounter#scheduled");
     }
 
     @Test
@@ -78,13 +82,39 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         JeeCounter jeeCounter = new JeeCounter();
         jeeCounter.scheduledJava7Repeatable();
         jeeCounter.scheduledJava7Repeatable();
-        assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("JeeCounter#scheduledJava7Repeatable");
+        checkTransactions(jeeCounter, 2, "JeeCounter#scheduledJava7Repeatable");
     }
 
+    @Test
+    void testThrownErrorOutcomes(){
+        ThrowingCounter throwCounter = new ThrowingCounter();
 
-    private class SpringCounter {
-        private AtomicInteger count = new AtomicInteger(0);
+        assertThatThrownBy(throwCounter::throwingException);
+
+        List<Transaction> transactions = checkTransactions(throwCounter, 1, "ThrowingCounter#throwingException");
+        assertThat(transactions.get(0).getOutcome()).isEqualTo(Outcome.FAILURE);
+
+    }
+
+    private static List<Transaction> checkTransactions(AbstractCounter counter, int expectedCount, String expectedName) {
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions).hasSize(counter.getInvocationCount()).hasSize(expectedCount);
+        transactions.forEach(t -> {
+            assertThat(t.getNameAsString()).isEqualTo(expectedName);
+            assertThat(t.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
+        });
+        return transactions;
+    }
+
+    private static abstract class AbstractCounter {
+        protected final AtomicInteger count = new AtomicInteger(0);
+
+        public final int getInvocationCount() {
+            return this.count.get();
+        }
+    }
+
+    private static class SpringCounter extends AbstractCounter {
 
         @Scheduled(fixedDelay = 5)
         public void scheduled() {
@@ -98,20 +128,16 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         }
 
         @Schedules({
-                @Scheduled(fixedDelay = 5),
-                @Scheduled(fixedDelay = 10)
+            @Scheduled(fixedDelay = 5),
+            @Scheduled(fixedDelay = 10)
         })
         public void scheduledJava7Repeatable() {
             this.count.incrementAndGet();
         }
 
-        public int getInvocationCount() {
-            return this.count.get();
-        }
     }
 
-    private class JeeCounter {
-        private AtomicInteger count = new AtomicInteger(0);
+    private static class JeeCounter extends AbstractCounter {
 
         @Schedule(minute = "5")
         public void scheduled() {
@@ -119,15 +145,21 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         }
 
         @javax.ejb.Schedules({
-                @Schedule(minute = "5"),
-                @Schedule(minute = "10")
+            @Schedule(minute = "5"),
+            @Schedule(minute = "10")
         })
         public void scheduledJava7Repeatable() {
             this.count.incrementAndGet();
         }
+    }
 
-        public int getInvocationCount() {
-            return this.count.get();
+    private static class ThrowingCounter extends AbstractCounter {
+
+        @Schedule(minute = "5") // whatever the used annotation here, the behavior should be the same
+        public void throwingException() {
+            count.incrementAndGet();
+            throw new RuntimeException("intentional exception");
         }
     }
+
 }
