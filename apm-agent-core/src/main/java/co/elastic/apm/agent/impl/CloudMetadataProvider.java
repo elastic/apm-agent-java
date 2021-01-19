@@ -189,7 +189,7 @@ public class CloudMetadataProvider {
         } catch (Exception e) {
             if (configuredProvider == AWS) {
                 // This is expected when the token request is made from within a Docker container as described in https://github.com/elastic/apm-agent-python/pull/884
-                logger.info("Unable to obtain API token, probably because running within a Docker container. This mean that AWS metadata may not be available.");
+                logger.info("Unable to obtain API token, probably because running within a Docker container. This means that AWS metadata may not be available.");
             }
         }
         String awsMetadataUrl = "http://169.254.169.254/latest/dynamic/instance-identity/document";
