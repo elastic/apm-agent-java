@@ -209,8 +209,8 @@ public interface Span {
     /**
      * Sets the outcome of this event
      *
-     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure, 
-     * {@link Outcome#UNKNOWN} to indicate unknown outcome
+     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure,
+     *                {@link Outcome#UNKNOWN} to indicate unknown outcome
      * @return this
      */
     Span setOutcome(Outcome outcome);
