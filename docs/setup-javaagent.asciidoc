@@ -222,9 +222,8 @@ set JAVA_OPTIONS=%JAVA_OPTIONS% -Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [float]
-[[setup-cloudMetadataProvider-foundry]]
+[[setup-cloud-foundry]]
 ==== Cloud Foundry
-
 The Elastic Java APM Agent Framework is now part of the Cloud Foundry Java Buildpack as of link:https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19[Release v4.19].
 
 A user provided Elastic APM service must have a name or tag with `elastic-apm` in it so that the Elastic APM Agent Framework will automatically configure the application to work with the service.
