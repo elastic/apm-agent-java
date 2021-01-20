@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
@@ -99,20 +100,27 @@ class ProcessHelper {
         // it has the same caveat as isAlive, which means that it will not detect process termination
         // until the actual process has terminated, for example right after a call to Process#destroy().
         // in that case, ignoring the process actual status is relevant.
-        boolean terminated = !checkTerminatedProcess;
+
+        Outcome outcome = Outcome.UNKNOWN;
+        Span span = inFlightSpans.get(process);
+        boolean endAndRemoveSpan = !checkTerminatedProcess;
+
         if (checkTerminatedProcess) {
             try {
-                process.exitValue();
-                terminated = true;
+                int exitValue = process.exitValue();
+                outcome = exitValue == 0 ? Outcome.SUCCESS : Outcome.FAILURE;
+                endAndRemoveSpan = true;
             } catch (IllegalThreadStateException e) {
-                terminated = false;
+                // process hasn't terminated, we don't know it's actual return value
+                endAndRemoveSpan = false;
             }
         }
 
-        if (terminated) {
-            Span span = inFlightSpans.remove(process);
+        if (endAndRemoveSpan) {
+            inFlightSpans.remove(process);
             if (span != null) {
-                span.end();
+                span.withOutcome(outcome).
+                    end();
             }
         }
     }
