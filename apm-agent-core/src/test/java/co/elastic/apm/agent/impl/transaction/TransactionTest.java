@@ -32,6 +32,8 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -64,12 +66,13 @@ class TransactionTest {
             .isSameAs(Outcome.SUCCESS);
 
         assertThat(transaction.withOutcome(Outcome.FAILURE).getOutcome())
-            .describedAs("outcome should not have changed as we aren't overriding")
-            .isSameAs(Outcome.SUCCESS);
-
-        assertThat(transaction.withUserOutcome(Outcome.FAILURE).getOutcome())
-            .describedAs("user outcome should have higher priority")
             .isSameAs(Outcome.FAILURE);
+
+        Arrays.asList(Outcome.SUCCESS, Outcome.UNKNOWN).forEach(o ->{
+            assertThat(transaction.withUserOutcome(o).getOutcome())
+                .describedAs("user outcome should have higher priority over outcome")
+                .isSameAs(o);
+        });
 
         assertThat(transaction
             .withUserOutcome(Outcome.SUCCESS)
