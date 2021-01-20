@@ -163,6 +163,8 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             if (context instanceof AbstractSpan<?>) {
                 Outcome outcome = Outcome.UNKNOWN;
                 if (apiOutcome != null) {
+                    // valueOf conversion is fast as Enum implementation is using a lookup map internally
+                    // thus we don't need to do this ourselves
                     outcome = Outcome.valueOf(apiOutcome.name());
                 }
                 ((AbstractSpan<?>) context).withUserOutcome(outcome);
