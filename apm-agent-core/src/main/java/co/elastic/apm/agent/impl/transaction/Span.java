@@ -46,9 +46,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static long lastSpanMaxWarningTimestamp;
 
     /**
-     * Known sub-types for which reporting an exception will also set the span outcome to 'failure'
+     * Known types for which reporting an exception will also set the span outcome to 'failure'
      */
-    private static final Set<String> SUB_TYPES_EXCEPTIONS_OUTCOME_FAILURE = new HashSet<String>(Arrays.asList("dubbo", "redis"));
+    private static final Set<String> TYPES_EXCEPTION_OUTCOME_FAILURE = new HashSet<String>(Arrays.asList(
+        "db",
+        "ext",
+        "external",
+        "messaging"));
 
     /**
      * General type describing this span (eg: 'db', 'ext', 'template', etc)
@@ -250,7 +254,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             if (context.getHttp().hasContent()) {
                 // HTTP client spans
                 outcome = ResultUtil.getOutcomeByHttpClientStatus(context.getHttp().getStatusCode());
-            } else if (context.getDb().hasContent() || "messaging".equals(type) || SUB_TYPES_EXCEPTIONS_OUTCOME_FAILURE.contains(subtype)) {
+            } else if (TYPES_EXCEPTION_OUTCOME_FAILURE.contains(type)) {
                 // span types & sub-types for which we consider getting an exception as a failure
                 outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
             }
