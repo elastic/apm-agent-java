@@ -116,7 +116,7 @@ public class MetaData {
         }
 
         final int cloudDiscoveryTimeoutMs = (int) coreConfiguration.geCloudMetadataDiscoveryTimeoutMs();
-        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDaemonPool("apm-metadata", 1);
+        ThreadPoolExecutor executor = ExecutorUtils.createSingleThreadDaemonPool("metadata", 1);
         try {
             return executor.submit(new Callable<MetaData>() {
                 @Override

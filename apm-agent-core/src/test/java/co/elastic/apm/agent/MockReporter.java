@@ -97,8 +97,8 @@ public class MockReporter implements Reporter {
         dslJsonSerializer = new DslJsonSerializer(
             spyConfig.getConfig(StacktraceConfiguration.class),
             apmServerClient,
-            MetaData.create(spyConfig, null))
-        ;
+            MetaData.create(spyConfig, null)
+        );
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }

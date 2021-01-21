@@ -140,6 +140,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.reset(this.os);
     }
 
+    /**
+     * Flushes the {@link OutputStream} which has been set via {@link #setOutputStream(OutputStream)}
+     * and detaches that {@link OutputStream} from the serializer.
+     */
     @Override
     public void fullFlush() throws IOException {
         jw.flush();
@@ -152,6 +156,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
+    /**
+     * Flushes content that has been written so far to the {@link OutputStream} which has been set
+     * via {@link #setOutputStream(OutputStream)}, without flushing the {@link OutputStream} itself.
+     * Subsequent serializations will be made to the same {@link OutputStream}.
+     */
     @Override
     public void flushToOutputStream() {
         jw.flush();

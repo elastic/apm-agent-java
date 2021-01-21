@@ -43,9 +43,11 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AZURE;
@@ -102,58 +104,66 @@ public class CloudMetadataProvider {
                     break;
                 }
                 case AUTO: {
-                    ExecutorService executor = ExecutorUtils.createThreadDaemonPool("apm-cloud-metadata", 2, 2);
-                    Future<CloudProviderInfo> awsMetadata;
-                    Future<CloudProviderInfo> gcpMetadata;
-                    try {
-                        awsMetadata = executor.submit(new Callable<CloudProviderInfo>() {
-                            @Override
-                            public CloudProviderInfo call() {
-                                CloudProviderInfo awsInfo = null;
-                                try {
-                                    awsInfo = getAwsMetadata(queryTimeoutMs, cloudProvider);
-                                } catch (Exception e) {
-                                    // Expected - trial and error method
-                                }
-                                return awsInfo;
-                            }
-                        });
-
-                        gcpMetadata = executor.submit(new Callable<CloudProviderInfo>() {
-                            @Override
-                            public CloudProviderInfo call() {
-                                CloudProviderInfo gcpInfo = null;
-                                try {
-                                    gcpInfo = getGcpMetadata(queryTimeoutMs);
-                                } catch (Exception e) {
-                                    // Expected - trial and error method
-                                }
-                                return gcpInfo;
-                            }
-                        });
-                    } finally {
-                        executor.shutdown();
-                    }
-
-                    long futureTimeout = queryTimeoutMs + 200;
-                    try {
-                        cloudProviderInfo = getAzureMetadata(queryTimeoutMs);
-                    } catch (Exception e) {
-                        // Expected - trial and error method
-                    }
-                    if (cloudProviderInfo == null) {
-                        cloudProviderInfo = awsMetadata.get(futureTimeout, TimeUnit.MILLISECONDS);
-                    }
-                    if (cloudProviderInfo == null) {
-                        cloudProviderInfo = gcpMetadata.get(futureTimeout, TimeUnit.MILLISECONDS);
-                    }
-                    break;
+                    cloudProviderInfo = tryAllCloudProviders(queryTimeoutMs, cloudProvider);
                 }
             }
         } catch (Throwable throwable) {
             unexpectedError = throwable;
         }
         logSummary(cloudProvider, cloudProviderInfo, unexpectedError);
+        return cloudProviderInfo;
+    }
+
+    @Nullable
+    private static CloudProviderInfo tryAllCloudProviders(final int queryTimeoutMs, final CoreConfiguration.CloudProvider cloudProvider)
+        throws InterruptedException, ExecutionException, TimeoutException {
+
+        CloudProviderInfo cloudProviderInfo = null;
+        ExecutorService executor = ExecutorUtils.createThreadDaemonPool("cloud-metadata", 2, 2);
+        Future<CloudProviderInfo> awsMetadata;
+        Future<CloudProviderInfo> gcpMetadata;
+        try {
+            awsMetadata = executor.submit(new Callable<CloudProviderInfo>() {
+                @Override
+                public CloudProviderInfo call() {
+                    CloudProviderInfo awsInfo = null;
+                    try {
+                        awsInfo = getAwsMetadata(queryTimeoutMs, cloudProvider);
+                    } catch (Exception e) {
+                        // Expected - trial and error method
+                    }
+                    return awsInfo;
+                }
+            });
+
+            gcpMetadata = executor.submit(new Callable<CloudProviderInfo>() {
+                @Override
+                public CloudProviderInfo call() {
+                    CloudProviderInfo gcpInfo = null;
+                    try {
+                        gcpInfo = getGcpMetadata(queryTimeoutMs);
+                    } catch (Exception e) {
+                        // Expected - trial and error method
+                    }
+                    return gcpInfo;
+                }
+            });
+        } finally {
+            executor.shutdown();
+        }
+
+        long futureTimeout = queryTimeoutMs + 200;
+        try {
+            cloudProviderInfo = getAzureMetadata(queryTimeoutMs);
+        } catch (Exception e) {
+            // Expected - trial and error method
+        }
+        if (cloudProviderInfo == null) {
+            cloudProviderInfo = awsMetadata.get(futureTimeout, TimeUnit.MILLISECONDS);
+        }
+        if (cloudProviderInfo == null) {
+            cloudProviderInfo = gcpMetadata.get(futureTimeout, TimeUnit.MILLISECONDS);
+        }
         return cloudProviderInfo;
     }
 
