@@ -20,7 +20,6 @@ jobs:
       with:
         project: 'https://github.com/orgs/elastic/projects/454'
         column_name: 'Planned'
-    steps:
     - name: Assign new pull requests to project
       uses: srggrs/assign-one-project-github-action@1.2.0
       if: github.event.action == 'opened' && github.event.pull_request
