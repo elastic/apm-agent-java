@@ -187,7 +187,7 @@ pipeline {
                         writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
 
                         // remove previous log files in workspace (if any)
-                        sh(script: "rm -f ${WORKSPACE}/*.log ${WORKSPACE}/*.pid ${WORKSPACE}/*.jfr")
+                        sh(script: "rm -vf ${WORKSPACE}/*.log ${WORKSPACE}/*.pid ${WORKSPACE}/*.jfr")
 
                         unstash('scripts')
                         unstash('app')
@@ -285,7 +285,7 @@ pipeline {
                             // always capture result files
                             echo "Collect results"
                             archiveArtifacts(
-                                    artifacts: "*.jfr,metrics.out",
+                                    artifacts: "hs_err_pid*.log,*.jfr,metrics.out",
                                     allowEmptyArchive: true,
                                     onlyIfSuccessful: false)
 
