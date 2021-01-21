@@ -20,8 +20,14 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.1]]
-==== 1.19.1 - YYYY/MM/DD
+[[release-notes-1.20.1]]
+==== 1.20.1 - YYYY/MM/DD
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.20.0]]
+==== 1.20.0 - 2021/01/07
 
 [float]
 ===== Breaking changes
@@ -43,13 +49,14 @@ endif::[]
 * Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
 * Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
 * Fix improper request body capturing - {pull}1579[#1579]
+* Avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
+* Update async-profiler to 1.8.3 {pull}1602[1602]
+* Use null-safe data structures to avoid `NullPointerException` {pull}1597[1597]
+* Fix memory leak in sampling profiler mechanism - {pull}1592[#1592]
 
 [float]
 ===== Refactors
 * Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.19.0]]
 ==== 1.19.0 - 2020/11/10

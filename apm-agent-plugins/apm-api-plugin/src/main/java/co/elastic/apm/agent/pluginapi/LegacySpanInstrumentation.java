@@ -151,10 +151,11 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("getId").and(takesArguments(0)));
         }
 
+        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
         public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
-                                   @Advice.Return String returnValue) {
+                                   @Advice.Return @Nullable String returnValue) {
             if (span instanceof Span) {
                 return ((Span) span).getTraceContext().getId().toString();
             } else {
@@ -168,10 +169,11 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
             super(named("getTraceId").and(takesArguments(0)));
         }
 
+        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(inline = false)
         public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object span,
-                                        @Advice.Return String returnValue) {
+                                        @Advice.Return @Nullable String returnValue) {
             if (span instanceof Span) {
                 return ((Span) span).getTraceContext().getTraceId().toString();
             } else {
