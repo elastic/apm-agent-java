@@ -18,7 +18,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class ContextStorageInstrumentation extends TracerAwareInstrumentation {
 
-    private static final ElasticOTelContextStorage CONTEXT_STORAGE = new ElasticOTelContextStorage(GlobalTracer.getTracerImpl());
+    private static final ElasticOTelContextStorage CONTEXT_STORAGE = new ElasticOTelContextStorage(GlobalTracer.requireTracerImpl());
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
