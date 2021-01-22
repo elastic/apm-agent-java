@@ -11,6 +11,7 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         this.openTelemetry = GlobalOpenTelemetry.get();
+        assertThat(openTelemetry).isSameAs(GlobalOpenTelemetry.get());
         otelTracer = openTelemetry.getTracer(null);
     }
 
@@ -39,6 +41,17 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             .end();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
+    }
+
+    @Test
+    void testTransactionStatusCode() {
+        otelTracer.spanBuilder("transaction")
+            .setAttribute(SemanticAttributes.HTTP_STATUS_CODE, 200L)
+            .startSpan()
+            .end();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("HTTP 2xx");
+        assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(200);
     }
 
     @Test

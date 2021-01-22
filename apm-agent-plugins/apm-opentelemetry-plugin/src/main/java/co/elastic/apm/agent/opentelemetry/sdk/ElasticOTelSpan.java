@@ -19,7 +19,7 @@ public class ElasticOTelSpan implements Span {
 
     @Override
     public <T> Span setAttribute(AttributeKey<T> key, @Nonnull T value) {
-        span.addLabel(key.getKey(), value.toString());
+        AttributeMapper.mapAttribute(span, key, value);
         return this;
     }
 
