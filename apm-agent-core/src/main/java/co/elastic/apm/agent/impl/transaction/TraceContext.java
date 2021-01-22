@@ -737,7 +737,7 @@ public class TraceContext implements Recyclable {
         }
     }
 
-    TraceState getTraceState() {
+    public TraceState getTraceState() {
         return traceState;
     }
 
@@ -792,6 +792,10 @@ public class TraceContext implements Recyclable {
 
     public boolean traceIdAndIdEquals(byte[] serialized) {
         return id.dataEquals(serialized, traceId.getLength()) && traceId.dataEquals(serialized, 0);
+    }
+
+    public byte getFlags() {
+        return flags;
     }
 
     public interface ChildContextCreator<T> {

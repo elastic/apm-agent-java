@@ -69,6 +69,10 @@ public class TraceState implements Recyclable {
         rewriteBuffer.setLength(0);
     }
 
+    public List<String> getTracestate() {
+        return tracestate;
+    }
+
     public void addTextHeader(String headerValue) {
         int elasticEntryStartIndex = headerValue.indexOf(VENDOR_PREFIX);
 

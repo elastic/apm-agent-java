@@ -380,6 +380,21 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         return tracer.captureAndReportException(getTraceContext().getClock().getEpochMicros(), t, this);
     }
 
+    public void addLabel(String key, @Nullable Object value) {
+        if (value == null) {
+            return;
+        }
+        if (isSampled()) {
+            if (value instanceof Boolean) {
+                addLabel(key, (Boolean) value);
+            } else if (value instanceof Number) {
+                addLabel(key, (Number) value);
+            } else {
+                getContext().addLabel(key, value.toString());
+            }
+        }
+    }
+
     public void addLabel(String key, String value) {
         if (isSampled()) {
             getContext().addLabel(key, value);
