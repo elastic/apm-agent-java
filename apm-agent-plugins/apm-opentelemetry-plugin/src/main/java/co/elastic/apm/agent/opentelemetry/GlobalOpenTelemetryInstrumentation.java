@@ -10,8 +10,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -31,7 +31,7 @@ public class GlobalOpenTelemetryInstrumentation extends TracerAwareInstrumentati
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton("opentelemetry");
+        return Arrays.asList("opentelemetry", "experimental");
     }
 
     @Override
