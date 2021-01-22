@@ -35,6 +35,7 @@ public class ElasticOTelSpan implements Span {
 
     @Override
     public Span setStatus(StatusCode statusCode, String description) {
+        // TODO set outcome
         return this;
     }
 
@@ -67,7 +68,7 @@ public class ElasticOTelSpan implements Span {
 
     @Override
     public boolean isRecording() {
-        return false;
+        return span.isSampled();
     }
 
     public AbstractSpan<?> getInternalSpan() {

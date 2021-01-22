@@ -5,10 +5,10 @@ import io.opentelemetry.api.trace.TracerProvider;
 
 import javax.annotation.Nullable;
 
-class ElasticOTelTracerProvider implements TracerProvider {
+public class ElasticOTelTracerProvider implements TracerProvider {
     private final Tracer tracer;
 
-    ElasticOTelTracerProvider(Tracer tracer) {
+    public ElasticOTelTracerProvider(Tracer tracer) {
         this.tracer = tracer;
     }
 

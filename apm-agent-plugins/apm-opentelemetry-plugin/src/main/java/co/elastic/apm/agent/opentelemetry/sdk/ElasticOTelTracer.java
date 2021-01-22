@@ -4,10 +4,10 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 
-class ElasticOTelTracer implements Tracer {
+public class ElasticOTelTracer implements Tracer {
     private final ElasticApmTracer elasticApmTracer;
 
-    ElasticOTelTracer(ElasticApmTracer elasticApmTracer) {
+    public ElasticOTelTracer(ElasticApmTracer elasticApmTracer) {
         this.elasticApmTracer = elasticApmTracer;
     }
 

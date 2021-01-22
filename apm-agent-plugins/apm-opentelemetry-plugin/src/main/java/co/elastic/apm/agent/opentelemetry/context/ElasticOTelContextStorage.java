@@ -20,9 +20,14 @@ public class ElasticOTelContextStorage implements ContextStorage {
 
     @Override
     public Scope attach(Context toAttach) {
-        AbstractSpan<?> span = ((ElasticOTelSpan) Span.fromContextOrNull(toAttach)).getInternalSpan();
-        elasticApmTracer.activate(span);
-        return new ElasticOTelScope(span);
+        Span span = Span.fromContext(toAttach);
+        if (span instanceof ElasticOTelSpan) {
+            AbstractSpan<?> internalSpan = ((ElasticOTelSpan) span).getInternalSpan();
+            elasticApmTracer.activate(internalSpan);
+            return new ElasticOTelScope(internalSpan);
+        } else {
+            return Scope.noop();
+        }
     }
 
     /**

@@ -50,6 +50,8 @@ public class ElasticOTelSpanContext implements SpanContext {
 
     @Override
     public boolean isRemote() {
+        // the elastic agent doesn't create a TraceContext for remote parents
+        // instead, it directly creates an entry child span given the request headers
         return false;
     }
 

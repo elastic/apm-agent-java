@@ -40,7 +40,7 @@ class ElasticOTelSpanBuilder implements SpanBuilder {
         Span span = Span.fromContext(context);
         if (span.getSpanContext().isRemote()) {
             remoteContext = context;
-        } else {
+        } else if (span instanceof ElasticOTelSpan) {
             parent = ((ElasticOTelSpan) span).getInternalSpan();
         }
         return this;
