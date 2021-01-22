@@ -5,6 +5,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.opentelemetry.sdk.ElasticOTelSpan;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.ContextStorage;
 import io.opentelemetry.context.Scope;
 
@@ -19,11 +20,16 @@ public class ElasticOTelContextStorage implements ContextStorage {
 
     @Override
     public Scope attach(Context toAttach) {
-        AbstractSpan<?> span = ((ElasticOTelSpan)Span.fromContextOrNull(toAttach)).getInternalSpan();
+        AbstractSpan<?> span = ((ElasticOTelSpan) Span.fromContextOrNull(toAttach)).getInternalSpan();
         elasticApmTracer.activate(span);
         return new ElasticOTelScope(span);
     }
 
+    /**
+     * NOTE: the returned context is not the same as the one provided in {@link #attach(Context)}.
+     * The consequence of this is that it will not have the context keys of the original context.
+     * In other words, {@link Context#get(ContextKey)} will return {@code null} for any key besides the span key.
+     */
     @Nullable
     @Override
     public Context current() {
@@ -31,6 +37,6 @@ public class ElasticOTelContextStorage implements ContextStorage {
         if (active == null) {
             return null;
         }
-        return new ElasticOTelSpan(active).storeInContext(new ElasticOTelContext());
+        return Context.root().with(new ElasticOTelSpan(active));
     }
 }

@@ -2,14 +2,17 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.opentelemetry.context.ElasticOTelContextStorage;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
@@ -88,6 +91,31 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("span");
         assertThat(reporter.getFirstSpan().isChildOf(reporter.getFirstTransaction())).isTrue();
+    }
+
+    /**
+     * Demonstrates a missing feature of this bridge: custom context entries are not propagated
+     *
+     * @see ElasticOTelContextStorage#current()
+     */
+    @Test
+    @Disabled
+    void testPropagateCustomContextKey() {
+        Span transaction = otelTracer.spanBuilder("transaction")
+            .startSpan();
+        Context context = Context.current()
+            .with(transaction)
+            .with(ContextKey.named("foo"), "bar");
+        try (Scope scope = context.makeCurrent()) {
+            assertThat(tracer.getActive().getTraceContext().getId().toString()).isEqualTo(transaction.getSpanContext().getSpanIdAsHexString());
+            // this assertion fails as context keys are not propagated
+            assertThat(Context.current().get(ContextKey.<String>named("foo"))).isEqualTo("bar");
+        } finally {
+            transaction.end();
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
     }
 
     @Test
