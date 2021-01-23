@@ -311,6 +311,8 @@ public class ElasticApmAgent {
             if (isIncluded(advice, coreConfiguration)) {
                 numberOfAdvices++;
                 agentBuilder = applyAdvice(tracer, agentBuilder, advice, advice.getTypeMatcher());
+            } else {
+                logger.debug("Not applying excluded instrumentation {}", instrumentation.getClass().getName());
             }
         }
         logger.debug("Applied {} advices", numberOfAdvices);

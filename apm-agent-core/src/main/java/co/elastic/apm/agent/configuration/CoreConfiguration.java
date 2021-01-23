@@ -245,7 +245,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: Changing this value at runtime can slow down the application temporarily.")
         .dynamic(true)
         .tags("added[1.0.0,Changing this value at runtime is possible since version 1.15.0]")
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<String>emptyList());
 
     private final ConfigurationOption<Boolean> enableExperimentalInstrumentations = ConfigurationOption.booleanOption()
         .key("enable_experimental_instrumentations")
