@@ -18,8 +18,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class ContextStorageInstrumentation extends TracerAwareInstrumentation {
 
-    private static final ElasticOTelContextStorage CONTEXT_STORAGE = new ElasticOTelContextStorage(GlobalTracer.requireTracerImpl());
-
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("io.opentelemetry.context.ContextStorage");
@@ -35,9 +33,24 @@ public class ContextStorageInstrumentation extends TracerAwareInstrumentation {
         return Arrays.asList("opentelemetry", "experimental");
     }
 
-    @AssignTo.Return
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static ContextStorage onExit() {
-        return CONTEXT_STORAGE;
+    @Override
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return true;
+    }
+
+    @Override
+    public Class<?> getAdviceClass() {
+        return ContextStorageAdvice.class;
+    }
+
+    public static class ContextStorageAdvice {
+
+        private static final ElasticOTelContextStorage CONTEXT_STORAGE = new ElasticOTelContextStorage(GlobalTracer.requireTracerImpl());
+
+        @AssignTo.Return
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static ContextStorage onExit() {
+            return CONTEXT_STORAGE;
+        }
     }
 }

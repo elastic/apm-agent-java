@@ -21,11 +21,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class GlobalOpenTelemetryInstrumentation extends TracerAwareInstrumentation {
 
-    private static final OpenTelemetry ELASTIC_OPEN_TELEMETRY = DefaultOpenTelemetry.builder()
-        .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
-        .setTracerProvider(new ElasticOTelTracerProvider(new ElasticOTelTracer(GlobalTracer.requireTracerImpl())))
-        .build();
-
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("io.opentelemetry.api.GlobalOpenTelemetry");
@@ -46,15 +41,28 @@ public class GlobalOpenTelemetryInstrumentation extends TracerAwareInstrumentati
         return true;
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
-    public static boolean onEnter() {
-        // skips actual method and directly goes to exit advice
-        return true;
+    @Override
+    public Class<?> getAdviceClass() {
+        return GlobalOpenTelemetryAdvice.class;
     }
 
-    @AssignTo.Return
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static OpenTelemetry onExit() {
-        return ELASTIC_OPEN_TELEMETRY;
+    public static class GlobalOpenTelemetryAdvice {
+
+        private static final OpenTelemetry ELASTIC_OPEN_TELEMETRY = DefaultOpenTelemetry.builder()
+            .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
+            .setTracerProvider(new ElasticOTelTracerProvider(new ElasticOTelTracer(GlobalTracer.requireTracerImpl())))
+            .build();
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
+        public static boolean onEnter() {
+            // skips actual method and directly goes to exit advice
+            return true;
+        }
+
+        @AssignTo.Return
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static OpenTelemetry onExit() {
+            return ELASTIC_OPEN_TELEMETRY;
+        }
     }
 }
