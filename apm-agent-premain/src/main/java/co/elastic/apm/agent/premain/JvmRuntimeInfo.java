@@ -134,6 +134,10 @@ public class JvmRuntimeInfo {
         return majorVersion;
     }
 
+    public static int getUpdateVersion() {
+        return updateVersion;
+    }
+
     public static boolean isJ9VM() {
         return isJ9;
     }

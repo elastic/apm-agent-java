@@ -113,11 +113,29 @@ public class AgentMain {
                 System.err.println("The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
             }
         }
+        if (premain && shouldDelayOnPremain()) {
+            delayAgentInitMs = Math.max(delayAgentInitMs, 3000L);
+        }
         if (delayAgentInitMs > 0) {
             delayAndInitAgentAsync(agentArguments, instrumentation, premain, delayAgentInitMs);
         } else {
             loadAndInitializeAgent(agentArguments, instrumentation, premain);
         }
+    }
+
+    /**
+     * Returns whether agent initialization should be delayed when occurring through the {@code premain} route.
+     * This works around a JVM bug (https://bugs.openjdk.java.net/browse/JDK-8041920) causing JIT fatal error if
+     * agent code causes the loading of MethodHandles prior to JIT compiler initialization.
+     * @return {@code true} for any Java 7 and early Java 8 HotSpot JVMs, {@code false} for all others
+     */
+    static boolean shouldDelayOnPremain() {
+        int majorVersion = JvmRuntimeInfo.getMajorVersion();
+        return
+            (majorVersion == 7) ||
+            // In case bootstrap checks were disabled
+            (majorVersion == 8 && JvmRuntimeInfo.isHpUx() && JvmRuntimeInfo.getUpdateVersion() <= 2) ||
+            (majorVersion == 8 && JvmRuntimeInfo.isHotSpot() && JvmRuntimeInfo.getUpdateVersion() <= 40);
     }
 
     private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,
