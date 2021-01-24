@@ -22,9 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci;
-
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
+package co.elastic.apm.agent.premain;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -101,13 +99,54 @@ public class AgentMain {
             if (doDisable) {
                 return;
             }
-
         }
 
-        try {
-            // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
-            FileSystems.getDefault();
+        // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
+        FileSystems.getDefault();
 
+        long delayAgentInitMs = -1L;
+        String delayAgentInitMsProperty = System.getProperty("elastic.apm.delay_agent_premain_ms");
+        if (delayAgentInitMsProperty != null) {
+            try {
+                delayAgentInitMs = Long.parseLong(delayAgentInitMsProperty.trim());
+            } catch (NumberFormatException numberFormatException) {
+                System.err.println("The value of the \"elastic.apm.delay_agent_premain_ms\" System property must be a number");
+            }
+        }
+        if (delayAgentInitMs > 0) {
+            delayAndInitAgentAsync(agentArguments, instrumentation, premain, delayAgentInitMs);
+        } else {
+            loadAndInitializeAgent(agentArguments, instrumentation, premain);
+        }
+    }
+
+    private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,
+                                               final boolean premain, final long delayAgentInitMs) {
+
+        System.out.println("Delaying Elastic APM Agent initialization by " + delayAgentInitMs + " milliseconds.");
+        Thread initThread = new Thread(ThreadUtils.addElasticApmThreadPrefix("agent-initialization")) {
+            @Override
+            public void run() {
+                try {
+                    synchronized (AgentMain.class) {
+                        Thread.sleep(delayAgentInitMs);
+                        loadAndInitializeAgent(agentArguments, instrumentation, premain);
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println(getName() + " thread was interrupted, the agent will not be attached to this JVM.");
+                    e.printStackTrace();
+                } catch (Throwable throwable) {
+                    System.err.println("Error during Elastic APM Agent initialization: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                }
+            }
+        };
+        initThread.setDaemon(true);
+        initThread.start();
+    }
+
+    private synchronized static void loadAndInitializeAgent(String agentArguments, Instrumentation instrumentation, boolean premain) {
+        try {
             final File agentJarFile = getAgentJarFile();
             try (JarFile jarFile = new JarFile(agentJarFile)) {
                 instrumentation.appendToBootstrapClassLoaderSearch(jarFile);

@@ -42,6 +42,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -61,6 +62,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 
 /**
@@ -103,7 +105,7 @@ public class ElasticApmTracer implements Tracer {
     /**
      * The tracer state is volatile to ensure thread safety when queried through {@link ElasticApmTracer#isRunning()} or
      * {@link ElasticApmTracer#getState()}, or when updated through one of the lifecycle-effecting synchronized methods
-     * {@link ElasticApmTracer#start()}}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
+     * {@link ElasticApmTracer#start(boolean)}}, {@link ElasticApmTracer#pause()}, {@link ElasticApmTracer#resume()} or
      * {@link ElasticApmTracer#stop()}.
      */
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
@@ -479,7 +481,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     /**
-     * As opposed to {@link ElasticApmTracer#start()}, this method does not change the tracer's state and it's purpose
+     * As opposed to {@link ElasticApmTracer#start(boolean)}, this method does not change the tracer's state and it's purpose
      * is to be called at JVM bootstrap.
      *
      * @param lifecycleListeners Lifecycle listeners
@@ -495,7 +497,50 @@ public class ElasticApmTracer implements Tracer {
         }
     }
 
-    public synchronized void start() {
+    /**
+     * Starts the tracer. Depending on several environment and setup parameters, the tracer may be started synchronously
+     * on this thread, or its start may be delayed and invoked on a dedicated thread.
+     *
+     * @param premain true if this tracer is attached through the {@code premain()} method (i.e. using the `javaagent`
+     *                jvm parameter); false otherwise
+     */
+    public synchronized void start(boolean premain) {
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayTracerStartMs();
+        if (premain && shouldDelayOnPremain()) {
+            delayInitMs = Math.max(delayInitMs, 5000L);
+        }
+        if (delayInitMs > 0) {
+            startWithDelay(delayInitMs);
+        } else {
+            startSync();
+        }
+    }
+
+    private boolean shouldDelayOnPremain() {
+        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
+            ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
+    }
+
+    private synchronized void startWithDelay(final long delayInitMs) {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("tracer-initializer", 1);
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    logger.info("Delaying initialization of tracer for " + delayInitMs + "ms");
+                    Thread.sleep(delayInitMs);
+                    logger.info("end wait");
+                } catch (InterruptedException e) {
+                    logger.error(e.getMessage(), e);
+                } finally {
+                    ElasticApmTracer.this.startSync();
+                }
+            }
+        });
+        pool.shutdown();
+    }
+
+    private synchronized void startSync() {
         if (tracerState != TracerState.UNINITIALIZED) {
             logger.warn("Trying to start an already initialized agent");
             return;

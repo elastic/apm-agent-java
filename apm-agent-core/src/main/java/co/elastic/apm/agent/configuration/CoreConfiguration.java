@@ -129,20 +129,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.11.0]")
         .build();
 
-    private final ConfigurationOption<TimeDuration> delayInit = TimeDurationValueConverter.durationOption("ms")
-        .key("delay_initialization")
-        .aliasKeys("delay_initialization_ms")
+    private final ConfigurationOption<TimeDuration> delayTracerStart = TimeDurationValueConverter.durationOption("ms")
+        .key("delay_tracer_start")
+        .aliasKeys("delay_tracer_start_ms")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
-        .description("If set to a value greater than 0ms, the agent will delay tracer initialization.")
-        .buildWithDefault(TimeDuration.of("0ms"));
-
-    private final ConfigurationOption<TimeDuration> delayInstrumentation = TimeDurationValueConverter.durationOption("ms")
-        .key("delay_instrumentation")
-        .aliasKeys("delay_instrumentation_ms")
-        .configurationCategory(CORE_CATEGORY)
-        .tags("internal")
-        .description("If set to a value greater than 0ms, the agent will delay instrumentation.")
+        .description("If set to a value greater than 0ms, the agent will delay tracer start. Instrumentation will not be delayed, " +
+            "as well as some tracer initialization processes, like LifecycleListeners initializations.")
         .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
@@ -616,12 +609,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return nodeName;
     }
 
-    public long getDelayInitMs() {
-        return delayInit.get().getMillis();
-    }
-
-    public long getDelayInstrumentationMs() {
-        return delayInstrumentation.get().getMillis();
+    public long getDelayTracerStartMs() {
+        return delayTracerStart.get().getMillis();
     }
 
     public String getServiceVersion() {

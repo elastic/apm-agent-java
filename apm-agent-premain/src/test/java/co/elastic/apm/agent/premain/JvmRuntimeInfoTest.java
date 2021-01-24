@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.premain;
 
 import org.junit.jupiter.api.Test;
 
