@@ -175,6 +175,9 @@ waitForLoadGenState 'stopped'
 if [ '' = "$(getAppPids)" ]; then
     echo "abnormal application termination detected, stop load injection"
 
+    echo "waiting a bit to let the crash report to be generated"
+    sleep 5
+
     # application crashed or stopped before we intentionally stopped it
     # (try to) end the load injection
     curl -s -X POST -H "Content-Type: application/json" -d \
