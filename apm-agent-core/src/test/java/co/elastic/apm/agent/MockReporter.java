@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
@@ -120,6 +121,11 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
+
+        assertThat(transaction.getOutcome())
+            .describedAs("transaction outcome should be either success or failure")
+            .isNotEqualTo(Outcome.UNKNOWN);
+
         verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
         transactions.add(transaction);
     }
@@ -131,6 +137,11 @@ public class MockReporter implements Reporter {
         }
         verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
         verifyDestinationFields(span);
+
+        assertThat(span.getOutcome())
+            .describedAs("span outcome should be either success or failure")
+            .isNotEqualTo(Outcome.UNKNOWN);
+
         spans.add(span);
     }
 
