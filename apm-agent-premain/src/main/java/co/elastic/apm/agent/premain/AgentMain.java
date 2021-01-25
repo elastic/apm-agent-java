@@ -134,8 +134,8 @@ public class AgentMain {
         return
             (majorVersion == 7) ||
             // In case bootstrap checks were disabled
-            (majorVersion == 8 && JvmRuntimeInfo.isHpUx() && JvmRuntimeInfo.getUpdateVersion() <= 2) ||
-            (majorVersion == 8 && JvmRuntimeInfo.isHotSpot() && JvmRuntimeInfo.getUpdateVersion() <= 40);
+            (majorVersion == 8 && JvmRuntimeInfo.isHpUx() && JvmRuntimeInfo.getUpdateVersion() < 2) ||
+            (majorVersion == 8 && JvmRuntimeInfo.isHotSpot() && JvmRuntimeInfo.getUpdateVersion() < 40);
     }
 
     private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,
