@@ -39,6 +39,8 @@ import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 
 import javax.annotation.Nonnull;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -124,6 +126,19 @@ public class ElasticOTelSpan implements Span {
             StringBuilder fullURl = request.getUrl().getFull();
             fullURl.setLength(0);
             fullURl.append((String) value);
+            try {
+                URL url = new URL((String) value);
+                request.getUrl().withSearch(url.getQuery());
+                request.getUrl().withProtocol(url.getProtocol());
+                request.getUrl().withPathname(url.getPath());
+                request.getUrl().withHostname(url.getHost());
+                int port = url.getPort();
+                port = port > 0 ? port : url.getDefaultPort();
+                if (port > 0) {
+                    request.getUrl().withPort(port);
+                }
+            } catch (MalformedURLException ignore) {
+            }
         } else if (key.equals(SemanticAttributes.HTTP_TARGET)) {
             StringBuilder fullURl = request.getUrl().getFull();
             if (fullURl.length() == 0) {
@@ -190,6 +205,18 @@ public class ElasticOTelSpan implements Span {
                     request.getSocket().withRemoteAddress((remoteAddress == null ? "" : remoteAddress) + ":" + entry.getValue());
                 }
             }
+            // if the URL starts with / we have only captured the http.target and have to construct the full url
+            if (requestUrl.getFull().length() > 0 && requestUrl.getFull().charAt(0) == '/') {
+                String httpTarget = requestUrl.getFull().toString();
+                requestUrl.getFull().setLength(0);
+                requestUrl
+                    .appendToFull(requestUrl.getProtocol())
+                    .appendToFull("://")
+                    .appendToFull(requestUrl.getHostname())
+                    .appendToFull(requestUrl.getPort().length() > 0 ? ":" + requestUrl.getPort() : "")
+                    .appendToFull(httpTarget);
+            }
+
         } else {
             t.withType("unknown");
         }

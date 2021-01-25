@@ -212,7 +212,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("www.example.com");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("/foo?bar");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://www.example.com:8080/foo?bar");
     }
 
     @Test
@@ -236,7 +236,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("example.com");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("/foo?bar");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://example.com:8080/foo?bar");
     }
 
     @Test
@@ -260,7 +260,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("127.0.0.1");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("/foo?bar");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://127.0.0.1:8080/foo?bar");
     }
 
     @Test
@@ -268,7 +268,6 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         otelTracer.spanBuilder("transaction")
             .startSpan()
             .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
-            .setAttribute(SemanticAttributes.HTTP_SCHEME, "http")
             .setAttribute(SemanticAttributes.HTTP_URL, "http://example.com:8080/foo?bar")
             .setAttribute(SemanticAttributes.HTTP_STATUS_CODE, 200L)
             .setAttribute(SemanticAttributes.NET_PEER_PORT, 123456)
@@ -279,8 +278,8 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getResponse().getStatusCode()).isEqualTo(200);
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getProtocol()).isEqualTo("http");
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isNull();
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEmpty();
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getHostname()).isEqualTo("example.com");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getPort().toString()).isEqualTo("8080");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getSocket().getRemoteAddress()).isEqualTo("192.168.178.1:123456");
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getUrl().getFull().toString()).isEqualTo("http://example.com:8080/foo?bar");
     }
