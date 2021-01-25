@@ -166,26 +166,12 @@ public class GrpcHelper {
         }
     }
 
-    public static Outcome toOutcome(@Nullable Status status){
+    public static Outcome toOutcome(@Nullable Status status) {
         Outcome outcome = Outcome.UNKNOWN;
-
         if (status != null) {
-            switch (status.getCode()) {
-                case OK:
-                    outcome = Outcome.SUCCESS;
-                    break;
-                case UNKNOWN:
-                    outcome = Outcome.UNKNOWN;
-                    break;
-                default:
-                    outcome = Outcome.FAILURE;
-                    break;
-            }
+            outcome = status.isOk() ? Outcome.SUCCESS : Outcome.FAILURE;
         }
-
-        return  outcome;
-
-
+        return outcome;
     }
 
     private void setTransactionStatus(Status status, @Nullable Throwable thrown, Transaction transaction) {
