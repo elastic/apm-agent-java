@@ -42,7 +42,6 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SimpleScheduleBuilder;
 import org.quartz.SimpleTrigger;
-import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.jobs.DirectoryScanJob;
@@ -185,14 +184,13 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         return transaction;
     }
 
-    private Transaction verifyTransaction(Transaction transaction, String expectedName){
+    private Transaction verifyTransaction(Transaction transaction, String expectedName) {
         assertThat(transaction.getType()).isEqualToIgnoringCase("scheduled");
         assertThat(transaction.getNameAsString())
             .isEqualTo(expectedName);
         assertThat(transaction.getFrameworkName()).isEqualTo("Quartz");
         assertThat(transaction.getFrameworkVersion()).isEqualTo("2.3.1");
-
-        assertThat(transaction.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
+        
         return transaction;
     }
 

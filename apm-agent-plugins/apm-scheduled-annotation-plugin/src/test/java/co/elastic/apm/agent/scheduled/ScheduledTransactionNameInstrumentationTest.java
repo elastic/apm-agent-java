@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.scheduled;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import org.springframework.scheduling.annotation.Schedules;
 import javax.ejb.Schedule;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,7 +49,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         springCounter.scheduled();
         springCounter.scheduled();
 
-        checkTransactions(springCounter, 2, "SpringCounter#scheduled");
+        List<Transaction> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduled");
+        checkOutcome(transactions, Outcome.SUCCESS);
     }
 
     @Test
@@ -56,7 +59,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         springCounter.scheduledJava8Repeatable();
         springCounter.scheduledJava8Repeatable();
 
-        checkTransactions(springCounter, 2, "SpringCounter#scheduledJava8Repeatable");
+        List<Transaction> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduledJava8Repeatable");
+        checkOutcome(transactions, Outcome.SUCCESS);
     }
 
     @Test
@@ -65,7 +69,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         springCounter.scheduledJava7Repeatable();
         springCounter.scheduledJava7Repeatable();
 
-        checkTransactions(springCounter, 2, "SpringCounter#scheduledJava7Repeatable");
+        List<Transaction> transactions = checkTransactions(springCounter, 2, "SpringCounter#scheduledJava7Repeatable");
+        checkOutcome(transactions, Outcome.SUCCESS);
     }
 
     @Test
@@ -74,7 +79,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         jeeCounter.scheduled();
         jeeCounter.scheduled();
         jeeCounter.scheduled();
-        checkTransactions(jeeCounter, 3, "JeeCounter#scheduled");
+        List<Transaction> transactions = checkTransactions(jeeCounter, 3, "JeeCounter#scheduled");
+        checkOutcome(transactions, Outcome.SUCCESS);
     }
 
     @Test
@@ -82,7 +88,8 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         JeeCounter jeeCounter = new JeeCounter();
         jeeCounter.scheduledJava7Repeatable();
         jeeCounter.scheduledJava7Repeatable();
-        checkTransactions(jeeCounter, 2, "JeeCounter#scheduledJava7Repeatable");
+        List<Transaction> transactions = checkTransactions(jeeCounter, 2, "JeeCounter#scheduledJava7Repeatable");
+        checkOutcome(transactions, Outcome.SUCCESS);
     }
 
     @Test
@@ -92,8 +99,7 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         assertThatThrownBy(throwCounter::throwingException);
 
         List<Transaction> transactions = checkTransactions(throwCounter, 1, "ThrowingCounter#throwingException");
-        assertThat(transactions.get(0).getOutcome()).isEqualTo(Outcome.FAILURE);
-
+        checkOutcome(transactions, Outcome.FAILURE);
     }
 
     private static List<Transaction> checkTransactions(AbstractCounter counter, int expectedCount, String expectedName) {
@@ -101,9 +107,15 @@ class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentatio
         assertThat(transactions).hasSize(counter.getInvocationCount()).hasSize(expectedCount);
         transactions.forEach(t -> {
             assertThat(t.getNameAsString()).isEqualTo(expectedName);
-            assertThat(t.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
         });
         return transactions;
+    }
+
+    private static void checkOutcome(List<Transaction> transactions, Outcome outcome) {
+        assertThat(transactions.stream()
+            .map(AbstractSpan::getOutcome)
+            .collect(Collectors.toSet()))
+            .containsExactly(outcome);
     }
 
     private static abstract class AbstractCounter {
