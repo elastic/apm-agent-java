@@ -193,7 +193,7 @@ public class Destination implements Recyclable {
             return name;
         }
 
-        public Service withType(String type) {
+        public Service withType(@Nullable String type) {
             this.type = type;
             return this;
         }
