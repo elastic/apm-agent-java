@@ -68,6 +68,6 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
                               @Advice.This ServerCall<?, ?> serverCall,
                               @Advice.Argument(0) Status status) {
 
-        helper.setTransactionStatus(status, thrown, serverCall);
+        helper.exitServerCall(status, thrown, serverCall);
     }
 }

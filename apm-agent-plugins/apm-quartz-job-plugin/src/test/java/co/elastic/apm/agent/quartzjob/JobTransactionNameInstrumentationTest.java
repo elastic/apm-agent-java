@@ -190,7 +190,7 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
             .isEqualTo(expectedName);
         assertThat(transaction.getFrameworkName()).isEqualTo("Quartz");
         assertThat(transaction.getFrameworkVersion()).isEqualTo("2.3.1");
-        
+
         return transaction;
     }
 

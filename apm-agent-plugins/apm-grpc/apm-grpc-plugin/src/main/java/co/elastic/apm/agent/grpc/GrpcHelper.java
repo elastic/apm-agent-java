@@ -154,11 +154,20 @@ public class GrpcHelper {
      * @param thrown     thrown exception (if any)
      * @param serverCall server call
      */
-    public void setTransactionStatus(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
+    public void exitServerCall(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
         Transaction transaction = serverCallTransactions.remove(serverCall);
 
         if (transaction != null) {
-            setTransactionStatus(status, thrown, transaction);
+            // there are multiple ways to terminate transaction, which aren't mutually exclusive
+            // thus we have to check if outcome has already been set to keep the first:
+            // 1. thrown exception within any of ServerCall.Listener methods
+            // 2. ServerCall.onClose, which might falsely report 'OK' status after a thrown listener exception.
+            //    in this case we just have to ignore the reported status if already set
+            if (Outcome.UNKNOWN == transaction.getOutcome()) {
+                transaction.withOutcome(toOutcome(status))
+                    .withResultIfUnset(status.getCode().name()); // keep outcome and result consistent
+            }
+            transaction.captureException(thrown);
             if (thrown != null) {
                 // transaction ended due to an exception, we have to end it
                 transaction.end();
@@ -172,13 +181,6 @@ public class GrpcHelper {
             outcome = status.isOk() ? Outcome.SUCCESS : Outcome.FAILURE;
         }
         return outcome;
-    }
-
-    private void setTransactionStatus(Status status, @Nullable Throwable thrown, Transaction transaction) {
-        transaction
-            .withResultIfUnset(status.getCode().name())
-            .withOutcome(toOutcome(status))
-            .captureException(thrown);
     }
 
     /**
@@ -216,9 +218,12 @@ public class GrpcHelper {
 
         if (isLastMethod || null != thrown) {
             // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
-            // and set 'unknown' status, we just replicate this behavior as we don't instrument the part that does this
+            // and make this the last listener method called
             if (thrown != null) {
-                setTransactionStatus(Status.UNKNOWN, thrown, transaction);
+                Status status = Status.fromThrowable(thrown);
+                transaction.captureException(thrown)
+                    .withOutcome(toOutcome(status))
+                    .withResultIfUnset(status.getCode().name());
             }
             transaction.end();
             serverListenerTransactions.remove(listener);

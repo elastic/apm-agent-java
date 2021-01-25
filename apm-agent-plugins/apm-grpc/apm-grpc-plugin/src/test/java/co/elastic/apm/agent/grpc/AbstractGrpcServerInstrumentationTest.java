@@ -79,12 +79,12 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     @Test
     void simpleCallWithInvalidArgumentError() {
-        simpleCallWithError(null, "INVALID_ARGUMENT", Outcome.FAILURE);
+        simpleCallWithError(null, "INVALID_ARGUMENT");
     }
 
     @Test
     void simpleCallWithRuntimeError() {
-        simpleCallWithError("boom", "UNKNOWN", Outcome.UNKNOWN);
+        simpleCallWithError("boom", "UNKNOWN");
     }
 
     @Test
@@ -97,12 +97,12 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         checkUnaryTransactionSuccess(transaction);
     }
 
-    private void simpleCallWithError(@Nullable String name, String expectedResult, Outcome expectedOutcome) {
+    private void simpleCallWithError(@Nullable String name, String expectedResult) {
         assertThat(app.sayHello(name, 0))
             .isNull();
 
         Transaction transaction = getFirstTransaction();
-        checkUnaryTransaction(transaction, expectedResult, expectedOutcome);
+        checkUnaryTransaction(transaction, expectedResult, Outcome.FAILURE);
     }
 
     @Test
@@ -143,26 +143,31 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
         String s = app.sayHello("any", 0);
 
-        String expectedTransactionStatus;
-        Outcome expectedTransactionOutcome;
-        int expectedErrorCount = 0;
-        if (method.equals("onCancel") || method.equals("onComplete")) {
+        // by default we expect failed transaction with error result
+        String expectedTransactionStatus = "UNKNOWN";
+        Outcome expectedTransactionOutcome = Outcome.FAILURE;
+
+        // true when error will also be visible from client side
+        boolean expectedClientError = true;
+
+        boolean isOnComplete = method.equals("onComplete"); // throwing in 'onComplete' is after the response has been sent
+        if (method.equals("onCancel") || isOnComplete) {
             // onCancel is not called, thus exception is not thrown
             // onComplete exception is thrown, but result is already sent, thus we still get it client-side
-            assertThat(s).isEqualTo("hello(any)");
             expectedTransactionStatus = "OK";
-            expectedTransactionOutcome = Outcome.SUCCESS;
-        } else {
-            // with all other listener methods, expected result is not available
+            expectedTransactionOutcome = isOnComplete ? Outcome.FAILURE : Outcome.SUCCESS;
+            expectedClientError = false;
+        }
+
+        if (expectedClientError) {
             assertThat(s).isNull();
-            expectedErrorCount = 1;
-            expectedTransactionStatus = "UNKNOWN";
-            expectedTransactionOutcome = Outcome.UNKNOWN;
+        } else {
+            assertThat(s).isEqualTo("hello(any)");
         }
 
         assertThat(app.getClient().getErrorCount())
             .describedAs("server listener exception should be visible on client")
-            .isEqualTo(expectedErrorCount);
+            .isEqualTo(expectedClientError ? 1 : 0);
 
         checkUnaryTransaction(getFirstTransaction(), expectedTransactionStatus, expectedTransactionOutcome);
     }

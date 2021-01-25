@@ -182,7 +182,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.This ClientCall.Listener<?> listener,
-                                  @Advice.Thrown Throwable thrown,
+                                  @Advice.Thrown @Nullable Throwable thrown,
                                   @Advice.Enter @Nullable Object span) {
 
             if (span instanceof Span) {
