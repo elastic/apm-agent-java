@@ -31,12 +31,13 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
+import java.util.concurrent.Future;
 
 public class ReporterFactory {
 
     public Reporter createReporter(ConfigurationRegistry configurationRegistry,
                                    ApmServerClient apmServerClient,
-                                   MetaData metaData) {
+                                   Future<MetaData> metaData) {
 
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, reporterConfiguration, metaData, apmServerClient);
@@ -46,12 +47,12 @@ public class ReporterFactory {
     @Nonnull
     private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry,
                                                            ReporterConfiguration reporterConfiguration,
-                                                           MetaData metaData,
+                                                           Future<MetaData> metaData,
                                                            ApmServerClient apmServerClient) {
 
-        DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
+        DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient, metaData);
         ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        return new IntakeV2ReportingEventHandler(reporterConfiguration, processorEventHandler, payloadSerializer, metaData, apmServerClient);
+        return new IntakeV2ReportingEventHandler(reporterConfiguration, processorEventHandler, payloadSerializer, apmServerClient);
     }
 
 }

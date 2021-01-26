@@ -20,8 +20,15 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.20.1]]
-==== 1.20.1 - YYYY/MM/DD
+[[release-notes-1.21.0]]
+==== 1.21.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Add cloud provider metadata to reported events, see
+https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
+By default, the agent will try to automatically detect the cloud provider on startup, but this can be
+configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
