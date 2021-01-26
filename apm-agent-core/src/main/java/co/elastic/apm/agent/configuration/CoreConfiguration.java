@@ -580,6 +580,24 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("0ms"));
 
+    private final ConfigurationOption<CloudProvider> cloudProvider = ConfigurationOption.enumOption(CloudProvider.class)
+        .key("cloud_provider")
+        .tags("added[1.21.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("This config value allows you to specify which cloud provider should be assumed \n" +
+            "for metadata collection. By default, the agent will attempt to detect the cloud \n" +
+            "provider or, if that fails, will use trial and error to collect the metadata.")
+        .buildWithDefault(CloudProvider.AUTO);
+
+    private final ConfigurationOption<TimeDuration> cloudMetadataTimeoutMs = TimeDurationValueConverter.durationOption("ms")
+        .key("cloud_metadata_timeout_ms")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("Automatic cloud provider information is fetched by querying APIs in external services, which means \n" +
+            "they impose a delay. In some cases, this discovery process relies on trial-and-error, by querying these \n" +
+            "services. We use this config option to determine the timeout for this purpose. Increase if timed out when shouldn't.")
+        .buildWithDefault(TimeDuration.of("1000ms"));
+
     public boolean isEnabled() {
         return enabled.get();
     }
@@ -759,6 +777,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         }
     }
 
+    public long geCloudMetadataDiscoveryTimeoutMs() {
+        return cloudMetadataTimeoutMs.get().getMillis();
+    }
+
+    public CloudProvider getCloudProvider() {
+        return cloudProvider.get();
+    }
+
     public enum EventType {
         /**
          * Request bodies will never be reported
@@ -781,5 +807,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         public String toString() {
             return name().toLowerCase();
         }
+    }
+
+    public enum CloudProvider {
+        AUTO,
+        AWS,
+        GCP,
+        AZURE,
+        NONE
     }
 }

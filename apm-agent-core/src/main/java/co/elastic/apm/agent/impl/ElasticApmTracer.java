@@ -61,6 +61,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -111,14 +112,17 @@ public class ElasticApmTracer implements Tracer {
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean recordingConfigOptionSet;
-    private final MetaData metaData;
+    private final String ephemeralId;
+    private final Future<MetaData> metaData;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory, ApmServerClient apmServerClient, MetaData metaData) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
+                     ApmServerClient apmServerClient, final String ephemeralId, Future<MetaData> metaData) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.apmServerClient = apmServerClient;
+        this.ephemeralId = ephemeralId;
         this.metaData = metaData;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
@@ -730,7 +734,11 @@ public class ElasticApmTracer implements Tracer {
         return apmServerClient;
     }
 
-    public MetaData getMetaData() {
+    public String getEphemeralId() {
+        return ephemeralId;
+    }
+
+    public Future<MetaData> getMetaData() {
         return metaData;
     }
 

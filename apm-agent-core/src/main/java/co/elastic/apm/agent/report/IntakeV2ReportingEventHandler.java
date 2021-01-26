@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.premain.ThreadUtils;
@@ -32,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -52,8 +50,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private TimerTask timeoutTask;
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                         PayloadSerializer payloadSerializer, MetaData metaData, ApmServerClient apmServerClient) {
-        super(reporterConfiguration, metaData, payloadSerializer, apmServerClient);
+                                         PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+        super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
         this.timeoutTimer = new Timer(ThreadUtils.addElasticApmThreadPrefix("request-timeout-timer"), true);
     }
@@ -149,12 +147,9 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
 
     @Override
     @Nullable
-    protected HttpURLConnection startRequest(String endpoint) throws IOException {
+    protected HttpURLConnection startRequest(String endpoint) throws Exception {
         HttpURLConnection connection = super.startRequest(endpoint);
         if (connection != null) {
-            if (os != null) {
-                payloadSerializer.setOutputStream(os);
-            }
             if (reporter != null) {
                 timeoutTask = new FlushOnTimeoutTimerTask(reporter);
                 if (logger.isDebugEnabled()) {

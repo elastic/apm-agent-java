@@ -38,6 +38,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ExecutorUtils {
 
@@ -48,7 +49,7 @@ public final class ExecutorUtils {
     }
 
     public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDaemonPool(final String threadPurpose) {
-        final NamedThreadFactory daemonThreadFactory = new NamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
+        final SingleNamedThreadFactory daemonThreadFactory = new SingleNamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, daemonThreadFactory) {
             @Override
             public String toString() {
@@ -67,14 +68,19 @@ public final class ExecutorUtils {
 
     public static ThreadPoolExecutor createSingleThreadDaemonPool(final String threadPurpose, int queueCapacity) {
         String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
-        final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadName);
-        return new NamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
+        final ThreadFactory daemonThreadFactory = new SingleNamedThreadFactory(threadName);
+        return new SingleNamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
     }
 
-    public static class NamedThreadFactory implements ThreadFactory {
+    public static ThreadPoolExecutor createThreadDaemonPool(final String threadPurpose, int poolSize, int queueCapacity) {
+        final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadPurpose);
+        return new NamedDaemonThreadPoolExecutor(poolSize, queueCapacity, daemonThreadFactory, threadPurpose);
+    }
+
+    public static class SingleNamedThreadFactory implements ThreadFactory {
         private final String threadName;
 
-        public NamedThreadFactory(String threadName) {
+        public SingleNamedThreadFactory(String threadName) {
             this.threadName = threadName;
         }
 
@@ -83,22 +89,49 @@ public final class ExecutorUtils {
             Thread thread = new Thread(r);
             thread.setDaemon(true);
             thread.setName(threadName);
-            if (logger.isDebugEnabled()) {
-                logger.debug("A new thread named `{}` was created. The original context class loader of this thread ({}) has been overridden",
-                    threadName, thread.getContextClassLoader());
-            }
-            if (logger.isTraceEnabled()) {
-                logger.trace("Stack trace related to thread creation: ", new Throwable());
-            }
+            ClassLoader originalContextCL = thread.getContextClassLoader();
             thread.setContextClassLoader(null);
+            logThreadCreation(originalContextCL, threadName);
             return thread;
         }
     }
 
-    private static class NamedDaemonThreadPoolExecutor extends ThreadPoolExecutor {
+    static void logThreadCreation(ClassLoader originalContextCL, String threadName) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("A new thread named `{}` was created. The original context class loader of this thread ({}) has been overridden",
+                    threadName, originalContextCL);
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("Stack trace related to thread creation: ", new Throwable());
+        }
+    }
+
+    public static class NamedThreadFactory implements ThreadFactory {
+        private final String threadPurpose;
+        private final AtomicInteger threadCounter;
+
+        public NamedThreadFactory(String threadPurpose) {
+            this.threadPurpose = threadPurpose;
+            threadCounter = new AtomicInteger();
+        }
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread thread = new Thread(r);
+            thread.setDaemon(true);
+            String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose) + "-" + threadCounter.getAndIncrement();
+            thread.setName(threadName);
+            ClassLoader originalContextCL = thread.getContextClassLoader();
+            thread.setContextClassLoader(null);
+            logThreadCreation(originalContextCL, threadName);
+            return thread;
+        }
+    }
+
+    private static class SingleNamedDaemonThreadPoolExecutor extends ThreadPoolExecutor {
         private final String threadName;
 
-        NamedDaemonThreadPoolExecutor(int queueCapacity, ThreadFactory daemonThreadFactory, String threadName) {
+        SingleNamedDaemonThreadPoolExecutor(int queueCapacity, ThreadFactory daemonThreadFactory, String threadName) {
             super(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(queueCapacity), daemonThreadFactory);
             this.threadName = threadName;
         }
@@ -106,6 +139,26 @@ public final class ExecutorUtils {
         @Override
         public String toString() {
             return super.toString() + "(thread name = " + threadName + ")";
+        }
+
+        @Override
+        protected void afterExecute(Runnable r, Throwable t) {
+            super.afterExecute(r, t);
+            logException(r, t);
+        }
+    }
+
+    private static class NamedDaemonThreadPoolExecutor extends ThreadPoolExecutor {
+        private final String threadPrefix;
+
+        NamedDaemonThreadPoolExecutor(int poolSize, int queueCapacity, ThreadFactory daemonThreadFactory, String threadPrefix) {
+            super(poolSize, poolSize, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(queueCapacity), daemonThreadFactory);
+            this.threadPrefix = threadPrefix;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + "(threads name prefix = " + threadPrefix + ")";
         }
 
         @Override
