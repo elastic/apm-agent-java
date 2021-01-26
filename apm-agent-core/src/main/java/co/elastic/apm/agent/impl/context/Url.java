@@ -118,7 +118,7 @@ public class Url implements Recyclable {
     public int getPortAsInt() {
         if (port.length() > 0) {
             try {
-                return Integer.parseInt(port, 0, port.length(), 10);
+                return Integer.parseInt(port.toString());
             } catch (NumberFormatException ignore) {
             }
         }
