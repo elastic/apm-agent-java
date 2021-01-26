@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,6 +27,7 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+import java.net.URL;
 
 
 /**
@@ -114,6 +115,16 @@ public class Url implements Recyclable {
         return port;
     }
 
+    public int getPortAsInt() {
+        if (port.length() > 0) {
+            try {
+                return Integer.parseInt(port, 0, port.length(), 10);
+            } catch (NumberFormatException ignore) {
+            }
+        }
+        return -1;
+    }
+
     /**
      * The port of the request, e.g. '443'
      */
@@ -152,6 +163,32 @@ public class Url implements Recyclable {
     public Url withSearch(@Nullable String search) {
         this.search = search;
         return this;
+    }
+
+    public void fillFromFullUrl(URL url) {
+        if (protocol == null) protocol = url.getProtocol();
+        if (hostname == null) hostname = url.getHost();
+        if (pathname == null) pathname = url.getPath();
+        if (search == null) search = url.getQuery();
+        int port = url.getPort();
+        port = port > 0 ? port : url.getDefaultPort();
+        if (port > 0) {
+            withPort(port);
+        }
+    }
+
+    public void fillFullUrl() {
+        if (full.length() > 0 || hostname == null) {
+            return;
+        }
+        full.append(protocol != null ? protocol : "http")
+            .append("://")
+            .append(hostname)
+            .append(port.length() > 0 ? ":" : "")
+            .append(port.length() > 0 ? port : "")
+            .append(pathname != null ? pathname : "")
+            .append(search != null ? "?" : "")
+            .append(search != null ? search : "");
     }
 
     @Override

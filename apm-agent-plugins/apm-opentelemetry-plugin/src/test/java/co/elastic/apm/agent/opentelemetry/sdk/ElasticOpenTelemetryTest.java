@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -285,20 +286,61 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testSpanSemanticConventionMappingHttp() {
+    void testSpanSemanticConventionMappingHttpUrl() {
+        testSpanSemanticConventionMappingHttpHelper(span -> span.setAttribute(SemanticAttributes.HTTP_URL, "http://example.com/foo?bar"));
+    }
+
+    @Test
+    void testSpanSemanticConventionMappingHttpHost() {
+        testSpanSemanticConventionMappingHttpHelper(span -> {
+            span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
+            span.setAttribute(SemanticAttributes.HTTP_HOST, "example.com");
+            span.setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar");
+        });
+    }
+
+    @Test
+    void testSpanSemanticConventionMappingHttpPeerName() {
+        testSpanSemanticConventionMappingHttpHelper(span -> {
+            span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
+            span.setAttribute(SemanticAttributes.NET_PEER_IP, "192.0.2.5");
+            span.setAttribute(SemanticAttributes.NET_PEER_NAME, "example.com");
+            span.setAttribute(SemanticAttributes.NET_PEER_PORT, 80);
+            span.setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar");
+        });
+    }
+
+    @Test
+    void testSpanSemanticConventionMappingHttpPeerIp() {
+        testSpanSemanticConventionMappingHttpHelper(span -> {
+            span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
+            span.setAttribute(SemanticAttributes.NET_PEER_IP, "example.com");
+            span.setAttribute(SemanticAttributes.NET_PEER_PORT, 80);
+            span.setAttribute(SemanticAttributes.HTTP_TARGET, "/foo?bar");
+        });
+    }
+
+    void testSpanSemanticConventionMappingHttpHelper(Consumer<Span> spanConsumer) {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
         try (Scope scope = transaction.makeCurrent()) {
-            otelTracer.spanBuilder("span")
-                .startSpan()
-                .end();
+            Span span = otelTracer.spanBuilder("span")
+                .startSpan();
+            spanConsumer.accept(span);
+            span.end();
         } finally {
             transaction.end();
         }
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan());
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getPort()).isEqualTo(80);
+        assertThat(reporter.getFirstSpan().getContext().getHttp().getUrl()).isIn("http://example.com/foo?bar", "http://example.com:80/foo?bar");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getAddress().toString()).isEqualTo("example.com");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getName().toString()).isEqualTo("http://example.com");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("example.com:80");
+        assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getType()).isEqualTo("external");
+        reporter.resetWithoutRecycling();
     }
 
     private static class MapGetter implements TextMapPropagator.Getter<Map<String, String>> {

@@ -871,7 +871,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             if (statusCode > 0) {
                 writeField("status_code", http.getStatusCode());
             }
-            writeLastField("url", http.getUrl());
+            writeLastField("url", http.getUrlObject().getFull());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
