@@ -131,7 +131,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<TimeDuration> delayTracerStart = TimeDurationValueConverter.durationOption("ms")
         .key("delay_tracer_start")
-        .aliasKeys("delay_tracer_start_ms")
+        // supporting the older name for backward compatibility
+        .aliasKeys("delay_initialization")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("If set to a value greater than 0ms, the agent will delay tracer start. Instrumentation will not be delayed, " +
