@@ -42,13 +42,13 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -509,7 +509,7 @@ public class ElasticApmTracer implements Tracer {
      *                jvm parameter); false otherwise
      */
     public synchronized void start(boolean premain) {
-        long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayTracerStartMs();
         if (premain && shouldDelayOnPremain()) {
             delayInitMs = Math.max(delayInitMs, 5000L);
         }

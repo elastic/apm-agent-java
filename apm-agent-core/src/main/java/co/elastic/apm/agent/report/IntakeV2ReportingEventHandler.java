@@ -26,7 +26,7 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.util.ThreadUtils;
+import co.elastic.apm.agent.premain.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

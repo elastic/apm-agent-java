@@ -30,6 +30,10 @@ https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provid
 By default, the agent will try to automatically detect the cloud provider on startup, but this can be
 configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
 
+[float]
+===== Bug fixes
+* Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
