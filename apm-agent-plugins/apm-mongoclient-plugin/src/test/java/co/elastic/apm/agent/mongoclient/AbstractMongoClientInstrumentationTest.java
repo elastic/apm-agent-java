@@ -62,11 +62,8 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @Before
     public void startTransaction() {
-        tracer.startRootTransaction(null)
-            .withName("Mongo Transaction")
-            .withType("request")
-            .withResultIfUnset("success")
-            .activate();
+        reporter.checkUnknownOutcome(true);
+        startTestRootTransaction("Mongo Transaction");
     }
 
     @After

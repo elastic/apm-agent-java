@@ -48,6 +48,8 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     @BeforeEach
     void beforeEach() throws Exception {
+        reporter.checkUnknownOutcome(true);
+
         app = GrpcTest.getApp(getAppProvider());
         app.start();
     }

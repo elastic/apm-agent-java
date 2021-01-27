@@ -58,6 +58,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void before() {
+        reporter.checkUnknownOutcome(true);
         transaction = new Transaction(tracer);
         TransactionUtils.fillTransaction(transaction);
 
@@ -176,6 +177,9 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     void destroyWithoutProcessTerminatedShouldEndSpan() {
         Process process = mock(Process.class);
         verifyNoMoreInteractions(process); // we should not even use any method of process
+
+        // we have to opt-in to allow unknown outcome
+        reporter.checkUnknownOutcome(false);
 
         helper.doStartProcess(transaction, process, "hello");
 

@@ -71,6 +71,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         webConfiguration = tracer.getConfig(WebConfiguration.class);
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         filterChain = new MockFilterChain();
+        reporter.checkUnknownOutcome(true);
     }
 
     @Test

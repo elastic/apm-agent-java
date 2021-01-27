@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -53,11 +52,13 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void setUp() {
+        reporter.checkUnknownOutcome(true);
+
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         webConfig = config.getConfig(WebConfiguration.class);
         servletTransactionHelper = new ServletTransactionHelper(new ElasticApmTracerBuilder()
             .configurationRegistry(config)
-            .reporter(new MockReporter())
+            .reporter(reporter)
             .build());
     }
 

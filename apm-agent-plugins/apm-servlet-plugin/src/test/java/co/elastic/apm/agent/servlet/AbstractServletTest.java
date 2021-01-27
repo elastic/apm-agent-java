@@ -51,6 +51,8 @@ abstract class AbstractServletTest extends AbstractInstrumentationTest {
     @BeforeEach
     void initServerAndClient() throws Exception {
 
+        reporter.checkUnknownOutcome(true);
+
         // because we reuse the same classloader with different servlet context names
         // we need to explicitly reset the name cache to make service name detection work as expected
         ServletGlobalState.clearServiceNameCache();

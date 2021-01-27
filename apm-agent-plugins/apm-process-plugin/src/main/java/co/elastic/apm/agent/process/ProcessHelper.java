@@ -112,6 +112,7 @@ class ProcessHelper {
                 endAndRemoveSpan = true;
             } catch (IllegalThreadStateException e) {
                 // process hasn't terminated, we don't know it's actual return value
+                outcome = Outcome.UNKNOWN;
                 endAndRemoveSpan = false;
             }
         }

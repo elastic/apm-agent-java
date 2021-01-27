@@ -37,7 +37,10 @@ import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -52,6 +55,18 @@ public class Transaction extends AbstractSpan<Transaction> {
     };
 
     public static final String TYPE_REQUEST = "request";
+
+    /**
+     * Transaction types for which the outcome can be defined from reported exceptions:
+     * <ul>
+     *     <li>{@link Outcome#SUCCESS} when no exception has been reported</li>
+     *     <li>{@link Outcome#FAILURE} when at least one exception has been reported</li>
+     * </ul>
+     */
+    private static final Set<String> TRANSACTION_TYPES_OUTCOME_FROM_EXCEPTION = new HashSet<>(Arrays.asList(
+        "messaging",
+        "custom"
+    ));
 
     /**
      * Context
@@ -226,7 +241,7 @@ public class Transaction extends AbstractSpan<Transaction> {
             Outcome outcome = Outcome.UNKNOWN;
             if (response.hasContent()) {
                 outcome = ResultUtil.getOutcomeByHttpServerStatus(response.getStatusCode());
-            } else if ("messaging".equals(type)) {
+            } else if (TRANSACTION_TYPES_OUTCOME_FROM_EXCEPTION.contains(type)) {
                 outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
             }
             withOutcome(outcome);

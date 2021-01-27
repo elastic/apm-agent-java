@@ -73,6 +73,8 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
             .build();
         server.start();
         tracer.startRootTransaction(null).activate();
+
+        reporter.checkUnknownOutcome(true);
     }
 
     @After

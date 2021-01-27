@@ -107,6 +107,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
     @BeforeClass
     public static void setup() {
         reporter.disableDestinationAddressCheck();
+        reporter.checkUnknownOutcome(true);
 
         // confluent versions 3.2.x correspond Kafka versions 0.10.2.2 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
@@ -140,10 +141,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() {
-        tracer.startRootTransaction(null).activate()
-            .withName("Kafka-Test Transaction")
-            .withType("request")
-            .withResult("success");
+        startTestRootTransaction("Kafka-Test");
         testScenario = TestScenario.NORMAL;
     }
 

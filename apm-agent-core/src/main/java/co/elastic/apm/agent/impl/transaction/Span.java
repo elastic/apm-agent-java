@@ -50,6 +50,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      */
     private static final Set<String> TYPES_EXCEPTION_OUTCOME_FAILURE = new HashSet<String>(Arrays.asList(
         "db",
+        "async",
+        "custom",
         "ext",
         "external",
         "messaging"));

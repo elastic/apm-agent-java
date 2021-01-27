@@ -87,6 +87,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     @BeforeAll
     static void before() {
+        reporter.checkUnknownOutcome(true);
+
         container.withLogConsumer(new Slf4jLogConsumer(logger))
             .start();
 
@@ -239,7 +241,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             }
         });
 
-        Transaction rootTransaction = startRootTransaction();
+        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
 
         channel.basicPublish(exchange, ROUTING_KEY, properties, MSG);
 
@@ -382,7 +384,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         Transaction rootTransaction = null;
         if (withinTransaction) {
-            rootTransaction = startRootTransaction();
+            rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         }
 
         channel.basicGet(queue, true);
@@ -437,7 +439,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             .build();
 
 
-        Transaction rootTransaction = startRootTransaction();
+        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
 
         channel.basicPublish(exchange, rpcQueueName, properties, MSG);
 
@@ -529,14 +531,6 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     private void endRootTransaction(Transaction rootTransaction) {
         rootTransaction.deactivate().end();
-    }
-
-    private Transaction startRootTransaction() {
-        return getTracer().startRootTransaction(getClass().getClassLoader())
-            .withName("Rabbit-Test Root Transaction")
-            .withType("request")
-            .withResult("success")
-            .activate();
     }
 
     private static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions) {
