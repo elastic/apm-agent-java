@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.premain;
 
 import org.junit.jupiter.api.Test;
 
@@ -160,11 +160,11 @@ class JvmRuntimeInfoTest {
     private static void checkHpUx(String unsupportedVersion, String supportedVersion){
         JvmRuntimeInfo.parseVmInfo(unsupportedVersion, HOTSPOT_VM_NAME, null);
         assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isFalse();
-        assertThat(JvmRuntimeInfo.isIsHpUx()).isTrue();
+        assertThat(JvmRuntimeInfo.isHpUx()).isTrue();
 
         JvmRuntimeInfo.parseVmInfo(supportedVersion, HOTSPOT_VM_NAME, null);
         assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isTrue();
-        assertThat(JvmRuntimeInfo.isIsHpUx()).isTrue();
+        assertThat(JvmRuntimeInfo.isHpUx()).isTrue();
     }
 
     private static void checkSupported(String vmName, Stream<String> versions) {
