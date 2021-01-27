@@ -45,6 +45,8 @@ public class SslUtils {
 
     private static final HostnameVerifier hostnameVerifier;
 
+    private static boolean warningLogged = false;
+
     @Nullable
     private static final SSLSocketFactory validateSocketFactory;
 
@@ -52,11 +54,21 @@ public class SslUtils {
     private static final SSLSocketFactory trustAllSocketFactory;
 
     static {
-        X509TrustManager trustAllTrustManager = createTrustAllTrustManager();
         // default factory with certificate validation
         validateSocketFactory = TLSFallbackSSLSocketFactory.wrapFactory(createSocketFactory(null));
+
+        SSLSocketFactory tmpTrustAllSocketFactory = null;
         // without certificate validation
-        trustAllSocketFactory = TLSFallbackSSLSocketFactory.wrapFactory(createSocketFactory(new TrustManager[]{trustAllTrustManager}));
+        try {
+            X509TrustManager trustAllTrustManager = createTrustAllTrustManager();
+            tmpTrustAllSocketFactory = TLSFallbackSSLSocketFactory.wrapFactory(createSocketFactory(new TrustManager[]{trustAllTrustManager}));
+        } catch (Exception e) {
+            logger.info("Failed to construct a trust-all Socket factory with the following error: \"{}\". Agent communication " +
+                "with the APM server must verify the server certificates, meaning - the \"verify_server_cert\" configuration " +
+                "option must be set to \"true\"", e.getMessage());
+        }
+        trustAllSocketFactory = tmpTrustAllSocketFactory;
+
         hostnameVerifier = new HostnameVerifier() {
             @Override
             public boolean verify(String hostname, SSLSession session) {
@@ -71,20 +83,27 @@ public class SslUtils {
 
     @Nullable
     public static SSLSocketFactory getSSLSocketFactory(boolean validateCertificates) {
-        return validateCertificates ? validateSocketFactory : trustAllSocketFactory;
-    }
-
-    @Nullable
-    private static SSLSocketFactory createTrustAllSocketFactory(X509TrustManager trustAllTrustManager) {
-        // Create a trust manager that does not validate certificate chains
-
-        return createSocketFactory(new TrustManager[]{trustAllTrustManager});
+        if (validateCertificates) {
+            return validateSocketFactory;
+        }
+        if (trustAllSocketFactory == null && !warningLogged) {
+            logger.warn("The \"verify_server_cert\" configuration option is set to \"false\", but this agent may not be " +
+                "able to communicate with APM Server without verifying the server certificates.");
+            warningLogged = true;
+        }
+        return trustAllSocketFactory;
     }
 
     @Nullable
     private static SSLSocketFactory createSocketFactory(TrustManager[] trustAllCerts) {
         try {
-            SSLContext sslContext = SSLContext.getInstance("SSL");
+            SSLContext sslContext;
+            try {
+                sslContext = SSLContext.getInstance("SSL");
+            } catch (NoSuchAlgorithmException e) {
+                logger.info("SSL is not supported, trying to use TLS instead.");
+                sslContext = SSLContext.getInstance("TLS");
+            }
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
             return sslContext.getSocketFactory();
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
