@@ -332,7 +332,7 @@ pipeline {
   }
   post {
     cleanup {
-      notifyBuildResult(analyzeFlakey: !isTag(), flakyReportIdx: 'reporter-apm-agent-java-apm-agent-java-master')
+      notifyBuildResult(analyzeFlakey: !isTag(), flakyReportIdx: 'reporter-apm-agent-java-apm-agent-java-master', flakyDisableGHIssueCreation: true)
     }
   }
 }
