@@ -345,6 +345,12 @@
                                         <include>org/HdrHistogram/WriterReaderPhaser.class</include>
                                     </includes>
                                 </filter>
+                                <filter>
+                                    <artifact>io.opentelemetry:*</artifact>
+                                    <includes>
+                                        <include>io/opentelemetry/semconv/**</include>
+                                    </includes>
+                                </filter>
                             </filters>
                             <relocations>
                                 <relocation>
@@ -412,6 +418,11 @@
                                 <relocation>
                                     <pattern>org.HdrHistogram</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
+                                </relocation>
+                                <!-- we need to ship the opentelemetry-semconv artifact, the rest of the otel api is provided -->
+                                <relocation>
+                                    <pattern>io.opentelemetry.semconv</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.opentelemetry.semconv</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>

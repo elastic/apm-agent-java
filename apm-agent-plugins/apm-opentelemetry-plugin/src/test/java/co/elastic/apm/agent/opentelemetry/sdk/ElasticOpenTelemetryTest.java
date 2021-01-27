@@ -156,6 +156,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
             assertThat(tracer.getActive().getTraceContext().getId().toString()).isEqualTo(transaction.getSpanContext().getSpanIdAsHexString());
             // this assertion fails as context keys are not propagated
             assertThat(Context.current().get(ContextKey.<String>named("foo"))).isEqualTo("bar");
+            Span.current().setAttribute("foo", "bar");
         } finally {
             transaction.end();
         }
