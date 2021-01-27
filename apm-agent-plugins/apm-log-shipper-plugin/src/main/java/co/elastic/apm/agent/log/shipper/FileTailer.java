@@ -92,7 +92,7 @@ public class FileTailer implements Runnable {
         for (TailableFile tailableFile : tailableFiles) {
             try {
                 lines += tailableFile.tail(buffer, fileChangeListener, maxLinesPerCycle);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
         }
