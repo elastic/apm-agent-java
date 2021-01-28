@@ -112,7 +112,10 @@ public abstract class AbstractInstrumentationTest {
     }
 
     /**
-     * Creates a test root transaction with default values applied
+     * Creates a test root transaction with default values applied.
+     *
+     * <p>This method should be used to create a transaction used to test execution of a given instrumentation
+     * when an active transaction is available, for example to create child spans.</p>
      *
      * @param name transaction name
      * @return root transaction

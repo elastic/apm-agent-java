@@ -60,13 +60,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
         app = GrpcTest.getApp(getAppProvider());
         app.start();
 
-        Transaction transaction = tracer.startRootTransaction(AbstractGrpcClientInstrumentationTest.class.getClassLoader());
-
-        if (transaction != null) {
-            transaction.withName("Test gRPC client")
-                .withType("test")
-                .activate();
-        }
+        startTestRootTransaction("gRPC client transaction");
     }
 
     @AfterEach
@@ -85,7 +79,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     public void simpleCall() {
         doSimpleCall("bob");
 
-        tracer.currentTransaction().deactivate().end();
+        endRootTransaction();
 
         Transaction transaction = reporter.getFirstTransaction();
         assertThat(transaction).isNotNull();
@@ -107,7 +101,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
     public void simpleCallOutsideTransactionShouldBeIgnored() {
 
         // terminate transaction early
-        tracer.currentTransaction().deactivate().end();
+        endRootTransaction();
 
         // no span should be captured as no transaction is active
         doSimpleCall("joe");
@@ -243,6 +237,16 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             assertThat(outcome).isNotEqualTo(Outcome.SUCCESS);
         }
 
+    }
+
+    protected void endRootTransaction() {
+        Transaction transaction = tracer.currentTransaction();
+        assertThat(transaction).isNotNull();
+
+        transaction
+            .withOutcome(Outcome.SUCCESS)
+            .deactivate()
+            .end();
     }
 
     private boolean isVersion161() {

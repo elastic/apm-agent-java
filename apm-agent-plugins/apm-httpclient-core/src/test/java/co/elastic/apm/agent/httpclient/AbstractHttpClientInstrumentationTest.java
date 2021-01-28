@@ -65,6 +65,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Before
     public final void setUpWiremock() {
+        // ensure that HTTP spans outcome is not unknown
+        reporter.checkUnknownOutcome(true);
+
         wireMockRule.stubFor(any(urlEqualTo("/"))
             .willReturn(dummyResponse()
                 .withStatus(200)));
@@ -228,6 +231,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
 
         verifyTraceContextHeaders(span, "/circular-redirect");
     }

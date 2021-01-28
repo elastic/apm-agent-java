@@ -60,7 +60,18 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     void startRootTransaction() {
         when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
 
-        startTestRootTransaction("dubbo test");
+        // using context classloader is required here
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+
+        Transaction transaction = tracer.startRootTransaction(cl);
+        assertThat(transaction).isNotNull();
+        transaction
+            .withName("dubbo test")
+            .withType("test")
+            .withResult("success")
+            .withOutcome(Outcome.SUCCESS)
+            .activate();
+
         reporter.checkUnknownOutcome(true);
     }
 
