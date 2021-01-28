@@ -214,18 +214,22 @@ public class GrpcHelper {
             return;
         }
 
-        transaction.deactivate();
+        transaction
+            .captureException(thrown)
+            .deactivate();
 
         if (isLastMethod || null != thrown) {
             // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
             // and make this the last listener method called
+
+            Outcome outcome = Outcome.SUCCESS;
+            Status status = Status.OK;
             if (thrown != null) {
-                Status status = Status.fromThrowable(thrown);
-                transaction.captureException(thrown)
-                    .withOutcome(toOutcome(status))
-                    .withResultIfUnset(status.getCode().name());
+                status = Status.fromThrowable(thrown);
             }
-            transaction.end();
+            transaction.withOutcome(outcome)
+                .withResultIfUnset(status.getCode().name())
+                .end();
             serverListenerTransactions.remove(listener);
         }
 
