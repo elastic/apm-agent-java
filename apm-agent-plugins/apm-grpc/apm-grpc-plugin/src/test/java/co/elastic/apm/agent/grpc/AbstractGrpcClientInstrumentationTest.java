@@ -201,7 +201,7 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
             thrown = e;
         }
 
-        int expectedErrors = 0;
+        int expectedErrors;
 
         boolean is161 = isVersion161();
         if ("start".equals(method)) {
@@ -230,11 +230,11 @@ public abstract class AbstractGrpcClientInstrumentationTest extends AbstractInst
 
         Outcome outcome = span.getOutcome();
         if (expectedErrors == 0) {
+            // when no visible error on client, the span should have success outcome
             assertThat(outcome).isEqualTo(Outcome.SUCCESS);
         } else {
-            // either failure or unknown
-            // we loosely assert to prevent flakyness, it may be unknown or failure without 100% accuracy
-            assertThat(outcome).isNotEqualTo(Outcome.SUCCESS);
+            // when error visible on client, span should have failure outcome
+            assertThat(outcome).isEqualTo(Outcome.FAILURE);
         }
 
     }

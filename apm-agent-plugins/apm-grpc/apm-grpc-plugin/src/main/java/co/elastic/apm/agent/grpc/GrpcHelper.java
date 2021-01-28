@@ -201,15 +201,16 @@ public class GrpcHelper {
     /**
      * Deactivates (and terminates) transaction on ending server call listener method
      *
-     * @param thrown       thrown exception
-     * @param listener     server call listener
-     * @param transaction  transaction
-     * @param isLastMethod {@literal true} if listener method should terminate transaction
+     * @param thrown          thrown exception
+     * @param listener        server call listener
+     * @param transaction     transaction
+     * @param terminateStatus status to use to terminate transaction, will not terminate it if {@literal null}
      */
     public void exitServerListenerMethod(@Nullable Throwable thrown,
                                          ServerCall.Listener<?> listener,
                                          @Nullable Transaction transaction,
-                                         boolean isLastMethod) {
+                                         @Nullable Status terminateStatus) {
+
         if (transaction == null) {
             return;
         }
@@ -218,21 +219,28 @@ public class GrpcHelper {
             .captureException(thrown)
             .deactivate();
 
-        if (isLastMethod || null != thrown) {
-            // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
-            // and make this the last listener method called
-
-            Outcome outcome = Outcome.SUCCESS;
-            Status status = Status.OK;
-            if (thrown != null) {
-                status = Status.fromThrowable(thrown);
-            }
-            transaction.withOutcome(outcome)
-                .withResultIfUnset(status.getCode().name())
-                .end();
-            serverListenerTransactions.remove(listener);
+        if (thrown == null && terminateStatus == null) {
+            return;
         }
 
+        boolean setTerminateStatus = false;
+        if (null != thrown) {
+            // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
+            // and make this the last listener method called
+            terminateStatus = Status.fromThrowable(thrown);
+            setTerminateStatus = true;
+
+        } else if (transaction.getOutcome() == Outcome.UNKNOWN) {
+            setTerminateStatus = true;
+        }
+
+        if (setTerminateStatus) {
+            transaction.withResultIfUnset(terminateStatus.getCode().name());
+            transaction.withOutcome(toOutcome(terminateStatus));
+        }
+
+        transaction.end();
+        serverListenerTransactions.remove(listener);
     }
 
     // exit span management (client part)

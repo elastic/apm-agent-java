@@ -80,7 +80,7 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
             .build();
         scheduler.scheduleJob(job, createTrigger());
 
-        verifyTransactionFromJobDetails(job);
+        verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
     }
 
     @Test
@@ -90,7 +90,7 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
             .build();
         scheduler.scheduleJob(job, createTrigger());
 
-        verifyTransactionFromJobDetails(job);
+        verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
     }
 
     @Test
@@ -128,7 +128,7 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
             .build();
         scheduler.scheduleJob(job, createTrigger());
 
-        verifyTransactionFromJobDetails(job);
+        verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
     }
 
     @Test
@@ -138,7 +138,7 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
             .build();
         scheduler.scheduleJob(job, createTrigger());
 
-        Transaction transaction = verifyTransactionFromJobDetails(job);
+        Transaction transaction = verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
         assertThat(transaction.getResult()).isEqualTo("this is the result");
     }
 
@@ -155,7 +155,7 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         scheduler.getContext().put(TestDirectoryScanListener.class.getSimpleName(), new TestDirectoryScanListener());
         scheduler.scheduleJob(job, createTrigger());
 
-        verifyTransactionFromJobDetails(job);
+        verifyTransactionFromJobDetails(job, Outcome.SUCCESS);
     }
 
     @Test
@@ -163,8 +163,7 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
         JobDetail job = JobBuilder.newJob(TestJobWithException.class).withIdentity("dummyJobName").build();
         scheduler.scheduleJob(job, createTrigger());
 
-        Transaction transaction = verifyTransactionFromJobDetails(job);
-        assertThat(transaction.getOutcome()).isEqualTo(Outcome.FAILURE);
+        verifyTransactionFromJobDetails(job, Outcome.FAILURE);
     }
 
     private static SimpleTrigger createTrigger() {
@@ -175,13 +174,15 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
             .build();
     }
 
-    private Transaction verifyTransactionFromJobDetails(JobDetail job) {
+    private Transaction verifyTransactionFromJobDetails(JobDetail job, Outcome expectedOutcome) {
         reporter.awaitTransactionCount(1);
 
         Transaction transaction = reporter.getFirstTransaction();
         await().untilAsserted(() -> assertThat(reporter.getTransactions().size()).isEqualTo(1));
 
         verifyTransaction(transaction, String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+
+        assertThat(transaction.getOutcome()).isEqualTo(expectedOutcome);
         return transaction;
     }
 
