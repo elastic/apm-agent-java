@@ -56,6 +56,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -148,11 +149,15 @@ public class ElasticApmTracerBuilder {
         }
 
         ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
-        MetaData metaData = MetaData.create(configurationRegistry, ephemeralId);
+        Future<MetaData> metaData = MetaData.create(configurationRegistry, ephemeralId);
         if (addApmServerConfigSource) {
             // adding remote configuration source last will make it highest priority
-            DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
-            ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
+            DslJsonSerializer payloadSerializer = new DslJsonSerializer(
+                configurationRegistry.getConfig(StacktraceConfiguration.class),
+                apmServerClient,
+                metaData
+            );
+            ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, apmServerClient);
 
             // unlike the ordering of configuration sources above, this will make it highest priority
             // as it's inserted first in the list.
@@ -165,7 +170,7 @@ public class ElasticApmTracerBuilder {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
 
-        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory, apmServerClient, metaData);
+        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter, objectPoolFactory, apmServerClient, ephemeralId, metaData);
         lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
         lifecycleListeners.addAll(extraLifecycleListeners);
         tracer.init(lifecycleListeners);
