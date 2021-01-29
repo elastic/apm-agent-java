@@ -1,0 +1,182 @@
+ifdef::env-github[]
+NOTE: For the best reading experience,
+please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
+endif::[]
+
+[[opentelementry-bridge]]
+=== OpenTelemetry bridge
+
+NOTE: The OpenTelemetry bridge is currently experimental.
+To enable it, set <<config-enable-experimental-instrumentations, `enable_experimental_instrumentations`>> to `true`.
+
+The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
+using the OpenTelemetry API.
+In other words,
+it translates the calls to the OpenTelemetry API to Elastic APM and thus allows for reusing existing instrumentation.
+
+The first span of a service will be converted to an Elastic APM
+{apm-overview-ref-v}/transactions.html[`Transaction`],
+subsequent spans are mapped to Elastic APM
+{apm-overview-ref-v}/transaction-spans.html[`Span`].
+
+[float]
+[[otel-operation-modes]]
+==== Operation Modes
+
+This bridge allows for different operation modes in combination with the Elastic APM `javaagent`
+
+Noop::
++
+--
+If the `javaagent` is not specified, the bridge is in noop mode and does not actually record and report spans.
+--
+
+Mix and Match::
++
+--
+If you want to leverage the auto instrumentation of Elastic APM,
+but also want to create custom spans or use the OpenTelemetry API to add custom tags to the spans created by Elastic APM,
+you can just do that.
+The OpenTelemetry bridge and the standard Elastic APM API interact seamlessly.
+--
+
+Manual instrumentation::
++
+--
+If you don't want Elastic APM to auto-instrument known frameworks,
+but instead only rely on manual instrumentation,
+disable the auto instrumentation setting the configuration option <<config-instrument,`instrument`>> to `false`.
+--
+
+[float]
+[[otel-getting-started]]
+==== Getting started
+The first step in getting started with the OpenTelemetry API bridge is to declare a dependency to the API:
+
+[source,xml]
+.pom.xml
+----
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-api</artifactId>
+    <version>${version.opentelemetry}</version>
+</dependency>
+----
+
+[source,groovy]
+.build.gradle
+----
+compile "io.opentelemetry:opentelemetry-api:$openTelemetryVersion"
+----
+
+[float]
+[[otel-init-tracer]]
+==== Initialize tracer
+
+There's no separate dependency needed for the bridge itself.
+The Java agent hooks into `GlobalOpenTelemetry` to return it's own implementation of `OpenTelemetry`
+that is connected to the internal tracer of the agent.
+
+[source,java]
+----
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
+
+OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();
+Tracer tracer = openTelemetry.getTracer("");
+
+----
+
+To disable that behavior,
+and to rely on the standard discovery mechanism of `GlobalOpenTelemetry`,
+you can set <<config-disable-instrumentations, `disable_instrumentations`>> to `opentelemetry`.
+
+[float]
+[[otel-set-attribute]]
+==== Add custom metadata to a span
+
+If you like the spans created by the Elastic APM Java agent's auto-instrumentation,
+but you want to add a custom label,
+you can use the OpenTelemetry API to get ahold of the current span and call `setAttribute`:
+
+[source,java]
+----
+Span.current().setAttribute("foo", "bar");
+----
+
+[float]
+[[otel-create-transaction-span]]
+==== Create a child of the active span
+
+This is an example for adding a custom span to the span created by the Java agent's auto-instrumentation.
+
+[source,java]
+----
+// if there's an active span, it will implicitly be the parent
+// in case there's no parent, the custom span will become a Elastic APM transaction
+Span custom = tracer.spanBuilder("my custom span").startSpan();
+// making your child the current one makes the Java agent aware of this span
+// if the agent creates spans in the context of myTracedMethod() (such as outgoing requests),
+// they'll be added as a child of your custom span
+try (Scope scope = custom.makeCurrent()) {
+    myTracedMethod();
+} catch (Exception e) {
+    custom.recordException(e);
+    throw e;
+} finally {
+    custom.end();
+}
+----
+
+To learn more about the OpenTelemetry API,
+head over do https://opentelemetry.io/docs/java/manual_instrumentation/[their documentation].
+
+[float]
+[[otel-elastic-apm-tags]]
+==== Elastic APM specific tags
+Elastic APM defines some tags which are not included in the OpenTelemetry API but are relevant in the context of Elastic APM.
+
+- `type` - sets the type of the transaction/span,
+  for example `request`, `ext` or `db`
+- `subtype` - sets the subtype of the span,
+  for example `http`, `mysql` or `jsf`
+- `action` - sets the action related to a span,
+  for example `query`, `execute` or `render`
+- `user.id` - sets the user id,
+  appears in the "User" tab in the transaction details in the Elastic APM app
+- `user.email` - sets the user email,
+  appears in the "User" tab in the transaction details in the Elastic APM app
+- `user.username` - sets the user name,
+  appears in the "User" tab in the transaction details in the Elastic APM app
+- `result` - sets the result of the transaction. Overrides the default value of `success`.
+  If the `error` tag is set to `true`, the default value is `error`.
+  Setting `http.status_code` to `200`, for example, implicitly sets the result to `HTTP 2xx` if not explicitly set otherwise.
+
+[float]
+[[otel-caveats]]
+==== Caveats
+Not all features of the OpenTelemetry API are supported.
+
+[float]
+[[otel-propagation]]
+===== In process context propagation
+Entries that are added to the current context,
+`Context.current().with(...).makeCurrent()` cannot be retrieved via `Context.current().get(...)`.
+
+[float]
+[[otel-references]]
+===== Span References
+The `SpanBuilder#addLink` method is currently not supported.
+Spans can only have a single parent (`SpanBuilder#setParent`)
+
+[float]
+[[otel-baggage]]
+===== Baggage
+Propagating baggage within or outside the process is not supported.
+Baggage items are silently dropped.
+
+[float]
+[[otel-events]]
+===== Events
+Events are silently dropped, for example `Span.current().addEvent("my event")`.

@@ -4,11 +4,11 @@ please view this documentation at https://www.elastic.co/guide/en/apm/agent/java
 endif::[]
 
 [[opentracing-bridge]]
-== Elastic APM OpenTracing bridge
+=== OpenTracing bridge
 
 NOTE: Latest supported OpenTracing version: 0.33 (as of agent and OpenTracing-bridge version 1.9.0)
 
-The Elastic APM OpenTracing bridge allows to create Elastic APM `Transactions` and `Spans`,
+The Elastic APM OpenTracing bridge allows creating Elastic APM `Transactions` and `Spans`,
 using the OpenTracing API.
 In other words,
 it translates the calls to the OpenTracing API to Elastic APM and thus allows for reusing existing instrumentation.
@@ -20,7 +20,7 @@ subsequent spans are mapped to Elastic APM
 
 [float]
 [[operation-modes]]
-=== Operation Modes
+==== Operation Modes
 
 This bridge allows for different operation modes in combination with the Elastic APM `javaagent`
 
@@ -49,7 +49,7 @@ disable the auto instrumentation setting the configuration option <<config-instr
 
 [float]
 [[getting-started]]
-=== Getting started
+==== Getting started
 The first step in getting started with the OpenTracing API bridge is to declare a dependency to the API:
 
 [source,xml]
@@ -76,7 +76,7 @@ image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-opentracing.svg[
 
 [float]
 [[init-tracer]]
-=== Initialize tracer
+==== Initialize tracer
 
 [source,java]
 ----
@@ -89,7 +89,7 @@ Tracer tracer = new ElasticApmTracer();
 
 [float]
 [[elastic-apm-tags]]
-=== Elastic APM specific tags
+==== Elastic APM specific tags
 
 Elastic APM defines some tags which are not included in the OpenTracing API but are relevant in the context of Elastic APM.
 
@@ -111,31 +111,31 @@ Elastic APM defines some tags which are not included in the OpenTracing API but 
 
 [float]
 [[unsupported]]
-=== Caveats
+==== Caveats
 Not all features of the OpenTracing API are supported.
 
 [float]
 [[propagation]]
-==== Context propagation
+===== Context propagation
 This bridge only supports the formats `Format.Builtin.TEXT_MAP` and `Format.Builtin.HTTP_HEADERS`.
 `Format.Builtin.BINARY` is currently not supported.
 
 [float]
 [[references]]
-==== Span References
+===== Span References
 Currently, this bridge only supports `child_of` references.
 Other references,
 like `follows_from` are not supported yet.
 
 [float]
 [[baggage]]
-==== Baggage
+===== Baggage
 The `Span.setBaggageItem(String, String)` method is not supported.
 Baggage items are silently dropped.
 
 [float]
 [[logs]]
-==== Logs
+===== Logs
 Only exception logging is supported.
 Logging an Exception on the OpenTracing span will create an Elastic APM
 {apm-overview-ref-v}/errors.html[`Error`].
