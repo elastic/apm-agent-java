@@ -41,12 +41,13 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.premain.AgentMain;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ObjectUtils;
-import co.elastic.apm.agent.util.ThreadUtils;
+import co.elastic.apm.agent.premain.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -218,7 +219,7 @@ public class ElasticApmAgent {
     }
 
     private static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
-                                                        Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
+                                                         Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         if (!coreConfig.isEnabled()) {
             return;

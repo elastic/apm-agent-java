@@ -23,18 +23,16 @@ endif::[]
 [[release-notes-1.21.0]]
 ==== 1.21.0 - YYYY/MM/DD
 
-[float]
-===== Breaking changes
-
-[float]
 ===== Features
+* Add cloud provider metadata to reported events, see
+https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
+By default, the agent will try to automatically detect the cloud provider on startup, but this can be
+configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
 * OpenTelemetry bridge: <<opentelementry-bridge>>
 
 [float]
 ===== Bug fixes
-
-[[release-notes-1.20.1]]
-==== 1.20.1 - YYYY/MM/DD
+* Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
