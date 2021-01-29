@@ -36,9 +36,9 @@ import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -47,13 +47,13 @@ import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
+public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
 
     private OpenTelemetry openTelemetry;
     private Tracer otelTracer;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         this.openTelemetry = GlobalOpenTelemetry.get();
         assertThat(openTelemetry).isSameAs(GlobalOpenTelemetry.get());
         otelTracer = openTelemetry.getTracer(null);
@@ -61,7 +61,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransaction() {
+    public void testTransaction() {
         otelTracer.spanBuilder("transaction")
             .startSpan()
             .end();
@@ -70,7 +70,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionWithAttribute() {
+    public void testTransactionWithAttribute() {
         otelTracer.spanBuilder("transaction")
             .setAttribute("boolean", true)
             .setAttribute("long", 42L)
@@ -86,7 +86,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionWithSpanManualPropagation() {
+    public void testTransactionWithSpanManualPropagation() {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
         otelTracer.spanBuilder("span")
@@ -103,7 +103,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionWithSpanContextStorePropagation() {
+    public void testTransactionWithSpanContextStorePropagation() {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
         try (Scope scope = transaction.makeCurrent()) {
@@ -122,7 +122,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testStartChildAfterEnd() {
+    public void testStartChildAfterEnd() {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
         transaction.end();
@@ -145,8 +145,8 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
      * @see ElasticOTelContextStorage#current()
      */
     @Test
-    @Disabled
-    void testPropagateCustomContextKey() {
+    @Ignore
+    public void testPropagateCustomContextKey() {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
         Context context = Context.current()
@@ -166,7 +166,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionWithRemoteParent() {
+    public void testTransactionWithRemoteParent() {
         Context context = openTelemetry.getPropagators()
             .getTextMapPropagator()
             .extract(Context.current(),
@@ -183,7 +183,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionInject() {
+    public void testTransactionInject() {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
         HashMap<String, String> otelHeaders = new HashMap<>();
@@ -198,7 +198,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionSemanticConventionMappingHttpHost() {
+    public void testTransactionSemanticConventionMappingHttpHost() {
         otelTracer.spanBuilder("transaction")
             .startSpan()
             .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
@@ -218,7 +218,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionSemanticConventionMappingHttpNetHostName() {
+    public void testTransactionSemanticConventionMappingHttpNetHostName() {
         otelTracer.spanBuilder("transaction")
             .startSpan()
             .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
@@ -242,7 +242,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionSemanticConventionMappingHttpNetHostIP() {
+    public void testTransactionSemanticConventionMappingHttpNetHostIP() {
         otelTracer.spanBuilder("transaction")
             .startSpan()
             .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
@@ -266,7 +266,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTransactionSemanticConventionMappingHttpUrl() {
+    public void testTransactionSemanticConventionMappingHttpUrl() {
         otelTracer.spanBuilder("transaction")
             .startSpan()
             .setAttribute(SemanticAttributes.HTTP_METHOD, "GET")
@@ -287,12 +287,12 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testSpanSemanticConventionMappingHttpUrl() {
+    public void testSpanSemanticConventionMappingHttpUrl() {
         testSpanSemanticConventionMappingHttpHelper(span -> span.setAttribute(SemanticAttributes.HTTP_URL, "http://example.com/foo?bar"));
     }
 
     @Test
-    void testSpanSemanticConventionMappingHttpHost() {
+    public void testSpanSemanticConventionMappingHttpHost() {
         testSpanSemanticConventionMappingHttpHelper(span -> {
             span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
             span.setAttribute(SemanticAttributes.HTTP_HOST, "example.com");
@@ -301,7 +301,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testSpanSemanticConventionMappingHttpPeerName() {
+    public void testSpanSemanticConventionMappingHttpPeerName() {
         testSpanSemanticConventionMappingHttpHelper(span -> {
             span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
             span.setAttribute(SemanticAttributes.NET_PEER_IP, "192.0.2.5");
@@ -312,7 +312,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testSpanSemanticConventionMappingHttpPeerIp() {
+    public void testSpanSemanticConventionMappingHttpPeerIp() {
         testSpanSemanticConventionMappingHttpHelper(span -> {
             span.setAttribute(SemanticAttributes.HTTP_SCHEME, "http");
             span.setAttribute(SemanticAttributes.NET_PEER_IP, "example.com");
@@ -321,7 +321,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         });
     }
 
-    void testSpanSemanticConventionMappingHttpHelper(Consumer<Span> spanConsumer) {
+    public void testSpanSemanticConventionMappingHttpHelper(Consumer<Span> spanConsumer) {
         Span transaction = otelTracer.spanBuilder("transaction")
             .startSpan();
         try (Scope scope = transaction.makeCurrent()) {
@@ -344,7 +344,7 @@ class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         reporter.resetWithoutRecycling();
     }
 
-    private static class MapGetter implements TextMapPropagator.Getter<Map<String, String>> {
+    public static class MapGetter implements TextMapPropagator.Getter<Map<String, String>> {
         @Override
         public Iterable<String> keys(Map<String, String> carrier) {
             return carrier.keySet();
