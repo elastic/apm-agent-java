@@ -20,6 +20,19 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.21.0]]
+==== 1.21.0 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* OpenTelemetry bridge: <<opentelementry-bridge>>
+
+[float]
+===== Bug fixes
+
 [[release-notes-1.20.1]]
 ==== 1.20.1 - YYYY/MM/DD
 
