@@ -1267,7 +1267,7 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-transaction-ignore-user-agents]]
-==== `transaction_ignore_user_agents`
+==== `transaction_ignore_user_agents` (added[1.21.0])
 
 Used to restrict requests from certain User-Agents from being instrumented.
 

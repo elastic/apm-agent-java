@@ -90,6 +90,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("transaction_ignore_user_agents")
         .aliasKeys("ignore_user_agents")
+        .tags("added[1.21.0]")
         .configurationCategory(HTTP_CATEGORY)
         .description("Used to restrict requests from certain User-Agents from being instrumented.\n" +
             "\n" +

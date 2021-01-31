@@ -29,6 +29,8 @@ endif::[]
 https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
 By default, the agent will try to automatically detect the cloud provider on startup, but this can be
 configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
+* Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
+{pull}1644[#1644]
 
 [float]
 ===== Bug fixes
