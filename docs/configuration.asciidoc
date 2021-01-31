@@ -127,7 +127,7 @@ Click on a key to get more information.
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
-** <<config-ignore-user-agents>>
+** <<config-transaction-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
 * <<config-jax-rs>>
@@ -1266,8 +1266,8 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-ignore-user-agents]]
-==== `ignore_user_agents`
+[[config-transaction-ignore-user-agents]]
+==== `transaction_ignore_user_agents`
 
 Used to restrict requests from certain User-Agents from being instrumented.
 
@@ -1295,7 +1295,7 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
+| `elastic.apm.transaction_ignore_user_agents` | `transaction_ignore_user_agents` | `ELASTIC_APM_TRANSACTION_IGNORE_USER_AGENTS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2926,7 +2926,7 @@ The default unit for this option is `ms`.
 # Type: comma separated list
 # Default value: 
 #
-# ignore_user_agents=
+# transaction_ignore_user_agents=
 
 # If set to `true`,
 # transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.

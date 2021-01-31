@@ -88,7 +88,8 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         ));
     private final ConfigurationOption<List<WildcardMatcher>> ignoreUserAgents = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
-        .key("ignore_user_agents")
+        .key("transaction_ignore_user_agents")
+        .aliasKeys("ignore_user_agents")
         .configurationCategory(HTTP_CATEGORY)
         .description("Used to restrict requests from certain User-Agents from being instrumented.\n" +
             "\n" +
