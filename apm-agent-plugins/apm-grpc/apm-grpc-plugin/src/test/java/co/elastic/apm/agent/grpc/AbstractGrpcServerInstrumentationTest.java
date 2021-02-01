@@ -81,12 +81,14 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
 
     @Test
     void simpleCallWithInvalidArgumentError() {
-        simpleCallWithError(null, "INVALID_ARGUMENT");
+        // the 'invalid argument'  should be considered to be a client error
+        // thus a success on the server side, and a failure on the client.
+        simpleCallWithError(null, "INVALID_ARGUMENT", Outcome.SUCCESS);
     }
 
     @Test
     void simpleCallWithRuntimeError() {
-        simpleCallWithError("boom", "UNKNOWN");
+        simpleCallWithError("boom", "UNKNOWN", Outcome.FAILURE);
     }
 
     @Test
@@ -99,12 +101,12 @@ public abstract class AbstractGrpcServerInstrumentationTest extends AbstractInst
         checkUnaryTransactionSuccess(transaction);
     }
 
-    private void simpleCallWithError(@Nullable String name, String expectedResult) {
+    private void simpleCallWithError(@Nullable String name, String expectedResult, Outcome expectedOutcome) {
         assertThat(app.sayHello(name, 0))
             .isNull();
 
         Transaction transaction = getFirstTransaction();
-        checkUnaryTransaction(transaction, expectedResult, Outcome.FAILURE);
+        checkUnaryTransaction(transaction, expectedResult, expectedOutcome);
     }
 
     @Test

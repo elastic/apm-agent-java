@@ -164,7 +164,7 @@ public class GrpcHelper {
             // 2. ServerCall.onClose, which might falsely report 'OK' status after a thrown listener exception.
             //    in this case we just have to ignore the reported status if already set
             if (Outcome.UNKNOWN == transaction.getOutcome()) {
-                transaction.withOutcome(toOutcome(status))
+                transaction.withOutcome(toServerOutcome(status))
                     .withResultIfUnset(status.getCode().name()); // keep outcome and result consistent
             }
             transaction.captureException(thrown);
@@ -175,10 +175,30 @@ public class GrpcHelper {
         }
     }
 
-    public static Outcome toOutcome(@Nullable Status status) {
-        Outcome outcome = Outcome.UNKNOWN;
+    public static Outcome toClientOutcome(@Nullable Status status) {
+        Outcome outcome = Outcome.FAILURE;
         if (status != null) {
             outcome = status.isOk() ? Outcome.SUCCESS : Outcome.FAILURE;
+        }
+        return outcome;
+    }
+
+    public static Outcome toServerOutcome(@Nullable Status status) {
+        Outcome outcome = Outcome.FAILURE;
+        if (status != null) {
+            switch (status.getCode()) {
+                case CANCELLED:
+                case UNKNOWN:
+                case DEADLINE_EXCEEDED:
+                case RESOURCE_EXHAUSTED:
+                case UNIMPLEMENTED:
+                case INTERNAL:
+                case UNAVAILABLE:
+                    outcome = Outcome.FAILURE;
+                    break;
+                default:
+                    outcome = Outcome.SUCCESS;
+            }
         }
         return outcome;
     }
@@ -236,7 +256,7 @@ public class GrpcHelper {
 
         if (setTerminateStatus) {
             transaction.withResultIfUnset(terminateStatus.getCode().name());
-            transaction.withOutcome(toOutcome(terminateStatus));
+            transaction.withOutcome(toServerOutcome(terminateStatus));
         }
 
         transaction.end();
@@ -389,7 +409,7 @@ public class GrpcHelper {
 
             if (lastCall) {
                 // span needs to be ended when last listener method is called or on the 1st thrown exception
-                span.withOutcome(toOutcome(onCloseStatus))
+                span.withOutcome(toClientOutcome(onCloseStatus))
                     .end();
             }
         }

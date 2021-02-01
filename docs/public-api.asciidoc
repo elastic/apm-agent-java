@@ -512,7 +512,7 @@ The result value set through API will have priority over the value that might be
 
 [float]
 [[api-transaction-set-outcome]]
-==== `Span setOutcome(Outcome outcome)`
+==== `Span setOutcome(Outcome outcome)` added[1.21.0]
 Sets the transaction or span outcome. Use either `FAILURE` or `SUCCESS` to indicate success or failure,
 use `UNKNOWN` when the outcome can't be properly known.
 

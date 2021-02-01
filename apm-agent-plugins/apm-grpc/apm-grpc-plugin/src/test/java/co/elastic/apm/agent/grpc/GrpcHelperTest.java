@@ -26,6 +26,7 @@ package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import io.grpc.Status;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -39,7 +40,13 @@ class GrpcHelperTest {
 
         Status status = grpcCode.toStatus();
 
-        assertThat(GrpcHelper.toOutcome(status)).isEqualTo(status.isOk() ? Outcome.SUCCESS : Outcome.FAILURE);
+        assertThat(GrpcHelper.toClientOutcome(status)).isEqualTo(status.isOk() ? Outcome.SUCCESS : Outcome.FAILURE);
+    }
+
+    @Test
+    void noStatusMapping(){
+        assertThat(GrpcHelper.toClientOutcome(null))
+            .isEqualTo(Outcome.FAILURE);
     }
 
 }

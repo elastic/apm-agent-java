@@ -110,6 +110,7 @@
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.10.19</version.byte-buddy>
         <version.asm>9.0</version.asm>
+        <version.cucumber>5.4.0</version.cucumber>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
