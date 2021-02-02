@@ -517,33 +517,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static void serializeCloudProvider(final CloudProviderInfo cloudProviderInfo, final StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName("cloud", jw);
         jw.writeByte(OBJECT_START);
-        if (cloudProviderInfo.getAccount() != null && cloudProviderInfo.getAccount().getId() != null) {
-            writeFieldName("account", jw);
-            jw.writeByte(JsonWriter.OBJECT_START);
-            writeLastField("id", cloudProviderInfo.getAccount().getId(), replaceBuilder, jw);
-            jw.writeByte(JsonWriter.OBJECT_END);
-            jw.writeByte(COMMA);
-        }
-        if (cloudProviderInfo.getInstance() != null) {
-            writeFieldName("instance", jw);
-            jw.writeByte(JsonWriter.OBJECT_START);
-            writeField("id", cloudProviderInfo.getInstance().getId(), replaceBuilder, jw);
-            writeLastField("name", cloudProviderInfo.getInstance().getName(), replaceBuilder, jw);
-            jw.writeByte(JsonWriter.OBJECT_END);
-            jw.writeByte(COMMA);
-        }
-        if (cloudProviderInfo.getMachine() != null && cloudProviderInfo.getMachine().getType() != null) {
+        serializeNameAndIdField(cloudProviderInfo.getAccount(), "account", replaceBuilder, jw);
+        serializeNameAndIdField(cloudProviderInfo.getInstance(), "instance", replaceBuilder, jw);
+        serializeNameAndIdField(cloudProviderInfo.getProject(), "project", replaceBuilder, jw);
+        if (cloudProviderInfo.getMachine() != null) {
             writeFieldName("machine", jw);
             jw.writeByte(JsonWriter.OBJECT_START);
             writeLastField("type", cloudProviderInfo.getMachine().getType(), replaceBuilder, jw);
-            jw.writeByte(JsonWriter.OBJECT_END);
-            jw.writeByte(COMMA);
-        }
-        if (cloudProviderInfo.getProject() != null) {
-            writeFieldName("project", jw);
-            jw.writeByte(JsonWriter.OBJECT_START);
-            writeField("id", cloudProviderInfo.getProject().getId(), replaceBuilder, jw);
-            writeLastField("name", cloudProviderInfo.getProject().getName(), replaceBuilder, jw);
             jw.writeByte(JsonWriter.OBJECT_END);
             jw.writeByte(COMMA);
         }
@@ -551,6 +531,31 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("region", cloudProviderInfo.getRegion(), replaceBuilder, jw);
         writeLastField("provider", cloudProviderInfo.getProvider(), replaceBuilder, jw);
         jw.writeByte(OBJECT_END);
+    }
+
+    private static void serializeNameAndIdField(@Nullable CloudProviderInfo.NameAndIdField nameAndIdField, String fieldName,
+                                                StringBuilder replaceBuilder, JsonWriter jw) {
+        if (nameAndIdField != null && !nameAndIdField.isEmpty()) {
+            writeFieldName(fieldName, jw);
+            jw.writeByte(JsonWriter.OBJECT_START);
+            boolean idWritten = false;
+            @Nullable String id = nameAndIdField.getId();
+            if (id != null) {
+                writeFieldName("id", jw);
+                writeStringValue(id, replaceBuilder, jw);
+                idWritten = true;
+            }
+            @Nullable String name = nameAndIdField.getName();
+            if (name != null) {
+                if (idWritten) {
+                    jw.writeByte(COMMA);
+                }
+                writeFieldName("name", jw);
+                writeStringValue(name, replaceBuilder, jw);
+            }
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     private static void serializeContainerInfo(@Nullable SystemInfo.Container container, final StringBuilder replaceBuilder, final JsonWriter jw) {
