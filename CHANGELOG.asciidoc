@@ -33,6 +33,7 @@ configured through the <<config-cloud-provider, `cloud_provider`>> config option
 [float]
 ===== Bug fixes
 * Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
+* Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
