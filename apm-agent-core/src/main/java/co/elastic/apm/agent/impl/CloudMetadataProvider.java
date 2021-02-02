@@ -373,10 +373,6 @@ public class CloudMetadataProvider {
         CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("azure");
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(subscriptionId));
         cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField(vmName, vmId));
-        // todo - remove
-//        System.out.println("Setting null instance.id");
-//        logger.warn("Setting null instance.id");
-//        cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(vmId, null));
         cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField(resourceGroupName));
         cloudProviderInfo.setAvailabilityZone(zone);
         if (vmSize != null) {
