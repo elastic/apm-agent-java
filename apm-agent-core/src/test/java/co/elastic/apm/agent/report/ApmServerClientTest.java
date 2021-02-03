@@ -243,6 +243,7 @@ public class ApmServerClientTest {
     }
 
     @Test
+    // todo - test for both plural and singular form
     public void testGetServerUrlsVerifyThatServerUrlsWillBeReloaded() throws IOException {
         URL tempUrl = new URL("http", "localhost", 9999, "");
         config.save("server_url", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);

@@ -92,6 +92,7 @@ public class ApmServerClient {
     }
 
     public void start(List<URL> shuffledUrls) {
+        // todo - listen on server_url as well
         this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {

@@ -67,6 +67,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .sensitive()
         .build();
 
+    // todo - restore former plural behaviour and add a new one with singular
     private final ConfigurationOption<List<URL>> serverUrls = ConfigurationOption.urlsOption()
         .key("server_url")
         .aliasKeys("server_urls")
