@@ -1,44 +1,53 @@
 Feature: Outcome
 
-  # ---- general span & transaction
-
-  Scenario: Default span outcome is unknown
-    Given an active span
-    Then span outcome is 'unknown'
-
-  Scenario: Default transaction outcome is unknown
-    Given an active transaction
-    Then transaction outcome is 'unknown'
-
   # ---- user set outcome
 
   Scenario: User set outcome on span has priority over instrumentation
-    Given an active span
+    Given an agent
+    And an active span
     And user sets span outcome to 'failure'
     And span terminates with outcome 'success'
     Then span outcome is 'failure'
 
   Scenario: User set outcome on transaction has priority over instrumentation
-    Given an active transaction
+    Given an agent
+    And an active transaction
     And user sets transaction outcome to 'unknown'
     And transaction terminates with outcome 'failure'
     Then transaction outcome is 'unknown'
 
-  # ---- DB spans
+  # ---- span & transaction outcome from reported errors
 
-  Scenario: DB span without error
-    Given an active DB span without error
+  Scenario: span with error
+    Given an agent
+    And an active span
+    And span terminates with an error
+    Then span outcome is 'failure'
+
+  Scenario: span without error
+    Given an agent
+    And an active span
+    And span terminates without error
     Then span outcome is 'success'
 
-  Scenario: DB span with error
-    Given an active DB span with error
-    Then span outcome is 'failure'
+  Scenario: transaction with error
+    Given an agent
+    And an active transaction
+    And transaction terminates with an error
+    Then transaction outcome is 'failure'
+
+  Scenario: transaction without error
+    Given an agent
+    And an active transaction
+    And transaction terminates without error
+    Then transaction outcome is 'success'
 
   # ---- HTTP
 
   @http
   Scenario Outline: HTTP transaction and span outcome
-    Given an HTTP transaction with <status> response code
+    Given an agent
+    And an HTTP transaction with <status> response code
     Then transaction outcome is "<server>"
     Given an HTTP span with <status> response code
     Then span outcome is "<client>"
@@ -57,8 +66,10 @@ Feature: Outcome
   # ---- gRPC
 
   # reference spec : https://github.com/grpc/grpc/blob/master/doc/statuscodes.md
-  # the following statuses are not used by gRPC client & server
+  #
+  # The following statuses are not used by gRPC client & server,
   # thus they should be considered as client-side errors
+  #
   # - INVALID_ARGUMENT
   # - NOT_FOUND
   # - ALREADY_EXISTS
@@ -71,7 +82,8 @@ Feature: Outcome
 
   @grpc
   Scenario Outline: gRPC transaction and span outcome
-    Given a gRPC transaction with '<status>' status
+    Given an agent
+    And a gRPC transaction with '<status>' status
     Then transaction outcome is "<server>"
     Given a gRPC span with '<status>' status
     Then span outcome is "<client>"

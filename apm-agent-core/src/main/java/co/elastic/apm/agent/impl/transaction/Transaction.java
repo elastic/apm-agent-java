@@ -57,18 +57,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     public static final String TYPE_REQUEST = "request";
 
     /**
-     * Transaction types for which the outcome can be defined from reported exceptions:
-     * <ul>
-     *     <li>{@link Outcome#SUCCESS} when no exception has been reported</li>
-     *     <li>{@link Outcome#FAILURE} when at least one exception has been reported</li>
-     * </ul>
-     */
-    private static final Set<String> TRANSACTION_TYPES_OUTCOME_FROM_EXCEPTION = new HashSet<>(Arrays.asList(
-        "messaging",
-        "custom"
-    ));
-
-    /**
      * Context
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
@@ -238,10 +226,12 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (outcomeNotSet()) {
             // set outcome from HTTP status if not already set
             Response response = getContext().getResponse();
-            Outcome outcome = Outcome.UNKNOWN;
-            if (response.hasContent()) {
-                outcome = ResultUtil.getOutcomeByHttpServerStatus(response.getStatusCode());
-            } else if (TRANSACTION_TYPES_OUTCOME_FROM_EXCEPTION.contains(type)) {
+            Outcome outcome;
+
+            int httpStatus = response.getStatusCode();
+            if (httpStatus > 0) {
+                outcome = ResultUtil.getOutcomeByHttpServerStatus(httpStatus);
+            } else {
                 outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
             }
             withOutcome(outcome);

@@ -252,11 +252,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
         // set outcome when not explicitly set by user nor instrumentation
         if (outcomeNotSet()) {
-            Outcome outcome = Outcome.UNKNOWN;
+            Outcome outcome;
             if (context.getHttp().hasContent()) {
                 // HTTP client spans
                 outcome = ResultUtil.getOutcomeByHttpClientStatus(context.getHttp().getStatusCode());
-            } else if (TYPES_EXCEPTION_OUTCOME_FAILURE.contains(type)) {
+            } else {
                 // span types & sub-types for which we consider getting an exception as a failure
                 outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
             }

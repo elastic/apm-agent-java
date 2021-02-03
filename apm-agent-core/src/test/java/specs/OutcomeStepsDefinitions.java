@@ -35,34 +35,35 @@ public class OutcomeStepsDefinitions {
         state.startSpan();
     }
 
-    @Then("span outcome is {string}")
-    public void spanOutcomeIsUnknown(String outcome) {
-        checkOutcome(state.getSpan(), outcome);
+    @Then("{} outcome is {string}")
+    public void thenOutcomeIs(String context, String outcome) {
+        checkOutcome(context.equals("span") ? state.getSpan() : state.getTransaction(), outcome);
     }
 
-    @Then("transaction outcome is {string}")
-    public void transactionOutcomeIsUnknown(String outcome) {
-        checkOutcome(state.getTransaction(), outcome);
+    @Then("user sets {} outcome to {string}")
+    public void userSetOutcome(String context, String outcome) {
+        setUserOutcome(getContext(context), outcome);
     }
 
-    @Then("user sets span outcome to {string}")
-    public void userSetsSpanOutcome(String outcome) {
-        setUserOutcome(state.getSpan(), outcome);
+    @Then("{} terminates with outcome {string}")
+    public void terminatesWithOutcome(String context, String outcome) {
+        endWithOutcome(getContext(context), outcome);
     }
 
-    @Then("user sets transaction outcome to {string}")
-    public void userSetsTransactionOutcome(String outcome) {
-        setUserOutcome(state.getTransaction(), outcome);
+    @Given("{} terminates with an error")
+    public void terminatesWithError(String context) {
+        getContext(context)
+            .captureException(new Throwable())
+            .end();
     }
 
-    @Then("span terminates with outcome {string}")
-    public void spanTerminatesWithOutcome(String outcome) {
-        endWithOutcome(state.getSpan(), outcome);
+    @Given("{} terminates without error")
+    public void terminatesWithoutError(String context) {
+        getContext(context).end();
     }
 
-    @Then("transaction terminates with outcome {string}")
-    public void transactionTerminatesWithOutcome(String outcome) {
-        endWithOutcome(state.getTransaction(), outcome);
+    AbstractSpan<?> getContext(String context) {
+        return context.equals("span") ? state.getSpan() : state.getTransaction();
     }
 
     // HTTP spans & transactions mapping
@@ -86,30 +87,6 @@ public class OutcomeStepsDefinitions {
         transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(code)).end();
     }
 
-    // DB spans
-
-    @Given("an active DB span without error")
-    public void dbSpanWithoutError() {
-        state.startRootTransactionIfRequired();
-        Span span = state.startSpan().withType("db");
-
-        span.end();
-    }
-
-    @Given("an active DB span with error")
-    public void dbSpanWithError() {
-        Throwable t = new Throwable();
-        state.startRootTransactionIfRequired();
-
-        Span span = state.startSpan()
-            .withType("db")
-            .captureException(t);
-
-        span.end();
-    }
-
-
-
     // utilities
 
     static void endWithOutcome(AbstractSpan<?> context, String outcome) {
@@ -126,7 +103,7 @@ public class OutcomeStepsDefinitions {
     static void checkOutcome(AbstractSpan<?> context, String outcome) {
         assertThat(context).isNotNull();
         assertThat(context.getOutcome())
-            .describedAs("expected outcome = %s for context = %s", outcome, context.getNameAsString())
+            .describedAs("expected outcome = %s for context = %s", outcome, context)
             .isEqualTo(fromString(outcome));
     }
 
