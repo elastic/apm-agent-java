@@ -53,7 +53,7 @@ Only the external file can be used for dynamic configuration.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
-<<config-server-urls>> and <<config-application-packages>>.
+<<config-server-url>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
 [source,bash]

@@ -712,7 +712,7 @@ This makes the transaction breakdown graph more useful. Instead of <code class="
 <div class="ulist itemizedlist">
 <ul class="itemizedlist">
 <li class="listitem">
-Error in log when setting <a href="/guide/en/apm/agent/java/current/config-reporter.html#config-server-urls" class="ulink" target="_top">server_url</a>
+Error in log when setting <a href="/guide/en/apm/agent/java/current/config-reporter.html#config-server-url" class="ulink" target="_top">server_url</a>
 to an empty string - <code class="literal">co.elastic.apm.agent.configuration.ApmServerConfigurationSource - Expected previousException not to be null</code>
 </li>
 <li class="listitem">
@@ -810,7 +810,7 @@ Added support for Spring&#8217;s JMS flavor - instrumenting <code class="literal
 Added support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
 </li>
 <li class="listitem">
-Added support for setting <a href="/guide/en/apm/agent/java/1.x/config-reporter.html#config-server-urls" class="ulink" target="_top"><code class="literal">server_url</code></a> dynamically via properties file <a href="https://github.com/elastic/apm-agent-java/pull/723" class="ulink" target="_top">#723</a>
+Added support for setting <a href="/guide/en/apm/agent/java/1.x/config-reporter.html#config-server-url" class="ulink" target="_top"><code class="literal">server_url</code></a> dynamically via properties file <a href="https://github.com/elastic/apm-agent-java/pull/723" class="ulink" target="_top">#723</a>
 </li>
 <li class="listitem">
 Added <a href="/guide/en/apm/agent/java/current/config-core.html#config-config-file" class="ulink" target="_top"><code class="literal">config_file</code></a> option
