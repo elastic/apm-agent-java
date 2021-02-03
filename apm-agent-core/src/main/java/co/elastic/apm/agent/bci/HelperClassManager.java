@@ -26,6 +26,7 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.sdk.weakmap.NullSafeWeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
@@ -223,7 +224,7 @@ public abstract class HelperClassManager<T> {
         private ForAnyClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             super(tracer, implementation, additionalHelpers);
             // deliberately doesn't use WeakMapSupplier as this class manages the cleanup manually
-            clId2helperMap = new WeakConcurrentMap<>(false);
+            clId2helperMap = new NullSafeWeakConcurrentMap<>(false);
         }
 
         /**

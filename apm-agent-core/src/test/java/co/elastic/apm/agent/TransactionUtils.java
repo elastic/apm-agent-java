@@ -46,7 +46,8 @@ public class TransactionUtils {
         Request request = context.getRequest();
         request.withHttpVersion("1.1");
         request.withMethod("POST");
-        request.withBodyBuffer().append("Hello World").flip();
+        request.withBodyBuffer().append("Hello World");
+        request.endOfBufferInput();
         request.getUrl()
             .withProtocol("https")
             .appendToFull("https://www.example.com/p/a/t/h?query=string#hash")

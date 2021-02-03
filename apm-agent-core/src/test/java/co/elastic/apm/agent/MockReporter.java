@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -42,6 +44,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -90,7 +93,12 @@ public class MockReporter implements Reporter {
         errorSchema = getSchema("/schema/errors/error.json");
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
-        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+        ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
+        dslJsonSerializer = new DslJsonSerializer(
+            spyConfig.getConfig(StacktraceConfiguration.class),
+            apmServerClient,
+            MetaData.create(spyConfig, null)
+        );
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
@@ -229,11 +237,15 @@ public class MockReporter implements Reporter {
     }
 
     public void awaitTransactionCount(int count) {
-        awaitUntilAsserted(() -> assertThat(getNumReportedTransactions()).isEqualTo(count));
+        awaitUntilAsserted(() -> assertThat(getNumReportedTransactions())
+            .describedAs("expecting %d transactions, transactions = %s", count, transactions)
+            .isEqualTo(count));
     }
 
     public void awaitSpanCount(int count) {
-        awaitUntilAsserted(() -> assertThat(getNumReportedSpans()).isEqualTo(count));
+        awaitUntilAsserted(() -> assertThat(getNumReportedSpans())
+            .describedAs("expecting %d spans", count)
+            .isEqualTo(count));
     }
 
     @Override

@@ -20,17 +20,55 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.1]]
-==== 1.19.1 - YYYY/MM/DD
+[[release-notes-1.21.0]]
+==== 1.21.0 - YYYY/MM/DD
 
 [float]
 ===== Features
+* Add cloud provider metadata to reported events, see
+https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
+By default, the agent will try to automatically detect the cloud provider on startup, but this can be
+configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
 
 [float]
 ===== Bug fixes
+* Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
+* Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
+
+[[release-notes-1.20.0]]
+==== 1.20.0 - 2021/01/07
+
+[float]
+===== Breaking changes
+* The following public API types were `public` so far and became package-private: `NoopScope`, `ScopeImpl` and `AbstractSpanImpl`.
+  If your code is using them, you will need to change that when upgrading to this version.
+  Related PR: {pull}1532[#1532]
+
+[float]
+===== Features
+* Add support for RabbitMQ clients - {pull}1328[#1328]
+
+[float]
+===== Bug fixes
+* Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
+* Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[#1531]
+* Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[#1537]
+* Fix `ClassNotFoundError` with old versions of Spring resttemplate {pull}1524[#1524]
+* Fix Micrometer-driven metrics validation errors by the APM Server when sending with illegal values - {pull}1559[#1559]
+* Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
+* Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
+* Fix improper request body capturing - {pull}1579[#1579]
+* Avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
+* Update async-profiler to 1.8.3 {pull}1602[1602]
+* Use null-safe data structures to avoid `NullPointerException` {pull}1597[1597]
+* Fix memory leak in sampling profiler mechanism - {pull}1592[#1592]
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
 
 [[release-notes-1.19.0]]
 ==== 1.19.0 - 2020/11/10

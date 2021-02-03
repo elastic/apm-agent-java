@@ -65,9 +65,9 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                               @Advice.Argument(0) ServerCall<?, ?> serverCall,
-                               @Advice.Return ServerCall.Listener<?> listener,
-                               @Advice.Enter @Nullable Object enterTransaction) {
+                              @Advice.Argument(0) ServerCall<?, ?> serverCall,
+                              @Advice.Return @Nullable ServerCall.Listener<?> listener,
+                              @Advice.Enter @Nullable Object enterTransaction) {
 
         if (!(enterTransaction instanceof Transaction)) {
             return;
@@ -79,7 +79,11 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
             return;
         }
 
-        helper.registerTransaction(serverCall, listener, transaction);
+        if (listener != null) {
+            helper.registerTransaction(serverCall, listener, transaction);
+        }
+
+
     }
 
 }

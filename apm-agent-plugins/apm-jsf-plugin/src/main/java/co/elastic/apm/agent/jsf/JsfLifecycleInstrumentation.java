@@ -35,6 +35,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import javax.faces.context.ExternalContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -80,11 +81,6 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
         return Arrays.asList("servlet-api", "jsf");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
-
     public static class JsfLifecycleExecuteInstrumentation extends JsfLifecycleInstrumentation {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -102,23 +98,22 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
             private static final String SPAN_ACTION = "execute";
 
             @SuppressWarnings("Duplicates")
-            @Advice.OnMethodEnter(suppress = Throwable.class)
-            public static void createExecuteSpan(@Advice.Argument(0) javax.faces.context.FacesContext facesContext,
-                                                 @Advice.Local("span") Span span) {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object createExecuteSpan(@Advice.Argument(0) javax.faces.context.FacesContext facesContext) {
                 final AbstractSpan<?> parent = tracer.getActive();
                 if (parent == null) {
-                    return;
+                    return null;
                 }
                 if (parent instanceof Span) {
-                    Span parentSpan = (Span)parent;
+                    Span parentSpan = (Span) parent;
                     if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
-                        return;
+                        return null;
                     }
                 }
                 Transaction transaction = tracer.currentTransaction();
                 if (transaction != null) {
                     try {
-                        javax.faces.context.ExternalContext externalContext = facesContext.getExternalContext();
+                        ExternalContext externalContext = facesContext.getExternalContext();
                         if (externalContext != null) {
                             transaction.withName(externalContext.getRequestServletPath(), PRIO_HIGH_LEVEL_FRAMEWORK);
                             String pathInfo = externalContext.getRequestPathInfo();
@@ -131,26 +126,23 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
                         // do nothing- rely on the default servlet name logic
                     }
                 }
-                span = parent.createSpan()
+                Span span = parent.createSpan()
                     .withType(SPAN_TYPE)
                     .withSubtype(SPAN_SUBTYPE)
                     .withAction(SPAN_ACTION)
                     .withName("JSF Execute");
                 span.activate();
+                return span;
             }
 
-            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-            public static void endExecuteSpan(@Advice.Local("span") @Nullable Span span,
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void endExecuteSpan(@Advice.Enter @Nullable Object span,
                                               @Advice.Thrown @Nullable Throwable t) {
-                if (span != null) {
-                    try {
-                        if (t != null) {
-                            span.captureException(t);
-                        }
-                    } finally {
-                        span.deactivate().end();
-                    }
+
+                if (span instanceof Span) {
+                    ((Span) span).captureException(t).deactivate().end();
                 }
+
             }
         }
     }
@@ -179,37 +171,33 @@ public abstract class JsfLifecycleInstrumentation extends TracerAwareInstrumenta
             private static final String SPAN_ACTION = "render";
 
             @SuppressWarnings("Duplicates")
-            @Advice.OnMethodEnter(suppress = Throwable.class)
-            public static void createRenderSpan(@Advice.Local("span") Span span) {
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Object createRenderSpan() {
                 final AbstractSpan<?> parent = tracer.getActive();
                 if (parent == null) {
-                    return;
+                    return null;
                 }
                 if (parent instanceof Span) {
-                    Span parentSpan = (Span)parent;
+                    Span parentSpan = (Span) parent;
                     if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
-                        return;
+                        return null;
                     }
                 }
-                span = parent.createSpan()
+                Span span = parent.createSpan()
                     .withType(SPAN_TYPE)
                     .withSubtype(SPAN_SUBTYPE)
                     .withAction(SPAN_ACTION)
                     .withName("JSF Render");
                 span.activate();
+                return span;
             }
 
-            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-            public static void endRenderSpan(@Advice.Local("span") @Nullable Span span,
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void endRenderSpan(@Advice.Enter @Nullable Object span,
                                              @Advice.Thrown @Nullable Throwable t) {
-                if (span != null) {
-                    try {
-                        if (t != null) {
-                            span.captureException(t);
-                        }
-                    } finally {
-                        span.deactivate().end();
-                    }
+
+                if (span instanceof Span) {
+                    ((Span) span).captureException(t).deactivate().end();
                 }
             }
         }

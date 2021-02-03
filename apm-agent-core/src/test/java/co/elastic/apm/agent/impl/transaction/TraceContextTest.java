@@ -494,7 +494,7 @@ class TraceContextTest {
         assertThat(traceContext.getSampleRate()).isNaN();
 
         // sampled with sample rate
-        traceContext.getTraceState().set(0.5d, Double.toString(0.5d));
+        traceContext.getTraceState().set(0.5d, TraceState.getHeaderValue(0.5d));
 
         assertThat(traceContext.isSampled()).isTrue();
         assertThat(traceContext.getSampleRate()).isEqualTo(0.5d);
@@ -518,7 +518,7 @@ class TraceContextTest {
         Sampler sampler = mock(Sampler.class);
         when(sampler.isSampled(any(Id.class))).thenReturn(true);
         when(sampler.getSampleRate()).thenReturn(sampleRate);
-        when(sampler.getSampleRateString()).thenReturn(Double.toString(sampleRate));
+        when(sampler.getTraceStateHeader()).thenReturn(TraceState.getHeaderValue(sampleRate));
 
         traceContext.asRootSpan(sampler);
         return traceContext;
@@ -573,7 +573,8 @@ class TraceContextTest {
 
         assertThat(child.getSampleRate())
             .describedAs("tracestate = '%s' should have sample rate = %s", traceState, expectedRate)
-            .isEqualTo(expectedRate);
+            // Casting to Double is required so that comparison of two Double#NaN will be correct (see Double#equals javadoc for info)
+            .isEqualTo(Double.valueOf(expectedRate));
 
         assertThat(child.getTraceState().toTextHeader())
                 .describedAs("tracestate should be kept as-is")

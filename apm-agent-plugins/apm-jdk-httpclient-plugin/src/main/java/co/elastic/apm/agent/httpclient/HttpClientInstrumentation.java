@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;

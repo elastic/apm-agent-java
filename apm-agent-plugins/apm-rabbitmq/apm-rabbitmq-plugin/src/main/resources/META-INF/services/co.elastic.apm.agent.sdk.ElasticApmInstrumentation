@@ -1,0 +1,3 @@
+co.elastic.apm.agent.rabbitmq.ChannelInstrumentation$BasicPublish
+co.elastic.apm.agent.rabbitmq.ChannelInstrumentation$BasicConsume
+co.elastic.apm.agent.rabbitmq.ChannelInstrumentation$BasicGet
