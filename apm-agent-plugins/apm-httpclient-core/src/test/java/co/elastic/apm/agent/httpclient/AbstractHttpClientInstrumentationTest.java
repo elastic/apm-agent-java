@@ -51,7 +51,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.seeOther;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -137,7 +136,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
         String baseUrl = scheme + "://" + host + ":" + port;
-        assertThat(span.getContext().getHttp().getUrl()).isEqualTo(baseUrl + path);
+        assertThat(span.getContext().getHttp().getFullUrl()).isEqualTo(baseUrl + path);
         assertThat(span.getContext().getHttp().getStatusCode()).isEqualTo(200);
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("http");
@@ -172,7 +171,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getFullUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
     }
 
@@ -183,7 +182,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getFullUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
     }
 
@@ -194,7 +193,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getFullUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
 
         verifyTraceContextHeaders(reporter.getFirstSpan(), "/redirect");
@@ -215,7 +214,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getFullUrl()).isEqualTo(getBaseUrl() + path);
 
         verifyTraceContextHeaders(reporter.getFirstSpan(), "/circular-redirect");
     }

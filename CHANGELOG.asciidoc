@@ -28,7 +28,7 @@ endif::[]
 https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
 By default, the agent will try to automatically detect the cloud provider on startup, but this can be
 configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
-* OpenTelemetry bridge: <<opentelementry-bridge>>
+* OpenTelemetry bridge (experimental): <<opentelementry-bridge>>
 
 [float]
 ===== Bug fixes

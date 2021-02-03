@@ -130,7 +130,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(http).isNotNull();
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
+        assertThat(http.getFullUrl()).isEqualTo("http://" + container.getHttpHostAddress());
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {

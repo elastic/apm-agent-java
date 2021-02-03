@@ -52,11 +52,11 @@ public class Http implements Recyclable {
      * URL used for the outgoing HTTP call
      */
     @Nullable
-    public String getUrl() {
+    public String getFullUrl() {
         return url.getFull().toString();
     }
 
-    public Url getUrlObject() {
+    public Url getUrl() {
         return url;
     }
 

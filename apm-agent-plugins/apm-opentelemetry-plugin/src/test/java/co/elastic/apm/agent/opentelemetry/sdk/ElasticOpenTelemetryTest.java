@@ -336,7 +336,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstSpan().getContext().getDestination().getPort()).isEqualTo(80);
-        assertThat(reporter.getFirstSpan().getContext().getHttp().getUrl()).isIn("http://example.com/foo?bar", "http://example.com:80/foo?bar");
+        assertThat(reporter.getFirstSpan().getContext().getHttp().getFullUrl()).isIn("http://example.com/foo?bar", "http://example.com:80/foo?bar");
         assertThat(reporter.getFirstSpan().getContext().getDestination().getAddress().toString()).isEqualTo("example.com");
         assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getName().toString()).isEqualTo("http://example.com");
         assertThat(reporter.getFirstSpan().getContext().getDestination().getService().getResource().toString()).isEqualTo("example.com:80");

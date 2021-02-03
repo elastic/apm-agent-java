@@ -192,7 +192,7 @@ public class ElasticOTelSpan implements Span {
         co.elastic.apm.agent.impl.context.SpanContext context = s.getContext();
 
         // http.*
-        if (mapHttpUrlAttributes(key, value, context.getHttp().getUrlObject())) {
+        if (mapHttpUrlAttributes(key, value, context.getHttp().getUrl())) {
             // successfully mapped inside mapHttpUrlAttributes
         } else if (key.equals(SemanticAttributes.HTTP_STATUS_CODE)) {
             context.getHttp().withStatusCode(((Number) value).intValue());
@@ -228,7 +228,7 @@ public class ElasticOTelSpan implements Span {
         Destination destination = context.getDestination();
         if (context.getHttp().hasContent()) {
             s.withType("external").withSubtype("http");
-            Url url = context.getHttp().getUrlObject();
+            Url url = context.getHttp().getUrl();
             if (context.getDestination().getAddress().length() > 0) {
                 url.withHostname(context.getDestination().getAddress().toString());
             }
@@ -253,12 +253,12 @@ public class ElasticOTelSpan implements Span {
                     .getService()
                     .withName(s.getSubtype())
                     .withResource(s.getSubtype())
-                    .withType(s.getType());
+                    .withType("db");
             }
         } else {
             s.withType("app");
             if (destination.getService().hasContent()) {
-                destination.getService().withType(s.getType());
+                destination.getService().withType("app");
             }
         }
     }

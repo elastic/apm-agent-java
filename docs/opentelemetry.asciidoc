@@ -23,12 +23,12 @@ subsequent spans are mapped to Elastic APM
 [[otel-operation-modes]]
 ==== Operation Modes
 
-This bridge allows for different operation modes in combination with the Elastic APM `javaagent`
+This bridge allows for different operation modes in combination with the Elastic APM agent
 
 Noop::
 +
 --
-If the `javaagent` is not specified, the bridge is in noop mode and does not actually record and report spans.
+If the agent is not installed, the bridge is in noop mode and does not actually record and report spans.
 --
 
 Mix and Match::
