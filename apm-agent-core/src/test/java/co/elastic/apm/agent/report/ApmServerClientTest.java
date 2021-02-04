@@ -24,7 +24,9 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -41,11 +43,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collections;
@@ -63,7 +65,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.Mockito.doReturn;
 
 public class ApmServerClientTest {
 
@@ -76,9 +77,10 @@ public class ApmServerClientTest {
     private ElasticApmTracer tracer;
     private TestObjectPoolFactory objectPoolFactory;
     private ReporterConfiguration reporterConfiguration;
+    private List<URL> urlList;
 
     @Before
-    public void setUp() throws MalformedURLException {
+    public void setUp() throws IOException {
         URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
         URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
         // APM server 6.x style
@@ -93,7 +95,8 @@ public class ApmServerClientTest {
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         objectPoolFactory = new TestObjectPoolFactory();
-        doReturn(List.of(url1, url2)).when(reporterConfiguration).getServerUrls();
+        config.save("server_urls", url1.toString() + "," + url2.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        urlList = List.of(UrlValueConverter.INSTANCE.convert(url1.toString()), UrlValueConverter.INSTANCE.convert(url2.toString()));
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .withObjectPoolFactory(objectPoolFactory)
@@ -243,14 +246,51 @@ public class ApmServerClientTest {
     }
 
     @Test
-    // todo - test for both plural and singular form
-    public void testGetServerUrlsVerifyThatServerUrlsWillBeReloaded() throws IOException {
+    public void testServerUrlsOverridesDefaultServerUrl() {
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+        // since only server_urls is set, we expect it to override the default server_url setting
+        assertThat(updatedServerUrls).isEqualTo(urlList);
+    }
+
+    @Test
+    public void testServerUrlsIsReloadedOnChange() throws IOException {
+        config.save("server_urls", "http://localhost:9999,http://localhost:9998", SpyConfiguration.CONFIG_SOURCE_NAME);
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+        assertThat(updatedServerUrls).isEqualTo(List.of(
+            UrlValueConverter.INSTANCE.convert("http://localhost:9999"),
+            UrlValueConverter.INSTANCE.convert("http://localhost:9998")
+        ));
+    }
+
+    @Test
+    public void testDefaultServerUrls() throws IOException {
+        config.save("server_urls", "", SpyConfiguration.CONFIG_SOURCE_NAME);
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+        URL tempUrl = new URL("http", "localhost", 8200, "");
+        // server_urls setting is removed, we expect the default URL to be used
+        assertThat(updatedServerUrls).isEqualTo(List.of(tempUrl));
+    }
+
+    @Test
+    public void testServerUrlSettingOverridesServerUrls() throws IOException {
         URL tempUrl = new URL("http", "localhost", 9999, "");
         config.save("server_url", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
-
         List<URL> updatedServerUrls = apmServerClient.getServerUrls();
-
         assertThat(updatedServerUrls).isEqualTo(List.of(tempUrl));
+    }
+
+    @Test
+    public void testDisableSend() {
+        // We have to go through that because the disable_send config is non-dynamic
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
+            new PropertyFileConfigurationSource("test.elasticapm.disable-send.properties")
+        );
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(new MockReporter())
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+        List<URL> updatedServerUrls = tracer.getApmServerClient().getServerUrls();
+        assertThat(updatedServerUrls).isEmpty();
     }
 
     @Test

@@ -92,13 +92,21 @@ public class ApmServerClient {
     }
 
     public void start(List<URL> shuffledUrls) {
-        // todo - listen on server_url as well
-        this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
+        reporterConfiguration.getServerUrlOption().addChangeListener(new ConfigurationOption.ChangeListener<URL>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, URL oldValue, URL newValue) {
+                logger.debug("server_url overridden with value = ({}).", newValue);
+                if (newValue != null) {
+                    setServerUrls(reporterConfiguration.getServerUrls());
+                }
+            }
+        });
+        reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
-                logger.debug("server_url override with value = ({}).", newValue);
-                if (newValue != null && !newValue.isEmpty()) {
-                    setServerUrls(shuffleUrls(newValue));
+                logger.debug("server_urls overridden with value = ({}).", newValue);
+                if (newValue != null) {
+                    setServerUrls(reporterConfiguration.getServerUrls());
                 }
             }
         });
