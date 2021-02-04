@@ -106,7 +106,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "for more information.\n" +
             "\n" +
             "NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order \n" +
-            "to use a cross-agent config, use <<server-url>> instead, which is the recommended option regardless if you \n" +
+            "to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you \n" +
             "are only setting a single URL.")
         .dynamic(true)
         .buildWithDefault(Collections.<URL>emptyList());
