@@ -96,18 +96,14 @@ public class ApmServerClient {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, URL oldValue, URL newValue) {
                 logger.debug("server_url overridden with value = ({}).", newValue);
-                if (newValue != null) {
-                    setServerUrls(reporterConfiguration.getServerUrls());
-                }
+                setServerUrls(reporterConfiguration.getServerUrls());
             }
         });
         reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
                 logger.debug("server_urls overridden with value = ({}).", newValue);
-                if (newValue != null) {
-                    setServerUrls(reporterConfiguration.getServerUrls());
-                }
+                setServerUrls(reporterConfiguration.getServerUrls());
             }
         });
         setServerUrls(Collections.unmodifiableList(shuffledUrls));
