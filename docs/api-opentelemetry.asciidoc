@@ -20,35 +20,6 @@ subsequent spans are mapped to Elastic APM
 {apm-overview-ref-v}/transaction-spans.html[`Span`].
 
 [float]
-[[otel-operation-modes]]
-==== Operation Modes
-
-This bridge allows for different operation modes in combination with the Elastic APM agent
-
-Noop::
-+
---
-If the agent is not installed, the bridge is in noop mode and does not actually record and report spans.
---
-
-Mix and Match::
-+
---
-If you want to leverage the auto instrumentation of Elastic APM,
-but also want to create custom spans or use the OpenTelemetry API to add custom tags to the spans created by Elastic APM,
-you can just do that.
-The OpenTelemetry bridge and the standard Elastic APM API interact seamlessly.
---
-
-Manual instrumentation::
-+
---
-If you don't want Elastic APM to auto-instrument known frameworks,
-but instead only rely on manual instrumentation,
-disable the auto instrumentation setting the configuration option <<config-instrument,`instrument`>> to `false`.
---
-
-[float]
 [[otel-getting-started]]
 ==== Getting started
 The first step in getting started with the OpenTelemetry API bridge is to declare a dependency to the API:
@@ -68,6 +39,8 @@ The first step in getting started with the OpenTelemetry API bridge is to declar
 ----
 compile "io.opentelemetry:opentelemetry-api:$openTelemetryVersion"
 ----
+
+The minimum required OpenTelemetry version is 0.14.1.
 
 [float]
 [[otel-init-tracer]]
@@ -132,10 +105,13 @@ try (Scope scope = custom.makeCurrent()) {
 To learn more about the OpenTelemetry API,
 head over do https://opentelemetry.io/docs/java/manual_instrumentation/[their documentation].
 
+
+////
+TODO implement Elastic APM specific attributes
 [float]
-[[otel-elastic-apm-tags]]
-==== Elastic APM specific tags
-Elastic APM defines some tags which are not included in the OpenTelemetry API but are relevant in the context of Elastic APM.
+[[otel-elastic-apm-attributes]]
+==== Elastic APM specific attributes
+Elastic APM defines some attributes which are not included in OpenTelemetry's semantic conventionsAPI but are relevant in the context of Elastic APM.
 
 - `type` - sets the type of the transaction/span,
   for example `request`, `ext` or `db`
@@ -152,6 +128,7 @@ Elastic APM defines some tags which are not included in the OpenTelemetry API bu
 - `result` - sets the result of the transaction. Overrides the default value of `success`.
   If the `error` tag is set to `true`, the default value is `error`.
   Setting `http.status_code` to `200`, for example, implicitly sets the result to `HTTP 2xx` if not explicitly set otherwise.
+////
 
 [float]
 [[otel-caveats]]

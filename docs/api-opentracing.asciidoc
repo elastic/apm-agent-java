@@ -6,7 +6,8 @@ endif::[]
 [[opentracing-bridge]]
 === OpenTracing bridge
 
-NOTE: Latest supported OpenTracing version: 0.33 (as of agent and OpenTracing-bridge version 1.9.0)
+NOTE: OpenTracing is discontinued in favor of OpenTelemetry. Consider using the <<opentelementry-bridge>> instead. +
+Latest supported OpenTracing version: 0.33 (as of agent and OpenTracing-bridge version 1.9.0)
 
 The Elastic APM OpenTracing bridge allows creating Elastic APM `Transactions` and `Spans`,
 using the OpenTracing API.
@@ -18,37 +19,9 @@ The first span of a service will be converted to an Elastic APM
 subsequent spans are mapped to Elastic APM
 {apm-overview-ref-v}/transaction-spans.html[`Span`].
 
-[float]
-[[operation-modes]]
-==== Operation Modes
-
-This bridge allows for different operation modes in combination with the Elastic APM agent
-
-Noop::
-+
---
-If the agent is not installed, the bridge is in noop mode and does not actually record and report spans.
---
-
-Mix and Match::
-+
---
-If you want to leverage the auto instrumentation of Elastic APM,
-but also want do create custom spans or use the OpenTracing API to add custom tags to the spans created by Elastic APM,
-you can just do that.
-The OpenTracing bridge and the standard Elastic APM API interact seamlessly.
---
-
-Manual instrumentation::
-+
---
-If you don't want Elastic APM to auto-instrument known frameworks,
-but instead only rely on manual instrumentation,
-disable the auto instrumentation setting the configuration option <<config-instrument,`instrument`>> to `false`.
---
 
 [float]
-[[getting-started]]
+[[opentracing-getting-started]]
 ==== Getting started
 The first step in getting started with the OpenTracing API bridge is to declare a dependency to the API:
 
@@ -88,7 +61,7 @@ Tracer tracer = new ElasticApmTracer();
 
 
 [float]
-[[elastic-apm-tags]]
+[[opentracing-elastic-apm-tags]]
 ==== Elastic APM specific tags
 
 Elastic APM defines some tags which are not included in the OpenTracing API but are relevant in the context of Elastic APM.
@@ -110,31 +83,31 @@ Elastic APM defines some tags which are not included in the OpenTracing API but 
   Setting `http.status_code` to `200`, for example, implicitly sets the result to `HTTP 2xx` if not explicitly set otherwise.
 
 [float]
-[[unsupported]]
+[[opentracing-unsupported]]
 ==== Caveats
 Not all features of the OpenTracing API are supported.
 
 [float]
-[[propagation]]
+[[opentracing-propagation]]
 ===== Context propagation
 This bridge only supports the formats `Format.Builtin.TEXT_MAP` and `Format.Builtin.HTTP_HEADERS`.
 `Format.Builtin.BINARY` is currently not supported.
 
 [float]
-[[references]]
+[[opentracing-references]]
 ===== Span References
 Currently, this bridge only supports `child_of` references.
 Other references,
 like `follows_from` are not supported yet.
 
 [float]
-[[baggage]]
+[[opentracing-baggage]]
 ===== Baggage
 The `Span.setBaggageItem(String, String)` method is not supported.
 Baggage items are silently dropped.
 
 [float]
-[[logs]]
+[[opentracing-logs]]
 ===== Logs
 Only exception logging is supported.
 Logging an Exception on the OpenTracing span will create an Elastic APM

@@ -13,13 +13,40 @@ There are three different ways enhance the out-of-the-box instrumentation of the
   Contains annotations to declaratively create spans.
 . <<opentelementry-bridge>> +
   A vendor neutral API.
-  If you plan to do a lot of manual instrumentation and want to reduce vendor lock-in this is probably what you're looking for.
-  Be aware that the API of 0.x versions is not stable.
-  In this version, breaking changes are frequently introduced which means you may have to adapt your instrumentation code when updating.
+  If you plan to do a lot of manual instrumentation and want to reduce vendor lock-in this is probably what you're looking for. +
+  Be aware that the API is not stable if you are using non GA (0.x) versions.
+  In non GA versions, breaking changes are frequently introduced which means you may have to adapt your instrumentation code when updating.
 . <<opentracing-bridge>> +
   A vendor neutral API that is discontinued in favor of OpenTelemetry.
 
+[float]
+[[apis-operation-modes]]
+== Operation Modes
 
-include::./public-api.asciidoc[]
-include::./opentelemetry.asciidoc[]
-include::./opentracing.asciidoc[]
+All APIs allow for different operation modes in combination with the Elastic APM agent
+
+Noop::
++
+--
+If the agent is not installed, the APIs are in noop mode and do not actually record and report spans.
+--
+
+Mix and Match::
++
+--
+If you want to leverage the auto instrumentation of Elastic APM,
+but also want to create custom spans or use the API to add custom labels to the spans created by Elastic APM,
+you can just do that.
+--
+
+Manual instrumentation::
++
+--
+If you don't want Elastic APM to auto-instrument known frameworks,
+but instead only rely on manual instrumentation,
+disable the auto instrumentation setting the configuration option <<config-instrument,`instrument`>> to `false`.
+--
+
+include::./api-elastic.asciidoc[]
+include::./api-opentelemetry.asciidoc[]
+include::./api-opentracing.asciidoc[]
