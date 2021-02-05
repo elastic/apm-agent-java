@@ -27,6 +27,7 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.MultiValueMapAccessor;
+import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
@@ -35,6 +36,8 @@ import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,6 +46,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 class ElasticOTelSpanBuilder implements SpanBuilder {
+
+    private static final Logger addLinkLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(ElasticOTelSpanBuilder.class));
 
     private final String spanName;
     private final ElasticApmTracer elasticApmTracer;
@@ -79,11 +84,13 @@ class ElasticOTelSpanBuilder implements SpanBuilder {
 
     @Override
     public SpanBuilder addLink(SpanContext spanContext) {
+        addLinkLogger.warn("The addLink API is not supported at the moment");
         return this;
     }
 
     @Override
     public SpanBuilder addLink(SpanContext spanContext, Attributes attributes) {
+        addLinkLogger.warn("The addLink API is not supported at the moment");
         return this;
     }
 

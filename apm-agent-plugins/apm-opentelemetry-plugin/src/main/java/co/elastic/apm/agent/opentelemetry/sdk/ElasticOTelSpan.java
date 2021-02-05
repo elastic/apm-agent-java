@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.VersionUtils;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
@@ -40,6 +41,8 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,6 +53,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ElasticOTelSpan implements Span {
+    private static final Logger eventLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(ElasticOTelSpan.class));
+
     private final AbstractSpan<?> span;
 
     public ElasticOTelSpan(AbstractSpan<?> span) {
@@ -73,11 +78,13 @@ public class ElasticOTelSpan implements Span {
 
     @Override
     public Span addEvent(String name, Attributes attributes) {
+        eventLogger.warn("The addEvent API is not supported at the moment");
         return this;
     }
 
     @Override
     public Span addEvent(String name, Attributes attributes, long timestamp, TimeUnit unit) {
+        eventLogger.warn("The addEvent API is not supported at the moment");
         return this;
     }
 
