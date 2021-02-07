@@ -539,13 +539,13 @@ public class DslJsonSerializer implements PayloadSerializer {
             writeFieldName(fieldName, jw);
             jw.writeByte(JsonWriter.OBJECT_START);
             boolean idWritten = false;
-            @Nullable String id = nameAndIdField.getId();
+            String id = nameAndIdField.getId();
             if (id != null) {
                 writeFieldName("id", jw);
                 writeStringValue(id, replaceBuilder, jw);
                 idWritten = true;
             }
-            @Nullable String name = nameAndIdField.getName();
+            String name = nameAndIdField.getName();
             if (name != null) {
                 if (idWritten) {
                     jw.writeByte(COMMA);
