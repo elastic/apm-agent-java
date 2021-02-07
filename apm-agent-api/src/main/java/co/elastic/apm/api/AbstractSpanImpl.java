@@ -94,7 +94,7 @@ abstract class AbstractSpanImpl implements Span {
     }
 
     void doAddNumberLabel(String key, Number value) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberTagInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberLabelInstrumentation
     }
 
     void doAddBooleanLabel(String key, Boolean value) {
