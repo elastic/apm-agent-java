@@ -24,6 +24,20 @@ endif::[]
 ==== 1.21.0 - YYYY/MM/DD
 
 [float]
+===== Breaking changes
+* Following PR {pull}1650[#1650], there are two slight changes with the <<config-server-url>> and <<config-server-urls>>
+configuration options:
+    1.  So far, setting `server_urls` with an empty string would allow the agent to work normally, apart from any action
+        that requires communication with the APM Server, including the attempt to fetch a central configuration.
+        Starting in this agent version, setting `server_urls` to empty string doesn't have any special meaning, it is
+        the default expected configuration, where `server_url` will be used instead. In order to achieve the same
+        behaviour, use the new <<config-disable-send>> configuration.
+    2.  Up to this version, `server_url` was used as an alias to `server_urls`, meaning that one could potentially set
+        the `server_url` config with a comma-separated list of multiple APM Server addresses, and that would have been a
+        valid configuration. Starting in this agent version, `server_url` is a separate configuration, and it only accepts
+        Strings that represent a single valid URL. Specifically, empty strings and commas are invalid.
+
+[float]
 ===== Features
 * Add cloud provider metadata to reported events, see
 https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
@@ -34,6 +48,8 @@ configured through the <<config-cloud-provider, `cloud_provider`>> config option
 ===== Bug fixes
 * Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
 * Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
+* Fixing agent startup failure with `NullPointerException` thrown by Byte-buddy's `MultipleParentClassLoader` - {pull}1647[#1647]
+* Fix cached type resolution triggering `ClassCastException` - {pull}1649[#1649]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
