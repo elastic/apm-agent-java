@@ -35,11 +35,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AnnotationApiTest extends AbstractInstrumentationTest {
 
-    @BeforeEach
-    void beforeEach() {
-        reporter.checkUnknownOutcome(true);
-    }
-
     @Test
     void testCaptureTransactionAnnotation() {
         new AnnotationTestClass().transaction();

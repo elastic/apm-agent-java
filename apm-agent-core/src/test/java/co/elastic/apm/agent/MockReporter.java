@@ -85,7 +85,7 @@ public class MockReporter implements Reporter {
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
-    private boolean checkUnknownOutcomes = false;
+    private boolean checkUnknownOutcomes = true;
     private boolean closed;
 
     static {
@@ -118,7 +118,7 @@ public class MockReporter implements Reporter {
     }
 
     /**
-     * @param enable {@literal true} to enable unknown outcome check, {@literal false} to skip check
+     * @param enable {@literal true} to enable unknown outcome check, {@literal false} to allow for unknown outcome
      */
     public void checkUnknownOutcome(boolean enable) {
         checkUnknownOutcomes = enable;

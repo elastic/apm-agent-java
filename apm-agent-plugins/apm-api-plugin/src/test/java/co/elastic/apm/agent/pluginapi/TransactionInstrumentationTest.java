@@ -225,6 +225,8 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void setOutcome_unknown() {
+        reporter.checkUnknownOutcome(false);
+
         testSetOutcome(Outcome.UNKNOWN);
     }
 

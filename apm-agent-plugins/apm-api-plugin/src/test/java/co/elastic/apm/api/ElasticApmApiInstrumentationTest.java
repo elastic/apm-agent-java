@@ -40,11 +40,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
-    @BeforeEach
-    void beforeEach() {
-        reporter.checkUnknownOutcome(true);
-    }
-
     @Test
     void testCreateTransaction() {
         Transaction transaction = ElasticApm.startTransaction();
@@ -144,7 +139,6 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     // https://github.com/elastic/apm-agent-java/issues/132
     @Test
     void testAutomaticAndManualTransactions() {
-        reporter.checkUnknownOutcome(false);
 
         final co.elastic.apm.agent.impl.transaction.Transaction transaction = startTestRootTransaction();
         final Transaction manualTransaction = ElasticApm.startTransaction();
@@ -157,7 +151,6 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testGetId_distributedTracingEnabled() {
-        reporter.checkUnknownOutcome(false);
 
         co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startRootTransaction(null).withType(Transaction.TYPE_REQUEST);
         try (Scope scope = transaction.activateInScope()) {
@@ -185,7 +178,6 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testAddLabel() {
-        reporter.checkUnknownOutcome(false);
 
         Transaction transaction = ElasticApm.startTransaction();
         transaction.setName("foo");
@@ -225,8 +217,6 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testAddCustomContext() {
-        reporter.checkUnknownOutcome(false);
-
         Transaction transaction = ElasticApm.startTransaction();
         transaction.setName("foo");
         transaction.setType("bar");
