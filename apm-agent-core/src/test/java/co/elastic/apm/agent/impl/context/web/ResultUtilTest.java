@@ -38,10 +38,10 @@ class ResultUtilTest {
 
     @ParameterizedTest
     @CsvSource({
-        "-1,UNKNOWN,UNKNOWN,",
-        "0,UNKNOWN,UNKNOWN,",
-        "1,UNKNOWN,UNKNOWN,",
-        "99,UNKNOWN,UNKNOWN,",
+        "-1,FAILURE,FAILURE,",
+        "0,FAILURE,FAILURE,",
+        "1,FAILURE,FAILURE,",
+        "99,FAILURE,FAILURE,",
         "100,SUCCESS,SUCCESS,HTTP 1xx",
         "199,SUCCESS,SUCCESS,HTTP 1xx",
         "200,SUCCESS,SUCCESS,HTTP 2xx",
@@ -52,7 +52,7 @@ class ResultUtilTest {
         "499,FAILURE,SUCCESS,HTTP 4xx",
         "500,FAILURE,FAILURE,HTTP 5xx",
         "599,FAILURE,FAILURE,HTTP 5xx",
-        "600,UNKNOWN,UNKNOWN,"
+        "600,FAILURE,FAILURE,"
     })
     void testHttpStatus(int status, Outcome clientOutcome, Outcome serverOutcome, String expectedResult) {
         assertThat(getOutcomeByHttpClientStatus(status)).isEqualTo(clientOutcome);

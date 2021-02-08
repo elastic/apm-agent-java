@@ -33,10 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
@@ -44,17 +41,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
     public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
     private static long lastSpanMaxWarningTimestamp;
-
-    /**
-     * Known types for which reporting an exception will also set the span outcome to 'failure'
-     */
-    private static final Set<String> TYPES_EXCEPTION_OUTCOME_FAILURE = new HashSet<String>(Arrays.asList(
-        "db",
-        "async",
-        "custom",
-        "ext",
-        "external",
-        "messaging"));
 
     /**
      * General type describing this span (eg: 'db', 'ext', 'template', etc)
