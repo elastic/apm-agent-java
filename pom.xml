@@ -109,7 +109,7 @@
         <version.json-schema-validator>1.0.47</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.10.20</version.byte-buddy>
-        <version.asm>9.0</version.asm>
+        <version.asm>9.1</version.asm>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
