@@ -100,7 +100,8 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     /**
      * outcome set by span/transaction instrumentation
      */
-    private Outcome outcome = Outcome.UNKNOWN;
+    @Nullable
+    private Outcome outcome;
 
     /**
      * outcome set by user explicitly
@@ -343,7 +344,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         discardRequested = false;
         isExit = false;
         childIds = null;
-        outcome = Outcome.UNKNOWN;
+        outcome = null;
         userOutcome = null;
         hasCapturedExceptions = false;
     }
@@ -452,7 +453,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * @return true if outcome has NOT been set, either by user or through instrumentation
      */
     protected boolean outcomeNotSet() {
-        return userOutcome == null && outcome == Outcome.UNKNOWN;
+        return userOutcome == null && outcome == null;
     }
 
     /**
@@ -624,7 +625,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         if (userOutcome != null) {
             return userOutcome;
         }
-        return outcome;
+        return outcome != null ? outcome : Outcome.UNKNOWN;
     }
 
     /**
