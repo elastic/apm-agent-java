@@ -106,7 +106,7 @@
         <version.log4j>2.12.1</version.log4j>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.47</version.json-schema-validator>
+        <version.json-schema-validator>1.0.48</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.10.20</version.byte-buddy>
         <version.asm>9.0</version.asm>
