@@ -63,7 +63,6 @@ class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest 
 
     @BeforeEach
     private void prepare() throws SchedulerException {
-        reporter.checkUnknownOutcome(true);
         scheduler = new StdSchedulerFactory().getScheduler();
         scheduler.start();
     }

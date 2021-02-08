@@ -52,8 +52,6 @@ class ServletTransactionHelperTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void setUp() {
-        reporter.checkUnknownOutcome(true);
-
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         webConfig = config.getConfig(WebConfiguration.class);
         servletTransactionHelper = new ServletTransactionHelper(new ElasticApmTracerBuilder()

@@ -58,7 +58,6 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void before() {
-        reporter.checkUnknownOutcome(true);
         transaction = new Transaction(tracer);
         TransactionUtils.fillTransaction(transaction);
 

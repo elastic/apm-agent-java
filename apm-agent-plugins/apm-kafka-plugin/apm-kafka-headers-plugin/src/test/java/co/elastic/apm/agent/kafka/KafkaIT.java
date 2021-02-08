@@ -145,8 +145,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() {
-        reporter.checkUnknownOutcome(true);
-
         startAndActivateTransaction(null);
         testScenario = TestScenario.NORMAL;
     }

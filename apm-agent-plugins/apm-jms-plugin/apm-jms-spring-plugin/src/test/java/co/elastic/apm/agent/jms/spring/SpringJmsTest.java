@@ -74,11 +74,6 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
         connection.stop();
     }
 
-    @Before
-    public void before(){
-        reporter.checkUnknownOutcome(true);
-    }
-
     @Test
     public void testSendListenSpringQueue() throws JMSException, InterruptedException {
         try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {

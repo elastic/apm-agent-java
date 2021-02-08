@@ -49,8 +49,6 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
 
     @BeforeEach
     void beforeEach() throws Exception {
-        reporter.checkUnknownOutcome(true);
-
         app = GrpcTest.getApp(getAppProvider());
         app.start();
     }

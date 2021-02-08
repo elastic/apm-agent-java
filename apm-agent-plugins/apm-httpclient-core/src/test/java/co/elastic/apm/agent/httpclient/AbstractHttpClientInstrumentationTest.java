@@ -66,8 +66,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Before
     public final void setUpWiremock() {
         // ensure that HTTP spans outcome is not unknown
-        reporter.checkUnknownOutcome(true);
-
         wireMockRule.stubFor(any(urlEqualTo("/"))
             .willReturn(dummyResponse()
                 .withStatus(200)));

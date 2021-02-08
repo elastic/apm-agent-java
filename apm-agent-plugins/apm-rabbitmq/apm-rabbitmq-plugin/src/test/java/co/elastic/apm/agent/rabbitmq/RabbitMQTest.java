@@ -87,8 +87,6 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
     @BeforeAll
     static void before() {
-        reporter.checkUnknownOutcome(true);
-
         container.withLogConsumer(new Slf4jLogConsumer(logger))
             .start();
 

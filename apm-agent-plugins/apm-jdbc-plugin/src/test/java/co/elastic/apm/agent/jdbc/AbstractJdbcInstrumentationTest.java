@@ -80,9 +80,6 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
         transaction = startTestRootTransaction("jdbc-test");
         signatureParser = new SignatureParser();
-
-        // ensure that all reported spans & transaction have their outcome properly set
-        reporter.checkUnknownOutcome(true);
     }
 
     @Before

@@ -72,7 +72,6 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             .withOutcome(Outcome.SUCCESS)
             .activate();
 
-        reporter.checkUnknownOutcome(true);
     }
 
     @AfterEach
