@@ -35,14 +35,14 @@ import org.apache.http.protocol.HttpCoreContext;
 import javax.annotation.Nullable;
 
 class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
-    private final ApacheHttpAsyncClientHelperImpl helper;
+    private final ApacheHttpAsyncClientHelper helper;
     @Nullable
     private FutureCallback<T> delegate;
     @Nullable
     private HttpContext context;
     private volatile Span span;
 
-    FutureCallbackWrapper(ApacheHttpAsyncClientHelperImpl helper) {
+    FutureCallbackWrapper(ApacheHttpAsyncClientHelper helper) {
         this.helper = helper;
     }
 

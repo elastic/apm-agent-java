@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -62,7 +62,8 @@ class TransactionContextTest {
         Request request = context.getRequest();
         request.withHttpVersion("1.1");
         request.withMethod("POST");
-        request.withBodyBuffer().append("Hello World").flip();
+        request.withBodyBuffer().append("Hello World");
+        request.endOfBufferInput();
         request.getUrl()
             .withProtocol("https")
             .appendToFull("https://www.example.com/p/a/t/h?query=string#hash")

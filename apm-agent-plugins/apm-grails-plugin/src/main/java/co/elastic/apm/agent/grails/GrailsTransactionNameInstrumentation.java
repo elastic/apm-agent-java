@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.grails;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import grails.core.GrailsControllerClass;
 import net.bytebuddy.asm.Advice;
@@ -85,11 +84,10 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
         return Collections.singletonList("grails");
     }
 
-    @VisibleForAdvice
     public static class HandlerAdapterAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        static void setTransactionName(@Advice.Argument(2) Object handler) {
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setTransactionName(@Advice.Argument(2) Object handler) {
             final Transaction transaction = tracer.currentTransaction();
             if (transaction == null) {
                 return;
@@ -109,8 +107,7 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
             setName(transaction, className, methodName);
         }
 
-        @VisibleForAdvice
-        public static void setName(Transaction transaction, String className, @Nullable String methodName) {
+        private static void setName(Transaction transaction, String className, @Nullable String methodName) {
             final StringBuilder name = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK);
             if (name != null) {
                 name.append(className);

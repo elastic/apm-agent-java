@@ -24,13 +24,10 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.grpc.helper.GrpcHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -38,7 +35,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -46,15 +42,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * transaction.
  */
 public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
-
-    public ServerCallHandlerInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc");
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -67,41 +54,35 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
         return named("startCall");
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onEnter(@Advice.Origin Class<?> clazz,
-                                @Advice.Argument(0) ServerCall<?, ?> serverCall,
-                                @Advice.Argument(1) Metadata headers,
-                                @Advice.Local("transaction") Transaction transaction) {
+    @Nullable
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onEnter(@Advice.Origin Class<?> clazz,
+                                  @Advice.Argument(0) ServerCall<?, ?> serverCall,
+                                  @Advice.Argument(1) Metadata headers) {
 
-        if (grpcHelperManager == null) {
-            return;
-        }
-
-        GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
-        if (helper != null) {
-            transaction = helper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
-        }
+        return helper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                               @Advice.Argument(0) ServerCall<?, ?> serverCall,
-                               @Advice.Return ServerCall.Listener<?> listener,
-                               @Advice.Local("transaction") @Nullable Transaction transaction) {
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+    public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                              @Advice.Argument(0) ServerCall<?, ?> serverCall,
+                              @Advice.Return @Nullable ServerCall.Listener<?> listener,
+                              @Advice.Enter @Nullable Object enterTransaction) {
 
-        if (transaction == null) {
+        if (!(enterTransaction instanceof Transaction)) {
             return;
         }
+        Transaction transaction = (Transaction) enterTransaction;
         if (thrown != null) {
             // terminate transaction in case of exception as it won't be stored
             transaction.deactivate().end();
             return;
         }
 
-        GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.class);
-        if (helper != null) {
+        if (listener != null) {
             helper.registerTransaction(serverCall, listener, transaction);
         }
+
 
     }
 

@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
+import co.elastic.apm.agent.context.ExecutorServiceShutdownLifecycleListener;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -41,6 +42,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -59,6 +61,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 
@@ -95,6 +99,7 @@ public class ElasticApmTracer implements Tracer {
     private final CoreConfiguration coreConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
+    private final ScheduledThreadPoolExecutor sharedPool;
     private Sampler sampler;
     boolean assertionsEnabled = false;
 
@@ -107,14 +112,17 @@ public class ElasticApmTracer implements Tracer {
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean recordingConfigOptionSet;
-    private final MetaData metaData;
+    private final String ephemeralId;
+    private final Future<MetaData> metaData;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory, ApmServerClient apmServerClient, MetaData metaData) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
+                     ApmServerClient apmServerClient, final String ephemeralId, Future<MetaData> metaData) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.apmServerClient = apmServerClient;
+        this.ephemeralId = ephemeralId;
         this.metaData = metaData;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
@@ -143,7 +151,8 @@ public class ElasticApmTracer implements Tracer {
             }
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
-        reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs(), this);
+        sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
+        lifecycleListeners.add(new ExecutorServiceShutdownLifecycleListener(sharedPool));
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
@@ -207,7 +216,7 @@ public class ElasticApmTracer implements Tracer {
 
     private void afterTransactionStart(@Nullable ClassLoader initiatingClassLoader, Transaction transaction) {
         if (logger.isDebugEnabled()) {
-            logger.debug("startTransaction {} {", transaction);
+            logger.debug("startTransaction {}", transaction);
             if (logger.isTraceEnabled()) {
                 logger.trace("starting transaction at",
                     new RuntimeException("this exception is just used to record where the transaction has been started from"));
@@ -492,8 +501,15 @@ public class ElasticApmTracer implements Tracer {
         }
     }
 
+    /**
+     * Starts the tracer. Depending on several environment and setup parameters, the tracer may be started synchronously
+     * on this thread, or its start may be delayed and invoked on a dedicated thread.
+     *
+     * @param premain true if this tracer is attached through the {@code premain()} method (i.e. using the `javaagent`
+     *                jvm parameter); false otherwise
+     */
     public synchronized void start(boolean premain) {
-        long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayTracerStartMs();
         if (premain && shouldDelayOnPremain()) {
             delayInitMs = Math.max(delayInitMs, 5000L);
         }
@@ -505,14 +521,12 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private boolean shouldDelayOnPremain() {
-        String javaVersion = System.getProperty("java.version");
-        return javaVersion != null &&
-            javaVersion.startsWith("1.8") &&
+        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
     private synchronized void startWithDelay(final long delayInitMs) {
-        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("tracer-initializer", 1);
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("tracer-initializer", 1);
         pool.submit(new Runnable() {
             @Override
             public void run() {
@@ -696,7 +710,7 @@ public class ElasticApmTracer implements Tracer {
         if (classLoader == null
             || serviceName == null || serviceName.isEmpty()
             // if the service name is set explicitly, don't override it
-            || !coreConfiguration.getServiceNameConfig().isDefault()) {
+            || coreConfiguration.getServiceNameConfig().getUsedKey() != null) {
             return;
         }
         if (!serviceNameByClassLoader.containsKey(classLoader)) {
@@ -720,8 +734,15 @@ public class ElasticApmTracer implements Tracer {
         return apmServerClient;
     }
 
-    public MetaData getMetaData() {
+    public String getEphemeralId() {
+        return ephemeralId;
+    }
+
+    public Future<MetaData> getMetaData() {
         return metaData;
     }
 
+    public ScheduledThreadPoolExecutor getSharedSingleThreadedPool() {
+        return sharedPool;
+    }
 }

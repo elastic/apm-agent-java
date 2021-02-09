@@ -54,13 +54,7 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
 
     @AfterEach
     void afterEach() throws Exception {
-        // make sure we do not leave anything behind
-        try {
-            reporter.assertRecycledAfterDecrementingReferences();
-            reporter.reset();
-        } finally {
-            app.stop();
-        }
+        app.stop();
     }
 
     @Test

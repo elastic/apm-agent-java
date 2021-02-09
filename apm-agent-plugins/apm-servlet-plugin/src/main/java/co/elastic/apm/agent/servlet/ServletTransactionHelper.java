@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -68,8 +69,8 @@ public class ServletTransactionHelper {
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
-    public static void determineServiceName(@Nullable String servletContextName, ClassLoader servletContextClassLoader, @Nullable String contextPath) {
-        if (!nameInitialized.add(contextPath == null ? "null" : contextPath)) {
+    public static void determineServiceName(@Nullable String servletContextName, @Nullable ClassLoader servletContextClassLoader, @Nullable String contextPath) {
+        if (servletContextClassLoader == null || nameInitialized.putIfAbsent(servletContextClassLoader, Boolean.TRUE) != null) {
             return;
         }
 
@@ -258,43 +259,40 @@ public class ServletTransactionHelper {
         }
     }
 
-    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction) {
-        if (servletClass == null) {
-            return;
+    // inspired by org.apache.catalina.connector.Request.getRequestURL
+    private void fillFullUrl(Url url, String scheme, int port, String serverName, String requestURI, @Nullable String queryString) {
+        // using a StringBuilder to avoid allocations when constructing the full URL
+        final StringBuilder fullUrl = url.getFull();
+        if (port < 0) {
+            port = 80; // Work around java.net.URL bug
         }
-        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK);
-        if (transactionName == null) {
-            return;
+
+        fullUrl.append(scheme);
+        fullUrl.append("://");
+        fullUrl.append(serverName);
+        if ((scheme.equals("http") && (port != 80))
+            || (scheme.equals("https") && (port != 443))) {
+            fullUrl.append(':');
+            fullUrl.append(port);
         }
-        String servletClassName = servletClass.getName();
-        transactionName.append(servletClassName, servletClassName.lastIndexOf('.') + 1, servletClassName.length());
-        if (method != null) {
-            transactionName.append('#');
-            switch (method) {
-                case "DELETE":
-                    transactionName.append("doDelete");
-                    break;
-                case "HEAD":
-                    transactionName.append("doHead");
-                    break;
-                case "GET":
-                    transactionName.append("doGet");
-                    break;
-                case "OPTIONS":
-                    transactionName.append("doOptions");
-                    break;
-                case "POST":
-                    transactionName.append("doPost");
-                    break;
-                case "PUT":
-                    transactionName.append("doPut");
-                    break;
-                case "TRACE":
-                    transactionName.append("doTrace");
-                    break;
-                default:
-                    transactionName.append(method);
-            }
+        fullUrl.append(requestURI);
+        if (queryString != null) {
+            fullUrl.append('?').append(queryString);
+        }
+    }
+
+    private String getHttpVersion(String protocol) {
+        // don't allocate new strings in the common cases
+        switch (protocol) {
+            case "HTTP/1.0":
+                return "1.0";
+            case "HTTP/1.1":
+                return "1.1";
+            case "HTTP/2.0":
+                return "2.0";
+            default:
+                return protocol.replace("HTTP/", "");
+
         }
     }
 

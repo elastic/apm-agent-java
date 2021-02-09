@@ -1,0 +1,305 @@
+// For documentation on this pipeline, please see the README.md in this directory
+pipeline {
+    agent { label 'linux && immutable' }
+    environment {
+        REPO = 'apm-agent-java'
+        APP = 'spring-petclinic'
+        APP_BASE_DIR = "src/${APP}"
+        METRICS_BASE_DIR="metrics"
+        AGENT_BASE_DIR = "src/${REPO}"
+        ORCH_URL = 'https://obs-load-orch.app.elstc.co'
+        CREDENTIALS_ID = 'f6c7695a-671e-4f4f-a331-acdce44ff9ba'
+        JOB_GCS_BUCKET = credentials('gcs-bucket')
+        JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
+        // Set below for local development
+        // ORCH_URL='10.0.2.2:8000'
+        DEBUG_MODE = '0' // set to '0' for production
+        LOCUST_RUN_TIME = "${params.duration}"
+        LOCUST_USERS = "${params.concurrent_requests}"
+        LOCUST_IGNORE_ERRORS = "${params.ignore_application_errors}"
+        ELASTIC_APM_VERIFY_SERVER_CERT = "false"
+    }
+    options {
+        timeout(time: 72, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
+        timestamps()
+        ansiColor('xterm')
+        durabilityHint('PERFORMANCE_OPTIMIZED')
+        skipDefaultCheckout() // don't re-checkout at avery stage
+    }
+    parameters {
+        string(name: "apm_version", defaultValue: "master", description: "Java agent version, use git ref or values from curl -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/elastic/apm-agent-java/tags | jq '.[] | .name'")
+        string(name: "jvm_version", defaultValue: "adoptopenjdk-8u275-linux", description: "JVM, use values from: curl -s https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64 | jq '.[] | .id'")
+        string(name: "jvm_options", defaultValue: "", description: "Extra JVM options")
+        string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")
+        string(name: "duration", defaultValue: "10m", description: "Test duration. Specify with unit. Ex: 30m, 1h")
+        // num_of_runs currently unsupported
+        // string(name: "num_of_runs", defaultValue: "1", description: "Number of test runs to execute")
+        text(name: "agent_config", "defaultValue": "", description: "Custom APM Agent configuration. (WARNING: May echo to console. Do not supply sensitive data.)")
+        text(name: "locustfile", "defaultValue": "", description: "Locust load-generator plan")
+        booleanParam(name: "local_metrics", description: "Enable local metrics collection?", defaultValue: false)
+        booleanParam(name: "ignore_application_errors", description: "Instruct the load generator to ignore non-2xx errors on exit", defaultValue: true)
+        booleanParam(name: "log_compilation", description: "Enable JIT compilation debug (verbose)", defaultValue: false)
+        booleanParam(name: "jfr", description: "Enable Java Flight Recorder (not supported by all JVMs)", defaultValue: false)
+        booleanParam(name: "attach_agent", description: "Attach APM agent, set to 'false' to disable agent completely", defaultValue: true)
+    }
+    stages {
+        stage('Pre-flight') {
+            steps {
+                gitCheckout(basedir: '.', githubNotifyFirstTimeContributor: true, shallow: false)
+                echo 'Getting authentication information from Vault'
+                withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                    setEnvVar('SESSION_TOKEN', sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim())
+                }
+
+                stash(name:'scripts', includes: '.ci/load/**')
+            }
+        }
+        stage('Build agent') {
+            agent { label 'benchmarks' }
+            when {
+                expression {
+                    // when not using agent, building is not required
+                    return params.attach_agent
+                }
+            }
+            steps {
+                echo 'Checking out master branch'
+                gitCheckout(
+                    basedir: "${AGENT_BASE_DIR}",
+                    branch: 'master',
+                    repo: "https://github.com/elastic/${REPO}.git",
+                    credentialsId: "${CREDENTIALS_ID}",
+                    shallow: false
+                )
+
+                dir("${AGENT_BASE_DIR}") {
+                    echo "Switch to requested agent version = ${params.apm_version}"
+                    sh(script: "git checkout ${params.apm_version}")
+
+                    echo 'Building agent with Java 11'
+                    sh(script: "JAVA_HOME=${env.HUDSON_HOME}/.java/java11 ./mvnw --batch-mode clean package -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.sources.skip=true")
+
+                    // copy agent jar to a known filename that don't change with version
+                    sh(script: "cp -v \$(find ./elastic-apm-agent/target -name '*.jar' | grep -v sources | grep -v original | grep -v javadoc) ${WORKSPACE}/elastic-apm-agent.jar")
+                }
+
+                archiveArtifacts(
+                        artifacts: "elastic-apm-agent.jar",
+                        allowEmptyArchive: true,
+                        onlyIfSuccessful: false)
+
+                stash(name: "agent", includes: "elastic-apm-agent.jar")
+            }
+        }
+        stage('Build test application') {
+            agent { label 'benchmarks' }
+            steps {
+                unstash('scripts')
+
+                script {
+                    def app_branch = "main"
+                    def build_jdk_path = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
+                    def binary_ext = 'jar'
+
+                    def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
+                    if(major_jdk_version.startsWith("7")) {
+                        echo "Java 7.x detected. Installing compliant version of test application and JDK"
+                        // We are using a recent Java8 JDK here to allow avoid TLS/SSL issues, the app will still
+                        // target and run with Java 7.
+                        app_branch = "3450c3d99ecaaf46231feb2c404b72d1727517e1"
+                        build_jdk_path = sh(script: ".ci/load/scripts/fetch_sdk.sh zulu-8.0.272-linux", returnStdout: true).trim()
+                        binary_ext = 'war'
+                    }
+                    echo "Checkout test application from: ${app_branch}"
+                    gitCheckout(
+                        basedir: "${APP_BASE_DIR}",
+                        branch: "${app_branch}",
+                        repo: "https://github.com/spring-projects/${APP}.git",
+                        credentialsId: "${CREDENTIALS_ID}",
+                        shallow: false
+                    )
+                    dir("${APP_BASE_DIR}") {
+                        echo "Building test application using JDK = ${build_jdk_path}"
+                        sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true -Dcheckstyle.skip")
+                        sh(script: "cp -v target/*.${binary_ext} ${WORKSPACE}/app.${binary_ext}")
+                    }
+
+                    archiveArtifacts(
+                            artifacts: "app.${binary_ext}",
+                            allowEmptyArchive: true,
+                            onlyIfSuccessful: false)
+
+                    stash(name: "app", includes: "app.${binary_ext}")
+                }
+            }
+        }
+        stage('Provision local metrics collection') {
+            agent { label 'benchmarks' }
+            when {
+                expression {
+                    return params.local_metrics
+                }
+            }
+            steps {
+                echo 'Enable local metric collection'
+                gitCheckout(
+                    basedir: "${METRICS_BASE_DIR}",
+                    branch: 'master',
+                    repo: "https://github.com/pstadler/metrics.sh",
+                    credentialsId: "${CREDENTIALS_ID}",
+                    shallow: false
+                )
+
+                dir("${METRICS_BASE_DIR}") {
+                    sh(script: "touch ${WORKSPACE}/metrics.out")
+                    sh(script: "FILE_LOCATION=${WORKSPACE}/metrics.out ./metrics.sh -r file &")
+                }
+            }
+        }
+        stage('execute test') {
+            parallel {
+                stage('Load generation') {
+                    agent { label 'metal' }
+                    steps {
+                        echo 'Preparing load generation..'
+                        unstash('scripts')
+
+                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                            whenTrue(Boolean.valueOf(params.locustfile)) {
+                                echo 'Using user-supplied plan for load-generation with Locust'
+                                sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
+                            }
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                sh(script: ".ci/load/scripts/load_agent.sh")
+                            }
+                        }
+                    }
+                }
+                stage('Run app') {
+                    agent { label 'benchmarks' }
+                    environment {
+                        BUCKET_URI = """${isPR() ? "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/pr-${env.CHANGE_ID}" : "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/${env.BRANCH_NAME}"}"""
+                    }
+                    steps {
+
+                        // create agent configuration
+                        writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
+
+                        // remove previous log files in workspace (if any)
+                        sh(script: "rm -vf ${WORKSPACE}/*.log ${WORKSPACE}/*.pid ${WORKSPACE}/*.jfr")
+
+                        unstash('scripts')
+                        unstash('app')
+
+                        echo "Starting test application in background.. with JVM = ${params.jvm_version}"
+
+                        // force kill any remaining app instance to ensure app can start
+                        sh(script: ".ci/load/scripts/app.sh stopApp")
+
+                        script {
+                            echo "start application with JVM options '${params.jvm_options}'"
+
+                            def java_home = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
+                            def major_jdk_version = readJSON(file: "/tmp/${params.jvm_version}/jdk.json")['version']
+                            def is_java7 = major_jdk_version.startsWith("7")
+                            def is_java8 = major_jdk_version.startsWith("8")
+
+                            sh(script: "${java_home}/bin/java -version");
+
+                            def cmd = "${java_home}/bin/java "
+
+                            if (params.attach_agent) {
+                                unstash('agent')
+
+                                cmd = "${cmd} -javaagent:${WORKSPACE}/elastic-apm-agent.jar"
+                                cmd = "${cmd} -Delastic.apm.config_file=${WORKSPACE}/agent_config.properties"
+                                cmd = "${cmd} -Delastic.apm.log_file=${WORKSPACE}/agent.log"
+                                cmd = "${cmd} -Delastic.apm.service_name=load-testing"
+                                cmd = "${cmd} -Delastic.apm.global_labels=build_number=${env.BUILD_NUMBER}"
+                            }
+
+                            if (is_java7) {
+                                // BOTH properties are REQUIRED here, the cipher suite may be available but not
+                                // enabled by default
+                                echo "Detected Java 7.x using TLSv1.2 + enable cipher suite"
+                                cmd = "${cmd} -Dhttps.protocols=TLSv1.2"
+                                cmd = "${cmd} -Dhttps.cipherSuites=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+                            }
+                            cmd = "${cmd} ${params.jvm_options}"
+
+                            // Crash reports in case things go wrong
+                            // keep PID in file, as it won't be overwritten if file exists
+                            cmd = "${cmd} -XX:ErrorFile=${WORKSPACE}/hs_err_pid%p.log"
+
+                            // GC log
+                            cmd = "${cmd} -XX:+PrintGCDetails"
+                            if (is_java7 || is_java8) {
+                                cmd = "${cmd} -XX:+PrintGCTimeStamps"
+                                cmd = "${cmd} -XX:+PrintTenuringDistribution"
+                            }
+                            cmd = "${cmd} -Xloggc:${WORKSPACE}/gc.log"
+
+                            // compilation log
+                            if (params.log_compilation) {
+                                cmd = "${cmd} -XX:+UnlockDiagnosticVMOptions"
+                                cmd = "${cmd} -XX:+LogCompilation"
+                                cmd = "${cmd} -XX:LogFile=${WORKSPACE}/compilation.log"
+                            }
+
+                            // flight recorder is not supported on all JDKs
+                            if(params.jfr) {
+                                cmd = "${cmd} -XX:+FlightRecorder"
+                                cmd = "${cmd} -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
+                            }
+
+                            def app_binary = "${WORKSPACE}/app.jar"
+                            if (is_java7) {
+                                echo "Detected Java 7.x using application packaged as a .war file"
+                                app_binary = "${WORKSPACE}/app.war"
+                            }
+
+                            cmd = "${cmd} -jar ${app_binary}"
+                            cmd = "${cmd} > ${WORKSPACE}/app.log &"
+
+                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
+                                sh(script: "${cmd}")
+                            }
+
+                            // Foreground the orchestrator script for execution control
+                            echo 'Starting bandstand client..'
+                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                                sh(script: ".ci/load/scripts/app.sh")
+                            }
+
+                        }
+                    }
+                    post {
+                        always {
+                            // stop the running application in case it hasn't been properly stopped
+                            sh(script: ".ci/load/scripts/app.sh stopApp")
+
+                            // always remove configuration so we don't leave user-input
+                            sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
+
+                            // always capture result files
+                            echo "Collect results"
+                            archiveArtifacts(
+                                    artifacts: "hs_err_pid*.log,*.jfr,metrics.out",
+                                    allowEmptyArchive: true,
+                                    onlyIfSuccessful: false)
+
+                            // Upload log files to the default location since they are massive
+                            googleStorageUpload(bucket: "${env.BUCKET_URI}/${env.BUILD_ID}",
+                                                credentialsId: "${JOB_GCS_CREDENTIALS}",
+                                                pattern: "*.log",
+                                                sharedPublicly: true,
+                                                showInline: true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}

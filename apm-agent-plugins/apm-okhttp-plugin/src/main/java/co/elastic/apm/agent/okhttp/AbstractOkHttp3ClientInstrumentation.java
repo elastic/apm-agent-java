@@ -24,33 +24,12 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
-import okhttp3.Request;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
 public abstract class AbstractOkHttp3ClientInstrumentation extends TracerAwareInstrumentation {
-
-    // We can refer OkHttp types thanks to type erasure
-    @VisibleForAdvice
-    @Nullable
-    public static HelperClassManager<TextHeaderSetter<Request.Builder>> headerSetterHelperManager;
-
-    public AbstractOkHttp3ClientInstrumentation(ElasticApmTracer tracer) {
-        synchronized (AbstractOkHttp3ClientInstrumentation.class) {
-            if (headerSetterHelperManager == null) {
-                headerSetterHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    "co.elastic.apm.agent.okhttp.OkHttp3RequestHeaderSetter"
-                );
-            }
-        }
-    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {

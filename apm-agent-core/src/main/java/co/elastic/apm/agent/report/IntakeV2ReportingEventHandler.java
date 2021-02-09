@@ -24,15 +24,13 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.util.ThreadUtils;
+import co.elastic.apm.agent.premain.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -52,8 +50,8 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     private TimerTask timeoutTask;
 
     public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                         PayloadSerializer payloadSerializer, MetaData metaData, ApmServerClient apmServerClient) {
-        super(reporterConfiguration, metaData, payloadSerializer, apmServerClient);
+                                         PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+        super(reporterConfiguration, payloadSerializer, apmServerClient);
         this.processorEventHandler = processorEventHandler;
         this.timeoutTimer = new Timer(ThreadUtils.addElasticApmThreadPrefix("request-timeout-timer"), true);
     }
@@ -94,13 +92,23 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
             if (connection == null) {
                 connection = startRequest(INTAKE_V2_URL);
             }
-            writeEvent(event);
+            if (connection != null) {
+                writeEvent(event);
+            } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Failed to get APM server connection, dropping event: {}", event);
+                }
+                dropped++;
+            }
         } catch (Exception e) {
             logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
             logger.debug("Event handling failure", e);
             endRequest();
             onConnectionError(null, currentlyTransmitting + 1, 0);
+        } finally {
+            event.end();
         }
+
         if (shouldEndRequest()) {
             endRequest();
         }
@@ -119,17 +127,14 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
         if (event.getTransaction() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeTransactionNdJson(event.getTransaction());
-            event.getTransaction().decrementReferences();
         } else if (event.getSpan() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeSpanNdJson(event.getSpan());
-            event.getSpan().decrementReferences();
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
-            event.getError().recycle();
-        } else if (event.getMetricRegistry() != null) {
-            payloadSerializer.serializeMetrics(event.getMetricRegistry());
+        } else if (event.getJsonWriter() != null) {
+            payloadSerializer.writeBytes(event.getJsonWriter().getByteBuffer(), event.getJsonWriter().size());
         }
     }
 
@@ -141,17 +146,17 @@ public class IntakeV2ReportingEventHandler extends AbstractIntakeApiHandler impl
     }
 
     @Override
-    protected HttpURLConnection startRequest(String endpoint) throws IOException {
+    @Nullable
+    protected HttpURLConnection startRequest(String endpoint) throws Exception {
         HttpURLConnection connection = super.startRequest(endpoint);
-        if (os != null) {
-            payloadSerializer.setOutputStream(os);
-        }
-        if (reporter != null) {
-            timeoutTask = new IntakeV2ReportingEventHandler.FlushOnTimeoutTimerTask(reporter);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
+        if (connection != null) {
+            if (reporter != null) {
+                timeoutTask = new FlushOnTimeoutTimerTask(reporter);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
+                }
+                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
             }
-            timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
         }
         return connection;
     }

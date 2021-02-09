@@ -26,7 +26,7 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -36,6 +36,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -110,8 +112,12 @@ class IntakeV2ReportingEventHandlerTest {
         reportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            new MetaData(title, service, system, Collections.emptyMap()), apmServerClient);
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                apmServerClient,
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+            ),
+            apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
@@ -119,8 +125,11 @@ class IntakeV2ReportingEventHandlerTest {
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), this.apmServerClient),
-            new MetaData(title1, service1, system, Collections.emptyMap()),
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                this.apmServerClient,
+                MetaDataMock.create(title1, service1, system, null, Collections.emptyMap())
+            ),
             apmServerClient);
     }
 
@@ -132,9 +141,11 @@ class IntakeV2ReportingEventHandlerTest {
     @Test
     void testUrls() throws MalformedURLException {
         URL server1url = apmServerClient.appendPathToCurrentUrl(INTAKE_V2_URL);
+        assertThat(server1url).isNotNull();
         assertThat(server1url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer1.port() + INTAKE_V2_URL);
         apmServerClient.onConnectionError();
         URL server2url = apmServerClient.appendPathToCurrentUrl(INTAKE_V2_URL);
+        assertThat(server2url).isNotNull();
         assertThat(server2url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + INTAKE_V2_URL);
         // just to restore
         apmServerClient.onConnectionError();
@@ -145,16 +156,18 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
+        reportBytes("{\"foo\":\"bar\"}\n".getBytes());
         assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
         reportingEventHandler.endRequest();
         assertThat(reportingEventHandler.getBufferSize()).isEqualTo(0);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
-        assertThat(ndJsonNodes).hasSize(4);
+        assertThat(ndJsonNodes).hasSize(5);
         assertThat(ndJsonNodes.get(0).get("metadata")).isNotNull();
         assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
         assertThat(ndJsonNodes.get(2).get("span")).isNotNull();
         assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
+        assertThat(ndJsonNodes.get(4).get("foo").textValue()).isEqualTo("bar");
     }
 
     @Test
@@ -230,6 +243,15 @@ class IntakeV2ReportingEventHandlerTest {
     private void reportError() {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setError(new ErrorCapture(MockTracer.create()));
+
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
+    }
+
+    private void reportBytes(byte[] bytes) {
+        final ReportingEvent reportingEvent = new ReportingEvent();
+        JsonWriter jw = new DslJson<>().newWriter();
+        jw.writeAscii(bytes);
+        reportingEvent.setJsonWriter(jw);
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }

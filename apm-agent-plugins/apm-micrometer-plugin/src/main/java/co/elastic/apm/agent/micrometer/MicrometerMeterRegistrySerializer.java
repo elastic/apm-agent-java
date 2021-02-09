@@ -1,0 +1,235 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2020 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
+package co.elastic.apm.agent.micrometer;
+
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
+import com.dslplatform.json.NumberConverter;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.FunctionTimer;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.dslplatform.json.JsonWriter.COMMA;
+import static com.dslplatform.json.JsonWriter.OBJECT_END;
+import static com.dslplatform.json.JsonWriter.OBJECT_START;
+
+public class MicrometerMeterRegistrySerializer {
+
+    private static final byte NEW_LINE = (byte) '\n';
+    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
+    private final StringBuilder replaceBuilder = new StringBuilder();
+    private int previousSize = 512;
+
+    public JsonWriter serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
+        JsonWriter jw = dslJson.newWriter((int) (previousSize * 1.25));
+        serialize(metersById, epochMicros, replaceBuilder, jw);
+        previousSize = jw.size();
+        return jw;
+    }
+
+    static void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
+        final Map<List<Tag>, List<Meter>> metersGroupedByTags = new HashMap<>();
+        for (Map.Entry<Meter.Id, Meter> entry : metersById.entrySet()) {
+            List<Tag> tags = entry.getKey().getTags();
+            List<Meter> meters = metersGroupedByTags.get(tags);
+            if (meters == null) {
+                meters = new ArrayList<>(1);
+                metersGroupedByTags.put(tags, meters);
+            }
+            meters.add(entry.getValue());
+        }
+        for (Map.Entry<List<Tag>, List<Meter>> entry : metersGroupedByTags.entrySet()) {
+            serializeMetricSet(entry.getKey(), entry.getValue(), epochMicros, replaceBuilder, jw);
+            jw.writeByte(NEW_LINE);
+        }
+    }
+
+    static void serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        {
+            DslJsonSerializer.writeFieldName("metricset", jw);
+            jw.writeByte(JsonWriter.OBJECT_START);
+            {
+                DslJsonSerializer.writeFieldName("timestamp", jw);
+                NumberConverter.serialize(epochMicros, jw);
+                jw.writeByte(JsonWriter.COMMA);
+                serializeTags(tags, replaceBuilder, jw);
+                DslJsonSerializer.writeFieldName("samples", jw);
+                jw.writeByte(JsonWriter.OBJECT_START);
+                boolean hasValue = false;
+                for (int i = 0, size = meters.size(); i < size; i++) {
+                    Meter meter = meters.get(i);
+                    if (meter instanceof Timer) {
+                        Timer timer = (Timer) meter;
+                        hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
+                    } else if (meter instanceof FunctionTimer) {
+                        FunctionTimer timer = (FunctionTimer) meter;
+                        hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
+                    } else if (meter instanceof LongTaskTimer) {
+                        LongTaskTimer timer = (LongTaskTimer) meter;
+                        hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue);
+                    } else if (meter instanceof DistributionSummary) {
+                        DistributionSummary timer = (DistributionSummary) meter;
+                        hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue);
+                    } else if (meter instanceof Gauge) {
+                        Gauge gauge = (Gauge) meter;
+                        hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw);
+
+                    } else if (meter instanceof Counter) {
+                        Counter counter = (Counter) meter;
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
+                    } else if (meter instanceof FunctionCounter) {
+                        FunctionCounter counter = (FunctionCounter) meter;
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
+                    }
+                }
+                jw.writeByte(JsonWriter.OBJECT_END);
+            }
+            jw.writeByte(JsonWriter.OBJECT_END);
+        }
+        jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private static void serializeTags(List<Tag> tags, StringBuilder replaceBuilder, JsonWriter jw) {
+        if (tags.isEmpty()) {
+            return;
+        }
+        DslJsonSerializer.writeFieldName("tags", jw);
+        jw.writeByte(OBJECT_START);
+        for (int i = 0, tagsSize = tags.size(); i < tagsSize; i++) {
+            Tag tag = tags.get(i);
+            if (i > 0) {
+                jw.writeByte(COMMA);
+            }
+            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizeLabelKey(tag.getKey(), replaceBuilder), replaceBuilder, jw);
+            jw.writeByte(JsonWriter.SEMI);
+            DslJsonSerializer.writeStringValue(tag.getValue(), replaceBuilder, jw);
+        }
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
+    }
+
+    /**
+     * Conditionally serializes a {@link Timer} if the total time is valid, i.e. neither Double.NaN nor +/-Infinite
+     *
+     * @param jw        writer
+     * @param id        meter ID
+     * @param count     count
+     * @param totalTime total time
+     * @param hasValue  whether a value has already been written
+     * @return true if a value has been written before, including this one; false otherwise
+     */
+    private static boolean serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime, boolean hasValue) {
+        if (isValidValue(totalTime)) {
+            if (hasValue) jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".count", count, jw);
+            jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".sum.us", totalTime, jw);
+            return true;
+        }
+        return hasValue;
+    }
+
+    /**
+     * Conditionally serializes a {@link DistributionSummary} if the total amount is valid, i.e. neither Double.NaN nor +/-Infinite
+     *
+     * @param jw          writer
+     * @param id          meter ID
+     * @param count       count
+     * @param totalAmount total amount of recorded events
+     * @param hasValue    whether a value has already been written
+     * @return true if a value has been written before, including this one; false otherwise
+     */
+    private static boolean serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalAmount, boolean hasValue) {
+        if (isValidValue(totalAmount)) {
+            if (hasValue) jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".count", count, jw);
+            jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, ".sum", totalAmount, jw);
+            return true;
+        }
+        return hasValue;
+    }
+
+    private static void serializeValue(Meter.Id id, String suffix, long value, JsonWriter jw) {
+        serializeValueStart(id.getName(), suffix, jw);
+        NumberConverter.serialize(value, jw);
+        jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    /**
+     * Conditionally serializes a {@code double} value if the value is valid, i.e. neither Double.NaN nor +/-Infinite
+     *
+     * @param id       meter ID
+     * @param value    meter value
+     * @param hasValue whether a value has already been written
+     * @param jw       writer
+     * @return true if a value has been written before, including this one; false otherwise
+     */
+    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, JsonWriter jw) {
+        if (isValidValue(value)) {
+            if (hasValue) jw.writeByte(JsonWriter.COMMA);
+            serializeValue(id, "", value, jw);
+            return true;
+        }
+        return hasValue;
+    }
+
+    private static void serializeValue(Meter.Id id, String suffix, double value, JsonWriter jw) {
+        serializeValueStart(id.getName(), suffix, jw);
+        NumberConverter.serialize(value, jw);
+        jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private static void serializeValueStart(String key, String suffix, JsonWriter jw) {
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeAscii(key);
+        jw.writeAscii(suffix);
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeByte(JsonWriter.SEMI);
+        jw.writeByte(JsonWriter.OBJECT_START);
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeAscii("value");
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeByte(JsonWriter.SEMI);
+    }
+
+    private static boolean isValidValue(double value) {
+        return !Double.isNaN(value) && !Double.isInfinite(value);
+    }
+}

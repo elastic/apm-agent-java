@@ -143,7 +143,7 @@ public class Destination implements Recyclable {
     @Override
     public void resetState() {
         address.setLength(0);
-        port = -1;
+        port = 0;
         service.resetState();
     }
 

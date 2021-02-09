@@ -1,7 +1,7 @@
 [[setup-attach-api]]
 === Programmatic API setup to self-attach
 
-NOTE: This installation method is experimental.
+NOTE: This installation method is in beta.
 
 [float]
 [[setup-attach-api-supported-environments]]

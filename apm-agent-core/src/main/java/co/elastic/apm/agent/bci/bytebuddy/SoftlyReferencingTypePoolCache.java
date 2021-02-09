@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.sdk.weakmap.NullSafeWeakConcurrentMap;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -56,13 +57,13 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
      * deliberately doesn't use WeakMapSupplier as this class manages the cleanup manually
      */
     private final WeakConcurrentMap<ClassLoader, CacheProviderWrapper> cacheProviders =
-        new WeakConcurrentMap<ClassLoader, CacheProviderWrapper>(false);
+        new NullSafeWeakConcurrentMap<ClassLoader, CacheProviderWrapper>(false);
     private final ElementMatcher<ClassLoader> ignoredClassLoaders;
 
     public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
                                           final int clearIfNotAccessedSinceMinutes, ElementMatcher.Junction<ClassLoader> ignoredClassLoaders) {
         super(readerMode);
-        ExecutorUtils.createSingleThreadSchedulingDeamonPool("type-cache-pool-cleaner")
+        ExecutorUtils.createSingleThreadSchedulingDaemonPool("type-cache-pool-cleaner")
             .scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {

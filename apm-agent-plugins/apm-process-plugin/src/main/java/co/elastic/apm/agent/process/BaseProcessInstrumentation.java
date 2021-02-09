@@ -44,9 +44,4 @@ public abstract class BaseProcessInstrumentation extends TracerAwareInstrumentat
     public final Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("process");
     }
-
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
 }

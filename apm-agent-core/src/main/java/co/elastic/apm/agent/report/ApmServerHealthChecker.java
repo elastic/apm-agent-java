@@ -55,7 +55,7 @@ public class ApmServerHealthChecker implements Callable<Version> {
     }
 
     public Future<Version> checkHealthAndGetMinVersion() {
-        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("server-healthcheck", 1);
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDaemonPool("server-healthcheck", 1);
         try {
             return pool.submit(this);
         } finally {
@@ -119,6 +119,6 @@ public class ApmServerHealthChecker implements Callable<Version> {
         if (!versions.isEmpty()) {
             return Collections.min(versions);
         }
-        return null;
+        return Version.UNKNOWN_VERSION;
     }
 }

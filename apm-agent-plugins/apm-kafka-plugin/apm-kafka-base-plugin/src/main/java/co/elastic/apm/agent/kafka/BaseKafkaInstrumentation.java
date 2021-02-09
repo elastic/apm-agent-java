@@ -79,4 +79,9 @@ public abstract class BaseKafkaInstrumentation extends TracerAwareInstrumentatio
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader()).and(classLoaderCanLoadClass("org.apache.kafka.clients.consumer.ConsumerRecord"));
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

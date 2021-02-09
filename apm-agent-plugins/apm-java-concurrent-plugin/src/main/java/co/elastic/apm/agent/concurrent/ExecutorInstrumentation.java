@@ -74,6 +74,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         excludedClasses.add("org.apache.tomcat.util.threads.ThreadPoolExecutor");
     }
 
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("Execut")
@@ -100,11 +101,6 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("concurrent", "executor");
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return true;
     }
 
     private static boolean isExcluded(@Advice.This Executor executor) {

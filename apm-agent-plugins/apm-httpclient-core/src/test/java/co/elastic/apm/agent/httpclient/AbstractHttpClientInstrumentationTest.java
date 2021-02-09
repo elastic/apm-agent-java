@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
@@ -50,6 +51,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.seeOther;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -63,23 +65,38 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Before
     public final void setUpWiremock() {
         wireMockRule.stubFor(any(urlEqualTo("/"))
-            .willReturn(aResponse()
+            .willReturn(dummyResponse()
                 .withStatus(200)));
         wireMockRule.stubFor(get(urlEqualTo("/error"))
-            .willReturn(aResponse()
+            .willReturn(dummyResponse()
                 .withStatus(515)));
         wireMockRule.stubFor(get(urlEqualTo("/redirect"))
             .willReturn(seeOther("/")));
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
         final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
-        transaction.withType("request").activate();
+        transaction.withName("parent of http span").withType("request").activate();
+    }
+
+    protected ResponseDefinitionBuilder dummyResponse() {
+        return aResponse()
+            // old spring 3.0 require content type
+            .withHeader("Content-Type", "text/plain")
+            .withBody("hello");
     }
 
     @After
     public final void after() {
         tracer.currentTransaction().deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    protected boolean isIpv6Supported() {
+        return true;
+    }
+
+    protected boolean isErrorOnCircularRedirectSupported(){
+        return true;
     }
 
     @Test
@@ -111,15 +128,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         verifyHttpSpan("http", "[::1]", wireMockRule.port(), "/");
     }
 
-    protected boolean isIpv6Supported() {
-        return true;
-    }
-
-    protected void verifyHttpSpan(String path) throws Exception {
+    protected void verifyHttpSpan(String path) {
         verifyHttpSpan("http", "localhost", wireMockRule.port(), path);
     }
 
-    protected void verifyHttpSpan(String scheme, String host, int port, String path) throws Exception {
+    protected void verifyHttpSpan(String scheme, String host, int port, String path) {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
@@ -153,7 +166,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testNonExistingHttpCall() throws Exception {
+    public void testNonExistingHttpCall() {
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
@@ -164,7 +177,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testErrorHttpCall() throws Exception {
+    public void testErrorHttpCall() {
         String path = "/error";
         performGetWithinTransaction(path);
 
@@ -175,7 +188,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testHttpCallRedirect() throws Exception {
+    public void testHttpCallRedirect() {
         String path = "/redirect";
         performGetWithinTransaction(path);
 
@@ -189,7 +202,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testHttpCallCircularRedirect() throws Exception {
+    public void testHttpCallCircularRedirect() {
+        if (!isErrorOnCircularRedirectSupported()) {
+            return;
+        }
+
         String path = "/circular-redirect";
         performGetWithinTransaction(path);
 

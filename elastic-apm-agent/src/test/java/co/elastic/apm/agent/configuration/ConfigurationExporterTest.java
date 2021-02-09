@@ -25,12 +25,16 @@
 package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -53,6 +57,8 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * This is not an actual test.
@@ -87,9 +93,17 @@ class ConfigurationExporterTest {
     @BeforeEach
     void setUp() {
         renderedDocumentationPath = Paths.get("../docs/configuration.asciidoc");
+        ElasticApmTracer tracer = mock(ElasticApmTracer.class);
+        when(tracer.getState()).thenReturn(Tracer.TracerState.UNINITIALIZED);
+        GlobalTracer.init(tracer);
         configurationRegistry = ConfigurationRegistry.builder()
             .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
             .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        GlobalTracer.setNoop();
     }
 
     @Test

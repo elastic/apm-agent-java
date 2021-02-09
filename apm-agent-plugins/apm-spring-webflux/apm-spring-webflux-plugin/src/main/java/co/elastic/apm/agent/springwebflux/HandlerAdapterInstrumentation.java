@@ -42,7 +42,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
  * Instruments known implementations of {@link org.springframework.web.reactive.HandlerAdapter#handle(ServerWebExchange, Object)}
- * that handle annotation based controllers execution & naming
+ * that handle annotation based controllers execution and naming
  * <ul>
  *     <li>{@link org.springframework.web.reactive.function.server.support.HandlerFunctionAdapter}</li>
  *     <li>{@link org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerAdapter}</li>

@@ -27,11 +27,9 @@ package co.elastic.apm.agent.jmx;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +40,6 @@ import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 class JmxMetricTrackerTest {
 
@@ -168,9 +165,7 @@ class JmxMetricTrackerTest {
     }
 
     private void printMetricSets() {
-        DslJsonSerializer metricsReporter = new DslJsonSerializer(mock(StacktraceConfiguration.class), mock(ApmServerClient.class));
-        metricRegistry.report(metricsReporter);
-        System.out.println(metricsReporter.toString());
+        metricRegistry.flipPhaseAndReport(metricSets -> System.out.println(new MetricRegistrySerializer().serialize(metricSets).toString()));
     }
 
     private void setConfig(JmxMetric... jmxMetric) throws java.io.IOException {

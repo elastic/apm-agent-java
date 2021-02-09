@@ -67,7 +67,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .sensitive()
         .build();
 
-    private final ConfigurationOption<List<URL>> serverUrl = ConfigurationOption.urlsOption()
+    private final ConfigurationOption<List<URL>> serverUrls = ConfigurationOption.urlsOption()
         .key("server_urls")
         .aliasKeys("server_url")
         .configurationCategory(REPORTER_CATEGORY)
@@ -78,9 +78,16 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Achieves load-balancing by shuffling the list of configured URLs.\n" +
             "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.\n" +
             "\n" +
-            "If outgoing HTTP traffic has to go through a proxy," +
+            "If set to an empty string, the agent will work as usual, except from any task requiring communication with \n" +
+            "the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. \n" +
+            "\n" +
+            "If SSL is enabled on the APM Server, use the `https` protocol. For more information, see \n" +
+            "<<ssl-configuration>>.\n" +
+            "\n" +
+            "If outgoing HTTP traffic has to go through a proxy,\n" +
             "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
-            "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.\n" +
+            "See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] \n" +
+            "for more information.\n" +
             "\n" +
             "NOTE: This configuration can only be reloaded dynamically as of 1.8.0")
         .dynamic(true)
@@ -192,7 +199,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     }
 
     public List<URL> getServerUrls() {
-        return serverUrl.get();
+        return serverUrls.get();
     }
 
     public TimeDuration getServerTimeout() {
@@ -232,7 +239,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     }
 
     public ConfigurationOption<List<URL>> getServerUrlsOption() {
-        return this.serverUrl;
+        return this.serverUrls;
     }
 
 }

@@ -6,7 +6,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-spring-webflux</artifactId>
-        <version>1.17.1-SNAPSHOT</version>
+        <version>1.20.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-spring-webflux-testapp</artifactId>
@@ -104,7 +104,7 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-commons</artifactId>
-            <version>1.6.2</version>
+            <version>1.7.0</version>
             <scope>test</scope>
         </dependency>
 

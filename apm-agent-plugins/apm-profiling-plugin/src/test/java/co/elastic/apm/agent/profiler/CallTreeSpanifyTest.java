@@ -37,7 +37,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,7 +61,8 @@ class CallTreeSpanifyTest {
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws IOException {
+        Objects.requireNonNull(tracer.getLifecycleListener(ProfilingFactory.class)).getProfiler().clear();
         reporter.assertRecycledAfterDecrementingReferences();
         tracer.stop();
     }

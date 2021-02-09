@@ -55,9 +55,4 @@ public class AdviceInSubpackageInstrumentation extends TracerAwareInstrumentatio
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("test");
     }
-
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
 }

@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -47,12 +46,12 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();
+    private static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -66,12 +65,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(is(HttpURLConnection.class));
-    }
-
-    @Override
-    public boolean indyPlugin() {
-        return true;
+        return hasSuperType(is(HttpURLConnection.class)).and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")));
     }
 
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
@@ -81,6 +75,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         public static Object enter(@Advice.This HttpURLConnection thiz,
                                  @Advice.FieldValue("connected") boolean connected,
                                  @Advice.Origin String signature) {
+
             if (tracer.getActive() == null) {
                 return null;
             }
@@ -106,6 +101,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                                 @Advice.FieldValue("responseCode") int responseCode,
                                 @Nullable @Advice.Enter Object spanObject,
                                 @Advice.Origin String signature) {
+
             Span span = (Span) spanObject;
             if (span == null) {
                 return;

@@ -22,7 +22,7 @@ If you find a bug or an issue, please
 
 Please note that we reserve GitHub tickets for actionable things we can work on, thus confirmed bugs and enhancement requests only.
 
-Help requests are better served in [APM discuss forum](https://discuss.elastic.co/tags/c/apm/java).
+Help requests are better served in [APM discuss forum](https://discuss.elastic.co/tags/c/observability/apm/58/java).
 
 ## Contributing
 

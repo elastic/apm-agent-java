@@ -29,6 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,7 +65,9 @@ class ElasticApmTracerBuilderTest {
         Path file = Files.createFile(tempDir.resolve("elstcapm.tmp"));
         Files.write(file, List.of("instrument=false"));
 
-        ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder("c=" + file.toAbsolutePath()).build().getConfigurationRegistry();
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources("c=" + file.toAbsolutePath());
+
+        ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder(configSources).build().getConfigurationRegistry();
         CoreConfiguration config = configurationRegistry.getConfig(CoreConfiguration.class);
         assertThat(config.isInstrument()).isFalse();
     }

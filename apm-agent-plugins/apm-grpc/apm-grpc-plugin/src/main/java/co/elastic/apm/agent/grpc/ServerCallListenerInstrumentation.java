@@ -24,12 +24,9 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.grpc.helper.GrpcHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.grpc.ServerCall;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -37,7 +34,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -53,15 +49,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * </ul>
  */
 public abstract class ServerCallListenerInstrumentation extends BaseInstrumentation {
-
-    public ServerCallListenerInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
-
-    @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("io.grpc");
-    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -79,10 +66,6 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
      */
     public static class NonFinalMethodCall extends ServerCallListenerInstrumentation {
 
-        public NonFinalMethodCall(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("onReady")
@@ -96,37 +79,20 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                 .or(named("onHalfClose"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ServerCall.Listener<?> listener,
-                                    @Advice.Local("transaction") Transaction transaction) {
-
-            if (null == tracer || grpcHelperManager == null) {
-                return;
-            }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
-            if (helper == null) {
-                return;
-            }
-
-            transaction = helper.enterServerListenerMethod(listener);
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
+            return helper.enterServerListenerMethod(listener);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.This ServerCall.Listener<?> listener,
-                                   @Advice.Local("transaction") @Nullable Transaction transaction) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.This ServerCall.Listener<?> listener,
+                                  @Advice.Enter @Nullable Object transaction) {
 
-            if (null == tracer || grpcHelperManager == null || transaction == null) {
-                return;
+            if (transaction instanceof Transaction) {
+                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, false);
             }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
-            if (helper == null) {
-                return;
-            }
-
-            helper.exitServerListenerMethod(thrown, listener, transaction, false);
         }
     }
 
@@ -141,10 +107,6 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
      */
     public static class FinalMethodCall extends ServerCallListenerInstrumentation {
 
-        public FinalMethodCall(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             // call cancelled by client (or network issue)
@@ -156,37 +118,20 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                 .or(named("onComplete"));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.This ServerCall.Listener<?> listener,
-                                    @Advice.Local("transaction") Transaction transaction) {
-
-            if (null == tracer || grpcHelperManager == null) {
-                return;
-            }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
-            if (helper == null) {
-                return;
-            }
-
-            transaction = helper.enterServerListenerMethod(listener);
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
+            return helper.enterServerListenerMethod(listener);
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                   @Advice.This ServerCall.Listener<?> listener,
-                                   @Advice.Local("transaction") @Nullable Transaction transaction) {
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.This ServerCall.Listener<?> listener,
+                                  @Advice.Enter @Nullable Object transaction) {
 
-            if (null == tracer || grpcHelperManager == null) {
-                return;
+            if (transaction instanceof Transaction) {
+                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, true);
             }
-
-            GrpcHelper helper = grpcHelperManager.getForClassLoaderOfClass(ServerCall.Listener.class);
-            if (helper == null) {
-                return;
-            }
-
-            helper.exitServerListenerMethod(thrown, listener, transaction, true);
         }
     }
 

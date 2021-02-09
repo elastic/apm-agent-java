@@ -1,13 +1,11 @@
 [[setup-attach-cli]]
 === Automatic setup with `apm-agent-attach-standalone.jar`
 
-NOTE: This installation method is experimental.
-
-You can use the attacher as a standalone application on the command line or include it in your application to programmatically attach to the current JVM.
-
-This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
+NOTE: This installation method is in beta.
 
 The `apm-agent-attach-standalone.jar` is a small Java program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
+
+This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
 
 [float]
 [[setup-attach-cli-supported-environments]]
@@ -73,7 +71,7 @@ Attaches the agent to all matching JVMs on the host which confirm to the optiona
 
 [source,bash]
 ----
-java -jar apm-agent-attach-standalone.jar [-include <include_pattern>...]
+java -jar apm-agent-attach-standalone.jar [--include <include_pattern>...]
        [--exclude <exclude_pattern>...] [--continuous]
        [--config <agent_config>... | --args-provider <args_provider_script>]
 ----
@@ -85,7 +83,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 [source,bash]
 ----
 java -jar apm-agent-attach-standalone.jar \
-    --include '.*MyApplication.*' '.*/my-application.jar' \
+    --include '.*MyApplication.*' '.*/my-application.jar.*' \
     --continuous \
     --config service_name=my-cool-service \
     --config server_urls=http://localhost:8200

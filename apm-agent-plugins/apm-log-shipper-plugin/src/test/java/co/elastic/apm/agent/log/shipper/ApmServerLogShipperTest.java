@@ -34,6 +34,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.assertj.core.util.Lists;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,10 +46,14 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.InflaterInputStream;
 
@@ -66,6 +72,7 @@ public class ApmServerLogShipperTest {
     private ApmServerLogShipper logShipper;
     private File logFile;
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
+    private ApmServerClient apmServerClient;
 
     @Before
     public void setUp() throws Exception {
@@ -73,13 +80,17 @@ public class ApmServerLogShipperTest {
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
 
-        ApmServerClient apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
-        apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
+        startClientWithValidUrls();
 
-        DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient);
-        logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), MetaData.create(config, null), serializer);
+        DslJsonSerializer serializer = new DslJsonSerializer(config.getConfig(StacktraceConfiguration.class), apmServerClient, MetaData.create(config, null));
+        logShipper = new ApmServerLogShipper(apmServerClient, config.getConfig(ReporterConfiguration.class), serializer);
         logFile = File.createTempFile("test", ".log");
         tailableFile = new TailableFile(logFile);
+    }
+
+    private void startClientWithValidUrls() throws MalformedURLException {
+        apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
     }
 
     @After
@@ -94,6 +105,33 @@ public class ApmServerLogShipperTest {
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(tailableFile.tail(buffer, logShipper, 100)).isEqualTo(1);
         logShipper.endRequest();
+        List<String> events = getEvents();
+        mockApmServer.verify(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)));
+        assertThat(events).hasSize(3);
+        JsonNode fileMetadata = new ObjectMapper().readTree(events.get(1)).get("metadata").get("log").get("file");
+        assertThat(fileMetadata.get("name").textValue()).isEqualTo(logFile.getName());
+        assertThat(fileMetadata.get("path").textValue()).isEqualTo(logFile.getAbsolutePath());
+        assertThat(events.get(2)).isEqualTo("foo");
+    }
+
+    @Test
+    public void testSendLogsAfterServerUrlsSet() throws Exception {
+        apmServerClient.start(Lists.emptyList());
+        Files.write(logFile.toPath(), List.of("foo"));
+        assertThat(logShipper.getErrorCount()).isEqualTo(0);
+        Future<Integer> readLinesFuture = Executors.newSingleThreadExecutor().submit(() -> tailableFile.tail(buffer, logShipper, 100));
+        // Wait until first failure to send file lines
+        Awaitility.await()
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(100, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(logShipper.getErrorCount()).isGreaterThan(0));
+        // Set valid APM server URLs
+        startClientWithValidUrls();
+        // Verify that after backing off, lines are sent to APM server
+        assertThat(readLinesFuture.get(1500, TimeUnit.MILLISECONDS)).isEqualTo(1);
+        assertThat(logShipper.getErrorCount()).isGreaterThan(0);
+        logShipper.endRequest();
+        assertThat(logShipper.getErrorCount()).isEqualTo(0);
         List<String> events = getEvents();
         mockApmServer.verify(postRequestedFor(urlEqualTo(ApmServerLogShipper.LOGS_ENDPOINT)));
         assertThat(events).hasSize(3);

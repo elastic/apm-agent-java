@@ -26,11 +26,14 @@ package co.elastic.apm.agent.logging;
 
 import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.status.StatusLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -65,6 +68,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     static final String SHIP_AGENT_LOGS = "ship_agent_logs";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
+    static final String INITIAL_LISTENERS_LEVEL = "log4j2.StatusLogger.level";
+    static final String INITIAL_STATUS_LOGGER_LEVEL = "org.apache.logging.log4j.simplelog.StatusLogger.level";
+    static final String DEFAULT_LISTENER_LEVEL = "Log4jDefaultStatusLevel";
 
     /**
      * We don't directly access most logging configuration values through the ConfigurationOption instance variables.
@@ -72,6 +78,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
      * However, the registry initializes logging by declaring a static final logger variable.
      * In order to break up the cyclic dependency and to not accidentally initialize logging before we had the chance to configure the logging,
      * we manually resolve these options.
+     *
+     * NOTE: on top of the above, this specific option should never be accessed through the ConfigurationOption as it
+     * allows {@link LogLevel} that are effectively mapped to other values.
+     *
      * See {@link Log4j2ConfigurationFactory#getValue}
      */
     @SuppressWarnings("unused")
@@ -80,16 +90,35 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .aliasKeys(DEPRECATED_LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the logging level for the agent.\n" +
+            "This option is case-insensitive.\n" +
             "\n" +
-            "This option is case-insensitive.")
+            "NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.")
         .dynamic(true)
         .addChangeListener(new ConfigurationOption.ChangeListener<LogLevel>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, LogLevel oldValue, LogLevel newValue) {
+                newValue = mapLogLevel(newValue);
                 setLogLevel(newValue);
             }
         })
         .buildWithDefault(LogLevel.INFO);
+
+    /**
+     * Maps a {@link LogLevel} that is supported by the agent to a value that is also supported by the underlying
+     * logging framework.
+     * @param original the agent-supported {@link LogLevel}
+     * @return a {@link LogLevel} that is both supported by the agent and the underlying logging framework
+     */
+    @Nonnull
+    static LogLevel mapLogLevel(LogLevel original) {
+        LogLevel mapped = original;
+        if (original == LogLevel.WARNING) {
+            mapped = LogLevel.WARN;
+        } else if (original == LogLevel.CRITICAL) {
+            mapped = LogLevel.ERROR;
+        }
+        return mapped;
+    }
 
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
@@ -195,7 +224,34 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(LogFormat.PLAIN_TEXT);
 
     public static void init(List<ConfigurationSource> sources, String ephemeralId) {
-        Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
+        // The initialization of log4j may produce errors if the traced application uses log4j settings (for
+        // example - through file in the classpath or System properties) that configures specific properties for
+        // loading classes by name. Since we shade our usage of log4j, such non-shaded classes may not (and should not)
+        // be found on the classpath.
+        // All handled Exceptions should not prevent us from using log4j further, as the system falls back to a default
+        // which we expect anyway. We take a calculated risk of ignoring such errors only through initialization time,
+        // assuming that errors that will make the logging system non-usable won't be handled.
+        String initialListenersLevel = System.setProperty(INITIAL_LISTENERS_LEVEL, "OFF");
+        String initialStatusLoggerLevel = System.setProperty(INITIAL_STATUS_LOGGER_LEVEL, "OFF");
+        String defaultListenerLevel = System.setProperty(DEFAULT_LISTENER_LEVEL, "OFF");
+        try {
+            Configurator.initialize(new Log4j2ConfigurationFactory(sources, ephemeralId).getConfiguration());
+        } catch (Throwable throwable) {
+            System.err.println("Failure during initialization of agent's log4j system: " + throwable.getMessage());
+        } finally {
+            restoreSystemProperty(INITIAL_LISTENERS_LEVEL, initialListenersLevel);
+            restoreSystemProperty(INITIAL_STATUS_LOGGER_LEVEL, initialStatusLoggerLevel);
+            restoreSystemProperty(DEFAULT_LISTENER_LEVEL, defaultListenerLevel);
+            StatusLogger.getLogger().setLevel(Level.ERROR);
+        }
+    }
+
+    private static void restoreSystemProperty(String key, @Nullable String originalValue) {
+        if (originalValue != null) {
+            System.setProperty(key, originalValue);
+        } else {
+            System.clearProperty(key);
+        }
     }
 
     public String getLogFile() {

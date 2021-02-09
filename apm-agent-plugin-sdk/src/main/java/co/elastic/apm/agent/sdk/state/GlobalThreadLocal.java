@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.sdk.state;
 
+import co.elastic.apm.agent.sdk.weakmap.NullCheck;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
 import javax.annotation.Nullable;
@@ -72,6 +73,22 @@ public class GlobalThreadLocal<T> extends DetachedThreadLocal<T> {
             clear();
         }
         return value;
+    }
+
+    public T get(T defaultValue) {
+        T value = get();
+        if (value != null) {
+            return value;
+        }
+        return defaultValue;
+    }
+
+    @Override
+    public void set(@Nullable T value) {
+        if (NullCheck.isNullKey(value)) {
+            return;
+        }
+        super.set(value);
     }
 
     @Override

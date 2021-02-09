@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
-import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.AbstractIntakeApiHandler;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -51,18 +50,18 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
     private File currentFile;
     private Set<TailableFile> tailableFiles = new HashSet<>();
 
-    public ApmServerLogShipper(ApmServerClient apmServerClient, ReporterConfiguration reporterConfiguration, MetaData metaData, PayloadSerializer payloadSerializer) {
-        super(reporterConfiguration, metaData, payloadSerializer, apmServerClient);
+    public ApmServerLogShipper(ApmServerClient apmServerClient, ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer) {
+        super(reporterConfiguration, payloadSerializer, apmServerClient);
     }
 
     @Override
-    public boolean onLineAvailable(TailableFile tailableFile, byte[] line, int offset, int length, boolean eol) throws IOException {
+    public boolean onLineAvailable(TailableFile tailableFile, byte[] line, int offset, int length, boolean eol) throws Exception {
         tailableFiles.add(tailableFile);
         try {
             if (connection == null) {
                 connection = startRequest(LOGS_ENDPOINT);
             }
-            if (os != null) {
+            if (connection != null && os != null) {
                 File file = tailableFile.getFile();
                 if (!file.equals(currentFile)) {
                     currentFile = file;
@@ -70,6 +69,9 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
                 }
                 write(os, line, offset, length, eol);
                 return true;
+            } else {
+                logger.debug("Cannot establish connection to APM server, backing off log shipping.");
+                onConnectionError(null, currentlyTransmitting, 0);
             }
         } catch (Exception e) {
             endRequest();
@@ -118,7 +120,8 @@ public class ApmServerLogShipper extends AbstractIntakeApiHandler implements Fil
     }
 
     @Override
-    protected HttpURLConnection startRequest(String endpoint) throws IOException {
+    @Nullable
+    protected HttpURLConnection startRequest(String endpoint) throws Exception {
         HttpURLConnection connection = super.startRequest(endpoint);
         httpRequestClosingThreshold = System.currentTimeMillis() + reporterConfiguration.getApiRequestTime().getMillis();
         currentFile = null;

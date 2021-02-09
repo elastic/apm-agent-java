@@ -26,7 +26,6 @@ package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.util.ExecutorUtils;
@@ -63,7 +62,6 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final byte[] buffer = new byte[4096];
     private final PayloadSerializer payloadSerializer;
-    private final MetaData metaData;
     private final ApmServerClient apmServerClient;
     @Nullable
     private String etag;
@@ -71,13 +69,12 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     @Nullable
     private volatile ThreadPoolExecutor threadPool;
 
-    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, MetaData metaData, ApmServerClient apmServerClient) {
-        this(payloadSerializer, metaData, apmServerClient, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
+    public ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+        this(payloadSerializer, apmServerClient, LoggerFactory.getLogger(ApmServerConfigurationSource.class));
     }
 
-    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, MetaData metaData, ApmServerClient apmServerClient, Logger logger) {
+    ApmServerConfigurationSource(PayloadSerializer payloadSerializer, ApmServerClient apmServerClient, Logger logger) {
         this.payloadSerializer = payloadSerializer;
-        this.metaData = metaData;
         this.apmServerClient = apmServerClient;
         this.logger = logger;
     }
@@ -110,7 +107,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
 
     @Override
     public void start(final ElasticApmTracer tracer) {
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("remote-config-poller", 1);
+        threadPool = ExecutorUtils.createSingleThreadDaemonPool("remote-config-poller", 1);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
@@ -160,10 +157,15 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
             return null;
         }
         try {
+            payloadSerializer.blockUntilReady();
             return apmServerClient.execute("/config/v1/agents", new ApmServerClient.ConnectionHandler<String>() {
                 @Override
                 public String withConnection(HttpURLConnection connection) throws IOException {
-                    return tryFetchConfig(configurationRegistry, connection);
+                    try {
+                        return tryFetchConfig(configurationRegistry, connection);
+                    } catch (PayloadSerializer.UninitializedException e) {
+                        throw new IOException("Cannot fetch configuration from APM Server, serializer not initialized yet", e);
+                    }
                 }
             });
         } catch (Exception e) {
@@ -172,7 +174,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         }
     }
 
-    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException {
+    private String tryFetchConfig(ConfigurationRegistry configurationRegistry, HttpURLConnection connection) throws IOException, PayloadSerializer.UninitializedException {
         if (logger.isDebugEnabled()) {
             logger.debug("Reloading configuration from APM Server {}", connection.getURL());
         }
@@ -183,8 +185,8 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
             connection.setRequestProperty("If-None-Match", etag);
         }
         payloadSerializer.setOutputStream(connection.getOutputStream());
-        payloadSerializer.serializeMetadata(metaData);
-        payloadSerializer.flush();
+        payloadSerializer.appendMetadataToStream();
+        payloadSerializer.fullFlush();
         etag = connection.getHeaderField("ETag");
 
         final int status = connection.getResponseCode();

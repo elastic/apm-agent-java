@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.ssl.SslUtils;
-import co.elastic.apm.agent.util.GlobalLocks;
+import co.elastic.apm.agent.util.UrlConnectionUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
@@ -46,7 +46,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -115,13 +118,18 @@ public class ApmServerClient {
         return copy;
     }
 
+    @Nullable
     HttpURLConnection startRequest(String relativePath) throws IOException {
-        return startRequestToUrl(appendPathToCurrentUrl(relativePath));
+        URL url = appendPathToCurrentUrl(relativePath);
+        if (url == null) {
+            return null;
+        }
+        return startRequestToUrl(url);
     }
 
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
-        final URLConnection connection = openUrlConnectionThreadSafely(url);
+        final URLConnection connection = UrlConnectionUtils.openUrlConnectionThreadSafely(url);
 
         // change SSL socket factory to support both TLS fallback and disabling certificate validation
         if (connection instanceof HttpsURLConnection) {
@@ -157,18 +165,13 @@ public class ApmServerClient {
         return (HttpURLConnection) connection;
     }
 
-    private URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
-        GlobalLocks.JUL_INIT_LOCK.lock();
-        try {
-            return url.openConnection();
-        } finally {
-            GlobalLocks.JUL_INIT_LOCK.unlock();
-        }
-    }
-
-    @Nonnull
+    @Nullable
     URL appendPathToCurrentUrl(String apmServerPath) throws MalformedURLException {
-        return appendPath(getCurrentUrl(), apmServerPath);
+        URL currentUrl = getCurrentUrl();
+        if (currentUrl == null) {
+            return null;
+        }
+        return appendPath(currentUrl, apmServerPath);
     }
 
     @Nonnull
@@ -274,8 +277,12 @@ public class ApmServerClient {
         return results;
     }
 
+    @Nullable
     URL getCurrentUrl() {
         List<URL> serverUrls = getServerUrls();
+        if (serverUrls.isEmpty()) {
+            return null;
+        }
         return serverUrls.get(errorCount.get() % serverUrls.size());
     }
 
@@ -311,6 +318,14 @@ public class ApmServerClient {
 
     public boolean supportsLogsEndpoint() {
         return isAtLeast(VERSION_7_9);
+    }
+
+    @Nullable
+    Version getApmServerVersion(long timeout, TimeUnit timeUnit) throws InterruptedException, ExecutionException, TimeoutException {
+        if (apmServerVersion != null) {
+            return apmServerVersion.get(timeout, timeUnit);
+        }
+        return null;
     }
 
     public boolean isAtLeast(Version apmServerVersion) {

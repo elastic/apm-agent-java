@@ -33,7 +33,9 @@ import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @RunWith(Parameterized.class)
 public class TomcatIT extends AbstractServletContainerIntegrationTest {
@@ -71,11 +73,23 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class, CdiServletContainerTestApp.class);
+        List<Class<? extends TestApp>> testClasses = new ArrayList<>();
+        testClasses.add(ServletApiTestApp.class);
+        testClasses.add(CdiServletContainerTestApp.class);
+        if (!getImageName().contains("jre7")) {
+            // The JSF test app depends on myfaces 2.3.2 which requires Java 8 or higher
+            testClasses.add(JsfServletContainerTestApp.class);
+        }
+        return testClasses;
     }
 
     @Override
-    protected boolean runtimeAttach() {
+    protected boolean runtimeAttachSupported() {
         return true;
+    }
+
+    @Override
+    protected String getJavaagentEnvVariable() {
+        return "CATALINA_OPTS";
     }
 }

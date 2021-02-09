@@ -123,9 +123,10 @@ Click on a key to get more information.
 ** <<config-config-file>>
 ** <<config-use-elastic-traceparent-header>>
 ** <<config-span-min-duration>>
+** <<config-cloud-provider>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
-** <<config-ignore-urls>>
+** <<config-transaction-ignore-urls>>
 ** <<config-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
@@ -149,6 +150,7 @@ Click on a key to get more information.
 ** <<config-profiling-inferred-spans-min-duration>>
 ** <<config-profiling-inferred-spans-included-classes>>
 ** <<config-profiling-inferred-spans-excluded-classes>>
+** <<config-profiling-inferred-spans-lib-directory>>
 * <<config-reporter>>
 ** <<config-secret-token>>
 ** <<config-api-key>>
@@ -604,6 +606,8 @@ You must use the query bar to filter for a specific environment in versions prio
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
 
+Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
+
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
@@ -695,7 +699,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -994,10 +998,12 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 Such methods will be traced and reported if one of the following applies:
+
  - This method's duration crossed the configured threshold.
  - This method ended with Exception.
  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+
 Set to 0 to disable.
 
 NOTE: Transactions are never discarded, regardless of their duration.
@@ -1167,6 +1173,32 @@ The default unit for this option is `ms`.
 | `elastic.apm.span_min_duration` | `span_min_duration` | `ELASTIC_APM_SPAN_MIN_DURATION`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-cloud-provider]]
+==== `cloud_provider` (added[1.21.0])
+
+This config value allows you to specify which cloud provider should be assumed 
+for metadata collection. By default, the agent will attempt to detect the cloud 
+provider or, if that fails, will use trial and error to collect the metadata.
+
+
+
+Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `AUTO` | CloudProvider | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.cloud_provider` | `cloud_provider` | `ELASTIC_APM_CLOUD_PROVIDER`
+|============
+
 [[config-http]]
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1201,8 +1233,8 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-ignore-urls]]
-==== `ignore_urls`
+[[config-transaction-ignore-urls]]
+==== `transaction_ignore_urls`
 
 Used to restrict requests to certain URLs from being instrumented.
 
@@ -1229,7 +1261,7 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.ignore_urls` | `ignore_urls` | `ELASTIC_APM_IGNORE_URLS`
+| `elastic.apm.transaction_ignore_urls` | `transaction_ignore_urls` | `ELASTIC_APM_TRANSACTION_IGNORE_URLS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1274,7 +1306,7 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
 If set to `true`,
-transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
 
 WARNING: If your URLs contain path parameters like `/user/$userId`,
 you should be very careful when enabling this flag,
@@ -1511,12 +1543,13 @@ The resulting documents in Elasticsearch look similar to this:
 ==== `log_level`
 
 Sets the logging level for the agent.
-
 This option is case-insensitive.
+
+NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `CRITICAL`, `WARN`, `WARNING`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
@@ -1857,6 +1890,32 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.profiling_inferred_spans_excluded_classes` | `profiling_inferred_spans_excluded_classes` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_EXCLUDED_CLASSES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-profiling-inferred-spans-lib-directory]]
+==== `profiling_inferred_spans_lib_directory` (added[1.18.0])
+
+Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library is exported to a temporary location and loaded by the JVM.
+The partition backing this location must be executable, however in some server-hardened environments, `noexec` may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.
+Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.
+If unset, the value of the `java.io.tmpdir` system property will be used.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_inferred_spans_lib_directory` | `profiling_inferred_spans_lib_directory` | `ELASTIC_APM_PROFILING_INFERRED_SPANS_LIB_DIRECTORY`
+|============
+
 [[config-reporter]]
 === Reporter configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1923,8 +1982,16 @@ Fails over to the next APM Server URL in the event of connection errors.
 Achieves load-balancing by shuffling the list of configured URLs.
 When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
 
-If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
+If set to an empty string, the agent will work as usual, except from any task requiring communication with 
+the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+
+If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
+<<ssl-configuration>>.
+
+If outgoing HTTP traffic has to go through a proxy,
+you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
+for more information.
 
 NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 
@@ -2478,6 +2545,8 @@ The default unit for this option is `ms`.
 # environment=
 
 # By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+# 
+# Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
 #
 # This setting can be changed at runtime
 # Type: Double
@@ -2525,7 +2594,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2704,10 +2773,12 @@ The default unit for this option is `ms`.
 # If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 # duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 # Such methods will be traced and reported if one of the following applies:
+# 
 #  - This method's duration crossed the configured threshold.
 #  - This method ended with Exception.
 #  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+# 
 # Set to 0 to disable.
 # 
 # NOTE: Transactions are never discarded, regardless of their duration.
@@ -2790,6 +2861,17 @@ The default unit for this option is `ms`.
 #
 # span_min_duration=0ms
 
+# This config value allows you to specify which cloud provider should be assumed 
+# for metadata collection. By default, the agent will attempt to detect the cloud 
+# provider or, if that fails, will use trial and error to collect the metadata.
+#
+# Valid options: AUTO, AWS, GCP, AZURE, NONE
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: CloudProvider
+# Default value: AUTO
+#
+# cloud_provider=AUTO
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -2825,7 +2907,7 @@ The default unit for this option is `ms`.
 # Type: comma separated list
 # Default value: /VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
 #
-# ignore_urls=/VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
+# transaction_ignore_urls=/VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
 
 # Used to restrict requests from certain User-Agents from being instrumented.
 # 
@@ -2847,7 +2929,7 @@ The default unit for this option is `ms`.
 # ignore_user_agents=
 
 # If set to `true`,
-# transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+# transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
 # 
 # WARNING: If your URLs contain path parameters like `/user/$userId`,
 # you should be very careful when enabling this flag,
@@ -3015,10 +3097,11 @@ The default unit for this option is `ms`.
 ############################################
 
 # Sets the logging level for the agent.
-# 
 # This option is case-insensitive.
+# 
+# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
 #
-# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, CRITICAL, WARN, WARNING, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
 # Type: LogLevel
 # Default value: INFO
@@ -3186,6 +3269,17 @@ The default unit for this option is `ms`.
 #
 # profiling_inferred_spans_excluded_classes=(?-i)java.*,(?-i)javax.*,(?-i)sun.*,(?-i)com.sun.*,(?-i)jdk.*,(?-i)org.apache.tomcat.*,(?-i)org.apache.catalina.*,(?-i)org.apache.coyote.*,(?-i)org.jboss.as.*,(?-i)org.glassfish.*,(?-i)org.eclipse.jetty.*,(?-i)com.ibm.websphere.*,(?-i)io.undertow.*
 
+# Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library is exported to a temporary location and loaded by the JVM.
+# The partition backing this location must be executable, however in some server-hardened environments, `noexec` may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.
+# Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.
+# If unset, the value of the `java.io.tmpdir` system property will be used.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# profiling_inferred_spans_lib_directory=
+
 ############################################
 # Reporter                                 #
 ############################################
@@ -3221,8 +3315,16 @@ The default unit for this option is `ms`.
 # Achieves load-balancing by shuffling the list of configured URLs.
 # When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
 # 
-# If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-# See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
+# If set to an empty string, the agent will work as usual, except from any task requiring communication with 
+# the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+# 
+# If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
+# <<ssl-configuration>>.
+# 
+# If outgoing HTTP traffic has to go through a proxy,
+# you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
+# for more information.
 # 
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #

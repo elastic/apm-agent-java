@@ -20,44 +20,148 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.18.0]]
-==== 1.18.0 - YYYY/MM/DD
-
-[float]
-===== Breaking changes
+[[release-notes-1.21.0]]
+==== 1.21.0 - YYYY/MM/DD
 
 [float]
 ===== Features
-* Experimental support for runtime attachment now also for OSGi containers, JBoss, and WildFly
-* New mitigation of OSGi bootdelegation errors (`NoClassDefFoundError`).
-  You can remove any `org.osgi.framework.bootdelegation` related configuration.
-  This release also removes the configuration option `boot_delegation_packages`.
-* Overhaul of the `ExecutorService` instrumentation that avoids `ClassCastException` issues - {pull}1206[#1206]
-* Support for `ForkJoinPool` and `ScheduledExecutorService` (see <<supported-async-frameworks>>)
-* Support for `ExecutorService#invokeAny` and `ExecutorService#invokeAll`
-* Added support for `java.util.TimerTask` - {pull}1235[#1235]
-* Add capturing of request body in Elasticsearch queries: `_msearch`, `_count`, `_msearch/template`, `_search/template`, `_rollup_search` - {pull}1222[#1222]
-* Add <<config-enabled,`enabled`>> flag
-* Add experimental support for Scala Futures
-* The agent now collects heap memory pools metrics - {pull}1228[#1228]
+* Add cloud provider metadata to reported events, see
+https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
+By default, the agent will try to automatically detect the cloud provider on startup, but this can be
+configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
 
 [float]
 ===== Bug fixes
-* Fixes error capturing for log4j2 loggers. Version 1.17.0 introduced a regression.
-* Fixes `NullPointerException` related to JAX-RS and Quartz instrumentation - {pull}1249[#1249]
-* Expanding k8s pod ID discovery to some formerly non-supported environments
-* When `recording` is set to `false`, the agent will not send captured errors anymore.
-* Fixes NPE in Dubbo instrumentation that occurs when the application is acting both as a provider and as a consumer - {pull}1260[#1260]
-* Adding a delay by default what attaching the agent to Tomcat using the premain route to work around the JUL
-  deadlock issue - {pull}1262[#1262]
-* Fixes missing `jboss.as:*` MBeans on JBoss - {pull}1257[#1257]
-* Fixes a `NoClassDefFoundError` in the JMS instrumentation of `MessageListener` - {pull}1287[#1287]
+* Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
+* Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
+* Fixing agent startup failure with `NullPointerException` thrown by Byte-buddy's `MultipleParentClassLoader` - {pull}1647[#1647]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
+[[release-notes-1.20.0]]
+==== 1.20.0 - 2021/01/07
+
+[float]
+===== Breaking changes
+* The following public API types were `public` so far and became package-private: `NoopScope`, `ScopeImpl` and `AbstractSpanImpl`.
+  If your code is using them, you will need to change that when upgrading to this version.
+  Related PR: {pull}1532[#1532]
+
+[float]
+===== Features
+* Add support for RabbitMQ clients - {pull}1328[#1328]
+
+[float]
+===== Bug fixes
+* Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
+* Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[#1531]
+* Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[#1537]
+* Fix `ClassNotFoundError` with old versions of Spring resttemplate {pull}1524[#1524]
+* Fix Micrometer-driven metrics validation errors by the APM Server when sending with illegal values - {pull}1559[#1559]
+* Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
+* Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
+* Fix improper request body capturing - {pull}1579[#1579]
+* Avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
+* Update async-profiler to 1.8.3 {pull}1602[1602]
+* Use null-safe data structures to avoid `NullPointerException` {pull}1597[1597]
+* Fix memory leak in sampling profiler mechanism - {pull}1592[#1592]
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
+
+[[release-notes-1.19.0]]
+==== 1.19.0 - 2020/11/10
+
+[float]
+===== Features
+* The agent version now includes a git hash if it's a snapshot version.
+  This makes it easier to differ distinct snapshot builds of the same version.
+  Example: `1.18.1-SNAPSHOT.4655910`
+* Add support for sampling weight with propagation in `tracestate` W3C header {pull}1384[#1384]
+* Adding two more valid options to the `log_level` config: `WARNING` (equivalent to `WARN`) and `CRITICAL`
+  (will be treated as `ERROR`) - {pull}1431[1431]
+* Add the ability to disable Servlet-related spans for `INCLUDE`, `FORWARD` and `ERROR` dispatches (without affecting
+  basic Servlet capturing) by adding `servlet-api-dispatch` to <<config-disable-instrumentations>> - {pull}1448[1448]
+* Add Sampling Profiler support for AArch64 architectures - {pull}1443[1443]
+* Support proper transaction naming when using Spring's `ServletWrappingController` - {pull}1461[#1461]
+* Update async-profiler to 1.8.2 {pull}1471[1471]
+* Update existing Hibernate Search 6 instrumentation to work with the latest CR1 release
+* Deprecating the `addLabel` public API in favor of `setLabel` (still supporting `addLabel`) - {pull}1449[#1449]
+
+[float]
+===== Bug fixes
+* Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
+  `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
+* Fixes class loading issue that can occur when deploying multiple applications to the same application server - {pull}1458[#1458]
+* Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1444]
+* Avoid `UnsupportedOperationException` on some spring application startup {pull}1464[1464]
+* Fix ignored runtime attach `config_file` {pull}1469[1469]
+* Fix `IllegalAccessError: Module 'java.base' no access to: package 'java.lang'...` in J9 VMs of Java version >= 9 -
+  {pull}1468[#1468]
+* Fix JVM version parsing on HP-UX {pull}1477[#1477]
+* Fix Spring-JMS transactions lifecycle management when using multiple concurrent consumers - {pull}1496[#1496]
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1411[1411]
+* Replace System Rules with System Lambda {pull}1434[#1434]
+
+[[release-notes-1.18.1]]
+==== 1.18.1 - 2020/10/06
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1362[1362] {pull}1366[1366] {pull}1363[1363] {pull}1383[1383] {pull}1368[1368] {pull}1364[1364] {pull}1365[1365] {pull}1367[1367] {pull}1371[1371]
+
+[float]
+===== Bug fixes
+* Fix instrumentation error for HttpClient - {pull}1402[#1402]
+* Eliminate `unsupported class version error` messages related to loading the Java 11 HttpClient plugin in pre-Java-11 JVMs {pull}1397[1397]
+* Fix rejected metric events by APM Server with response code 400 due to data validation error - sanitizing Micrometer
+metricset tag keys - {pull}1413[1413]
+* Fix invalid micrometer metrics with non-numeric values {pull}1419[1419]
+* Fix `NoClassDefFoundError` with JDBC instrumentation plugin {pull}1409[1409]
+* Apply `disable_metrics` config to Micrometer metrics - {pull}1421[1421]
+* Remove cgroup `inactive_file.bytes` metric according to spec {pull}1422[1422]
+
+[[release-notes-1.18.0]]
+==== 1.18.0 - 2020/09/08
+
+[float]
+===== Features
+* Deprecating `ignore_urls` config in favour of <<config-transaction-ignore-urls, `transaction_ignore_urls`>> to align
+  with other agents, while still allowing the old config name for backward compatibility - {pull}1315[#1315]
+* Enabling instrumentation of classes compiled with Java 1.4. This is reverting the restriction of instrumenting only
+  bytecode of Java 1.5 or higher ({pull}320[#320]), which was added due to potential `VerifyError`. Such errors should be
+  avoided now by the usage of `TypeConstantAdjustment` - {pull}1317[#1317]
+* Enabling agent to work without attempting any communication with APM server, by allowing setting `server_urls` with
+  an empty string - {pull}1295[#1295]
+* Add <<metrics-micrometer, micrometer support>> - {pull}1303[#1303]
+* Add `profiling_inferred_spans_lib_directory` option to override the default temp directory used for exporting the async-profiler library.
+  This is useful for server-hardened environments where `/tmp` is often configured with `noexec`, leading to `java.lang.UnsatisfiedLinkError` errors - {pull}1350[#1350]
+* Create spans for Servlet dispatches to FORWARD, INCLUDE and ERROR - {pull}1212[#1212]
+* Support JDK 11 HTTPClient - {pull}1307[#1307]
+* Lazily create profiler temporary files {pull}1360[#1360]
+* Convert the followings to Indy Plugins (see details in <<release-notes-1.18.0.rc1, 1.18.0-rc1 relase notes>>): gRPC,
+  AsyncHttpClient, Apache HttpClient
+* The agent now collects cgroup memory metrics (see details in <<metrics-cgroup,Metrics page>>)
+* Update async-profiler to 1.8.1 {pull}1382[#1382]
+* Runtime attach install option is promoted to 'beta' status (was experimental).
+
+[float]
+===== Bug fixes
+* Fixes a `NoClassDefFoundError` in the JMS instrumentation of `MessageListener` - {pull}1287[#1287]
+* Fix `/ by zero` error message when setting `server_urls` with an empty string - {pull}1295[#1295]
+* Fix `ClassNotFoundException` or `ClassCastException` in some cases where special log4j configurations are used - {pull}1322[#1322]
+* Fix `NumberFormatException` when using early access Java version - {pull}1325[#1325]
+* Fix `service_name` config being ignored when set to the same auto-discovered default value - {pull}1324[#1324]
+* Fix service name error when updating a web app on a Servlet container - {pull}1326[#1326]
+* Fix remote attach 'jps' executable not found when 'java' binary is symlinked ot a JRE - {pull}1352[#1352]
+
 [[release-notes-1.18.0.rc1]]
-==== 1.18.0.RC1 - YYYY/MM/DD
+==== 1.18.0.RC1 - 2020/07/22
 
 This release candidate adds some highly anticipated features:
 It’s now possible to attach the agent at runtime in more cases than before.

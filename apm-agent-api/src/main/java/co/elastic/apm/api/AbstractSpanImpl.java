@@ -28,7 +28,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
-public abstract class AbstractSpanImpl implements Span {
+abstract class AbstractSpanImpl implements Span {
     @Nonnull
     // co.elastic.apm.agent.impl.transaction.Span
     protected final Object span;
@@ -94,7 +94,7 @@ public abstract class AbstractSpanImpl implements Span {
     }
 
     void doAddNumberLabel(String key, Number value) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberTagInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberLabelInstrumentation
     }
 
     void doAddBooleanLabel(String key, Boolean value) {

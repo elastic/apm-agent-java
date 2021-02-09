@@ -79,4 +79,9 @@ public class JedisSpanNameInstrumentation extends TracerAwareInstrumentation {
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("redis", "jedis");
     }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
+    }
 }

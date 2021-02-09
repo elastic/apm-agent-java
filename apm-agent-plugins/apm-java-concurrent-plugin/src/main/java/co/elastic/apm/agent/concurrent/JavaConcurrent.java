@@ -35,7 +35,9 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
 
@@ -46,11 +48,27 @@ public class JavaConcurrent {
         <Class<? extends ElasticApmInstrumentation>>singletonList(RunnableCallableForkJoinTaskInstrumentation.class);
     static final ThreadLocal<Boolean> needsContext = new ThreadLocal<>();
 
+    private static final Set<String> EXCLUDED_EXECUTABLE_TYPES;
+
+    static {
+        EXCLUDED_EXECUTABLE_TYPES = new HashSet<String>();
+        EXCLUDED_EXECUTABLE_TYPES.add(RunnableLambdaWrapper.class.getName());
+        EXCLUDED_EXECUTABLE_TYPES.add(CallableLambdaWrapper.class.getName());
+        // Spring-JMS polling mechanism that translates to passive onMessage handling
+        EXCLUDED_EXECUTABLE_TYPES.add("org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker");
+    }
+
     private static void removeContext(Object o) {
         AbstractSpan<?> context = contextMap.remove(o);
         if (context != null) {
             context.decrementReferences();
         }
+    }
+
+    private static boolean shouldAvoidContextPropagation(@Nullable Object executable) {
+        return executable == null ||
+            EXCLUDED_EXECUTABLE_TYPES.contains(executable.getClass().getName()) ||
+            needsContext.get() == Boolean.FALSE;
     }
 
     @Nullable
@@ -76,7 +94,7 @@ public class JavaConcurrent {
      */
     @Nullable
     public static Runnable withContext(@Nullable Runnable runnable, Tracer tracer) {
-        if (runnable instanceof RunnableLambdaWrapper || runnable == null || needsContext.get() == Boolean.FALSE) {
+        if (shouldAvoidContextPropagation(runnable)) {
             return runnable;
         }
         needsContext.set(Boolean.FALSE);
@@ -104,7 +122,7 @@ public class JavaConcurrent {
      */
     @Nullable
     public static <T> Callable<T> withContext(@Nullable Callable<T> callable, Tracer tracer) {
-        if (callable instanceof CallableLambdaWrapper || callable == null || needsContext.get() == Boolean.FALSE) {
+        if (shouldAvoidContextPropagation(callable)) {
             return callable;
         }
         needsContext.set(Boolean.FALSE);
@@ -121,7 +139,7 @@ public class JavaConcurrent {
 
     @Nullable
     public static <T> ForkJoinTask<T> withContext(@Nullable ForkJoinTask<T> task, Tracer tracer) {
-        if (task == null || needsContext.get() == Boolean.FALSE) {
+        if (shouldAvoidContextPropagation(task)) {
             return task;
         }
         needsContext.set(Boolean.FALSE);
@@ -167,9 +185,11 @@ public class JavaConcurrent {
         } else {
             wrapped = null;
         }
+        Boolean context = needsContext.get();
         for (Callable<T> callable : callables) {
+            // restore previous state as withContext always sets to false
+            needsContext.set(context);
             final Callable<T> potentiallyWrappedCallable = withContext(callable, tracer);
-            needsContext.set(Boolean.TRUE);
             if (wrapped != null) {
                 wrapped.add(potentiallyWrappedCallable);
             }

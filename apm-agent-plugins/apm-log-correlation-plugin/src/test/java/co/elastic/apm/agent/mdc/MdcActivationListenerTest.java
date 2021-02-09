@@ -33,7 +33,6 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.apache.logging.log4j.ThreadContext;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
@@ -52,23 +51,15 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
 
     private LoggingConfiguration loggingConfiguration;
     private Boolean log4jMdcWorking;
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         org.apache.log4j.MDC.put("test", true);
         log4jMdcWorking = (Boolean) org.apache.log4j.MDC.get("test");
         MDC.clear();
         org.apache.log4j.MDC.clear();
         ThreadContext.clearAll();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
-        // initializes thread eagerly to avoid InheritableThreadLocal to inherit values to this thread
-        executorService.submit(() -> {}).get();
-    }
-
-    @AfterEach
-    void tearDown() {
-        executorService.shutdown();
     }
 
     @Test
@@ -85,8 +76,10 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
                 try (Scope grandchildScope = grandchild.activateInScope()) {
                     assertMdcIsSet(grandchild);
                 }
+                grandchild.end();
                 assertMdcIsSet(child);
             }
+            child.end();
             assertMdcIsSet(transaction);
         }
         assertMdcIsEmpty();
@@ -114,6 +107,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
             try (Scope childScope = child.activateInScope()) {
                 assertMdcIsSet(transaction);
             }
+            child.end();
             assertMdcIsSet(transaction);
         }
         assertMdcIsEmpty();
@@ -231,27 +225,38 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
 
     @Test
     void testMdcIntegrationContextScopeInDifferentThread() throws Exception {
-        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
-        assertMdcIsEmpty();
-        try (Scope scope = transaction.activateInScope()) {
-            assertMdcIsSet(transaction);
-            final Span child = transaction.createSpan();
-            try (Scope childScope = child.activateInScope()) {
-                assertMdcIsSet(child);
-                executorService.submit(() -> {
-                    assertMdcIsEmpty();
-                    try (Scope otherThreadScope = child.activateInScope()) {
-                        assertMdcIsSet(child);
-                    }
-                    assertMdcIsEmpty();
-                }).get();
-                assertMdcIsSet(child);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            // initializes thread eagerly to avoid InheritableThreadLocal to inherit values to this thread
+            executorService.submit(() -> {
+            }).get();
+
+            when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+            final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
+            assertMdcIsEmpty();
+            try (Scope scope = transaction.activateInScope()) {
+                assertMdcIsSet(transaction);
+                final Span child = transaction.createSpan();
+                try (Scope childScope = child.activateInScope()) {
+                    assertMdcIsSet(child);
+                    executorService.submit(() -> {
+                        assertMdcIsEmpty();
+                        try (Scope otherThreadScope = child.activateInScope()) {
+                            assertMdcIsSet(child);
+                        }
+                        assertMdcIsEmpty();
+                    }).get();
+                    assertMdcIsSet(child);
+                }
+                child.end();
+                assertMdcIsSet(transaction);
+            } finally {
+                transaction.end();
             }
-            assertMdcIsSet(transaction);
+        } finally {
+            executorService.shutdownNow();
         }
         assertMdcIsEmpty();
-        transaction.end();
     }
 
     @Test

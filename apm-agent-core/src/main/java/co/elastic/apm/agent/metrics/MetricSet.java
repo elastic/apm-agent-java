@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -23,6 +23,8 @@
  * #L%
  */
 package co.elastic.apm.agent.metrics;
+
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -44,7 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * {"metricset":{"timestamp":1545047730692000,"tags":{"name":"G1 Old Generation"},  "samples":{"jvm.gc.time":{"value":0.0},"jvm.gc.count":{"value":0.0}}}}
  * </pre>
  */
-public class MetricSet {
+public class MetricSet implements Recyclable {
     private final Labels.Immutable labels;
     private final ConcurrentMap<String, DoubleSupplier> gauges;
     // low load factor as hash collisions are quite costly when tracking breakdown metrics
@@ -107,7 +109,16 @@ public class MetricSet {
         return !gauges.isEmpty() || hasNonEmptyTimer || hasNonEmptyCounter;
     }
 
-    public void onAfterReport() {
+    /**
+     * Should be called only when the MetricSet is inactive
+     */
+    public void resetState() {
+        for (Timer timer : timers.values()) {
+            timer.resetState();
+        }
+        for (AtomicLong counter : counters.values()) {
+            counter.set(0);
+        }
         hasNonEmptyTimer = false;
         hasNonEmptyCounter = false;
     }

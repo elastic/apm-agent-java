@@ -70,12 +70,20 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Integer> asyncProfilerSafeMode = ConfigurationOption.<Integer>integerOption()
         .key("async_profiler_safe_mode")
         .configurationCategory(PROFILING_CATEGORY)
-        .dynamic(false)
+        .dynamic(true)
         .description("Can be used for analysis: the Async Profiler's area that deals with recovering stack trace frames \n" +
             "is known to be sensitive in some systems. It is used as a bit mask using values are between 0 and 31, \n" +
             "where 0 enables all recovery attempts and 31 disables all five (corresponding 1, 2, 4, 8 and 16).")
         .tags("internal")
         .buildWithDefault(0);
+
+    private final ConfigurationOption<Boolean> postProcessingEnabled = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_inferred_spans_post_processing_enabled")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(true)
+        .description("Can be used to test the effect of the async-profiler in isolation from the agent's post-processing.")
+        .tags("added[1.18.0]", "internal")
+        .buildWithDefault(true);
 
     private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
         .key("profiling_inferred_spans_sampling_interval")
@@ -163,16 +171,25 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.15.0]", "internal")
         .buildWithDefault(TimeDuration.of("5s"));
 
+    private final ConfigurationOption<String> profilerLibDirectory = ConfigurationOption.<String>stringOption()
+        .key("profiling_inferred_spans_lib_directory")
+        .description("Profiling requires that the https://github.com/jvm-profiling-tools/async-profiler[async-profiler] shared library " +
+            "is exported to a temporary location and loaded by the JVM.\n" +
+            "The partition backing this location must be executable, however in some server-hardened environments, " +
+            "`noexec` may be set on the standard `/tmp` partition, leading to `java.lang.UnsatisfiedLinkError` errors.\n" +
+            "Set this property to an alternative directory (e.g. `/var/tmp`) to resolve this.\n" +
+            "If unset, the value of the `java.io.tmpdir` system property will be used.")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(false)
+        .tags("added[1.18.0]")
+        .build();
+
     public boolean isProfilingEnabled() {
         return profilingEnabled.get();
     }
 
     public int getAsyncProfilerSafeMode() {
         return asyncProfilerSafeMode.get();
-    }
-
-    public boolean isProfilingDisabled() {
-        return !isProfilingEnabled();
     }
 
     public TimeDuration getSamplingInterval() {
@@ -205,5 +222,13 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public boolean isBackupDiagnosticFiles() {
         return backupDiagnosticFiles.get();
+    }
+
+    public String getProfilerLibDirectory() {
+        return profilerLibDirectory.isDefault() ? System.getProperty("java.io.tmpdir") : profilerLibDirectory.get();
+    }
+
+    public boolean isPostProcessingEnabled() {
+        return postProcessingEnabled.get();
     }
 }

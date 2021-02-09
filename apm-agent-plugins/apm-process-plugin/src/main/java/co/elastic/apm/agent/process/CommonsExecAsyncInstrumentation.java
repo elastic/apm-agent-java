@@ -88,11 +88,6 @@ public class CommonsExecAsyncInstrumentation extends TracerAwareInstrumentation 
         return CommonsExecAdvice.class;
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
     public static final class CommonsExecAdvice {
 
         @Nullable
