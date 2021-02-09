@@ -20,8 +20,17 @@ endif::[]
 
 === Unreleased
 
+[[release-notes-1.21.1]]
+==== 1.21.1 - YYYY/MM/DD
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
 [[release-notes-1.21.0]]
-==== 1.21.0 - YYYY/MM/DD
+==== 1.21.0 - 2020/02/09
 
 [float]
 ===== Breaking changes
@@ -43,6 +52,7 @@ configuration options:
 https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
 By default, the agent will try to automatically detect the cloud provider on startup, but this can be
 configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
+* Add span & transaction `outcome` field to improve error rate calculations - {pull}1613[#1613]
 
 [float]
 ===== Bug fixes
@@ -50,9 +60,6 @@ configured through the <<config-cloud-provider, `cloud_provider`>> config option
 * Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
 * Fixing agent startup failure with `NullPointerException` thrown by Byte-buddy's `MultipleParentClassLoader` - {pull}1647[#1647]
 * Fix cached type resolution triggering `ClassCastException` - {pull}1649[#1649]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.20.0]]
 ==== 1.20.0 - 2021/01/07
