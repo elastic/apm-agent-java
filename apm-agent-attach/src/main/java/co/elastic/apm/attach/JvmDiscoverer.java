@@ -56,7 +56,7 @@ public interface JvmDiscoverer {
 
         ForCurrentVM() {
             JvmDiscoverer tempJvmDiscoverer = Unavailable.INSTANCE;
-            for (JvmDiscoverer jvmDiscoverer : Arrays.asList(Jps.INSTANCE, ForHotSpotVm.withDefaultTempDir())) {
+            for (JvmDiscoverer jvmDiscoverer : Arrays.asList(ForHotSpotVm.withDefaultTempDir(), Jps.INSTANCE)) {
                 if (jvmDiscoverer.isAvailable()) {
                     tempJvmDiscoverer = jvmDiscoverer;
                     break;
@@ -195,46 +195,45 @@ public interface JvmDiscoverer {
      */
     class ForHotSpotVm implements JvmDiscoverer {
 
-        private final String tempDir;
+        private final List<String> tempDirs;
 
-        public ForHotSpotVm(String tempDir) {
-            this.tempDir = tempDir;
+        public ForHotSpotVm(List<String> tempDirs) {
+            this.tempDirs = tempDirs;
         }
 
         public static ForHotSpotVm withDefaultTempDir() {
-            String temporaryDirectory;
+            List<String> tempDirs = new ArrayList<>();
             if (Platform.isMac()) {
-                temporaryDirectory = System.getenv("TMPDIR");
-                if (temporaryDirectory == null) {
-                    temporaryDirectory = "/tmp";
-                }
-            } else if (Platform.isWindows()) {
-                temporaryDirectory = System.getenv("TEMP");
-                if (temporaryDirectory == null) {
-                    temporaryDirectory = "c:/Temp";
+                // on MacOS, each user has their own temp dir
+                try {
+                    tempDirs.addAll(Users.getAllUsersMacOs().getAllTempDirs());
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             } else {
-                temporaryDirectory = "/tmp";
+                // this only works if the java.io.tmpdir property is not overridden as the hsperfdata_ files are stored in the default tmpdir
+                // but we as we control the startup script for the attacher.jar that's fine
+                tempDirs.add(System.getProperty("java.io.tmpdir"));
             }
-            return new ForHotSpotVm(temporaryDirectory);
+            return new ForHotSpotVm(tempDirs);
         }
 
         @Override
         public Collection<JvmInfo> discoverJvms() {
             List<JvmInfo> result = new ArrayList<>();
-            File[] hsPerfdataFolders = getHsPerfdataFolders();
-            if (hsPerfdataFolders != null) {
-                for (File hsPerfdataFolder : hsPerfdataFolders) {
-                    File[] jvmPidFiles = hsPerfdataFolder.listFiles(new FileFilter() {
-                        @Override
-                        public boolean accept(File file) {
-                            return file.isFile() && file.canRead() && file.getName().matches("\\d+");
-                        }
-                    });
-                    if (jvmPidFiles != null) {
-                        for (File jvmPidFile : jvmPidFiles) {
-                            result.add(new JvmInfo(jvmPidFile.getName(), null));
-                        }
+            List<File> hsPerfdataFolders = getHsPerfdataFolders();
+            for (File hsPerfdataFolder : hsPerfdataFolders) {
+                File[] jvmPidFiles = hsPerfdataFolder.listFiles(new FileFilter() {
+                    @Override
+                    public boolean accept(File file) {
+                        return file.isFile() && file.canRead() && file.getName().matches("\\d+");
+                    }
+                });
+                if (jvmPidFiles != null) {
+                    for (File jvmPidFile : jvmPidFiles) {
+                        String user = jvmPidFile.getParentFile().getName().substring("hsperfdata_".length());
+                        // TODO parse hsperfdata_ file to get jar name and vm arguments
+                        result.add(new JvmInfo(jvmPidFile.getName(), null, user));
                     }
                 }
             }
@@ -243,17 +242,24 @@ public interface JvmDiscoverer {
 
         @Override
         public boolean isAvailable() {
-            File[] files = getHsPerfdataFolders();
-            return files != null && files.length > 0;
+            List<File> files = getHsPerfdataFolders();
+            return !files.isEmpty();
         }
 
-        private File[] getHsPerfdataFolders() {
-            return new File(tempDir).listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.startsWith("hsperfdata_");
+        private List<File> getHsPerfdataFolders() {
+            List<File> result = new ArrayList<>();
+            for (String tempDir : tempDirs) {
+                File[] files = new File(tempDir).listFiles(new FilenameFilter() {
+                    @Override
+                    public boolean accept(File dir, String name) {
+                        return name.startsWith("hsperfdata_");
+                    }
+                });
+                if (files != null) {
+                    result.addAll(Arrays.asList(files));
                 }
-            });
+            }
+            return result;
         }
     }
 }

@@ -29,10 +29,16 @@ import java.util.Objects;
 class JvmInfo {
     final String pid;
     final String packageOrPathOrJvmProperties;
+    final String user;
 
     JvmInfo(String pid, String packageOrPathOrJvmProperties) {
+        this(pid, packageOrPathOrJvmProperties, null);
+    }
+
+    JvmInfo(String pid, String packageOrPathOrJvmProperties, String user) {
         this.pid = pid;
         this.packageOrPathOrJvmProperties = packageOrPathOrJvmProperties;
+        this.user = user;
     }
 
     static JvmInfo parse(String jpsLine) {

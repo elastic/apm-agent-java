@@ -49,9 +49,12 @@ public class RemoteAttacher {
     private static final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     private final Arguments arguments;
     private Set<JvmInfo> runningJvms = new HashSet<>();
+    private final Users users = Users.empty();
 
     private RemoteAttacher(Arguments arguments) {
         this.arguments = arguments;
+        // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
+        ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
     }
 
     public static void main(String[] args) throws Exception {
@@ -80,13 +83,18 @@ public class RemoteAttacher {
                 System.out.println(jvm);
             }
         } else if (arguments.getPid() != null) {
-            log("INFO", "Attaching the Elastic APM agent to %s", arguments.getPid());
-
-            // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
-            ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
-
-            ElasticApmAttacher.attach(arguments.getPid(), arguments.getConfig());
-            log("INFO", "Done");
+            Collection<JvmInfo> jvmInfos = JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms();
+            JvmInfo targetVm = null;
+            for (JvmInfo jvmInfo : jvmInfos) {
+                if (jvmInfo.pid.equals(arguments.getPid())) {
+                    targetVm = jvmInfo;
+                }
+            }
+            if (targetVm != null) {
+                attacher.attach(targetVm, arguments.getConfig());
+            } else {
+                log("ERROR", "Could not discover JVM with PID %d", arguments.getPid());
+            }
         } else {
             do {
                 attacher.attachToNewJvms(JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms());
@@ -128,8 +136,11 @@ public class RemoteAttacher {
             try {
                 final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
                 log("INFO", "Attaching the Elastic APM agent to %s with arguments %s", jvmInfo, agentArgs);
-                ElasticApmAttacher.attach(jvmInfo.pid, agentArgs);
-                log("INFO", "Done");
+                if (attach(jvmInfo, agentArgs)) {
+                    log("INFO", "Done");
+                } else {
+                    log("ERROR", "Unable to attach to JVM with PID = %s", jvmInfo.pid);
+                }
             } catch (Exception e) {
                 log("ERROR", "Unable to attach to JVM with PID = %s", jvmInfo.pid);
                 e.printStackTrace();
@@ -137,6 +148,37 @@ public class RemoteAttacher {
         } else {
             log("DEBUG", "Not attaching the Elastic APM agent to %s, because it is not included or excluded.", jvmInfo);
         }
+    }
+
+    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) throws IOException, InterruptedException {
+        Users.User user = users.get(jvmInfo.user);
+        if (user == null) {
+            return false;
+        }
+        if (user.isCurrentUser()) {
+            ElasticApmAttacher.attach(jvmInfo.pid, agentArgs);
+            return true;
+        } else if (user.canSwitchToUser()) {
+            return attachAsUser(user, agentArgs, jvmInfo.pid);
+        } else {
+            log("WARN", "Cannot attach to %s because the current user (%s) doesn't have the permissions to switch to user %s",
+                jvmInfo, Users.getCurrentUserName(), jvmInfo.user);
+            return false;
+        }
+    }
+
+    public static boolean attachAsUser(Users.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
+
+        List<String> args = new ArrayList<>();
+        args.add("--pid");
+        args.add(pid);
+        for (Map.Entry<String, String> entry : agentArgs.entrySet()) {
+            args.add("--config");
+            args.add(entry.getKey() + "=" + entry.getValue());
+        }
+        Process process = user.runAsUserWithCurrentClassPath(RemoteAttacher.class, args).inheritIO().start();
+        process.waitFor();
+        return process.exitValue() == 0;
     }
 
     private Map<String, String> getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
