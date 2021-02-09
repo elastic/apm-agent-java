@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl.payload;
 
 import javax.annotation.Nullable;
 
+@SuppressWarnings("StringBufferReplaceableByString")
 public class CloudProviderInfo {
 
     private final String provider;
@@ -37,13 +38,13 @@ public class CloudProviderInfo {
     private String region;
 
     @Nullable
-    private ProviderInstance instance;
+    private NameAndIdField instance;
 
     @Nullable
-    private ProviderAccount account;
+    private NameAndIdField account;
 
     @Nullable
-    private ProviderProject project;
+    private NameAndIdField project;
 
     @Nullable
     private ProviderMachine machine;
@@ -75,29 +76,29 @@ public class CloudProviderInfo {
     }
 
     @Nullable
-    public ProviderInstance getInstance() {
+    public NameAndIdField getInstance() {
         return instance;
     }
 
-    public void setInstance(ProviderInstance instance) {
+    public void setInstance(@Nullable NameAndIdField instance) {
         this.instance = instance;
     }
 
     @Nullable
-    public ProviderAccount getAccount() {
+    public NameAndIdField getAccount() {
         return account;
     }
 
-    public void setAccount(ProviderAccount account) {
+    public void setAccount(@Nullable NameAndIdField account) {
         this.account = account;
     }
 
     @Nullable
-    public ProviderProject getProject() {
+    public NameAndIdField getProject() {
         return project;
     }
 
-    public void setProject(ProviderProject project) {
+    public void setProject(@Nullable NameAndIdField project) {
         this.project = project;
     }
 
@@ -106,17 +107,32 @@ public class CloudProviderInfo {
         return machine;
     }
 
-    public void setMachine(ProviderMachine machine) {
+    public void setMachine(@Nullable ProviderMachine machine) {
         this.machine = machine;
     }
 
-    public static class ProviderAccount {
-
+    public static class NameAndIdField {
         @Nullable
-        private String id;
+        protected String id;
+        @Nullable
+        protected String name;
 
-        public ProviderAccount(@Nullable String id) {
+        public NameAndIdField(@Nullable String name) {
+            this.name = name;
+        }
+
+        public NameAndIdField(@Nullable String name, @Nullable Long id) {
+            this.name = name;
+            this.id = id != null ? id.toString() : null;
+        }
+
+        public NameAndIdField(@Nullable String name, @Nullable String id) {
+            this.name = name;
             this.id = id;
+        }
+
+        public boolean isEmpty() {
+            return id == null && name == null;
         }
 
         @Nullable
@@ -124,8 +140,38 @@ public class CloudProviderInfo {
             return id;
         }
 
-        public void setId(String id) {
+        @Nullable
+        public String getName() {
+            return name;
+        }
+
+        public void setName(@Nullable String name) {
+            this.name = name;
+        }
+
+        public void setId(@Nullable String id) {
             this.id = id;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("{");
+            sb.append("id='").append(id).append('\'');
+            sb.append(", name='").append(name).append('\'');
+            sb.append("}");
+            return sb.toString();
+        }
+    }
+
+    /**
+     * Currently, we only fill the {@code account.id} field, however the intake API supports the {@code account.name}
+     * as well and we may wont to use it in the future. This is a convenience type for the time being that can be
+     * removed if we get to that.
+     */
+    public static class ProviderAccount extends NameAndIdField {
+
+        public ProviderAccount(@Nullable String id) {
+            super(null, id);
         }
 
         @Override
@@ -134,116 +180,21 @@ public class CloudProviderInfo {
         }
     }
 
-    public static class ProviderInstance {
-
-        @Nullable
-        private String id;
-        @Nullable
-        private String name;
-
-        public ProviderInstance(@Nullable Long id, @Nullable String name) {
-            this.id = id != null ? id.toString() : null;
-            this.name = name;
-        }
-
-        public ProviderInstance(@Nullable String id, @Nullable String name) {
-            this.id = id;
-            this.name = name;
-        }
-
-        @Nullable
-        public String getId() {
-            return id;
-        }
-
-        @Nullable
-        public String getName() {
-            return name;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            final StringBuilder sb = new StringBuilder("{");
-            sb.append("id='").append(id).append('\'');
-            sb.append(", name='").append(name).append('\'');
-            sb.append("}");
-            return sb.toString();
-        }
-    }
-
-    public static class ProviderProject {
-        @Nullable
-        private String id;
-        @Nullable
-        private String name;
-
-        public ProviderProject(@Nullable String name) {
-            this.name = name;
-        }
-
-        public ProviderProject(@Nullable String name, @Nullable Long id) {
-            this.name = name;
-            this.id = id != null ? id.toString() : null;
-        }
-
-        public ProviderProject(@Nullable String name, @Nullable String id) {
-            this.name = name;
-            this.id = id;
-        }
-
-        @Nullable
-        public String getId() {
-            return id;
-        }
-
-        @Nullable
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            final StringBuilder sb = new StringBuilder("{");
-            sb.append("id='").append(id).append('\'');
-            sb.append(", name='").append(name).append('\'');
-            sb.append("}");
-            return sb.toString();
-        }
-    }
-
     public static class ProviderMachine {
 
-        @Nullable
         private final String type;
 
-        public ProviderMachine(@Nullable String type) {
+        public ProviderMachine(String type) {
             this.type = type;
         }
 
-        @Nullable
         public String getType() {
             return type;
         }
 
         @Override
         public String toString() {
-            return String.valueOf(type);
+            return type;
         }
     }
 
