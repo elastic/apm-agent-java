@@ -176,31 +176,30 @@ public class GrpcHelper {
     }
 
     public static Outcome toClientOutcome(@Nullable Status status) {
-        Outcome outcome = Outcome.FAILURE;
-        if (status != null) {
-            outcome = status.isOk() ? Outcome.SUCCESS : Outcome.FAILURE;
+        if( status == null || !status.isOk()){
+            return Outcome.FAILURE;
+        } else {
+            return Outcome.SUCCESS;
         }
-        return outcome;
     }
 
     public static Outcome toServerOutcome(@Nullable Status status) {
-        Outcome outcome = Outcome.FAILURE;
-        if (status != null) {
-            switch (status.getCode()) {
-                case CANCELLED:
-                case UNKNOWN:
-                case DEADLINE_EXCEEDED:
-                case RESOURCE_EXHAUSTED:
-                case UNIMPLEMENTED:
-                case INTERNAL:
-                case UNAVAILABLE:
-                    outcome = Outcome.FAILURE;
-                    break;
-                default:
-                    outcome = Outcome.SUCCESS;
-            }
+        if (status == null) {
+            return Outcome.FAILURE;
         }
-        return outcome;
+        switch (status.getCode()) {
+            case UNKNOWN:
+            case DEADLINE_EXCEEDED:
+            case RESOURCE_EXHAUSTED:
+            case FAILED_PRECONDITION:
+            case ABORTED:
+            case INTERNAL:
+            case UNAVAILABLE:
+            case DATA_LOSS:
+                return Outcome.FAILURE;
+            default:
+                return Outcome.SUCCESS;
+        }
     }
 
     /**

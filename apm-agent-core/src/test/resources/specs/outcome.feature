@@ -66,19 +66,6 @@ Feature: Outcome
   # ---- gRPC
 
   # reference spec : https://github.com/grpc/grpc/blob/master/doc/statuscodes.md
-  #
-  # The following statuses are not used by gRPC client & server,
-  # thus they should be considered as client-side errors
-  #
-  # - INVALID_ARGUMENT
-  # - NOT_FOUND
-  # - ALREADY_EXISTS
-  # - PERMISSION_DENIED
-  # - FAILED_PRECONDITION
-  # - ABORTED
-  # - OUT_OF_RANGE
-  # - DATA_LOSS
-  # - UNAUTHENTICATED
 
   @grpc
   Scenario Outline: gRPC transaction and span outcome
@@ -90,7 +77,7 @@ Feature: Outcome
     Examples:
       | status              | client  | server  |
       | OK                  | success | success |
-      | CANCELLED           | failure | failure |
+      | CANCELLED           | failure | success |
       | UNKNOWN             | failure | failure |
       | INVALID_ARGUMENT    | failure | success |
       | DEADLINE_EXCEEDED   | failure | failure |
@@ -98,13 +85,13 @@ Feature: Outcome
       | ALREADY_EXISTS      | failure | success |
       | PERMISSION_DENIED   | failure | success |
       | RESOURCE_EXHAUSTED  | failure | failure |
-      | FAILED_PRECONDITION | failure | success |
-      | ABORTED             | failure | success |
+      | FAILED_PRECONDITION | failure | failure |
+      | ABORTED             | failure | failure |
       | OUT_OF_RANGE        | failure | success |
-      | UNIMPLEMENTED       | failure | failure |
+      | UNIMPLEMENTED       | failure | success |
       | INTERNAL            | failure | failure |
       | UNAVAILABLE         | failure | failure |
-      | DATA_LOSS           | failure | success |
+      | DATA_LOSS           | failure | failure |
       | UNAUTHENTICATED     | failure | success |
       | n/a                 | failure | failure |
     # last row with 'n/a' status represents the case where status is not available
