@@ -34,6 +34,8 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -57,4 +59,40 @@ class TransactionTest {
         transaction.resetState();
         assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction(MockTracer.create())));
     }
+
+    @Test
+    void getSetOutcome() {
+        Transaction transaction = new Transaction(MockTracer.create());
+
+        assertThat(transaction.getOutcome())
+            .describedAs("default outcome should be unknown")
+            .isEqualTo(Outcome.UNKNOWN);
+
+        assertThat(transaction.withOutcome(Outcome.SUCCESS).getOutcome())
+            .isSameAs(Outcome.SUCCESS);
+
+        assertThat(transaction.withOutcome(Outcome.FAILURE).getOutcome())
+            .isSameAs(Outcome.FAILURE);
+
+        Arrays.asList(Outcome.SUCCESS, Outcome.UNKNOWN).forEach(o ->{
+            assertThat(transaction.withUserOutcome(o).getOutcome())
+                .describedAs("user outcome should have higher priority over outcome")
+                .isSameAs(o);
+        });
+
+        assertThat(transaction
+            .withUserOutcome(Outcome.SUCCESS)
+            .withUserOutcome(Outcome.FAILURE)
+            .getOutcome())
+            .describedAs("takes last value when set by user multiple times")
+            .isSameAs(Outcome.FAILURE);
+
+        transaction.resetState();
+
+        assertThat(transaction.getOutcome())
+            .describedAs("reset should reset to unknown state")
+            .isEqualTo(Outcome.UNKNOWN);
+
+    }
+
 }

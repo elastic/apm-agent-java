@@ -20,7 +20,6 @@
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
-        <version.cucumber>5.4.0</version.cucumber>
     </properties>
 
     <dependencies>
@@ -150,6 +149,13 @@
             <version>${version.cucumber}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <version>${version.cucumber}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>

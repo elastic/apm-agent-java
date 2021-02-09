@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.An
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -91,9 +92,11 @@ public class CaptureTransactionInstrumentation extends TracerAwareInstrumentatio
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onMethodExit(@Advice.Enter @Nullable Object transaction,
-                                    @Advice.Thrown Throwable t) {
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (transaction instanceof Transaction) {
-            ((Transaction) transaction).captureException(t)
+            ((Transaction) transaction)
+                .captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE: Outcome.SUCCESS)
                 .deactivate()
                 .end();
         }

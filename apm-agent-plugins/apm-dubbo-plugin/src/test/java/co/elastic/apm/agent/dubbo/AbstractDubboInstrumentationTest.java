@@ -30,6 +30,7 @@ import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +46,7 @@ import static org.mockito.Mockito.when;
 
 public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumentationTest {
 
+    @Nullable
     private DubboTestApi dubboTestApi;
 
     static CoreConfiguration coreConfig;
@@ -56,7 +59,19 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
     @BeforeEach
     void startRootTransaction() {
         when(coreConfig.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
-        tracer.startRootTransaction(Thread.currentThread().getContextClassLoader()).withName("transaction").activate();
+
+        // using context classloader is required here
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+
+        Transaction transaction = tracer.startRootTransaction(cl);
+        assertThat(transaction).isNotNull();
+        transaction
+            .withName("dubbo test")
+            .withType("test")
+            .withResult("success")
+            .withOutcome(Outcome.SUCCESS)
+            .activate();
+
     }
 
     @AfterEach
@@ -106,6 +121,10 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
             Throwable t = error.getException();
             assertThat(t instanceof BizException).isTrue();
         }
+
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(1);
+        Span span = reporter.getFirstSpan();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     @Test
@@ -154,6 +173,10 @@ public abstract class AbstractDubboInstrumentationTest extends AbstractInstrumen
         assertThat(service.getType()).isEqualTo("external");
         assertThat(service.getResource().toString()).matches("localhost:\\d+");
         assertThat(service.getName().toString()).isEqualTo("dubbo");
+
+        assertThat(span.getOutcome())
+            .describedAs("span outcome should be known")
+            .isNotEqualTo(Outcome.UNKNOWN);
     }
 
     abstract int getPort();

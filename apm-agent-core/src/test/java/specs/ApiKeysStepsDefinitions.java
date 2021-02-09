@@ -33,7 +33,6 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.extension.responsetemplating.ResponseTemplateTransformer;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -70,17 +69,7 @@ public class ApiKeysStepsDefinitions {
                 .withBody("{{request.headers.Authorization}}")));
 
         server.start();
-    }
 
-    @After
-    public void cleanup() {
-        server.stop();
-    }
-
-    // Init
-
-    @Given("an agent")
-    public void initAgent() {
         // we just initialize configuration as reporter is initialized lazily
         configuration = SpyConfiguration.createSpyConfig().getConfig(ReporterConfiguration.class);
 
@@ -88,7 +77,11 @@ public class ApiKeysStepsDefinitions {
 
         when(configuration.getServerUrls())
             .thenReturn(Collections.singletonList(serverUrl));
+    }
 
+    @After
+    public void cleanup() {
+        server.stop();
     }
 
     // API Key
@@ -99,7 +92,7 @@ public class ApiKeysStepsDefinitions {
             .thenReturn(value);
     }
 
-    @And("an api key is not set in the config")
+    @Given("an api key is not set in the config")
     public void apiKeyNotSetInConfig() {
         // this is the default, thus there is nothing to do but to assert for it just in case
         assertThat(configuration.getApiKey())
