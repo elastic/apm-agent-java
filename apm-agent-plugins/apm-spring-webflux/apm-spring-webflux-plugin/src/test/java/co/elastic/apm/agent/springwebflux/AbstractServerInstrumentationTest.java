@@ -136,7 +136,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @Test
     void transactionDuration() {
         // while we can't accurately measure how long transaction takes, we need to ensure that what we measure is
-        // at least somehow consistent, thus we test with a comfortable 25% margin
+        // at least somehow consistent, thus we test with a comfortable 50% margin
         long duration = 1000;
         assertThat(client.duration(duration))
             .isEqualTo(String.format("Hello, duration=%d!", duration));
@@ -144,7 +144,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         String expectedName = client.useFunctionalEndpoint() ? "GET /functional/duration" : "GreetingAnnotated#duration";
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
         assertThat(transaction.getDurationMs())
-            .isCloseTo(duration * 1d, Offset.offset(250d));
+            .isCloseTo(duration * 1d, Offset.offset(duration / 2d));
 
         checkUrl(transaction, "/duration?duration=" + duration);
     }
