@@ -24,6 +24,10 @@ endif::[]
 ==== 1.21.1 - YYYY/MM/DD
 
 [float]
+===== Features
+* Update existing Hibernate Search 6 instrumentation to the final relase
+
+[float]
 ===== Bug fixes
 
 [[release-notes-1.x]]
