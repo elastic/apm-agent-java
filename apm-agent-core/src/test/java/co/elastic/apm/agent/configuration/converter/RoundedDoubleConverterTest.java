@@ -35,6 +35,7 @@ class RoundedDoubleConverterTest {
 
     @ParameterizedTest
     @CsvSource({
+        "0.00001,0.0001",
         "0.55554,0.5555",
         "0.55555,0.5556",
         "0.55556,0.5556"})
@@ -45,7 +46,6 @@ class RoundedDoubleConverterTest {
         Double converted = converter.convert(input);
 
         assertThat(converted).isEqualTo(expected);
-        assertThat(converted.toString()).isEqualTo(expectedOutput);
         assertThat(converter.toString(converted)).isEqualTo(expectedOutput);
     }
 

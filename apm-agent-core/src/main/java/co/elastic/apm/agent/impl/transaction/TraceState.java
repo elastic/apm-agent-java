@@ -34,6 +34,11 @@ public class TraceState implements Recyclable {
 
     private static final int DEFAULT_SIZE_LIMIT = 4096;
 
+    /**
+     * Precision factor used for rounding
+     */
+    public static final double PRECISION = 10000d;
+
     private static final char VENDOR_SEPARATOR = ',';
     private static final char ENTRY_SEPARATOR = ';';
     private static final String VENDOR_PREFIX = "es=";
@@ -69,6 +74,7 @@ public class TraceState implements Recyclable {
         rewriteBuffer.setLength(0);
     }
 
+
     public void addTextHeader(String headerValue) {
         int elasticEntryStartIndex = headerValue.indexOf(VENDOR_PREFIX);
 
@@ -94,7 +100,11 @@ public class TraceState implements Recyclable {
                     if (0 <= value && value <= 1.0) {
                         // ensure proper rounding of sample rate to minimize storage
                         // even if configuration should not allow this, any upstream value might require rounding
-                        double rounded = Math.round(value * 10000d) / 10000d;
+                        double rounded = Math.round(value * PRECISION) / PRECISION;
+                        if (value > 0 && rounded == 0) {
+                            // avoid rounding to zero
+                            rounded = 1d / PRECISION;
+                        }
 
                         if (rounded != value) {
 

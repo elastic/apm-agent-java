@@ -28,9 +28,13 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.DoubleValueConverter;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+
 public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
 
-    private final int precisionDigits;
+    private final double precisionFactor;
+    private final NumberFormat numberFormat;
 
     public static ConfigurationOption.ConfigurationOptionBuilder<Double> withPrecision(int precisionDigits) {
         return ConfigurationOption.builder(new RoundedDoubleConverter(precisionDigits), Double.class);
@@ -41,19 +45,26 @@ public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
         if (precisionDigits < 0) {
             throw new IllegalArgumentException("expects a zero-or-positive precision");
         }
-        this.precisionDigits = precisionDigits;
+        StringBuilder format = new StringBuilder("#.");
+        for (int i = 0; i < precisionDigits; i++) {
+            format.append("#");
+        }
+        this.numberFormat = new DecimalFormat(format.toString());
+        this.precisionFactor = Math.pow(10, precisionDigits);
     }
 
     @Override
     public Double convert(String s) throws IllegalArgumentException {
-        Double value = DoubleValueConverter.INSTANCE.convert(s);
-        double f = Math.pow(10, precisionDigits);
-        value = Math.round(value * f) / f;
+        Double rawValue = DoubleValueConverter.INSTANCE.convert(s);
+        double value = Math.round(rawValue * precisionFactor) / precisionFactor;
+        if (rawValue > 0 && value == 0) {
+            value = 1d / precisionFactor;
+        }
         return value;
     }
 
     @Override
     public String toString(Double value) {
-        return DoubleValueConverter.INSTANCE.toString(value);
+        return numberFormat.format(value);
     }
 }
