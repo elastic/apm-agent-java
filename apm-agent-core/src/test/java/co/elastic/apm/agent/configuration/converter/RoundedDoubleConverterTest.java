@@ -38,8 +38,9 @@ class RoundedDoubleConverterTest {
         "0.00001,0.0001",
         "0.55554,0.5555",
         "0.55555,0.5556",
-        "0.55556,0.5556"})
-    void testRounding(String input, String expectedOutput) {
+        "0.55556,0.5556",
+        "10.000,10"})
+    void testRoundingAndTextFormat(String input, String expectedOutput) {
         RoundedDoubleConverter converter = new RoundedDoubleConverter(4);
 
         Double expected = Double.valueOf(expectedOutput);
