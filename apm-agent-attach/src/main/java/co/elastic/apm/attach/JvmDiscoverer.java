@@ -25,6 +25,8 @@
 package co.elastic.apm.attach;
 
 import com.sun.jna.Platform;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -195,6 +197,8 @@ public interface JvmDiscoverer {
      */
     class ForHotSpotVm implements JvmDiscoverer {
 
+        private static Logger logger = LogManager.getLogger(JvmDiscoverer.class);
+
         private final List<String> tempDirs;
 
         public ForHotSpotVm(List<String> tempDirs) {
@@ -208,7 +212,7 @@ public interface JvmDiscoverer {
                 try {
                     tempDirs.addAll(Users.getAllUsersMacOs().getAllTempDirs());
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.error(e.getMessage(), e);
                 }
             } else {
                 // this only works if the java.io.tmpdir property is not overridden as the hsperfdata_ files are stored in the default tmpdir

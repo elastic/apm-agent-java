@@ -158,13 +158,13 @@ public class Users {
         }
 
         private static boolean canSwitchToUser(String user) throws IOException, InterruptedException {
-            Process sudo = new ProcessBuilder("sudo", "-u", user, "echo", "ok").start();
-            // not checking for exit value to avoid blocking on password prompt
-            BufferedReader reader = new BufferedReader(new InputStreamReader(sudo.getInputStream()));
-            boolean success = "ok".equals(reader.readLine());
+            Process sudo = new ProcessBuilder("sudo", "--non-interactive", "-u", user, "echo", "ok").start();
             sudo.waitFor(1, TimeUnit.SECONDS);
-            return success;
-
+            try {
+                return sudo.exitValue() == 0;
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         public static String getCurrentJvm() {
@@ -198,6 +198,7 @@ public class Users {
             }
             List<String> fullCmd = new ArrayList<>();
             fullCmd.add("sudo");
+            fullCmd.add("--non-interactive");
             fullCmd.add("-u");
             fullCmd.add(username);
             fullCmd.addAll(cmd);

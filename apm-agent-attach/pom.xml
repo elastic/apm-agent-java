@@ -39,6 +39,16 @@
             <artifactId>jna-platform</artifactId>
             <version>${version.jna}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${version.log4j}</version>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>log4j2-ecs-layout</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -110,7 +120,7 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>without-jna</id>
+                        <id>attach-library</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
@@ -120,6 +130,8 @@
                             <artifactSet>
                                 <excludes>
                                     <exclude>net.java.dev.jna:*</exclude>
+                                    <exclude>org.apache.logging.log4j:*</exclude>
+                                    <exclude>co.elastic.logging:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <createSourcesJar>true</createSourcesJar>
@@ -142,7 +154,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>with-jna</id>
+                        <id>standalone-attacher</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
@@ -152,12 +164,6 @@
                             <shadedClassifierName>standalone</shadedClassifierName>
                             <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
-                            <relocations>
-                                <relocation>
-                                    <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>co.elastic.apm.attach.bytebuddy</shadedPattern>
-                                </relocation>
-                            </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>

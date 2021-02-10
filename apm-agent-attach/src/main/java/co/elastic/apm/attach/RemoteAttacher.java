@@ -24,7 +24,18 @@
  */
 package co.elastic.apm.attach;
 
+import co.elastic.logging.log4j2.EcsLayout;
 import net.bytebuddy.agent.ByteBuddyAgent;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
+import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
+import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +44,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,7 +56,8 @@ import java.util.Set;
  */
 public class RemoteAttacher {
 
-    private static final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private static Logger logger;
+
     private final Arguments arguments;
     private Set<JvmInfo> runningJvms = new HashSet<>();
     private final Users users = Users.empty();
@@ -55,6 +66,21 @@ public class RemoteAttacher {
         this.arguments = arguments;
         // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
         ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
+    }
+
+    private static void initLogging(Level logLevel) {
+        PluginManager.addPackage(EcsLayout.class.getPackage().getName());
+        PluginManager.addPackage(LoggerContext.class.getPackage().getName());
+        ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
+        builder.add(builder
+            .newAppender("Stdout", "CONSOLE")
+            .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
+            .add(builder.newLayout("EcsLayout")
+                .addAttribute("serviceName", "java-attacher")
+                .addAttribute("eventDataset", "java-attacher.log")));
+        builder.add(builder.newRootLogger(logLevel)
+                .add(builder.newAppenderRef("Stdout")));
+        Configurator.initialize(builder.build());
     }
 
     public static void main(String[] args) throws Exception {
@@ -71,6 +97,9 @@ public class RemoteAttacher {
             System.out.println(e.getMessage());
             arguments = Arguments.parse("--help");
         }
+        initLogging(arguments.logLevel);
+        logger = LogManager.getLogger(RemoteAttacher.class);
+        logger.info("test");
         final RemoteAttacher attacher = new RemoteAttacher(arguments);
         if (arguments.isHelp()) {
             arguments.printHelp(System.out);
@@ -93,7 +122,7 @@ public class RemoteAttacher {
             if (targetVm != null) {
                 attacher.attach(targetVm, arguments.getConfig());
             } else {
-                log("ERROR", "Could not discover JVM with PID %d", arguments.getPid());
+                logger.error("Could not discover JVM with PID %d", arguments.getPid());
             }
         } else {
             do {
@@ -101,10 +130,6 @@ public class RemoteAttacher {
                 Thread.sleep(1000);
             } while (arguments.isContinuous());
         }
-    }
-
-    private static void log(String level, String message, Object... args) {
-        System.out.println(String.format("%s %5s ", df.format(new Date()), level) + String.format(message, args));
     }
 
     static String toString(InputStream inputStream) throws IOException {
@@ -135,18 +160,17 @@ public class RemoteAttacher {
         if (isIncluded(jvmInfo) && !isExcluded(jvmInfo)) {
             try {
                 final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
-                log("INFO", "Attaching the Elastic APM agent to %s with arguments %s", jvmInfo, agentArgs);
+                logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
                 if (attach(jvmInfo, agentArgs)) {
-                    log("INFO", "Done");
+                    logger.info("Done");
                 } else {
-                    log("ERROR", "Unable to attach to JVM with PID = %s", jvmInfo.pid);
+                    logger.error("Unable to attach to JVM with PID = {}", jvmInfo.pid);
                 }
             } catch (Exception e) {
-                log("ERROR", "Unable to attach to JVM with PID = %s", jvmInfo.pid);
-                e.printStackTrace();
+                logger.error("Unable to attach to JVM with PID = {}", jvmInfo.pid, e);
             }
         } else {
-            log("DEBUG", "Not attaching the Elastic APM agent to %s, because it is not included or excluded.", jvmInfo);
+            logger.debug("Not attaching the Elastic APM agent to {}, because it is not included or excluded.", jvmInfo);
         }
     }
 
@@ -161,7 +185,7 @@ public class RemoteAttacher {
         } else if (user.canSwitchToUser()) {
             return attachAsUser(user, agentArgs, jvmInfo.pid);
         } else {
-            log("WARN", "Cannot attach to %s because the current user (%s) doesn't have the permissions to switch to user %s",
+            logger.warn("Cannot attach to {} because the current user ({}) doesn't have the permissions to switch to user {}",
                 jvmInfo, Users.getCurrentUserName(), jvmInfo.user);
             return false;
         }
@@ -198,8 +222,8 @@ public class RemoteAttacher {
         if (argsProvider.waitFor() == 0) {
             return toString(argsProvider.getInputStream());
         } else {
-            log("INFO", "Not attaching the Elastic APM agent to %s, " +
-                "because the '--args-provider %s' script ended with a non-zero status code.", jvmInfo, arguments.argsProvider);
+            logger.info("Not attaching the Elastic APM agent to {}, " +
+                    "because the '--args-provider {}' script ended with a non-zero status code.", jvmInfo, arguments.argsProvider);
             throw new IllegalStateException(toString(argsProvider.getErrorStream()));
         }
     }
@@ -235,11 +259,13 @@ public class RemoteAttacher {
         private final boolean list;
         private final boolean continuous;
         private final boolean useEmulatedAttach;
+        private final Level logLevel;
 
-        private Arguments(String pid, List<String> includes, List<String> excludes, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean continuous, boolean useEmulatedAttach) {
+        private Arguments(String pid, List<String> includes, List<String> excludes, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean continuous, boolean useEmulatedAttach, Level logLevel) {
             this.help = help;
             this.list = list;
             this.continuous = continuous;
+            this.logLevel = logLevel;
             if (!config.isEmpty() && argsProvider != null) {
                 throw new IllegalArgumentException("Providing both --config and --args-provider is illegal");
             }
@@ -265,6 +291,7 @@ public class RemoteAttacher {
             boolean continuous = false;
             boolean useEmulatedAttach = true;
             String currentArg = "";
+            Level logLevel = Level.INFO;
             for (String arg : normalize(args)) {
                 if (arg.startsWith("-")) {
                     currentArg = arg;
@@ -297,6 +324,8 @@ public class RemoteAttacher {
                         case "--exclude":
                         case "-i":
                         case "--include":
+                        case "-g":
+                        case "--log-level":
                             break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
@@ -330,12 +359,16 @@ public class RemoteAttacher {
                         case "--args-provider":
                             argsProvider = arg;
                             break;
+                        case "-g":
+                        case "--log-level":
+                            logLevel = Level.getLevel(arg);
+                            break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
                     }
                 }
             }
-            return new Arguments(pid, includes, excludes, config, argsProvider, help, list, continuous, useEmulatedAttach);
+            return new Arguments(pid, includes, excludes, config, argsProvider, help, list, continuous, useEmulatedAttach, logLevel);
         }
 
         // -ab -> -a -b
