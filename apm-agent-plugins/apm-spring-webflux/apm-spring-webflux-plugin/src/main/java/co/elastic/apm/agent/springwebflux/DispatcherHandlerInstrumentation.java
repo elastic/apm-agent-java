@@ -64,14 +64,15 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
         return getOrCreateTransaction(clazz, exchange);
     }
 
+    @Nullable
     @AssignTo.Return(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static Object onExit(@Advice.Enter @Nullable Object enterTransaction,
                                 @Advice.Argument(0) ServerWebExchange exchange,
                                 @Advice.Thrown @Nullable Throwable thrown,
-                                @Advice.Return Mono<?> returnValue) {
+                                @Advice.Return @Nullable Mono<?> returnValue) {
 
-        if (!(enterTransaction instanceof Transaction) || thrown != null) {
+        if (!(enterTransaction instanceof Transaction) || thrown != null || returnValue == null) {
             return returnValue;
         }
         Transaction transaction = (Transaction) enterTransaction;

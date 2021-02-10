@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -48,17 +47,11 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
 
     @Override
-    public boolean indyPlugin() {
-        return true;
-    }
-
-    @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("spring-webflux");
     }
 
     @Nullable
-    @VisibleForAdvice
     public static Transaction getOrCreateTransaction(Class<?> clazz, ServerWebExchange exchange) {
 
         Transaction transaction = getServletTransaction(exchange);
@@ -114,7 +107,6 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
      * @param exchange    exchange
      * @return wrapped mono that will activate transaction when mono is used
      */
-    @VisibleForAdvice
     public static <T> Mono<T> dispatcherWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange) {
         return mono.<T>transform(
             Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
@@ -136,7 +128,6 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
      * @param name
      * @return wrapped mono that will activate transaction when mono is used and terminate it on mono is completed
      */
-    @VisibleForAdvice
     public static <T> Mono<T> handlerWrap(@Nullable Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String name) {
         return mono.<T>transform(
             Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
