@@ -28,22 +28,20 @@ import com.sun.jna.Platform;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nonnull;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
-import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 public interface JvmDiscoverer {
 
@@ -58,7 +56,7 @@ public interface JvmDiscoverer {
 
         ForCurrentVM() {
             JvmDiscoverer tempJvmDiscoverer = Unavailable.INSTANCE;
-            for (JvmDiscoverer jvmDiscoverer : Arrays.asList(ForHotSpotVm.withDefaultTempDir(), Jps.INSTANCE)) {
+            for (JvmDiscoverer jvmDiscoverer : Arrays.asList(UsingPs.INSTANCE, ForHotSpotVm.withDefaultTempDir())) {
                 if (jvmDiscoverer.isAvailable()) {
                     tempJvmDiscoverer = jvmDiscoverer;
                     break;
@@ -78,52 +76,6 @@ public interface JvmDiscoverer {
         public boolean isAvailable() {
             return delegate.isAvailable();
         }
-    }
-
-    enum Jps implements JvmDiscoverer {
-        INSTANCE;
-
-        @Nonnull
-        private static String getJpsOutput() throws IOException, InterruptedException {
-            final Process jps = runJps();
-            if (jps.waitFor() == 0) {
-                return RemoteAttacher.toString(jps.getInputStream());
-            } else {
-                throw new IllegalStateException(RemoteAttacher.toString(jps.getErrorStream()));
-            }
-        }
-
-        @Override
-        public Collection<JvmInfo> discoverJvms() throws Exception {
-            return getJVMs(getJpsOutput());
-        }
-
-        @Nonnull
-        private Set<JvmInfo> getJVMs(String jpsOutput) {
-            Set<JvmInfo> set = new HashSet<>();
-            for (String s : jpsOutput.split("\n")) {
-                JvmInfo parse = JvmInfo.parse(s);
-                // ignore jps command that we just started as it's already terminated and not relevant for attachment
-                if (!parse.packageOrPathOrJvmProperties.contains(".Jps")) {
-                    set.add(parse);
-                }
-            }
-            return set;
-        }
-
-        @Override
-        public boolean isAvailable() {
-            try {
-                return runJps().waitFor() == 0;
-            } catch (Exception e) {
-                return false;
-            }
-        }
-
-        private static Process runJps() throws IOException {
-            return new ProcessBuilder(JpsFinder.getJpsPath().toString(), "-lv").start();
-        }
-
     }
 
     class JpsFinder {
@@ -237,7 +189,7 @@ public interface JvmDiscoverer {
                     for (File jvmPidFile : jvmPidFiles) {
                         String user = jvmPidFile.getParentFile().getName().substring("hsperfdata_".length());
                         // TODO parse hsperfdata_ file to get jar name and vm arguments
-                        result.add(new JvmInfo(jvmPidFile.getName(), null, user));
+                        result.add(new JvmInfo(jvmPidFile.getName(), user));
                     }
                 }
             }
@@ -264,6 +216,44 @@ public interface JvmDiscoverer {
                 }
             }
             return result;
+        }
+    }
+
+    enum UsingPs implements JvmDiscoverer {
+
+        INSTANCE;
+
+        private static final Logger logger = LogManager.getLogger(UsingPs.class);
+
+        @Override
+        public Collection<JvmInfo> discoverJvms() throws Exception {
+            Collection<JvmInfo> jvms = new ArrayList<>();
+            Process process = new ProcessBuilder("ps", "aux").start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                if (line.contains("java")) {
+                    String[] rows = line.split("\\s+");
+                    String pid = rows[1];
+                    String user = rows[0];
+                    jvms.add(new JvmInfo(pid, user));
+                }
+            }
+            process.waitFor();
+            return jvms;
+        }
+
+        @Override
+        public boolean isAvailable() {
+            try {
+                return !Platform.isWindows() && new ProcessBuilder("ps", "aux")
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start()
+                    .waitFor() == 0;
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+                return false;
+            }
         }
     }
 }

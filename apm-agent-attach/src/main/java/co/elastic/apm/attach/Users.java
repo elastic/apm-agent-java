@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -192,6 +193,10 @@ public class Users {
 
         }
 
+        public ProcessBuilder runAs(String... cmd) {
+            return runAs(Arrays.asList(cmd));
+        }
+
         public ProcessBuilder runAs(List<String> cmd) {
             if (!canSwitchToUser) {
                 throw new IllegalStateException(String.format("Cannot run as user %s", username));
@@ -211,6 +216,10 @@ public class Users {
 
         public boolean isCurrentUser() {
             return username.equals(getCurrentUserName());
+        }
+
+        public String getUsername() {
+            return username;
         }
     }
 }

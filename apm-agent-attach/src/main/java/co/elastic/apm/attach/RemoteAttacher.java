@@ -40,8 +40,6 @@ import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -56,19 +54,19 @@ import java.util.Set;
  */
 public class RemoteAttacher {
 
-    private static Logger logger;
-
+    private final Logger logger;
     private final Arguments arguments;
-    private Set<JvmInfo> runningJvms = new HashSet<>();
+    private Set<JvmInfo> alreadySeen = new HashSet<>();
     private final Users users = Users.empty();
 
-    private RemoteAttacher(Arguments arguments) {
+    private RemoteAttacher(Logger logger, Arguments arguments) {
+        this.logger = logger;
         this.arguments = arguments;
         // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
         ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
     }
 
-    private static void initLogging(Level logLevel) {
+    private static Logger initLogging(Level logLevel) {
         PluginManager.addPackage(EcsLayout.class.getPackage().getName());
         PluginManager.addPackage(LoggerContext.class.getPackage().getName());
         ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
@@ -80,27 +78,35 @@ public class RemoteAttacher {
                 .addAttribute("eventDataset", "java-attacher.log")));
         builder.add(builder.newRootLogger(logLevel)
                 .add(builder.newAppenderRef("Stdout")));
-        Configurator.initialize(builder.build());
+        Configurator.initialize(RemoteAttacher.class.getClassLoader(), builder.build());
+        return LogManager.getLogger(RemoteAttacher.class);
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         Arguments arguments;
         try {
             arguments = Arguments.parse(args);
-            if (!arguments.getIncludes().isEmpty() || !arguments.getExcludes().isEmpty()) {
-                if (!JvmDiscoverer.Jps.INSTANCE.isAvailable()) {
-                    String locations = JvmDiscoverer.JpsFinder.getJpsPaths(System.getProperties(), System.getenv()).toString();
-                    throw new IllegalStateException("Matching JVMs with --include or --exclude requires jps, unable to find it in searched locations: " + locations);
-                }
-            }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
             arguments = Arguments.parse("--help");
         }
-        initLogging(arguments.logLevel);
-        logger = LogManager.getLogger(RemoteAttacher.class);
-        logger.info("test");
-        final RemoteAttacher attacher = new RemoteAttacher(arguments);
+        Logger logger = initLogging(arguments.logLevel);
+        RemoteAttacher attacher = new RemoteAttacher(logger, arguments);
+        try {
+            attacher.attach();
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    private void attach() throws Exception {
+        if (arguments.getDiscoveryRules().containsConditionsRelyingOnJps()) {
+            if (!Jps.INSTANCE.isAvailable()) {
+                String locations = JvmDiscoverer.JpsFinder.getJpsPaths(System.getProperties(), System.getenv()).toString();
+                throw new IllegalStateException("Matching JVMs with --include-cmd or --exclude-cmd requires jps, unable to find it in searched locations: " + locations);
+            }
+        }
+
         if (arguments.isHelp()) {
             arguments.printHelp(System.out);
         } else if (arguments.isList()) {
@@ -111,24 +117,13 @@ public class RemoteAttacher {
             for (JvmInfo jvm : jvmInfos) {
                 System.out.println(jvm);
             }
-        } else if (arguments.getPid() != null) {
-            Collection<JvmInfo> jvmInfos = JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms();
-            JvmInfo targetVm = null;
-            for (JvmInfo jvmInfo : jvmInfos) {
-                if (jvmInfo.pid.equals(arguments.getPid())) {
-                    targetVm = jvmInfo;
-                }
-            }
-            if (targetVm != null) {
-                attacher.attach(targetVm, arguments.getConfig());
-            } else {
-                logger.error("Could not discover JVM with PID %d", arguments.getPid());
+        } else if (arguments.isContinuous()) {
+            while (true) {
+                attachToNewJvms(JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms(), arguments.getDiscoveryRules());
+                Thread.sleep(1000);
             }
         } else {
-            do {
-                attacher.attachToNewJvms(JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms());
-                Thread.sleep(1000);
-            } while (arguments.isContinuous());
+            attachToNewJvms(JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms(), arguments.getDiscoveryRules());
         }
     }
 
@@ -141,26 +136,28 @@ public class RemoteAttacher {
         }
     }
 
-    private void attachToNewJvms(Collection<JvmInfo> jvMs) {
-        for (JvmInfo jvmInfo : getStartedJvms(jvMs)) {
+    private void attachToNewJvms(Collection<JvmInfo> jvms, DiscoveryRules rules) {
+        for (JvmInfo jvmInfo : getNewJvms(jvms)) {
             if (!jvmInfo.pid.equals(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve())) {
-                onJvmStart(jvmInfo);
+                onJvmStart(jvmInfo, rules);
             }
         }
-        runningJvms = new HashSet<>(jvMs);
+        alreadySeen = new HashSet<>(jvms);
     }
 
-    private Set<JvmInfo> getStartedJvms(Collection<JvmInfo> currentlyRunningJvms) {
+    private Set<JvmInfo> getNewJvms(Collection<JvmInfo> currentlyRunningJvms) {
         final HashSet<JvmInfo> newJvms = new HashSet<>(currentlyRunningJvms);
-        newJvms.removeAll(runningJvms);
+        newJvms.removeAll(alreadySeen);
         return newJvms;
     }
 
-    private void onJvmStart(JvmInfo jvmInfo) {
-        if (isIncluded(jvmInfo) && !isExcluded(jvmInfo)) {
+    private void onJvmStart(JvmInfo jvmInfo, DiscoveryRules discoveryRules) {
+        DiscoveryRules.Condition matchingCondition = discoveryRules.anyMatch(jvmInfo.getPid(), Users.empty().get(jvmInfo.user));
+        if (matchingCondition != null) {
             try {
                 final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
                 logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
+                logger.info("Matching condition: " + matchingCondition);
                 if (attach(jvmInfo, agentArgs)) {
                     logger.info("Done");
                 } else {
@@ -170,7 +167,8 @@ public class RemoteAttacher {
                 logger.error("Unable to attach to JVM with PID = {}", jvmInfo.pid, e);
             }
         } else {
-            logger.debug("Not attaching the Elastic APM agent to {}, because it is not included or excluded.", jvmInfo);
+            logger.debug("Not attaching the Elastic APM agent to {}, none of the conditions are met {}.",
+                jvmInfo, discoveryRules.getConditions());
         }
     }
 
@@ -194,7 +192,7 @@ public class RemoteAttacher {
     public static boolean attachAsUser(Users.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
 
         List<String> args = new ArrayList<>();
-        args.add("--pid");
+        args.add("--include-pid");
         args.add(pid);
         for (Map.Entry<String, String> entry : agentArgs.entrySet()) {
             args.add("--config");
@@ -218,7 +216,7 @@ public class RemoteAttacher {
     }
 
     private String getArgsProviderOutput(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid, jvmInfo.packageOrPathOrJvmProperties).start();
+        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid).start();
         if (argsProvider.waitFor() == 0) {
             return toString(argsProvider.getInputStream());
         } else {
@@ -228,31 +226,8 @@ public class RemoteAttacher {
         }
     }
 
-    private boolean isIncluded(JvmInfo jvmInfo) {
-        if (arguments.getIncludes().isEmpty()) {
-            return true;
-        }
-        for (String include : arguments.getIncludes()) {
-            if (jvmInfo.packageOrPathOrJvmProperties.matches(include)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isExcluded(JvmInfo jvmInfo) {
-        for (String exclude : arguments.getExcludes()) {
-            if (jvmInfo.packageOrPathOrJvmProperties.matches(exclude)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     static class Arguments {
-        private final String pid;
-        private final List<String> includes;
-        private final List<String> excludes;
+        private final DiscoveryRules rules;
         private final Map<String, String> config;
         private final String argsProvider;
         private final boolean help;
@@ -261,7 +236,8 @@ public class RemoteAttacher {
         private final boolean useEmulatedAttach;
         private final Level logLevel;
 
-        private Arguments(String pid, List<String> includes, List<String> excludes, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean continuous, boolean useEmulatedAttach, Level logLevel) {
+        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean continuous, boolean useEmulatedAttach, Level logLevel) {
+            this.rules = rules;
             this.help = help;
             this.list = list;
             this.continuous = continuous;
@@ -269,21 +245,13 @@ public class RemoteAttacher {
             if (!config.isEmpty() && argsProvider != null) {
                 throw new IllegalArgumentException("Providing both --config and --args-provider is illegal");
             }
-            if (pid != null && (!includes.isEmpty() || !excludes.isEmpty() || continuous)) {
-                throw new IllegalArgumentException("Providing --pid and either of --include, --exclude or --continuous is illegal");
-            }
-            this.pid = pid;
-            this.includes = includes;
-            this.excludes = excludes;
             this.config = config;
             this.argsProvider = argsProvider;
             this.useEmulatedAttach = useEmulatedAttach;
         }
 
         static Arguments parse(String... args) {
-            String pid = null;
-            List<String> includes = new ArrayList<>();
-            List<String> excludes = new ArrayList<>();
+            DiscoveryRules rules = new DiscoveryRules();
             Map<String, String> config = new LinkedHashMap<>();
             String argsProvider = null;
             boolean help = args.length == 0;
@@ -312,8 +280,11 @@ public class RemoteAttacher {
                         case "--without-emulated-attach":
                             useEmulatedAttach = false;
                             break;
+                        case "--include-all":
+                            rules.includeAll();
                         case "-p":
                         case "--pid":
+                        case "--include-pid":
                         case "-a":
                         case "--args":
                         case "-C":
@@ -322,8 +293,12 @@ public class RemoteAttacher {
                         case "--args-provider":
                         case "-e":
                         case "--exclude":
+                        case "--exclude-cmd":
+                        case "--exclude-user":
                         case "-i":
                         case "--include":
+                        case "--include-cmd":
+                        case "--include-user":
                         case "-g":
                         case "--log-level":
                             break;
@@ -334,15 +309,24 @@ public class RemoteAttacher {
                     switch (currentArg) {
                         case "-e":
                         case "--exclude":
-                            excludes.add(arg);
+                        case "--exclude-cmd":
+                            rules.excludeCommandsMatching(arg);
                             break;
                         case "-i":
                         case "--include":
-                            includes.add(arg);
+                        case "--include-cmd":
+                            rules.includeCommandsMatching(arg);
+                            break;
+                        case "--exclude-user":
+                            rules.excludeUser(arg);
+                            break;
+                        case "--include-user":
+                            rules.includeUser(arg);
                             break;
                         case "-p":
                         case "--pid":
-                            pid = arg;
+                        case "--include-pid":
+                            rules.includePid(arg);
                             break;
                         case "-a":
                         case "--args":
@@ -368,7 +352,7 @@ public class RemoteAttacher {
                     }
                 }
             }
-            return new Arguments(pid, includes, excludes, config, argsProvider, help, list, continuous, useEmulatedAttach, logLevel);
+            return new Arguments(rules, config, argsProvider, help, list, continuous, useEmulatedAttach, logLevel);
         }
 
         // -ab -> -a -b
@@ -388,30 +372,43 @@ public class RemoteAttacher {
 
         void printHelp(PrintStream out) {
             out.println("SYNOPSIS");
-            out.println("    java -jar apm-agent-attach.jar -p <pid> [--args <agent_arguments>] [--without-emulated-attach]");
-            out.println("    java -jar apm-agent-attach.jar [-i <include_pattern>...] [-e <exclude_pattern>...] [--continuous] [--without-emulated-attach]");
+            out.println("    java -jar apm-agent-attach.jar --include-pid <pid> [--args <agent_arguments>] [--without-emulated-attach]");
+            out.println("    java -jar apm-agent-attach.jar [--include-cmd <include_pattern>...] [--exclude-cmd <exclude_pattern>...] [--continuous] [--without-emulated-attach]");
             out.println("                                   [--config <key=value>... | --args-provider <args_provider_script>]");
             out.println("    java -jar apm-agent-attach.jar (--list | --help)");
             out.println();
             out.println("DESCRIPTION");
             out.println("    Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all running and starting JVMs which match the filters.");
+            out.println("    By default, this program will not attach the agent to any JVM unless any condition is true.");
+            out.println("    Conditions can be added by using one of the following options: --include-all, --include-cmd, --exclude-cmd, --include-user, --exclude-user, --include-pid");
+            out.println("    You have to specify at least one --include-* rule");
             out.println();
             out.println("OPTIONS");
             out.println("    -l, --list");
-            out.println("        Lists all running JVMs. Same output as 'jps -lv'.");
-            out.println();
-            out.println("    -p, --pid <pid>");
-            out.println("        PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
+            out.println("        Lists all running JVMs.");
             out.println();
             out.println("    -c, --continuous");
             out.println("        If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
             out.println();
-            out.println("    -e, --exclude <exclude_pattern>...");
+            out.println("    --include-all");
+            out.println("        Includes all JVMs for attachment.");
+            out.println();
+            out.println("    --include-user");
+            out.println("        Includes all JVMs for attachment that are running under the given operating system user.");
+            out.println("        Make sure that the user this program is running under is either the same user or has permissions to switch to this user.");
+            out.println();
+            out.println("    --exclude-user");
+            out.println("        Includes all JVMs for attachment that are running under the given operating system user.");
+            out.println();
+            out.println("    --include-pid --pid <pid>");
+            out.println("        PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
+            out.println();
+            out.println("    --exclude-cmd <exclude_pattern>...");
             out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should not be attached to.");
             out.println("        (Matches the output of 'jps -lv')");
             out.println("        Note: this is only available if jps is installed");
             out.println();
-            out.println("    -i, --include <include_pattern>...");
+            out.println("    --include-cmd <include_pattern>...");
             out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should be attached to.");
             out.println("        (Matches the output of 'jps -lv')");
             out.println("        Note: this is only available if jps is installed");
@@ -427,26 +424,14 @@ public class RemoteAttacher {
             out.println();
             out.println("    -A, --args-provider <args_provider_script>");
             out.println("        The name of a program which is called when a new JVM starts up.");
-            out.println("        The program gets the pid and the main class name or path to the JAR file as an argument");
+            out.println("        The program gets the pid as an argument");
             out.println("        and returns an arg string which is used to configure the agent on the attached JVM (agentArguments of agentmain).");
             out.println("        When returning a non-zero status code from this program, the agent will not be attached to the starting JVM.");
             out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
-            out.println("        Note: this option can not be used in conjunction with --pid and --args.");
+            out.println("        Note: this option can not be used in conjunction with --include-pid and --args.");
             out.println();
             out.println("    -w, --without-emulated-attach");
             out.println("        Disables using emulated attach, might be required for some JRE/JDKs as a workaround");
-        }
-
-        String getPid() {
-            return pid;
-        }
-
-        List<String> getIncludes() {
-            return includes;
-        }
-
-        List<String> getExcludes() {
-            return excludes;
         }
 
         Map<String, String> getConfig() {
@@ -471,6 +456,10 @@ public class RemoteAttacher {
 
         boolean useEmulatedAttach() {
             return useEmulatedAttach;
+        }
+
+        public DiscoveryRules getDiscoveryRules() {
+            return rules;
         }
     }
 

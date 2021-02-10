@@ -161,7 +161,7 @@ public class JvmRuntimeInfo {
      */
     public static boolean isJavaVersionSupported() {
         if (majorVersion < 7) {
-            // given code is compiled with java 7, this one is unlikely in practice
+            // the premain module is compiled with Java 6 to support noop attachment on Java 6
             return false;
         }
         if (isHotSpot) {

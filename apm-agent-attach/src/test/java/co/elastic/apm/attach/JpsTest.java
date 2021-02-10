@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,39 +24,15 @@
  */
 package co.elastic.apm.attach;
 
-import java.util.Objects;
+import org.junit.jupiter.api.Test;
 
-class JvmInfo {
-    final String pid;
-    final String user;
+import static org.assertj.core.api.Assertions.assertThat;
 
-    JvmInfo(String pid, String user) {
-        this.pid = pid;
-        this.user = user;
-    }
+class JpsTest {
 
-    @Override
-    public String toString() {
-        return "VM{" +
-            "pid='" + pid + '\'' +
-            ", user='" + user + '\'' +
-            '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JvmInfo jvmInfo = (JvmInfo) o;
-        return pid.equals(jvmInfo.pid);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(pid);
-    }
-
-    public String getPid() {
-        return pid;
+    @Test
+    void testJps() throws Exception {
+        assertThat(Jps.INSTANCE.isAvailable()).isTrue();
+        assertThat(Jps.INSTANCE.getCommand(String.valueOf(ProcessHandle.current().pid()), Users.empty().getCurrentUser())).isNotEmpty();
     }
 }

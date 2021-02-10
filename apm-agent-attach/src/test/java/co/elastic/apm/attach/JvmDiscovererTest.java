@@ -25,6 +25,8 @@
 package co.elastic.apm.attach;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,7 +34,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,20 +48,7 @@ class JvmDiscovererTest {
         assertThat(discoverer.isAvailable())
             .describedAs("HotSpot JVM discovery should be available")
             .isTrue();
-        assertThat(discoverer.discoverJvms()).contains(new JvmInfo(String.valueOf(ProcessHandle.current().pid()), null));
-    }
-
-    @Test
-    void jpsShouldIgnoreJps() throws Exception {
-
-        JvmDiscoverer discoverer = JvmDiscoverer.Jps.INSTANCE;
-        assertThat(discoverer.isAvailable())
-            .describedAs("jps JVM discovery should be available")
-            .isTrue();
-        for (JvmInfo jvm : discoverer.discoverJvms()) {
-            Optional.ofNullable(jvm.packageOrPathOrJvmProperties)
-                .ifPresent((s) -> assertThat(s).doesNotContain("sun.tool.jps.Jps"));
-        }
+        assertThat(discoverer.discoverJvms()).contains(new JvmInfo(String.valueOf(ProcessHandle.current().pid()), Users.getCurrentUserName()));
     }
 
     @Test
@@ -142,4 +130,10 @@ class JvmDiscovererTest {
             .containsExactly(expectedPaths);
     }
 
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void testJpsDiscoverer() throws Exception {
+        assertThat(JvmDiscoverer.UsingPs.INSTANCE.isAvailable()).isTrue();
+        assertThat(JvmDiscoverer.UsingPs.INSTANCE.discoverJvms().stream().map(JvmInfo::getPid)).contains(String.valueOf(ProcessHandle.current().pid()));
+    }
 }

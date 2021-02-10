@@ -26,8 +26,6 @@ package co.elastic.apm.attach;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -43,8 +41,8 @@ class RemoteAttacherTest {
         assertThat(RemoteAttacher.Arguments.parse("--list").isList()).isTrue();
         assertThat(RemoteAttacher.Arguments.parse("-c").isContinuous()).isTrue();
         assertThat(RemoteAttacher.Arguments.parse("--continuous").isContinuous()).isTrue();
-        assertThat(RemoteAttacher.Arguments.parse("-p", "42").getPid()).isEqualTo("42");
-        assertThat(RemoteAttacher.Arguments.parse("--pid", "42").getPid()).isEqualTo("42");
+        assertThat(RemoteAttacher.Arguments.parse("-p", "42").getDiscoveryRules().getConditions()).hasSize(1);
+        assertThat(RemoteAttacher.Arguments.parse("--pid", "42").getDiscoveryRules().getConditions()).hasSize(1);
         assertThat(RemoteAttacher.Arguments.parse("--args", "foo=bar;baz=qux").getConfig()).containsEntry("foo", "bar").containsEntry("baz", "qux");
         assertThat(RemoteAttacher.Arguments.parse("-a", "foo=bar").getConfig()).containsEntry("foo", "bar");
         assertThat(RemoteAttacher.Arguments.parse("--config", "foo=bar", "baz=qux").getConfig()).containsEntry("foo", "bar").containsEntry("baz", "qux");
@@ -52,13 +50,17 @@ class RemoteAttacherTest {
         assertThat(RemoteAttacher.Arguments.parse("--args-provider", "foo").getArgsProvider()).isEqualTo("foo");
         assertThat(RemoteAttacher.Arguments.parse("-A", "foo").getArgsProvider()).isEqualTo("foo");
 
-        assertThat(RemoteAttacher.Arguments.parse("--exclude", "foo", "bar", "baz").getExcludes()).isEqualTo(Arrays.asList("foo", "bar", "baz"));
-        assertThat(RemoteAttacher.Arguments.parse("--config", "foo=bar", "-e", "foo", "bar", "baz").getExcludes()).isEqualTo(Arrays.asList("foo", "bar", "baz"));
-        assertThat(RemoteAttacher.Arguments.parse("--include", "foo", "bar", "baz").getIncludes()).isEqualTo(Arrays.asList("foo", "bar", "baz"));
-        assertThat(RemoteAttacher.Arguments.parse("-i", "foo", "bar", "baz", "--config", "foo=bar").getIncludes()).isEqualTo(Arrays.asList("foo", "bar", "baz"));
+        assertThat(RemoteAttacher.Arguments.parse("--include-all").getDiscoveryRules().getConditions()).hasSize(1);
+        assertThat(RemoteAttacher.Arguments.parse("--exclude-user", "root").getDiscoveryRules().getConditions()).hasSize(1);
+        assertThat(RemoteAttacher.Arguments.parse("--include-user", "root").getDiscoveryRules().getConditions()).hasSize(1);
+        assertThat(RemoteAttacher.Arguments.parse("--exclude", "foo", "bar", "baz").getDiscoveryRules().getConditions()).hasSize(3);
+        assertThat(RemoteAttacher.Arguments.parse("--exclude-cmd", "foo", "bar", "baz").getDiscoveryRules().getConditions()).hasSize(3);
+        assertThat(RemoteAttacher.Arguments.parse("--config", "foo=bar", "-e", "foo", "bar", "baz").getDiscoveryRules().getConditions()).hasSize(3);
+        assertThat(RemoteAttacher.Arguments.parse("--include", "foo", "bar", "baz").getDiscoveryRules().getConditions()).hasSize(3);
+        assertThat(RemoteAttacher.Arguments.parse("--include-cmd", "foo", "bar", "baz").getDiscoveryRules().getConditions()).hasSize(3);
+        assertThat(RemoteAttacher.Arguments.parse("-i", "foo", "bar", "baz", "--config", "foo=bar").getDiscoveryRules().getConditions()).hasSize(3);
         assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--config", "foo=bar", "--args-provider", "foo")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--pid", "42", "--exclude", "foo")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--pid", "42", "--continuous")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--include-cmd", "[")).isInstanceOf(IllegalArgumentException.class);
 
         assertThat(RemoteAttacher.Arguments.parse("-cC", "foo=bar").getConfig()).containsEntry("foo", "bar");
         assertThat(RemoteAttacher.Arguments.parse("-cC", "foo=bar").isContinuous()).isTrue();
