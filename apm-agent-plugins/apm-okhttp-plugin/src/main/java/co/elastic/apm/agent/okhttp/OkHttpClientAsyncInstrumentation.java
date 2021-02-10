@@ -26,6 +26,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.squareup.okhttp.Call;
@@ -121,7 +122,9 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             @Override
             public void onFailure(Request req, IOException e) {
                 try {
-                    span.captureException(e).end();
+                    span.captureException(e)
+                        .withOutcome(Outcome.FAILURE)
+                        .end();
                 } catch (Throwable t) {
                     logger.error(t.getMessage(), t);
                 } finally {

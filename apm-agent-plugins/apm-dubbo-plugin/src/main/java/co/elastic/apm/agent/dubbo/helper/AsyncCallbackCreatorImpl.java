@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.dubbo.helper;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 
@@ -47,10 +48,15 @@ public class AsyncCallbackCreatorImpl implements AsyncCallbackCreator {
             if (span != null) {
                 try {
                     RpcContext.getContext().remove(DubboTraceHelper.SPAN_KEY);
-                    span.captureException(t);
+
+                    Throwable resultException = null;
                     if (result != null) {
-                        span.captureException(result.getException());
+                        resultException = result.getException();
                     }
+
+                    span.captureException(t)
+                        .captureException(resultException)
+                        .withOutcome(t != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS);
                 } finally {
                     span.end();
                 }

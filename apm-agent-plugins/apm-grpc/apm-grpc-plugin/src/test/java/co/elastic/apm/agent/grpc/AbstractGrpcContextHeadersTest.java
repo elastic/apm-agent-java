@@ -27,6 +27,7 @@ package co.elastic.apm.agent.grpc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.grpc.testapp.GrpcApp;
 import co.elastic.apm.agent.grpc.testapp.GrpcAppProvider;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
@@ -88,7 +89,10 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
             .findFirst()
             .orElseThrow(() -> null);
 
-        Span span = reporter.getFirstSpan();
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+
+        Span span = spans.get(0);
 
         assertThat(transaction2.isChildOf(span))
             .describedAs("server transaction parent %s should be client span %s",
@@ -106,7 +110,10 @@ public abstract class AbstractGrpcContextHeadersTest extends AbstractInstrumenta
     }
 
     private static void endRootTransaction(Transaction transaction) {
-        transaction.deactivate().end();
+        transaction
+            .withOutcome(Outcome.SUCCESS)
+            .deactivate()
+            .end();
     }
 
 

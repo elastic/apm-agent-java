@@ -56,7 +56,7 @@ Only the external file can be used for dynamic configuration.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
-<<config-server-urls>> and <<config-application-packages>>.
+<<config-server-url>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
 [source,bash]
@@ -64,7 +64,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example,org.another.example
--Delastic.apm.server_urls=http://localhost:8200
+-Delastic.apm.server_url=http://localhost:8200
 ----
 
 [source,properties]
@@ -72,7 +72,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example,org.another.example
-server_urls=http://localhost:8200
+server_url=http://localhost:8200
 ----
 
 [source,bash]
@@ -80,7 +80,7 @@ server_urls=http://localhost:8200
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
-ELASTIC_APM_SERVER_URLS=http://localhost:8200
+ELASTIC_APM_SERVER_URL=http://localhost:8200
 ----
 
 [float]
@@ -154,7 +154,9 @@ Click on a key to get more information.
 * <<config-reporter>>
 ** <<config-secret-token>>
 ** <<config-api-key>>
+** <<config-server-url>>
 ** <<config-server-urls>>
+** <<config-disable-send>>
 ** <<config-server-timeout>>
 ** <<config-verify-server-cert>>
 ** <<config-max-queue-size>>
@@ -1969,17 +1971,10 @@ Use if APM Server requires an API key.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-server-urls]]
-==== `server_urls`
+[[config-server-url]]
+==== `server_url`
 
-The URLs must be fully qualified, including protocol (http or https) and port.
-
-Fails over to the next APM Server URL in the event of connection errors.
-Achieves load-balancing by shuffling the list of configured URLs.
-When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
-
-If set to an empty string, the agent will work as usual, except from any task requiring communication with 
-the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+The URL must be fully qualified, including protocol (http or https) and port.
 
 If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 <<ssl-configuration>>.
@@ -1997,7 +1992,46 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | List | true
+| `http://localhost:8200` | URL | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.server_url` | `server_url` | `ELASTIC_APM_SERVER_URL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-server-urls]]
+==== `server_urls`
+
+The URLs must be fully qualified, including protocol (http or https) and port.
+
+Fails over to the next APM Server URL in the event of connection errors.
+Achieves load-balancing by shuffling the list of configured URLs.
+When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+
+If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
+<<ssl-configuration>>.
+
+If outgoing HTTP traffic has to go through a proxy,
+you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
+for more information.
+
+NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order 
+to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you 
+are only setting a single URL.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
 |============
 
 
@@ -2005,6 +2039,33 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.server_urls` | `server_urls` | `ELASTIC_APM_SERVER_URLS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-disable-send]]
+==== `disable_send`
+
+If set to `true`, the agent will work as usual, except from any task requiring communication with 
+the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
+means that any other configuration cannot be changed in this state without restarting the service. 
+An example use case for this would be maintaining the ability to create traces and log 
+trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.disable_send` | `disable_send` | `ELASTIC_APM_DISABLE_SEND`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3299,16 +3360,9 @@ The default unit for this option is `ms`.
 #
 # api_key=
 
-# The URLs for your APM Servers
+# The URL for your APM Server
 #
-# The URLs must be fully qualified, including protocol (http or https) and port.
-# 
-# Fails over to the next APM Server URL in the event of connection errors.
-# Achieves load-balancing by shuffling the list of configured URLs.
-# When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
-# 
-# If set to an empty string, the agent will work as usual, except from any task requiring communication with 
-# the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+# The URL must be fully qualified, including protocol (http or https) and port.
 # 
 # If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 # <<ssl-configuration>>.
@@ -3321,10 +3375,48 @@ The default unit for this option is `ms`.
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #
 # This setting can be changed at runtime
-# Type: comma separated list
+# Type: URL
 # Default value: http://localhost:8200
 #
-# server_urls=http://localhost:8200
+# server_url=http://localhost:8200
+
+# The URLs for your APM Servers
+#
+# The URLs must be fully qualified, including protocol (http or https) and port.
+# 
+# Fails over to the next APM Server URL in the event of connection errors.
+# Achieves load-balancing by shuffling the list of configured URLs.
+# When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+# 
+# If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
+# <<ssl-configuration>>.
+# 
+# If outgoing HTTP traffic has to go through a proxy,
+# you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
+# for more information.
+# 
+# NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order 
+# to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you 
+# are only setting a single URL.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# server_urls=
+
+# If set to `true`, the agent will work as usual, except from any task requiring communication with 
+# the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
+# means that any other configuration cannot be changed in this state without restarting the service. 
+# An example use case for this would be maintaining the ability to create traces and log 
+# trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# disable_send=false
 
 # Server timeout
 #

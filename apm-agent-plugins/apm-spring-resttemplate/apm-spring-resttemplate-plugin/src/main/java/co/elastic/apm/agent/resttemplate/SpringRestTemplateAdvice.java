@@ -27,6 +27,7 @@ package co.elastic.apm.agent.resttemplate;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import org.slf4j.Logger;
@@ -73,6 +74,9 @@ public class SpringRestTemplateAdvice {
                 if (clientHttpResponse != null) {
                     // getRawStatusCode has been introduced in 3.1.1
                     span.getContext().getHttp().withStatusCode(clientHttpResponse.getRawStatusCode());
+                }
+                if (t != null) {
+                    span.withOutcome(Outcome.FAILURE);
                 }
                 span.captureException(t);
             } finally {

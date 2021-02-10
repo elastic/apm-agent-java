@@ -508,6 +508,20 @@ This is typically the HTTP status code, or e.g. "success" for a background task
 
 * `result`: a string describing the result of the transaction
 
+The result value set through API will have priority over the value that might be set by auto-instrumentation.
+
+[float]
+[[api-transaction-set-outcome]]
+==== `Span setOutcome(Outcome outcome)` added[1.21.0]
+Sets the transaction or span outcome. Use either `FAILURE` or `SUCCESS` to indicate success or failure,
+use `UNKNOWN` when the outcome can't be properly known.
+
+* `outcome`: transaction or span outcome
+
+Outcome is used to compute error rates between services, using `UNKNOWN` will not alter those rates.
+The value set through API will have higher priority over the value that might be set by auto-instrumentation.
+
+
 [float]
 [[api-transaction-set-start-timestamp]]
 ==== `Transaction setStartTimestamp(long epochMicros)` added[1.5.0]
