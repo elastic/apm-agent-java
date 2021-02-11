@@ -22,10 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci;
+package co.elastic.apm.agent.premain;
 
-import co.elastic.apm.agent.premain.JavaVersionBootstrapCheck;
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.Stream;

@@ -22,9 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci;
-
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
+package co.elastic.apm.agent.premain;
 
 import java.util.List;
 
@@ -43,9 +41,9 @@ public class JavaVersionBootstrapCheck implements BootstrapCheck {
     }
 
     @Override
-    public void doBootstrapCheck(List<String> errors) {
+    public void doBootstrapCheck(BootstrapCheckResult result) {
         if (!isJavaVersionSupported()) {
-            errors.add(String.format("JVM version not supported: %s", runtimeInfo));
+            result.addError(String.format("JVM version not supported: %s", runtimeInfo));
         }
     }
 

@@ -22,12 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci;
-
-import co.elastic.apm.agent.premain.JvmRuntimeInfo;
+package co.elastic.apm.agent.premain;
 
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -51,25 +48,34 @@ class BootstrapChecks {
      * or if bootstrap checks are disabled.
      */
     boolean isPassing() {
-        List<String> errorMessages = new ArrayList<>();
+        BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
         for (BootstrapCheck check : bootstrapChecks) {
-            check.doBootstrapCheck(errorMessages);
+            check.doBootstrapCheck(result);
         }
 
-        if (errorMessages.isEmpty()) {
+        if (result.isEmpty()) {
             return true;
         }
-        if (bootstrapChecksEnabled) {
-            System.err.println("ERROR - Failed to start agent because of failing bootstrap checks.");
-            System.err.println("To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.");
-        } else {
-            System.err.println("WARNING - Bootstrap checks have failed. The agent will still start because bootstrap check have been disabled.");
+        boolean disableAgent = false;
+        if (result.hasErrors()) {
+            if (bootstrapChecksEnabled) {
+                disableAgent = true;
+                System.err.println("ERROR - Failed to start agent because of failing bootstrap checks.");
+                System.err.println("To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.");
+            } else {
+                System.err.println("WARNING - Bootstrap checks have failed. The agent will still start because bootstrap check have been disabled.");
+            }
+            System.err.println("Note that we can not offer support for issues related to disabled bootstrap checks.");
+            for (String msg : result.getErrors()) {
+                System.err.println(msg);
+            }
         }
-        System.err.println("Note that we can not offer support for issues related to disabled bootstrap checks.");
-        for (String msg : errorMessages) {
-            System.err.println(msg);
+        if (result.hasWarnings()) {
+            for (String msg : result.getWarnings()) {
+                System.err.println(msg);
+            }
         }
-        return !bootstrapChecksEnabled;
+        return disableAgent;
     }
 
 }

@@ -108,12 +108,13 @@ public class AgentMain {
      * @return {@code true} for any Java 7 and early Java 8 HotSpot JVMs, {@code false} for all others
      */
     static boolean shouldDelayOnPremain() {
-        int majorVersion = JvmRuntimeInfo.getMajorVersion();
+        JvmRuntimeInfo runtimeInfo = JvmRuntimeInfo.ofCurrentVM();
+        int majorVersion = runtimeInfo.getMajorVersion();
         return
             (majorVersion == 7) ||
             // In case bootstrap checks were disabled
-            (majorVersion == 8 && JvmRuntimeInfo.isHpUx() && JvmRuntimeInfo.getUpdateVersion() < 2) ||
-            (majorVersion == 8 && JvmRuntimeInfo.isHotSpot() && JvmRuntimeInfo.getUpdateVersion() < 40);
+            (majorVersion == 8 && runtimeInfo.isHotSpot() && runtimeInfo.getUpdateVersion() < 2) ||
+            (majorVersion == 8 && runtimeInfo.isHotSpot() && runtimeInfo.getUpdateVersion() < 40);
     }
 
     private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,

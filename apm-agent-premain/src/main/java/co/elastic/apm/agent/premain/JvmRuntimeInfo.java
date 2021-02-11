@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.util;
+package co.elastic.apm.agent.premain;
 
 import javax.annotation.Nullable;
 
@@ -147,7 +147,7 @@ public class JvmRuntimeInfo {
         return isJ9;
     }
 
-    public boolean isIsHpUx(){
+    public boolean isHpUx(){
         return isHpUx;
     }
 

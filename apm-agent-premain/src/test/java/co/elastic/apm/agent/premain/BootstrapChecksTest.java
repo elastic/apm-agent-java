@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.premain;
 
-import co.elastic.apm.agent.premain.BootstrapChecks;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,9 +32,9 @@ class BootstrapChecksTest {
 
     @Test
     void testBootstrapChecks() {
-        Assertions.assertThat(new BootstrapChecks(true, errors -> errors.add("Fail")).isPassing()).isFalse();
-        Assertions.assertThat(new BootstrapChecks(false, errors -> errors.add("Fail")).isPassing()).isTrue();
-        Assertions.assertThat(new BootstrapChecks(true, errors -> {}).isPassing()).isTrue();
-        Assertions.assertThat(new BootstrapChecks(false, errors -> {}).isPassing()).isTrue();
+        assertThat(new BootstrapChecks(true, errors -> errors.addError("Fail")).isPassing()).isFalse();
+        assertThat(new BootstrapChecks(false, errors -> errors.addError("Fail")).isPassing()).isTrue();
+        assertThat(new BootstrapChecks(true, errors -> {}).isPassing()).isTrue();
+        assertThat(new BootstrapChecks(false, errors -> {}).isPassing()).isTrue();
     }
 }

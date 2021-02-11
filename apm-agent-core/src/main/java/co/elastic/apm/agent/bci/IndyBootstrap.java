@@ -27,6 +27,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
+import co.elastic.apm.agent.premain.JavaVersionBootstrapCheck;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.PackageScanner;
