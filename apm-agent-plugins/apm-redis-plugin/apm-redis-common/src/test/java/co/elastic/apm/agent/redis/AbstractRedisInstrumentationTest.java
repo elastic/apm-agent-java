@@ -26,6 +26,7 @@ package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.assertj.core.api.Java6Assertions;
 import org.junit.After;
@@ -88,6 +89,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
         assertThat(reporter.getSpans().stream().map(Span::getAction).distinct()).containsExactly("query");
         assertThat(reporter.getSpans().stream().map(Span::isExit).distinct()).containsExactly(true);
+        assertThat(reporter.getSpans().stream().map(Span::getOutcome).distinct()).containsExactly(Outcome.SUCCESS);
         verifyDestinationDetails(reporter.getSpans());
     }
 

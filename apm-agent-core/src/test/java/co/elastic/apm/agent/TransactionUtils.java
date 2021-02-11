@@ -27,6 +27,7 @@ package co.elastic.apm.agent;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -37,10 +38,11 @@ import java.util.List;
 public class TransactionUtils {
 
     public static void fillTransaction(Transaction t) {
-        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), TransactionUtils.class.getClassLoader());
-        t.withName("GET /api/types");
-        t.withType("request");
-        t.withResult("success");
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), TransactionUtils.class.getClassLoader())
+            .withName("GET /api/types")
+            .withType("request")
+            .withResult("success")
+            .withOutcome(Outcome.SUCCESS);
 
         TransactionContext context = t.getContext();
         Request request = context.getRequest();

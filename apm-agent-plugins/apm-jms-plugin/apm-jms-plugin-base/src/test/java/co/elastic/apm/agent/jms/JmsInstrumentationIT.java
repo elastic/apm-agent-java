@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -135,7 +136,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             transaction.activate()
                 .withName("JMS-Test Transaction")
                 .withType("request")
-                .withResult("success");
+                .withResult("success")
+                .withOutcome(Outcome.SUCCESS);
         }
     }
 

@@ -110,40 +110,40 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Nonnull
     @Override
     public Transaction addCustomContext(String key, String value) {
-        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$AddCustomContextInstrumentation
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$AddCustomContextInstrumentation
         return this;
     }
 
     @Nonnull
     @Override
     public Transaction addCustomContext(String key, Number value) {
-        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$AddCustomContextInstrumentation
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$AddCustomContextInstrumentation
         return this;
     }
 
     @Nonnull
     @Override
     public Transaction addCustomContext(String key, boolean value) {
-        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$AddCustomContextInstrumentation
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$AddCustomContextInstrumentation
         return this;
     }
 
     @Override
     public Transaction setUser(String id, String email, String username) {
-        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation$SetUserInstrumentation.setUser
         return this;
     }
 
     @Override
     public Transaction setResult(String result) {
-        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation.SetResultInstrumentation
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation.SetResultInstrumentation
         return this;
     }
 
     @Nonnull
     @Override
     public String ensureParentId() {
-        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation.EnsureParentIdInstrumentation
+        // co.elastic.apm.agent.pluginapi.TransactionInstrumentation.EnsureParentIdInstrumentation
         return "";
     }
 
@@ -153,4 +153,9 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
         return this;
     }
 
+    @Override
+    public Transaction setOutcome(Outcome outcome) {
+        doSetOutcome(outcome);
+        return this;
+    }
 }

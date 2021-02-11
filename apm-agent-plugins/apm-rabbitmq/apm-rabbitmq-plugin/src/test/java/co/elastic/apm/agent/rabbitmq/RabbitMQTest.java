@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -238,7 +239,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             }
         });
 
-        Transaction rootTransaction = startRootTransaction();
+        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
 
         channel.basicPublish(exchange, ROUTING_KEY, properties, MSG);
 
@@ -381,7 +382,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         Transaction rootTransaction = null;
         if (withinTransaction) {
-            rootTransaction = startRootTransaction();
+            rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         }
 
         channel.basicGet(queue, true);
@@ -436,7 +437,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             .build();
 
 
-        Transaction rootTransaction = startRootTransaction();
+        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
 
         channel.basicPublish(exchange, rpcQueueName, properties, MSG);
 
@@ -530,14 +531,6 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         rootTransaction.deactivate().end();
     }
 
-    private Transaction startRootTransaction() {
-        return getTracer().startRootTransaction(getClass().getClassLoader())
-            .withName("Rabbit-Test Root Transaction")
-            .withType("request")
-            .withResult("success")
-            .activate();
-    }
-
     private static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions) {
         Transaction childTransaction = null;
         for (Transaction t : transactions) {
@@ -595,6 +588,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         assertThat(transaction.getNameAsString())
             .isEqualTo("RabbitMQ RECEIVE from %s", exchange.isEmpty() ? "<default>" : exchange);
         assertThat(transaction.getFrameworkName()).isEqualTo("RabbitMQ");
+
+        assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
         checkMessage(transaction.getContext().getMessage(), exchange);
     }
@@ -685,5 +680,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
         assertThat(service.getResource().toString()).isEqualTo(expectedResource);
+
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 }
