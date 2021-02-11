@@ -420,6 +420,10 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public synchronized void stop() {
+        if (tracerState == TracerState.STOPPED) {
+            // may happen if explicitly stopped in a unit test and executed again within a shutdown hook
+            return;
+        }
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.stop();
