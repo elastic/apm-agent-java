@@ -30,6 +30,7 @@ import co.elastic.apm.agent.dubbo.helper.AlibabaDubboAttachmentHelper;
 import co.elastic.apm.agent.dubbo.helper.DubboTraceHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.alibaba.dubbo.rpc.Invocation;
@@ -95,12 +96,16 @@ public class AlibabaMonitorFilterAdvice {
         if (actualSpan == null) {
             return;
         }
-        actualSpan.captureException(t);
 
+        Throwable resultException = null;
         if (result != null) { // will be null in case of thrown exception
-            actualSpan.captureException(result.getException());
+            resultException = result.getException();
         }
-        actualSpan.deactivate();
+        actualSpan
+            .captureException(t)
+            .captureException(resultException)
+            .withOutcome(t != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS)
+            .deactivate();
 
         if (!(RpcContext.getContext().getFuture() instanceof FutureAdapter)) {
             actualSpan.end();

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.jdbc;
 
+import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,6 +37,7 @@ class TestStatement implements Statement {
     private boolean isGetConnectionSupported;
     private int unsupportedThrownCount;
 
+    @Nullable
     private Connection connection;
 
     public TestStatement(Statement delegate) {

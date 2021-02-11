@@ -60,7 +60,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 [source,bash]
 ----
 java -jar apm-agent-attach-standalone.jar --pid 42 \
-    --config service_name=my-cool-service server_urls=http://localhost:8200
+    --config service_name=my-cool-service server_url=http://localhost:8200
 ----
 
 [float]
@@ -86,7 +86,7 @@ java -jar apm-agent-attach-standalone.jar \
     --include '.*MyApplication.*' '.*/my-application.jar.*' \
     --continuous \
     --config service_name=my-cool-service \
-    --config server_urls=http://localhost:8200
+    --config server_url=http://localhost:8200
 ----
 
 [float]
@@ -162,7 +162,7 @@ NOTE: This option cannot be used in conjunction with `--args-provider`
 --
 This repeatable option sets one agent configuration option.
 
-Example: `--config server_urls=http://localhost:8200,http://localhost:8201`
+Example: `--config server_url=http://localhost:8200`
 --
 
 *-A, --args-provider <args_provider_script>*::

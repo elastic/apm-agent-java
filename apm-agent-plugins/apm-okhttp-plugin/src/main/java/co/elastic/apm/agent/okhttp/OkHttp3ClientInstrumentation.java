@@ -26,6 +26,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -87,6 +88,8 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
                     if (response != null) {
                         int statusCode = response.code();
                         span.getContext().getHttp().withStatusCode(statusCode);
+                    } else if (t != null) {
+                        span.withOutcome(Outcome.FAILURE);
                     }
                     span.captureException(t);
                 } finally {

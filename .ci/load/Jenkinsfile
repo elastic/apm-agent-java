@@ -187,7 +187,7 @@ pipeline {
                         writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
 
                         // remove previous log files in workspace (if any)
-                        sh(script: "rm -f ${WORKSPACE}/*.log ${WORKSPACE}/*.pid ${WORKSPACE}/*.jfr")
+                        sh(script: "rm -vf ${WORKSPACE}/*.log ${WORKSPACE}/*.pid ${WORKSPACE}/*.jfr")
 
                         unstash('scripts')
                         unstash('app')
@@ -262,7 +262,7 @@ pipeline {
                             cmd = "${cmd} -jar ${app_binary}"
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
-                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
+                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
                                 sh(script: "${cmd}")
                             }
 
@@ -285,7 +285,7 @@ pipeline {
                             // always capture result files
                             echo "Collect results"
                             archiveArtifacts(
-                                    artifacts: "*.jfr,metrics.out",
+                                    artifacts: "hs_err_pid*.log,*.jfr,metrics.out",
                                     allowEmptyArchive: true,
                                     onlyIfSuccessful: false)
 

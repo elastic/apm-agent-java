@@ -12,6 +12,7 @@ co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypeInstrumentatio
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetTypesInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$DoCreateSpanInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$SetOutcomeInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$EndInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$EndWithTimestampInstrumentation
 co.elastic.apm.agent.pluginapi.AbstractSpanInstrumentation$CaptureExceptionInstrumentation

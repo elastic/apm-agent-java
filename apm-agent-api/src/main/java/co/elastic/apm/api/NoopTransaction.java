@@ -134,7 +134,7 @@ enum NoopTransaction implements Transaction {
 
     @Override
     public String captureException(Throwable throwable) {
-        // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
+        // co.elastic.apm.agent.pluginapi.CaptureExceptionInstrumentation
         return "";
     }
 
@@ -186,6 +186,12 @@ enum NoopTransaction implements Transaction {
 
     @Override
     public Transaction setStartTimestamp(long epochMicros) {
+        return this;
+    }
+
+    @Override
+    public Transaction setOutcome(Outcome outcome) {
+
         return this;
     }
 

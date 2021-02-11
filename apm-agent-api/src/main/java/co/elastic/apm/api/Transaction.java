@@ -193,6 +193,16 @@ public interface Transaction extends Span {
     Transaction setStartTimestamp(long epochMicros);
 
     /**
+     * Sets the transaction outcome
+     *
+     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure,
+     *                {@link Outcome#UNKNOWN} to indicate unknown outcome
+     * @return this
+     */
+
+    Transaction setOutcome(Outcome outcome);
+
+    /**
      * End tracking the transaction.
      * <p>
      * Should be called e.g. at the end of a request or when ending a background task.

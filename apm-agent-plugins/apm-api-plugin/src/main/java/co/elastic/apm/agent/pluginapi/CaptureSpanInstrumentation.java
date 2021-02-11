@@ -30,6 +30,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -82,10 +83,12 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Nullable @Advice.Enter Object span,
-                                    @Advice.Thrown Throwable t) {
+    public static void onMethodExit(@Advice.Enter @Nullable Object span,
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (span instanceof Span) {
-            ((Span) span).captureException(t)
+            ((Span) span)
+                .captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE: Outcome.SUCCESS)
                 .deactivate()
                 .end();
         }
