@@ -14,6 +14,12 @@ using the OpenTelemetry API.
 In other words,
 it translates the calls to the OpenTelemetry API to Elastic APM and thus allows for reusing existing instrumentation.
 
+NOTE: While manual instrumentations using the OpenTelemetry API can be adapted to the Elastic APM Java agent, it's not possible to use the instrumentations from
+https://github.com/open-telemetry/opentelemetry-java-instrumentation[opentelemetry-java-instrumentation] in the context of the Elastic APM Java agent. +
+However, you can use https://github.com/open-telemetry/opentelemetry-java-instrumentation[opentelemetry-java-instrumentation] (aka the OpenTelementry Java agent)
+and send the data to APM Server.
+See the {apm-overview-ref-v}/open-telemetry-elastic.html[OpenTelemetry integration docs] for more details.
+
 The first span of a service will be converted to an Elastic APM
 {apm-overview-ref-v}/transactions.html[`Transaction`],
 subsequent spans are mapped to Elastic APM
@@ -41,6 +47,9 @@ compile "io.opentelemetry:opentelemetry-api:$openTelemetryVersion"
 ----
 
 The minimum required OpenTelemetry version is 0.14.1.
+
+NOTE: Be aware that non GA (0.x) versions of the OpenTelemetry API are not stable and don't guarantee backward compatibility.
+This means that you may have to adapt your instrumentation code when updating to newer versions.
 
 [float]
 [[otel-init-tracer]]
@@ -134,6 +143,12 @@ Elastic APM defines some attributes which are not included in OpenTelemetry's se
 [[otel-caveats]]
 ==== Caveats
 Not all features of the OpenTelemetry API are supported.
+
+[float]
+[[otel-metrics]]
+===== Metrics
+This bridge only supports the tracing API.
+The Metrics API is currently not supported.
 
 [float]
 [[otel-propagation]]
