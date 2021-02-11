@@ -46,9 +46,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-class ElasticOTelSpanBuilder implements SpanBuilder {
+class OTelSpanBuilder implements SpanBuilder {
 
-    private static final Logger addLinkLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(ElasticOTelSpanBuilder.class));
+    private static final Logger addLinkLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpanBuilder.class));
 
     private final String spanName;
     private final ElasticApmTracer elasticApmTracer;
@@ -59,7 +59,7 @@ class ElasticOTelSpanBuilder implements SpanBuilder {
     @Nullable
     private Context remoteContext;
 
-    public ElasticOTelSpanBuilder(String spanName, ElasticApmTracer elasticApmTracer) {
+    public OTelSpanBuilder(String spanName, ElasticApmTracer elasticApmTracer) {
         this.spanName = spanName;
         this.elasticApmTracer = elasticApmTracer;
         this.parent = elasticApmTracer.getActive();
@@ -70,8 +70,8 @@ class ElasticOTelSpanBuilder implements SpanBuilder {
         Span span = Span.fromContext(context);
         if (span.getSpanContext().isRemote()) {
             remoteContext = context;
-        } else if (span instanceof ElasticOTelSpan) {
-            parent = ((ElasticOTelSpan) span).getInternalSpan();
+        } else if (span instanceof OTelSpan) {
+            parent = ((OTelSpan) span).getInternalSpan();
         }
         return this;
     }
@@ -152,8 +152,8 @@ class ElasticOTelSpanBuilder implements SpanBuilder {
             return Span.getInvalid();
         }
         span.withName(spanName);
-        ElasticOTelSpan elasticOTelSpan = new ElasticOTelSpan(span);
-        attributes.forEach(elasticOTelSpan::mapAttribute);
-        return elasticOTelSpan;
+        OTelSpan otelSpan = new OTelSpan(span);
+        attributes.forEach(otelSpan::mapAttribute);
+        return otelSpan;
     }
 }

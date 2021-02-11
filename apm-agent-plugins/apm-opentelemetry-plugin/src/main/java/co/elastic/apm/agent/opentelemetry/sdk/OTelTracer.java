@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,21 +22,21 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentelemetry.context;
+package co.elastic.apm.agent.opentelemetry.sdk;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import io.opentelemetry.context.Scope;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.Tracer;
 
-public class ElasticOTelScope implements Scope {
+public class OTelTracer implements Tracer {
+    private final ElasticApmTracer elasticApmTracer;
 
-    private final AbstractSpan<?> span;
-
-    public ElasticOTelScope(AbstractSpan<?> span) {
-        this.span = span;
+    public OTelTracer(ElasticApmTracer elasticApmTracer) {
+        this.elasticApmTracer = elasticApmTracer;
     }
 
     @Override
-    public void close() {
-        span.deactivate();
+    public SpanBuilder spanBuilder(String spanName) {
+        return new OTelSpanBuilder(spanName, elasticApmTracer);
     }
 }

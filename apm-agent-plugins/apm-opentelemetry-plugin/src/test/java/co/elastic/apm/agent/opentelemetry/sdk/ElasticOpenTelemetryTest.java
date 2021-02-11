@@ -26,7 +26,7 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.opentelemetry.context.ElasticOTelContextStorage;
+import co.elastic.apm.agent.opentelemetry.context.OTelContextStorage;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -142,7 +142,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
     /**
      * Demonstrates a missing feature of this bridge: custom context entries are not propagated
      *
-     * @see ElasticOTelContextStorage#current()
+     * @see OTelContextStorage#current()
      */
     @Test
     @Ignore

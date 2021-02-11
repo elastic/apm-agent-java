@@ -9,16 +9,16 @@ import io.opentelemetry.context.propagation.ContextPropagators;
 public class ElasticOpenTelemetry implements OpenTelemetry {
 
     private final ContextPropagators contextPropagators;
-    private final ElasticOTelTracerProvider elasticOTelTracerProvider;
+    private final TracerProvider tracerProvider;
 
     public ElasticOpenTelemetry(ElasticApmTracer tracer) {
-        elasticOTelTracerProvider = new ElasticOTelTracerProvider(new ElasticOTelTracer(tracer));
+        tracerProvider = new OTelTracerProvider(new OTelTracer(tracer));
         contextPropagators = ContextPropagators.create(W3CTraceContextPropagator.getInstance());
     }
 
     @Override
     public TracerProvider getTracerProvider() {
-        return elasticOTelTracerProvider;
+        return tracerProvider;
     }
 
     @Override

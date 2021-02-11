@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,34 +24,25 @@
  */
 package co.elastic.apm.agent.opentelemetry.sdk;
 
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.TracerProvider;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 
-public class ElasticOTelTextMapPropagator implements TextMapPropagator {
+public class OTelTracerProvider implements TracerProvider {
+    private final Tracer tracer;
 
-    private static final TextMapPropagator W3C_PROPAGATOR = W3CTraceContextPropagator.getInstance();
-
-    @Override
-    public Collection<String> fields() {
-        return W3C_PROPAGATOR.fields();
+    public OTelTracerProvider(Tracer tracer) {
+        this.tracer = tracer;
     }
 
     @Override
-    public <C> void inject(Context context, @Nullable C carrier, Setter<C> setter) {
-        Span span = Span.fromContext(context);
-        if (span instanceof ElasticOTelSpan) {
-            ((ElasticOTelSpan) span).getInternalSpan().setNonDiscardable();
-        }
-        W3C_PROPAGATOR.inject(context, carrier, setter);
+    public Tracer get(String instrumentationName) {
+        return get(instrumentationName, null);
     }
 
     @Override
-    public <C> Context extract(Context context, @Nullable C carrier, Getter<C> getter) {
-        return W3C_PROPAGATOR.extract(context, carrier, getter);
+    public Tracer get(String instrumentationName, @Nullable String instrumentationVersion) {
+        return this.tracer;
     }
 }

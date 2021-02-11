@@ -52,12 +52,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class ElasticOTelSpan implements Span {
-    private static final Logger eventLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(ElasticOTelSpan.class));
+public class OTelSpan implements Span {
+    private static final Logger eventLogger = LoggerUtils.logOnce(LoggerFactory.getLogger(OTelSpan.class));
 
     private final AbstractSpan<?> span;
 
-    public ElasticOTelSpan(AbstractSpan<?> span) {
+    public OTelSpan(AbstractSpan<?> span) {
         this.span = span;
         span.incrementReferences();
     }
@@ -368,7 +368,7 @@ public class ElasticOTelSpan implements Span {
 
     @Override
     public SpanContext getSpanContext() {
-        return new ElasticOTelSpanContext(span.getTraceContext());
+        return new OTelSpanContext(span.getTraceContext());
     }
 
     @Override

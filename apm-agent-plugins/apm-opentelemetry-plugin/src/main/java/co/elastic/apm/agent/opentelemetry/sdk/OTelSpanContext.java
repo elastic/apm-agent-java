@@ -33,10 +33,10 @@ import org.stagemonitor.util.StringUtils;
 
 import java.util.List;
 
-public class ElasticOTelSpanContext implements SpanContext {
+public class OTelSpanContext implements SpanContext {
     private final TraceContext traceContext;
 
-    public ElasticOTelSpanContext(TraceContext traceContext) {
+    public OTelSpanContext(TraceContext traceContext) {
         this.traceContext = traceContext;
     }
 
