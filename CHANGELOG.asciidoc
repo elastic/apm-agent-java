@@ -27,6 +27,7 @@ endif::[]
 ===== Features
 * Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
 {pull}1644[#1644]
+* Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
 
 [float]
 ===== Bug fixes
