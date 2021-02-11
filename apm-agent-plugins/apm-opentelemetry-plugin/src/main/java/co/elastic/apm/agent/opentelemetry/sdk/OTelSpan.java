@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.util.LoggerUtils;
 import co.elastic.apm.agent.util.VersionUtils;
@@ -101,7 +102,17 @@ public class OTelSpan implements Span {
                     break;
             }
         }
-        // TODO set outcome
+        switch (statusCode) {
+            case ERROR:
+                span.withOutcome(Outcome.FAILURE);
+                break;
+            case OK:
+                span.withOutcome(Outcome.SUCCESS);
+                break;
+            case UNSET:
+                span.withOutcome(Outcome.UNKNOWN);
+                break;
+        }
         return this;
     }
 
