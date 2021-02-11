@@ -24,7 +24,8 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
+import co.elastic.apm.agent.premain.JavaVersionBootstrapCheck;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.Stream;
@@ -165,12 +166,12 @@ class JavaVersionBootstrapCheckTest {
         JvmRuntimeInfo runtimeInfo = new JvmRuntimeInfo(unsupportedVersion, HOTSPOT_VM_NAME, null);
         JavaVersionBootstrapCheck check = new JavaVersionBootstrapCheck(runtimeInfo);
         assertThat(check.isJavaVersionSupported()).isFalse();
-        assertThat(runtimeInfo.isIsHpUx()).isTrue();
+        assertThat(runtimeInfo.isHpUx()).isTrue();
 
         runtimeInfo = new JvmRuntimeInfo(supportedVersion, HOTSPOT_VM_NAME, null);
         check = new JavaVersionBootstrapCheck(runtimeInfo);
         assertThat(check.isJavaVersionSupported()).isTrue();
-        assertThat(runtimeInfo.isIsHpUx()).isTrue();
+        assertThat(runtimeInfo.isHpUx()).isTrue();
     }
 
     private static void checkSupported(String vmName, Stream<String> versions) {

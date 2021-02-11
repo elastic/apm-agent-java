@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 
 import java.util.List;
 
@@ -82,7 +82,7 @@ public class JavaVersionBootstrapCheck implements BootstrapCheck {
         // versions prior to that have unreliable invoke dynamic support according to https://groovy-lang.org/indy.html
         int java7min = 60;
         int java8min = 40;
-        if (runtimeInfo.isIsHpUx()) {
+        if (runtimeInfo.isHpUx()) {
             java7min = 10; // hotspot 7u65
             java8min = 2; // hotspot 8u45
         }

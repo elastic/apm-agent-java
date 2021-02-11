@@ -103,7 +103,11 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
 
     private static void startTransaction() {
         Transaction transaction = tracer.startRootTransaction(CommonsExecAsyncInstrumentationTest.class.getClassLoader());
-        transaction.withType("request").activate();
+
+        assertThat(transaction).isNotNull();
+        transaction.withType("request")
+            .withName("parent transaction")
+            .activate();
     }
 
     private static void terminateTransaction() {

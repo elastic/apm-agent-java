@@ -20,8 +20,54 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.1]]
-==== 1.19.1 - YYYY/MM/DD
+[[release-notes-1.22.0]]
+==== 1.22.0 - YYYY/MM/DD
+
+[float]
+===== Features
+* Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
+{pull}1644[#1644]
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.21.0]]
+==== 1.21.0 - 2020/02/09
+
+[float]
+===== Breaking changes
+* Following PR {pull}1650[#1650], there are two slight changes with the <<config-server-url>> and <<config-server-urls>>
+configuration options:
+    1.  So far, setting `server_urls` with an empty string would allow the agent to work normally, apart from any action
+        that requires communication with the APM Server, including the attempt to fetch a central configuration.
+        Starting in this agent version, setting `server_urls` to empty string doesn't have any special meaning, it is
+        the default expected configuration, where `server_url` will be used instead. In order to achieve the same
+        behaviour, use the new <<config-disable-send>> configuration.
+    2.  Up to this version, `server_url` was used as an alias to `server_urls`, meaning that one could potentially set
+        the `server_url` config with a comma-separated list of multiple APM Server addresses, and that would have been a
+        valid configuration. Starting in this agent version, `server_url` is a separate configuration, and it only accepts
+        Strings that represent a single valid URL. Specifically, empty strings and commas are invalid.
+
+[float]
+===== Features
+* Add cloud provider metadata to reported events, see
+https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
+By default, the agent will try to automatically detect the cloud provider on startup, but this can be
+configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
+* Add span & transaction `outcome` field to improve error rate calculations - {pull}1613[#1613]
+
+[float]
+===== Bug fixes
+* Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
+* Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
+* Fixing agent startup failure with `NullPointerException` thrown by Byte-buddy's `MultipleParentClassLoader` - {pull}1647[#1647]
+* Fix cached type resolution triggering `ClassCastException` - {pull}1649[#1649]
+
+[[release-notes-1.20.0]]
+==== 1.20.0 - 2021/01/07
 
 [float]
 ===== Breaking changes
@@ -43,13 +89,15 @@ endif::[]
 * Fix Micrometer-driven metrics validation errors by the APM Server when sending with illegal values - {pull}1559[#1559]
 * Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
 * Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
+* Fix improper request body capturing - {pull}1579[#1579]
+* Avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
+* Update async-profiler to 1.8.3 {pull}1602[1602]
+* Use null-safe data structures to avoid `NullPointerException` {pull}1597[1597]
+* Fix memory leak in sampling profiler mechanism - {pull}1592[#1592]
 
 [float]
 ===== Refactors
 * Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.19.0]]
 ==== 1.19.0 - 2020/11/10

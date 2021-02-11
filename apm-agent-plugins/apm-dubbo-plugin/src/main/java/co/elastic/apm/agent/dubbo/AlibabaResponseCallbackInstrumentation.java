@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.dubbo;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.alibaba.dubbo.rpc.Result;
 import net.bytebuddy.asm.Advice;
@@ -67,16 +68,21 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown Throwable thrown,
-                                   @Nullable @Advice.Local("span") AbstractSpan<?> span,
-                                   @Nullable @Advice.Argument(0) Object response) {
+        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                   @Advice.Local("span") @Nullable AbstractSpan<?> span,
+                                   @Advice.Argument(0) @Nullable Object response) {
             if (span == null) {
                 return;
             }
+            Throwable resultException = null;
             if (response instanceof Result) {
-                span.captureException(((Result) response).getException());
+                resultException = ((Result) response).getException();
             }
-            span.captureException(thrown).deactivate().end();
+            span.captureException(thrown)
+                .captureException(resultException)
+                .withOutcome(thrown != null || resultException != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                .deactivate()
+                .end();
         }
     }
 
@@ -99,14 +105,15 @@ public abstract class AlibabaResponseCallbackInstrumentation extends AbstractAli
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.Thrown Throwable thrown,
-                                   @Nullable @Advice.Local("span") AbstractSpan<?> span,
-                                   @Nullable @Advice.Argument(0) Throwable caught) {
+        private static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                   @Advice.Local("span") @Nullable AbstractSpan<?> span,
+                                   @Advice.Argument(0) @Nullable Throwable caught) {
             if (span == null) {
                 return;
             }
             span.captureException(thrown)
                 .captureException(caught)
+                .withOutcome(caught != null || thrown != null ? Outcome.FAILURE : Outcome.SUCCESS)
                 .deactivate()
                 .end();
         }

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.pluginapi;
 
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
@@ -40,6 +41,7 @@ import java.lang.invoke.MethodHandle;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
@@ -63,6 +65,9 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
+    /**
+     * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#doSetName(java.lang.String)}
+     */
     public static class SetNameInstrumentation extends AbstractSpanInstrumentation {
         public SetNameInstrumentation() {
             super(named("doSetName"));
@@ -141,6 +146,32 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    /**
+     * Instruments {@code co.elastic.apm.api.AbstractSpanImpl#doSetOutcome(java.lang.Boolean)}
+     */
+    public static class SetOutcomeInstrumentation extends AbstractSpanInstrumentation {
+        public SetOutcomeInstrumentation() {
+            super(named("doSetOutcome")
+                .and(takesArguments(1)
+                    .and(takesArgument(0, named("co.elastic.apm.api.Outcome")))
+                ));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void setOutcome(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
+                                      @Advice.Argument(value = 0) @Nullable Enum<?> apiOutcome) {
+            if (context instanceof AbstractSpan<?>) {
+                Outcome outcome = Outcome.UNKNOWN;
+                if (apiOutcome != null) {
+                    // valueOf conversion is fast as Enum implementation is using a lookup map internally
+                    // thus we don't need to do this ourselves
+                    outcome = Outcome.valueOf(apiOutcome.name());
+                }
+                ((AbstractSpan<?>) context).withUserOutcome(outcome);
+            }
+        }
+    }
+
     public static class EndInstrumentation extends AbstractSpanInstrumentation {
         public EndInstrumentation() {
             super(named("end").and(takesArguments(0)));
@@ -183,7 +214,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
                                               @Advice.Argument(0) Throwable t,
-                                              @Advice.Return String returnValue) {
+                                              @Advice.Return @Nullable String returnValue) {
             if (context instanceof AbstractSpan<?>) {
                 return ((AbstractSpan<?>) context).captureExceptionAndGetErrorId(t);
             } else {
@@ -217,10 +248,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             super(named("getId").and(takesArguments(0)));
         }
 
+        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                   @Advice.Return String returnValue) {
+                                   @Advice.Return @Nullable String returnValue) {
             if (context instanceof AbstractSpan<?>) {
                 return ((AbstractSpan<?>) context).getTraceContext().getId().toString();
             } else {
@@ -234,10 +266,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             super(named("getTraceId").and(takesArguments(0)));
         }
 
+        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                        @Advice.Return String returnValue) {
+                                        @Advice.Return @Nullable String returnValue) {
             if (context instanceof AbstractSpan<?>) {
                 return ((AbstractSpan<?>) context).getTraceContext().getTraceId().toString();
             } else {
@@ -253,7 +286,8 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) String value) {
+                                    @Advice.Argument(0) String key,
+                                    @Advice.Argument(1) @Nullable String value) {
             if (value != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).addLabel(key, value);
             }
@@ -267,7 +301,8 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Number value) {
+                                    @Advice.Argument(0) String key,
+                                    @Advice.Argument(1) @Nullable Number value) {
             if (value != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).addLabel(key, value);
             }
@@ -281,7 +316,8 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object context,
-                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Boolean value) {
+                                    @Advice.Argument(0) String key,
+                                    @Advice.Argument(1) @Nullable Boolean value) {
             if (value != null && context instanceof AbstractSpan) {
                 ((AbstractSpan<?>) context).addLabel(key, value);
             }

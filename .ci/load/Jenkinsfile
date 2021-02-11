@@ -9,6 +9,8 @@ pipeline {
         AGENT_BASE_DIR = "src/${REPO}"
         ORCH_URL = 'https://obs-load-orch.app.elstc.co'
         CREDENTIALS_ID = 'f6c7695a-671e-4f4f-a331-acdce44ff9ba'
+        JOB_GCS_BUCKET = credentials('gcs-bucket')
+        JOB_GCS_CREDENTIALS = 'apm-ci-gcs-plugin'
         // Set below for local development
         // ORCH_URL='10.0.2.2:8000'
         DEBUG_MODE = '0' // set to '0' for production
@@ -176,13 +178,16 @@ pipeline {
                 }
                 stage('Run app') {
                     agent { label 'benchmarks' }
+                    environment {
+                        BUCKET_URI = """${isPR() ? "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/pr-${env.CHANGE_ID}" : "gs://${JOB_GCS_BUCKET}/${env.JOB_BASE_NAME}/${env.BRANCH_NAME}"}"""
+                    }
                     steps {
 
                         // create agent configuration
                         writeFile(file: "${WORKSPACE}/agent_config.properties", text: "${params.agent_config}")
 
                         // remove previous log files in workspace (if any)
-                        sh(script: "rm -f ${WORKSPACE}/*.log ${WORKSPACE}/*.pid")
+                        sh(script: "rm -vf ${WORKSPACE}/*.log ${WORKSPACE}/*.pid ${WORKSPACE}/*.jfr")
 
                         unstash('scripts')
                         unstash('app')
@@ -257,7 +262,7 @@ pipeline {
                             cmd = "${cmd} -jar ${app_binary}"
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
-                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
+                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
                                 sh(script: "${cmd}")
                             }
 
@@ -277,12 +282,19 @@ pipeline {
                             // always remove configuration so we don't leave user-input
                             sh(script: "rm -f ${WORKSPACE}/agent_config.properties")
 
-                            // always capture log files
-                            echo "Collect results and logs"
+                            // always capture result files
+                            echo "Collect results"
                             archiveArtifacts(
-                                    artifacts: "*.log,*.jfr,metrics.out",
+                                    artifacts: "hs_err_pid*.log,*.jfr,metrics.out",
                                     allowEmptyArchive: true,
                                     onlyIfSuccessful: false)
+
+                            // Upload log files to the default location since they are massive
+                            googleStorageUpload(bucket: "${env.BUCKET_URI}/${env.BUILD_ID}",
+                                                credentialsId: "${JOB_GCS_CREDENTIALS}",
+                                                pattern: "*.log",
+                                                sharedPublicly: true,
+                                                showInline: true)
                         }
                     }
                 }

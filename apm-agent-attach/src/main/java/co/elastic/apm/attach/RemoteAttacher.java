@@ -348,7 +348,7 @@ public class RemoteAttacher {
             out.println();
             out.println("    -C --config <key=value>...");
             out.println("        This repeatable option sets one agent configuration option.");
-            out.println("        Example: --config server_urls=http://localhost:8200,http://localhost:8201.");
+            out.println("        Example: --config server_url=http://localhost:8200.");
             out.println();
             out.println("    -A, --args-provider <args_provider_script>");
             out.println("        The name of a program which is called when a new JVM starts up.");
