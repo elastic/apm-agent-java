@@ -29,6 +29,8 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
@@ -56,6 +58,7 @@ public abstract class AbstractInstrumentationTest {
         config = mockInstrumentationSetup.getConfig();
         objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
         reporter = mockInstrumentationSetup.getReporter();
+
         assertThat(tracer.isRunning()).isTrue();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
@@ -107,4 +110,36 @@ public abstract class AbstractInstrumentationTest {
             .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
             .isNull();
     }
+
+    /**
+     * Creates a test root transaction with default values applied.
+     *
+     * <p>This method should be used to create a transaction used to test execution of a given instrumentation
+     * when an active transaction is available, for example to create child spans.</p>
+     *
+     * @param name transaction name
+     * @return root transaction
+     */
+    protected Transaction startTestRootTransaction(String name) {
+        Transaction transaction = tracer.startRootTransaction(null);
+
+        assertThat(transaction).isNotNull();
+
+        return transaction
+            .withName(name)
+            .withType("test")
+            .withResult("success")
+            .withOutcome(Outcome.SUCCESS)
+            .activate();
+    }
+
+    /**
+     * Creates a test root transaction
+     *
+     * @return root transaction
+     */
+    protected Transaction startTestRootTransaction() {
+        return startTestRootTransaction("test transaction");
+    }
+
 }

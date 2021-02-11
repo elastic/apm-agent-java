@@ -356,8 +356,27 @@ If both producer and consumer are traced, then distributed tracing is supported,
 side will be a part of the same trace containing the producer side as well. Kafka streams are not traced.
 |1.13.0
 
+|RabbitMQ
+|3.x - 5.x
+|The agent captures RabbitMQ Message sends, consumption and polling.
+When the producer sends a message within a traced transaction, a send span will be created and the transaction resulting
+from the message consumption will be correlated to the same trace.
+When a message is consumed, a transaction is created, regardless if the send action is traced.
+When a message is polled, a span is created for the polling operation and optionally have message fields if a message
+has been returned.
+|1.20.0
+
 |===
 
+For RabbitMQ:
+
+- `context.message.queue.name` field will contain queue name when using polling, exchange name otherwise.
+- `context.message.destination.resource` field will contain `rabbitmq/XXX` where `XXX` is exchange name.
+
+Some exchange/queue names are normalized in order to keep low cardinality and user-friendlyness
+- default exchange is indicated with `<default>`.
+- `null` exchange is normalized to `<unknown>`, for example when polling without a message.
+- generated queues whose name start with `amq.gen-` are normalized to `amq.gen-*`.
 
 [float]
 [[supported-scheduling-frameworks]]

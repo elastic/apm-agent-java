@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.19.1-SNAPSHOT</version>
+        <version>1.21.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-plugins</artifactId>
@@ -54,6 +54,7 @@
         <module>apm-bootdelegation-plugin</module>
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
+        <module>apm-rabbitmq</module>
     </modules>
 
     <dependencies>

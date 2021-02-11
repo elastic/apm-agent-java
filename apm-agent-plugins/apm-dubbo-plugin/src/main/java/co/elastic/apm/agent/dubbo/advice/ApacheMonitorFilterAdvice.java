@@ -92,10 +92,10 @@ public class ApacheMonitorFilterAdvice {
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExitFilterInvoke(@Advice.Argument(1) Invocation invocation,
-                                          @Advice.Return Result result,
-                                          @Nullable @Advice.Local("span") final Span span,
-                                          @Advice.Thrown Throwable t,
-                                          @Nullable @Advice.Local("transaction") Transaction transaction) {
+                                          @Advice.Return @Nullable Result result,
+                                          @Advice.Local("span") @Nullable final Span span,
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Local("transaction") @Nullable Transaction transaction) {
 
         RpcContext context = RpcContext.getContext();
         AbstractSpan<?> actualSpan = span != null ? span : transaction;

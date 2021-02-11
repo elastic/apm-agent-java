@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,11 +26,15 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -41,7 +45,11 @@ class TransactionTest {
 
     @BeforeEach
     void setUp() {
-        jsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), mock(ApmServerClient.class));
+        jsonSerializer = new DslJsonSerializer(
+            mock(StacktraceConfiguration.class),
+            mock(ApmServerClient.class),
+            MetaData.create(SpyConfiguration.createSpyConfig(), null)
+        );
     }
 
     @Test
@@ -51,4 +59,40 @@ class TransactionTest {
         transaction.resetState();
         assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction(MockTracer.create())));
     }
+
+    @Test
+    void getSetOutcome() {
+        Transaction transaction = new Transaction(MockTracer.create());
+
+        assertThat(transaction.getOutcome())
+            .describedAs("default outcome should be unknown")
+            .isEqualTo(Outcome.UNKNOWN);
+
+        assertThat(transaction.withOutcome(Outcome.SUCCESS).getOutcome())
+            .isSameAs(Outcome.SUCCESS);
+
+        assertThat(transaction.withOutcome(Outcome.FAILURE).getOutcome())
+            .isSameAs(Outcome.FAILURE);
+
+        Arrays.asList(Outcome.SUCCESS, Outcome.UNKNOWN).forEach(o ->{
+            assertThat(transaction.withUserOutcome(o).getOutcome())
+                .describedAs("user outcome should have higher priority over outcome")
+                .isSameAs(o);
+        });
+
+        assertThat(transaction
+            .withUserOutcome(Outcome.SUCCESS)
+            .withUserOutcome(Outcome.FAILURE)
+            .getOutcome())
+            .describedAs("takes last value when set by user multiple times")
+            .isSameAs(Outcome.FAILURE);
+
+        transaction.resetState();
+
+        assertThat(transaction.getOutcome())
+            .describedAs("reset should reset to unknown state")
+            .isEqualTo(Outcome.UNKNOWN);
+
+    }
+
 }

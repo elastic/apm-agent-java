@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-plugins</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.21.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-rabbitmq</artifactId>
+    <packaging>pom</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+    </properties>
+
+    <modules>
+        <module>apm-rabbitmq-plugin</module>
+        <module>apm-rabbitmq-test-3</module>
+        <module>apm-rabbitmq-test-4</module>
+        <!-- RabbitMQ 5.x is already tested through plugin module, thus we don't need a separate module to cover it -->
+    </modules>
+
+</project>

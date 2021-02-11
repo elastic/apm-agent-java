@@ -27,6 +27,7 @@ package co.elastic.apm.agent.dubbo.api.impl;
 import co.elastic.apm.agent.dubbo.api.DubboTestApi;
 import co.elastic.apm.agent.dubbo.api.exception.BizException;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -137,7 +138,10 @@ public class DubboTestApiImpl implements DubboTestApi {
     private void doSomething() {
         try {
             Thread.sleep(10);
-            GlobalTracer.get().getActive().createSpan().withName("doSomething").end();
+            GlobalTracer.get().getActive().createSpan()
+                .withName("doSomething")
+                .withOutcome(Outcome.SUCCESS)
+                .end();
         } catch (InterruptedException e) {
         }
     }
