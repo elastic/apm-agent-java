@@ -40,7 +40,7 @@ public class VerifyNoneBootstrapCheck implements BootstrapCheck {
         List<String> inputArguments = runtimeMXBean.getInputArguments();
         if (inputArguments.contains("-Xverify:none") || inputArguments.contains("-noverify")) {
             result.addWarn("WARNING: -Xverify:none and -noverify are not supported by the Elastic APM Java Agent. " +
-                "In future versions, the Elastic APM Agent will not start when these flags are set, " +
+                "In an upcoming version, the agent will not start when these flags are set, " +
                 "unless the system property elastic.apm.disable_bootstrap_checks is set to true.");
         }
     }

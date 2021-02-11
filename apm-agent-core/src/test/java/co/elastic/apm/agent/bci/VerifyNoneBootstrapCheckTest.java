@@ -24,13 +24,12 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.premain.BootstrapCheck;
 import co.elastic.apm.agent.premain.VerifyNoneBootstrapCheck;
 import org.junit.jupiter.api.Test;
 
 import java.lang.management.RuntimeMXBean;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -38,15 +37,16 @@ import static org.mockito.Mockito.when;
 
 class VerifyNoneBootstrapCheckTest {
 
-    private final List<String> errors = new ArrayList<>();
+    private final BootstrapCheck.BootstrapCheckResult result = new BootstrapCheck.BootstrapCheckResult();
 
     @Test
     void testNoverify() {
         RuntimeMXBean bean = mock(RuntimeMXBean.class);
         when(bean.getInputArguments()).thenReturn(Collections.singletonList("-noverify"));
         VerifyNoneBootstrapCheck check = new VerifyNoneBootstrapCheck(bean);
-        check.doBootstrapCheck(errors);
-        assertThat(errors).isNotEmpty();
+        check.doBootstrapCheck(result);
+        assertThat(result.hasWarnings()).isTrue();
+        assertThat(result.hasErrors()).isFalse();
     }
 
     @Test
@@ -54,8 +54,9 @@ class VerifyNoneBootstrapCheckTest {
         RuntimeMXBean bean = mock(RuntimeMXBean.class);
         when(bean.getInputArguments()).thenReturn(Collections.singletonList("-Xverify:none"));
         VerifyNoneBootstrapCheck check = new VerifyNoneBootstrapCheck(bean);
-        check.doBootstrapCheck(errors);
-        assertThat(errors).isNotEmpty();
+        check.doBootstrapCheck(result);
+        assertThat(result.hasWarnings()).isTrue();
+        assertThat(result.hasErrors()).isFalse();
     }
 
     @Test
@@ -63,7 +64,7 @@ class VerifyNoneBootstrapCheckTest {
         RuntimeMXBean bean = mock(RuntimeMXBean.class);
         when(bean.getInputArguments()).thenReturn(Collections.singletonList("-Xverify:all"));
         VerifyNoneBootstrapCheck check = new VerifyNoneBootstrapCheck(bean);
-        check.doBootstrapCheck(errors);
-        assertThat(errors).isEmpty();
+        check.doBootstrapCheck(result);
+        assertThat(result.isEmpty()).isTrue();
     }
 }
