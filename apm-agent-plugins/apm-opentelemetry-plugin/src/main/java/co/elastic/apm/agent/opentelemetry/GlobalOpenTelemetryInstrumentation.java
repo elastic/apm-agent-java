@@ -25,13 +25,9 @@
 package co.elastic.apm.agent.opentelemetry;
 
 import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.opentelemetry.sdk.ElasticOTelTracer;
-import co.elastic.apm.agent.opentelemetry.sdk.ElasticOTelTracerProvider;
+import co.elastic.apm.agent.opentelemetry.sdk.ElasticOpenTelemetry;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import io.opentelemetry.api.DefaultOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
-import io.opentelemetry.context.propagation.ContextPropagators;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -58,10 +54,7 @@ public class GlobalOpenTelemetryInstrumentation extends AbstractOpenTelemetryIns
 
     public static class GlobalOpenTelemetryAdvice {
 
-        private static final OpenTelemetry ELASTIC_OPEN_TELEMETRY = DefaultOpenTelemetry.builder()
-            .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
-            .setTracerProvider(new ElasticOTelTracerProvider(new ElasticOTelTracer(GlobalTracer.requireTracerImpl())))
-            .build();
+        private static final OpenTelemetry ELASTIC_OPEN_TELEMETRY = new ElasticOpenTelemetry(GlobalTracer.requireTracerImpl());
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false, skipOn = Advice.OnNonDefaultValue.class)
         public static boolean onEnter() {

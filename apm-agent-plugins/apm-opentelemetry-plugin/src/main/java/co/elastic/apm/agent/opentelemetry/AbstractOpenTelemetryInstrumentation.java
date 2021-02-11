@@ -37,7 +37,7 @@ public abstract class AbstractOpenTelemetryInstrumentation extends TracerAwareIn
 
     @Override
     public final ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
-        return implementationVersionGte("0.14.0");
+        return implementationVersionGte("0.16.0");
     }
 
     @Override

@@ -46,10 +46,7 @@ The first step in getting started with the OpenTelemetry API bridge is to declar
 compile "io.opentelemetry:opentelemetry-api:$openTelemetryVersion"
 ----
 
-The minimum required OpenTelemetry version is 0.14.1.
-
-NOTE: Be aware that non GA (0.x) versions of the OpenTelemetry API are not stable and don't guarantee backward compatibility.
-This means that you may have to adapt your instrumentation code when updating to newer versions.
+The minimum required OpenTelemetry version is 0.16.0.
 
 [float]
 [[otel-init-tracer]]

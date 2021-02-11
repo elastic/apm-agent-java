@@ -25,13 +25,17 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>0.15.0</version>
+            <!--
+            when updating the version, add the old version to OpenTelemetryVersionIT
+            to make sure we're compatible with both the old and the new version
+            -->
+            <version>0.16.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
-            <version>0.14.1</version>
+            <version>0.16.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

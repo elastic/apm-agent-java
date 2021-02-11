@@ -34,6 +34,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import org.slf4j.Logger;
@@ -125,7 +126,7 @@ class ElasticOTelSpanBuilder implements SpanBuilder {
     }
 
     @Override
-    public SpanBuilder setSpanKind(Span.Kind spanKind) {
+    public SpanBuilder setSpanKind(SpanKind spanKind) {
         return this;
     }
 
