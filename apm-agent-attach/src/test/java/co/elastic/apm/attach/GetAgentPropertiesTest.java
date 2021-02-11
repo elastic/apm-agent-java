@@ -28,11 +28,24 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class JpsTest {
+class GetAgentPropertiesTest {
 
     @Test
-    void testJps() throws Exception {
-        assertThat(Jps.INSTANCE.isAvailable()).isTrue();
-        assertThat(Jps.INSTANCE.getCommand(String.valueOf(ProcessHandle.current().pid()), Users.empty().getCurrentUser())).isNotEmpty();
+    void testGetProperties() throws Exception {
+        System.setProperty("foo", "bar");
+        try {
+            assertThat(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.current().getPid()))
+                .containsEntry("foo", "bar");
+            assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.current().getPid(), UserRegistry.empty().getCurrentUser()))
+                .containsEntry("foo", "bar");
+        } finally {
+            System.clearProperty("foo");
+        }
+    }
+
+    @Test
+    void testGetPropertiesEqual() throws Exception {
+        assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.current().getPid(), UserRegistry.empty().getCurrentUser()))
+            .isEqualTo(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.current().getPid()));
     }
 }

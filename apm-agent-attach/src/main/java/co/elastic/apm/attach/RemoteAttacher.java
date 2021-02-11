@@ -57,7 +57,7 @@ public class RemoteAttacher {
     private final Logger logger;
     private final Arguments arguments;
     private Set<JvmInfo> alreadySeen = new HashSet<>();
-    private final Users users = Users.empty();
+    private final UserRegistry userRegistry = UserRegistry.empty();
 
     private RemoteAttacher(Logger logger, Arguments arguments) {
         this.logger = logger;
@@ -100,13 +100,6 @@ public class RemoteAttacher {
     }
 
     private void attach() throws Exception {
-        if (arguments.getDiscoveryRules().containsConditionsRelyingOnJps()) {
-            if (!Jps.INSTANCE.isAvailable()) {
-                String locations = JvmDiscoverer.JpsFinder.getJpsPaths(System.getProperties(), System.getenv()).toString();
-                throw new IllegalStateException("Matching JVMs with --include-cmd or --exclude-cmd requires jps, unable to find it in searched locations: " + locations);
-            }
-        }
-
         if (arguments.isHelp()) {
             arguments.printHelp(System.out);
         } else if (arguments.isList()) {
@@ -138,8 +131,12 @@ public class RemoteAttacher {
 
     private void attachToNewJvms(Collection<JvmInfo> jvms, DiscoveryRules rules) {
         for (JvmInfo jvmInfo : getNewJvms(jvms)) {
-            if (!jvmInfo.pid.equals(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve())) {
-                onJvmStart(jvmInfo, rules);
+            if (!jvmInfo.getPid().equals(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve())) {
+                try {
+                    onJvmStart(jvmInfo, rules);
+                } catch (Exception e) {
+                    logger.error("Unable to attach to JVM with PID = {}", jvmInfo.getPid(), e);
+                }
             }
         }
         alreadySeen = new HashSet<>(jvms);
@@ -151,20 +148,16 @@ public class RemoteAttacher {
         return newJvms;
     }
 
-    private void onJvmStart(JvmInfo jvmInfo, DiscoveryRules discoveryRules) {
-        DiscoveryRules.Condition matchingCondition = discoveryRules.anyMatch(jvmInfo.getPid(), Users.empty().get(jvmInfo.user));
+    private void onJvmStart(JvmInfo jvmInfo, DiscoveryRules discoveryRules) throws Exception {
+        DiscoveryRules.Condition matchingCondition = discoveryRules.anyMatch(jvmInfo, userRegistry);
         if (matchingCondition != null) {
-            try {
-                final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
-                logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
-                logger.info("Matching condition: " + matchingCondition);
-                if (attach(jvmInfo, agentArgs)) {
-                    logger.info("Done");
-                } else {
-                    logger.error("Unable to attach to JVM with PID = {}", jvmInfo.pid);
-                }
-            } catch (Exception e) {
-                logger.error("Unable to attach to JVM with PID = {}", jvmInfo.pid, e);
+            final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
+            logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
+            logger.info("Matching condition: " + matchingCondition);
+            if (attach(jvmInfo, agentArgs)) {
+                logger.info("Done");
+            } else {
+                logger.error("Unable to attach to JVM with PID = {}", jvmInfo.getPid());
             }
         } else {
             logger.debug("Not attaching the Elastic APM agent to {}, none of the conditions are met {}.",
@@ -172,24 +165,29 @@ public class RemoteAttacher {
         }
     }
 
-    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) throws IOException, InterruptedException {
-        Users.User user = users.get(jvmInfo.user);
+    private boolean attach(JvmInfo jvmInfo, Map<String, String> agentArgs) throws Exception {
+        UserRegistry.User user = jvmInfo.getUser(userRegistry);
         if (user == null) {
+            logger.error("Could not load user {}", jvmInfo.getUserName());
+            return false;
+        }
+        if (!jvmInfo.isVersionSupported(userRegistry)) {
+            logger.info("Cannot attach to JVM {} as the version is not supported.", jvmInfo);
             return false;
         }
         if (user.isCurrentUser()) {
-            ElasticApmAttacher.attach(jvmInfo.pid, agentArgs);
+            ElasticApmAttacher.attach(jvmInfo.getPid(), agentArgs);
             return true;
         } else if (user.canSwitchToUser()) {
-            return attachAsUser(user, agentArgs, jvmInfo.pid);
+            return attachAsUser(user, agentArgs, jvmInfo.getPid());
         } else {
             logger.warn("Cannot attach to {} because the current user ({}) doesn't have the permissions to switch to user {}",
-                jvmInfo, Users.getCurrentUserName(), jvmInfo.user);
+                jvmInfo, UserRegistry.getCurrentUserName(), jvmInfo.getUserName());
             return false;
         }
     }
 
-    public static boolean attachAsUser(Users.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
+    public static boolean attachAsUser(UserRegistry.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
 
         List<String> args = new ArrayList<>();
         args.add("--include-pid");
@@ -216,7 +214,7 @@ public class RemoteAttacher {
     }
 
     private String getArgsProviderOutput(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid).start();
+        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.getPid()).start();
         if (argsProvider.waitFor() == 0) {
             return toString(argsProvider.getInputStream());
         } else {

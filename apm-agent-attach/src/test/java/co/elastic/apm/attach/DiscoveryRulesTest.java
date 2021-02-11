@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,58 +31,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DiscoveryRulesTest {
 
     private final DiscoveryRules discoveryRules = new DiscoveryRules();
-    private final Users users = Users.empty();
+    private final UserRegistry userRegistry = UserRegistry.empty();
 
     @Test
     void testNoRules() {
-        assertThat(discoveryRules.isAnyMatch("1", users.getCurrentUser())).isFalse();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeAll() {
         discoveryRules.includeAll();
-        assertThat(discoveryRules.isAnyMatch("1", users.getCurrentUser())).isTrue();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testExcludeNotMatching() {
         discoveryRules.excludePid("2");
-        assertThat(discoveryRules.isAnyMatch("1", users.getCurrentUser())).isTrue();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testExcludeMatching() {
         discoveryRules.excludePid("1");
-        assertThat(discoveryRules.isAnyMatch("1", users.getCurrentUser())).isFalse();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeNotMatching() {
         discoveryRules.includePid("1");
-        assertThat(discoveryRules.isAnyMatch("2", users.getCurrentUser())).isFalse();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("2"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeMatching() {
         discoveryRules.includePid("1");
-        assertThat(discoveryRules.isAnyMatch("1", users.getCurrentUser())).isTrue();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testIncludeMultiple() {
         discoveryRules.includePid("1");
         discoveryRules.includePid("2");
-        assertThat(discoveryRules.isAnyMatch("1", users.getCurrentUser())).isTrue();
-        assertThat(discoveryRules.isAnyMatch("2", users.getCurrentUser())).isTrue();
-        assertThat(discoveryRules.isAnyMatch("3", users.getCurrentUser())).isFalse();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("2"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("3"), userRegistry)).isFalse();
     }
 
     @Test
     void testExcludeNotIncluded() {
         discoveryRules.includePid("1");
         discoveryRules.excludePid("2");
-        assertThat(discoveryRules.isAnyMatch("1", users.getCurrentUser())).isTrue();
-        assertThat(discoveryRules.isAnyMatch("2", users.getCurrentUser())).isFalse();
-        assertThat(discoveryRules.isAnyMatch("3", users.getCurrentUser())).isTrue();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("2"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("3"), userRegistry)).isTrue();
     }
 }

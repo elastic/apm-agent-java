@@ -41,18 +41,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class Users {
+public class UserRegistry {
 
     private final Map<String, User> users;
 
-    private Users(List<User> users) {
+    private UserRegistry(List<User> users) {
         this.users = new HashMap<>();
         for (User user : users) {
             this.users.put(user.username, user);
         }
     }
 
-    public static Users getAllUsersMacOs() throws IOException, InterruptedException {
+    public static UserRegistry getAllUsersMacOs() throws IOException, InterruptedException {
         List<User> users = new ArrayList<>();
         Process dscl = new ProcessBuilder("dscl", ".", "list", "/Users").start();
         BufferedReader reader = new BufferedReader(new InputStreamReader(dscl.getInputStream()));
@@ -66,11 +66,11 @@ public class Users {
         if (dscl.exitValue() != 0) {
             throw new IllegalStateException();
         }
-        return new Users(users);
+        return new UserRegistry(users);
     }
 
-    public static Users empty() {
-        return new Users(Collections.<User>emptyList());
+    public static UserRegistry empty() {
+        return new UserRegistry(Collections.<User>emptyList());
     }
 
     public static String getCurrentUserName() {
@@ -100,7 +100,7 @@ public class Users {
                 // every user has their own temp folder on MacOS
                 // to discover it, we're starting a simple Java program in the context of the user
                 // that outputs the value of the java.io.tmpdir system property
-                Process process = user.runAsUserWithCurrentClassPath(Users.class).start();
+                Process process = user.runAsUserWithCurrentClassPath(UserRegistry.class).start();
                 process.waitFor();
                 if (process.exitValue() == 0) {
                     return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();

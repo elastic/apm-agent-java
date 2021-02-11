@@ -25,23 +25,16 @@
 package co.elastic.apm.attach;
 
 import com.sun.jna.Platform;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 public interface JvmDiscoverer {
 
@@ -60,8 +53,6 @@ public interface JvmDiscoverer {
                 if (jvmDiscoverer.isAvailable()) {
                     tempJvmDiscoverer = jvmDiscoverer;
                     break;
-                } else {
-                    System.out.println(jvmDiscoverer.getClass().getSimpleName() + " is not available");
                 }
             }
             delegate = tempJvmDiscoverer;
@@ -78,59 +69,7 @@ public interface JvmDiscoverer {
         }
     }
 
-    class JpsFinder {
-        // package protected for testing
-        static List<Path> getJpsPaths(Properties systemProperties, Map<String, String> env) {
-
-            List<Path> list = new ArrayList<Path>();
-
-            String os = systemProperties.getProperty("os.name");
-            Path binaryName;
-            if (os != null && os.startsWith("Windows")) {
-                binaryName = Paths.get("jps.exe");
-            } else {
-                binaryName = Paths.get("jps");
-            }
-
-
-            for (String javaHome : Arrays.asList(env.get("JAVA_HOME"), systemProperties.getProperty("java.home"))) {
-                if (javaHome != null) {
-                    list.add(Paths.get(javaHome)
-                        .resolve("bin")
-                        .resolve(binaryName));
-
-                    // in case 'java.home' or JAVA_HOME are set to a JRE
-                    // we try to use the one in the folder up, which is usually where the JDK is
-                    list.add(Paths.get(javaHome)
-                        .resolve("..")
-                        .resolve("bin")
-                        .resolve(binaryName));
-
-                }
-            }
-
-            // fallback to the simple binary name
-            list.add(binaryName);
-
-            return list;
-        }
-
-        static Path getJpsPath(Properties systemProperties, Map<String, String> env) {
-            List<Path> locations = getJpsPaths(systemProperties, env);
-            for (Path path : locations) {
-                if (Files.isExecutable(path)) {
-                    return path;
-                }
-            }
-            throw new IllegalStateException("unable to locate jps executable, searched locations : " + locations);
-        }
-
-        static Path getJpsPath() {
-            return getJpsPath(System.getProperties(), System.getenv());
-        }
-    }
-
-    enum Unavailable implements JvmDiscoverer {
+     enum Unavailable implements JvmDiscoverer {
         INSTANCE;
 
         @Override
@@ -149,8 +88,6 @@ public interface JvmDiscoverer {
      */
     class ForHotSpotVm implements JvmDiscoverer {
 
-        private static Logger logger = LogManager.getLogger(JvmDiscoverer.class);
-
         private final List<String> tempDirs;
 
         public ForHotSpotVm(List<String> tempDirs) {
@@ -162,9 +99,8 @@ public interface JvmDiscoverer {
             if (Platform.isMac()) {
                 // on MacOS, each user has their own temp dir
                 try {
-                    tempDirs.addAll(Users.getAllUsersMacOs().getAllTempDirs());
-                } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
+                    tempDirs.addAll(UserRegistry.getAllUsersMacOs().getAllTempDirs());
+                } catch (Exception ignore) {
                 }
             } else {
                 // this only works if the java.io.tmpdir property is not overridden as the hsperfdata_ files are stored in the default tmpdir
@@ -188,8 +124,7 @@ public interface JvmDiscoverer {
                 if (jvmPidFiles != null) {
                     for (File jvmPidFile : jvmPidFiles) {
                         String user = jvmPidFile.getParentFile().getName().substring("hsperfdata_".length());
-                        // TODO parse hsperfdata_ file to get jar name and vm arguments
-                        result.add(new JvmInfo(jvmPidFile.getName(), user));
+                        result.add(JvmInfo.of(jvmPidFile.getName(), user));
                     }
                 }
             }
@@ -223,7 +158,7 @@ public interface JvmDiscoverer {
 
         INSTANCE;
 
-        private static final Logger logger = LogManager.getLogger(UsingPs.class);
+//        private static final Logger logger = LogManager.getLogger(UsingPs.class);
 
         @Override
         public Collection<JvmInfo> discoverJvms() throws Exception {
@@ -235,7 +170,7 @@ public interface JvmDiscoverer {
                     String[] rows = line.split("\\s+");
                     String pid = rows[1];
                     String user = rows[0];
-                    jvms.add(new JvmInfo(pid, user));
+                    jvms.add(JvmInfo.of(pid, user));
                 }
             }
             process.waitFor();
@@ -251,7 +186,7 @@ public interface JvmDiscoverer {
                     .start()
                     .waitFor() == 0;
             } catch (Exception e) {
-                logger.error(e.getMessage(), e);
+//                logger.error(e.getMessage(), e);
                 return false;
             }
         }

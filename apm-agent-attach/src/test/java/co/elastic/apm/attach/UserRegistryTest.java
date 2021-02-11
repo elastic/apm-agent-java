@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -24,28 +24,39 @@
  */
 package co.elastic.apm.attach;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
-class JvmDiscovererTest {
+class UserRegistryTest {
 
     @Test
-    void discoverHotspotJvms() {
-        JvmDiscoverer.ForHotSpotVm discoverer = JvmDiscoverer.ForHotSpotVm.withDefaultTempDir();
-        assertThat(discoverer.isAvailable())
-            .describedAs("HotSpot JVM discovery should be available")
-            .isTrue();
-        assertThat(discoverer.discoverJvms()).contains(JvmInfo.current());
+    @EnabledOnOs(OS.MAC)
+    void testGetAllUsersMacOS() throws Exception {
+        assertThat(UserRegistry.getAllUsersMacOs().getAllUserNames()).contains("root", System.getProperty("user.name"));
     }
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
-    void testJpsDiscoverer() throws Exception {
-        assertThat(JvmDiscoverer.UsingPs.INSTANCE.isAvailable()).isTrue();
-        assertThat(JvmDiscoverer.UsingPs.INSTANCE.discoverJvms().stream().map(JvmInfo::getPid)).contains(String.valueOf(ProcessHandle.current().pid()));
+    void testSwitchToCurrentUser() throws Exception {
+        assertThat(UserRegistry.empty().getCurrentUser().canSwitchToUser()).isTrue();
     }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void testCannotSwitchToRoot() throws Exception {
+        Assumptions.assumeTrue(!System.getProperty("user.name").equals("root"));
+        assertThat(UserRegistry.empty().get("root").canSwitchToUser()).isFalse();
+    }
+
+    @Test
+    @EnabledOnOs(OS.MAC)
+    void testTempDir() throws Exception {
+        assertThat(UserRegistry.getAllUsersMacOs().getAllTempDirs()).contains(System.getProperty("java.io.tmpdir"));
+    }
+
 }

@@ -24,39 +24,21 @@
  */
 package co.elastic.apm.attach;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class UsersTest {
+class JvmInfoTest {
 
     @Test
-    @EnabledOnOs(OS.MAC)
-    void testGetAllUsersMacOS() throws Exception {
-        assertThat(Users.getAllUsersMacOs().getAllUserNames()).contains("root", System.getProperty("user.name"));
+    void testGetAgentProperties() throws Exception {
+        assertThat(JvmInfo.current().isVersionSupported(UserRegistry.empty())).isTrue();
+        assertThat(JvmInfo.current().getCmd(UserRegistry.empty())).isNotEmpty();
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
-    void testSwitchToCurrentUser() throws Exception {
-        assertThat(Users.empty().getCurrentUser().canSwitchToUser()).isTrue();
+    void testInvalidJvm() {
+        assertThatThrownBy(() -> JvmInfo.withCurrentUser("2").isVersionSupported(UserRegistry.empty())).isNotNull();
     }
-
-    @Test
-    @DisabledOnOs(OS.WINDOWS)
-    void testCannotSwitchToRoot() throws Exception {
-        Assumptions.assumeTrue(!System.getProperty("user.name").equals("root"));
-        assertThat(Users.empty().get("root").canSwitchToUser()).isFalse();
-    }
-
-    @Test
-    @EnabledOnOs(OS.MAC)
-    void testTempDir() throws Exception {
-        assertThat(Users.getAllUsersMacOs().getAllTempDirs()).contains(System.getProperty("java.io.tmpdir"));
-    }
-
 }

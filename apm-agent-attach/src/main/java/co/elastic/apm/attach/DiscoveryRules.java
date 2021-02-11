@@ -70,22 +70,13 @@ class DiscoveryRules {
         exclude(new UserCondition(user));
     }
 
-    public boolean containsConditionsRelyingOnJps() {
-        for (Condition condition : conditions) {
-            if (condition instanceof CmdCondition) {
-                return true;
-            }
-        }
-        return false;
+    public boolean isAnyMatch(JvmInfo vm, UserRegistry userRegistry) {
+        return anyMatch(vm, userRegistry) != null;
     }
 
-    public boolean isAnyMatch(String pid, Users.User user) {
-        return anyMatch(pid, user) == null;
-    }
-
-    public Condition anyMatch(String pid, Users.User user) {
+    public Condition anyMatch(JvmInfo vm, UserRegistry userRegistry) {
         for (Condition condition : conditions) {
-            if (condition.matches(pid, user)) {
+            if (condition.matches(vm, userRegistry)) {
                 return condition;
             }
         }
@@ -108,31 +99,25 @@ class DiscoveryRules {
         }
 
         @Override
-        public boolean matches(String pid, Users.User user) {
+        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
             return matches;
         }
     }
 
     interface Condition {
-        boolean matches(String pid, Users.User user);
+        boolean matches(JvmInfo vm, UserRegistry userRegistry);
     }
 
     private static class CmdCondition implements Condition {
         private final Pattern matcher;
 
         private CmdCondition(Pattern matcher) {
-            if (!Jps.INSTANCE.isAvailable()) {
-                throw new IllegalStateException("Jps is required for command discovery rules");
-            }
             this.matcher = matcher;
         }
 
-        public boolean matches(String pid, Users.User user) {
+        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
             try {
-                String command = Jps.INSTANCE.getCommand(pid, user);
-                if (command == null) {
-                    return false;
-                }
+                String command = vm.getCmd(userRegistry);
                 return matcher.matcher(command).find();
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -154,8 +139,8 @@ class DiscoveryRules {
         }
 
         @Override
-        public boolean matches(String pid, Users.User user) {
-            return this.pid.equals(pid);
+        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
+            return this.pid.equals(vm.getPid());
         }
 
         @Override
@@ -173,8 +158,8 @@ class DiscoveryRules {
         }
 
         @Override
-        public boolean matches(String pid, Users.User user) {
-            return this.user.equals(user.getUsername());
+        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
+            return this.user.equals(vm.getUserName());
         }
 
         @Override
@@ -192,8 +177,8 @@ class DiscoveryRules {
         }
 
         @Override
-        public boolean matches(String pid, Users.User user) {
-            return !condition.matches(pid, user);
+        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
+            return !condition.matches(vm, userRegistry);
         }
 
         @Override
