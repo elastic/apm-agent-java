@@ -104,7 +104,7 @@ class JvmInfo {
         return mainClass;
     }
 
-    public String getMainArgs() {
+    public String getVmArgs() {
         return vmArgs;
     }
 

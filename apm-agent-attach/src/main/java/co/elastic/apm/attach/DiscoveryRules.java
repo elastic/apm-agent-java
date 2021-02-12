@@ -117,7 +117,10 @@ class DiscoveryRules {
 
         public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
             try {
-                return matcher.matcher(vm.getMainClass()).find() || matcher.matcher(vm.getMainArgs()).find();
+                String mainClass = vm.getMainClass();
+                String vmArgs = vm.getVmArgs();
+                return (mainClass != null && matcher.matcher(mainClass).find())
+                    || (vmArgs != null && matcher.matcher(vmArgs).find());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
