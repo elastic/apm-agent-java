@@ -25,6 +25,8 @@
 package co.elastic.apm.attach;
 
 import com.sun.jna.Platform;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -35,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 
 public interface JvmDiscoverer {
 
@@ -42,43 +45,31 @@ public interface JvmDiscoverer {
 
     boolean isAvailable();
 
-    enum ForCurrentVM implements JvmDiscoverer {
-        INSTANCE;
+    class Compound implements JvmDiscoverer {
 
-        private final JvmDiscoverer delegate;
+        private final List<JvmDiscoverer> jvmDiscoverers;
 
-        ForCurrentVM() {
-            JvmDiscoverer tempJvmDiscoverer = Unavailable.INSTANCE;
-            for (JvmDiscoverer jvmDiscoverer : Arrays.asList(UsingPs.INSTANCE, ForHotSpotVm.withDefaultTempDir())) {
-                if (jvmDiscoverer.isAvailable()) {
-                    tempJvmDiscoverer = jvmDiscoverer;
-                    break;
-                }
-            }
-            delegate = tempJvmDiscoverer;
+        public Compound(List<JvmDiscoverer> jvmDiscoverers) {
+            this.jvmDiscoverers = jvmDiscoverers;
         }
 
         @Override
         public Collection<JvmInfo> discoverJvms() throws Exception {
-            return delegate.discoverJvms();
+            for (JvmDiscoverer jvmDiscoverer : jvmDiscoverers) {
+                if (jvmDiscoverer.isAvailable()) {
+                    return jvmDiscoverer.discoverJvms();
+                }
+            }
+            throw new IllegalStateException("No jvm discoverer is available");
         }
 
         @Override
         public boolean isAvailable() {
-            return delegate.isAvailable();
-        }
-    }
-
-     enum Unavailable implements JvmDiscoverer {
-        INSTANCE;
-
-        @Override
-        public Collection<JvmInfo> discoverJvms() {
-            throw new IllegalStateException("Can't discover JVMs for this platform");
-        }
-
-        @Override
-        public boolean isAvailable() {
+            for (JvmDiscoverer jvmDiscoverer : jvmDiscoverers) {
+                if (jvmDiscoverer.isAvailable()) {
+                    return true;
+                }
+            }
             return false;
         }
     }
@@ -88,32 +79,37 @@ public interface JvmDiscoverer {
      */
     class ForHotSpotVm implements JvmDiscoverer {
 
+        private static final Logger logger = LogManager.getLogger(ForHotSpotVm.class);
         private final List<String> tempDirs;
+        private final UserRegistry userRegistry;
 
-        public ForHotSpotVm(List<String> tempDirs) {
+        public ForHotSpotVm(List<String> tempDirs, UserRegistry userRegistry) {
             this.tempDirs = tempDirs;
+            this.userRegistry = userRegistry;
         }
 
-        public static ForHotSpotVm withDefaultTempDir() {
+        public static ForHotSpotVm withDiscoveredTempDirs(UserRegistry userRegistry) {
             List<String> tempDirs = new ArrayList<>();
             if (Platform.isMac()) {
                 // on MacOS, each user has their own temp dir
                 try {
                     tempDirs.addAll(UserRegistry.getAllUsersMacOs().getAllTempDirs());
-                } catch (Exception ignore) {
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
                 }
             } else {
                 // this only works if the java.io.tmpdir property is not overridden as the hsperfdata_ files are stored in the default tmpdir
                 // but we as we control the startup script for the attacher.jar that's fine
                 tempDirs.add(System.getProperty("java.io.tmpdir"));
             }
-            return new ForHotSpotVm(tempDirs);
+            return new ForHotSpotVm(tempDirs, userRegistry);
         }
 
         @Override
         public Collection<JvmInfo> discoverJvms() {
             List<JvmInfo> result = new ArrayList<>();
             List<File> hsPerfdataFolders = getHsPerfdataFolders();
+            logger.debug("Looking in the following folders for hsperfdata_<user>/<pid> files: {}", hsPerfdataFolders);
             for (File hsPerfdataFolder : hsPerfdataFolders) {
                 File[] jvmPidFiles = hsPerfdataFolder.listFiles(new FileFilter() {
                     @Override
@@ -124,7 +120,13 @@ public interface JvmDiscoverer {
                 if (jvmPidFiles != null) {
                     for (File jvmPidFile : jvmPidFiles) {
                         String user = jvmPidFile.getParentFile().getName().substring("hsperfdata_".length());
-                        result.add(JvmInfo.of(jvmPidFile.getName(), user));
+                        try {
+                            Properties properties = GetAgentProperties.getAgentAndSystemProperties(jvmPidFile.getName(), userRegistry.get(user));
+                            result.add(JvmInfo.of(jvmPidFile.getName(), user, properties));
+                        } catch (Exception e) {
+                            logger.warn("Unable to get properties from {}", jvmPidFile.getName());
+                            logger.warn(e.getMessage(), e);
+                        }
                     }
                 }
             }
@@ -154,11 +156,14 @@ public interface JvmDiscoverer {
         }
     }
 
-    enum UsingPs implements JvmDiscoverer {
+    class UsingPs implements JvmDiscoverer {
 
-        INSTANCE;
+        private static final Logger logger = LogManager.getLogger(UsingPs.class);
+        private final UserRegistry userRegistry;
 
-//        private static final Logger logger = LogManager.getLogger(UsingPs.class);
+        UsingPs(UserRegistry userRegistry) {
+            this.userRegistry = userRegistry;
+        }
 
         @Override
         public Collection<JvmInfo> discoverJvms() throws Exception {
@@ -170,7 +175,14 @@ public interface JvmDiscoverer {
                     String[] rows = line.split("\\s+");
                     String pid = rows[1];
                     String user = rows[0];
-                    jvms.add(JvmInfo.of(pid, user));
+                    try {
+                        logger.debug("Probing process to check whether it's an attachable Java process. This includes invoking a 'kill -3 {}'", pid);
+                        logger.debug(line);
+                        jvms.add(JvmInfo.of(pid, user, GetAgentProperties.getAgentAndSystemProperties(pid, userRegistry.get(user))));
+                    } catch (Exception e) {
+                        logger.debug("Although the ps aux output contains 'java', this seems to be a false positive.");
+                        logger.debug(e.getMessage(), e);
+                    }
                 }
             }
             process.waitFor();
@@ -186,7 +198,7 @@ public interface JvmDiscoverer {
                     .start()
                     .waitFor() == 0;
             } catch (Exception e) {
-//                logger.error(e.getMessage(), e);
+                logger.error(e.getMessage(), e);
                 return false;
             }
         }

@@ -14,16 +14,11 @@ This installation method does not require you to alter the configuration of your
 The attachment is supported on Windows,
 Unix and Solaris operating systems on HotSpot-based JVMs (like OpenJDK and Oracle JDK) and OpenJ9.
 
-Some flags, like `--include-cmd` and `--exclude-cmd` require the `jps` command to be installed,
-which is part of the JDK distribution and does not typically come with the JRE distribution.
-
 [float]
 [[setup-attach-cli-caveats]]
 ==== Caveats
 
-The OS user executing `apm-agent-attach-standalone.jar` and the OS user of the application(s) to be monitored (the JVMs to attach to) has to be the same.
-
-When attaching to a J9 VM, you have to explicitly set the `--pid <pid>` argument, or have `jps` installed.
+The OS user executing `apm-agent-attach-standalone.jar` has to have permissions to switch to the user running the target JVMs.
 
 The approach to mitigate `NoClassDefFoundError` s when used in OSGi containers (which includes most application servers) is experimental.
 Versions prior to 1.18.0 don't support OSGi containers.
@@ -42,9 +37,11 @@ NOTE: As of version 1.9.0, you will have to download the `standalone` jar instea
 ==== Usage
 
 Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all running and starting JVMs which match the filters.
-By default, this program will not attach the agent to any JVM unless any condition is true.
-Conditions can be added by using one of the following options: `--include-all`, `--include-cmd`, --exclude-cmd, --include-user, --exclude-user, --include-pid
-You have to specify at least one `--include-*` rule
+By default, this program will not attach the agent to any JVM.
+An attachment is performed for a given JVM if any of the provided conditions are met.
+
+Conditions can be added by using one of the following options: `--include-all`, `--include-cmd`, `--exclude-cmd`, `--include-user`, `--exclude-user`, `--include-pid`.
+You have to specify at least one `--include-*` rule.
 
 [source,bash]
 ----
@@ -84,7 +81,17 @@ java -jar apm-agent-attach-standalone.jar --list
 *-l, --list*::
 +
 --
-Lists all running JVMs. Same output as `jps -lv`.
+Lists all running JVMs.
+Provides an output similar to `jps -l`.
+--
+
+*-v*::
++
+--
+When listing running JVMs, include the arguments passed to the JVM.
+Provides an output similar to `jps -lv`.
+
+NOTE: The JVM arguments may contain sensitive information, such as passwords provided via system properties.
 --
 
 *-c, --continuous*::
@@ -111,7 +118,7 @@ Make sure that the user this program is running under is either the same user or
 *--exclude-user*::
 +
 --
-Includes all JVMs for attachment that are running under the given operating system user.
+Includes all JVMs for attachment that are not running under the given operating system user.
 --
 
 *--include-pid --pid <pid>*::
@@ -125,8 +132,6 @@ PID of the JVM to attach. If not provided, attaches to all currently running JVM
 --
 A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should not be attached to.
 (Matches the output of `jps -lv`)
-
-NOTE: this is only available if jps is installed
 --
 
 *--include-cmd <include_pattern>...*::
@@ -134,8 +139,6 @@ NOTE: this is only available if jps is installed
 --
 A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should be attached to.
 (Matches the output of `jps -lv`)
-
-NOTE: this is only available if jps is installed
 --
 
 *-a, --args <agent_arguments>*::

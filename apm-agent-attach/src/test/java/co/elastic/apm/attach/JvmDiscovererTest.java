@@ -35,17 +35,18 @@ class JvmDiscovererTest {
 
     @Test
     void discoverHotspotJvms() {
-        JvmDiscoverer.ForHotSpotVm discoverer = JvmDiscoverer.ForHotSpotVm.withDefaultTempDir();
+        JvmDiscoverer.ForHotSpotVm discoverer = JvmDiscoverer.ForHotSpotVm.withDiscoveredTempDirs(UserRegistry.empty());
         assertThat(discoverer.isAvailable())
             .describedAs("HotSpot JVM discovery should be available")
             .isTrue();
-        assertThat(discoverer.discoverJvms()).contains(JvmInfo.current());
+        assertThat(discoverer.discoverJvms().stream().map(JvmInfo::getPid)).contains(JvmInfo.CURRENT_PID);
     }
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
-    void testJpsDiscoverer() throws Exception {
-        assertThat(JvmDiscoverer.UsingPs.INSTANCE.isAvailable()).isTrue();
-        assertThat(JvmDiscoverer.UsingPs.INSTANCE.discoverJvms().stream().map(JvmInfo::getPid)).contains(String.valueOf(ProcessHandle.current().pid()));
+    void testPsDiscoverer() throws Exception {
+        JvmDiscoverer.UsingPs usingPs = new JvmDiscoverer.UsingPs(UserRegistry.empty());
+        assertThat(usingPs.isAvailable()).isTrue();
+        assertThat(usingPs.discoverJvms().stream().map(JvmInfo::getPid)).contains(String.valueOf(ProcessHandle.current().pid()));
     }
 }

@@ -24,65 +24,59 @@
  */
 package co.elastic.apm.attach;
 
-import com.sun.jna.Platform;
-import net.bytebuddy.agent.VirtualMachine;
+import net.bytebuddy.agent.ByteBuddyAgent;
 
-import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 class JvmInfo {
-    public static final String CURRENT_PID;
-    private static final JvmInfo CURRENT_VM;
-
-    static {
-        VirtualMachine.ForOpenJ9.Dispatcher dispatcher = Platform.isWindows()
-            ? new VirtualMachine.ForOpenJ9.Dispatcher.ForJnaWindowsEnvironment()
-            : new VirtualMachine.ForOpenJ9.Dispatcher.ForJnaPosixEnvironment(15, 100, TimeUnit.MILLISECONDS);
-        CURRENT_PID = String.valueOf(dispatcher.pid());
-        CURRENT_VM = JvmInfo.of(CURRENT_PID, UserRegistry.getCurrentUserName());
-    }
+    public static final String CURRENT_PID = ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve();
 
     private final String pid;
-    private final String user;
-    private Properties properties;
+    private final String userName;
+    private final String mainClass;
+    private final String vmArgs;
+    private final String javaVersion;
+    private final String mainArgs;
 
-    JvmInfo(String pid, String user) {
+    JvmInfo(String pid, String userName, Properties properties) {
         this.pid = pid;
-        this.user = user;
+        this.userName = userName;
+        // intentionally not storing all properties to reduce the risk of exposing secrets in heap dumps
+        String sunJavaCommand = properties.getProperty("sun.java.command");
+        if (sunJavaCommand != null && !sunJavaCommand.isEmpty()) {
+            // mirrors the behavior of jps -l
+            // spaces in directory names are problematic just as they are with jps
+            int firstSpace = sunJavaCommand.indexOf(' ');
+            if (firstSpace > 0) {
+                this.mainClass = sunJavaCommand.substring(0, firstSpace);
+                this.mainArgs = sunJavaCommand.substring(firstSpace + 1);
+            } else {
+                this.mainClass = sunJavaCommand;
+                this.mainArgs = null;
+            }
+        } else {
+            mainClass = null;
+            mainArgs = null;
+        }
+        this.vmArgs = properties.getProperty("sun.jvm.args");
+        this.javaVersion = properties.getProperty("java.version");
     }
 
-    public static JvmInfo withCurrentUser(String pid) {
-        return of(pid, UserRegistry.getCurrentUserName());
+    public static JvmInfo withCurrentUser(String pid, Properties properties) {
+        return of(pid, UserRegistry.getCurrentUserName(), properties);
     }
 
-    public static JvmInfo of(String pid, String user) {
-        return new JvmInfo(pid, user);
-    }
-
-    public static JvmInfo current() {
-        return CURRENT_VM;
+    public static JvmInfo of(String pid, String userName, Properties properties) {
+        return new JvmInfo(pid, userName, properties);
     }
 
     @Override
     public String toString() {
-        return "VM{" +
-            "pid='" + getPid() + '\'' +
-            ", user='" + getUserName() + '\'' +
-            '}';
+        return toString(false);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JvmInfo jvmInfo = (JvmInfo) o;
-        return getPid().equals(jvmInfo.getPid());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getPid());
+    public String toString(boolean listVmArgs) {
+        return getPid() + ' ' + mainClass + (listVmArgs ? ' ' + vmArgs : "");
     }
 
     public String getPid() {
@@ -94,30 +88,29 @@ class JvmInfo {
     }
 
     public String getUserName() {
-        return user;
+        return userName;
     }
 
     public UserRegistry.User getUser(UserRegistry registry) {
-        return registry.get(user);
+        return registry.get(userName);
     }
 
-    public String getCmd(UserRegistry registry) throws Exception {
-        initProperties(registry);
-        return properties.getProperty("sun.java.command") + " " + properties.getProperty("sun.jvm.args");
+    public String getMainClass() {
+        return mainClass;
     }
 
-    private void initProperties(UserRegistry registry) throws Exception {
-        if (properties == null) {
-            properties = GetAgentProperties.getAgentAndSystemProperties(pid, getUser(registry));
-        }
+    public String getMainArgs() {
+        return vmArgs;
     }
 
-    public boolean isVersionSupported(UserRegistry registry) throws Exception {
-        initProperties(registry);
-        String version = properties.getProperty("java.version");
+    public String getJavaVersion() {
+        return javaVersion;
+    }
+
+    public boolean isVersionSupported() {
         // new scheme introduced in java 9, thus we can use it as a shortcut
-        if (version.startsWith("1.")) {
-            return Character.digit(version.charAt(2), 10) >= 7;
+        if (javaVersion.startsWith("1.")) {
+            return Character.digit(javaVersion.charAt(2), 10) >= 7;
         } else {
             return true;
         }

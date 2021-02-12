@@ -26,6 +26,8 @@ package co.elastic.apm.attach;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Properties;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DiscoveryRulesTest {
@@ -35,54 +37,58 @@ class DiscoveryRulesTest {
 
     @Test
     void testNoRules() {
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeAll() {
         discoveryRules.includeAll();
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testExcludeNotMatching() {
         discoveryRules.excludePid("2");
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testExcludeMatching() {
         discoveryRules.excludePid("1");
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeNotMatching() {
         discoveryRules.includePid("1");
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("2"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isAnyMatch(mockVm("2"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeMatching() {
         discoveryRules.includePid("1");
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testIncludeMultiple() {
         discoveryRules.includePid("1");
         discoveryRules.includePid("2");
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("2"), userRegistry)).isTrue();
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("3"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(mockVm("2"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(mockVm("3"), userRegistry)).isFalse();
     }
 
     @Test
     void testExcludeNotIncluded() {
         discoveryRules.includePid("1");
         discoveryRules.excludePid("2");
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("1"), userRegistry)).isTrue();
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("2"), userRegistry)).isFalse();
-        assertThat(discoveryRules.isAnyMatch(JvmInfo.withCurrentUser("3"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isAnyMatch(mockVm("2"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isAnyMatch(mockVm("3"), userRegistry)).isTrue();
+    }
+
+    private JvmInfo mockVm(String s) {
+        return JvmInfo.withCurrentUser(s, new Properties());
     }
 }

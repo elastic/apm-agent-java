@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,21 +24,41 @@
  */
 package co.elastic.apm.attach;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Properties;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JvmInfoTest {
 
-    @Test
-    void testGetAgentProperties() throws Exception {
-        assertThat(JvmInfo.current().isVersionSupported(UserRegistry.empty())).isTrue();
-        assertThat(JvmInfo.current().getCmd(UserRegistry.empty())).isNotEmpty();
+    private JvmInfo currentVm;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        Properties properties = GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, UserRegistry.User.current());
+        currentVm = JvmInfo.of(JvmInfo.CURRENT_PID, UserRegistry.getCurrentUserName(), properties);
     }
 
     @Test
-    void testInvalidJvm() {
-        assertThatThrownBy(() -> JvmInfo.withCurrentUser("2").isVersionSupported(UserRegistry.empty())).isNotNull();
+    void testGetAgentProperties() {
+        assertThat(currentVm.isVersionSupported()).isTrue();
+        assertThat(System.getProperty("sun.java.command")).contains(currentVm.getMainClass());
+    }
+
+    @Test
+    void testJvmSupported() {
+        assertThat(isSupported("1.6.0")).isFalse();
+        assertThat(isSupported("1.7.0")).isTrue();
+        assertThat(isSupported("1.8.0")).isTrue();
+        assertThat(isSupported("9")).isTrue();
+        assertThat(isSupported("9.0.1")).isTrue();
+    }
+
+    private boolean isSupported(String s) {
+        Properties properties = new Properties();
+        properties.setProperty("java.version", s);
+        return JvmInfo.withCurrentUser("42", properties).isVersionSupported();
     }
 }

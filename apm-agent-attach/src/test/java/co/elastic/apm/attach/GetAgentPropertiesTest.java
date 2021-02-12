@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,9 +34,9 @@ class GetAgentPropertiesTest {
     void testGetProperties() throws Exception {
         System.setProperty("foo", "bar");
         try {
-            assertThat(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.current().getPid()))
+            assertThat(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.CURRENT_PID))
                 .containsEntry("foo", "bar");
-            assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.current().getPid(), UserRegistry.empty().getCurrentUser()))
+            assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.CURRENT_PID, UserRegistry.empty().getCurrentUser()))
                 .containsEntry("foo", "bar");
         } finally {
             System.clearProperty("foo");
@@ -45,7 +45,7 @@ class GetAgentPropertiesTest {
 
     @Test
     void testGetPropertiesEqual() throws Exception {
-        assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.current().getPid(), UserRegistry.empty().getCurrentUser()))
-            .isEqualTo(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.current().getPid()));
+        assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.CURRENT_PID, UserRegistry.empty().getCurrentUser()))
+            .isEqualTo(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.CURRENT_PID));
     }
 }
