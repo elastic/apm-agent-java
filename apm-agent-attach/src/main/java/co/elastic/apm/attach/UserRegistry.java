@@ -39,7 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 public class UserRegistry {
 
@@ -62,8 +61,7 @@ public class UserRegistry {
                 users.add(User.of(user));
             }
         }
-        dscl.waitFor(1, TimeUnit.SECONDS);
-        if (dscl.exitValue() != 0) {
+        if (dscl.waitFor() != 0) {
             throw new IllegalStateException();
         }
         return new UserRegistry(users);
@@ -163,11 +161,10 @@ public class UserRegistry {
             }
         }
 
-        private static boolean canSwitchToUser(String user) throws IOException, InterruptedException {
+        private static boolean canSwitchToUser(String user) throws IOException {
             Process sudo = new ProcessBuilder("sudo", "--non-interactive", "-u", user, "echo", "ok").start();
-            sudo.waitFor(1, TimeUnit.SECONDS);
             try {
-                return sudo.exitValue() == 0;
+                return sudo.waitFor() == 0;
             } catch (Exception e) {
                 return false;
             }

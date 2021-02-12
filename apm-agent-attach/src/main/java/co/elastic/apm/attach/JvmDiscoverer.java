@@ -194,11 +194,7 @@ public interface JvmDiscoverer {
                     // attachment under hotspot involves executing a kill -3
                     // this would terminate false positive matching processes (ps aux | grep java)
                     && JvmInfo.isJ9()
-                    && new ProcessBuilder("ps", "aux")
-                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                    .redirectError(ProcessBuilder.Redirect.DISCARD)
-                    .start()
-                    .waitFor() == 0;
+                    && new ProcessBuilder("ps", "aux").start().waitFor() == 0;
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
                 return false;
