@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.20.1-SNAPSHOT</version>
+    <version>1.21.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -96,7 +96,7 @@
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
         <version.jackson>[2.10.0,)</version.jackson>
-        <version.junit-jupiter>5.7.0</version.junit-jupiter>
+        <version.junit-jupiter>5.7.1</version.junit-jupiter>
         <version.junit.vintage>4.13.1</version.junit.vintage>
         <version.junit-vintage-engine>5.7.0</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
@@ -106,10 +106,11 @@
         <version.log4j>2.12.1</version.log4j>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>1.0.47</version.json-schema-validator>
+        <version.json-schema-validator>1.0.48</version.json-schema-validator>
         <!-- Byte Buddy and ASM must be kept in sync -->
         <version.byte-buddy>1.10.20</version.byte-buddy>
-        <version.asm>9.0</version.asm>
+        <version.asm>9.1</version.asm>
+        <version.cucumber>5.4.0</version.cucumber>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>

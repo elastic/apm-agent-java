@@ -26,25 +26,27 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.HdrHistogram.WriterReaderPhaser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
 public class Transaction extends AbstractSpan<Transaction> {
 
-    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
         @Override
         protected Labels.Mutable initialValue() {
@@ -220,9 +222,26 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (type == null) {
             type = "custom";
         }
+
+        if (outcomeNotSet()) {
+            // set outcome from HTTP status if not already set
+            Response response = getContext().getResponse();
+            Outcome outcome;
+
+            int httpStatus = response.getStatusCode();
+            if (httpStatus > 0) {
+                outcome = ResultUtil.getOutcomeByHttpServerStatus(httpStatus);
+            } else {
+                outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
+            }
+            withOutcome(outcome);
+        }
+
         context.onTransactionEnd();
         incrementTimer("app", null, getSelfDuration());
     }
+
+
 
     @Override
     protected void afterEnd() {

@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,5 +50,23 @@ class SpanTest {
         assertThat(span.getType()).isNull();
         assertThat(span.getSubtype()).isNull();
         assertThat(span.getAction()).isNull();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
+    }
+
+    @Test
+    void testOutcomeExplicitlyToUnknown() {
+        Transaction transaction = MockTracer.createRealTracer().startRootTransaction(null);
+        assertThat(transaction).isNotNull();
+        Span span = transaction.createSpan()
+            .withName("SELECT FROM product_types")
+            .withType("db")
+            .withSubtype("postgresql")
+            .withAction("query")
+            .withOutcome(Outcome.UNKNOWN);
+
+        // end operation will apply heuristic if not set
+        span.end();
+
+        assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
     }
 }

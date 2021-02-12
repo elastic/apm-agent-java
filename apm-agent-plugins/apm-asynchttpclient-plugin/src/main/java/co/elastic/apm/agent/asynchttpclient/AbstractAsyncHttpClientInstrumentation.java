@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
@@ -40,6 +41,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.asynchttpclient.AsyncHandler;
 import org.asynchttpclient.HttpResponseStatus;
 import org.asynchttpclient.Request;
+import org.asynchttpclient.handler.MaxRedirectException;
 import org.asynchttpclient.uri.Uri;
 
 import javax.annotation.Nullable;
@@ -188,6 +190,9 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends TracerAware
         public static void onMethodExit(@Nullable @Advice.Enter Object spanObj, @Advice.Argument(0) Throwable t) {
             Span span = (Span) spanObj;
             if (span != null) {
+                if (t instanceof MaxRedirectException) {
+                    span.withOutcome(Outcome.FAILURE);
+                }
                 span.captureException(t).end();
                 span.deactivate();
             }

@@ -262,7 +262,7 @@ pipeline {
                             cmd = "${cmd} -jar ${app_binary}"
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
-                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URLS', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
+                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
                                 sh(script: "${cmd}")
                             }
 
