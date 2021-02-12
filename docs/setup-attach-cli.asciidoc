@@ -14,6 +14,11 @@ This installation method does not require you to alter the configuration of your
 The attachment is supported on Windows,
 Unix and Solaris operating systems on HotSpot-based JVMs (like OpenJDK and Oracle JDK) and OpenJ9.
 
+The target VM does not have to be the same as the one that starts the attacher.
+That means it is possible to run the attacher with Java 7 and attach the agent to an application that runs under Java 11.
+However, the type of the VM has to be the same:
+It's not possible to attach to a J9 VM from a HotSpot-based VM and vice-versa.
+
 [float]
 [[setup-attach-cli-caveats]]
 ==== Caveats

@@ -71,11 +71,6 @@ public class AgentAttacher {
         GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, UserRegistry.User.current());
         this.jvmDiscoverer = new JvmDiscoverer.Compound(Arrays.asList(
             JvmDiscoverer.ForHotSpotVm.withDiscoveredTempDirs(userRegistry),
-            // try this last as it imposes the risk of killing a process
-            // the attachment procedure includes calling kill -3
-            // when doing that for processes that match ps aux | grep java but are no Java processes
-            // we might accidentally terminate the processes
-            // this can be reproduces with running 'yes | grep java'
             new JvmDiscoverer.UsingPs(userRegistry)));
     }
 

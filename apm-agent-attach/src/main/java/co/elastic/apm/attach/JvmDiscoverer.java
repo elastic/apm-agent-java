@@ -135,8 +135,7 @@ public interface JvmDiscoverer {
 
         @Override
         public boolean isAvailable() {
-            List<File> files = getHsPerfdataFolders();
-            return !files.isEmpty();
+            return !JvmInfo.isJ9() && !getHsPerfdataFolders().isEmpty();
         }
 
         private List<File> getHsPerfdataFolders() {
@@ -176,11 +175,10 @@ public interface JvmDiscoverer {
                     String pid = rows[1];
                     String user = rows[0];
                     try {
-                        logger.debug("Probing process to check whether it's an attachable Java process. This includes invoking a 'kill -3 {}'", pid);
-                        logger.debug(line);
                         jvms.add(JvmInfo.of(pid, user, GetAgentProperties.getAgentAndSystemProperties(pid, userRegistry.get(user))));
                     } catch (Exception e) {
-                        logger.debug("Although the ps aux output contains 'java', this seems to be a false positive.");
+                        logger.debug("Although the ps aux output contains 'java', the process {} does not seem to be a Java process.", pid);
+                        logger.debug(line);
                         logger.debug(e.getMessage(), e);
                     }
                 }
@@ -192,7 +190,11 @@ public interface JvmDiscoverer {
         @Override
         public boolean isAvailable() {
             try {
-                return !Platform.isWindows() && new ProcessBuilder("ps", "aux")
+                return !Platform.isWindows()
+                    // attachment under hotspot involves executing a kill -3
+                    // this would terminate false positive matching processes (ps aux | grep java)
+                    && JvmInfo.isJ9()
+                    && new ProcessBuilder("ps", "aux")
                     .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                     .redirectError(ProcessBuilder.Redirect.DISCARD)
                     .start()

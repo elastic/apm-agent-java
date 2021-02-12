@@ -26,6 +26,7 @@ package co.elastic.apm.attach;
 
 import net.bytebuddy.agent.ByteBuddyAgent;
 
+import java.util.Locale;
 import java.util.Properties;
 
 class JvmInfo {
@@ -68,6 +69,10 @@ class JvmInfo {
 
     public static JvmInfo of(String pid, String userName, Properties properties) {
         return new JvmInfo(pid, userName, properties);
+    }
+
+    public static boolean isJ9() {
+        return System.getProperty("java.vm.name", "").toUpperCase(Locale.US).contains("J9");
     }
 
     @Override
