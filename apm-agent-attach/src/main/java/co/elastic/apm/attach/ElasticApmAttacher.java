@@ -38,7 +38,6 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
@@ -139,18 +138,6 @@ public class ElasticApmAttacher {
             }
         }
         return tempFile;
-    }
-
-    static String toAgentArgs(Map<String, String> configuration) {
-        StringBuilder args = new StringBuilder();
-        for (Iterator<Map.Entry<String, String>> iterator = configuration.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<String, String> entry = iterator.next();
-            args.append(entry.getKey()).append('=').append(entry.getValue());
-            if (iterator.hasNext()) {
-                args.append(';');
-            }
-        }
-        return args.toString();
     }
 
     /**

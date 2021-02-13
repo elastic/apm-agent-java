@@ -38,6 +38,7 @@ class JvmInfo {
     private final String vmArgs;
     private final String javaVersion;
     private final String mainArgs;
+    private boolean alreadyAttached;
 
     JvmInfo(String pid, String userName, Properties properties) {
         this.pid = pid;
@@ -61,6 +62,7 @@ class JvmInfo {
         }
         this.vmArgs = properties.getProperty("sun.jvm.args");
         this.javaVersion = properties.getProperty("java.version");
+        this.alreadyAttached = properties.containsKey("ElasticApm.attached");
     }
 
     public static JvmInfo withCurrentUser(String pid, Properties properties) {
@@ -119,5 +121,13 @@ class JvmInfo {
         } else {
             return true;
         }
+    }
+
+    public boolean isAlreadyAttached() {
+        return alreadyAttached;
+    }
+
+    public boolean isCurrentUser() {
+        return userName.equals(UserRegistry.getCurrentUserName());
     }
 }

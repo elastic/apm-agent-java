@@ -11,8 +11,11 @@ This installation method does not require you to alter the configuration of your
 [[setup-attach-cli-supported-environments]]
 ==== Supported environments
 
-The attachment is supported on Windows,
-Unix and Solaris operating systems on HotSpot-based JVMs (like OpenJDK and Oracle JDK) and OpenJ9.
+On Unix operating systems, such as Linux and macOS, the attachment to HotSpot-based JVMs (like OpenJDK and Oracle JDK) and to OpenJ9 JVMs is supported.
+The user that runs the attacher has to be the same as the one that runs the target JVM or has to have permissions to switch to that user.
+
+On Windows, only HotSpot-based JVMs are supported.
+The user that runs the attacher has to be the same as the one that runs the target JVM.
 
 The target VM does not have to be the same as the one that starts the attacher.
 That means it is possible to run the attacher with Java 7 and attach the agent to an application that runs under Java 11.
@@ -22,8 +25,6 @@ It's not possible to attach to a J9 VM from a HotSpot-based VM and vice-versa.
 [float]
 [[setup-attach-cli-caveats]]
 ==== Caveats
-
-The OS user executing `apm-agent-attach-standalone.jar` has to have permissions to switch to the user running the target JVMs.
 
 The approach to mitigate `NoClassDefFoundError` s when used in OSGi containers (which includes most application servers) is experimental.
 Versions prior to 1.18.0 don't support OSGi containers.
@@ -184,8 +185,15 @@ NOTE: This option cannot be used in conjunction with `--pid` and `--config`
 *-w, --without-emulated-attach*::
 +
 --
-Disables using emulated attach feature provided by Byte Buddy, this should be used as a workaround on some JDK/JREs
+Disables the emulated attach feature provided by Byte Buddy, this should be used as a workaround on some JDK/JREs
 when runtime attachment fails.
+--
+
+*-g, --log-level <off|fatal|error|warn|info|debug|trace|all>*::
++
+--
+Sets the log level.
+The logs are sent to stdout with an ECS JSON format.
 --
 
 

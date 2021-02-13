@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -149,10 +148,8 @@ public class UserRegistry {
                 return current();
             }
             try {
-                if (Platform.isMac()) {
-                    return new User(username, canSwitchToUser(username));
-                } else if (Platform.isWindows()) {
-                    throw new UnsupportedOperationException("Windows support not implemented yet");
+                if (Platform.isWindows()) {
+                    return new User(username, false);
                 } else {
                     return new User(username, canSwitchToUser(username));
                 }
@@ -193,10 +190,6 @@ public class UserRegistry {
             cmd.addAll(args);
             return runAs(cmd);
 
-        }
-
-        public ProcessBuilder runAs(String... cmd) {
-            return runAs(Arrays.asList(cmd));
         }
 
         public ProcessBuilder runAs(List<String> cmd) {

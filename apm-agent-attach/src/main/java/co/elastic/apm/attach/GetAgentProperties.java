@@ -25,6 +25,7 @@
 package co.elastic.apm.attach;
 
 import net.bytebuddy.agent.ByteBuddyAgent;
+import net.bytebuddy.agent.VirtualMachine;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,6 +37,14 @@ public class GetAgentProperties {
         getAgentAndSystemPropertiesCurrentUser(args[0]).store(System.out, null);
     }
 
+    /**
+     * Attaches to the VM with the given pid and gets the {@link VirtualMachine#getAgentProperties()} and {@link VirtualMachine#getSystemProperties()}.
+     *
+     * @param pid  The pid of the target VM.
+     * @param user The user that runs the target VM. If this is not the current user, this method will fork a VM that runs under this user.
+     * @return The agent and system properties of the target VM.
+     * @throws Exception In case an error occurs while attaching to the target VM.
+     */
     public static Properties getAgentAndSystemProperties(String pid, UserRegistry.User user) throws Exception {
         if (user.isCurrentUser()) {
             return getAgentAndSystemPropertiesCurrentUser(pid);

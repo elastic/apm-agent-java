@@ -179,6 +179,10 @@ public class AgentAttacher {
             logger.info("Cannot attach to JVM {} as the version {} is not supported.", jvmInfo, jvmInfo.getJavaVersion());
             return false;
         }
+        if (jvmInfo.isAlreadyAttached()) {
+            logger.info("The agent is already attached to JVM {}", jvmInfo);
+            return false;
+        }
         if (user.isCurrentUser()) {
             ElasticApmAttacher.attach(jvmInfo.getPid(), agentArgs);
             return true;
@@ -433,7 +437,11 @@ public class AgentAttacher {
             out.println("        Note: this option can not be used in conjunction with --include-pid and --args.");
             out.println();
             out.println("    -w, --without-emulated-attach");
-            out.println("        Disables using emulated attach, might be required for some JRE/JDKs as a workaround");
+            out.println("        Disables the emulated attach feature provided by Byte Buddy, this should be used as a workaround on some JDK/JREs");
+            out.println("        when runtime attachment fails.");
+            out.println();
+            out.println("    -g, --log-level <off|fatal|error|warn|info|debug|trace|all>");
+            out.println("        Configures the verbosity of the logs that are sent to stdout with an ECS JSON format.");
         }
 
         Map<String, String> getConfig() {
