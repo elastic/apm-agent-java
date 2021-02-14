@@ -49,6 +49,7 @@ import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.event.SubstituteLoggingEvent;
@@ -104,7 +105,12 @@ class InstrumentationTest {
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
 
+    /*
+     * todo: this test is invalid because the agent CL here is the App CL, whereas in reality it would be the bootstrap CL
+     *  that cannot be used to locate agent class files
+     */
     @Test
+    @Disabled
     void testExternalPlugin(@TempDir File pluginsDir) throws Exception {
         File pluginJar = new File(pluginsDir, "plugin.jar");
         try (JarOutputStream jarOutputStream = new JarOutputStream(new FileOutputStream(pluginJar))) {
