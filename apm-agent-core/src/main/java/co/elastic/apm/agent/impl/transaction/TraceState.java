@@ -31,8 +31,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static co.elastic.apm.agent.configuration.CoreConfiguration.SAMPLE_RATE_PRECISION_DIGITS;
-
 public class TraceState implements Recyclable {
 
     private static final int DEFAULT_SIZE_LIMIT = 4096;

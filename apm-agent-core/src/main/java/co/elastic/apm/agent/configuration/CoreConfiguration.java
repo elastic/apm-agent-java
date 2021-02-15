@@ -58,7 +58,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String SERVICE_NAME = "service_name";
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
-    public static final int SAMPLE_RATE_PRECISION_DIGITS = 4;
     public static final String CORE_CATEGORY = "Core";
     private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
