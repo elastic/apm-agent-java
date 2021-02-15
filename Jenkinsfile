@@ -81,14 +81,14 @@ pipeline {
               unstash 'source'
               // prepare m2 repository with the existing dependencies
               whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
-                sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository .m2'
+                sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
+                sh label: 'Copy maven settings', returnStatus: true, script: 'cp -f .ci/settings_local.xml ${HOME}/settings.xml'
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
                 retryWithSleep(retries: 5, seconds: 10) {
-                  sh label: 'mvn dependencies', script: './mvnw -q dependency:go-offline'
+                  sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
                 }
-                sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
                 sh label: 'mvn license', script: "./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false

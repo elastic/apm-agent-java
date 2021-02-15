@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <mirrors></mirrors>
+
+    <servers>
+        <server>
+            <id>sonatype-nexus</id>
+        </server>
+        <server>
+            <id>maven-central</id>
+        </server>
+        <server>
+            <id>github.com</id>
+            <username>git</username>
+            <!-- don't need a password, just want to fix the urls that should have started with git@ but didn't -->
+        </server>
+    </servers>
+
+    <!-- profiles -->
+    <profiles>
+        <profile>
+            <id>maven-and-sonatype</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <url>https://repo.maven.apache.org/maven2/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
+                    <id>sonatype-nexus</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>maven-central-2</id>
+                    <url>https://repo.maven.apache.org/maven2/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>maven-and-sonatype</activeProfile>
+    </activeProfiles>
+
+    <pluginGroups>
+        <!-- define the sonatype plugin group, so the nexus plugins will work without typing the groupId -->
+        <pluginGroup>org.sonatype.plugins</pluginGroup>
+    </pluginGroups>
+
+</settings>
