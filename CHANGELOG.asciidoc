@@ -28,6 +28,7 @@ endif::[]
 * Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
 {pull}1644[#1644]
 * Update existing Hibernate Search 6 instrumentation to the final relase
+* The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 
 [float]
 ===== Bug fixes
