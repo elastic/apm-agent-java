@@ -95,6 +95,7 @@ public interface LifecycleListener {
      * </p>
      * <p>
      * The order of the shutdown process is as follows:
+     * </p>
      * <ol>
      *     <li>
      *         The {@link LifecycleListener#stop()} method of all lifecycle listeners is called.
@@ -114,7 +115,6 @@ public interface LifecycleListener {
      *         The {@link co.elastic.apm.agent.report.Reporter} is closed.
      *     </li>
      * </ol>
-     * </p>
      *
      * @throws Exception When something goes wrong performing the cleanup.
      */
