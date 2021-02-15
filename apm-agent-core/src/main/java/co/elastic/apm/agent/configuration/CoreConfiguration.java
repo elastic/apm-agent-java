@@ -167,7 +167,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
-    private final ConfigurationOption<Double> sampleRate = RoundedDoubleConverter.withPrecision(SAMPLE_RATE_PRECISION_DIGITS)
+    private final ConfigurationOption<Double> sampleRate = ConfigurationOption.builder(RoundedDoubleConverter.withDefaultPrecision(), Double.class)
         .key(SAMPLE_RATE)
         .aliasKeys("sample_rate")
         .configurationCategory(CORE_CATEGORY)

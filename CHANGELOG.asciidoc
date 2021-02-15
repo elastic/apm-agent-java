@@ -31,6 +31,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

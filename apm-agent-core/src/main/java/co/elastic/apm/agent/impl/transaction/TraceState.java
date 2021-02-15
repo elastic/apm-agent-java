@@ -37,10 +37,7 @@ public class TraceState implements Recyclable {
 
     private static final int DEFAULT_SIZE_LIMIT = 4096;
 
-    /**
-     * Precision factor used for rounding
-     */
-    public static final double PRECISION = Math.pow(10d, SAMPLE_RATE_PRECISION_DIGITS);
+    private static final RoundedDoubleConverter DOUBLE_CONVERTER = RoundedDoubleConverter.withDefaultPrecision();
 
     private static final char VENDOR_SEPARATOR = ',';
     private static final char ENTRY_SEPARATOR = ';';
@@ -103,7 +100,7 @@ public class TraceState implements Recyclable {
                     if (0 <= value && value <= 1.0) {
                         // ensure proper rounding of sample rate to minimize storage
                         // even if configuration should not allow this, any upstream value might require rounding
-                        double rounded = RoundedDoubleConverter.convert(value, PRECISION);
+                        double rounded = DOUBLE_CONVERTER.round(value);
                         if (rounded != value) {
                             // value needs to be re-written due to rounding
 

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.configuration.converter;
 
-import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.DoubleValueConverter;
 
@@ -33,11 +32,14 @@ import java.text.NumberFormat;
 
 public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
 
+    public static final int DEFAULT_PRECISION = 4;
+    private static final RoundedDoubleConverter DEFAULT_INSTANCE = new RoundedDoubleConverter(DEFAULT_PRECISION);
+
     private final double precisionFactor;
     private final NumberFormat numberFormat;
 
-    public static ConfigurationOption.ConfigurationOptionBuilder<Double> withPrecision(int precisionDigits) {
-        return ConfigurationOption.builder(new RoundedDoubleConverter(precisionDigits), Double.class);
+    public static RoundedDoubleConverter withDefaultPrecision() {
+        return DEFAULT_INSTANCE;
     }
 
     // package protected for testing
@@ -64,6 +66,15 @@ public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
         return numberFormat.format(value);
     }
 
+    public double round(double value) {
+        double rounded = Math.round(value * precisionFactor) / precisionFactor;
+        if (value > 0 && rounded == 0) {
+            // avoid rounding to zero
+            rounded = 1d / precisionFactor;
+        }
+    }
+
+    @Deprecated
     public static double convert(double value, double precisionFactor) {
         double rounded = Math.round(value * precisionFactor) / precisionFactor;
         if (value > 0 && rounded == 0) {
