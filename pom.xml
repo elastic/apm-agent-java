@@ -143,6 +143,8 @@
             <properties>
                 <!-- use same java version as tests -->
                 <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
+                <!-- used by intelij to set per-module language level when target version is overriden in module -->
+                <maven.compiler.source>${maven.compiler.testTarget}</maven.compiler.source>
             </properties>
         </profile>
         <profile>
