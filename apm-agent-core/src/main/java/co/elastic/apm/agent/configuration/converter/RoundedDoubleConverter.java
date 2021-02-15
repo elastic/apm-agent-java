@@ -57,8 +57,7 @@ public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
 
     @Override
     public Double convert(String s) throws IllegalArgumentException {
-        Double rawValue = DoubleValueConverter.INSTANCE.convert(s);
-        return convert(rawValue, precisionFactor);
+        return round(DoubleValueConverter.INSTANCE.convert(s));
     }
 
     @Override
@@ -67,15 +66,6 @@ public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
     }
 
     public double round(double value) {
-        double rounded = Math.round(value * precisionFactor) / precisionFactor;
-        if (value > 0 && rounded == 0) {
-            // avoid rounding to zero
-            rounded = 1d / precisionFactor;
-        }
-    }
-
-    @Deprecated
-    public static double convert(double value, double precisionFactor) {
         double rounded = Math.round(value * precisionFactor) / precisionFactor;
         if (value > 0 && rounded == 0) {
             // avoid rounding to zero
