@@ -28,6 +28,7 @@ endif::[]
 * Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
 {pull}1644[#1644]
 * Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMS
+** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
 ** Improved logging +
    The application uses {ecs-logging-java-ref}/intro.html[Java ECS logging] to emit JSON logs.
    The log level can be configured with the `--log-level` option.

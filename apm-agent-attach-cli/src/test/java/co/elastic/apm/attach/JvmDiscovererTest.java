@@ -24,11 +24,13 @@
  */
 package co.elastic.apm.attach;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 
 class JvmDiscovererTest {
@@ -44,9 +46,19 @@ class JvmDiscovererTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
-    void testPsDiscoverer() throws Exception {
+    void testPsDiscovererAvailableOnJ9() throws Exception {
+        Assumptions.assumeTrue(JvmInfo.isJ9());
         JvmDiscoverer.UsingPs usingPs = new JvmDiscoverer.UsingPs(UserRegistry.empty());
         assertThat(usingPs.isAvailable()).isTrue();
+        assertThat(usingPs.discoverJvms().stream().map(JvmInfo::getPid)).contains(String.valueOf(ProcessHandle.current().pid()));
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void testPsDiscovererNotAvailableOnHotspot() throws Exception {
+        assumeFalse(JvmInfo.isJ9());
+        JvmDiscoverer.UsingPs usingPs = new JvmDiscoverer.UsingPs(UserRegistry.empty());
+        assertThat(usingPs.isAvailable()).isFalse();
         assertThat(usingPs.discoverJvms().stream().map(JvmInfo::getPid)).contains(String.valueOf(ProcessHandle.current().pid()));
     }
 }

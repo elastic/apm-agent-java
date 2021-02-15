@@ -1,9 +1,9 @@
 [[setup-attach-cli]]
-=== Automatic setup with `apm-agent-attach-standalone.jar`
+=== Automatic setup with `apm-agent-attach-cli.jar`
 
 NOTE: This installation method is in beta.
 
-The `apm-agent-attach-standalone.jar` is a small Java program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
+The `apm-agent-attach-cli.jar` is an executable Java command line program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
 
 This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
 
@@ -34,9 +34,9 @@ Versions prior to 1.18.0 don't support OSGi containers.
 ==== Download
 
 You can download the attach program from maven central:
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach[maven central]
+link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach-cli[maven central]
 
-NOTE: As of version 1.9.0, you will have to download the `standalone` jar instead of the normal jar distribution.
+NOTE: In versions prior to 1.22.0, you will have to download the `standalone` jar of the `apm-agent-attach` artifact.
 
 [float]
 [[setup-attach-cli-usage]]
@@ -51,7 +51,7 @@ You have to specify at least one `--include-*` rule.
 
 [source,bash]
 ----
-java -jar apm-agent-attach-standalone.jar [--include-cmd <include_pattern>...]
+java -jar apm-agent-attach-cli.jar [--include-cmd <include_pattern>...]
        [--exclude-cmd <exclude_pattern>...] [--continuous]
        [--config <agent_config>... | --args-provider <args_provider_script>]
 ----
@@ -64,7 +64,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 
 [source,bash]
 ----
-java -jar apm-agent-attach-standalone.jar \
+java -jar apm-agent-attach-cli.jar \
     --include-cmd MyApplication my-application.jar \
     --include-cmd elastic.apm.agent.attach=true \
     --continuous \
@@ -80,7 +80,7 @@ Lists all currently running JVMs, including their PID and their main class name 
 
 [source,bash]
 ----
-java -jar apm-agent-attach-standalone.jar --list
+java -jar apm-agent-attach-cli.jar --list
 ----
 
 [float]
@@ -222,8 +222,8 @@ attach () {
     if [[ $(docker inspect ${container_id} | jq --raw-output .[0].Config.Cmd[0]) == java ]]
     then
         echo attaching to $(docker ps --no-trunc | grep ${container_id})
-        docker cp ./apm-agent-attach-*-standalone.jar ${container_id}:/apm-agent-attach-standalone.jar
-        docker exec ${container_id} java -jar /apm-agent-attach-standalone.jar --config
+        docker cp ./apm-agent-attach-*-cli.jar ${container_id}:/apm-agent-attach-cli.jar
+        docker exec ${container_id} java -jar /apm-agent-attach-cli.jar --config
     fi
 }
 
@@ -246,4 +246,4 @@ done
 
 If you get a message like `no main manifest attribute, in apm-agent-attach.jar`,
 you are using the wrong artifact.
-Use the one which ends in `-standalone.jar`.
+Use the one which ends in `-cli.jar`.
