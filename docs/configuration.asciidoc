@@ -2138,13 +2138,13 @@ This guards the application from crashing in case the APM server is unavailable 
 A lower value will decrease the heap overhead of the agent,
 while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 
-<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `512` | Integer | true
+| `512` | Integer | false
 |============
 
 
@@ -3454,7 +3454,7 @@ The default unit for this option is `ms`.
 # A lower value will decrease the heap overhead of the agent,
 # while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 #
-# This setting can be changed at runtime
+# This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Integer
 # Default value: 512
 #
