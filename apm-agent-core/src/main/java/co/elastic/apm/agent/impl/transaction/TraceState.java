@@ -24,11 +24,14 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+
+import static co.elastic.apm.agent.configuration.CoreConfiguration.SAMPLE_RATE_PRECISION_DIGITS;
 
 public class TraceState implements Recyclable {
 
@@ -37,7 +40,7 @@ public class TraceState implements Recyclable {
     /**
      * Precision factor used for rounding
      */
-    public static final double PRECISION = 10000d;
+    public static final double PRECISION = Math.pow(10d, SAMPLE_RATE_PRECISION_DIGITS);
 
     private static final char VENDOR_SEPARATOR = ',';
     private static final char ENTRY_SEPARATOR = ';';
@@ -100,15 +103,10 @@ public class TraceState implements Recyclable {
                     if (0 <= value && value <= 1.0) {
                         // ensure proper rounding of sample rate to minimize storage
                         // even if configuration should not allow this, any upstream value might require rounding
-                        double rounded = Math.round(value * PRECISION) / PRECISION;
-                        if (value > 0 && rounded == 0) {
-                            // avoid rounding to zero
-                            rounded = 1d / PRECISION;
-                        }
-
+                        double rounded = RoundedDoubleConverter.convert(value, PRECISION);
                         if (rounded != value) {
+                            // value needs to be re-written due to rounding
 
-                            // value needs to be re-written first
                             rewriteBuffer.setLength(0);
                             rewriteBuffer.append(headerValue, 0, valueStart);
                             rewriteBuffer.append(rounded);

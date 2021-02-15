@@ -174,14 +174,16 @@ class TraceStateTest {
 
     @ParameterizedTest
     @CsvSource({
-        "0.00001,0.0001", // less than precision but more than zero should be rounded to minimal precision
+        "0.00000001,0.0001", // less than precision but more than zero should be rounded to minimal precision
         "0.55554,0.5555",
         "0.55555,0.5556",
         "0.55556,0.5556"})
     void appliesRoundingOnUpstreamHeader(String headerRate, Double expectedRate) {
         traceState.addTextHeader("es=s:" + headerRate);
         assertThat(traceState.getSampleRate()).isEqualTo(expectedRate);
-        assertThat(traceState.toTextHeader()).isEqualTo("es=s:" + expectedRate);
+        String header = "es=s:" + expectedRate;
+        assertThat(traceState.toTextHeader()).isEqualTo(header);
+        assertThat(TraceState.getHeaderValue(expectedRate)).isEqualTo(header);
     }
 
 }

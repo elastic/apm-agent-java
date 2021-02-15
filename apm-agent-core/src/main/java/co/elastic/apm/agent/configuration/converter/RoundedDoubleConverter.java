@@ -56,15 +56,20 @@ public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
     @Override
     public Double convert(String s) throws IllegalArgumentException {
         Double rawValue = DoubleValueConverter.INSTANCE.convert(s);
-        double value = Math.round(rawValue * precisionFactor) / precisionFactor;
-        if (rawValue > 0 && value == 0) {
-            value = 1d / precisionFactor;
-        }
-        return value;
+        return convert(rawValue, precisionFactor);
     }
 
     @Override
     public String toString(Double value) {
         return numberFormat.format(value);
+    }
+
+    public static double convert(double value, double precisionFactor) {
+        double rounded = Math.round(value * precisionFactor) / precisionFactor;
+        if (value > 0 && rounded == 0) {
+            // avoid rounding to zero
+            rounded = 1d / precisionFactor;
+        }
+        return rounded;
     }
 }
