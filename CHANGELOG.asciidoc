@@ -27,6 +27,9 @@ endif::[]
 ===== Features
 * Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
 {pull}1644[#1644]
+* Update existing Hibernate Search 6 instrumentation to the final relase
+* The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
+* Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
 * Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMS
 ** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
 ** Improved logging +
@@ -49,6 +52,7 @@ endif::[]
 
 [float]
 ===== Bug fixes
+* fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
