@@ -29,6 +29,6 @@ import io.cucumber.junit.Cucumber;
 import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
-@CucumberOptions(strict = true, plugin = {"pretty"})
+@CucumberOptions(strict = true, plugin = {"pretty"}, tags = "not @grpc")
 public class RunCucumberTest {
 }

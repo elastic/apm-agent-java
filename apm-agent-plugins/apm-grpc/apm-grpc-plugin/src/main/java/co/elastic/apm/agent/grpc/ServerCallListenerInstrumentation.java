@@ -26,6 +26,7 @@ package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.grpc.ServerCall;
+import io.grpc.Status;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -39,13 +40,13 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 /**
  * Instruments implementations of {@link ServerCall.Listener} for runtime exceptions and transaction activation
  * <br>
- * Implementation is split in two classes {@link FinalMethodCall} and {@link NonFinalMethodCall}
+ * Implementation is split in 3 classes
  * <ul>
- *     <li>{@link ServerCall.Listener#onReady()}} ({@link NonFinalMethodCall})</li>
- *     <li>{@link ServerCall.Listener#onMessage(Object)} ({@link NonFinalMethodCall})</li>
- *     <li>{@link ServerCall.Listener#onHalfClose()} ({@link NonFinalMethodCall})</li>
- *     <li>{@link ServerCall.Listener#onCancel()} ({@link FinalMethodCall})</li>
- *     <li>{@link ServerCall.Listener#onComplete()} ({@link FinalMethodCall})</li>
+ *     <li>{@link ServerCall.Listener#onReady()}} ({@link OtherMethod})</li>
+ *     <li>{@link ServerCall.Listener#onMessage(Object)} ({@link OtherMethod})</li>
+ *     <li>{@link ServerCall.Listener#onHalfClose()} ({@link OtherMethod})</li>
+ *     <li>{@link ServerCall.Listener#onCancel()} ({@link OnCancel})</li>
+ *     <li>{@link ServerCall.Listener#onComplete()} ({@link OnComplete})</li>
  * </ul>
  */
 public abstract class ServerCallListenerInstrumentation extends BaseInstrumentation {
@@ -64,18 +65,12 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
      *     <li>{@link ServerCall.Listener#onHalfClose()}</li>
      * </ul>
      */
-    public static class NonFinalMethodCall extends ServerCallListenerInstrumentation {
+    public static class OtherMethod extends ServerCallListenerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("onReady")
-                //
-                // message received --> indicates RPC start for unary call
-                // actual method invocation is delayed until 'half close'
                 .or(named("onMessage"))
-                //
-                // client completed all message sending, but can still cancel the call
-                // --> for unary calls, actual method invocation is done within 'onHalfClose' method.
                 .or(named("onHalfClose"));
         }
 
@@ -91,7 +86,7 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                   @Advice.Enter @Nullable Object transaction) {
 
             if (transaction instanceof Transaction) {
-                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, false);
+                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, null);
             }
         }
     }
@@ -100,22 +95,14 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
      * Instruments implementations of {@link ServerCall.Listener}
      * <ul>
      *     <li>{@link ServerCall.Listener#onCancel()}</li>
-     *     <li>{@link ServerCall.Listener#onComplete()}</li>
      * </ul>
      * <p>
-     * If one of those methods is called, the other one is guaranteed to not be called, hence the 'final'.
      */
-    public static class FinalMethodCall extends ServerCallListenerInstrumentation {
+    public static class OnCancel extends ServerCallListenerInstrumentation {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            // call cancelled by client (or network issue)
-            // --> end of unary call (error)
-            return named("onCancel")
-                //
-                // call complete (but client not guaranteed to get all messages)
-                // --> end of unary call (success)
-                .or(named("onComplete"));
+            return named("onCancel");
         }
 
         @Nullable
@@ -130,7 +117,38 @@ public abstract class ServerCallListenerInstrumentation extends BaseInstrumentat
                                   @Advice.Enter @Nullable Object transaction) {
 
             if (transaction instanceof Transaction) {
-                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, true);
+                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.CANCELLED);
+            }
+        }
+    }
+
+    /**
+     * Instruments implementations of {@link ServerCall.Listener}
+     * <ul>
+     *     <li>{@link ServerCall.Listener#onComplete()}</li>
+     * </ul>
+     * <p>
+     */
+    public static class OnComplete extends ServerCallListenerInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("onComplete");
+        }
+
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.This ServerCall.Listener<?> listener) {
+            return helper.enterServerListenerMethod(listener);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                  @Advice.This ServerCall.Listener<?> listener,
+                                  @Advice.Enter @Nullable Object transaction) {
+
+            if (transaction instanceof Transaction) {
+                helper.exitServerListenerMethod(thrown, listener, (Transaction) transaction, Status.OK);
             }
         }
     }

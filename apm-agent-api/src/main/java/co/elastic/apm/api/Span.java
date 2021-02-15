@@ -83,22 +83,20 @@ public interface Span {
     Span addLabel(String key, String value);
 
     /**
-     * @deprecated use {@link #setLabel(String, Number)}
-     *
      * @param key   The label key.
      * @param value The label value.
      * @since 1.5.0, APM Server 6.7
+     * @deprecated use {@link #setLabel(String, Number)}
      */
     @Nonnull
     @Deprecated
     Span addLabel(String key, Number value);
 
     /**
-     * @deprecated use {@link #setLabel(String, boolean)}
-     *
      * @param key   The label key.
      * @param value The label value.
      * @since 1.5.0, APM Server 6.7
+     * @deprecated use {@link #setLabel(String, boolean)}
      */
     @Nonnull
     @Deprecated
@@ -209,6 +207,15 @@ public interface Span {
     Span setStartTimestamp(long epochMicros);
 
     /**
+     * Sets the outcome of this event
+     *
+     * @param outcome {@link Outcome#SUCCESS} to indicate success, {@link Outcome#FAILURE} for failure,
+     *                {@link Outcome#UNKNOWN} to indicate unknown outcome
+     * @return this
+     */
+    Span setOutcome(Outcome outcome);
+
+    /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
      * Instead, start a new span through {@link #startSpan()} or {@link #startSpan(String, String, String)}.
      *
@@ -255,9 +262,9 @@ public interface Span {
      * (underscore) character.
      * </p>
      *
-     * @param type      The general type of the new span
-     * @param subtype   The subtype of the new span
-     * @param action    The action related to the new span
+     * @param type    The general type of the new span
+     * @param subtype The subtype of the new span
+     * @param action  The action related to the new span
      * @return the started span, never {@code null}
      */
     @Nonnull

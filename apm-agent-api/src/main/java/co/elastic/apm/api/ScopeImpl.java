@@ -39,6 +39,6 @@ class ScopeImpl implements Scope {
 
     @Override
     public void close() {
-        // co.elastic.apm.agent.plugin.api.ApiScopeInstrumentation
+        // co.elastic.apm.agent.pluginapi.ApiScopeInstrumentation
     }
 }

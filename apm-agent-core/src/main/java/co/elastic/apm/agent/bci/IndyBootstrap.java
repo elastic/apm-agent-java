@@ -28,7 +28,7 @@ import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
 import co.elastic.apm.agent.sdk.state.GlobalState;
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassInjector;

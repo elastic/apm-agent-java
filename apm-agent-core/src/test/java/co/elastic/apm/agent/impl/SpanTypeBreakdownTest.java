@@ -70,9 +70,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_noSpans() {
-        tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request")
+        createTransaction()
             .end(30);
         tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
             assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
@@ -89,9 +87,7 @@ class SpanTypeBreakdownTest {
     @Test
     void testBreakdown_disabled() {
         when(tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled()).thenReturn(false);
-        tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request")
+        createTransaction()
             .end(30);
         tracer.getMetricRegistry().flipPhaseAndReport(metricSets -> {
             assertThat(getTimer(metricSets, "span.self_time", "app", null)).isNull();
@@ -108,9 +104,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_singleDbSpan() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
         transaction.end(30);
 
@@ -132,9 +126,7 @@ class SpanTypeBreakdownTest {
     @Test
     void testBreakdown_singleDbSpan_breakdownMetricsDisabled() {
         tracer = MockTracer.createRealTracer(reporter, SpyConfiguration.createSpyConfig(SimpleSource.forTest("disable_metrics", "span.self_time")));
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
         transaction.end(30);
 
@@ -153,9 +145,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_singleAppSpan() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         transaction.createSpan(10).withType("app").end(20);
         transaction.end(30);
 
@@ -175,9 +165,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_concurrentDbSpans_fullyOverlapping() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         final Span span1 = transaction.createSpan(10).withType("db").withSubtype("mysql");
         final Span span2 = transaction.createSpan(10).withType("db").withSubtype("mysql");
         span1.end(20);
@@ -202,9 +190,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_concurrentDbSpans_partiallyOverlapping() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         final Span span1 = transaction.createSpan(10).withType("db").withSubtype("mysql");
         final Span span2 = transaction.createSpan(15).withType("db").withSubtype("mysql");
         span1.end(20);
@@ -229,9 +215,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_serialDbSpans_notOverlapping_withoutGap() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         transaction.createSpan(5).withType("db").withSubtype("mysql").end(15);
         transaction.createSpan(15).withType("db").withSubtype("mysql").end(25);
         transaction.end(30);
@@ -254,9 +238,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_serialDbSpans_notOverlapping_withGap() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(15);
         transaction.createSpan(20).withType("db").withSubtype("redis").end(25);
         transaction.end(30);
@@ -281,9 +263,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_asyncGrandchildExceedsChild() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         final Span app = transaction.createSpan(10).withType("app");
         final Span db = app.createSpan(15).withType("db").withSubtype("mysql");
         app.end(20);
@@ -311,9 +291,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_asyncGrandchildExceedsChildAndTransaction() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         final Span app = transaction.createSpan(10).withType("app");
         transaction.end(20);
         reporter.decrementReferences();
@@ -349,9 +327,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_singleDbSpan_exceedingParent() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request");
+        final Transaction transaction = createTransaction();
         final Span span = transaction.createSpan(10).withType("db").withSubtype("mysql");
         transaction.end(20);
         span.end(30);
@@ -379,9 +355,7 @@ class SpanTypeBreakdownTest {
      */
     @Test
     void testBreakdown_spanStartedAfterParentEnded() {
-        final Transaction transaction = tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
-            .withName("test")
-            .withType("request")
+        final Transaction transaction = createTransaction()
             .activate();
         transaction.end(10);
 
@@ -404,6 +378,12 @@ class SpanTypeBreakdownTest {
 
     private void assertThatTransactionBreakdownCounterCreated(Map<? extends Labels, MetricSet> metricSets) {
         assertThat(metricSets.get(Labels.Mutable.of().transactionName("test").transactionType("request")).getCounters().get("transaction.breakdown.count").get()).isEqualTo(1);
+    }
+
+    private Transaction createTransaction() {
+        return tracer.startRootTransaction(ConstantSampler.of(true), 0, getClass().getClassLoader())
+            .withName("test")
+            .withType("request");
     }
 
     @Nullable
