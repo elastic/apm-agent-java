@@ -56,14 +56,17 @@ java -jar apm-agent-attach-standalone.jar [--include-cmd <include_pattern>...]
        [--config <agent_config>... | --args-provider <args_provider_script>]
 ----
 
-Example: The following command attaches the agent to all JVMs whose main class contains `MyApplication` or which are started from a jar file named `my-application.jar`.
+Example: The following command attaches the agent to all JVMs whose main class contains `MyApplication`
+or which are started from a jar file named `my-application.jar`
+or have set the system property `-Delastic.apm.agent.attach=true`.
 It also makes the attacher run continuously so that it attaches the agent on starting JVMs which match the include pattern.
 Additionally, it applies some <<configuration,configuration options>>.
 
 [source,bash]
 ----
 java -jar apm-agent-attach-standalone.jar \
-    --include-cmd 'MyApplication' 'my-application.jar' \
+    --include-cmd MyApplication my-application.jar \
+    --include-cmd elastic.apm.agent.attach=true \
     --continuous \
     --config service_name=my-cool-service \
     --config server_url=http://localhost:8200

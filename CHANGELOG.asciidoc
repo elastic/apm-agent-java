@@ -27,6 +27,24 @@ endif::[]
 ===== Features
 * Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
 {pull}1644[#1644]
+* Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMS
+** Improved logging +
+   The application uses {ecs-logging-java-ref}/intro.html[Java ECS logging] to emit JSON logs.
+   The log level can be configured with the `--log-level` option.
+** Attach to JVMs running under a different user (unix only) +
+   The JVM requires the attacher to be running under the same user as the target VM (the attachee).
+   The `apm-agent-attach-standalone.jar` can now be run with a user that has permissions to switch to the user that runs the target VM.
+   On Windows, the attacher can still only attach to JVMs that are running with under the same user.
+** New include/exclude matchers +
+*** `--include-all`: Attach to all discovered JVMs. If no matchers are provided, it will not attach to any JVMs.
+*** `--include-user`/`--exclude-user`: Attach to all JVMs of a given operating system user.
+*** `--include-cmd`/`--exclude-cmd`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+*** `--pid` is deprecated in favor of `--include-pid`
+** Remove dependency on `jps` +
+   Even when matching on the main class name or on system properties,
+** Removal of deprecated arguments +
+   The `--arg` option has been removed.
+** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
 
 [float]
 ===== Bug fixes
