@@ -112,7 +112,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
                 @Override
                 public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
-                    return new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange, "dispatcher");
+                    return new TransactionAwareSubscriber<T>(subscriber, transaction, true, exchange);
                 }
             })
         );
@@ -133,7 +133,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
                 @Override
                 public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
-                    return new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange, name);
+                    return new TransactionAwareSubscriber<T>(subscriber, transaction, false, exchange);
                 }
             }));
     }

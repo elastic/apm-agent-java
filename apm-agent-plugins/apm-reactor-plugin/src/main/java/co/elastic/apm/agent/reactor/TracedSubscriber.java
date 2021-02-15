@@ -33,17 +33,18 @@ import reactor.core.Fuseable;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
 
+import javax.annotation.Nullable;
 import java.util.function.Function;
 
-public class TracedSubscriber<T> implements CoreSubscriber<T> {
+public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscriber<T> {
     private static final String HOOK_KEY = "elastic-apm";
 
     private final CoreSubscriber<? super T> subscriber;
-    private final AbstractSpan<?> context;
+    private final C context;
     private final boolean terminateOnComplete;
 
     public TracedSubscriber(CoreSubscriber<? super T> subscriber,
-                            AbstractSpan<?> context,
+                            C context,
                             boolean terminateOnComplete) {
         this.context = context;
         this.terminateOnComplete = terminateOnComplete;
@@ -76,11 +77,13 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         try {
             subscriber.onError(t);
         } finally {
-            context
-                .captureException(t)
-                .deactivate()
-                .end();
+            context.deactivate();
+            beforeContextEnd(context, t);
+            context.captureException(t).end();
         }
+    }
+
+    protected void beforeContextEnd(C context, @Nullable Throwable thrown) {
     }
 
     @Override
@@ -91,6 +94,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         } finally {
             context.deactivate();
             if (terminateOnComplete) {
+                beforeContextEnd(context, null);
                 context.end();
             }
         }

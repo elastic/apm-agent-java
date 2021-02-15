@@ -27,7 +27,9 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.reactivestreams.Subscription;
 import org.springframework.http.HttpCookie;
@@ -48,68 +50,20 @@ import java.util.Map;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
-public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
-    private final CoreSubscriber<? super T> subscriber;
-    private final Transaction transaction;
-    private final boolean terminateTransactionOnComplete;
+public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transaction> {
     private final ServerWebExchange exchange;
 
     public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
                                       Transaction transaction,
-                                      boolean terminateTransactionOnComplete,
-                                      ServerWebExchange exchange, String name) {
-        this.transaction = transaction;
-        this.terminateTransactionOnComplete = terminateTransactionOnComplete;
+                                      boolean terminateOnComplete,
+                                      ServerWebExchange exchange) {
+
+        super(subscriber, transaction, terminateOnComplete);
         this.exchange = exchange;
-        this.subscriber = subscriber;
     }
 
     @Override
-    public void onSubscribe(Subscription s) {
-        transaction.activate();
-        try {
-            subscriber.onSubscribe(s);
-        } finally {
-            transaction.deactivate();
-        }
-    }
-
-    @Override
-    public void onNext(T next) {
-        transaction.activate();
-        try {
-            subscriber.onNext(next);
-        } finally {
-            transaction.deactivate();
-        }
-    }
-
-    @Override
-    public void onError(Throwable t) {
-        transaction.activate();
-        try {
-            subscriber.onError(t);
-        } finally {
-            transaction.deactivate();
-
-            endTransaction(t);
-        }
-    }
-
-    @Override
-    public void onComplete() {
-        transaction.activate();
-        try {
-            subscriber.onComplete();
-        } finally {
-            transaction.deactivate();
-            if (terminateTransactionOnComplete) {
-                endTransaction(null);
-            }
-        }
-    }
-
-    private void endTransaction(@Nullable Throwable thrown) {
+    protected void beforeContextEnd(Transaction transaction, @Nullable Throwable thrown) {
         StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
         if (transactionName != null) {
             String httpMethod = exchange.getRequest().getMethodValue();
@@ -144,8 +98,6 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         if (!transaction.getContext().getRequest().hasContent()) {
             fillRequest(transaction, exchange);
             fillResponse(transaction, exchange);
-
-            transaction.end();
         }
 
     }

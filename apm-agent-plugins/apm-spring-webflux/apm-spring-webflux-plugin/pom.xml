@@ -49,6 +49,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- spring webflux relies on reactor, thus instrumentation depends on it -->
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-reactor-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-webflux-testapp</artifactId>
