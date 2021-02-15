@@ -82,7 +82,6 @@ pipeline {
               // prepare m2 repository with the existing dependencies
               whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
                 sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
-                //sh label: 'Copy maven settings', returnStatus: true, script: 'cp -f .ci/settings_local.xml ${HOME}/settings.xml'
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
