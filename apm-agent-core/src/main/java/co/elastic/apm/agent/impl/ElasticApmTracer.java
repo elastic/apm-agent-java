@@ -26,7 +26,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
-import co.elastic.apm.agent.context.ExecutorServiceShutdownLifecycleListener;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -57,6 +57,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -152,7 +153,6 @@ public class ElasticApmTracer implements Tracer {
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
-        lifecycleListeners.add(new ExecutorServiceShutdownLifecycleListener(sharedPool));
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
@@ -420,21 +420,26 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public synchronized void stop() {
-        tracerState = TracerState.STOPPED;
-        logger.info("Tracer switched to STOPPED state");
-        try {
-            configurationRegistry.close();
-            reporter.close();
-        } catch (Exception e) {
-            logger.warn("Suppressed exception while calling stop()", e);
+        if (tracerState == TracerState.STOPPED) {
+            // may happen if explicitly stopped in a unit test and executed again within a shutdown hook
+            return;
         }
-
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.stop();
             } catch (Exception e) {
                 logger.warn("Suppressed exception while calling stop()", e);
             }
+        }
+        ExecutorUtils.shutdownAndWaitTermination(sharedPool);
+        tracerState = TracerState.STOPPED;
+        logger.info("Tracer switched to STOPPED state");
+
+        try {
+            configurationRegistry.close();
+            reporter.close();
+        } catch (Exception e) {
+            logger.warn("Suppressed exception while calling stop()", e);
         }
     }
 
@@ -744,5 +749,9 @@ public class ElasticApmTracer implements Tracer {
 
     public ScheduledThreadPoolExecutor getSharedSingleThreadedPool() {
         return sharedPool;
+    }
+
+    public void addShutdownHook(Closeable closeable) {
+        lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
     }
 }

@@ -63,6 +63,13 @@ public class MetricRegistryReporter extends AbstractLifecycleListener implements
     }
 
     @Override
+    public void stop() throws Exception {
+        // flushing out metrics before shutting down
+        // this is especially important for counters as the counts that were accumulated between the last report and the shutdown would otherwise get lost
+        tracer.getSharedSingleThreadedPool().submit(this);
+    }
+
+    @Override
     public void report(Map<? extends Labels, MetricSet> metricSets) {
         if (tracer.isRunning()) {
             reporter.report(serializer.serialize(metricSets));

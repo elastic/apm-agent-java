@@ -678,7 +678,7 @@ public class SamplingProfiler extends AbstractLifecycleListener implements Runna
     public void stop() throws Exception {
         // cancels/interrupts the profiling thread
         // implicitly clears profiled threads
-        ExecutorUtils.shutdown(scheduler);
+        ExecutorUtils.shutdownAndWaitTermination(scheduler);
 
         if (activationEventsFileChannel != null) {
             activationEventsFileChannel.close();

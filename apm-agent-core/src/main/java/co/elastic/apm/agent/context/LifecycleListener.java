@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 
 /**
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
@@ -92,6 +93,28 @@ public interface LifecycleListener {
      * <p>
      * Exceptions thrown from this method are caught and handled so that they don't prevent further cleanup actions.
      * </p>
+     * <p>
+     * The order of the shutdown process is as follows:
+     * </p>
+     * <ol>
+     *     <li>
+     *         The {@link LifecycleListener#stop()} method of all lifecycle listeners is called.
+     *         The order in which lifecycle listeners are called is non-deterministic.
+     *     </li>
+     *     <li>
+     *         The {@link ElasticApmTracer#getSharedSingleThreadedPool()} is shut down gracefully,
+     *         waiting a moment for the already scheduled tasks to be completed.
+     *         This means that implementations of this method can schedule a last command to this pool that is executed before shutdown.
+     *         The {@link Tracer#getState()} will still be {@link Tracer.TracerState#RUNNING} in the tasks scheduled to
+     *         {@link ElasticApmTracer#getSharedSingleThreadedPool()} within this method.
+     *     </li>
+     *     <li>
+     *         The tracer state is set to {@link co.elastic.apm.agent.impl.Tracer.TracerState#STOPPED}.
+     *     </li>
+     *     <li>
+     *         The {@link co.elastic.apm.agent.report.Reporter} is closed.
+     *     </li>
+     * </ol>
      *
      * @throws Exception When something goes wrong performing the cleanup.
      */

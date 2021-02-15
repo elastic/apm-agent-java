@@ -56,10 +56,10 @@ class BootstrapChecks {
         if (result.isEmpty()) {
             return true;
         }
-        boolean disableAgent = false;
+        boolean isPassing = true;
         if (result.hasErrors()) {
             if (bootstrapChecksEnabled) {
-                disableAgent = true;
+                isPassing = false;
                 System.err.println("ERROR - Failed to start agent because of failing bootstrap checks.");
                 System.err.println("To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.");
             } else {
@@ -75,7 +75,7 @@ class BootstrapChecks {
                 System.err.println(msg);
             }
         }
-        return disableAgent;
+        return isPassing;
     }
 
 }
