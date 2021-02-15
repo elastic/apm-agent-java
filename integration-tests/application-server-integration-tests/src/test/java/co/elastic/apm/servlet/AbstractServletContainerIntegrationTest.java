@@ -142,7 +142,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.containerName = containerName;
         servletContainer
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URLS", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")

@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
@@ -153,11 +154,20 @@ public class GrpcHelper {
      * @param thrown     thrown exception (if any)
      * @param serverCall server call
      */
-    public void setTransactionStatus(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
+    public void exitServerCall(Status status, @Nullable Throwable thrown, ServerCall<?, ?> serverCall) {
         Transaction transaction = serverCallTransactions.remove(serverCall);
 
         if (transaction != null) {
-            setTransactionStatus(status, thrown, transaction);
+            // there are multiple ways to terminate transaction, which aren't mutually exclusive
+            // thus we have to check if outcome has already been set to keep the first:
+            // 1. thrown exception within any of ServerCall.Listener methods
+            // 2. ServerCall.onClose, which might falsely report 'OK' status after a thrown listener exception.
+            //    in this case we just have to ignore the reported status if already set
+            if (Outcome.UNKNOWN == transaction.getOutcome()) {
+                transaction.withOutcome(toServerOutcome(status))
+                    .withResultIfUnset(status.getCode().name()); // keep outcome and result consistent
+            }
+            transaction.captureException(thrown);
             if (thrown != null) {
                 // transaction ended due to an exception, we have to end it
                 transaction.end();
@@ -165,10 +175,31 @@ public class GrpcHelper {
         }
     }
 
-    private void setTransactionStatus(Status status, @Nullable Throwable thrown, Transaction transaction) {
-        transaction
-            .withResultIfUnset(status.getCode().name())
-            .captureException(thrown);
+    public static Outcome toClientOutcome(@Nullable Status status) {
+        if( status == null || !status.isOk()){
+            return Outcome.FAILURE;
+        } else {
+            return Outcome.SUCCESS;
+        }
+    }
+
+    public static Outcome toServerOutcome(@Nullable Status status) {
+        if (status == null) {
+            return Outcome.FAILURE;
+        }
+        switch (status.getCode()) {
+            case UNKNOWN:
+            case DEADLINE_EXCEEDED:
+            case RESOURCE_EXHAUSTED:
+            case FAILED_PRECONDITION:
+            case ABORTED:
+            case INTERNAL:
+            case UNAVAILABLE:
+            case DATA_LOSS:
+                return Outcome.FAILURE;
+            default:
+                return Outcome.SUCCESS;
+        }
     }
 
     /**
@@ -189,31 +220,46 @@ public class GrpcHelper {
     /**
      * Deactivates (and terminates) transaction on ending server call listener method
      *
-     * @param thrown       thrown exception
-     * @param listener     server call listener
-     * @param transaction  transaction
-     * @param isLastMethod {@literal true} if listener method should terminate transaction
+     * @param thrown          thrown exception
+     * @param listener        server call listener
+     * @param transaction     transaction
+     * @param terminateStatus status to use to terminate transaction, will not terminate it if {@literal null}
      */
     public void exitServerListenerMethod(@Nullable Throwable thrown,
                                          ServerCall.Listener<?> listener,
                                          @Nullable Transaction transaction,
-                                         boolean isLastMethod) {
+                                         @Nullable Status terminateStatus) {
+
         if (transaction == null) {
             return;
         }
 
-        transaction.deactivate();
+        transaction
+            .captureException(thrown)
+            .deactivate();
 
-        if (isLastMethod || null != thrown) {
-            // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
-            // and set 'unknown' status, we just replicate this behavior as we don't instrument the part that does this
-            if (thrown != null) {
-                setTransactionStatus(Status.UNKNOWN, thrown, transaction);
-            }
-            transaction.end();
-            serverListenerTransactions.remove(listener);
+        if (thrown == null && terminateStatus == null) {
+            return;
         }
 
+        boolean setTerminateStatus = false;
+        if (null != thrown) {
+            // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
+            // and make this the last listener method called
+            terminateStatus = Status.fromThrowable(thrown);
+            setTerminateStatus = true;
+
+        } else if (transaction.getOutcome() == Outcome.UNKNOWN) {
+            setTerminateStatus = true;
+        }
+
+        if (setTerminateStatus) {
+            transaction.withResultIfUnset(terminateStatus.getCode().name());
+            transaction.withOutcome(toServerOutcome(terminateStatus));
+        }
+
+        transaction.end();
+        serverListenerTransactions.remove(listener);
     }
 
     // exit span management (client part)
@@ -321,7 +367,8 @@ public class GrpcHelper {
         // when there is an exception, we have to end span and perform some cleanup
         Span span = clientCallListenerSpans.remove(listener);
         if (span != null) {
-            span.end();
+            span.withOutcome(Outcome.FAILURE)
+                .end();
         }
     }
 
@@ -343,27 +390,30 @@ public class GrpcHelper {
     /**
      * De-activates active span when exiting listener method execution, optionally terminates span when required.
      *
-     * @param thrown       thrown exception (if any)
-     * @param listener     client call listener
-     * @param span         span reference obtained from {@link #enterClientListenerMethod(ClientCall.Listener)}
-     * @param isLastMethod {@literal true} if method is the last executed, {@literal false} if another is expected
+     * @param thrown        thrown exception (if any)
+     * @param listener      client call listener
+     * @param span          span reference obtained from {@link #enterClientListenerMethod(ClientCall.Listener)}
+     * @param onCloseStatus status if method is {@code onClose(...)}, {@literal null} otherwise
      */
     public void exitClientListenerMethod(@Nullable Throwable thrown,
                                          ClientCall.Listener<?> listener,
                                          @Nullable Span span,
-                                         boolean isLastMethod) {
+                                         @Nullable Status onCloseStatus) {
+
+        boolean lastCall = onCloseStatus != null || thrown != null;
 
         if (span != null) {
             span.captureException(thrown)
                 .deactivate();
+
+            if (lastCall) {
+                // span needs to be ended when last listener method is called or on the 1st thrown exception
+                span.withOutcome(toClientOutcome(onCloseStatus))
+                    .end();
+            }
         }
 
-        if (span != null && (isLastMethod || thrown != null)) {
-            // span needs to be ended when last listener method is called or on the 1st thrown exception
-            span.end();
-        }
-
-        if (isLastMethod) {
+        if (lastCall) {
             clientCallListenerSpans.remove(listener);
         }
 

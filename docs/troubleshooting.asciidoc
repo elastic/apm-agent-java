@@ -152,7 +152,7 @@ and `Elastic APM server is not available`.
 
 If you see the message `Elastic APM server is not available`,
 the agent has problems connecting to the APM server.
-Check the setting of <<config-server-urls>> and make sure the agent is able to connect to the server.
+Check the setting of <<config-server-url>> and make sure the agent is able to connect to the server.
 Try to execute `curl -v <apm-server-url>` from the machine the agent is running on.
 The server should respond with a 200 status code.
 
