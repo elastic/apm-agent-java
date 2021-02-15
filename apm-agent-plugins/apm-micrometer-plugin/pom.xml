@@ -26,5 +26,18 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>IntelliJ</id>
+            <properties>
+                <!--
+                Make IntelliJ use a recent JDK for both tests & compilation as convenience (tests rely on Java9).
+                This will not influence build on CI that will use Java8.
+                -->
+                <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
+            </properties>
+        </profile>
+    </profiles>
+
 
 </project>
