@@ -36,7 +36,7 @@ public interface BootstrapCheck {
     /**
      * Performs the bootstrap check.
      *
-     * @param errors add an error message to the list if the check fails.
+     * @param result Add an error message to avoid the agent from starting up.
      */
     void doBootstrapCheck(BootstrapCheckResult result);
 
