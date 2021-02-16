@@ -33,6 +33,7 @@ import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
+import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 
@@ -74,20 +75,38 @@ public class AgentAttacher {
             new JvmDiscoverer.UsingPs(userRegistry)));
     }
 
-    private static Logger initLogging(Level logLevel) {
+    private static Logger initLogging(Arguments arguments) {
         PluginManager.addPackage(EcsLayout.class.getPackage().getName());
         PluginManager.addPackage(LoggerContext.class.getPackage().getName());
         ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
-        builder.add(builder
-            .newAppender("Stdout", "CONSOLE")
-            .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
-            .add(builder.newLayout("EcsLayout")
-                .addAttribute("serviceName", "java-attacher")
-                .addAttribute("eventDataset", "java-attacher.log")));
-        builder.add(builder.newRootLogger(logLevel)
-            .add(builder.newAppenderRef("Stdout")));
+
+        if (arguments.isLogToConsole()) {
+            builder.add(builder
+                .newAppender("Stdout", "CONSOLE")
+                .addAttribute("target", ConsoleAppender.Target.SYSTEM_OUT)
+                .add(getEcsLayout(builder)));
+            builder.add(builder.newRootLogger(arguments.logLevel)
+                .add(builder.newAppenderRef("Stdout")));
+        } else {
+            builder.add(builder.newAppender("File", "RollingFile")
+                .addAttribute("fileName", arguments.getLogFile())
+                .addAttribute("filePattern", arguments.getLogFile() + ".%i")
+                .add(getEcsLayout(builder))
+                .addComponent(builder.newComponent("Policies")
+                    .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", "10MB")))
+                .addComponent(builder.newComponent("DefaultRolloverStrategy").addAttribute("max", 2)));
+            builder.add(builder.newRootLogger(arguments.logLevel)
+                .add(builder.newAppenderRef("File")));
+        }
+
         Configurator.initialize(AgentAttacher.class.getClassLoader(), builder.build());
         return LogManager.getLogger(AgentAttacher.class);
+    }
+
+    private static LayoutComponentBuilder getEcsLayout(ConfigurationBuilder<BuiltConfiguration> builder) {
+        return builder.newLayout("EcsLayout")
+            .addAttribute("serviceName", "java-attacher")
+            .addAttribute("eventDataset", "java-attacher.log");
     }
 
     public static void main(String[] args) {
@@ -103,7 +122,7 @@ public class AgentAttacher {
             Arguments.printHelp(System.out);
             return;
         }
-        Logger logger = initLogging(arguments.logLevel);
+        Logger logger = initLogging(arguments);
         try {
             new AgentAttacher(arguments).handleNewJvmsLoop();
         } catch (Exception e) {
@@ -246,15 +265,17 @@ public class AgentAttacher {
         private final boolean continuous;
         private final boolean useEmulatedAttach;
         private final Level logLevel;
+        private final String logFile;
         private final boolean listVmArgs;
 
-        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, boolean useEmulatedAttach, Level logLevel) {
+        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, boolean useEmulatedAttach, Level logLevel, String logFile) {
             this.rules = rules;
             this.help = help;
             this.list = list;
             this.listVmArgs = listVmArgs;
             this.continuous = continuous;
             this.logLevel = logLevel;
+            this.logFile = logFile;
             if (!config.isEmpty() && argsProvider != null) {
                 throw new IllegalArgumentException("Providing both --config and --args-provider is illegal");
             }
@@ -274,6 +295,7 @@ public class AgentAttacher {
             boolean useEmulatedAttach = true;
             String currentArg = "";
             Level logLevel = Level.INFO;
+            String logFile = null;
             for (String arg : normalize(args)) {
                 if (arg.startsWith("-")) {
                     currentArg = arg;
@@ -313,6 +335,7 @@ public class AgentAttacher {
                         case "--exclude-vmargs":
                         case "-g":
                         case "--log-level":
+                        case "--log-file":
                             break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
@@ -352,12 +375,15 @@ public class AgentAttacher {
                         case "--log-level":
                             logLevel = Level.valueOf(arg);
                             break;
+                        case "--log-file":
+                            logFile = arg;
+                            break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
                     }
                 }
             }
-            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, useEmulatedAttach, logLevel);
+            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, useEmulatedAttach, logLevel, logFile);
         }
 
         // -ab -> -a -b
@@ -442,6 +468,11 @@ public class AgentAttacher {
             out.println();
             out.println("    -g, --log-level <off|fatal|error|warn|info|debug|trace|all>");
             out.println("        Configures the verbosity of the logs that are sent to stdout with an ECS JSON format.");
+            out.println();
+            out.println("    --log-file <file>");
+            out.println("        To log into a file instead of the console, specify a path to a file that this program should log into.");
+            out.println("        The log file rolls over once the file has reached a size of 10MB.");
+            out.println("        One history file will be kept with the name `${logFile}.1`.");
         }
 
         Map<String, String> getConfig() {
@@ -474,6 +505,14 @@ public class AgentAttacher {
 
         public boolean isListVmArgs() {
             return listVmArgs;
+        }
+
+        public String getLogFile() {
+            return logFile;
+        }
+
+        public boolean isLogToConsole() {
+            return logFile == null;
         }
     }
 

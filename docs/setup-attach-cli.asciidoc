@@ -177,6 +177,13 @@ Sets the log level.
 The logs are sent to stdout with an ECS JSON format.
 --
 
+*--log-file <file>*::
++
+--
+To log into a file instead of the console, specify a path to a file that this program should log into.
+The log file rolls over once the file has reached a size of 10MB.
+One history file will be kept with the name `${logFile}.1`.
+--
 
 
 [float]

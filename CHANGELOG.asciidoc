@@ -35,6 +35,7 @@ endif::[]
 ** Improved logging +
    The application uses {ecs-logging-java-ref}/intro.html[Java ECS logging] to emit JSON logs.
    The log level can be configured with the `--log-level` option.
+   By default, the program is logging to the console but using the `--log-file` option, it can also log to a file.
 ** Attach to JVMs running under a different user (unix only) +
    The JVM requires the attacher to be running under the same user as the target VM (the attachee).
    The `apm-agent-attach-standalone.jar` can now be run with a user that has permissions to switch to the user that runs the target VM.
