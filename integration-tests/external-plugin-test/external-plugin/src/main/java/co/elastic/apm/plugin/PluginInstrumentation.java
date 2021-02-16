@@ -26,6 +26,8 @@ package co.elastic.apm.plugin;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Scope;
+import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -41,7 +43,7 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named(System.getProperty("elastic.apm.plugin.instrumented_class", "co.elastic.apm.plugin.PluginInstrumentationTest"));
+        return named(System.getProperty("elastic.apm.plugin.instrumented_class", "co.elastic.apm.plugin.test.TestClass"));
     }
 
     @Override
@@ -56,13 +58,28 @@ public class PluginInstrumentation extends ElasticApmInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static Object onEnter(@Advice.Origin(value = "#m") String methodName) {
-        return ElasticApm.startTransaction().setName(methodName);
+        Span ret;
+        Transaction transaction = ElasticApm.currentTransaction();
+        if (transaction.getId().isEmpty()) {
+            // the NoopTransaction
+            ret = ElasticApm.startTransaction();
+            System.out.println("ret = " + ret);
+        } else {
+            ret = transaction.startSpan("plugin", "external", "trace");
+            System.out.println("ret = " + ret);
+        }
+        return ret.setName(methodName).activate();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onExit(@Advice.Thrown Throwable thrown, @Advice.Enter Object transactionObject) {
-        Transaction transaction = (Transaction) transactionObject;
-        transaction.captureException(thrown);
-        transaction.end();
+    public static void onExit(@Advice.Thrown Throwable thrown, @Advice.Enter Object scopeObject) {
+        try {
+            Span span = ElasticApm.currentSpan();
+            System.out.println("span = " + span);
+            span.captureException(thrown);
+            span.end();
+        } finally {
+            ((Scope) scopeObject).close();
+        }
     }
 }
