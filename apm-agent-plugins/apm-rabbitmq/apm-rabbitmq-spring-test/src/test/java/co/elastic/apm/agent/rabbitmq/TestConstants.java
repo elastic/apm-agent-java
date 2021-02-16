@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,21 +22,18 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq.header;
+package co.elastic.apm.agent.rabbitmq;
 
-import com.rabbitmq.client.AMQP;
+public final class TestConstants {
 
-import java.util.Map;
+    private TestConstants() {}
 
-public class RabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<AMQP.BasicProperties> {
+    public static final String DOCKER_TESTCONTAINER_RABBITMQ_IMAGE = "rabbitmq:3.7-management-alpine";
 
-    public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
+    public static final String QUEUE_NAME = "spring-boot";
 
-    private RabbitMQTextHeaderGetter() {
-    }
+    public static final String TOPIC_EXCHANGE_NAME = "spring-boot-exchange";
 
-    @Override
-    protected Map<String, Object> getHeaders(AMQP.BasicProperties carrier) {
-        return carrier.getHeaders();
-    }
+    public static final String ROUTING_KEY = "foo.bar.baz";
+
 }

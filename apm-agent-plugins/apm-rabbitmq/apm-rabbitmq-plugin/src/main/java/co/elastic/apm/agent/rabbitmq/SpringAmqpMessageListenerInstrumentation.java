@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -24,72 +24,59 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.rabbitmq.header.RabbitMQTextHeaderGetter;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Consumer;
-import com.rabbitmq.client.Envelope;
+import co.elastic.apm.agent.rabbitmq.header.SpringRabbitMQTextHeaderGetter;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.springframework.amqp.core.Message;
 
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-/**
- * Instruments
- * <ul>
- *     <li>{@link com.rabbitmq.client.Consumer#handleDelivery}</li>
- * </ul>
- */
-public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
-
+public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // Instrumentation applied at runtime, thus no need to check type
-        return not(nameStartsWith("org.springframework."));
+        return not(isInterface()).and(hasSuperType(named("org.springframework.amqp.core.MessageListener")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("handleDelivery");
+        return named("onMessage")
+            .and(takesArgument(0, hasSuperType(named("org.springframework.amqp.core.Message")))).and(isPublic());
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("com.rabbitmq.client.Consumer"));
+            .and(classLoaderCanLoadClass("org.springframework.amqp.core.MessageListener"));
     }
 
     @Override
     public Class<?> getAdviceClass() {
-        return RabbitConsumerAdvice.class;
+        return SpringAmqpMessageListenerAdvice.class;
     }
 
-    public static class RabbitConsumerAdvice {
-
-        private RabbitConsumerAdvice() {
-        }
+    public static class SpringAmqpMessageListenerAdvice {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onHandleDelivery(@Advice.Origin Class<?> originClazz,
-                                              @Advice.This Consumer consumer,
-                                              @Advice.Argument(value = 1) @Nullable Envelope envelope,
-                                              @Advice.Argument(value = 2) @Nullable AMQP.BasicProperties properties) {
-            if (!tracer.isRunning()) {
+        public static Object beforeMessageHandle(@Advice.Origin Class<?> originClazz,
+                                                 @Advice.Argument(value = 0) @Nullable final Message message) {
+            if (message == null) {
                 return null;
             }
-            String exchange = envelope != null ? envelope.getExchange() : null;
-
-            if (null == exchange || isIgnored(exchange)) {
+            String exchangeOrQueue = message.getMessageProperties().getReceivedExchange();
+            if (null == exchangeOrQueue || isIgnored(exchangeOrQueue)) {
                 return null;
             }
 
@@ -97,26 +84,25 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
             if (transaction != null) {
                 return null;
             }
-
-            transaction = tracer.startChildTransaction(properties, RabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
+            transaction = tracer.startChildTransaction(message.getMessageProperties(), SpringRabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
             if (transaction == null) {
                 return null;
             }
 
             transaction.withType("messaging")
-                .withName("RabbitMQ RECEIVE from ").appendToName(normalizeExchangeName(exchange));
+                .withName("RabbitMQ RECEIVE from ").appendToName(normalizeExchangeName(exchangeOrQueue));
 
-            transaction.setFrameworkName("RabbitMQ");
+            transaction.setFrameworkName("Spring AMQP");
 
-            Message message = captureMessage(exchange, getTimestamp(properties), transaction);
+            co.elastic.apm.agent.impl.context.Message internalMessage = captureMessage(exchangeOrQueue, getTimestamp(message.getMessageProperties()), transaction);
             // only capture incoming messages headers for now (consistent with other messaging plugins)
-            captureHeaders(properties, message);
+            captureHeaders(message.getMessageProperties(), internalMessage);
             return transaction.activate();
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
-        public static void afterHandleDelivery(@Advice.Enter @Nullable final Object transactionObject,
-                                               @Advice.Thrown @Nullable final Throwable throwable) {
+        public static void afterMessageHandle(@Advice.Enter @Nullable final Object transactionObject,
+                                              @Advice.Thrown @Nullable final Throwable throwable) {
             if (transactionObject instanceof Transaction) {
                 Transaction transaction = (Transaction) transactionObject;
                 transaction.captureException(throwable)
@@ -125,4 +111,5 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
             }
         }
     }
+
 }

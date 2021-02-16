@@ -27,28 +27,19 @@ package co.elastic.apm.agent.rabbitmq;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import com.rabbitmq.client.AMQP;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 
-public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
+public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumentation {
 
     private static final CoreConfiguration coreConfiguration = GlobalTracer.requireTracerImpl().getConfig(CoreConfiguration.class);
     private static final MessagingConfiguration messagingConfiguration = GlobalTracer.requireTracerImpl().getConfig(MessagingConfiguration.class);
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("rabbitmq");
-    }
 
     /**
      * @param name name of the exchange or queue
@@ -58,26 +49,49 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), name);
     }
 
-    private static boolean isCaptureHeaders() {
+    protected static boolean isCaptureHeaders() {
         return coreConfiguration.isCaptureHeaders();
     }
 
-    private static boolean captureHeaderKey(String key) {
+    protected static boolean captureHeaderKey(String key) {
         return !WildcardMatcher.isAnyMatch(coreConfiguration.getSanitizeFieldNames(), key);
     }
 
     /**
-     * Captures que name and optional timestamp
+     * Captures queue name and optional timestamp
      *
      * @param queueOrExchange queue or exchange name to use in message.queue.name
-     * @param properties      properties (if any)
+     * @param age             age
      * @param context         span/transaction context
      * @return captured message
      */
-    protected static Message captureMessage(String queueOrExchange, @Nullable AMQP.BasicProperties properties, AbstractSpan<?> context) {
+    protected static Message captureMessage(String queueOrExchange, long age, AbstractSpan<?> context) {
         return context.getContext().getMessage()
             .withQueue(queueOrExchange)
-            .withAge(getTimestamp(properties));
+            .withAge(age);
+    }
+
+    protected static long getTimestamp(@Nullable Date timestamp) {
+        long age = -1L;
+        if (timestamp != null) {
+            long now = System.currentTimeMillis();
+            long time = timestamp.getTime();
+            age = time <= now ? (now - time) : 0;
+        }
+        return age;
+    }
+
+    protected static void captureHeaders(Map<String, Object> headers, Message message) {
+        if (!isCaptureHeaders() || headers == null || headers.size() <= 0) {
+            return;
+        }
+
+        for (Map.Entry<String, Object> entry : headers.entrySet()) {
+            if (captureHeaderKey(entry.getKey())) {
+                // headers aren't stored as String instances here
+                message.addHeader(entry.getKey(), String.valueOf(entry.getValue()));
+            }
+        }
     }
 
     protected static String normalizeExchangeName(@Nullable String exchange) {
@@ -99,34 +113,5 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
             return "amq.gen-*";
         }
         return queue;
-    }
-
-    private static long getTimestamp(@Nullable AMQP.BasicProperties properties) {
-        long age = -1L;
-        if (null != properties) {
-
-            Date timestamp = properties.getTimestamp();
-            if (timestamp != null) {
-                long now = System.currentTimeMillis();
-                long time = timestamp.getTime();
-                age = time <= now ? (now - time) : 0;
-            }
-        }
-        return age;
-    }
-
-    protected static void captureHeaders(@Nullable AMQP.BasicProperties properties, Message message) {
-        Map<String, Object> headers = properties != null ? properties.getHeaders() : null;
-        if (!isCaptureHeaders() || headers == null || headers.size() <= 0) {
-            return;
-        }
-
-        for (Map.Entry<String, Object> entry : headers.entrySet()) {
-            if (captureHeaderKey(entry.getKey())) {
-                // headers aren't stored as String instances here
-                message.addHeader(entry.getKey(), String.valueOf(entry.getValue()));
-            }
-        }
-
     }
 }

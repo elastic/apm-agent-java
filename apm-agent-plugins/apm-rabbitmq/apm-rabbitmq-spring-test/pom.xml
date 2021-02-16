@@ -2,19 +2,20 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <artifactId>apm-rabbitmq</artifactId>
         <groupId>co.elastic.apm</groupId>
         <version>1.20.1-SNAPSHOT</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
     <artifactId>apm-rabbitmq-spring-test</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <version.spring-boot>2.0.2.RELEASE</version.spring-boot>
+        <version.spring-boot>2.3.4.RELEASE</version.spring-boot>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
     <dependencies>
@@ -22,12 +23,24 @@
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
+            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-spring-resttemplate-plugin</artifactId>
+            <artifactId>apm-rabbitmq-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-agent-api</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-api-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
