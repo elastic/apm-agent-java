@@ -185,6 +185,11 @@ The log file rolls over once the file has reached a size of 10MB.
 One history file will be kept with the name `${logFile}.1`.
 --
 
+*--agent-jar <file>*::
++
+--
+Instead of the bundled agent jar, attach the provided agent to the target JVMs.
+--
 
 [float]
 [[setup-attach-cli-docker]]

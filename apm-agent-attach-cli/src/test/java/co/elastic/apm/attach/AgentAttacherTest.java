@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.attach;
 
+import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,6 +58,15 @@ class AgentAttacherTest {
         assertThat(AgentAttacher.Arguments.parse("--config", "foo=bar", "--exclude-main", "foo", "bar", "baz").getDiscoveryRules().getExcludeRules()).hasSize(3);
         assertThat(AgentAttacher.Arguments.parse("--include-main", "foo", "bar", "baz").getDiscoveryRules().getIncludeRules()).hasSize(3);
         assertThat(AgentAttacher.Arguments.parse("--include-main", "foo", "bar", "baz", "--config", "foo=bar").getDiscoveryRules().getIncludeRules()).hasSize(3);
+
+        assertThat(AgentAttacher.Arguments.parse("--log-level", "debug").getLogLevel()).isEqualTo(Level.DEBUG);
+        assertThat(AgentAttacher.Arguments.parse("--log-file", "foo.log").getLogFile()).isEqualTo("foo.log");
+
+        assertThat(AgentAttacher.Arguments.parse().getAgentJar()).isNull();
+        assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--agent-jar", "foo.jar"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("foo.jar does not exist");
+
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--config", "foo=bar", "--args-provider", "foo")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--include-main", "[")).isInstanceOf(IllegalArgumentException.class);
 

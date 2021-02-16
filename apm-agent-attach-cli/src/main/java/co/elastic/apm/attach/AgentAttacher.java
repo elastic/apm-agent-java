@@ -37,6 +37,7 @@ import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 import org.apache.logging.log4j.core.config.plugins.util.PluginManager;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -116,6 +117,9 @@ public class AgentAttacher {
             if (arguments.isHelp()) {
                 Arguments.printHelp(System.out);
                 return;
+            }
+            if (arguments.getAgentJar() == null) {
+                throw new IllegalArgumentException("When using the slim jar, the --agent-jar argument is required");
             }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
@@ -208,7 +212,7 @@ public class AgentAttacher {
             return false;
         }
         if (user.isCurrentUser()) {
-            ElasticApmAttacher.attach(jvmInfo.getPid(), agentArgs);
+            ElasticApmAttacher.attach(jvmInfo.getPid(), agentArgs, arguments.getAgentJar());
             return true;
         } else if (user.canSwitchToUser()) {
             return attachAsUser(user, agentArgs, jvmInfo.getPid());
@@ -267,8 +271,9 @@ public class AgentAttacher {
         private final Level logLevel;
         private final String logFile;
         private final boolean listVmArgs;
+        private final File agentJar;
 
-        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, boolean useEmulatedAttach, Level logLevel, String logFile) {
+        private Arguments(DiscoveryRules rules, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean listVmArgs, boolean continuous, boolean useEmulatedAttach, Level logLevel, String logFile, String agentJarString) {
             this.rules = rules;
             this.help = help;
             this.list = list;
@@ -276,6 +281,17 @@ public class AgentAttacher {
             this.continuous = continuous;
             this.logLevel = logLevel;
             this.logFile = logFile;
+            if (agentJarString != null) {
+                agentJar = new File(agentJarString);
+                if (!agentJar.exists()) {
+                    throw new IllegalArgumentException(String.format("Agent jar %s does not exist", agentJarString));
+                }
+                if (!agentJar.canRead()) {
+                    throw new IllegalArgumentException(String.format("Agent jar %s is not readable", agentJarString));
+                }
+            } else {
+                this.agentJar = ElasticApmAttacher.getBundledAgentJarFile();
+            }
             if (!config.isEmpty() && argsProvider != null) {
                 throw new IllegalArgumentException("Providing both --config and --args-provider is illegal");
             }
@@ -296,6 +312,7 @@ public class AgentAttacher {
             String currentArg = "";
             Level logLevel = Level.INFO;
             String logFile = null;
+            String agentJar = null;
             for (String arg : normalize(args)) {
                 if (arg.startsWith("-")) {
                     currentArg = arg;
@@ -336,6 +353,7 @@ public class AgentAttacher {
                         case "-g":
                         case "--log-level":
                         case "--log-file":
+                        case "--agent-jar":
                             break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
@@ -378,12 +396,15 @@ public class AgentAttacher {
                         case "--log-file":
                             logFile = arg;
                             break;
+                        case "--agent-jar":
+                            agentJar = arg;
+                            break;
                         default:
                             throw new IllegalArgumentException("Illegal argument: " + arg);
                     }
                 }
             }
-            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, useEmulatedAttach, logLevel, logFile);
+            return new Arguments(rules, config, argsProvider, help, list, listVmArgs, continuous, useEmulatedAttach, logLevel, logFile, agentJar);
         }
 
         // -ab -> -a -b
@@ -473,6 +494,9 @@ public class AgentAttacher {
             out.println("        To log into a file instead of the console, specify a path to a file that this program should log into.");
             out.println("        The log file rolls over once the file has reached a size of 10MB.");
             out.println("        One history file will be kept with the name `${logFile}.1`.");
+            out.println();
+            out.println("    --agent-jar <file>");
+            out.println("        Instead of the bundled agent jar, attach the provided agent to the target JVMs.");
         }
 
         Map<String, String> getConfig() {
@@ -513,6 +537,14 @@ public class AgentAttacher {
 
         public boolean isLogToConsole() {
             return logFile == null;
+        }
+
+        public File getAgentJar() {
+            return agentJar;
+        }
+
+        public Level getLogLevel() {
+            return logLevel;
         }
     }
 
