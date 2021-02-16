@@ -70,7 +70,7 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
     }
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    public RabbitTemplate rabbitTemplate;
 
     @Test
     public void verifyThatOneTransactionWithOneSpanCreated() {

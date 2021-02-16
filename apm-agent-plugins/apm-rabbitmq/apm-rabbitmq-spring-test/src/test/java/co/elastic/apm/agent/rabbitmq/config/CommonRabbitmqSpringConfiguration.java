@@ -22,23 +22,45 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq;
+package co.elastic.apm.agent.rabbitmq.config;
 
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import co.elastic.apm.api.CaptureSpan;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageListener;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
+import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
 
 @Configuration
-public class SimpleMessageListenerContainerConfiguration extends CommonRabbitmqSpringConfiguration {
+public class CommonRabbitmqSpringConfiguration extends BaseConfiguration {
 
     @Bean
-    SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {
-        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
-        container.setQueueNames(QUEUE_NAME);
-        container.setMessageListener(messageListener());
-        return container;
+    Queue queue() {
+        return new Queue(QUEUE_NAME, false);
+    }
+
+    @Bean
+    TopicExchange exchange() {
+        return new TopicExchange(TOPIC_EXCHANGE_NAME);
+    }
+
+    @Bean
+    Binding binding(Queue queue, TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with("foo.bar.#");
+    }
+
+    @Bean
+    public MessageListener messageListener() {
+        return new MessageListener() {
+            public void onMessage(Message message) {
+                testSpan();
+            }
+        };
     }
 }

@@ -22,23 +22,23 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq;
+package co.elastic.apm.agent.rabbitmq.config;
 
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.listener.DirectMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 
 @Configuration
-public class DirectMessageListenerContainerConfiguration extends CommonRabbitmqSpringConfiguration {
+public class SimpleMessageListenerContainerConfiguration extends CommonRabbitmqSpringConfiguration {
 
     @Bean
-    DirectMessageListenerContainer container(ConnectionFactory connectionFactory) {
-        DirectMessageListenerContainer directMessageListenerContainer = new DirectMessageListenerContainer(connectionFactory);
-        directMessageListenerContainer.setQueueNames(QUEUE_NAME);
-        directMessageListenerContainer.setMessageListener(messageListener());
-        return directMessageListenerContainer;
+    SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
+        container.setQueueNames(QUEUE_NAME);
+        container.setMessageListener(messageListener());
+        return container;
     }
 }
