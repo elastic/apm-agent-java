@@ -193,13 +193,27 @@ public final class ExecutorUtils {
         }
     }
 
-    public static void shutdown(ExecutorService executor) {
+    /**
+     * Implementation adapted form the {@link ExecutorService} Javadoc
+     */
+    public static void shutdownAndWaitTermination(ExecutorService executor) {
+        // Disable new tasks from being submitted
         executor.shutdown();
         try {
-            executor.awaitTermination(1, TimeUnit.SECONDS);
+            // Wait a while for existing tasks to terminate
+            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+                // Cancel currently executing tasks
+                executor.shutdownNow();
+                // Wait a while for tasks to respond to being cancelled
+                if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+                    logger.warn("Thread pool did not terminate in time " + executor);
+                }
+            }
         } catch (InterruptedException e) {
-            logger.warn("executor service shutdown has been interrupted", e);
+            // (Re-)Cancel if current thread also interrupted
             executor.shutdownNow();
+            // Preserve interrupt status
+            Thread.currentThread().interrupt();
         }
     }
 }
