@@ -39,15 +39,23 @@ endif::[]
    The JVM requires the attacher to be running under the same user as the target VM (the attachee).
    The `apm-agent-attach-standalone.jar` can now be run with a user that has permissions to switch to the user that runs the target VM.
    On Windows, the attacher can still only attach to JVMs that are running with under the same user.
-** New include/exclude matchers +
+** New include/exclude discovery rules +
 *** `--include-all`: Attach to all discovered JVMs. If no matchers are provided, it will not attach to any JVMs.
 *** `--include-user`/`--exclude-user`: Attach to all JVMs of a given operating system user.
-*** `--include-cmd`/`--exclude-cmd`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+*** `--include-main`/`--exclude-main`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+*** `--include-vmargs`/`--exclude-vmargs`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
 *** `--pid` is deprecated in favor of `--include-pid`
+** Removal of options +
+*** The deprecated `--arg` option has been removed.
+*** The `-i`/`--include`, `-e`/`exclude` options have been removed in favor of the `--<include|exclude>-<main|vmargs>` options.
+*** The `-p`/`--pid` options have been removed in favor of the `--include-pid` option.
+** Changed behavior of  the `-l`/`--list` option +
+   The option now only lists JVMs that match the include/exclude discovery rules.
+   Thus, it can be used to do a dry-run of the matchers without actually performing an attachment.
+   It even works in combination with `--continuous` now.
+   By default, the VM arguments are not printed, but only when the `-a`/`--list-vmargs` option is set.
 ** Remove dependency on `jps` +
    Even when matching on the main class name or on system properties,
-** Removal of deprecated arguments +
-   The `--arg` option has been removed.
 ** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
 
 [float]

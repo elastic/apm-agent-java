@@ -26,75 +26,147 @@ package co.elastic.apm.attach;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 class DiscoveryRules {
 
-    private final List<Condition> conditions = new ArrayList<>();
+    private final List<DiscoveryRule> discoveryRules = new ArrayList<>();
 
-    public void include(Condition condition) {
-        conditions.add(condition);
+    private void include(Matcher matcher) {
+        discoveryRules.add(DiscoveryRule.include(matcher));
     }
 
-    public void exclude(Condition condition) {
-        conditions.add(new NegatingCondition(condition));
+    private void exclude(Matcher matcher) {
+        discoveryRules.add(DiscoveryRule.exclude(matcher));
     }
 
     public void includeAll() {
-        include(ConstantCondition.ALL);
+        include(ConstantMatcher.ALL);
     }
 
-    public void includeCommandsMatching(String pattern) {
-        include(new CmdCondition(Pattern.compile(pattern)));
+    public void includeMain(String pattern) {
+        include(new MainClassMatcher(Pattern.compile(pattern)));
     }
 
-    public void excludeCommandsMatching(String pattern) {
-        exclude(new CmdCondition(Pattern.compile(pattern)));
+    public void excludeMain(String pattern) {
+        exclude(new MainClassMatcher(Pattern.compile(pattern)));
+    }
+
+    public void includeVmArgs(String pattern) {
+        include(new VmArgsMatcher(Pattern.compile(pattern)));
+    }
+
+    public void excludeVmArgs(String pattern) {
+        exclude(new VmArgsMatcher(Pattern.compile(pattern)));
     }
 
     public void includePid(String pid) {
-        include(new PidCondition(pid));
+        include(new PidMatcher(pid));
     }
 
     public void excludePid(String pid) {
-        exclude(new PidCondition(pid));
+        exclude(new PidMatcher(pid));
     }
 
     public void includeUser(String user) {
-        include(new UserCondition(user));
+        include(new UserMatcher(user));
     }
 
     public void excludeUser(String user) {
-        exclude(new UserCondition(user));
+        exclude(new UserMatcher(user));
     }
 
-    public boolean isAnyMatch(JvmInfo vm, UserRegistry userRegistry) {
-        return anyMatch(vm, userRegistry) != null;
+    public boolean isMatching(JvmInfo vm, UserRegistry userRegistry) {
+        DiscoveryRule firstMatch = firstMatch(vm, userRegistry);
+        return firstMatch != null && firstMatch.getMatchingType() == MatcherType.INCLUDE;
     }
 
-    public Condition anyMatch(JvmInfo vm, UserRegistry userRegistry) {
-        for (Condition condition : conditions) {
-            if (condition.matches(vm, userRegistry)) {
-                return condition;
+    public DiscoveryRule firstMatch(JvmInfo vm, UserRegistry userRegistry) {
+        for (DiscoveryRule discoveryRule : discoveryRules) {
+            if (discoveryRule.matches(vm, userRegistry)) {
+                return discoveryRule;
             }
         }
         return null;
     }
 
-    public Collection<Condition> getConditions() {
-        return new ArrayList<>(conditions);
+    public Collection<DiscoveryRule> getMatcherRules() {
+        return new ArrayList<>(discoveryRules);
     }
 
-    private enum ConstantCondition implements Condition {
+    public Collection<DiscoveryRule> getIncludeRules() {
+        ArrayList<DiscoveryRule> includeRules = new ArrayList<>(this.discoveryRules);
+        for (Iterator<DiscoveryRule> iterator = includeRules.iterator(); iterator.hasNext(); ) {
+            if (iterator.next().matcherType != MatcherType.INCLUDE) {
+                iterator.remove();
+            }
+        }
+        return includeRules;
+    }
+
+    public Collection<DiscoveryRule> getExcludeRules() {
+        ArrayList<DiscoveryRule> excludeRules = new ArrayList<>(this.discoveryRules);
+        for (Iterator<DiscoveryRule> iterator = excludeRules.iterator(); iterator.hasNext(); ) {
+            if (iterator.next().matcherType != MatcherType.EXCLUDE) {
+                iterator.remove();
+            }
+        }
+        return excludeRules;
+    }
+
+    public static class DiscoveryRule implements Matcher {
+
+        private final Matcher matcher;
+
+        private final MatcherType matcherType;
+        private DiscoveryRule(Matcher matcher, MatcherType matcherType) {
+            this.matcher = matcher;
+            this.matcherType = matcherType;
+        }
+
+        public static DiscoveryRule include(Matcher matcher) {
+            return new DiscoveryRule(matcher, MatcherType.INCLUDE);
+        }
+
+        public static DiscoveryRule exclude(Matcher matcher) {
+            return new DiscoveryRule(matcher, MatcherType.EXCLUDE);
+        }
+
+        public MatcherType getMatchingType() {
+            return matcherType;
+        }
+
+        @Override
+        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
+            return matcher.matches(vm, userRegistry);
+        }
+
+        @Override
+        public String toString() {
+            return matcherType == MatcherType.INCLUDE ? "include(" + matcher + ')' : "exclude(" + matcher + ')';
+        }
+
+    }
+
+    public enum MatcherType {
+        INCLUDE, EXCLUDE;
+    }
+
+    interface Matcher {
+        boolean matches(JvmInfo vm, UserRegistry userRegistry);
+    }
+
+    private enum ConstantMatcher implements Matcher {
 
         ALL(true),
         NONE(false);
 
         private final boolean matches;
 
-        ConstantCondition(boolean matches) {
+        ConstantMatcher(boolean matches) {
             this.matches = matches;
         }
 
@@ -102,25 +174,20 @@ class DiscoveryRules {
         public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
             return matches;
         }
+
     }
 
-    interface Condition {
-        boolean matches(JvmInfo vm, UserRegistry userRegistry);
-    }
-
-    private static class CmdCondition implements Condition {
+    private static class MainClassMatcher implements Matcher {
         private final Pattern matcher;
 
-        private CmdCondition(Pattern matcher) {
+        private MainClassMatcher(Pattern matcher) {
             this.matcher = matcher;
         }
 
         public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
             try {
                 String mainClass = vm.getMainClass();
-                String vmArgs = vm.getVmArgs();
-                return (mainClass != null && matcher.matcher(mainClass).find())
-                    || (vmArgs != null && matcher.matcher(vmArgs).find());
+                return (mainClass != null && matcher.matcher(mainClass).find());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -128,15 +195,37 @@ class DiscoveryRules {
 
         @Override
         public String toString() {
-            return "cmd(" + matcher + ")";
+            return "main(" + matcher + ")";
         }
     }
 
-    private static class PidCondition implements Condition {
+    private static class VmArgsMatcher implements Matcher {
+        private final Pattern matcher;
+
+        private VmArgsMatcher(Pattern matcher) {
+            this.matcher = matcher;
+        }
+
+        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
+            try {
+                String vmArgs = vm.getVmArgs();
+                return vmArgs != null && matcher.matcher(vmArgs).find();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "vmArgs(" + matcher + ")";
+        }
+    }
+
+    private static class PidMatcher implements Matcher {
 
         private final String pid;
 
-        private PidCondition(String pid) {
+        private PidMatcher(String pid) {
             this.pid = Objects.requireNonNull(pid);
         }
 
@@ -151,11 +240,11 @@ class DiscoveryRules {
         }
     }
 
-    private static class UserCondition implements Condition {
+    private static class UserMatcher implements Matcher {
 
         private final String user;
 
-        private UserCondition(String user) {
+        private UserMatcher(String user) {
             this.user = user;
         }
 
@@ -170,22 +259,4 @@ class DiscoveryRules {
         }
     }
 
-    public static class NegatingCondition implements Condition {
-
-        private final Condition condition;
-
-        public NegatingCondition(Condition condition) {
-            this.condition = condition;
-        }
-
-        @Override
-        public boolean matches(JvmInfo vm, UserRegistry userRegistry) {
-            return !condition.matches(vm, userRegistry);
-        }
-
-        @Override
-        public String toString() {
-            return "not(" + condition + ')';
-        }
-    }
 }

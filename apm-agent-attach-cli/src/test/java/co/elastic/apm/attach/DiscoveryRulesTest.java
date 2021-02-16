@@ -37,58 +37,82 @@ class DiscoveryRulesTest {
 
     @Test
     void testNoRules() {
-        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isMatching(jvmWithPid("1"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeAll() {
         discoveryRules.includeAll();
-        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isMatching(jvmWithPid("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testExcludeNotMatching() {
         discoveryRules.excludePid("2");
-        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isMatching(jvmWithPid("1"), userRegistry)).isFalse();
     }
 
     @Test
     void testExcludeMatching() {
         discoveryRules.excludePid("1");
-        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isMatching(jvmWithPid("1"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeNotMatching() {
         discoveryRules.includePid("1");
-        assertThat(discoveryRules.isAnyMatch(mockVm("2"), userRegistry)).isFalse();
+        assertThat(discoveryRules.isMatching(jvmWithPid("2"), userRegistry)).isFalse();
     }
 
     @Test
     void testIncludeMatching() {
         discoveryRules.includePid("1");
-        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
+        assertThat(discoveryRules.isMatching(jvmWithPid("1"), userRegistry)).isTrue();
     }
 
     @Test
     void testIncludeMultiple() {
         discoveryRules.includePid("1");
         discoveryRules.includePid("2");
-        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
-        assertThat(discoveryRules.isAnyMatch(mockVm("2"), userRegistry)).isTrue();
-        assertThat(discoveryRules.isAnyMatch(mockVm("3"), userRegistry)).isFalse();
+        DiscoveryRules.DiscoveryRule firstMatch2 = discoveryRules.firstMatch(jvmWithPid("1"), userRegistry);
+        assertThat(firstMatch2.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isTrue();
+        DiscoveryRules.DiscoveryRule firstMatch1 = discoveryRules.firstMatch(jvmWithPid("2"), userRegistry);
+        assertThat(firstMatch1.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isTrue();
+        assertThat(discoveryRules.isMatching(jvmWithPid("3"), userRegistry)).isFalse();
     }
 
     @Test
     void testExcludeNotIncluded() {
         discoveryRules.includePid("1");
         discoveryRules.excludePid("2");
-        assertThat(discoveryRules.isAnyMatch(mockVm("1"), userRegistry)).isTrue();
-        assertThat(discoveryRules.isAnyMatch(mockVm("2"), userRegistry)).isFalse();
-        assertThat(discoveryRules.isAnyMatch(mockVm("3"), userRegistry)).isTrue();
+        DiscoveryRules.DiscoveryRule firstMatch2 = discoveryRules.firstMatch(jvmWithPid("1"), userRegistry);
+        assertThat(firstMatch2.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isTrue();
+        DiscoveryRules.DiscoveryRule firstMatch1 = discoveryRules.firstMatch(jvmWithPid("2"), userRegistry);
+        assertThat(firstMatch1.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isFalse();
+        assertThat(discoveryRules.isMatching(jvmWithPid("3"), userRegistry)).isFalse();
     }
 
-    private JvmInfo mockVm(String s) {
-        return JvmInfo.withCurrentUser(s, new Properties());
+    @Test
+    void testPrecedenceOrderingIncludeFirst() {
+        discoveryRules.includeMain("foo");
+        discoveryRules.excludeMain("bar");
+        assertThat(discoveryRules.isMatching(jvmWithJar("foo-bar.jar"), userRegistry)).isTrue();
+    }
+
+    @Test
+    void testPrecedenceOrderingExcludeFirst() {
+        discoveryRules.excludeMain("bar");
+        discoveryRules.includeMain("foo");
+        assertThat(discoveryRules.isMatching(jvmWithJar("foo-bar.jar"), userRegistry)).isFalse();
+    }
+
+    private JvmInfo jvmWithPid(String pid) {
+        return JvmInfo.withCurrentUser(pid, new Properties());
+    }
+
+    private JvmInfo jvmWithJar(String jar) {
+        Properties properties = new Properties();
+        properties.put("sun.java.command", jar);
+        return JvmInfo.withCurrentUser("42", properties);
     }
 }

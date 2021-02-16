@@ -94,36 +94,30 @@ public class AgentAttacher {
         Arguments arguments;
         try {
             arguments = Arguments.parse(args);
+            if (arguments.isHelp()) {
+                Arguments.printHelp(System.out);
+                return;
+            }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
-            arguments = Arguments.parse("--help");
+            Arguments.printHelp(System.out);
+            return;
         }
         Logger logger = initLogging(arguments.logLevel);
         try {
-            new AgentAttacher(arguments).attach();
+            new AgentAttacher(arguments).handleNewJvmsLoop();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
     }
 
-    private void attach() throws Exception {
-        if (arguments.isHelp()) {
-            arguments.printHelp(System.out);
-        } else if (arguments.isList()) {
-            Collection<JvmInfo> jvmInfos = jvmDiscoverer.discoverJvms();
-            if (jvmInfos.isEmpty()) {
-                System.err.println("No JVMs found");
+    private void handleNewJvmsLoop() throws Exception {
+        while (true) {
+            handleNewJvms(jvmDiscoverer.discoverJvms(), arguments.getDiscoveryRules());
+            if (!arguments.isContinuous()) {
+                break;
             }
-            for (JvmInfo jvm : jvmInfos) {
-                System.out.println(jvm.toString(arguments.isListVmArgs()));
-            }
-        } else if (arguments.isContinuous()) {
-            while (true) {
-                attachToNewJvms(jvmDiscoverer.discoverJvms(), arguments.getDiscoveryRules());
-                Thread.sleep(1000);
-            }
-        } else {
-            attachToNewJvms(jvmDiscoverer.discoverJvms(), arguments.getDiscoveryRules());
+            Thread.sleep(1000);
         }
     }
 
@@ -136,7 +130,7 @@ public class AgentAttacher {
         }
     }
 
-    private void attachToNewJvms(Collection<JvmInfo> jvms, DiscoveryRules rules) {
+    private void handleNewJvms(Collection<JvmInfo> jvms, DiscoveryRules rules) {
         for (JvmInfo jvmInfo : jvms) {
             if (alreadySeenJvmPids.contains(jvmInfo.getPid())) {
                 continue;
@@ -153,19 +147,30 @@ public class AgentAttacher {
     }
 
     private void onJvmStart(JvmInfo jvmInfo, DiscoveryRules discoveryRules) throws Exception {
-        DiscoveryRules.Condition matchingCondition = discoveryRules.anyMatch(jvmInfo, userRegistry);
-        if (matchingCondition != null) {
-            final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
+        DiscoveryRules.DiscoveryRule firstMatch = discoveryRules.firstMatch(jvmInfo, userRegistry);
+        if (firstMatch != null) {
+            if (firstMatch.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE) {
+                logger.debug("Include rule {} matches for JVM {}", firstMatch, jvmInfo);
+                onJvmMatch(jvmInfo);
+            } else {
+                logger.debug("Exclude rule {} matches for JVM {}", firstMatch, jvmInfo);
+            }
+        } else {
+            logger.debug("No rule matches for JVM, thus excluding {}", jvmInfo);
+        }
+    }
+
+    private void onJvmMatch(JvmInfo jvmInfo) throws Exception {
+        final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
+        if (arguments.isList()) {
+            System.out.println(jvmInfo.toString(arguments.isListVmArgs()));
+        } else {
             logger.info("Attaching the Elastic APM agent to {} with arguments {}", jvmInfo, agentArgs);
-            logger.info("Matching condition: " + matchingCondition);
             if (attach(jvmInfo, agentArgs)) {
                 logger.info("Done");
             } else {
                 logger.error("Unable to attach to JVM with PID = {}", jvmInfo.getPid());
             }
-        } else {
-            logger.debug("Not attaching the Elastic APM agent to {}, none of the conditions are met {}.",
-                jvmInfo, discoveryRules.getConditions());
         }
     }
 
@@ -282,6 +287,7 @@ public class AgentAttacher {
                             list = true;
                             break;
                         case "-v":
+                        case "--list-vmargs":
                             listVmArgs = true;
                             break;
                         case "-c":
@@ -294,23 +300,17 @@ public class AgentAttacher {
                             break;
                         case "--include-all":
                             rules.includeAll();
-                        case "-p":
-                        case "--pid":
-                        case "--include-pid":
-                        case "-a":
-                        case "--args":
                         case "-C":
                         case "--config":
                         case "-A":
                         case "--args-provider":
-                        case "-e":
-                        case "--exclude":
-                        case "--exclude-cmd":
-                        case "--exclude-user":
-                        case "-i":
-                        case "--include":
-                        case "--include-cmd":
+                        case "--include-pid":
+                        case "--include-main":
+                        case "--exclude-main":
                         case "--include-user":
+                        case "--exclude-user":
+                        case "--include-vmargs":
+                        case "--exclude-vmargs":
                         case "-g":
                         case "--log-level":
                             break;
@@ -319,24 +319,24 @@ public class AgentAttacher {
                     }
                 } else {
                     switch (currentArg) {
-                        case "-e":
-                        case "--exclude":
-                        case "--exclude-cmd":
-                            rules.excludeCommandsMatching(arg);
+                        case "--include-main":
+                            rules.includeMain(arg);
                             break;
-                        case "-i":
-                        case "--include":
-                        case "--include-cmd":
-                            rules.includeCommandsMatching(arg);
+                        case "--exclude-main":
+                            rules.excludeMain(arg);
                             break;
-                        case "--exclude-user":
-                            rules.excludeUser(arg);
+                        case "--include-vmargs":
+                            rules.includeVmArgs(arg);
+                            break;
+                        case "--exclude-vmargs":
+                            rules.excludeVmArgs(arg);
                             break;
                         case "--include-user":
                             rules.includeUser(arg);
                             break;
-                        case "-p":
-                        case "--pid":
+                        case "--exclude-user":
+                            rules.excludeUser(arg);
+                            break;
                         case "--include-pid":
                             rules.includePid(arg);
                             break;
@@ -375,28 +375,31 @@ public class AgentAttacher {
             return normalizedArgs;
         }
 
-        void printHelp(PrintStream out) {
+        static void printHelp(PrintStream out) {
             out.println("SYNOPSIS");
-            out.println("    java -jar apm-agent-attach.jar --include-pid <pid> [--args <agent_arguments>] [--without-emulated-attach]");
-            out.println("    java -jar apm-agent-attach.jar [--include-cmd <include_pattern>...] [--exclude-cmd <exclude_pattern>...] [--continuous] [--without-emulated-attach]");
-            out.println("                                   [--config <key=value>... | --args-provider <args_provider_script>]");
-            out.println("    java -jar apm-agent-attach.jar (--list | --help)");
+            out.println("    java -jar apm-agent-attach-cli.jar [--include-* <pattern>...] [--exclude-* <pattern>...]");
+            out.println("                                       [--continuous] [--without-emulated-attach]");
+            out.println("                                       [--config <key=value>... | --args-provider <args_provider_script>]");
+            out.println("                                       [--list] [--list-vmargs]");
+            out.println("                                       [--log-level <level>]");
+            out.println("    java -jar apm-agent-attach-cli.jar --help");
             out.println();
             out.println("DESCRIPTION");
-            out.println("    Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all running and starting JVMs which match the filters.");
-            out.println("    By default, this program will not attach the agent to any JVM.");
-            out.println("    An attachment is performed for a given JVM if any of the provided conditions are met.");
-            out.println();
-            out.println("    Conditions can be added by using one of the following options: --include-all, --include-cmd, --exclude-cmd, --include-user, --exclude-user, --include-pid.");
-            out.println("    You have to specify at least one --include-* rule.");
+            out.println("    Attaches the Elastic APM Java agent to all running JVMs that match the `--include-*` / `--exclude-*` discovery rules.");
+            out.println("    For every running JVM, the discovery rules are evaluated in the order they are provided.");
+            out.println("    The first matching rule determines the outcome.");
+            out.println("    * If the first matching rules is an exclude, the agent will not be attached.");
+            out.println("    * If the first matching rules is an include, the agent will be attached.");
+            out.println("    * If no rule matches, the agent will not be attached.");
             out.println();
             out.println("OPTIONS");
             out.println("    -l, --list");
-            out.println("        Lists all running JVMs.");
-            out.println("        Provides an output similar to `jps -l`.");
+            out.println("        This lets you do a dry run of the include/exclude discovery rules.");
+            out.println("        Instead of attaching to matching JVMs, the programm will print JVMs that match the include/exclude discovery rules.");
+            out.println("        Similar to `jps -l`, the output includes the PID and the main class name or the path to the jar file.");
             out.println();
-            out.println("    -v");
-            out.println("        When listing running JVMs, include the arguments passed to the JVM.");
+            out.println("    -v, --list-vmargs");
+            out.println("        When listing running JVMs via `--list`, include the arguments passed to the JVM.");
             out.println("        Provides an output similar to `jps -lv`.");
             out.println("        Note: The JVM arguments may contain sensitive information, such as passwords provided via system properties.");
             out.println();
@@ -406,23 +409,20 @@ public class AgentAttacher {
             out.println("    --include-all");
             out.println("        Includes all JVMs for attachment.");
             out.println();
-            out.println("    --include-user");
-            out.println("        Includes all JVMs for attachment that are running under the given operating system user.");
-            out.println("        Make sure that the user this program is running under is either the same user or has permissions to switch to this user.");
+            out.println("    --include-pid <pid>...");
+            out.println("        A list of PIDs to include.");
             out.println();
-            out.println("    --exclude-user");
-            out.println("        Includes all JVMs for attachment that are running under the given operating system user.");
+            out.println("    --include-main/--exclude-main <pattern>...");
+            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
+            out.println("        Performs a partial match so that `foo` matches `/bin/foo.jar`.");
             out.println();
-            out.println("    --include-pid --pid <pid>");
-            out.println("        PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
+            out.println("    --include-vmarg/--exclude-vmarg <pattern>...");
+            out.println("        A list of regular expressions matched against the arguments passed to the JVM, such as system properties.");
+            out.println("        Performs a partial match so that `attach=true` matches the system property `-Dattach=true`.");
             out.println();
-            out.println("    --exclude-cmd <exclude_pattern>...");
-            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should not be attached to.");
-            out.println("        (Matches the output of `jps -lv`)");
-            out.println();
-            out.println("    --include-cmd <include_pattern>...");
-            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should be attached to.");
-            out.println("        (Matches the output of `jps -lv`)");
+            out.println("    --include-user/--exclude-user <user>...");
+            out.println("        A list of usernames that are matched against the operating system user that run the JVM.");
+            out.println("        For included users, make sure that the user this program is running under is either the same user or has permissions to switch to the user that runs the target JVM.");
             out.println();
             out.println("    -C --config <key=value>...");
             out.println("        This repeatable option sets one agent configuration option.");

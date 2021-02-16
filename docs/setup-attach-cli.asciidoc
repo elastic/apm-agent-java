@@ -42,62 +42,48 @@ NOTE: In versions prior to 1.22.0, you will have to download the `standalone` ja
 [[setup-attach-cli-usage]]
 ==== Usage
 
-Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all running and starting JVMs which match the filters.
-By default, this program will not attach the agent to any JVM.
-An attachment is performed for a given JVM if any of the provided conditions are met.
+Attaches the Elastic APM Java agent to all running JVMs that match the `--include-*` / `--exclude-*` discovery rules.
+For every running JVM, the discovery rules are evaluated in the order they are provided.
+The first matching rule determines the outcome.
 
-Conditions can be added by using one of the following options: `--include-all`, `--include-cmd`, `--exclude-cmd`, `--include-user`, `--exclude-user`, `--include-pid`.
-You have to specify at least one `--include-*` rule.
-
-[source,bash]
-----
-java -jar apm-agent-attach-cli.jar [--include-cmd <include_pattern>...]
-       [--exclude-cmd <exclude_pattern>...] [--continuous]
-       [--config <agent_config>... | --args-provider <args_provider_script>]
-----
+* If the first matching rules is an exclude, the agent will not be attached.
+* If the first matching rules is an include, the agent will be attached.
+* If no rule matches, the agent will not be attached.
 
 Example: The following command attaches the agent to all JVMs whose main class contains `MyApplication`
 or which are started from a jar file named `my-application.jar`
-or have set the system property `-Delastic.apm.agent.attach=true`.
-It also makes the attacher run continuously so that it attaches the agent on starting JVMs which match the include pattern.
+or have set the system property `-Delastic.apm.agent.attach=true`,
+unless the JVM runns under the root user.
+It also makes the attacher run continuously so that it attaches the agent on starting JVMs that match discovery rules.
 Additionally, it applies some <<configuration,configuration options>>.
 
 [source,bash]
 ----
 java -jar apm-agent-attach-cli.jar \
-    --include-cmd MyApplication my-application.jar \
-    --include-cmd elastic.apm.agent.attach=true \
+    --exclude-user root \
+    --include-main MyApplication my-application.jar \
+    --include-vmargs elastic.apm.agent.attach=true \
     --continuous \
     --config service_name=my-cool-service \
     --config server_url=http://localhost:8200
 ----
 
 [float]
-[[setup-attach-cli-usage-list]]
-===== List running JVMs
-
-Lists all currently running JVMs, including their PID and their main class name or the path to their jar file.
-
-[source,bash]
-----
-java -jar apm-agent-attach-cli.jar --list
-----
-
-[float]
 [[setup-attach-cli-usage-options]]
-===== Options
+==== Options
 
 *-l, --list*::
 +
 --
-Lists all running JVMs.
-Provides an output similar to `jps -l`.
+This lets you do a dry run of the include/exclude discovery rules.
+Instead of attaching to matching JVMs, the programm will print JVMs that match the include/exclude discovery rules.
+Similar to `jps -l`, the output includes the PID and the main class name or the path to the jar file.
 --
 
-*-v*::
+*-v, --list-vmargs*::
 +
 --
-When listing running JVMs, include the arguments passed to the JVM.
+When listing running JVMs via `--list`, include the arguments passed to the JVM.
 Provides an output similar to `jps -lv`.
 
 NOTE: The JVM arguments may contain sensitive information, such as passwords provided via system properties.
@@ -107,8 +93,6 @@ NOTE: The JVM arguments may contain sensitive information, such as passwords pro
 +
 --
 If provided, this program continuously runs and attaches to all running and starting JVMs which match the `--exclude` and `--include` filters.
-
-NOTE: This option cannot be used in conjunction with `--pid`
 --
 
 *--include-all*::
@@ -117,37 +101,31 @@ NOTE: This option cannot be used in conjunction with `--pid`
 Includes all JVMs for attachment.
 --
 
-*--include-user*::
+*--include-pid <pid>...*::
 +
 --
-Includes all JVMs for attachment that are running under the given operating system user.
-Make sure that the user this program is running under is either the same user or has permissions to switch to this user.
+A list of PIDs to include.
 --
 
-*--exclude-user*::
+*--include-main/--exclude-main <pattern>...*::
 +
 --
-Includes all JVMs for attachment that are not running under the given operating system user.
+A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.
+Performs a partial match so that `foo` matches `/bin/foo.jar`.
 --
 
-*--include-pid --pid <pid>*::
+*--include-vmarg/--exclude-vmarg <pattern>...*::
 +
 --
-PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.
+A list of regular expressions matched against the arguments passed to the JVM, such as system properties.
+Performs a partial match so that `attach=true` matches the system property `-Dattach=true`.
 --
 
-*--exclude-cmd <exclude_pattern>...*::
+*--include-user/--exclude-user <user>...*::
 +
 --
-A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should not be attached to.
-(Matches the output of `jps -lv`)
---
-
-*--include-cmd <include_pattern>...*::
-+
---
-A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should be attached to.
-(Matches the output of `jps -lv`)
+A list of usernames that are matched against the operating system user that run the JVM.
+For included users, make sure that the user this program is running under is either the same user or has permissions to switch to the user that runs the target JVM.
 --
 
 *-a, --args <agent_arguments>*::
