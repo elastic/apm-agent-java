@@ -260,6 +260,10 @@ pipeline {
                             }
 
                             cmd = "${cmd} -jar ${app_binary}"
+
+                            // avoid logging every thrown exception in app log to prevent large app logs and reduce noise
+                            cmd = "${cmd} -Dlogging.level.org.apache.catalina.core=OFF"
+
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
                             withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
