@@ -62,7 +62,6 @@ class AgentAttacherTest {
         assertThat(AgentAttacher.Arguments.parse("--log-level", "debug").getLogLevel()).isEqualTo(Level.DEBUG);
         assertThat(AgentAttacher.Arguments.parse("--log-file", "foo.log").getLogFile()).isEqualTo("foo.log");
 
-        assertThat(AgentAttacher.Arguments.parse().getAgentJar()).isNull();
         assertThatThrownBy(() -> AgentAttacher.Arguments.parse("--agent-jar", "foo.jar"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("foo.jar does not exist");
