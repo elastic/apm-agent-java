@@ -150,11 +150,10 @@ public class UserRegistry {
             }
         }
 
-        private static boolean canSwitchToUser(String user) throws IOException {
-            Process sudo = new ProcessBuilder("sudo", "--non-interactive", "-u", user, "echo", "ok").start();
+        private static boolean canSwitchToUser(String user) {
             try {
-                return sudo.waitFor() == 0;
-            } catch (Exception e) {
+                return new ProcessBuilder("sudo", "--non-interactive", "-u", user, "echo", "ok").start().waitFor() == 0;
+            } catch (Exception ignore) {
                 return false;
             }
         }
