@@ -1,0 +1,12 @@
+{
+  "instance": {
+    "id": 4306570268266786072,
+    "machineType": "projects/513326162531/machineTypes/n1-standard-1",
+    "name": "basepi-test",
+    "zone": "projects/513326162531/zones/us-west3-a"
+  },
+  "project": {
+    "numericProjectId": 513326162531,
+    "projectId": "elastic-apm"
+  }
+}

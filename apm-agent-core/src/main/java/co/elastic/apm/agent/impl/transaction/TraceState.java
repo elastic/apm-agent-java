@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
@@ -34,6 +35,8 @@ public class TraceState implements Recyclable {
 
     private static final int DEFAULT_SIZE_LIMIT = 4096;
 
+    private static final RoundedDoubleConverter DOUBLE_CONVERTER = RoundedDoubleConverter.withDefaultPrecision();
+
     private static final char VENDOR_SEPARATOR = ',';
     private static final char ENTRY_SEPARATOR = ';';
     private static final String VENDOR_PREFIX = "es=";
@@ -42,11 +45,9 @@ public class TraceState implements Recyclable {
 
     private int sizeLimit;
 
-    private final StringBuilder header;
-
     private final StringBuilder rewriteBuffer;
 
-    private final List<CharSequence> tracestate;
+    private final List<String> tracestate;
 
     /**
      * sample rate, {@link Double#NaN} if unknown or not set
@@ -58,21 +59,19 @@ public class TraceState implements Recyclable {
         sizeLimit = DEFAULT_SIZE_LIMIT;
         tracestate = new ArrayList<>(1);
         rewriteBuffer = new StringBuilder();
-        header = new StringBuilder(FULL_PREFIX.length());
     }
 
     public void copyFrom(TraceState other) {
         sampleRate = other.sampleRate;
         sizeLimit = other.sizeLimit;
         tracestate.clear();
-        // copy and make sure we have the immutable variant
         for (int i = 0; i < other.tracestate.size(); i++) {
-            tracestate.add(other.tracestate.get(i).toString());
+            //noinspection UseBulkOperation
+            tracestate.add(other.tracestate.get(i));
         }
         rewriteBuffer.setLength(0);
-        header.setLength(0);
-        header.append(other.header);
     }
+
 
     public void addTextHeader(String headerValue) {
         int elasticEntryStartIndex = headerValue.indexOf(VENDOR_PREFIX);
@@ -99,11 +98,10 @@ public class TraceState implements Recyclable {
                     if (0 <= value && value <= 1.0) {
                         // ensure proper rounding of sample rate to minimize storage
                         // even if configuration should not allow this, any upstream value might require rounding
-                        double rounded = Math.round(value * 10000d) / 10000d;
-
+                        double rounded = DOUBLE_CONVERTER.round(value);
                         if (rounded != value) {
+                            // value needs to be re-written due to rounding
 
-                            // value needs to be re-written first
                             rewriteBuffer.setLength(0);
                             rewriteBuffer.append(headerValue, 0, valueStart);
                             rewriteBuffer.append(rounded);
@@ -125,23 +123,32 @@ public class TraceState implements Recyclable {
     /**
      * Sets value for trace state. Provided rate and string value are assumed to be correct and consistent
      *
-     * @param rate       sample rate
-     * @param rateString rate written as a string, used to minimize allocation
+     * @param rate        sample rate
+     * @param headerValue header value, as provided by a call to {@link #getHeaderValue(double)}
      * @throws IllegalStateException    if sample rate has already been set
      * @throws IllegalArgumentException if rate has an invalid value
      */
-    public void set(double rate, String rateString) {
+    public void set(double rate, String headerValue) {
         if (!Double.isNaN(sampleRate)) {
             // sample rate is set either explicitly from this method (for root transactions)
             // or through upstream header, thus there is no need to change after. This allows to only
             // write/rewrite headers once
             throw new IllegalStateException("sample rate has already been set from headers");
         }
+
         sampleRate = rate;
-        header.setLength(0);
-        header.append(FULL_PREFIX);
-        header.append(rateString);
-        tracestate.add(header);
+        tracestate.add(headerValue);
+    }
+
+    /**
+     * Generates the header value for the provided sample rate. As this method allocates a new string on each
+     * call, we should minimize the number of calls, ideally once for a given sample rate value.
+     *
+     * @param sampleRate sample rate
+     * @return header value
+     */
+    public static String getHeaderValue(double sampleRate) {
+        return FULL_PREFIX + sampleRate;
     }
 
     /**
@@ -169,7 +176,7 @@ public class TraceState implements Recyclable {
     }
 
     public void setSizeLimit(int limit) {
-        if(!tracestate.isEmpty()) {
+        if (!tracestate.isEmpty()) {
             throw new IllegalStateException("can't change size limit once headers have been added");
         }
         this.sizeLimit = limit;
@@ -189,19 +196,16 @@ public class TraceState implements Recyclable {
         }
 
         @Nullable
-        public String join(List<? extends CharSequence> tracestate, int tracestateSizeLimit) {
-            Object singleEntry = tracestate.size() != 1 ? null : tracestate.get(0);
-            if (singleEntry instanceof String) {
-                String entry = (String) singleEntry;
-                if (entry.length() <= tracestateSizeLimit) {
-                    return entry;
-                }
+        public String join(List<String> tracestate, int tracestateSizeLimit) {
+            String singleEntry = tracestate.size() != 1 ? null : tracestate.get(0);
+            if (singleEntry != null && singleEntry.length() <= tracestateSizeLimit) {
+                return singleEntry;
             }
 
             StringBuilder buffer = getTracestateBuffer();
             //noinspection ForLoopReplaceableByForEach
             for (int i = 0, size = tracestate.size(); i < size; i++) {
-                CharSequence value = tracestate.get(i);
+                String value = tracestate.get(i);
                 if (value != null) { // ignore null entries to allow removing entries without resizing collection
                     appendTracestateHeaderValue(value, buffer, tracestateSizeLimit);
                 }
@@ -209,7 +213,7 @@ public class TraceState implements Recyclable {
             return buffer.length() == 0 ? null : buffer.toString();
         }
 
-        void appendTracestateHeaderValue(CharSequence headerValue, StringBuilder tracestateBuffer, int tracestateSizeLimit) {
+        void appendTracestateHeaderValue(String headerValue, StringBuilder tracestateBuffer, int tracestateSizeLimit) {
             int requiredLength = headerValue.length();
             boolean needsComma = tracestateBuffer.length() > 0;
             if (needsComma) {

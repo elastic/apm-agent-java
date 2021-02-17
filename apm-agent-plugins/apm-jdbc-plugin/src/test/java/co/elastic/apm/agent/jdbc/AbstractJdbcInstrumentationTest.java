@@ -27,6 +27,7 @@ package co.elastic.apm.agent.jdbc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jdbc.helper.JdbcGlobalState;
@@ -77,10 +78,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT NOT NULL, BAR VARCHAR(255))");
         connection.createStatement().execute("ALTER TABLE ELASTIC_APM ADD PRIMARY KEY (FOO)");
-        transaction = tracer.startRootTransaction(null).activate();
-        transaction.withName("transaction");
-        transaction.withType("request");
-        transaction.withResultIfUnset("success");
+        transaction = startTestRootTransaction("jdbc-test");
         signatureParser = new SignatureParser();
     }
 
@@ -178,7 +176,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(resultSet.getInt("foo")).isEqualTo(1);
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
 
-        assertSpanRecorded(sql, false, -1);
+        Span span = assertSpanRecorded(sql, false, -1);
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
     private void testUpdateStatement(boolean executeUpdate) throws SQLException {
@@ -287,7 +286,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         reporter.reset();
         // unique key violation
         assertThatThrownBy(() -> statementConsumer.withStatement(statement, insert)).isInstanceOf(SQLException.class);
-        assertSpanRecorded(insert, false, -1);
+        Span span = assertSpanRecorded(insert, false, -1);
+        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     private interface PreparedStatementExecutor<T> {
@@ -309,7 +309,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         reporter.reset();
         // unique key violation
         assertThatThrownBy(() -> statementConsumer.withStatement(statement)).isInstanceOf(SQLException.class);
-        assertSpanRecorded(insert, false, -1);
+        Span span = assertSpanRecorded(insert, false, -1);
+        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     private void testPreparedStatement() throws SQLException {
@@ -360,8 +361,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         long expectedAffected = 2;
-        if (isKnownDatabase("MySQL", "10.") || isKnownDatabase("Oracle", "")) {
-            // for an unknown reason mariadb 10 and Oracle express have unexpected but somehow consistent behavior here
+        if (isKnownDatabase("Oracle", "")) {
+            // for an unknown reason Oracle express have unexpected but somehow consistent behavior here
             assertThat(updates).containsExactly(-2, -2);
             expectedAffected = -4;
         } else {
@@ -390,19 +391,19 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertSpanRecorded(rawSql, preparedStatement, -1);
     }
 
-    private void assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws SQLException {
+    private Span assertSpanRecorded(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws SQLException {
         assertThat(reporter.getSpans())
             .describedAs("one span is expected")
             .hasSize(1);
-        Span jdbcSpan = reporter.getFirstSpan();
+        Span span = reporter.getFirstSpan();
         StringBuilder processedSql = new StringBuilder();
         signatureParser.querySignature(rawSql, processedSql, preparedStatement);
-        assertThat(jdbcSpan.getNameAsString()).isEqualTo(processedSql.toString());
-        assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
-        assertThat(jdbcSpan.getSubtype()).isEqualTo(expectedDbVendor);
-        assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);
+        assertThat(span.getNameAsString()).isEqualTo(processedSql.toString());
+        assertThat(span.getType()).isEqualTo(DB_SPAN_TYPE);
+        assertThat(span.getSubtype()).isEqualTo(expectedDbVendor);
+        assertThat(span.getAction()).isEqualTo(DB_SPAN_ACTION);
 
-        Db db = jdbcSpan.getContext().getDb();
+        Db db = span.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
         DatabaseMetaData metaData = connection.getMetaData();
         assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
@@ -412,7 +413,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             .describedAs("unexpected affected rows count for statement %s", rawSql)
             .isEqualTo(expectedAffectedRows);
 
-        Destination destination = jdbcSpan.getContext().getDestination();
+        Destination destination = span.getContext().getDestination();
         assertThat(destination.getAddress().toString()).isEqualTo("localhost");
         if (expectedDbVendor.equals("h2")) {
             assertThat(destination.getPort()).isEqualTo(-1);
@@ -424,9 +425,15 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(service.getName().toString()).isEqualTo(expectedDbVendor);
         assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
         assertThat(service.getType()).isEqualTo(DB_SPAN_TYPE);
+
+        assertThat(span.getOutcome())
+            .describedAs("span outcome should be explicitly set to either failure or success")
+            .isNotEqualTo(Outcome.UNKNOWN);
+
+        return span;
     }
 
-    private void assertSpanRecordedWithoutConnection(String rawSql, boolean preparedStatement, long expectedAffectedRows) throws SQLException {
+    private void assertSpanRecordedWithoutConnection(String rawSql, boolean preparedStatement, long expectedAffectedRows) {
         assertThat(reporter.getSpans())
             .describedAs("one span is expected")
             .hasSize(1);

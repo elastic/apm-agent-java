@@ -41,13 +41,13 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.premain.AgentMain;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.ObjectUtils;
-import co.elastic.apm.agent.util.ThreadUtils;
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.premain.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -70,16 +70,17 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
+import java.nio.file.Paths;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -93,7 +94,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.jar.JarInputStream;
 
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
@@ -134,9 +134,20 @@ public class ElasticApmAgent {
      * @param agentJarFile    a reference to the agent jar on the file system
      */
     @SuppressWarnings("unused") // called through reflection
-    public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
+    public static void initialize(@Nullable String agentArguments, Instrumentation instrumentation, File agentJarFile, boolean premain) {
         ElasticApmAgent.agentJarFile = agentJarFile;
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder(agentArguments).build();
+
+        // silently early abort when agent is disabled to minimize the number of loaded classes
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources(agentArguments);
+        for (ConfigurationSource configSource : configSources) {
+            String enabled = configSource.getValue(CoreConfiguration.ENABLED_KEY);
+            if (enabled != null && !Boolean.parseBoolean(enabled)) {
+                return;
+            }
+
+        }
+
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder(configSources).build();
         initInstrumentation(tracer, instrumentation, premain);
         tracer.start(premain);
     }
@@ -208,9 +219,25 @@ public class ElasticApmAgent {
     }
 
     private static synchronized void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
-                                                        Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
-        if (!tracer.getConfig(CoreConfiguration.class).isEnabled()) {
+                                                         Iterable<ElasticApmInstrumentation> instrumentations, boolean premain) {
+        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
+        if (!coreConfig.isEnabled()) {
             return;
+        }
+        String bytecodeDumpPath = coreConfig.getBytecodeDumpPath();
+        if (bytecodeDumpPath != null) {
+            bytecodeDumpPath = bytecodeDumpPath.trim();
+            if (!bytecodeDumpPath.isEmpty()) {
+                try {
+                    File bytecodeDumpDir = Paths.get(bytecodeDumpPath).toFile();
+                    if (!bytecodeDumpDir.exists()) {
+                        bytecodeDumpDir.mkdirs();
+                    }
+                    System.setProperty("co.elastic.apm.agent.shaded.bytebuddy.dump", bytecodeDumpDir.getPath());
+                } catch (Exception e) {
+                    System.err.println("Failed to create directory to dump instrumented bytecode: " + e.getMessage());
+                }
+            }
         }
         for (ElasticApmInstrumentation apmInstrumentation : instrumentations) {
             pluginClassLoaderByAdviceClass.put(
@@ -233,7 +260,6 @@ public class ElasticApmAgent {
         // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
-        CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
             instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
                 @Override
@@ -278,7 +304,9 @@ public class ElasticApmAgent {
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger, descriptionStrategy, premain);
+        AgentBuilder agentBuilder = getAgentBuilder(
+            byteBuddy, coreConfiguration, logger, descriptionStrategy, premain, coreConfiguration.isTypePoolCacheEnabled()
+        );
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
@@ -399,7 +427,7 @@ public class ElasticApmAgent {
         if (!(instrumentation instanceof TracerAwareInstrumentation)
             || ((TracerAwareInstrumentation) instrumentation).indyPlugin()) {
             validateAdvice(instrumentation.getAdviceClass());
-            withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod());
+            withCustomMapping = withCustomMapping.bootstrap(IndyBootstrap.getIndyBootstrapMethod(logger));
         }
         return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
             .advice(new ElementMatcher<MethodDescription>() {
@@ -566,7 +594,8 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, final Logger logger,
-                                                final AgentBuilder.DescriptionStrategy descriptionStrategy, final boolean premain) {
+                                                final AgentBuilder.DescriptionStrategy descriptionStrategy, final boolean premain,
+                                                final boolean useTypePoolCache) {
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
@@ -602,7 +631,7 @@ public class ElasticApmAgent {
             .with(locationStrategy)
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
-            .with(coreConfiguration.isTypePoolCacheEnabled()
+            .with(useTypePoolCache
                 ? new SoftlyReferencingTypePoolCache(TypePool.Default.ReaderMode.FAST, 1, isReflectionClassLoader())
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
@@ -684,12 +713,14 @@ public class ElasticApmAgent {
                     final ByteBuddy byteBuddy = new ByteBuddy()
                         .with(TypeValidation.of(logger.isDebugEnabled()))
                         .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-                    AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID, false);
+                    AgentBuilder agentBuilder = getAgentBuilder(
+                        byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID, false, false
+                    );
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
-                        pluginClassLoaderByAdviceClass.put(
-                            instrumentationClass.getName(),
-                            ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
+                        pluginClassLoaderByAdviceClass.put(
+                            apmInstrumentation.getAdviceClass().getName(),
+                            ObjectUtils.systemClassLoaderIfNull(instrumentationClass.getClassLoader()));
                         ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
                             agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));

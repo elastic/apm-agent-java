@@ -27,6 +27,7 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.SpanContext;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,7 +126,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             setStartTimestampNow();
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("startSpan {} {", this);
+            logger.debug("startSpan {}", this);
             if (logger.isTraceEnabled()) {
                 logger.trace("starting span at",
                     new RuntimeException("this exception is just used to record where the span has been started from"));
@@ -234,6 +235,20 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (type == null) {
             type = "custom";
         }
+
+        // set outcome when not explicitly set by user nor instrumentation
+        if (outcomeNotSet()) {
+            Outcome outcome;
+            if (context.getHttp().hasContent()) {
+                // HTTP client spans
+                outcome = ResultUtil.getOutcomeByHttpClientStatus(context.getHttp().getStatusCode());
+            } else {
+                // span types & sub-types for which we consider getting an exception as a failure
+                outcome = hasCapturedExceptions() ? Outcome.FAILURE : Outcome.SUCCESS;
+            }
+            withOutcome(outcome);
+        }
+
         if (transaction != null) {
             transaction.incrementTimer(type, subtype, getSelfDuration());
         }

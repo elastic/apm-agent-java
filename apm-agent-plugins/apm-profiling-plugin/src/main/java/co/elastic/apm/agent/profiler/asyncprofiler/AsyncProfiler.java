@@ -102,8 +102,10 @@ public class AsyncProfiler {
         String os = System.getProperty("os.name").toLowerCase();
         String arch = System.getProperty("os.arch").toLowerCase();
         if (os.contains("linux")) {
-            if (arch.contains("arm") || arch.contains("aarch")) {
+            if (arch.contains("arm") || arch.contains("aarch32")) {
                 return "libasyncProfiler-linux-arm";
+            } else if (arch.contains("aarch")) {
+                return "libasyncProfiler-linux-aarch64";
             } else if (arch.contains("64")) {
                 return "libasyncProfiler-linux-x64";
             } else if (arch.contains("86")) {
@@ -112,7 +114,7 @@ public class AsyncProfiler {
                 throw new IllegalStateException("Async-profiler does not work on Linux " + arch);
             }
         } else if (os.contains("mac")) {
-            return "libasyncProfiler-macos";
+            return "libasyncProfiler-macos-x64";
         } else {
             throw new IllegalStateException("Async-profiler does not work on " + os);
         }

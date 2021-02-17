@@ -20,15 +20,90 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.0]]
-==== 1.19.0 - YYYY/MM/DD
+[[release-notes-1.22.0]]
+==== 1.22.0 - YYYY/MM/DD
 
 [float]
-===== Refactors
-* Replace System Rules with System Lambda {pull}1434[#1434]
+===== Features
+* Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
+{pull}1644[#1644]
+* Update existing Hibernate Search 6 instrumentation to the final relase
+* The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
+* Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
+
+[float]
+===== Bug fixes
+* fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.21.0]]
+==== 1.21.0 - 2020/02/09
 
 [float]
 ===== Breaking changes
+* Following PR {pull}1650[#1650], there are two slight changes with the <<config-server-url>> and <<config-server-urls>>
+configuration options:
+    1.  So far, setting `server_urls` with an empty string would allow the agent to work normally, apart from any action
+        that requires communication with the APM Server, including the attempt to fetch a central configuration.
+        Starting in this agent version, setting `server_urls` to empty string doesn't have any special meaning, it is
+        the default expected configuration, where `server_url` will be used instead. In order to achieve the same
+        behaviour, use the new <<config-disable-send>> configuration.
+    2.  Up to this version, `server_url` was used as an alias to `server_urls`, meaning that one could potentially set
+        the `server_url` config with a comma-separated list of multiple APM Server addresses, and that would have been a
+        valid configuration. Starting in this agent version, `server_url` is a separate configuration, and it only accepts
+        Strings that represent a single valid URL. Specifically, empty strings and commas are invalid.
+
+[float]
+===== Features
+* Add cloud provider metadata to reported events, see
+https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
+By default, the agent will try to automatically detect the cloud provider on startup, but this can be
+configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
+* Add span & transaction `outcome` field to improve error rate calculations - {pull}1613[#1613]
+
+[float]
+===== Bug fixes
+* Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
+* Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
+* Fixing agent startup failure with `NullPointerException` thrown by Byte-buddy's `MultipleParentClassLoader` - {pull}1647[#1647]
+* Fix cached type resolution triggering `ClassCastException` - {pull}1649[#1649]
+
+[[release-notes-1.20.0]]
+==== 1.20.0 - 2021/01/07
+
+[float]
+===== Breaking changes
+* The following public API types were `public` so far and became package-private: `NoopScope`, `ScopeImpl` and `AbstractSpanImpl`.
+  If your code is using them, you will need to change that when upgrading to this version.
+  Related PR: {pull}1532[#1532]
+
+[float]
+===== Features
+* Add support for RabbitMQ clients - {pull}1328[#1328]
+
+[float]
+===== Bug fixes
+* Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
+* Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[#1531]
+* Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[#1537]
+* Fix `ClassNotFoundError` with old versions of Spring resttemplate {pull}1524[#1524]
+* Fix Micrometer-driven metrics validation errors by the APM Server when sending with illegal values - {pull}1559[#1559]
+* Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
+* Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
+* Fix improper request body capturing - {pull}1579[#1579]
+* Avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
+* Update async-profiler to 1.8.3 {pull}1602[1602]
+* Use null-safe data structures to avoid `NullPointerException` {pull}1597[1597]
+* Fix memory leak in sampling profiler mechanism - {pull}1592[#1592]
+
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
+
+[[release-notes-1.19.0]]
+==== 1.19.0 - 2020/11/10
 
 [float]
 ===== Features
@@ -38,12 +113,31 @@ endif::[]
 * Add support for sampling weight with propagation in `tracestate` W3C header {pull}1384[#1384]
 * Adding two more valid options to the `log_level` config: `WARNING` (equivalent to `WARN`) and `CRITICAL`
   (will be treated as `ERROR`) - {pull}1431[1431]
+* Add the ability to disable Servlet-related spans for `INCLUDE`, `FORWARD` and `ERROR` dispatches (without affecting
+  basic Servlet capturing) by adding `servlet-api-dispatch` to <<config-disable-instrumentations>> - {pull}1448[1448]
+* Add Sampling Profiler support for AArch64 architectures - {pull}1443[1443]
+* Support proper transaction naming when using Spring's `ServletWrappingController` - {pull}1461[#1461]
+* Update async-profiler to 1.8.2 {pull}1471[1471]
+* Update existing Hibernate Search 6 instrumentation to work with the latest CR1 release
+* Deprecating the `addLabel` public API in favor of `setLabel` (still supporting `addLabel`) - {pull}1449[#1449]
 
 [float]
 ===== Bug fixes
+* Fix `HttpUrlConnection` instrumentation issue (affecting distributed tracing as well) when using HTTPS without using
+  `java.net.HttpURLConnection#disconnect` - {pull}1447[1447]
+* Fixes class loading issue that can occur when deploying multiple applications to the same application server - {pull}1458[#1458]
+* Fix ability to disable agent on startup wasn't working for runtime attach {pull}1444[1444]
+* Avoid `UnsupportedOperationException` on some spring application startup {pull}1464[1464]
+* Fix ignored runtime attach `config_file` {pull}1469[1469]
+* Fix `IllegalAccessError: Module 'java.base' no access to: package 'java.lang'...` in J9 VMs of Java version >= 9 -
+  {pull}1468[#1468]
+* Fix JVM version parsing on HP-UX {pull}1477[#1477]
+* Fix Spring-JMS transactions lifecycle management when using multiple concurrent consumers - {pull}1496[#1496]
 
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1404[1404] {pull}1411[1411]
+* Replace System Rules with System Lambda {pull}1434[#1434]
 
 [[release-notes-1.18.1]]
 ==== 1.18.1 - 2020/10/06

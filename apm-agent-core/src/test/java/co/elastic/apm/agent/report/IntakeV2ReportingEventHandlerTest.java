@@ -26,7 +26,7 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -112,8 +112,12 @@ class IntakeV2ReportingEventHandlerTest {
         reportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            new MetaData(title, service, system, Collections.emptyMap()), apmServerClient);
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                apmServerClient,
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+            ),
+            apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
@@ -121,8 +125,11 @@ class IntakeV2ReportingEventHandlerTest {
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), this.apmServerClient),
-            new MetaData(title1, service1, system, Collections.emptyMap()),
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                this.apmServerClient,
+                MetaDataMock.create(title1, service1, system, null, Collections.emptyMap())
+            ),
             apmServerClient);
     }
 

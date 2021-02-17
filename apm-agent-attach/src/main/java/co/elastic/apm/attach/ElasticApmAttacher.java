@@ -76,8 +76,8 @@ public class ElasticApmAttacher {
      * This method may only be invoked once.
      * </p>
      *
-     * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      * @param propertiesLocation the location within the classpath which contains the agent configuration properties file
+     * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      * @since 1.11.0
      */
     public static void attach(String propertiesLocation) {
@@ -118,6 +118,17 @@ public class ElasticApmAttacher {
         if (!configuration.isEmpty()) {
             Properties properties = new Properties();
             properties.putAll(configuration);
+
+            // when an external configuration file is used, we have to load it last to give it higher priority
+            String externalConfig = configuration.get("config_file");
+            if (null != externalConfig) {
+                try (FileInputStream stream = new FileInputStream(externalConfig)) {
+                    properties.load(stream);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
             try {
                 tempFile = File.createTempFile("elstcapm", ".tmp");
                 try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
@@ -222,7 +233,8 @@ public class ElasticApmAttacher {
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] buffer = new byte[1024];
             DigestInputStream dis = new DigestInputStream(agentJar, md);
-            while (dis.read(buffer) != -1) {}
+            while (dis.read(buffer) != -1) {
+            }
             return String.format("%032x", new BigInteger(1, md.digest()));
         }
     }

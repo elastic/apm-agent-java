@@ -45,6 +45,8 @@ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.simple.CountingMode;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -83,6 +85,13 @@ class MicrometerMetricsReporterTest {
         assertThat(metricsReporter.getMeterRegistries()).doesNotContain(nestedCompositeMeterRegistry);
         assertThat(metricsReporter.getMeterRegistries()).doesNotContain(meterRegistry);
         assertThat(metricsReporter.getMeterRegistries()).contains(simpleMeterRegistry);
+    }
+
+    @AfterEach
+    void tearDown() {
+        int metricReports = reporter.getBytes().size();
+        tracer.stop();
+        reporter.awaitUntilAsserted(() -> assertThat(reporter.getBytes()).hasSizeGreaterThan(metricReports));
     }
 
     @Test
@@ -273,6 +282,62 @@ class MicrometerMetricsReporterTest {
 
             // serialization should handle ignoring the 1st value
             assertThat(metricSet.get("metricset").get("samples").get("gauge2").get("value").doubleValue())
+                .isEqualTo(42D);
+        }
+    }
+
+    @Test
+    void tryToSerializeInvalidCounterValues() {
+        for (Double invalidValue : Arrays.asList(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN)) {
+            List<Tag> tags = List.of(Tag.of("foo", "bar"));
+            meterRegistry.more().counter("custom-counter-1", tags, 42, v -> invalidValue);
+            meterRegistry.more().counter("custom-counter-2", tags, 42, v -> 42D);
+            JsonNode metricSet = getSingleMetricSet();
+            assertThat(metricSet.get("metricset").get("samples").get("custom-counter-1"))
+                .describedAs("value of %s is not expected to be written to json", invalidValue)
+                .isNull();
+
+            // serialization should handle ignoring the 1st value
+            assertThat(metricSet.get("metricset").get("samples").get("custom-counter-2").get("value").doubleValue())
+                .isEqualTo(42D);
+        }
+    }
+
+    @Test
+    void tryToSerializeInvalidTimerValues() {
+        for (Double invalidValue : Arrays.asList(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN)) {
+            List<Tag> tags = List.of(Tag.of("foo", "bar"));
+            meterRegistry.more().timer("custom-timer-1", tags, 42, v -> 42L, v -> invalidValue, TimeUnit.MICROSECONDS);
+            meterRegistry.more().timer("custom-timer-2", tags, 42, v -> 42L, v -> 42D, TimeUnit.MICROSECONDS);
+            JsonNode metricSet = getSingleMetricSet();
+            assertThat(metricSet.get("metricset").get("samples").get("custom-timer-1.count"))
+                .describedAs("value of %s is not expected to be written to json", invalidValue)
+                .isNull();
+            assertThat(metricSet.get("metricset").get("samples").get("custom-timer-1.sum.us"))
+                .describedAs("value of %s is not expected to be written to json", invalidValue)
+                .isNull();
+
+            // serialization should handle ignoring the 1st value
+            assertThat(metricSet.get("metricset").get("samples").get("custom-timer-2.count").get("value").longValue())
+                .isEqualTo(42L);
+            assertThat(metricSet.get("metricset").get("samples").get("custom-timer-2.sum.us").get("value").doubleValue())
+                .isEqualTo(42D);
+        }
+    }
+
+    @Test
+    void tryToSerializeInvalidTimeGaugeValues() {
+        for (Double invalidValue : Arrays.asList(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN)) {
+            List<Tag> tags = List.of(Tag.of("foo", "bar"));
+            meterRegistry.more().timeGauge("custom-time-gauge-1", tags, 42, TimeUnit.SECONDS, v -> invalidValue);
+            meterRegistry.more().timeGauge("custom-time-gauge-2", tags, 42, TimeUnit.SECONDS, v -> 42D);
+            JsonNode metricSet = getSingleMetricSet();
+            assertThat(metricSet.get("metricset").get("samples").get("custom-time-gauge-1"))
+                .describedAs("value of %s is not expected to be written to json", invalidValue)
+                .isNull();
+
+            // serialization should handle ignoring the 1st value
+            assertThat(metricSet.get("metricset").get("samples").get("custom-time-gauge-2").get("value").doubleValue())
                 .isEqualTo(42D);
         }
     }

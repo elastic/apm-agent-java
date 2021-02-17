@@ -26,13 +26,13 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.TransactionUtils;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nullable;
 import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,8 +51,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     // of this instrumentation is. Also, integration test cover this feature for the general case with a packaged
     // agent and thus they don't have such limitation
 
-    @Nullable
-    private Transaction transaction = null;
+    private Transaction transaction;
 
     private WeakConcurrentMap<Process, Span> storageMap;
     private ProcessHelper helper;
@@ -77,13 +76,13 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         helper.doEndProcess(process, true);
 
-        assertThat(reporter.getSpans()).hasSize(1);
-        Span span = reporter.getSpans().get(0);
+        Span span = getFirstSpan();
 
         assertThat(span.getNameAsString()).isEqualTo(binaryName);
         assertThat(span.getType()).isEqualTo("process");
         assertThat(span.getSubtype()).isEqualTo(binaryName);
         assertThat(span.getAction()).isEqualTo("execute");
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
     @Test
@@ -168,6 +167,9 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         helper.doEndProcess(process, true);
         assertThat(storageMap).isEmpty();
+
+        Span span = getFirstSpan();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
     @Test
@@ -175,12 +177,22 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         Process process = mock(Process.class);
         verifyNoMoreInteractions(process); // we should not even use any method of process
 
+        // we have to opt-in to allow unknown outcome
+        reporter.checkUnknownOutcome(false);
+
         helper.doStartProcess(transaction, process, "hello");
 
         helper.doEndProcess(process, false);
         assertThat(storageMap)
             .describedAs("process span should be marked as terminated")
             .isEmpty();
+
+        assertThat(getFirstSpan().getOutcome()).isEqualTo(Outcome.UNKNOWN);
+    }
+
+    private Span getFirstSpan() {
+        assertThat(reporter.getSpans()).hasSize(1);
+        return reporter.getSpans().get(0);
     }
 
 }

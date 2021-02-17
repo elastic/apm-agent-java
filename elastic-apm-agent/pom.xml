@@ -5,14 +5,14 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.18.2-SNAPSHOT</version>
+        <version>1.21.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
@@ -24,7 +24,17 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-premain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-indy-bootstrap-module</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -106,7 +116,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jms-plugin</artifactId>
+            <artifactId>apm-jms-plugin-base</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -187,6 +197,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-profiling-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

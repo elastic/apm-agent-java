@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.18.2-SNAPSHOT</version>
+        <version>1.21.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-okhttp-plugin</artifactId>
@@ -36,7 +36,7 @@
         <dependency>
             <groupId>com.squareup.okio</groupId>
             <artifactId>okio</artifactId>
-            <version>1.14.0</version>
+            <version>2.10.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

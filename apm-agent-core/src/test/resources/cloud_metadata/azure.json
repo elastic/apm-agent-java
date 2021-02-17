@@ -1,0 +1,10 @@
+{
+  "location": "westus2",
+  "name": "basepi-test",
+  "resourceGroupName": "basepi-testing",
+  "subscriptionId": "7657426d-c4c3-44ac-88a2-3b2cd59e6dba",
+  "vmId": "e11ebedc-019d-427f-84dd-56cd4388d3a8",
+  "vmScaleSetName": "",
+  "vmSize": "Standard_D2s_v3",
+  "zone": ""
+}

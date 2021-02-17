@@ -7,6 +7,8 @@ from writing tutorials or blog posts,
 improving the documentation,
 submitting bug reports and feature requests or writing code.
 
+If you want to be rewarded for your contributions, sign up for the [Elastic Contributor Program](https://www.elastic.co/community/contributor). Each time you make a valid contribution, you’ll earn points that increase your chances of winning prizes and being recognized as a top contributor.
+
 You can get in touch with us through [Discuss](https://discuss.elastic.co/c/apm),
 feedback and ideas are always welcome.
 
@@ -79,7 +81,7 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`enter`**
 ```xml
-<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)&#10;public static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="false" toShortenFQNames="true">
+<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)&#10;public static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="true" toShortenFQNames="true">
   <context>
     <option name="JAVA_DECLARATION" value="true" />
   </context>
@@ -89,17 +91,17 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 **`exit`**
 
 ```xml
-<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)&#10;public static void onExit(@Advice.Thrown Throwable thrown) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="false" toShortenFQNames="true">
-  <context>
-    <option name="JAVA_DECLARATION" value="true" />
-  </context>
+<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)&#10;public static void onExit(@Advice.Thrown @Nullable Throwable thrown, @Advice.Return @Nullable Object returnValue) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="true" toShortenFQNames="true">
+    <context>
+        <option name="JAVA_DECLARATION" value="true" />
+    </context>
 </template>
 ```
 
 
 **`logger`**
 ```xml
-<template name="logger" value="private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);" description="" toReformat="false" toShortenFQNames="true">
+<template name="logger" value="private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);" description="" toReformat="true" toShortenFQNames="true">
   <variable name="CLASS_NAME" expression="className()" defaultValue="" alwaysStopAt="true" />
   <context>
     <option name="JAVA_DECLARATION" value="true" />
@@ -119,7 +121,7 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`at`**
 ```xml
-<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true" useStaticImport="true">
+<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="true" toShortenFQNames="true" useStaticImport="true">
   <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true" />
   <context>
     <option name="JAVA_STATEMENT" value="true" />
