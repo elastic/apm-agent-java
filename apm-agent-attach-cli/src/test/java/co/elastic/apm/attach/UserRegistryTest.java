@@ -42,13 +42,7 @@ class UserRegistryTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
-    void testSwitchToCurrentUser() throws Exception {
-        assertThat(UserRegistry.empty().getCurrentUser().canSwitchToUser()).isTrue();
-    }
-
-    @Test
-    @DisabledOnOs(OS.WINDOWS)
-    void testCannotSwitchToRoot() throws Exception {
+    void testCannotSwitchToRoot() {
         Assumptions.assumeTrue(!System.getProperty("user.name").equals("root"));
         assertThat(UserRegistry.empty().get("root").canSwitchToUser()).isFalse();
     }

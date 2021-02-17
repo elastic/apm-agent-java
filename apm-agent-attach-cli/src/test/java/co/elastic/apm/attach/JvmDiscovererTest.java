@@ -59,6 +59,5 @@ class JvmDiscovererTest {
         assumeFalse(JvmInfo.isJ9());
         JvmDiscoverer.UsingPs usingPs = new JvmDiscoverer.UsingPs(UserRegistry.empty());
         assertThat(usingPs.isAvailable()).isFalse();
-        assertThat(usingPs.discoverJvms().stream().map(JvmInfo::getPid)).contains(String.valueOf(ProcessHandle.current().pid()));
     }
 }
