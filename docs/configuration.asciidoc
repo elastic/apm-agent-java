@@ -1183,8 +1183,8 @@ The default unit for this option is `ms`.
 [[config-cloud-provider]]
 ==== `cloud_provider` (added[1.21.0])
 
-This config value allows you to specify which cloud provider should be assumed
-for metadata collection. By default, the agent will attempt to detect the cloud
+This config value allows you to specify which cloud provider should be assumed 
+for metadata collection. By default, the agent will attempt to detect the cloud 
 provider or, if that fails, will use trial and error to collect the metadata.
 
 
@@ -1630,8 +1630,8 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 [[config-log-shading-enabled]]
 ==== `log_shading_enabled`
 
-A boolean specifying whether the agent should automatically reformat application logs
-into ECS-compatible JSON files, suitable for ingestion into Elasticsearch for further analysis.
+A boolean specifying whether the agent should automatically reformat application logs 
+into ECS-compatible JSON files, suitable for ingestion into Elasticsearch for further analysis. 
 If true, check out additional `log_shading` configurations options.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
@@ -1655,8 +1655,8 @@ If true, check out additional `log_shading` configurations options.
 [[config-log-shading-replace]]
 ==== `log_shading_replace` (performance)
 
-By default, when Log Shading is enabled, application logs will be duplicated so that the
-ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the
+By default, when Log Shading is enabled, application logs will be duplicated so that the 
+ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the 
 related overhead, set this option to true to replace the original log files with the ECS-compatible ones.
 
 
@@ -1680,10 +1680,10 @@ related overhead, set this option to true to replace the original log files with
 [[config-log-shading-destination-dir]]
 ==== `log_shading_destination_dir`
 
-As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade
-log files will be written alongside the original logs in the same directory. Use this configuration in
-order to write the shade logs into an alternative destination. Omitting this config or setting it to an
-empty string will restore the default behavior. If relative path is used, this path will be used relative
+As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade 
+log files will be written alongside the original logs in the same directory. Use this configuration in 
+order to write the shade logs into an alternative destination. Omitting this config or setting it to an 
+empty string will restore the default behavior. If relative path is used, this path will be used relative 
 to the original logs directory.
 
 
@@ -2056,12 +2056,12 @@ Use if APM Server requires an API key.
 
 The URL must be fully qualified, including protocol (http or https) and port.
 
-If SSL is enabled on the APM Server, use the `https` protocol. For more information, see
+If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 <<ssl-configuration>>.
 
 If outgoing HTTP traffic has to go through a proxy,
 you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation]
+See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
 for more information.
 
 NOTE: This configuration can only be reloaded dynamically as of 1.8.0
@@ -2101,8 +2101,8 @@ you can use the Java system properties `http.proxyHost` and `http.proxyPort` to 
 See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
 for more information.
 
-NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order
-to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you
+NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order 
+to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you 
 are only setting a single URL.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
@@ -2126,10 +2126,10 @@ are only setting a single URL.
 [[config-disable-send]]
 ==== `disable_send`
 
-If set to `true`, the agent will work as usual, except from any task requiring communication with
-the APM server. Events will be dropped and the agent won't be able to receive central configuration, which
-means that any other configuration cannot be changed in this state without restarting the service.
-An example use case for this would be maintaining the ability to create traces and log
+If set to `true`, the agent will work as usual, except from any task requiring communication with 
+the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
+means that any other configuration cannot be changed in this state without restarting the service. 
+An example use case for this would be maintaining the ability to create traces and log 
 trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
 
 
@@ -2910,12 +2910,12 @@ The default unit for this option is `ms`.
 # If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 # duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 # Such methods will be traced and reported if one of the following applies:
-#
+# 
 #  - This method's duration crossed the configured threshold.
 #  - This method ended with Exception.
 #  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
-#
+# 
 # Set to 0 to disable.
 # 
 # NOTE: Transactions are never discarded, regardless of their duration.
@@ -2998,8 +2998,8 @@ The default unit for this option is `ms`.
 #
 # span_min_duration=0ms
 
-# This config value allows you to specify which cloud provider should be assumed
-# for metadata collection. By default, the agent will attempt to detect the cloud
+# This config value allows you to specify which cloud provider should be assumed 
+# for metadata collection. By default, the agent will attempt to detect the cloud 
 # provider or, if that fails, will use trial and error to collect the metadata.
 #
 # Valid options: AUTO, AWS, GCP, AZURE, NONE
@@ -3271,8 +3271,8 @@ The default unit for this option is `ms`.
 #
 # enable_log_correlation=false
 
-# A boolean specifying whether the agent should automatically reformat application logs
-# into ECS-compatible JSON files, suitable for ingestion into Elasticsearch for further analysis.
+# A boolean specifying whether the agent should automatically reformat application logs 
+# into ECS-compatible JSON files, suitable for ingestion into Elasticsearch for further analysis. 
 # If true, check out additional `log_shading` configurations options.
 #
 # This setting can be changed at runtime
@@ -3281,8 +3281,8 @@ The default unit for this option is `ms`.
 #
 # log_shading_enabled=true
 
-# By default, when Log Shading is enabled, application logs will be duplicated so that the
-# ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the
+# By default, when Log Shading is enabled, application logs will be duplicated so that the 
+# ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the 
 # related overhead, set this option to true to replace the original log files with the ECS-compatible ones.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -3291,15 +3291,15 @@ The default unit for this option is `ms`.
 #
 # log_shading_replace=false
 
-# As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade
-# log files will be written alongside the original logs in the same directory. Use this configuration in
-# order to write the shade logs into an alternative destination. Omitting this config or setting it to an
-# empty string will restore the default behavior. If relative path is used, this path will be used relative
+# As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade 
+# log files will be written alongside the original logs in the same directory. Use this configuration in 
+# order to write the shade logs into an alternative destination. Omitting this config or setting it to an 
+# empty string will restore the default behavior. If relative path is used, this path will be used relative 
 # to the original logs directory.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value:
+# Default value: 
 #
 # log_shading_destination_dir=
 
@@ -3475,15 +3475,15 @@ The default unit for this option is `ms`.
 # The URL for your APM Server
 #
 # The URL must be fully qualified, including protocol (http or https) and port.
-#
-# If SSL is enabled on the APM Server, use the `https` protocol. For more information, see
+# 
+# If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 # <<ssl-configuration>>.
-#
+# 
 # If outgoing HTTP traffic has to go through a proxy,
 # you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
-# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation]
+# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
 # for more information.
-#
+# 
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #
 # This setting can be changed at runtime
@@ -3499,7 +3499,7 @@ The default unit for this option is `ms`.
 # Fails over to the next APM Server URL in the event of connection errors.
 # Achieves load-balancing by shuffling the list of configured URLs.
 # When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
-#
+# 
 # If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 # <<ssl-configuration>>.
 # 
@@ -3508,20 +3508,20 @@ The default unit for this option is `ms`.
 # See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
 # for more information.
 # 
-# NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order
-# to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you
+# NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order 
+# to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you 
 # are only setting a single URL.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value:
+# Default value: 
 #
 # server_urls=
 
-# If set to `true`, the agent will work as usual, except from any task requiring communication with
-# the APM server. Events will be dropped and the agent won't be able to receive central configuration, which
-# means that any other configuration cannot be changed in this state without restarting the service.
-# An example use case for this would be maintaining the ability to create traces and log
+# If set to `true`, the agent will work as usual, except from any task requiring communication with 
+# the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
+# means that any other configuration cannot be changed in this state without restarting the service. 
+# An example use case for this would be maintaining the ability to create traces and log 
 # trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.

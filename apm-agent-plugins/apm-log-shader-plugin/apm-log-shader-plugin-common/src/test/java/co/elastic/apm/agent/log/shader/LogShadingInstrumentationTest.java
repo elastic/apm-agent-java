@@ -39,12 +39,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -59,7 +59,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     public static final String ERROR_MESSAGE = "Error-this";
 
     private final LoggerFacade logger;
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     public LogShadingInstrumentationTest() {
         logger = getLoggerFacade();
@@ -80,7 +80,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     protected abstract LoggerFacade getLoggerFacade();
 
     @Test
-    public void testSimpleLogShading() throws IOException, ParseException {
+    public void testSimpleLogShading() throws Exception {
         String traceId = UUID.randomUUID().toString();
         logger.putTraceIdToMdc(traceId);
         try {
@@ -104,14 +104,14 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Test
-    public void testShadingIntoConfiguredDir() throws IOException, ParseException {
+    public void testShadingIntoConfiguredDir() throws Exception {
         when(config.getConfig(LoggingConfiguration.class).getLogShadingDestinationDir()).thenReturn("shade_logs");
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
         testSimpleLogShading();
     }
 
     @Test
-    public void testLogShadingDisabled() throws IOException, ParseException {
+    public void testLogShadingDisabled() throws Exception {
         logger.trace(TRACE_MESSAGE);
         when(config.getConfig(LoggingConfiguration.class).isLogShadingEnabled()).thenReturn(false);
         logger.debug(DEBUG_MESSAGE);
@@ -186,7 +186,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         return Utils.computeShadeLogFilePath(logger.getLogFilePath());
     }
 
-    private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree, @Nullable String traceId) throws ParseException {
+    private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree, @Nullable String traceId) throws Exception {
         SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         Date rawTimestamp = timestampFormat.parse(splitRawLogLine[0]);
         timestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -196,7 +196,8 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(splitRawLogLine[2]).isEqualTo(ecsLogLineTree.get("log.level").textValue());
         assertThat(splitRawLogLine[3]).isEqualTo(ecsLogLineTree.get("log.logger").textValue());
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
-        assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(tracer.getMetaData().getService().getName());
+        String serviceName = tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName();
+        assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
         if (traceId != null) {
             assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
         } else {

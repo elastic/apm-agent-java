@@ -33,6 +33,7 @@ import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL).
@@ -119,7 +120,13 @@ public abstract class AbstractLogShadingHelper<A> {
     protected abstract A createAndConfigureAppender(A originalAppender, String appenderName);
 
     protected String getServiceName() {
-        String serviceName = tracer.getMetaData().getService().getName();
+        // todo - figure this out
+        String serviceName = null;
+        try {
+            serviceName = tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName();
+        } catch (Exception e) {
+            // todo
+        }
         if (serviceName == null) {
             serviceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
         }
