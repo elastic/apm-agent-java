@@ -29,9 +29,9 @@ import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -62,22 +62,22 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     private final ObjectMapper objectMapper;
 
     public LogShadingInstrumentationTest() {
-        logger = getLoggerFacade();
+        logger = createLoggerFacade();
         objectMapper = new ObjectMapper();
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         logger.open();
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
     }
 
-    @After
+    @AfterEach
     public void closeLogger() {
         logger.close();
     }
 
-    protected abstract LoggerFacade getLoggerFacade();
+    protected abstract LoggerFacade createLoggerFacade();
 
     @Test
     public void testSimpleLogShading() throws Exception {
@@ -182,7 +182,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     }
 
     @Nonnull
-    private String getShadeLogFilePath() {
+    protected String getShadeLogFilePath() {
         return Utils.computeShadeLogFilePath(logger.getLogFilePath());
     }
 
@@ -205,38 +205,26 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         }
     }
 
-    /**
-     * Disabled by default, as this is a very slow test. Can be used for manual testing of shade file rolling.
-     * Note: logback and log4j2 rollover before appending an event, which means the two log files will contain messages.
-     * As opposed to those, log4j1 rolls over after appending an event, which means that the active log file (log4j1.log)
-     * will be empty when the test ends.
-     */
-     //@Test
-     public void testShadeLogRolling() throws IOException {
-         when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
-         logger.trace("First line");
-         sleep();
-         logger.debug("Second Line");
-         sleep();
-         logger.trace("Third line");
-         sleep();
-         logger.debug("Fourth line");
-         sleep();
+    @Test
+    public void testShadeLogRolling() throws IOException {
+        when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
+        logger.trace("First line");
+        waitForFileRolling();
+        logger.debug("Second Line");
+        waitForFileRolling();
+        logger.trace("Third line");
+        waitForFileRolling();
+        logger.debug("Fourth line");
+        waitForFileRolling();
 
-         // All tests are configured so that only one line can fit a log file before being rolled.
-         // However, while in log4j2 and Logback file rolling takes place BEFORE appending the new log event, in
-         // log4j1 this happens AFTER the event is logged. This means we can only count on the non-active file to
-         // contain a single line
-         String shadeLogFilePath = getShadeLogFilePath();
-         ArrayList<JsonNode> jsonNodes = readShadeLogFile(shadeLogFilePath + ".1");
-         assertThat(jsonNodes).hasSize(1);
-     }
-
-    private void sleep() {
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        // All tests are configured so that only one line can fit a log file before being rolled.
+        // However, while in log4j2 and Logback file rolling takes place BEFORE appending the new log event, in
+        // log4j1 this happens AFTER the event is logged. This means we can only count on the non-active file to
+        // contain a single line
+        String shadeLogFilePath = getShadeLogFilePath();
+        ArrayList<JsonNode> jsonNodes = readShadeLogFile(shadeLogFilePath + ".1");
+        assertThat(jsonNodes).hasSize(1);
     }
+
+    protected abstract void waitForFileRolling();
 }

@@ -39,8 +39,17 @@ import java.net.URL;
 public class LogbackShadingTest extends LogShadingInstrumentationTest {
 
     @Override
-    protected LoggerFacade getLoggerFacade() {
+    protected LoggerFacade createLoggerFacade() {
         return new LogbackLoggerFacade();
+    }
+
+    @Override
+    protected void waitForFileRolling() {
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private static class LogbackLoggerFacade implements LoggerFacade {

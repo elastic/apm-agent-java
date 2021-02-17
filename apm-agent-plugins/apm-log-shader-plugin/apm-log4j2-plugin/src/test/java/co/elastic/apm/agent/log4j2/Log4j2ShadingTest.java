@@ -40,8 +40,17 @@ import java.util.Objects;
 public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
 
     @Override
-    protected LoggerFacade getLoggerFacade() {
+    protected LoggerFacade createLoggerFacade() {
         return new Log4j2LoggerFacade();
+    }
+
+    @Override
+    protected void waitForFileRolling() {
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private static class Log4j2LoggerFacade implements LoggerFacade {

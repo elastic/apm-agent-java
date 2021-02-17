@@ -26,7 +26,7 @@
 
     <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>target/logback.append.log</file>
-        <immediateFlush>true</immediateFlush>
+        <immediateFlush>false</immediateFlush>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${LOG_FILE}.%i</fileNamePattern>
