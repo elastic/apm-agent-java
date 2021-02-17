@@ -69,6 +69,7 @@ java -jar apm-agent-attach-cli.jar \
 ----
 
 [float]
+[[setup-attach-cli-usage-list]] // avoids dead links in old branches
 [[setup-attach-cli-usage-options]]
 ==== Options
 
