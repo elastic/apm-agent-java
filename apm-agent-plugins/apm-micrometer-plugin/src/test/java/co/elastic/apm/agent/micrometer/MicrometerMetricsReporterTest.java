@@ -45,6 +45,8 @@ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.simple.CountingMode;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -83,6 +85,13 @@ class MicrometerMetricsReporterTest {
         assertThat(metricsReporter.getMeterRegistries()).doesNotContain(nestedCompositeMeterRegistry);
         assertThat(metricsReporter.getMeterRegistries()).doesNotContain(meterRegistry);
         assertThat(metricsReporter.getMeterRegistries()).contains(simpleMeterRegistry);
+    }
+
+    @AfterEach
+    void tearDown() {
+        int metricReports = reporter.getBytes().size();
+        tracer.stop();
+        reporter.awaitUntilAsserted(() -> assertThat(reporter.getBytes()).hasSizeGreaterThan(metricReports));
     }
 
     @Test

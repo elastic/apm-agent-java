@@ -37,13 +37,15 @@ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class MicrometerMetricsReporter implements Runnable {
+public class MicrometerMetricsReporter implements Runnable, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
 
@@ -56,6 +58,7 @@ public class MicrometerMetricsReporter implements Runnable {
     public MicrometerMetricsReporter(ElasticApmTracer tracer) {
         this.tracer = tracer;
         this.reporter = tracer.getReporter();
+        tracer.addShutdownHook(this);
     }
 
     public void registerMeterRegistry(MeterRegistry meterRegistry) {
@@ -96,6 +99,13 @@ public class MicrometerMetricsReporter implements Runnable {
         }
         logger.debug("Reporting {} meters", meterConsumer.meters.size());
         reporter.report(serializer.serialize(meterConsumer.meters, timestamp));
+    }
+
+    @Override
+    public void close() {
+        // flushing out metrics before shutting down
+        // this is especially important for counters as the counts that were accumulated between the last report and the shutdown would otherwise get lost
+        tracer.getSharedSingleThreadedPool().submit(this);
     }
 
     private static class MeterMapConsumer implements Consumer<Meter> {

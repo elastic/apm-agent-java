@@ -617,7 +617,7 @@ Value will be rounded with 4 significant digits, as an example, value '0.55555' 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `1.0` | Double | true
+| `1` | Double | true
 |============
 
 
@@ -1330,7 +1330,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-use-path-as-transaction-name]]
-==== `use_path_as_transaction_name` (experimental)
+==== `use_path_as_transaction_name` (experimental added[1.0.0,Changing this value at runtime is possible since version 1.22.0])
 
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
@@ -1342,13 +1342,13 @@ you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
 Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `false` | Boolean | false
+| `false` | Boolean | true
 |============
 
 
@@ -2169,13 +2169,13 @@ This guards the application from crashing in case the APM server is unavailable 
 A lower value will decrease the heap overhead of the agent,
 while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 
-<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `512` | Integer | true
+| `512` | Integer | false
 |============
 
 
@@ -2638,9 +2638,9 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: Double
-# Default value: 1.0
+# Default value: 1
 #
-# transaction_sample_rate=1.0
+# transaction_sample_rate=1
 
 # Limits the amount of spans that are recorded per transaction.
 # 
@@ -3033,7 +3033,7 @@ The default unit for this option is `ms`.
 # as it can lead to an explosion of transaction groups.
 # Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: Boolean
 # Default value: false
 #
@@ -3498,7 +3498,7 @@ The default unit for this option is `ms`.
 # A lower value will decrease the heap overhead of the agent,
 # while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 #
-# This setting can be changed at runtime
+# This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Integer
 # Default value: 512
 #
