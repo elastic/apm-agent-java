@@ -493,7 +493,7 @@ config option]
 ===== Features
 * Add ability to manually specify reported https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-hostname[hostname]
 * Add support for https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases[Redis Jedis client]
-* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list[`--include` and `--exclude` flags]
+* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the <<setup-attach-cli-usage-options, `--include` and `--exclude` flags>>
 * Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
 * Improve servlet error capture {pull}812[#812]
   Among others, now also takes Spring MVC `@ExceptionHandler`s into account 
