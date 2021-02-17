@@ -47,7 +47,6 @@ endif::[]
 *** `--include-user`/`--exclude-user`: Attach to all JVMs of a given operating system user.
 *** `--include-main`/`--exclude-main`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
 *** `--include-vmargs`/`--exclude-vmargs`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
-*** `--pid` is deprecated in favor of `--include-pid`
 ** Removal of options +
 *** The deprecated `--arg` option has been removed.
 *** The `-i`/`--include`, `-e`/`exclude` options have been removed in favor of the `--<include|exclude>-<main|vmargs>` options.
