@@ -29,6 +29,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -37,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SamplingProfilerQueueTest {
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void testFillQueue() throws Exception {
         ElasticApmTracer tracer = MockTracer.create();
 

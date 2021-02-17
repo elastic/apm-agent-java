@@ -26,12 +26,14 @@ package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FilenameFilter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 public class AsyncProfilerTest {
 
@@ -41,6 +43,7 @@ public class AsyncProfilerTest {
     }
 
     @Test
+    @DisabledOnOs(WINDOWS)
     void testShouldCopyLibToTempDirectory() {
         String defaultTempDirectory = System.getProperty("java.io.tmpdir");
         AsyncProfiler.getInstance(defaultTempDirectory);
@@ -51,6 +54,7 @@ public class AsyncProfilerTest {
     }
 
     @Test
+    @DisabledOnOs(WINDOWS)
     void testShouldCopyLibToSpecifiedDirectory(@TempDir File nonDefaultTempDirectory) {
         AsyncProfiler.getInstance(nonDefaultTempDirectory.getAbsolutePath());
 

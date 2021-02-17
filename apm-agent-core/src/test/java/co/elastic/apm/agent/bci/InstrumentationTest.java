@@ -50,6 +50,8 @@ import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;

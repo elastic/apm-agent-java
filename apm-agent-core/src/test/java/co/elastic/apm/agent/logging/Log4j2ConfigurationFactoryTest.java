@@ -32,6 +32,8 @@ import org.apache.logging.log4j.core.appender.RollingFileAppender;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 
@@ -46,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Log4j2ConfigurationFactoryTest {
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void testLogFileJson(@TempDir Path tempDir) {
         String logFile = tempDir.resolve("agent.json").toString();
         Configuration configuration = getLogConfig(Map.of("log_file", logFile, "log_format_file", "json"));
@@ -59,6 +62,7 @@ class Log4j2ConfigurationFactoryTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void testLogFilePlainText(@TempDir Path tempDir) {
         String logFile = tempDir.resolve("agent.log").toString();
         Configuration configuration = getLogConfig(Map.of("log_file", logFile));

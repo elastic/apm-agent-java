@@ -30,6 +30,7 @@ endif::[]
 * Update existing Hibernate Search 6 instrumentation to the final relase
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
+* Add support to Spring AMQP - {pull}1657[#1657]
 
 [float]
 ===== Bug fixes
