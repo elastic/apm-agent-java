@@ -8,9 +8,7 @@ import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,15 +22,6 @@ public class FanoutConfiguration extends BaseConfiguration {
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(new Jackson2JsonMessageConverter());
         return factory;
-    }
-
-    @Bean
-    @Qualifier("fanoutRabbitTemplate")
-    public RabbitTemplate fanoutRabbitTemplate(final ConnectionFactory connectionFactory) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(new Jackson2JsonMessageConverter());
-        rabbitTemplate.setExchange("foobar");
-        return rabbitTemplate;
     }
 
     @Bean
@@ -62,13 +51,13 @@ public class FanoutConfiguration extends BaseConfiguration {
 
     @RabbitListener(queues = "foo")
     public void processFooMessage(String message) {
-        System.out.println("### foo");
+        System.out.println("foo process");
         testSpan();
     }
 
     @RabbitListener(queues = "bar")
     public void processBarMessage(String message) {
-        System.out.println("### bar");
+        System.out.println("bar process");
         testSpan();
     }
 

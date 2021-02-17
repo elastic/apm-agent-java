@@ -28,9 +28,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.config.FanoutConfiguration;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -44,29 +41,24 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @ContextConfiguration(classes = {FanoutConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
 public class FanoutTest extends AbstractRabbitMqTest {
 
-
-    @Autowired
-    @Qualifier("fanoutRabbitTemplate")
-    private RabbitTemplate fanoutRabbitTemplate;
-
     @Test
     @Override
     public void verifyThatOneTransactionWithOneSpanCreated() {
         disableRecyclingValidation();
 
         String message = "hello from foobar";
+        rabbitTemplate.setExchange("foobar");
         rabbitTemplate.convertAndSend(message);
 
         getReporter().awaitTransactionCount(2);
-//        getReporter().awaitSpanCount(1);
 
         List<Transaction> transactionList = getReporter().getTransactions();
 
         assertThat(transactionList.size()).isEqualTo(2);
-        Transaction transaction = transactionList.get(0);
-        assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ RECEIVE from spring-boot-exchange");
-
-        assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(1);
-        assertThat(getReporter().getFirstSpan().getNameAsString()).isEqualTo("testSpan");
+        for (Transaction transaction : transactionList) {
+            assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ RECEIVE from foobar");
+            assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(1);
+            assertThat(getReporter().getFirstSpan().getNameAsString()).isEqualTo("testSpan");
+        }
     }
 }
