@@ -130,7 +130,6 @@ public class UserRegistry {
     }
 
     public static class User {
-        private static final User CURRENT_USER = new User(UserRegistry.getCurrentUserName(), true);
         private final String username;
         private final boolean canSwitchToUser;
 
@@ -139,14 +138,7 @@ public class UserRegistry {
             this.canSwitchToUser = canSwitchToUser;
         }
 
-        public static User current() {
-            return CURRENT_USER;
-        }
-
         private static User of(String username) {
-            if (getCurrentUserName().equals(username)) {
-                return current();
-            }
             try {
                 if (Platform.isWindows()) {
                     return new User(username, false);

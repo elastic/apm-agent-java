@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.attach;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,12 +32,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GetAgentPropertiesTest {
 
     @Test
-    void testGetProperties() throws Exception {
+    void testGetProperties() {
         System.setProperty("foo", "bar");
         try {
             assertThat(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.CURRENT_PID))
-                .containsEntry("foo", "bar");
-            assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.CURRENT_PID, UserRegistry.empty().getCurrentUser()))
                 .containsEntry("foo", "bar");
         } finally {
             System.clearProperty("foo");
@@ -44,8 +43,15 @@ class GetAgentPropertiesTest {
     }
 
     @Test
-    void testGetPropertiesEqual() throws Exception {
-        assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.CURRENT_PID, UserRegistry.empty().getCurrentUser()))
-            .isEqualTo(GetAgentProperties.getAgentAndSystemPropertiesCurrentUser(JvmInfo.CURRENT_PID));
+    void testGetPropertiesSwitchUser() throws Exception {
+        UserRegistry.User currentUser = UserRegistry.empty().getCurrentUser();
+        Assumptions.assumeTrue(currentUser.canSwitchToUser());
+        System.setProperty("foo", "bar");
+        try {
+            assertThat(GetAgentProperties.getAgentAndSystemPropertiesSwitchUser(JvmInfo.CURRENT_PID, currentUser))
+                .containsEntry("foo", "bar");
+        } finally {
+            System.clearProperty("foo");
+        }
     }
 }

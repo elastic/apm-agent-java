@@ -37,7 +37,7 @@ class JvmInfoTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        Properties properties = GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, UserRegistry.User.current());
+        Properties properties = GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, UserRegistry.empty().getCurrentUser());
         currentVm = JvmInfo.of(JvmInfo.CURRENT_PID, UserRegistry.getCurrentUserName(), properties);
     }
 

@@ -70,7 +70,7 @@ public class AgentAttacher {
         // in case emulated attach is disabled, we need to init provider first, otherwise it's enabled by default
         ElasticAttachmentProvider.init(arguments.useEmulatedAttach());
         // fail fast if no attachment provider is working
-        GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, UserRegistry.User.current());
+        GetAgentProperties.getAgentAndSystemProperties(JvmInfo.CURRENT_PID, userRegistry.getCurrentUser());
         this.jvmDiscoverer = new JvmDiscoverer.Compound(Arrays.asList(
             JvmDiscoverer.ForHotSpotVm.withDiscoveredTempDirs(userRegistry),
             new JvmDiscoverer.UsingPs(userRegistry)));
