@@ -616,7 +616,7 @@ Value will be rounded with 4 significant digits, as an example, value '0.55555' 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `1.0` | Double | true
+| `1` | Double | true
 |============
 
 
@@ -2607,9 +2607,9 @@ The default unit for this option is `ms`.
 #
 # This setting can be changed at runtime
 # Type: Double
-# Default value: 1.0
+# Default value: 1
 #
-# transaction_sample_rate=1.0
+# transaction_sample_rate=1
 
 # Limits the amount of spans that are recorded per transaction.
 # 
