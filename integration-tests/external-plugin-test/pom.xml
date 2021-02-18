@@ -12,7 +12,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <modules>
-        <module>external-plugin-common</module>
+        <module>plugin-instrumentation-target</module>
         <module>external-plugin-app</module>
         <module>external-plugin</module>
     </modules>

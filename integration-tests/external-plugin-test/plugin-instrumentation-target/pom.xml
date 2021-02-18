@@ -9,7 +9,7 @@
         <version>1.21.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>external-plugin-common</artifactId>
+    <artifactId>plugin-instrumentation-target</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
