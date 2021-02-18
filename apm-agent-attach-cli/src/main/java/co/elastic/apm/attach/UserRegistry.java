@@ -101,11 +101,7 @@ public class UserRegistry {
                 process.waitFor();
                 if (process.exitValue() == 0) {
                     return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
-                } else {
-                    throw new IllegalStateException(new BufferedReader(new InputStreamReader(process.getErrorStream())).readLine());
                 }
-            } else {
-                return null;
             }
         } else if (Platform.isWindows()) {
             String temp = System.getenv("TEMP");
@@ -116,6 +112,7 @@ public class UserRegistry {
         } else {
             return "/tmp";
         }
+        return null;
     }
 
     public Collection<String> getAllUserNames() {
