@@ -36,7 +36,7 @@ import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 
 @Configuration
 @EnableRabbit
-public class RabbitListenerConfiguration extends CommonRabbitmqSpringConfiguration {
+public class RabbitListenerConfiguration extends DefaultBindingSpringConfiguration {
 
     @RabbitListener(queues = QUEUE_NAME)
     public void processMessage(String message) {

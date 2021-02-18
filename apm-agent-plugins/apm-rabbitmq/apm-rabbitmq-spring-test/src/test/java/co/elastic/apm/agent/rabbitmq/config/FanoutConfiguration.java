@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -36,6 +36,10 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import static co.elastic.apm.agent.rabbitmq.TestConstants.FANOUT_EXCHANGE;
+import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_BAR;
+import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_FOO;
+
 @Configuration
 @EnableRabbit
 public class FanoutConfiguration extends BaseConfiguration {
@@ -50,36 +54,36 @@ public class FanoutConfiguration extends BaseConfiguration {
 
     @Bean
     public FanoutExchange foobarExchange() {
-        return new FanoutExchange("foobar");
+        return new FanoutExchange(FANOUT_EXCHANGE);
     }
 
     @Bean
-    public Binding binding1() {
+    public Binding bindingFoo() {
         return BindingBuilder.bind(queueFoo()).to(foobarExchange());
     }
 
     @Bean
-    public Binding binding2() {
+    public Binding bindingBar() {
         return BindingBuilder.bind(queueBar()).to(foobarExchange());
     }
 
     @Bean
     Queue queueBar() {
-        return new Queue("bar", false);
+        return new Queue(QUEUE_BAR, false);
     }
 
     @Bean
     Queue queueFoo() {
-        return new Queue("foo", false);
+        return new Queue(QUEUE_FOO, false);
     }
 
-    @RabbitListener(queues = "foo")
+    @RabbitListener(queues = QUEUE_FOO)
     public void processFooMessage(String message) {
         System.out.println("foo process");
         testSpan();
     }
 
-    @RabbitListener(queues = "bar")
+    @RabbitListener(queues = QUEUE_BAR)
     public void processBarMessage(String message) {
         System.out.println("bar process");
         testSpan();

@@ -34,6 +34,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
 
+import static co.elastic.apm.agent.rabbitmq.TestConstants.FANOUT_EXCHANGE;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -47,7 +48,7 @@ public class FanoutTest extends AbstractRabbitMqTest {
         disableRecyclingValidation();
 
         String message = "hello from foobar";
-        rabbitTemplate.setExchange("foobar");
+        rabbitTemplate.setExchange(FANOUT_EXCHANGE);
         rabbitTemplate.convertAndSend(message);
 
         getReporter().awaitTransactionCount(2);

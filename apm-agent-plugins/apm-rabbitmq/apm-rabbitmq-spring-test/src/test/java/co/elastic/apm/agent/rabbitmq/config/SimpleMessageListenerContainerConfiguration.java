@@ -35,7 +35,7 @@ import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 public class SimpleMessageListenerContainerConfiguration extends MessageListenerConfiguration {
 
     @Bean
-    SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {
+    public SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
         container.setQueueNames(QUEUE_NAME);
         container.setMessageListener(messageListener());

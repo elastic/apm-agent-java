@@ -24,11 +24,8 @@
  */
 package co.elastic.apm.agent.rabbitmq.config;
 
-import co.elastic.apm.api.CaptureSpan;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageListener;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.context.annotation.Bean;
@@ -38,22 +35,20 @@ import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
 
 @Configuration
-public class CommonRabbitmqSpringConfiguration extends BaseConfiguration {
+public class DefaultBindingSpringConfiguration extends BaseConfiguration {
 
     @Bean
-    Queue queue() {
+    public Queue queue() {
         return new Queue(QUEUE_NAME, false);
     }
 
     @Bean
-    TopicExchange exchange() {
+    public TopicExchange exchange() {
         return new TopicExchange(TOPIC_EXCHANGE_NAME);
     }
 
     @Bean
-    Binding binding(Queue queue, TopicExchange exchange) {
+    public Binding binding(Queue queue, TopicExchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with("foo.bar.#");
     }
-
-
 }
