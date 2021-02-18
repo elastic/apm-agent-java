@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.payload.CloudProviderInfo;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -46,7 +45,6 @@ import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.condition.OS.WINDOWS;
 import static org.mockito.Mockito.when;
 
 class MetaDataTest {
@@ -81,7 +79,6 @@ class MetaDataTest {
     }
 
     @ParameterizedTest
-    @DisabledOnOs(WINDOWS)
     @EnumSource(value = CoreConfiguration.CloudProvider.class, names = {"AWS", "GCP", "AZURE"})
     void testCloudProvider_SingleProvider(CoreConfiguration.CloudProvider provider) throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(provider);
@@ -120,7 +117,6 @@ class MetaDataTest {
     }
 
     @Test
-    @DisabledOnOs(WINDOWS)
     void testCloudProvider_AUTO() throws InterruptedException, ExecutionException, TimeoutException {
         when(coreConfiguration.getCloudProvider()).thenReturn(AUTO);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
