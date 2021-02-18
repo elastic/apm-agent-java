@@ -73,7 +73,7 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
     public RabbitTemplate rabbitTemplate;
 
     @Test
-    public void verifyThatOneTransactionWithOneSpanCreated() {
+    public void verifyThatTransactionWithSpanCreated() {
         disableRecyclingValidation();
 
         String message = "foo-bar";

@@ -43,7 +43,7 @@ public class FanoutTest extends AbstractRabbitMqTest {
 
     @Test
     @Override
-    public void verifyThatOneTransactionWithOneSpanCreated() {
+    public void verifyThatTransactionWithSpanCreated() {
         disableRecyclingValidation();
 
         String message = "hello from foobar";
