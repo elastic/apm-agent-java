@@ -205,6 +205,15 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         }
     }
 
+    /**
+     * Tests our log file rolling configurations to verify it works as expected. Currently we allow one backup file
+     * (meaning - two log files at most) and the decision to roll is based on the {@code log_file_size} configuration.
+     * Because of the way Logback and log4j2 make their rolling decision, this test uses a fixed-duration sleep, which
+     * is a notorious way to make tests flaky. If that proves to be the case, this test can be disabled, as its
+     * importance for regression testing is not crucial. It would be very useful if we decide to modify anything in
+     * our logging configuration, for example - change the rolling decision strategy.
+     * @throws IOException thrown if we fail to read the shade log file
+     */
     @Test
     public void testShadeLogRolling() throws IOException {
         when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
