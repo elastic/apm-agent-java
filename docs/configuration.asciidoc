@@ -121,6 +121,7 @@ Click on a key to get more information.
 ** <<config-central-config>>
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
+** <<config-plugins-dir>>
 ** <<config-use-elastic-traceparent-header>>
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
@@ -1108,6 +1109,36 @@ NOTE: this option can only be set via system properties, environment variables o
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.config_file` | `config_file` | `ELASTIC_APM_CONFIG_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-plugins-dir]]
+==== `plugins_dir` (experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+A folder that contains external agent plugins.
+
+Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+The agent will load all instrumentations that are declared in the
+`META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+See `integration-tests/external-plugin-test` for an example plugin.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.plugins_dir` | `plugins_dir` | `ELASTIC_APM_PLUGINS_DIR`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2883,6 +2914,19 @@ The default unit for this option is `ms`.
 # Default value: _AGENT_HOME_/elasticapm.properties
 #
 # config_file=_AGENT_HOME_/elasticapm.properties
+
+# A folder that contains external agent plugins.
+# 
+# Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+# The agent will load all instrumentations that are declared in the
+# `META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+# See `integration-tests/external-plugin-test` for an example plugin.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# plugins_dir=
 
 # To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
