@@ -26,6 +26,7 @@ package co.elastic.apm.agent.mongoclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.bson.Document;
@@ -38,75 +39,81 @@ import org.testcontainers.containers.GenericContainer;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 public abstract class AbstractMongoClientInstrumentationTest extends AbstractInstrumentationTest {
 
-    @SuppressWarnings("NullableProblems")
-    protected static GenericContainer container;
+    protected static GenericContainer<?> container;
     protected static final String DB_NAME = "testdb";
     protected static final String COLLECTION_NAME = "testcollection";
+    private static final int PORT = 27017;
 
     @BeforeClass
     public static void startContainer() {
-        container = new GenericContainer("mongo:3.4").withExposedPorts(27017);
+        container = new GenericContainer("mongo:3.4").withExposedPorts(PORT);
         container.start();
     }
 
     @AfterClass
     public static void stopContainer() {
         container.stop();
-        container = null;
     }
 
     @Before
-    public void startTransaction() throws Exception {
-        Transaction transaction = tracer.startRootTransaction(null).activate();
-        transaction.withName("Mongo Transaction");
-        transaction.withType("request");
-        transaction.withResultIfUnset("success");
+    public void startTransaction() {
+        startTestRootTransaction("Mongo Transaction");
     }
 
     @After
     public void endTransaction() throws Exception {
-        reporter.reset();
-        dropCollection();
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.testcollection.drop");
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
+
+        // drop outside of transaction to prevent creating any span
+        dropCollection();
+
+        reporter.reset();
     }
 
     @Test
-    public void testCreateCollection() throws Exception {
+    public void testCreateAndDeleteCollection() throws Exception {
         createCollection();
+        dropCollection();
 
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.testcollection.create");
-        verifyDestinationDetails(reporter.getSpans());
+        checkReportedSpans("create", "drop");
+    }
+
+    @Test
+    public void testErrorSpanHasFailureOutcome() throws Exception {
+        createCollection();
+        dropCollection();
+
+        // trying to drop when it does not exits creates an error
+        dropCollection();
+
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(3);
+
+        verifySpan(spans.get(0), getSpanName("create"), Outcome.SUCCESS);
+        verifySpan(spans.get(1), getSpanName("drop"), Outcome.SUCCESS);
+        verifySpan(spans.get(2), getSpanName("drop"), Outcome.FAILURE);
     }
 
     @Test
     public void testListCollections() throws Exception {
         listCollections();
 
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.listCollections");
-        verifyDestinationDetails(reporter.getSpans());
+        verifySpan(reporter.getFirstSpan(), "testdb.listCollections", Outcome.SUCCESS);
     }
 
     @Test
     public void testCountCollection() throws Exception {
-        long count = count();
+        assertThat(count()).isZero();
 
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(count).isZero();
-        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.testcollection.count");
-        verifyDestinationDetails(reporter.getSpans());
+        checkReportedSpans("count");
     }
 
     @Test
@@ -116,13 +123,9 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         insert(document);
 
-        long count = count();
+        assertThat(count()).isOne();
 
-        assertThat(reporter.getSpans()).hasSize(2);
-        assertThat(count).isOne();
-        assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("testdb.testcollection.insert");
-        assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("testdb.testcollection.count");
-        verifyDestinationDetails(reporter.getSpans());
+        checkReportedSpans("insert", "count");
     }
 
     @Test
@@ -140,16 +143,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         assertThat(find(new Document(), 2)).containsExactlyInAnyOrder(document1, document2, document3);
 
-        assertThat(reporter.getSpans()
-            .stream()
-            .map(Span::getNameAsString)
-            .collect(Collectors.toList()))
-            .containsExactly(
-                "testdb.testcollection.insert",
-                "testdb.testcollection.find",
-                "testdb.testcollection.getMore");
-
-        verifyDestinationDetails(reporter.getSpans());
+        checkReportedSpans("insert", "find", "getMore");
     }
 
     @Test
@@ -170,11 +164,9 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
         long count = count();
         assertThat(updatedDocCount).isOne();
-        assertThat(reporter.getSpans()).hasSize(2);
         assertThat(count).isOne();
-        assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("testdb.testcollection.update");
-        assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("testdb.testcollection.count");
-        verifyDestinationDetails(reporter.getSpans());
+
+        checkReportedSpans("update", "count");
     }
 
     @Test
@@ -191,23 +183,39 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
         delete(searchQuery);
 
         long count = count();
-        assertThat(reporter.getSpans()).hasSize(2);
         assertThat(count).isZero();
-        assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("testdb.testcollection.delete");
-        assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("testdb.testcollection.count");
-        verifyDestinationDetails(reporter.getSpans());
+
+        checkReportedSpans("delete", "count");
     }
 
-    private void verifyDestinationDetails(List<Span> spanList) {
-        for (Span span : spanList) {
-            Destination destination = span.getContext().getDestination();
-            assertThat(destination.getAddress().toString()).isEqualTo("localhost");
-            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(27017));
-            Destination.Service service = destination.getService();
-            assertThat(service.getName().toString()).isEqualTo("mongodb");
-            assertThat(service.getResource().toString()).isEqualTo("mongodb");
-            assertThat(service.getType()).isEqualTo("db");
+    private void checkReportedSpans(String... operations) {
+        assertThat(reporter.getNumReportedSpans()).isEqualTo(operations.length);
+
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(operations.length);
+        for (int i = 0; i < operations.length; i++) {
+            verifySpan(spans.get(i), getSpanName(operations[i]), Outcome.SUCCESS);
         }
+    }
+
+    private void verifySpan(Span span, String expectedName, Outcome expectedOutcome) {
+
+        assertThat(span.getNameAsString()).isEqualTo(expectedName);
+        assertThat(span.getOutcome()).isEqualTo(expectedOutcome);
+
+        // verify destination
+        Destination destination = span.getContext().getDestination();
+        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+        assertThat(destination.getPort()).isEqualTo(container.getMappedPort(PORT));
+
+        Destination.Service service = destination.getService();
+        assertThat(service.getName().toString()).isEqualTo("mongodb");
+        assertThat(service.getResource().toString()).isEqualTo("mongodb");
+        assertThat(service.getType()).isEqualTo("db");
+    }
+
+    private static String getSpanName(String operation) {
+        return String.format("%s.%s.%s", DB_NAME, COLLECTION_NAME, operation);
     }
 
     protected abstract long update(Document query, Document updatedObject) throws Exception;

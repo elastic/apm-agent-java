@@ -252,8 +252,10 @@ public class CloudMetadataProvider {
         String region = regionValue instanceof String ? (String) regionValue : null;
 
         CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("aws");
-        cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instanceType));
-        cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(instanceId, null));
+        if (instanceType != null) {
+            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(instanceType));
+        }
+        cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField(null, instanceId));
         cloudProviderInfo.setAvailabilityZone(availabilityZone);
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(accountId));
         cloudProviderInfo.setRegion(region);
@@ -295,7 +297,7 @@ public class CloudMetadataProvider {
             Long instanceId = (instanceMap.get("id") instanceof Long) ? (Long) instanceMap.get("id") : null;
             String instanceName = (instanceMap.get("name") instanceof String) ? (String) instanceMap.get("name") : null;
             String zone = instanceMap.get("zone") instanceof String ? (String) instanceMap.get("zone") : null;
-            cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(instanceId, instanceName));
+            cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField(instanceName, instanceId));
             String machineType = instanceMap.get("machineType") instanceof String ? (String) instanceMap.get("machineType") : null;
             if (machineType != null) {
                 String[] machinePathParts = machineType.split("/");
@@ -316,7 +318,7 @@ public class CloudMetadataProvider {
             @SuppressWarnings("unchecked") Map<String, Object> projectMap = (Map<String, Object>) projectData;
             String projectId = projectMap.get("projectId") instanceof String ? (String) projectMap.get("projectId") : null;
             Long numericProjectId = projectMap.get("numericProjectId") instanceof Long ? (Long) projectMap.get("numericProjectId") : null;
-            cloudProviderInfo.setProject(new CloudProviderInfo.ProviderProject(projectId, numericProjectId));
+            cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField(projectId, numericProjectId));
         } else {
             logger.warn("Error while parsing GCP metadata - expecting the value of the 'project' entry to be a map but it is not");
         }
@@ -370,10 +372,12 @@ public class CloudMetadataProvider {
 
         CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("azure");
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount(subscriptionId));
-        cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance(vmId, vmName));
-        cloudProviderInfo.setProject(new CloudProviderInfo.ProviderProject(resourceGroupName));
+        cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField(vmName, vmId));
+        cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField(resourceGroupName));
         cloudProviderInfo.setAvailabilityZone(zone);
-        cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(vmSize));
+        if (vmSize != null) {
+            cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine(vmSize));
+        }
         cloudProviderInfo.setRegion(location);
         return cloudProviderInfo;
     }

@@ -49,14 +49,6 @@ public class BookkeeperObjectPool<T> implements ObjectPool<T> {
     // An ever-increasing counter for how many objects where requested from the pool
     private AtomicInteger objectCounter = new AtomicInteger();
 
-    static {
-        boolean isTest = false;
-        assert isTest = true;
-        if (!isTest) {
-            throw new IllegalStateException("this object pool should not be used outside tests");
-        }
-    }
-
     /**
      * @param pool pool to wrap
      */

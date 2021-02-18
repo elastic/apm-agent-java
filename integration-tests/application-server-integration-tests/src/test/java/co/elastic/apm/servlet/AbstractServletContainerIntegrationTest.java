@@ -142,7 +142,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.containerName = containerName;
         servletContainer
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URLS", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
@@ -159,6 +159,13 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
+        for (TestApp testApp : getTestApps()) {
+            testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
+            testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
+                checkFilePresent(pathToFile);
+                servletContainer.withFileSystemBind(pathToFile, containerPath);
+            });
+        }
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
                 String pathToAppFile = testApp.getAppFilePath();
@@ -231,8 +238,8 @@ public abstract class AbstractServletContainerIntegrationTest {
             "argument properly to the command line");
     }
 
-    private static void checkFilePresent(String pathToWar) {
-        final File warFile = new File(pathToWar);
+    private static void checkFilePresent(String pathToFile) {
+        final File warFile = new File(pathToFile);
         logger.info("Check file {}", warFile.getAbsolutePath());
         assertThat(warFile).exists();
         assertThat(warFile).isFile();

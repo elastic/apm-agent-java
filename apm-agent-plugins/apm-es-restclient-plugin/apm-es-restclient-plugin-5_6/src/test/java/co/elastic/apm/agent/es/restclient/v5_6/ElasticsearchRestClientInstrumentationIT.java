@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.es.restclient.v5_6;
 
 import co.elastic.apm.agent.es.restclient.AbstractEsClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -123,6 +124,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThat(re.getResponse().getStatusLine().getStatusCode()).isEqualTo(400);
 
         assertThatErrorsExistWhenDeleteNonExistingIndex();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     @Test
@@ -137,8 +140,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
 
         doPerformRequest("DELETE", "/" + SECOND_INDEX);
 
-
         validateSpanContentAfterIndexDeleteRequest();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
     @Test

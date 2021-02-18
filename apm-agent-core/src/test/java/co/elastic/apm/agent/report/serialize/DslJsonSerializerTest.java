@@ -72,6 +72,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -764,13 +765,9 @@ class DslJsonSerializerTest {
 
     @Test
     void testCloudProviderInfoWithNullObjectFields() throws Exception {
-        System.getProperty("os.arch");
-        System.getProperty("os.name");
-        SystemInfo.getNameOfLocalHost();
-
         MetaData metaData = createMetaData();
-        CloudProviderInfo cloudProviderInfo = metaData.getCloudProviderInfo();
-        cloudProviderInfo.getAccount().setId(null);
+        CloudProviderInfo cloudProviderInfo = Objects.requireNonNull(metaData.getCloudProviderInfo());
+        cloudProviderInfo.setAccount(null);
         cloudProviderInfo.setMachine(null);
         cloudProviderInfo.setProject(null);
         cloudProviderInfo.setInstance(null);
@@ -795,14 +792,10 @@ class DslJsonSerializerTest {
 
     @Test
     void testCloudProviderInfoWithNullNameFields() throws Exception {
-        System.getProperty("os.arch");
-        System.getProperty("os.name");
-        SystemInfo.getNameOfLocalHost();
-
         MetaData metaData = createMetaData();
-        CloudProviderInfo cloudProviderInfo = metaData.getCloudProviderInfo();
-        cloudProviderInfo.getProject().setName(null);
-        cloudProviderInfo.getInstance().setName(null);
+        CloudProviderInfo cloudProviderInfo = Objects.requireNonNull(metaData.getCloudProviderInfo());
+        Objects.requireNonNull(cloudProviderInfo.getProject()).setName(null);
+        Objects.requireNonNull(cloudProviderInfo.getInstance()).setName(null);
 
         DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
         serializer.appendMetadataToStream();
@@ -816,24 +809,26 @@ class DslJsonSerializerTest {
         assertThat(jsonCloudAccount.get("id").asText()).isEqualTo("accountId");
         JsonNode jsonCloudInstance = jsonCloud.get("instance");
         assertThat(jsonCloudInstance.get("id").asText()).isEqualTo("instanceId");
-        assertThat(jsonCloudInstance.get("name")).isEmpty();
+        // APM Server 7.9.x does not allow sending null fields
+        assertThat(jsonCloudInstance.get("name")).isNull();
         JsonNode jsonCloudMachine = jsonCloud.get("machine");
         assertThat(jsonCloudMachine.get("type").asText()).isEqualTo("machineType");
         JsonNode jsonCloudProject = jsonCloud.get("project");
         assertThat(jsonCloudProject.get("id").asText()).isEqualTo("projectId");
-        assertThat(jsonCloudProject.get("name")).isEmpty();
+        // APM Server 7.9.x does not allow sending null fields
+        assertThat(jsonCloudProject.get("name")).isNull();
     }
 
     @Test
-    void testCloudProviderInfoWithNullIdFields() throws Exception {
-        System.getProperty("os.arch");
-        System.getProperty("os.name");
-        SystemInfo.getNameOfLocalHost();
-
+    void testCloudProviderInfoWithNullNameAndIdFields() throws Exception {
         MetaData metaData = createMetaData();
-        CloudProviderInfo cloudProviderInfo = metaData.getCloudProviderInfo();
-        cloudProviderInfo.getProject().setId(null);
-        cloudProviderInfo.getInstance().setId(null);
+        CloudProviderInfo cloudProviderInfo = Objects.requireNonNull(metaData.getCloudProviderInfo());
+        CloudProviderInfo.NameAndIdField project = Objects.requireNonNull(cloudProviderInfo.getProject());
+        project.setName(null);
+        project.setId(null);
+        CloudProviderInfo.NameAndIdField instance = Objects.requireNonNull(cloudProviderInfo.getInstance());
+        instance.setName(null);
+        instance.setId(null);
 
         DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
         serializer.appendMetadataToStream();
@@ -845,6 +840,30 @@ class DslJsonSerializerTest {
         assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
         JsonNode jsonCloudAccount = jsonCloud.get("account");
         assertThat(jsonCloudAccount.get("id").asText()).isEqualTo("accountId");
+        JsonNode jsonCloudMachine = jsonCloud.get("machine");
+        assertThat(jsonCloudMachine.get("type").asText()).isEqualTo("machineType");
+        assertThat(jsonCloud.get("instance")).isNull();
+        assertThat(jsonCloud.get("project")).isNull();
+    }
+
+    @Test
+    void testCloudProviderInfoWithNullIdFields() throws Exception {
+        MetaData metaData = createMetaData();
+        CloudProviderInfo cloudProviderInfo = Objects.requireNonNull(metaData.getCloudProviderInfo());
+        Objects.requireNonNull(cloudProviderInfo.getProject()).setId(null);
+        Objects.requireNonNull(cloudProviderInfo.getInstance()).setId(null);
+        Objects.requireNonNull(cloudProviderInfo.getAccount()).setId(null);
+
+        DslJsonSerializer.serializeMetadata(metaData, serializer.getJsonWriter());
+        serializer.appendMetadataToStream();
+
+        JsonNode jsonCloud = readJsonString(serializer.toString()).get("cloud");
+
+        assertThat(jsonCloud.get("availability_zone").asText()).isEqualTo("availabilityZone");
+        assertThat(jsonCloud.get("provider").asText()).isEqualTo("aws");
+        assertThat(jsonCloud.get("region").asText()).isEqualTo("region");
+        // Currently account only has ID (although the intake API allows name as well), so it should not be in the JSON
+        assertThat(jsonCloud.get("account")).isNull();
         JsonNode jsonCloudInstance = jsonCloud.get("instance");
         assertThat(jsonCloudInstance.get("id")).isNull();
         assertThat(jsonCloudInstance.get("name").asText()).isEqualTo("instanceName");
@@ -869,11 +888,11 @@ class DslJsonSerializerTest {
     private CloudProviderInfo createCloudProviderInfo() {
         CloudProviderInfo cloudProviderInfo = new CloudProviderInfo("aws");
         cloudProviderInfo.setMachine(new CloudProviderInfo.ProviderMachine("machineType"));
-        cloudProviderInfo.setInstance(new CloudProviderInfo.ProviderInstance("instanceId", "instanceName"));
+        cloudProviderInfo.setInstance(new CloudProviderInfo.NameAndIdField("instanceName", "instanceId"));
         cloudProviderInfo.setAvailabilityZone("availabilityZone");
         cloudProviderInfo.setAccount(new CloudProviderInfo.ProviderAccount("accountId"));
         cloudProviderInfo.setRegion("region");
-        cloudProviderInfo.setProject(new CloudProviderInfo.ProviderProject("projectName", "projectId"));
+        cloudProviderInfo.setProject(new CloudProviderInfo.NameAndIdField("projectName", "projectId"));
         return cloudProviderInfo;
     }
 

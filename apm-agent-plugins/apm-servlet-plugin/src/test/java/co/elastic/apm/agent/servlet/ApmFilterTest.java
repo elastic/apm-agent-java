@@ -29,6 +29,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
+import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
@@ -90,13 +91,17 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/foo/bar");
         request.setQueryString("foo=bar");
         filterChain.doFilter(request, new MockHttpServletResponse());
-        Url url = reporter.getFirstTransaction().getContext().getRequest().getUrl();
+
+        TransactionContext transactionContext = reporter.getFirstTransaction().getContext();
+        Url url = transactionContext.getRequest().getUrl();
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getSearch()).isEqualTo("foo=bar");
         assertThat(url.getPort()).isEqualTo(80);
         assertThat(url.getHostname()).isEqualTo("localhost");
         assertThat(url.getPathname()).isEqualTo("/foo/bar");
         assertThat(url.getFull().toString()).isEqualTo("http://localhost/foo/bar?foo=bar");
+
+        assertThat(transactionContext.getResponse().getStatusCode()).isEqualTo(200);
     }
 
     @Test
