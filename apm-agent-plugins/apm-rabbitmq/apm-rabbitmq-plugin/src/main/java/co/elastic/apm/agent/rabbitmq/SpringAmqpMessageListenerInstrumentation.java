@@ -66,7 +66,6 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object beforeMessageHandle(@Advice.Origin Class<?> originClazz,
                                                  @Advice.Argument(value = 0) @Nullable final Message message) {
-            System.out.println("### BEFORE");
             if (message == null) {
                 return null;
             }
@@ -98,7 +97,6 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
         public static void afterMessageHandle(@Advice.Enter @Nullable final Object transactionObject,
                                               @Advice.Thrown @Nullable final Throwable throwable) {
-            System.out.println("### AFTER");
             if (transactionObject instanceof Transaction) {
                 Transaction transaction = (Transaction) transactionObject;
                 transaction.captureException(throwable)
