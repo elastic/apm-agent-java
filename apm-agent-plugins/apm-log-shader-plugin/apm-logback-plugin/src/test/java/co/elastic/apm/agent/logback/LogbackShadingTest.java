@@ -46,7 +46,7 @@ public class LogbackShadingTest extends LogShadingInstrumentationTest {
     @Override
     protected void waitForFileRolling() {
         try {
-            Thread.sleep(200);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
