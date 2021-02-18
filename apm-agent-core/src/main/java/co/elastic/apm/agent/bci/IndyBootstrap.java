@@ -183,7 +183,9 @@ public class IndyBootstrap {
     private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/IndyBootstrapDispatcher.clazz";
 
     /**
-     * todo - document
+     * The name of the class we use as the lookup class during the invokedynamic bootstrap flow. The bytecode of this
+     * class is injected into the plugin class loader, then loaded from that class loader and used as the lookup class
+     * to link the instrumented call site to the advice method.
      */
     public static final String LOOKUP_EXPOSER_CLASS_NAME = "co.elastic.apm.agent.bci.classloading.LookupExposer";
 
@@ -346,6 +348,7 @@ public class IndyBootstrap {
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
             // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
             MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
+            // When calling findStatic now, the lookup class will be one that is loaded by the plugin class loader
             MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
             return new ConstantCallSite(methodHandle);
         } catch (Exception e) {

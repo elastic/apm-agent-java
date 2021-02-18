@@ -67,11 +67,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
+        Declaring a dependency, normally in a provided scope, on the library that contains the instrumentation targets
+        of this plugin. This way, our instrumentation/advice can use library types, without bundling them into the plugin.
+        This will also make available for testing.
+        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>plugin-instrumentation-target</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

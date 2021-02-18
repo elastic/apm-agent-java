@@ -33,12 +33,12 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * todo: explain what this does- only a unit test for quick sanity tests of the instrumentation. It is not a full
- *  test of the external plugin, where it is loaded from a plugin directory and loaded with the proper class loader.
- *  When running this test, the META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation file is loaded
- *  from the system classpath and the instrumentation class is loaded as an internal plugin. In order to fully test
- *  the external plugin, see `integration-tests/external-plugin-app`, which creates a webapp that is tested on all
- *  Servlet containers in `integration-tests/application-server-integration-tests`
+ * An example of how we can unit test our instrumentation, only as quick sanity check of functionality. It is not a full
+ * test of the plugin, where it is loaded from a plugin directory and loaded with the proper class loader.
+ * When running this test, the META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation file is loaded
+ * from the system classpath and the instrumentation class is loaded as an internal plugin. In order to fully test
+ * the external plugin, see `integration-tests/external-plugin-app`, which creates a webapp that is tested on all
+ * Servlet containers in `integration-tests/application-server-integration-tests`.
  */
 class PluginInstrumentationTest extends AbstractInstrumentationTest {
 
