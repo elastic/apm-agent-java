@@ -24,9 +24,11 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
+import co.elastic.apm.api.ElasticApm;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Nullable;
 import java.time.Duration;
@@ -58,6 +60,23 @@ public class GreetingHandler {
     public Flux<String> helloFlux(int count) {
         return Flux.range(1, count)
             .map(i -> String.format("Hello flux %d", i));
+    }
+
+    public Flux<String> createSpans(int count) {
+        return Flux.range(1, count)
+            .subscribeOn(Schedulers.newElastic("spans"))
+            .delayElements(Duration.ofMillis(5))
+            .map(i -> ElasticApm.currentTransaction().startSpan()
+                .setName(String.format("span %d", i)))
+            .doOnEach(signal -> {
+                // fake some time-consuming work
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    // silently ignored
+                }
+            })
+            .map(span -> String.format("span id=%s", span.getId()));
     }
 
     // Emulates a transaction that takes a known amount of time

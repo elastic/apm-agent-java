@@ -24,8 +24,9 @@
  */
 package co.elastic.apm.agent.reactor;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
@@ -33,21 +34,21 @@ import reactor.core.Fuseable;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
 
-import javax.annotation.Nullable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscriber<T> {
+
+    private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
+
     private static final String HOOK_KEY = "elastic-apm";
 
     private final CoreSubscriber<? super T> subscriber;
     private final C context;
-    private final boolean terminateOnComplete;
 
     public TracedSubscriber(CoreSubscriber<? super T> subscriber,
-                            C context,
-                            boolean terminateOnComplete) {
+                            C context) {
         this.context = context;
-        this.terminateOnComplete = terminateOnComplete;
         this.subscriber = subscriber;
     }
 
@@ -78,12 +79,7 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
             subscriber.onError(t);
         } finally {
             context.deactivate();
-            beforeContextEnd(context, t);
-            context.captureException(t).end();
         }
-    }
-
-    protected void beforeContextEnd(C context, @Nullable Throwable thrown) {
     }
 
     @Override
@@ -93,15 +89,39 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
             subscriber.onComplete();
         } finally {
             context.deactivate();
-            if (terminateOnComplete) {
-                beforeContextEnd(context, null);
-                context.end();
-            }
         }
     }
 
+    /**
+     * Register active context propagation
+     *
+     * @param tracer tracer
+     */
+    static void registerHooks(Tracer tracer) {
+        if (isRegistered.getAndSet(true)) {
+            return;
+        }
+        Hooks.onEachOperator(HOOK_KEY, wrapOperators(tracer));
+    }
 
-    public static <X> Function<? super Publisher<X>, ? extends Publisher<X>> wrapOperators(ElasticApmTracer tracer) {
+    /**
+     * Unregister active context propagation. Should only be used for testing
+     */
+    static void unregisterHooks() {
+        if (!isRegistered.getAndSet(false)) {
+            return;
+        }
+        Hooks.resetOnEachOperator(HOOK_KEY);
+    }
+
+    /**
+     * @return true if hook is registered. Should only be used for testing
+     */
+    static boolean isHookRegistered(){
+        return isRegistered.get();
+    }
+
+    private static <X> Function<? super Publisher<X>, ? extends Publisher<X>> wrapOperators(Tracer tracer) {
         return Operators.liftPublisher((p, sub) -> {
             // don't wrap known #error #just #empty as they have instantaneous execution
             if (p instanceof Fuseable.ScalarCallable) {
@@ -115,16 +135,8 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
                 return sub;
             }
 
-            return new TracedSubscriber<>(sub, active, false);
+            return new TracedSubscriber<>(sub, active);
         });
-    }
-
-    public static void registerHooks(ElasticApmTracer tracer) {
-        Hooks.onEachOperator(HOOK_KEY, wrapOperators(tracer));
-    }
-
-    public static void unregisterHooks() {
-        Hooks.resetOnEachOperator(HOOK_KEY);
     }
 
 

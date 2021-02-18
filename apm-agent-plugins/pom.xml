@@ -25,6 +25,7 @@
         <module>apm-servlet-plugin</module>
         <module>apm-spring-webmvc-plugin</module>
         <module>apm-spring-webflux</module>
+        <module>apm-reactor-plugin</module>
         <module>apm-api-plugin</module>
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate</module>

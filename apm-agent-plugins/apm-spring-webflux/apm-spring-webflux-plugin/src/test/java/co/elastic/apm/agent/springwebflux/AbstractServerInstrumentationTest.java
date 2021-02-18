@@ -27,6 +27,7 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
@@ -39,6 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,8 +70,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void dispatchError() {
-        String error = client.getHandlerError();
-        assertThat(error.contains("intentional handler exception"));
+        String errorMsg = client.getHandlerError();
+        assertThat(errorMsg).contains("intentional handler exception");
 
         String expectedName = client.useFunctionalEndpoint()
             ? "GET /functional/error-handler"

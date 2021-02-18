@@ -53,6 +53,7 @@ public class GreetingFunctional {
             // 'hello' and 'hello2' are identical, but entry point in builder is not
             .route(path("/functional/hello"),
                 request -> helloGreeting(greetingHandler, request.queryParam("name")))
+            //
             .GET("/functional/hello2", accept(MediaType.TEXT_PLAIN),
                 request -> helloGreeting(greetingHandler, request.queryParam("name")))
             // nested routes

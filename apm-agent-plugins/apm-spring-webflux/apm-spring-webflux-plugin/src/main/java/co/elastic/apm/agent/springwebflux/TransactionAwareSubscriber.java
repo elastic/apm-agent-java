@@ -27,9 +27,7 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.reactivestreams.Subscription;
 import org.springframework.http.HttpCookie;
@@ -50,20 +48,56 @@ import java.util.Map;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
-public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transaction> {
+/**
+ * Transaction-aware subscriber that will terminate transaction on error and optionally on completion.
+ * Transaction activation is handled indirectly through {@link co.elastic.apm.agent.reactor.TracedSubscriber} within reactor plugin
+ *
+ * @param <T>
+ */
+public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
+
+    private final CoreSubscriber<? super T> subscriber;
     private final ServerWebExchange exchange;
+    private final Transaction transaction;
+    private final boolean endOnComplete;
 
     public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
                                       Transaction transaction,
-                                      boolean terminateOnComplete,
-                                      ServerWebExchange exchange) {
+                                      ServerWebExchange exchange,
+                                      boolean endOnComplete) {
 
-        super(subscriber, transaction, terminateOnComplete);
+        this.transaction = transaction;
+        this.subscriber = subscriber;
         this.exchange = exchange;
+        this.endOnComplete = endOnComplete;
     }
 
     @Override
-    protected void beforeContextEnd(Transaction transaction, @Nullable Throwable thrown) {
+    public void onSubscribe(Subscription s) {
+        subscriber.onSubscribe(s);
+    }
+
+    @Override
+    public void onNext(T t) {
+        subscriber.onNext(t);
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+        subscriber.onError(throwable);
+        endTransaction(transaction, throwable);
+    }
+
+    @Override
+    public void onComplete() {
+        subscriber.onComplete();
+
+        if (endOnComplete) {
+            endTransaction(transaction, null);
+        }
+    }
+
+    protected void endTransaction(Transaction transaction, @Nullable Throwable thrown) {
         StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
         if (transactionName != null) {
             String httpMethod = exchange.getRequest().getMethodValue();
@@ -88,8 +122,6 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
             }
         }
 
-        transaction.captureException(thrown);
-
         // when transaction has been created by servlet (or any other low-level HTTP instrumentation), we let
         // this other instrumentation handle request/response capture and end the transaction lifecycle
         //
@@ -99,6 +131,8 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
             fillRequest(transaction, exchange);
             fillResponse(transaction, exchange);
         }
+
+        transaction.captureException(thrown).end();
 
     }
 

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.sun.nio.sctp.HandlerResult;
 import net.bytebuddy.asm.Advice;
@@ -92,22 +93,20 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
     @AssignTo.Return
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static Mono<HandlerResult> onExit(@Advice.Argument(0) ServerWebExchange exchange,
-                                             @Advice.Thrown Throwable thrown,
+                                             @Advice.Thrown @Nullable Throwable thrown,
                                              @Advice.Enter @Nullable Object enterTransaction,
                                              @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
 
-        if (enterTransaction instanceof Transaction) {
-            Transaction transaction = (Transaction) enterTransaction;
-            transaction.captureException(thrown)
-                .deactivate();
-
-            if (resultMono != null) {
-                // might happen when an error is triggered server-side
-                resultMono = handlerWrap(resultMono, transaction, exchange, "handler-adapter");
-            }
-
+        if (!(enterTransaction instanceof Transaction) || resultMono == null || thrown != null) {
+            return resultMono;
         }
 
-        return resultMono;
+        Transaction transaction = (Transaction) enterTransaction;
+        transaction.captureException(thrown)
+            .deactivate();
+
+        // might happen when an error is triggered server-side
+        return handlerWrap(resultMono, transaction, exchange);
+
     }
 }

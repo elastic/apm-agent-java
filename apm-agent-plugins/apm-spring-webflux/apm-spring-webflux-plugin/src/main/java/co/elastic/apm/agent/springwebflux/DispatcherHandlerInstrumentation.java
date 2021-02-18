@@ -24,7 +24,9 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
