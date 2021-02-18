@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Configuration;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 
 @Configuration
-public class SimpleMessageListenerContainerConfiguration extends MessageListenerConfiguration {
+public class LambdaSimpleMessageListenerContainerConfiguration extends LambdaMessageListenerConfiguration {
 
     @Bean
     SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {

@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Configuration;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
 
 @Configuration
-public class DirectMessageListenerContainerConfiguration extends CommonRabbitmqSpringConfiguration {
+public class DirectMessageListenerContainerConfiguration extends MessageListenerConfiguration {
 
     @Bean
     DirectMessageListenerContainer container(ConnectionFactory connectionFactory) {

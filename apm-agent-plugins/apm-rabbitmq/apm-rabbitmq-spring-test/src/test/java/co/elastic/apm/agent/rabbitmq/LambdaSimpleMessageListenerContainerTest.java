@@ -22,23 +22,17 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq.config;
+package co.elastic.apm.agent.rabbitmq;
 
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import co.elastic.apm.agent.rabbitmq.config.LambdaSimpleMessageListenerContainerConfiguration;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 
-import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@ContextConfiguration(classes = {LambdaSimpleMessageListenerContainerConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
+public class LambdaSimpleMessageListenerContainerTest extends AbstractRabbitMqTest {
 
-@Configuration
-public class SimpleMessageListenerContainerConfiguration extends MessageListenerConfiguration {
-
-    @Bean
-    SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {
-        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
-        container.setQueueNames(QUEUE_NAME);
-        container.setMessageListener(messageListener());
-        return container;
-    }
 }

@@ -25,11 +25,16 @@
 package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.impl.context.Message;
+import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.amqp.core.MessageProperties;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
+
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentation {
 
@@ -38,11 +43,25 @@ public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentat
         return Collections.singletonList("spring-amqp");
     }
 
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return not(isBootstrapClassLoader())
+            .and(classLoaderCanLoadClass("org.springframework.amqp.core.MessageListener"));
+    }
+
     protected static long getTimestamp(@Nullable MessageProperties properties) {
         return getTimestamp(properties != null ? properties.getTimestamp() : null);
     }
 
     protected static void captureHeaders(@Nullable MessageProperties properties, Message message) {
         captureHeaders(properties.getHeaders(), message);
+    }
+
+    protected static class SpringBaseAdvice {
+        protected static final MessageListenerHelper helper;
+
+        static {
+            helper = new MessageListenerHelper();
+        }
     }
 }

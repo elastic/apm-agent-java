@@ -55,12 +55,5 @@ public class CommonRabbitmqSpringConfiguration extends BaseConfiguration {
         return BindingBuilder.bind(queue).to(exchange).with("foo.bar.#");
     }
 
-    @Bean
-    public MessageListener messageListener() {
-        return new MessageListener() {
-            public void onMessage(Message message) {
-                testSpan();
-            }
-        };
-    }
+
 }
