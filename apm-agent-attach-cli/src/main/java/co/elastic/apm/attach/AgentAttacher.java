@@ -223,7 +223,7 @@ public class AgentAttacher {
         }
     }
 
-    public static boolean attachAsUser(UserRegistry.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
+    private boolean attachAsUser(UserRegistry.User user, Map<String, String> agentArgs, String pid) throws IOException, InterruptedException {
 
         List<String> args = new ArrayList<>();
         args.add("--include-pid");
@@ -231,6 +231,14 @@ public class AgentAttacher {
         for (Map.Entry<String, String> entry : agentArgs.entrySet()) {
             args.add("--config");
             args.add(entry.getKey() + "=" + entry.getValue());
+        }
+        if (arguments.getLogLevel() != null) {
+            args.add("--log-level");
+            args.add(arguments.getLogLevel().toString());
+        }
+        if (arguments.getLogFile() != null) {
+            args.add("--log-file");
+            args.add(arguments.getLogFile());
         }
         Process process = user.runAsUserWithCurrentClassPath(AgentAttacher.class, args).inheritIO().start();
         process.waitFor();
