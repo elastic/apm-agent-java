@@ -145,7 +145,12 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
             .subscribeOn(SUBSCRIBE_SCHEDULER)
             .publishOn(PUBLISH_SCHEDULER)
             //
-            .zipWith(Flux.range(1, Integer.MAX_VALUE), (a, b) -> TestObservation.capture(a + b)
+            .zipWith(Flux.range(1, Integer.MAX_VALUE)
+                // explicitly set scheduler is required as range might use main thread otherwise
+                    .subscribeOn(PUBLISH_SCHEDULER)
+                    .publishOn(SUBSCRIBE_SCHEDULER),
+                //
+                (a, b) -> TestObservation.capture(a + b)
                 // perform checks inline because we only keep test observation from last map operation
                 .checkActiveContext(transaction)
                 .checkThread(false))
@@ -201,9 +206,10 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
     static Predicate<TestObservation> inOtherThread(@Nullable AbstractSpan<?> expectedContext, int expectedValue) {
         return observation -> {
-            observation.checkThread(false)
+            observation
                 .checkActiveContext(expectedContext)
-                .checkValue(expectedValue);
+                .checkValue(expectedValue)
+                .checkThread(false);
             return true;
         };
     }
