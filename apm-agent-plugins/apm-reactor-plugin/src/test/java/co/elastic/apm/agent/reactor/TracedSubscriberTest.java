@@ -35,6 +35,7 @@ import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
@@ -44,6 +45,9 @@ import java.util.function.Predicate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TracedSubscriberTest extends AbstractInstrumentationTest {
+
+    private static final Scheduler SUBSCRIBE_SCHEDULER = Schedulers.newElastic("subscribe");
+    private static final Scheduler PUBLISH_SCHEDULER = Schedulers.newElastic("publish");
 
     @Nullable
     private Transaction transaction;
@@ -120,8 +124,8 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
         Flux<TestObservation> flux = Flux.just(1, 2, 3).log("input")
             // subscribe & publish on separate threads
-            .subscribeOn(Schedulers.newElastic("subscribe"))
-            .publishOn(Schedulers.newElastic("publish"))
+            .subscribeOn(SUBSCRIBE_SCHEDULER)
+            .publishOn(PUBLISH_SCHEDULER)
             //
             .map(TestObservation::capture);
 
@@ -138,8 +142,8 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
         Flux<TestObservation> flux = Flux.just(1, 2, 3).log("input")
             // publish & subscribe on separate threads
-            .subscribeOn(Schedulers.newElastic("subscribe"))
-            .publishOn(Schedulers.newElastic("publish"))
+            .subscribeOn(SUBSCRIBE_SCHEDULER)
+            .publishOn(PUBLISH_SCHEDULER)
             //
             .zipWith(Flux.range(1, Integer.MAX_VALUE), (a, b) -> TestObservation.capture(a + b)
                 // perform checks inline because we only keep test observation from last map operation
@@ -276,8 +280,10 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
     private void startAndActivateRootTransaction() {
         transaction = tracer.startRootTransaction(null);
-        assertThat(transaction).isNotNull();
-        transaction.activate();
+        if (null != transaction) {
+            // transaction will be null when test is being stopped, thus avoid falsely reporting an error
+            transaction.withName("root").activate();
+        }
     }
 
     private static void checkActiveContext(@Nullable AbstractSpan<?> expectedActive) {
