@@ -54,6 +54,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -673,7 +674,9 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         Destination destination = span.getContext().getDestination();
 
         assertThat(destination.getPort()).isEqualTo(container.getAmqpPort());
-        assertThat(destination.getAddress().toString()).isEqualTo(container.getHost());
+        if (!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win")) {
+            assertThat(destination.getAddress().toString()).isEqualTo(container.getHost());
+        }
 
         Destination.Service service = destination.getService();
 

@@ -40,6 +40,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.BufferedReader;
@@ -63,6 +65,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.internal.bytebuddy.matcher.ElementMatchers.is;
+import static org.junit.Assume.assumeFalse;
 
 public class ApmServerLogShipperTest {
 
@@ -76,6 +80,10 @@ public class ApmServerLogShipperTest {
 
     @Before
     public void setUp() throws Exception {
+        if (isWindows10()) {
+            return;
+        }
+
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
@@ -93,8 +101,15 @@ public class ApmServerLogShipperTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
     }
 
+    private boolean isWindows10() {
+        return "Windows 10".equals(System.getProperty("os.name"));
+    }
+
     @After
     public void tearDown() {
+        if (isWindows10()) {
+            return;
+        }
         if (!logFile.delete()) {
             logFile.deleteOnExit();
         }
@@ -102,6 +117,8 @@ public class ApmServerLogShipperTest {
 
     @Test
     public void testSendLogs() throws Exception {
+        assumeFalse(isWindows10());
+
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(tailableFile.tail(buffer, logShipper, 100)).isEqualTo(1);
         logShipper.endRequest();
@@ -116,6 +133,8 @@ public class ApmServerLogShipperTest {
 
     @Test
     public void testSendLogsAfterServerUrlsSet() throws Exception {
+        assumeFalse(isWindows10());
+
         apmServerClient.start(Lists.emptyList());
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(logShipper.getErrorCount()).isEqualTo(0);

@@ -35,6 +35,7 @@ import co.elastic.apm.agent.objectpool.NoopObjectPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
@@ -68,6 +69,7 @@ class CallTreeSpanifyTest {
     }
 
     @Test
+    @DisabledIfSystemProperty(named = "os.name", matches = "Windows 10")
     void testSpanification() throws Exception {
         CallTree.Root callTree = CallTreeTest.getCallTree(tracer, new String[]{
             " dd   ",
