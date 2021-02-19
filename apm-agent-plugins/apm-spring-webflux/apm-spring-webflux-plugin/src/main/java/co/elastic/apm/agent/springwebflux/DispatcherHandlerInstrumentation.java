@@ -24,9 +24,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -74,12 +72,18 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
                                 @Advice.Thrown @Nullable Throwable thrown,
                                 @Advice.Return @Nullable Mono<?> returnValue) {
 
-        if (!(enterTransaction instanceof Transaction) || thrown != null || returnValue == null) {
+        if (!(enterTransaction instanceof Transaction)) {
             return returnValue;
         }
         Transaction transaction = (Transaction) enterTransaction;
 
         transaction.deactivate();
+
+        if (thrown != null || returnValue == null) {
+            // in case of thrown exception, we don't need to wrap to end transaction
+            TransactionAwareSubscriber.endTransaction(transaction, exchange, thrown);
+            return returnValue;
+        }
 
         // we need to wrap returned mono to terminate transaction
         return dispatcherWrap((Mono<?>) returnValue, transaction, exchange);

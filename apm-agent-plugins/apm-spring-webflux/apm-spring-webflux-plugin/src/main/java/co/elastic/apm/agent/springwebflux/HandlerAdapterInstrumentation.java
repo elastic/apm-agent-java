@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.sun.nio.sctp.HandlerResult;
 import net.bytebuddy.asm.Advice;
@@ -97,13 +96,18 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
                                              @Advice.Enter @Nullable Object enterTransaction,
                                              @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
 
-        if (!(enterTransaction instanceof Transaction) || resultMono == null || thrown != null) {
+        if (!(enterTransaction instanceof Transaction)) {
             return resultMono;
         }
 
         Transaction transaction = (Transaction) enterTransaction;
         transaction.captureException(thrown)
             .deactivate();
+
+        if (resultMono == null || thrown != null) {
+            // no need to wrap in case of exception
+            return resultMono;
+        }
 
         // might happen when an error is triggered server-side
         return handlerWrap(resultMono, transaction, exchange);

@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
+import static co.elastic.apm.agent.springwebflux.WebFluxInstrumentation.SERVLET_TRANSACTION;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
@@ -85,7 +86,8 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     @Override
     public void onError(Throwable throwable) {
         subscriber.onError(throwable);
-        endTransaction(transaction, throwable);
+
+        endTransaction(transaction, exchange, throwable);
     }
 
     @Override
@@ -93,11 +95,11 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         subscriber.onComplete();
 
         if (endOnComplete) {
-            endTransaction(transaction, null);
+            endTransaction(transaction, exchange,null);
         }
     }
 
-    protected void endTransaction(Transaction transaction, @Nullable Throwable thrown) {
+    static void endTransaction(Transaction transaction,ServerWebExchange exchange, @Nullable Throwable thrown) {
         StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
         if (transactionName != null) {
             String httpMethod = exchange.getRequest().getMethodValue();
@@ -132,7 +134,12 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             fillResponse(transaction, exchange);
         }
 
-        transaction.captureException(thrown).end();
+        transaction.captureException(thrown);
+
+        // in case transaction has been created by servlet, we should not terminate it
+        if (Boolean.TRUE != exchange.getAttributes().get(SERVLET_TRANSACTION)) {
+            transaction.end();
+        }
 
     }
 

@@ -45,6 +45,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
     public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".bean_name";
     public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
+    public static final String SERVLET_TRANSACTION = WebFluxInstrumentation.class.getName() + ".servlet_transaction";
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -55,6 +56,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     public static Transaction getOrCreateTransaction(Class<?> clazz, ServerWebExchange exchange) {
 
         Transaction transaction = getServletTransaction(exchange);
+        boolean fromServlet = transaction != null;
 
         if (transaction == null) {
             transaction = tracer.startRootTransaction(clazz.getClassLoader());
@@ -65,10 +67,13 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         }
 
         transaction.withType("request")
+            // TODO : not sure if we need to activate, especially in the case where it has been started by servlet
             .activate();
 
         // store transaction in exchange to make it easy to retrieve from other handlers
         exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
+
+        exchange.getAttributes().put(SERVLET_TRANSACTION, fromServlet);
 
         return transaction;
     }
