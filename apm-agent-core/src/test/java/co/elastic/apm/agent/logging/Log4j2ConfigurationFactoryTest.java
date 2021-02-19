@@ -32,7 +32,6 @@ import org.apache.logging.log4j.core.appender.RollingFileAppender;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 
@@ -47,7 +46,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Log4j2ConfigurationFactoryTest {
 
     @Test
-    @DisabledIfSystemProperty(named = "os.name", matches = "Windows 10")
     void testLogFileJson(@TempDir Path tempDir) {
         String logFile = tempDir.resolve("agent.json").toString();
         Configuration configuration = getLogConfig(Map.of("log_file", logFile, "log_format_file", "json"));
@@ -58,10 +56,11 @@ class Log4j2ConfigurationFactoryTest {
         assertThat(appender).isInstanceOf(RollingFileAppender.class);
         assertThat(((RollingFileAppender) appender).getFileName()).isEqualTo(logFile);
         assertThat(appender.getLayout()).isInstanceOf(EcsLayout.class);
+        // workaround for [windows10]
+        configuration.getAppender("rolling").stop();
     }
 
     @Test
-    @DisabledIfSystemProperty(named = "os.name", matches = "Windows 10")
     void testLogFilePlainText(@TempDir Path tempDir) {
         String logFile = tempDir.resolve("agent.log").toString();
         Configuration configuration = getLogConfig(Map.of("log_file", logFile));
@@ -72,6 +71,8 @@ class Log4j2ConfigurationFactoryTest {
         assertThat(appender).isInstanceOf(RollingFileAppender.class);
         assertThat(((RollingFileAppender) appender).getFileName()).isEqualTo(logFile);
         assertThat(appender.getLayout()).isInstanceOf(PatternLayout.class);
+        // workaround for [windows10]
+        configuration.getAppender("rolling").stop();
     }
 
     @Test
