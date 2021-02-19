@@ -26,6 +26,7 @@ package co.elastic.apm.agent.reactor;
 
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
@@ -35,11 +36,13 @@ import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscriber<T> {
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
+    private static final CallDepth callDepth = CallDepth.get(TracedSubscriber.class);
 
     private static final String HOOK_KEY = "elastic-apm";
 
@@ -54,41 +57,59 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
 
     @Override
     public void onSubscribe(Subscription s) {
-        context.activate();
+        activate();
         try {
             subscriber.onSubscribe(s);
         } finally {
-            context.deactivate();
+            deactivate();
         }
     }
 
+
     @Override
     public void onNext(T next) {
-        context.activate();
+        activate();
         try {
             subscriber.onNext(next);
         } finally {
-            context.deactivate();
+            deactivate();
         }
     }
 
     @Override
     public void onError(Throwable t) {
-        context.activate();
+        activate();
         try {
             subscriber.onError(t);
         } finally {
-            context.deactivate();
+            deactivate();
         }
+    }
+
+    private void activate() {
+        // only activate on the outer method call, not the nested calls within same thread
+        if (callDepth.isNestedCallAndIncrement()) {
+            return;
+        }
+        context.activate();
+    }
+
+
+    private void deactivate() {
+        // only deactivate on the outer method call, not the nested calls within same thread
+        if (callDepth.isNestedCallAndDecrement()) {
+            return;
+        }
+        context.deactivate();
     }
 
     @Override
     public void onComplete() {
-        context.activate();
+        activate();
         try {
             subscriber.onComplete();
         } finally {
-            context.deactivate();
+            deactivate();
         }
     }
 
@@ -121,21 +142,25 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
         return isRegistered.get();
     }
 
-    private static <X> Function<? super Publisher<X>, ? extends Publisher<X>> wrapOperators(Tracer tracer) {
-        return Operators.liftPublisher((p, sub) -> {
-            // don't wrap known #error #just #empty as they have instantaneous execution
-            if (p instanceof Fuseable.ScalarCallable) {
-                return sub;
+    private static <X> Function<? super Publisher<X>, ? extends Publisher<X>> wrapOperators(final Tracer tracer) {
+        //noinspection Convert2Lambda,rawtypes,Convert2Diamond
+        return Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super X>, CoreSubscriber<? super X>>() {
+            @Override
+            public CoreSubscriber<? super X> apply(Publisher p, CoreSubscriber<? super X> sub) {
+                // don't wrap known #error #just #empty as they have instantaneous execution
+                if (p instanceof Fuseable.ScalarCallable) {
+                    return sub;
+                }
+
+                AbstractSpan<?> active = tracer.getActive();
+
+                if (active == null) {
+                    // no active context, we have nothing to wrap
+                    return sub;
+                }
+
+                return new TracedSubscriber<>(sub, active);
             }
-
-            AbstractSpan<?> active = tracer.getActive();
-
-            if (active == null) {
-                // no active context, we have nothing to wrap
-                return sub;
-            }
-
-            return new TracedSubscriber<>(sub, active);
         });
     }
 

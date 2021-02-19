@@ -21,6 +21,15 @@
 
     <dependencies>
 
+
+        <!-- java concurrent plugin required as lift operator might not be always executed in the main thread -->
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-java-concurrent-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
