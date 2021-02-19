@@ -248,7 +248,7 @@ pipeline {
                             }
 
                             // flight recorder is not supported on all JDKs
-                            if(params.jfr) {
+                            if (params.jfr) {
                                 cmd = "${cmd} -XX:+FlightRecorder"
                                 cmd = "${cmd} -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
                             }
@@ -259,10 +259,10 @@ pipeline {
                                 app_binary = "${WORKSPACE}/app.war"
                             }
 
-                            cmd = "${cmd} -jar ${app_binary}"
-
                             // avoid logging every thrown exception in app log to prevent large app logs and reduce noise
                             cmd = "${cmd} -Dlogging.level.org.apache.catalina.core=OFF"
+
+                            cmd = "${cmd} -jar ${app_binary}"
 
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
