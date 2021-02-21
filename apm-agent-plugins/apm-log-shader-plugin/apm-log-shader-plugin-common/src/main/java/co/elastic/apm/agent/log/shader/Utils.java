@@ -58,7 +58,7 @@ public class Utils {
     private static Path computeShadeLogsDir(Path originalFilePath) {
         Path shadeDir;
         Path logsDir = originalFilePath.getParent();
-        String configuredShadeFileDestinationDir = config.getLogShadingDestinationDir();
+        String configuredShadeFileDestinationDir = config.getLogEcsFormattingDestinationDir();
         if (configuredShadeFileDestinationDir == null) {
             shadeDir = logsDir;
         } else {

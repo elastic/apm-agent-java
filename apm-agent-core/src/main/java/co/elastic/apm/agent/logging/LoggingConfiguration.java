@@ -159,33 +159,47 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         })
         .buildWithDefault(false);
 
-    private final ConfigurationOption<Boolean> logShadingEnabled = ConfigurationOption.booleanOption()
-        .key("log_shading_enabled")
+    private final ConfigurationOption<LogEcsReformatting> logEcsReformatting = ConfigurationOption.enumOption(LogEcsReformatting.class)
+        .key("log_ecs_reformatting")
         .configurationCategory(LOGGING_CATEGORY)
-        .description("A boolean specifying whether the agent should automatically reformat application logs \n" +
-            "into ECS-compatible JSON files, suitable for ingestion into Elasticsearch for further analysis. \n" +
-            "If true, check out additional `log_shading` configurations options.")
-        .dynamic(true)
-        .buildWithDefault(true);
-
-    private final ConfigurationOption<Boolean> logShadingReplace = ConfigurationOption.booleanOption()
-        .key("log_shading_replace")
-        .configurationCategory(LOGGING_CATEGORY)
-        .tags("performance")
-        .description("By default, when Log Shading is enabled, application logs will be duplicated so that the \n" +
-            "ECS-formatted logs are written to new files having the `.ecs.json` extension. In order to reduce the \n" +
-            "related overhead, set this option to true to replace the original log files with the ECS-compatible ones.")
+        .tags("added[1.22.0]", "experimental")
+        .description("Specifying whether and how the agent should automatically reformat application logs \n" +
+            "into ECS-compatible JSON, suitable for ingestion into Elasticsearch for further Log analysis. \n" +
+            "Once this option is enabled with any valid option, log correlation will be activated as well, " +
+            "regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. \n" +
+            "\n" +
+            "Available options:\n" +
+            "\n" +
+            " - OFF - application logs are not reformatted. \n" +
+            " - SHADE - agent logs are reformatted and \"shade\" ECS-JSON-formatted logs are automatically created in \n" +
+            "   addition to the original application logs. Shade logs will have the same name as the original logs, \n" +
+            "   but with the \".ecs.json\" extension instead of the original extension. Destination directory for the \n" +
+            "   shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> \n" +
+            "   configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they \n" +
+            "   use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> \n" +
+            "   configuration and while allowing maximum of two shade log files.`\n" +
+            " - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if \n" +
+            "   you wish to maintain similar logging-related overhead, but write logs to a different location and/or \n" +
+            "   with a different file extension.\n" +
+            /*
+            // NOTE: THIS OPTION IS NOT IMPLEMENTED YET
+            " - OVERRIDE - same log output is used, but in ECS-compatible JSON format instead of the original format. \n" +
+            "\n" +
+            "NOTE: while `SHADE` and `REPLACE` options are only relevant to file log appenders, the `OVERRIDE` option \n" +
+            "is also valid for other appenders, like System out and console" +
+            */
+            "")
         .dynamic(false)
-        .buildWithDefault(false);
+        .buildWithDefault(LogEcsReformatting.OFF);
 
-    private final ConfigurationOption<String> logShadingDestinationDir = ConfigurationOption.stringOption()
-        .key("log_shading_destination_dir")
+    private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()
+        .key("log_ecs_reformatting_dir")
         .configurationCategory(LOGGING_CATEGORY)
-        .description("As long as <<config-log-shading-replace,`log_shading_override`>> is set to `false`, the shade \n" +
-            "log files will be written alongside the original logs in the same directory. Use this configuration in \n" +
-            "order to write the shade logs into an alternative destination. Omitting this config or setting it to an \n" +
-            "empty string will restore the default behavior. If relative path is used, this path will be used relative \n" +
-            "to the original logs directory.")
+        .description("If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, \n" +
+            "the shade log files will be written alongside the original logs in the same directory by default. \n" +
+            "Use this configuration in order to write the shade logs into an alternative destination. Omitting this \n" +
+            "config or setting it to an empty string will restore the default behavior. If relative path is used, \n" +
+            "this path will be used relative to the original logs directory.")
         .dynamic(false)
         .buildWithDefault("");
 
@@ -296,20 +310,16 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     }
 
     public boolean isLogCorrelationEnabled() {
-        return logCorrelationEnabled.get();
+        // Enabling automatic ECS-reformatting implicitly enables log correlation
+        return logCorrelationEnabled.get() || getLogEcsReformatting() != LogEcsReformatting.OFF;
     }
 
-    public boolean isLogShadingEnabled() {
-        return logShadingEnabled.get();
+    public LogEcsReformatting getLogEcsReformatting() {
+        return logEcsReformatting.get();
     }
-
-    public boolean isLogShadingReplaceEnabled() {
-        return logShadingReplace.get();
-    }
-
     @Nullable
-    public String getLogShadingDestinationDir() {
-        String logShadingDestDir = logShadingDestinationDir.get().trim();
+    public String getLogEcsFormattingDestinationDir() {
+        String logShadingDestDir = logEcsFormattingDestinationDir.get().trim();
         return (logShadingDestDir.isEmpty()) ? null : logShadingDestDir;
     }
 

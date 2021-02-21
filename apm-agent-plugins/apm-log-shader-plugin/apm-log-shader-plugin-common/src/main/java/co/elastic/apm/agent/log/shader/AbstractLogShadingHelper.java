@@ -27,6 +27,7 @@ package co.elastic.apm.agent.log.shader;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
@@ -97,11 +98,12 @@ public abstract class AbstractLogShadingHelper<A> {
      * @return true if log events should be ignored for the given appender; false otherwise
      */
     public boolean shouldSkipAppend(A appender) {
-        return isShadingEnabled() && loggingConfiguration.isLogShadingReplaceEnabled() && getOrCreateShadeAppenderFor(appender) != null;
+        return loggingConfiguration.getLogEcsReformatting() == LogEcsReformatting.REPLACE && getOrCreateShadeAppenderFor(appender) != null;
     }
 
     public boolean isShadingEnabled() {
-        return loggingConfiguration.isLogShadingEnabled();
+        LogEcsReformatting logEcsReformatting = loggingConfiguration.getLogEcsReformatting();
+        return logEcsReformatting == LogEcsReformatting.SHADE || logEcsReformatting== LogEcsReformatting.REPLACE;
     }
 
     /**

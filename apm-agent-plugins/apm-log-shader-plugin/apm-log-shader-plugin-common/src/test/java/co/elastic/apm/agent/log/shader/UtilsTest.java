@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -42,8 +43,8 @@ public class UtilsTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testOverride() {
-        when(config.getConfig(LoggingConfiguration.class).isLogShadingReplaceEnabled()).thenReturn(true);
+    void testReplace() {
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.REPLACE);
         assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log")).isEqualTo("/test/absolute/path/app.ecs.json");
         assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app")).isEqualTo("/test/absolute/path/app.ecs.json");
         assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log.1")).isEqualTo("/test/absolute/path/app.log.ecs.json");
@@ -51,7 +52,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testAlternativeShadeLogsDestination_AbsolutePath() {
-        when(config.getConfig(LoggingConfiguration.class).getLogShadingDestinationDir()).thenReturn("/some/alt/location");
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir()).thenReturn("/some/alt/location");
         assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log")).isEqualTo("/some/alt/location/app.ecs.json");
         assertThat(Utils.computeShadeLogFilePath("test/relative/path/app.log")).isEqualTo("/some/alt/location/app.ecs.json");
         assertThat(Utils.computeShadeLogFilePath("/app.log")).isEqualTo("/some/alt/location/app.ecs.json");
@@ -60,7 +61,7 @@ public class UtilsTest extends AbstractInstrumentationTest {
 
     @Test
     void testAlternativeShadeLogsDestination_RelativePath() {
-        when(config.getConfig(LoggingConfiguration.class).getLogShadingDestinationDir()).thenReturn("some/alt/location");
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir()).thenReturn("some/alt/location");
         assertThat(Utils.computeShadeLogFilePath("/test/absolute/path/app.log")).isEqualTo("/test/absolute/path/some/alt/location/app.ecs.json");
         assertThat(Utils.computeShadeLogFilePath("test/relative/path/app.log")).isEqualTo("test/relative/path/some/alt/location/app.ecs.json");
         assertThat(Utils.computeShadeLogFilePath("/app.log")).isEqualTo("/some/alt/location/app.ecs.json");

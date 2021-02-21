@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.log.shader;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -70,6 +71,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     public void setup() throws IOException {
         logger.open();
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.SHADE);
     }
 
     @AfterEach
@@ -105,7 +107,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @Test
     public void testShadingIntoConfiguredDir() throws Exception {
-        when(config.getConfig(LoggingConfiguration.class).getLogShadingDestinationDir()).thenReturn("shade_logs");
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir()).thenReturn("shade_logs");
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
         testSimpleLogShading();
     }
@@ -113,10 +115,10 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     @Test
     public void testLogShadingDisabled() throws Exception {
         logger.trace(TRACE_MESSAGE);
-        when(config.getConfig(LoggingConfiguration.class).isLogShadingEnabled()).thenReturn(false);
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.OFF);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
-        when(config.getConfig(LoggingConfiguration.class).isLogShadingEnabled()).thenReturn(true);
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.SHADE);
         logger.error(ERROR_MESSAGE);
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
@@ -130,7 +132,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @Test
     public void testLogShadingReplaceOriginal() throws IOException {
-        when(config.getConfig(LoggingConfiguration.class).isLogShadingReplaceEnabled()).thenReturn(true);
+        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.REPLACE);
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
