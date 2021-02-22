@@ -165,6 +165,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.22.0]", "experimental")
         .description("Specifying whether and how the agent should automatically reformat application logs \n" +
             "into ECS-compatible JSON, suitable for ingestion into Elasticsearch for further Log analysis. \n" +
+            "This functionality is available for log4j1, log4j2 and Logback. \n" +
             "Once this option is enabled with any valid option, log correlation will be activated as well, " +
             "regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. \n" +
             "\n" +

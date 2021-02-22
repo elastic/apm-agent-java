@@ -431,7 +431,9 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 |2.0+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
-See the <<config-enable-log-correlation>> configuration option for more details.
+
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
 
 Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
 When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
@@ -442,9 +444,16 @@ When doing so, the ID corresponding the captured error (`error.id`) is added to 
 |1.x
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
-See the <<config-enable-log-correlation>> configuration option for more details.
 
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
 |1.13.0
+
+|Logback
+|1.x
+|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
+|1.1.0 (???)
 
 |===
 
