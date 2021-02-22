@@ -257,7 +257,7 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 0.7.0
 
 |OkHttp
-|2, 3, 4 (since 1.22.0)
+|2, 3, 4 (4.4+ since 1.22.0)
 |
 |1.4.0 (synchronous calls via `Call#execute()`)
  1.5.0 (async calls via `Call#enquene(Callback)`)
