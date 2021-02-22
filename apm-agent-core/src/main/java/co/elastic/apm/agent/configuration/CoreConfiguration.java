@@ -528,7 +528,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("plugins_dir")
         .tags("added[1.18.0]")
         .configurationCategory(CORE_CATEGORY)
-        .tags("internal", "experimental")
+        .tags("experimental")
         .description("A folder that contains external agent plugins.\n" +
             "\n" +
             "Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.\n" +
