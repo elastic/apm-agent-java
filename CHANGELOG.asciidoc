@@ -25,11 +25,17 @@ endif::[]
 
 [float]
 ===== Features
+* Introducing a new mechanism to ease the development of community instrumentation plugins. See <<config-plugins-dir>> for
+more details. This configuration was already added in 1.18.0, but more extensive and continuous integration testing
+allows us to expose it now. It is still marked as "experimental" though, meaning that future changes in the mechanism
+may break early contributed plugins. However, we highly encourage our community to try it out and we will do our best
+to assist with such efforts.
 * Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
 {pull}1644[#1644]
 * Update existing Hibernate Search 6 instrumentation to the final relase
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
+* Support for OkHttp 4.4+ -  {pull}1672[#1672]
 * Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMS
 ** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
 ** There is also a slim version of the cli application that does not bundle the Java agent.
@@ -63,6 +69,7 @@ endif::[]
 [float]
 ===== Bug fixes
 * fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
+* fixed a couple of bugs with the external plugin mechanism (not documented until now) - {pull}1660[#1660]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
