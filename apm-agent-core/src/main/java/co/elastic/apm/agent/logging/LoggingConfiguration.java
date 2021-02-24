@@ -64,7 +64,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
     static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
-    static final String DEFAULT_MAX_SIZE = "50mb";
+    public static final String DEFAULT_MAX_SIZE = "50mb";
     static final String SHIP_AGENT_LOGS = "ship_agent_logs";
     static final String LOG_FORMAT_SOUT_KEY = "log_format_sout";
     public static final String LOG_FORMAT_FILE_KEY = "log_format_file";
@@ -190,7 +190,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "is also valid for other appenders, like System out and console" +
             */
             "")
-        .dynamic(false)
+        .dynamic(true)
         .buildWithDefault(LogEcsReformatting.OFF);
 
     private final ConfigurationOption<String> logEcsFormattingDestinationDir = ConfigurationOption.stringOption()

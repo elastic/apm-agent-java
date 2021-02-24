@@ -30,7 +30,6 @@ import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
-import ch.qos.logback.core.util.FileSize;
 import co.elastic.apm.agent.log.shader.AbstractLogShadingHelper;
 import co.elastic.apm.agent.log.shader.Utils;
 import co.elastic.logging.logback.EcsEncoder;
@@ -75,13 +74,25 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
         shadeAppender.setRollingPolicy(rollingPolicy);
 
         SizeBasedTriggeringPolicy<ILoggingEvent> triggeringPolicy = new SizeBasedTriggeringPolicy<>();
-        triggeringPolicy.setMaxFileSize(new FileSize(getMaxLogFileSize()));
+        try {
+            VersionUtils.setMaxFileSize(triggeringPolicy, getMaxLogFileSize());
+        } catch (Throwable throwable) {
+            // We cannot log here because this plugin escapes slf4j package reallocation.
+            System.out.println("Failed to set max file size for log shader file-rolling strategy. Using the default " +
+                "Logback setting instead - " + SizeBasedTriggeringPolicy.DEFAULT_MAX_FILE_SIZE + ". Error message: " +
+                throwable.getMessage());
+        }
         triggeringPolicy.setContext(defaultLoggerContext);
         triggeringPolicy.start();
         shadeAppender.setTriggeringPolicy(triggeringPolicy);
 
         shadeAppender.setContext(defaultLoggerContext);
-        shadeAppender.setImmediateFlush(originalAppender.isImmediateFlush());
+        try {
+            VersionUtils.copyImmediateFlushSetting(originalAppender);
+        } catch (Throwable throwable) {
+            // We cannot log here because this plugin escapes slf4j package reallocation.
+            // Writing to System out may be too much for this.
+        }
         shadeAppender.setAppend(true);
         shadeAppender.setName(appenderName);
 

@@ -166,7 +166,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-logback-plugin</artifactId>
+            <artifactId>apm-logback-plugin-impl</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

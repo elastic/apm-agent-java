@@ -1682,14 +1682,14 @@ Available options:
    with a different file extension.
 
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 Valid options: `OFF`, `SHADE`, `REPLACE`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `OFF` | LogEcsReformatting | false
+| `OFF` | LogEcsReformatting | true
 |============
 
 
@@ -3329,7 +3329,7 @@ The default unit for this option is `ms`.
 # 
 #
 # Valid options: OFF, SHADE, REPLACE
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: LogEcsReformatting
 # Default value: OFF
 #
