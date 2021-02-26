@@ -40,6 +40,8 @@ import okhttp3.Request;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
@@ -101,7 +103,7 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("okhttp3.RealCall");
+        return nameStartsWith("okhttp3.").and(nameEndsWith(".RealCall"));
     }
 
     @Override
