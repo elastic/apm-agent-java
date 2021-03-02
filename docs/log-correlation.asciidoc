@@ -20,8 +20,7 @@ format through the Java agent's logging frameworks auto-instrumentation. Check o
 configuration for more details.
 
 NOTE: the <<config-log-ecs-reformatting, `log_ecs_reformatting`>> configuration is still experimental and may change
-in the future. However, since it is effortless, it may be your first choice to try out. The functionality itself is
-not expected to be removed once added, but the config options and internal implementation may change as it matures.
+in the future. However, since it is effortless, it may be your first choice to try out.
 
 Another way to make logs ECS-compatible is {ecs-logging-java-ref}/intro.html[Java ECS logging], which
 provides layouts/encoders for Logback, log4j2, and log4j.

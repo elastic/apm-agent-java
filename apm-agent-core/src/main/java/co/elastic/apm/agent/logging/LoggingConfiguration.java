@@ -178,7 +178,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             "   shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> \n" +
             "   configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they \n" +
             "   use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> \n" +
-            "   configuration and while allowing maximum of two shade log files.`\n" +
+            "   configuration and while allowing maximum of two shade log files.\n" +
             " - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if \n" +
             "   you wish to maintain similar logging-related overhead, but write logs to a different location and/or \n" +
             "   with a different file extension.\n" +

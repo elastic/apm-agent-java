@@ -1676,7 +1676,7 @@ Available options:
    shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> 
    configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they 
    use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> 
-   configuration and while allowing maximum of two shade log files.`
+   configuration and while allowing maximum of two shade log files.
  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
    with a different file extension.
@@ -3322,7 +3322,7 @@ The default unit for this option is `ms`.
 #    shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> 
 #    configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they 
 #    use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> 
-#    configuration and while allowing maximum of two shade log files.`
+#    configuration and while allowing maximum of two shade log files.
 #  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
 #    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
 #    with a different file extension.

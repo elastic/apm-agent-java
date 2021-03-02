@@ -27,6 +27,8 @@ package co.elastic.apm.agent.log.shader;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.payload.ServiceFactory;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.sdk.state.GlobalState;
@@ -34,7 +36,6 @@ import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.TimeUnit;
 
 /**
  * The abstract Log shading helper- loaded as part of the agent core (agent CL / bootstrap CL / System CL).
@@ -52,10 +53,13 @@ public abstract class AbstractLogShadingHelper<A> {
 
     private final ElasticApmTracer tracer;
     private final LoggingConfiguration loggingConfiguration;
+    @Nullable
+    private final String configuredServiceName;
 
     public AbstractLogShadingHelper() {
         this.tracer = GlobalTracer.requireTracerImpl();
         loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
+        configuredServiceName = new ServiceFactory().createService(tracer.getConfig(CoreConfiguration.class), "").getName();
     }
 
     private static final WeakConcurrentMap<Object, Object> appenderToShadeAppender = WeakMapSupplier.createMap();
@@ -121,16 +125,15 @@ public abstract class AbstractLogShadingHelper<A> {
     @Nullable
     protected abstract A createAndConfigureAppender(A originalAppender, String appenderName);
 
+    @Nullable
     protected String getServiceName() {
-        // todo - figure this out
-        String serviceName = null;
-        try {
-            serviceName = tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName();
-        } catch (Exception e) {
-            // todo
-        }
-        if (serviceName == null) {
-            serviceName = tracer.getConfig(CoreConfiguration.class).getServiceName();
+        String serviceName = configuredServiceName;
+        AbstractSpan<?> active = tracer.getActive();
+        if (active != null) {
+            String runtimeServiceName = active.getTraceContext().getServiceName();
+            if (runtimeServiceName != null) {
+                serviceName = runtimeServiceName;
+            }
         }
         return serviceName;
     }
