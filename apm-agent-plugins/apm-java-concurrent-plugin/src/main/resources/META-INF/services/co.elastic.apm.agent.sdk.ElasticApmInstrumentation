@@ -2,4 +2,6 @@ co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorRunnableInstrume
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorCallableInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorInvokeAnyAllInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ForkJoinPoolInstrumentation
-co.elastic.apm.agent.concurrent.ForkJoinTaskInstrumentation
+
+# disabled for now due to https://github.com/elastic/apm-agent-java/issues/1673
+#co.elastic.apm.agent.concurrent.ForkJoinTaskInstrumentation
