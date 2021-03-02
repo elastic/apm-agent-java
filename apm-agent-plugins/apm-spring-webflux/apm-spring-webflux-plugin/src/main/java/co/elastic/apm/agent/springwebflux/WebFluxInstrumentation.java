@@ -26,6 +26,8 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
@@ -41,6 +43,8 @@ import java.util.Collections;
 import java.util.function.BiFunction;
 
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
+
+    private static final Logger log = LoggerFactory.getLogger(WebFluxInstrumentation.class);
 
     public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
     public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".bean_name";
@@ -116,6 +120,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         return mono.<T>transform(Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override
             public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
+                log.debug("wrapping webflux dispatcher {} with active transaction {}", subscriber, transaction);
                 return new TransactionAwareSubscriber<T>(subscriber, transaction, exchange, true);
             }
         }));
@@ -134,6 +139,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         return mono.<T>transform(Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override
             public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
+                log.debug("wrapping webflux handler {} with active transaction {}", subscriber, transaction);
                 return new TransactionAwareSubscriber<T>(subscriber, transaction, exchange, false);
             }
         }));

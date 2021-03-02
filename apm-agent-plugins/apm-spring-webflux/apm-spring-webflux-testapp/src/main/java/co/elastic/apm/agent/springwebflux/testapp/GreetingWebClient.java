@@ -32,6 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 import javax.annotation.Nullable;
 
@@ -100,6 +101,10 @@ public class GreetingWebClient {
         return executeAndCheckRequest("GET", "/duration?duration=" + durationMillis, 200);
     }
 
+    public String childSpans(int count, long durationMillis, long delay) {
+        return executeAndCheckRequest("GET", String.format("/child-flux?duration=%d&count=%d&delay=%d", durationMillis, count, delay), 200);
+    }
+
     public String executeAndCheckRequest(String method, String path, int expectedStatus) {
         logger.info("execute request : {} {}{}", method, baseUri, path);
 
@@ -110,7 +115,7 @@ public class GreetingWebClient {
             .exchange()// exchange or retrieve ?
             .map(r -> {
                 if (r.rawStatusCode() != expectedStatus) {
-                    throw new IllegalStateException(String.format("unexpected status code %d", r.rawStatusCode()));
+                    throw new IllegalStateException(String.format("unexpected status code %d for path %s", r.rawStatusCode(), path));
                 }
                 return r;
             })

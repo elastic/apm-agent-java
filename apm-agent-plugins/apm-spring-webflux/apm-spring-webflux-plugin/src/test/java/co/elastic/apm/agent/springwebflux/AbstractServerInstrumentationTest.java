@@ -27,7 +27,6 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
@@ -40,7 +39,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -160,6 +158,24 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
         checkUrl(transaction, "/with-parameters/1234");
+
+    }
+
+    @Test
+    void childSpans() {
+
+        assertThat(client.childSpans(3, 10, 10)).isEqualTo("child 1child 2child 3");
+
+        String expectedName = client.useFunctionalEndpoint() ? "GET " + client.getPathPrefix() + "/child-flux" : "GreetingAnnotated#getChildSpans";
+        Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
+
+        checkUrl(transaction, "/child-flux?duration=10&count=3&delay=10");
+
+        reporter.awaitSpanCount(3);
+        reporter.getSpans().forEach(span -> {
+            assertThat(span.getNameAsString()).endsWith(String.format("id=%s", span.getTraceContext().getId()));
+        });
+
 
     }
 

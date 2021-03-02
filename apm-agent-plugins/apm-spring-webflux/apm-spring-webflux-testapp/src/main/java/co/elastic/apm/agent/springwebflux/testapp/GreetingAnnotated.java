@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  * Provides Webflux annotated endpoint
@@ -126,12 +128,19 @@ public class GreetingAnnotated {
         return greetingHandler.helloFlux(count);
     }
 
+    @GetMapping("/child-flux")
+    public Flux<String> getChildSpans(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
+                                      @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
+                                      @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
+
+        return greetingHandler.childSpans(count, delayMillis, durationMillis);
+    }
+
     @GetMapping("/custom-transaction-name")
     public Mono<String> customTransactionName() {
-        ElasticApm.currentTransaction()
-            .setName("user-provided-name");
+        Transaction transaction = Objects.requireNonNull(ElasticApm.currentTransaction(), "active transaction is required");
 
-        // there should be a transaction active
+        transaction.setName("user-provided-name");
 
         return greetingHandler.helloMessage("transaction=" + ElasticApm.currentTransaction().getId());
     }

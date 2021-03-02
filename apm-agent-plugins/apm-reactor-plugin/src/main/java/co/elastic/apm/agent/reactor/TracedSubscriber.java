@@ -30,6 +30,8 @@ import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
 import reactor.core.Fuseable;
 import reactor.core.publisher.Hooks;
@@ -40,6 +42,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscriber<T> {
+
+    private static final Logger log = LoggerFactory.getLogger(TracedSubscriber.class);
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
     private static final CallDepth callDepth = CallDepth.get(TracedSubscriber.class);
@@ -53,6 +57,10 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
                             C context) {
         this.context = context;
         this.subscriber = subscriber;
+    }
+
+    protected C getContext() {
+        return context;
     }
 
     @Override
@@ -158,6 +166,8 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
                     // no active context, we have nothing to wrap
                     return sub;
                 }
+
+                log.debug("wrapping subscriber {} with active span/transaction {}", sub.toString(), active);
 
                 return new TracedSubscriber<>(sub, active);
             }

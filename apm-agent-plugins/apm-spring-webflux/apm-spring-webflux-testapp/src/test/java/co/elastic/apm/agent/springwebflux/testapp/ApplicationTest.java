@@ -84,4 +84,9 @@ public abstract class ApplicationTest {
         assertThat(client.withPathParameter("42")).isEqualTo("Hello, 42!");
     }
 
+    @Test
+    void withChildrenSpans() {
+        assertThat(client.childSpans(3, 50, 10))
+            .isEqualTo("child 1child 2child 3");
+    }
 }

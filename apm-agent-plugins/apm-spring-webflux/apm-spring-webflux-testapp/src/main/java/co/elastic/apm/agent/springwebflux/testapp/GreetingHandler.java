@@ -25,9 +25,11 @@
 package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Span;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Nullable;
@@ -36,6 +38,8 @@ import java.util.Optional;
 
 @Component
 public class GreetingHandler {
+
+    public static final Scheduler CHILDREN_SCHEDULER = Schedulers.newElastic("children");
 
     public Mono<String> helloMessage(@Nullable String name) {
         return Mono.just(String.format("Hello, %s!", Optional.ofNullable(name).orElse("Spring")));
@@ -62,21 +66,24 @@ public class GreetingHandler {
             .map(i -> String.format("Hello flux %d", i));
     }
 
-    public Flux<String> createSpans(int count) {
+    public Flux<String> childSpans(int count, long delayMillis, long durationMilis) {
         return Flux.range(1, count)
-            .subscribeOn(Schedulers.newElastic("spans"))
-            .delayElements(Duration.ofMillis(5))
-            .map(i -> ElasticApm.currentTransaction().startSpan()
-                .setName(String.format("span %d", i)))
-            .doOnEach(signal -> {
-                // fake some time-consuming work
+            .subscribeOn(CHILDREN_SCHEDULER)
+            // initial delay
+            .delayElements(Duration.ofMillis(delayMillis))
+            .map(i -> String.format("child %d", i))
+            .doOnNext(name -> {
+                Span span = ElasticApm.currentTransaction().startSpan();
+                span.setName(String.format("%s id=%s", name, span.getId()));
                 try {
-                    Thread.sleep(10);
+                    Thread.sleep(durationMilis);
                 } catch (InterruptedException e) {
                     // silently ignored
+                } finally {
+                    span.end();
                 }
-            })
-            .map(span -> String.format("span id=%s", span.getId()));
+            });
+
     }
 
     // Emulates a transaction that takes a known amount of time
@@ -85,4 +92,5 @@ public class GreetingHandler {
         return helloMessage(String.format("duration=%d", durationMillis))
             .delayElement(Duration.ofMillis(durationMillis));
     }
+
 }

@@ -31,6 +31,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
+import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
@@ -73,9 +74,11 @@ public class GreetingFunctional {
             .GET("/functional/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
             // with known transaction duration
             .GET("/functional/duration", accept(MediaType.TEXT_PLAIN), request -> {
-                Long duration = request.queryParam("duration").map(Long::parseLong).orElse(0L);
-                return response(greetingHandler.duration(duration));
+                return response(greetingHandler.duration(getDuration(request)));
             })
+            .GET("/functional/child-flux", accept(MediaType.TEXT_PLAIN), request -> ServerResponse.ok().body(
+                greetingHandler.childSpans(getCount(request), getDelay(request), getDuration(request)), String.class
+            ))
             // error handler
             .onError(
                 e -> true, (e, request) -> ServerResponse
@@ -85,6 +88,18 @@ public class GreetingFunctional {
                     .bodyValue(greetingHandler.exceptionMessage(e))
             )
             .build();
+    }
+
+    private Long getDuration(ServerRequest request) {
+        return request.queryParam("duration").map(Long::parseLong).orElse(0L);
+    }
+
+    private int getCount(ServerRequest request){
+        return request.queryParam("count").map(Integer::parseInt).orElse(1);
+    }
+
+    private Long getDelay(ServerRequest request){
+        return request.queryParam("delay").map(Long::parseLong).orElse(0L);
     }
 
     private Mono<ServerResponse> nested(GreetingHandler greetingHandler, String methodName) {
