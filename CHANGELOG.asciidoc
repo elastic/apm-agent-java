@@ -36,6 +36,7 @@ to assist with such efforts.
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
 * Support for OkHttp 4.4+ -  {pull}1672[#1672]
+* OpenTelemetry tracer API bridge (experimental): <<opentelementry-bridge>>
 
 [float]
 ===== Bug fixes
@@ -70,7 +71,6 @@ https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provid
 By default, the agent will try to automatically detect the cloud provider on startup, but this can be
 configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
 * Add span & transaction `outcome` field to improve error rate calculations - {pull}1613[#1613]
-* OpenTelemetry tracer API bridge (experimental): <<opentelementry-bridge>>
 
 [float]
 ===== Bug fixes

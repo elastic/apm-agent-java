@@ -29,13 +29,13 @@
             when updating the version, add the old version to OpenTelemetryVersionIT
             to make sure we're compatible with both the old and the new version
             -->
-            <version>0.16.0</version>
+            <version>1.0.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
-            <version>0.16.0-alpha</version>
+            <version>1.0.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

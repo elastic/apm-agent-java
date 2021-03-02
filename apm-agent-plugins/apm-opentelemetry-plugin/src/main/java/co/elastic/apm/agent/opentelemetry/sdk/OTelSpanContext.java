@@ -66,7 +66,7 @@ public class OTelSpanContext implements SpanContext {
             for (String vendorEntry : StringUtils.split(tracestate.get(i), ',')) {
                 String[] keyValue = StringUtils.split(vendorEntry, '=');
                 if (keyValue.length == 2) {
-                    builder.set(keyValue[0], keyValue[1]);
+                    builder.put(keyValue[0], keyValue[1]);
                 }
             }
         }

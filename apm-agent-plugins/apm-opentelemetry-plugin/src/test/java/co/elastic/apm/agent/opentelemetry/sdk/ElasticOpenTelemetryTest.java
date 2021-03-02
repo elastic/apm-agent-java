@@ -34,7 +34,7 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -344,7 +344,7 @@ public class ElasticOpenTelemetryTest extends AbstractInstrumentationTest {
         reporter.resetWithoutRecycling();
     }
 
-    public static class MapGetter implements TextMapPropagator.Getter<Map<String, String>> {
+    public static class MapGetter implements TextMapGetter<Map<String, String>> {
         @Override
         public Iterable<String> keys(Map<String, String> carrier) {
             return carrier.keySet();

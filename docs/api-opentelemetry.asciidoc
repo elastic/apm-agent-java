@@ -6,7 +6,7 @@ endif::[]
 [[opentelementry-bridge]]
 === OpenTelemetry bridge
 
-NOTE: Added as experimental in 1.21.0.
+NOTE: Added as experimental in 1.22.0.
 To enable it, set <<config-enable-experimental-instrumentations, `enable_experimental_instrumentations`>> to `true`.
 
 The Elastic APM OpenTelemetry bridge allows creating Elastic APM `Transactions` and `Spans`,
@@ -46,7 +46,7 @@ The first step in getting started with the OpenTelemetry API bridge is to declar
 compile "io.opentelemetry:opentelemetry-api:$openTelemetryVersion"
 ----
 
-The minimum required OpenTelemetry version is 0.16.0.
+The minimum required OpenTelemetry version is 0.17.0.
 
 [float]
 [[otel-init-tracer]]

@@ -25,19 +25,17 @@
 package co.elastic.apm.agent.opentelemetry;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collection;
-
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionGte;
 
 public abstract class AbstractOpenTelemetryInstrumentation extends TracerAwareInstrumentation {
 
     @Override
-    public final ElementMatcher.Junction<ProtectionDomain> getProtectionDomainPostFilter() {
-        return implementationVersionGte("0.16.0");
+    public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return CustomElementMatchers.classLoaderCanLoadClass("io.opentelemetry.context.propagation.TextMapSetter");
     }
 
     @Override

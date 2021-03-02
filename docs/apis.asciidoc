@@ -13,7 +13,7 @@ There are three different ways enhance the out-of-the-box instrumentation of the
   Contains annotations to declaratively create spans.
 . <<opentelementry-bridge>> +
   A vendor neutral API.
-  If you plan to do a lot of manual instrumentation and want to reduce vendor lock-in this is probably what you're looking for. +
+  If you plan to do a lot of manual instrumentation and want to reduce vendor lock-in this is probably what you're looking for.
 . <<opentracing-bridge>> +
   A vendor neutral API that is discontinued in favor of OpenTelemetry.
 

@@ -27,7 +27,9 @@ package co.elastic.apm.agent.opentelemetry.sdk;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -42,7 +44,7 @@ public class OTelTextMapPropagator implements TextMapPropagator {
     }
 
     @Override
-    public <C> void inject(Context context, @Nullable C carrier, Setter<C> setter) {
+    public <C> void inject(Context context, @Nullable C carrier, TextMapSetter<C> setter) {
         Span span = Span.fromContext(context);
         if (span instanceof OTelSpan) {
             ((OTelSpan) span).getInternalSpan().setNonDiscardable();
@@ -51,7 +53,7 @@ public class OTelTextMapPropagator implements TextMapPropagator {
     }
 
     @Override
-    public <C> Context extract(Context context, @Nullable C carrier, Getter<C> getter) {
+    public <C> Context extract(Context context, @Nullable C carrier, TextMapGetter<C> getter) {
         return W3C_PROPAGATOR.extract(context, carrier, getter);
     }
 }
