@@ -55,6 +55,7 @@
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
         <module>apm-rabbitmq</module>
+        <module>apm-okhttp-test</module>
         <module>apm-opentelemetry-plugin</module>
         <module>apm-opentelemetry-test</module>
     </modules>

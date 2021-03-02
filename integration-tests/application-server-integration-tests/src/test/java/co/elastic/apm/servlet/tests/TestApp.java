@@ -27,6 +27,8 @@ package co.elastic.apm.servlet.tests;
 import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
 
 public abstract class TestApp {
 
@@ -58,6 +60,22 @@ public abstract class TestApp {
     @Nullable
     public String getExpectedServiceName() {
         return expectedServiceName;
+    }
+
+    /**
+     * Provides a way to bind additional files to the container file system
+     * @return a map of file-paths to designated container-paths
+     */
+    public Map<String, String> getAdditionalFilesToBind() {
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Provides a way to configure additional environment variables for a specific app
+     * @return a map of env variable names to values
+     */
+    public Map<String, String> getAdditionalEnvVariables() {
+        return Collections.emptyMap();
     }
 
     public abstract void test(AbstractServletContainerIntegrationTest test) throws Exception;

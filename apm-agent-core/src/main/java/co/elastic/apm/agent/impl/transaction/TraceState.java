@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.converter.RoundedDoubleConverter;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
@@ -33,6 +34,8 @@ import java.util.List;
 public class TraceState implements Recyclable {
 
     private static final int DEFAULT_SIZE_LIMIT = 4096;
+
+    private static final RoundedDoubleConverter DOUBLE_CONVERTER = RoundedDoubleConverter.withDefaultPrecision();
 
     private static final char VENDOR_SEPARATOR = ',';
     private static final char ENTRY_SEPARATOR = ';';
@@ -98,11 +101,10 @@ public class TraceState implements Recyclable {
                     if (0 <= value && value <= 1.0) {
                         // ensure proper rounding of sample rate to minimize storage
                         // even if configuration should not allow this, any upstream value might require rounding
-                        double rounded = Math.round(value * 10000d) / 10000d;
-
+                        double rounded = DOUBLE_CONVERTER.round(value);
                         if (rounded != value) {
+                            // value needs to be re-written due to rounding
 
-                            // value needs to be re-written first
                             rewriteBuffer.setLength(0);
                             rewriteBuffer.append(headerValue, 0, valueStart);
                             rewriteBuffer.append(rounded);
