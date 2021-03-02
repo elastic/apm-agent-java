@@ -37,22 +37,12 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class IndyPluginClassLoaderParentTest {
-
-    /**
-     * Serves as an accessor to the package-private
-     *
-     * @param testAgentPackages packages to be loaded from agent class loader
-     */
-    public static void setAgentPackages(List<String> testAgentPackages) {
-        IndyPluginClassLoaderParent.setAgentPackages(testAgentPackages);
-    }
 
     private final Class<?> targetClass;
     private final ClassLoader targetClassLoader;

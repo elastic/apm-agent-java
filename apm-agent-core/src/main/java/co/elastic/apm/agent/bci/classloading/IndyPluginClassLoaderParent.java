@@ -24,49 +24,39 @@
  */
 package co.elastic.apm.agent.bci.classloading;
 
-import net.bytebuddy.dynamic.loading.InjectionClassLoader;
-
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
 import java.util.Enumeration;
-import java.util.List;
-import java.util.Map;
 
 /**
- * This class loader always looks up agent classes through the agent class loader and any other class through the
+ * This class loader always looks up agent-related classes through the agent class loader and any other class through the
  * target class loader, which is set as its "official" parent.
  * Resource lookup is done exactly the same for {@code .class} resources, to ensure consistency. The lookup for any other
  * resource first searches through the agent CL and if not found searches through the target CL.
- * This class loader is not used as a loading (or defining) loader for any class, only to facilitate proper delegation
- * of class loading.
+ * This class loader should not be used as the defining loader for any class. Its sole purpose is to facilitate proper
+ * delegation of class loading to the right parent.
  */
-class IndyPluginClassLoaderParent extends InjectionClassLoader {
+class IndyPluginClassLoaderParent extends ClassLoader {
 
-    private static String[] agentPackages;
-    private static String[] agentClassResourceRoots;
+    private final static String[] agentPackages;
+    private final static String[] agentClassResourceRoots;
 
-    static {
-        setAgentPackages(Collections.singletonList("co.elastic.apm.agent"));
-    }
-
-    /**
-     * May be used in the future once we remove shading. Currently only used in tests, where libraries are not shaded.
-     * Should not be used outside of this class, other than for testing purposes.
-     *
-     * @param agentPackagesToSet packages to set as agent packages
+    /*
+     * This package list should be extended in the future once we remove shading.
+     * Currently, only the agent root package is required in runtime, however the Byte Buddy package is required for
+     * tests, where libraries are not shaded.
      */
-    static void setAgentPackages(List<String> agentPackagesToSet) {
-        agentPackages = new String[agentPackagesToSet.size()];
-        agentClassResourceRoots = new String[agentPackagesToSet.size()];
-        for (int i = 0; i < agentPackagesToSet.size(); i++) {
-            String agentPackage = agentPackagesToSet.get(i);
-            agentPackages[i] = agentPackage;
+    static {
+        agentPackages = new String[]{"co.elastic.apm.agent", "net.bytebuddy"};
+        agentClassResourceRoots = new String[agentPackages.length];
+        for (int i = 0; i < agentPackages.length; i++) {
+            String agentPackage = agentPackages[i];
             agentClassResourceRoots[i] = agentPackage.replace('.', '/');
         }
     }
 
     private final ClassLoader agentClassLoader;
+    private final ClassLoader targetClassLoader;
 
     /**
      * Constructs a parent loader for {@link IndyPluginClassLoader} to enable class loading delegation to two parents.
@@ -79,13 +69,16 @@ class IndyPluginClassLoaderParent extends InjectionClassLoader {
      * @throws NullPointerException if any of the given parents is {@code null}, implying for the bootstrap class loader
      */
     IndyPluginClassLoaderParent(ClassLoader agentClassLoader, ClassLoader targetClassLoader) throws NullPointerException {
-        super(targetClassLoader, true);
+        // We should not delegate class loading to super but to one of the parents, however this is preferable over using
+        // null, which implies for the bootstrap CL
+        super(targetClassLoader);
         //noinspection ConstantConditions
         if (agentClassLoader == null || targetClassLoader == null) {
             throw new NullPointerException("The bootstrap class loader cannot be used as one of this class loader parents. " +
                 "Use a single-parent class loader instead.");
         }
         this.agentClassLoader = agentClassLoader;
+        this.targetClassLoader = targetClassLoader;
     }
 
     /**
@@ -102,7 +95,9 @@ class IndyPluginClassLoaderParent extends InjectionClassLoader {
                 return type;
             }
         }
-        return super.loadClass(name, resolve);
+        // This means we never resolve class on loading, but it ensures this is not the defining class loader as it
+        // would be if we invoked super.loadClass
+        return targetClassLoader.loadClass(name);
     }
 
     /**
@@ -118,14 +113,14 @@ class IndyPluginClassLoaderParent extends InjectionClassLoader {
                     return agentClassLoader.getResource(name);
                 }
             }
-            return super.getResource(name);
+            return targetClassLoader.getResource(name);
         }
 
         URL resource = agentClassLoader.getResource(name);
         if (resource != null) {
             return resource;
         } else {
-            return super.getResource(name);
+            return targetClassLoader.getResource(name);
         }
     }
 
@@ -143,23 +138,14 @@ class IndyPluginClassLoaderParent extends InjectionClassLoader {
                     return agentClassLoader.getResources(name);
                 }
             }
-            return super.getResources(name);
+            return targetClassLoader.getResources(name);
         }
 
         Enumeration<URL> resources = agentClassLoader.getResources(name);
         if (resources.hasMoreElements()) {
             return resources;
         } else {
-            return super.getResources(name);
+            return targetClassLoader.getResources(name);
         }
-    }
-
-    /**
-     * This method should never be called by {@link InjectionClassLoader#defineClasses} because we always set
-     * {@code sealed == true}.
-     */
-    @Override
-    protected Map<String, Class<?>> doDefineClasses(Map<String, byte[]> typeDefinitions) {
-        throw new UnsupportedOperationException("This class loader does not load classes, it is only used for loading delegation.");
     }
 }

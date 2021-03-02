@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoaderParentTest;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -32,8 +31,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.report.Reporter;
 import org.stagemonitor.configuration.ConfigurationRegistry;
-
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -63,8 +60,6 @@ public class MockTracer {
      */
     public static ElasticApmTracer createRealTracer(Reporter reporter, ConfigurationRegistry config) {
 
-        setupAgentTestPackages();
-
         // use an object pool that does bookkeeping to allow for extra usage checks
         TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
@@ -89,17 +84,11 @@ public class MockTracer {
         return tracer;
     }
 
-    private static void setupAgentTestPackages() {
-        IndyPluginClassLoaderParentTest.setAgentPackages(List.of("co.elastic.apm.agent", "net.bytebuddy"));
-    }
-
     /**
      * Creates a real tracer with a {@link MockReporter} and a mock configuration which returns default
      * values that can be customized by mocking the configuration.
      */
     public static synchronized MockInstrumentationSetup createMockInstrumentationSetup() {
-        setupAgentTestPackages();
-
         // use an object pool that does bookkeeping to allow for extra usage checks
         TestObjectPoolFactory objectPoolFactory = new TestObjectPoolFactory();
 
@@ -141,7 +130,6 @@ public class MockTracer {
      * @return a mock tracer with the given configurationRegistry
      */
     public static ElasticApmTracer create(ConfigurationRegistry configurationRegistry) {
-        setupAgentTestPackages();
         final ElasticApmTracer tracer = mock(ElasticApmTracer.class);
         when(tracer.getConfigurationRegistry()).thenReturn(configurationRegistry);
         when(tracer.getConfig(any())).thenAnswer(invocation -> configurationRegistry.getConfig(invocation.getArgument(0)));
