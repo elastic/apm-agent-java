@@ -92,24 +92,16 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
             .setStackTraceAsArray(false)
             .build();
 
-        RolloverStrategy rolloverStrategy = DefaultRolloverStrategy.newBuilder()
-            .withMin("1")
-            .withMax("1")
-            .withConfig(new DefaultConfiguration())
-            .build();
+        // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
+        RolloverStrategy rolloverStrategy = DefaultRolloverStrategy.createStrategy("1", "1", null,
+            null, null,true, new DefaultConfiguration());
 
         TriggeringPolicy triggeringPolicy = SizeBasedTriggeringPolicy.createPolicy(String.valueOf(getMaxLogFileSize()));
 
-        RollingRandomAccessFileAppender appender = RollingRandomAccessFileAppender.newBuilder()
-            .withFileName(shadeFile)
-            .withFilePattern(shadeFile + ".%i")
-            .withImmediateFlush(originalAppender.getImmediateFlush())
-            .withStrategy(rolloverStrategy)
-            .withPolicy(triggeringPolicy)
-            .withAppend(true)
-            .withName(appenderName)
-            .withLayout(ecsLayout)
-            .build();
+        // The deprecated configuration API is used in order to support older versions where the Builder API is not yet available
+        RollingRandomAccessFileAppender appender = RollingRandomAccessFileAppender.createAppender(shadeFile, shadeFile + ".%i",
+            "true", appenderName, String.valueOf(originalAppender.getImmediateFlush()), null, triggeringPolicy,
+            rolloverStrategy, ecsLayout, null, null, null, null, null);
 
         appender.start();
         return appender;

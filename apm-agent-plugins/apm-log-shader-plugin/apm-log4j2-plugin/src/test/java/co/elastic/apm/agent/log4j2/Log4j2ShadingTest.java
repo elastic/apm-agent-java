@@ -53,7 +53,7 @@ public class Log4j2ShadingTest extends LogShadingInstrumentationTest {
         }
     }
 
-    private static class Log4j2LoggerFacade implements LoggerFacade {
+    static class Log4j2LoggerFacade implements LoggerFacade {
 
         private Logger log4j2Logger;
         private URI configLocation;
