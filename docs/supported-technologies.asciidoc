@@ -425,10 +425,15 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
  Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
 When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
 
-|1.0.0, 1.10.0 (error capturing)
+|Trace correlation - 1.0.0
+
+Error capturing - 1.10.0
 
 |log4j2
-|2.0+
+|Trace correlation - 2.0+
+
+ECS Reformatting - 2.6+
+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
 
@@ -437,23 +442,32 @@ ECS-compatible format (since 1.22.0, experimental)
 
 Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
 When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
-|1.13.0
+|Trace correlation - 1.13.0
+
+Error capturing - 1.10.0
+
+ECS Reformatting - 1.22.0
 
 
 |log4j
-|1.x
+|Trace correlation - 1.x
+
+ECS Reformatting - 1.2.17
+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
 
 When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
-|1.13.0
+|Trace correlation - 1.13.0
+
+ECS Reformatting - 1.22.0
 
 |Logback
-|1.x
+|1.1.0+
 |When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
 ECS-compatible format (since 1.22.0, experimental)
-|1.1.0 (???)
+|1.22.0
 
 |===
 
