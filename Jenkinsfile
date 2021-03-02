@@ -28,7 +28,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('(?i).*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:benchmark\\W+)?tests(?:\\W+please)?.*')
+    issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:benchmark\\W+)?tests(?:\\W+please)?|/test).*')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
@@ -81,12 +81,13 @@ pipeline {
               unstash 'source'
               // prepare m2 repository with the existing dependencies
               whenTrue(fileExists('/var/lib/jenkins/.m2/repository')) {
-                sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -rf /var/lib/jenkins/.m2/repository .m2'
+                sh label: 'Prepare .m2 cached folder', returnStatus: true, script: 'cp -Rf /var/lib/jenkins/.m2/repository ${HOME}/.m2'
                 sh label: 'Size .m2', returnStatus: true, script: 'du -hs .m2'
               }
               dir("${BASE_DIR}"){
-                sh label: 'mvn dependencies', script: './mvnw -q dependency:go-offline --fail-never'
-                sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                retryWithSleep(retries: 5, seconds: 10) {
+                  sh label: 'mvn install', script: "./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                }
                 sh label: 'mvn license', script: "./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\."
               }
               stash allowEmpty: true, name: 'build', useDefaultExcludes: false
