@@ -26,13 +26,14 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.CoreSubscriber;
-import reactor.core.Scannable;
+import reactor.core.Fuseable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
@@ -62,7 +63,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         Transaction transaction = getServletTransaction(exchange);
         boolean fromServlet = transaction != null;
 
-        if (transaction == null) {
+        if (!fromServlet) {
             transaction = tracer.startRootTransaction(clazz.getClassLoader());
         }
 
@@ -71,7 +72,9 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         }
 
         transaction.withType("request")
-            // TODO : not sure if we need to activate, especially in the case where it has been started by servlet
+            // If transaction has been created by servlet, it is not active on the current thread
+            // which might be an implementation detail. However, it makes activation lifecycle easier as it is
+            // only managed within webflux/reactor plugins
             .activate();
 
         // store transaction in exchange to make it easy to retrieve from other handlers
@@ -107,43 +110,40 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         return transaction;
     }
 
-    /**
-     * Activates transaction during "dispatch" phase (before handler execution)
-     *
-     * @param <T>         mono generic type
-     * @param mono        mono to wrap
-     * @param transaction transaction
-     * @param exchange    exchange
-     * @return wrapped mono that will end transaction on dispatcher completion
-     */
-    public static <T> Mono<T> dispatcherWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange) {
-        return mono.<T>transform(Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
-            @Override
-            public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
-                log.debug("wrapping webflux dispatcher {} with active transaction {}", subscriber, transaction);
-                return new TransactionAwareSubscriber<T>(subscriber, transaction, exchange, true);
-            }
-        }));
+    public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
+        // we need to wrap returned mono to terminate transaction
+        return doWrap(mono, transaction, exchange, true, false, "webflux-dispatcher");
     }
 
-    /**
-     * Activates transaction during "handler" phase, where request is handled
-     *
-     * @param <T>         mono generic type
-     * @param mono        mono to wrap
-     * @param transaction transaction
-     * @param exchange    exchange
-     * @return wrapped mono that will end transaction on error
-     */
-    public static <T> Mono<T> handlerWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange) {
-        return mono.<T>transform(Operators.lift(new BiFunction<Scannable, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
-            @Override
-            public CoreSubscriber<? super T> apply(Scannable scannable, CoreSubscriber<? super T> subscriber) {
-                log.debug("wrapping webflux handler {} with active transaction {}", subscriber, transaction);
-                return new TransactionAwareSubscriber<T>(subscriber, transaction, exchange, false);
-            }
-        }));
+    public static <T> Mono<T> wrapHandlerAdapter(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
+        return doWrap(mono, transaction, exchange, false, false, "webflux-handler-adapter");
     }
 
+    public static <T> Mono<T> wrapInvocableHandlerMethod(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
+        // We can keep transaction active here as execution of the whole mono is within the same thread.
+        // That might be just an implementation detail, but so far it works.
+        return doWrap(mono, transaction, exchange, false, true, "webflux-invocable-handler-method");
+    }
+
+    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, boolean endOnComplete, boolean keepActive, String description) {
+        //noinspection Convert2Lambda,rawtypes,Convert2Diamond
+        mono = mono.<T>transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
+            @Override
+            public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
+                // don't wrap known #error #just #empty as they have instantaneous execution
+                if (publisher instanceof Fuseable.ScalarCallable) {
+                    log.trace("skip wrapping {}", subscriber.toString());
+                    return subscriber;
+                }
+
+                log.trace("wrapping {} subscriber with transaction {}, end on complete = {}", description, transaction, endOnComplete);
+                return new TransactionAwareSubscriber<T>(subscriber, transaction, exchange, endOnComplete, keepActive, description);
+            }
+        }));
+        if (log.isTraceEnabled()) {
+            mono = mono.log(description);
+        }
+        return mono;
+    }
 
 }

@@ -29,8 +29,8 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.reactor.TracedSubscriber;
-import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import org.reactivestreams.Subscription;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -64,29 +64,72 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
 
     private final ServerWebExchange exchange;
     private final boolean endOnComplete;
+    private final boolean keepActive;
 
+    /**
+     * @param subscriber    subscriber to wrap
+     * @param transaction   transaction
+     * @param exchange      server web exchange
+     * @param endOnComplete {@literal} true to terminate transaction on complete or error
+     * @param keepActive    {@literal true} to keep transaction active between {@link #onSubscribe(Subscription)} and
+     *                      terminal method call {@link #onError(Throwable)} or {@link #onComplete()},
+     *                      use {@literal false} to activate only during wrapped method invocation.
+     * @param description   human-readable description to make debugging easier
+     */
     public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
                                       Transaction transaction,
                                       ServerWebExchange exchange,
-                                      boolean endOnComplete) {
+                                      boolean endOnComplete,
+                                      boolean keepActive,
+                                      String description) {
 
-        super(subscriber, transaction);
+        super(subscriber, transaction, description);
         this.exchange = exchange;
         this.endOnComplete = endOnComplete;
+        this.keepActive = keepActive;
+    }
+
+    @Override
+    public void onSubscribe(Subscription s) {
+        if (!keepActive) {
+            super.onSubscribe(s);
+        } else {
+            activate();
+            subscriber.onSubscribe(s);
+        }
+    }
+
+    @Override
+    public void onNext(T next) {
+        if(!keepActive){
+            super.onNext(next);
+        } else {
+            subscriber.onNext(next);
+        }
     }
 
     @Override
     public void onError(Throwable throwable) {
-        super.onError(throwable);
-        endTransaction(getContext(), exchange, throwable);
+        if(!keepActive){
+            super.onError(throwable);
+        } else {
+            subscriber.onError(throwable);
+            deactivate();
+        }
+        endTransaction(context, exchange, throwable);
     }
 
     @Override
     public void onComplete() {
-        super.onComplete();
+        if (!keepActive) {
+            super.onComplete();
+        } else {
+            subscriber.onComplete();
+            deactivate();
+        }
 
         if (endOnComplete) {
-            endTransaction(getContext(), exchange, null);
+            endTransaction(context, exchange, null);
         }
     }
 
@@ -115,11 +158,7 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
             }
         }
 
-        // when transaction has been created by servlet (or any other low-level HTTP instrumentation), we let
-        // this other instrumentation handle request/response capture and end the transaction lifecycle
-        //
-        // This assumes that request details have been already captured, if not, we might terminate transaction
-        // a bit early as if it was created by webflux instrumentation.
+        // Fill request/response details if they haven't been already by another HTTP plugin (servlet or other).
         if (!transaction.getContext().getRequest().hasContent()) {
             fillRequest(transaction, exchange);
             fillResponse(transaction, exchange);
@@ -127,7 +166,8 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
 
         transaction.captureException(thrown);
 
-        // in case transaction has been created by servlet, we should not terminate it
+        // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
+        // will take care of this.
         if (Boolean.TRUE != exchange.getAttributes().get(SERVLET_TRANSACTION)) {
             transaction.end();
         }

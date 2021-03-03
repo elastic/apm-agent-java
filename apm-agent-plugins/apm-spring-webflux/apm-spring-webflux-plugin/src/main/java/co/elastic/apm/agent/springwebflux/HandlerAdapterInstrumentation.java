@@ -26,12 +26,12 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
-import com.sun.nio.sctp.HandlerResult;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.reactive.HandlerResult;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -109,8 +109,7 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             return resultMono;
         }
 
-        // might happen when an error is triggered server-side
-        return handlerWrap(resultMono, transaction, exchange);
+        return wrapHandlerAdapter(resultMono, transaction, exchange);
 
     }
 }

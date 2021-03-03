@@ -26,6 +26,8 @@ package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +55,8 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/annotated")
 public class GreetingAnnotated {
+
+    private static final Logger log = LoggerFactory.getLogger(GreetingAnnotated.class);
 
     final GreetingHandler greetingHandler;
 
@@ -138,11 +142,18 @@ public class GreetingAnnotated {
 
     @GetMapping("/custom-transaction-name")
     public Mono<String> customTransactionName() {
-        Transaction transaction = Objects.requireNonNull(ElasticApm.currentTransaction(), "active transaction is required");
+        log.debug("enter customTransactionName");
+        try {
+            // transaction should be active, even if we are outside of the Mono/Flux execution
+            Transaction transaction = Objects.requireNonNull(ElasticApm.currentTransaction(), "active transaction is required");
 
-        transaction.setName("user-provided-name");
+            transaction.setName("user-provided-name");
 
-        return greetingHandler.helloMessage("transaction=" + ElasticApm.currentTransaction().getId());
+
+            return greetingHandler.helloMessage("transaction=" + ElasticApm.currentTransaction().getId());
+        } finally {
+            log.debug("exit customTransactionName");
+        }
     }
 
     @GetMapping("/duration")

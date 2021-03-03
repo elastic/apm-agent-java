@@ -50,17 +50,18 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
 
     private static final String HOOK_KEY = "elastic-apm";
 
-    private final CoreSubscriber<? super T> subscriber;
-    private final C context;
+    protected final CoreSubscriber<? super T> subscriber;
+    protected final C context;
+
+    // only for human-friendly debugging
+    private final String description;
 
     public TracedSubscriber(CoreSubscriber<? super T> subscriber,
-                            C context) {
+                            C context,
+                            String description) {
         this.context = context;
         this.subscriber = subscriber;
-    }
-
-    protected C getContext() {
-        return context;
+        this.description = description;
     }
 
     @Override
@@ -94,20 +95,22 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
         }
     }
 
-    private void activate() {
+    protected void activate() {
         // only activate on the outer method call, not the nested calls within same thread
         if (callDepth.isNestedCallAndIncrement()) {
             return;
         }
+        log.trace("{} activate context", description);
         context.activate();
     }
 
 
-    private void deactivate() {
+    protected void deactivate() {
         // only deactivate on the outer method call, not the nested calls within same thread
         if (callDepth.isNestedCallAndDecrement()) {
             return;
         }
+        log.trace("{} deactivate context", description);
         context.deactivate();
     }
 
@@ -146,7 +149,7 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
     /**
      * @return true if hook is registered. Should only be used for testing
      */
-    static boolean isHookRegistered(){
+    static boolean isHookRegistered() {
         return isRegistered.get();
     }
 
@@ -154,22 +157,23 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond
         return Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super X>, CoreSubscriber<? super X>>() {
             @Override
-            public CoreSubscriber<? super X> apply(Publisher p, CoreSubscriber<? super X> sub) {
+            public CoreSubscriber<? super X> apply(Publisher publisher, CoreSubscriber<? super X> subscriber) {
                 // don't wrap known #error #just #empty as they have instantaneous execution
-                if (p instanceof Fuseable.ScalarCallable) {
-                    return sub;
+                if (publisher instanceof Fuseable.ScalarCallable) {
+                    log.trace("skip wrapping {}", subscriber.toString());
+                    return subscriber;
                 }
 
                 AbstractSpan<?> active = tracer.getActive();
 
                 if (active == null) {
                     // no active context, we have nothing to wrap
-                    return sub;
+                    return subscriber;
                 }
 
-                log.debug("wrapping subscriber {} with active span/transaction {}", sub.toString(), active);
+                log.trace("wrapping subscriber {} with active span/transaction {}", subscriber.toString(), active);
 
-                return new TracedSubscriber<>(sub, active);
+                return new TracedSubscriber<>(subscriber, active, "reactor");
             }
         });
     }
