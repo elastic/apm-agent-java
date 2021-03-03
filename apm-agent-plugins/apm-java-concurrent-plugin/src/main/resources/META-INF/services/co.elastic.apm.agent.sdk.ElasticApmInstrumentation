@@ -3,5 +3,6 @@ co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorCallableInstrume
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorInvokeAnyAllInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ForkJoinPoolInstrumentation
 
-# disabled for now due to https://github.com/elastic/apm-agent-java/issues/1673
-#co.elastic.apm.agent.concurrent.ForkJoinTaskInstrumentation
+# comment to work-around https://github.com/elastic/apm-agent-java/issues/1673
+# or disable debug agent: File | Settings | Build, Execution, Deployment | Debugger | Async Stack Traces
+co.elastic.apm.agent.concurrent.ForkJoinTaskInstrumentation
