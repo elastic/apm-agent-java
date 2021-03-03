@@ -21,7 +21,7 @@ endif::[]
 === Unreleased
 
 [[release-notes-1.22.0]]
-==== 1.22.0 - YYYY/MM/DD
+==== 1.22.0 - 2021/MM/DD
 
 [float]
 ===== Features
@@ -47,7 +47,7 @@ to assist with such efforts.
 === Java Agent version 1.x
 
 [[release-notes-1.21.0]]
-==== 1.21.0 - 2020/02/09
+==== 1.21.0 - 2021/02/09
 
 [float]
 ===== Breaking changes
