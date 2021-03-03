@@ -125,7 +125,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         return doWrap(mono, transaction, exchange, false, true, "webflux-invocable-handler-method");
     }
 
-    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, boolean endOnComplete, boolean keepActive, String description) {
+    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final boolean endOnComplete, final boolean keepActive, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond
         mono = mono.<T>transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override
