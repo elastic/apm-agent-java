@@ -41,13 +41,18 @@ class IndyPluginClassLoaderParent extends ClassLoader {
     private final static String[] agentPackages;
     private final static String[] agentClassResourceRoots;
 
-    /*
-     * This package list should be extended in the future once we remove shading.
-     * Currently, only the agent root package is required in runtime, however the Byte Buddy package is required for
-     * tests, where libraries are not shaded.
-     */
     static {
-        agentPackages = new String[]{"co.elastic.apm.agent", "net.bytebuddy"};
+        registerAsParallelCapable();
+
+        /*
+         * This package list should be extended in the future once we remove shading.
+         * Currently, only the agent root package is required in runtime, however the Byte Buddy package is required for
+         * tests, where libraries are not shaded.
+         */
+        agentPackages = new String[]{
+            "co.elastic.apm.agent",
+            "net.bytebuddy"
+        };
         agentClassResourceRoots = new String[agentPackages.length];
         for (int i = 0; i < agentPackages.length; i++) {
             String agentPackage = agentPackages[i];
@@ -86,18 +91,20 @@ class IndyPluginClassLoaderParent extends ClassLoader {
      */
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        for (int i = 0; i < agentPackages.length; i++) {
-            if (name.startsWith(agentPackages[i])) {
-                Class<?> type = agentClassLoader.loadClass(name);
-                if (resolve) {
-                    resolveClass(type);
+        synchronized (getClassLoadingLock(name)) {
+            for (int i = 0; i < agentPackages.length; i++) {
+                if (name.startsWith(agentPackages[i])) {
+                    Class<?> type = agentClassLoader.loadClass(name);
+                    if (resolve) {
+                        resolveClass(type);
+                    }
+                    return type;
                 }
-                return type;
             }
+            // This means we never resolve class on loading, but it ensures this is not the defining class loader as it
+            // would be if we invoked super.loadClass
+            return targetClassLoader.loadClass(name);
         }
-        // This means we never resolve class on loading, but it ensures this is not the defining class loader as it
-        // would be if we invoked super.loadClass
-        return targetClassLoader.loadClass(name);
     }
 
     /**
