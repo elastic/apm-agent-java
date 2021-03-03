@@ -134,6 +134,12 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
     }
 
     static void endTransaction(Transaction transaction, ServerWebExchange exchange, @Nullable Throwable thrown) {
+        // ensure that we don't try to end transaction twice
+        // we rely on default implementation thread safety (backed by a concurrent map).
+        if (transaction != exchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE)) {
+            return;
+        }
+
         StringBuilder transactionName = transaction.getAndOverrideName(PRIO_HIGH_LEVEL_FRAMEWORK, true);
         if (transactionName != null) {
             String httpMethod = exchange.getRequest().getMethodValue();

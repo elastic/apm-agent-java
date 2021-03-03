@@ -7,8 +7,7 @@ This plugin provides instrumentation for [Spring WebFlux](https://docs.spring.io
 Server-side transactions instrumentation with support for:
 - Annotated controllers
 - Functional routes
-
-Supports both Servlet deployments and using other embedded servers.
+- deployment within a Servlet container/application-server
 
 ## TODO
 
@@ -20,19 +19,11 @@ Supports both Servlet deployments and using other embedded servers.
 
 Short term:
 
-- [ ] transaction activation during request processing
-    - testing for general context propagation with reactor hooks ?
-    - what about limit coverage and use hooks for that ?
-
-- [ ] Performance benchmarks & optimization
-- [ ] Context propagation for Flux/Mono (reactor)
-- [ ] Context propagation: capture upstream transaction HTTP headers (if any)
+- [ ] Server-side context propagation: capture upstream transaction HTTP headers (if any)
 - [ ] Webflux client instrumentation >> delegate to another PR
     - [ ] create spans to wrap HTTP request execution
     - [ ] send current transaction/span IDs to HTTP headers
     - instrument all sub-classes of `ClientHttpConnector` seems a good start
-
-## Implementation notes
 
 ## Test application
 

@@ -81,7 +81,6 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 
         if (thrown != null || returnValue == null) {
             // in case of thrown exception, we don't need to wrap to end transaction
-            TransactionAwareSubscriber.endTransaction(transaction, exchange, thrown);
             return returnValue;
         }
 

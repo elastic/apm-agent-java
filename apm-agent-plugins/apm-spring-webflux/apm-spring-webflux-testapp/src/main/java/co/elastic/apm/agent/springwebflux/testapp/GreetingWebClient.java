@@ -31,8 +31,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Nullable;
 
@@ -46,6 +50,7 @@ public class GreetingWebClient {
     private final boolean useFunctionalEndpoint;
     private final int port;
     private final MultiValueMap<String, String> headers;
+    private final Scheduler clientScheduler;
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
@@ -61,6 +66,7 @@ public class GreetingWebClient {
             .build();
         this.useFunctionalEndpoint = useFunctionalEndpoint;
         this.headers = new HttpHeaders();
+        this.clientScheduler = Schedulers.newElastic("webflux-client");
     }
 
     public String getHelloMono() {
@@ -107,8 +113,17 @@ public class GreetingWebClient {
 
     public String executeAndCheckRequest(String method, String path, int expectedStatus) {
         logger.info("execute request : {} {}{}", method, baseUri, path);
+        return responseToString(buildRequest(method, path, expectedStatus));
+    }
 
-        String result = client.method(HttpMethod.valueOf(method))
+    private String responseToString(Mono<ClientResponse> clientResponse){
+        return clientResponse.flatMap(r -> r.bodyToMono(String.class))
+            .blockOptional()
+            .orElse("");
+    }
+
+    private Mono<ClientResponse> buildRequest(String method, String path, int expectedStatus) {
+        return client.method(HttpMethod.valueOf(method))
             .uri(path)
             .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
             .headers(httpHeaders -> httpHeaders.addAll(headers))
@@ -119,12 +134,7 @@ public class GreetingWebClient {
                 }
                 return r;
             })
-            .flatMap(r -> r.bodyToMono(String.class))
-            .blockOptional()
-            .orElse("");
-
-        logger.info("result = {}", result);
-        return result;
+            .publishOn(clientScheduler);
     }
 
     @Override

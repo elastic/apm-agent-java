@@ -16,7 +16,6 @@
         <!-- for licence header plugin -->
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
 
-        <!-- todo need to make animal sniffer configuration suitable for this module -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 
