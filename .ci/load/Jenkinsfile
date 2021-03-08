@@ -122,7 +122,7 @@ pipeline {
                     )
                     dir("${APP_BASE_DIR}") {
                         echo "Building test application using JDK = ${build_jdk_path}"
-                        sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true -Dcheckstyle.skip")
+                        sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode clean package -DskipTests=true -Dcheckstyle.skip")
                         sh(script: "cp -v target/*.${binary_ext} ${WORKSPACE}/app.${binary_ext}")
                     }
 

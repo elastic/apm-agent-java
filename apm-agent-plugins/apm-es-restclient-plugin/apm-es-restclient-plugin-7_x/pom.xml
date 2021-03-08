@@ -8,11 +8,11 @@
         <version>1.21.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-es-restclient-plugin-7_1</artifactId>
+    <artifactId>apm-es-restclient-plugin-7_x</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <version.elasticsearch>7.1.0</version.elasticsearch>
+        <version.elasticsearch>7.11.1</version.elasticsearch>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
