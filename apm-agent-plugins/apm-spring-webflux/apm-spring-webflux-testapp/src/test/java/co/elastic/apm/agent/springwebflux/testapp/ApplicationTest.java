@@ -28,7 +28,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.test.StepVerifier;
+
+import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -55,22 +59,22 @@ public abstract class ApplicationTest {
     @Test
     void mappingError() {
         StepVerifier.create(client.getMappingError404())
-            .expectNextMatches( s->s.contains("/error-404"))
-            .verifyComplete();
+            .expectErrorMatches(expectClientError(404))
+            .verify();
     }
 
     @Test
     void handlerException() {
-        StepVerifier.create(client.getHandlerError())
-            .expectNextMatches(s->s.contains("intentional handler exception"))
-            .verifyComplete();
+        StepVerifier.create(client.getMonoError())
+            .expectErrorMatches(expectClientError(500))
+            .verify();
     }
 
     @Test
     void handlerMonoError() {
         StepVerifier.create(client.getMonoError())
-            .expectNextMatches(s-> s.equals("error handler: intentional error"))
-            .verifyComplete();
+            .expectErrorMatches(expectClientError(500))
+            .verify();
     }
 
     @Test
@@ -100,7 +104,32 @@ public abstract class ApplicationTest {
 
     @Test
     void withChildrenSpans() {
-        assertThat(client.childSpans(3, 50, 10))
-            .isEqualTo("child 1child 2child 3");
+        StepVerifier.create(client.childSpans(3, 50, 10))
+            .expectNext("child 1child 2child 3")
+            .verifyComplete();
+    }
+
+    @Test
+    void withChildrenSpansSSE(){
+        StepVerifier.create(client.childSpansSSE(3, 50, 10))
+            .expectNextMatches(checkSSE(1))
+            .expectNextMatches(checkSSE(2))
+            .expectNextMatches(checkSSE(3))
+            .verifyComplete();
+    }
+
+    private static Predicate<ServerSentEvent<String>> checkSSE(final int index) {
+        return sse -> {
+            String data = sse.data();
+            if (data == null) {
+                return false;
+            }
+            return data.equals(String.format("child %d", index));
+        };
+    }
+
+    private Predicate<Throwable> expectClientError(int expectedStatus) {
+        return error -> (error instanceof WebClientResponseException)
+            && ((WebClientResponseException) error).getRawStatusCode() == expectedStatus;
     }
 }
