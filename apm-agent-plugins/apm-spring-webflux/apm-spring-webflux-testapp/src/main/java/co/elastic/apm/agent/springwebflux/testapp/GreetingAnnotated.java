@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -53,7 +54,7 @@ import java.util.Objects;
  * Provides Webflux annotated endpoint
  */
 @RestController
-@RequestMapping("/annotated")
+@RequestMapping(value = "/annotated", produces = MediaType.TEXT_PLAIN_VALUE)
 public class GreetingAnnotated {
 
     private static final Logger log = LoggerFactory.getLogger(GreetingAnnotated.class);
@@ -65,22 +66,22 @@ public class GreetingAnnotated {
         this.greetingHandler = greetingHandler;
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/hello")
+    @RequestMapping("/hello")
     public Mono<String> getHello(@RequestParam(value = "name", required = false) @Nullable String name) {
         return greetingHandler.helloMessage(name);
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/error-handler")
+    @RequestMapping("/error-handler")
     public Mono<String> handlerError() {
         return greetingHandler.throwException();
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/error-mono")
+    @RequestMapping("/error-mono")
     public Mono<String> monoError() {
         return greetingHandler.monoError();
     }
 
-    @RequestMapping(produces = MediaType.TEXT_PLAIN_VALUE, path = "/empty-mono")
+    @RequestMapping("/empty-mono")
     public Mono<String> monoEmpty() {
         return greetingHandler.monoEmpty();
     }
@@ -132,12 +133,21 @@ public class GreetingAnnotated {
         return greetingHandler.helloFlux(count);
     }
 
-    @GetMapping("/child-flux")
+    @GetMapping(path = "/child-flux")
     public Flux<String> getChildSpans(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
                                       @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
                                       @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
 
         return greetingHandler.childSpans(count, delayMillis, durationMillis);
+    }
+
+    @GetMapping(path = "/child-flux/sse")
+    public Flux<ServerSentEvent<String>> getChildSpansSSE(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
+                                                          @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,
+                                                          @RequestParam(value = "delay", required = false, defaultValue = "5") long delayMillis) {
+
+        return greetingHandler.childSpans(count, durationMillis, delayMillis)
+            .map(greetingHandler::toSSE);
     }
 
     @GetMapping("/custom-transaction-name")
@@ -146,7 +156,6 @@ public class GreetingAnnotated {
         try {
             // transaction should be active, even if we are outside of the Mono/Flux execution
             Transaction transaction = Objects.requireNonNull(ElasticApm.currentTransaction(), "active transaction is required");
-
             transaction.setName("user-provided-name");
 
 

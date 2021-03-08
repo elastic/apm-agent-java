@@ -27,6 +27,7 @@ package co.elastic.apm.agent.springwebflux;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import reactor.test.StepVerifier;
 
 public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumentationTest {
 
@@ -38,7 +39,9 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     @ParameterizedTest
     @CsvSource({"/hello", "/hello2"})
     void shouldInstrumentSimpleGetRequest(String path) {
-        client.executeAndCheckRequest("GET", path, 200);
+        StepVerifier.create(client.requestMono("GET", path, 200))
+            .expectNext("Hello, Spring!")
+            .verifyComplete();
 
         checkTransaction(getFirstTransaction(), "GET /functional" + path, "GET", 200);
     }
@@ -46,7 +49,9 @@ public class ServerFunctionalInstrumentationTest extends AbstractServerInstrumen
     @ParameterizedTest
     @CsvSource({"GET", "POST"})
     void shouldInstrumentNestedRoutes(String method) {
-        client.executeAndCheckRequest(method, "/nested", 200);
+        StepVerifier.create(client.requestMono(method, "/nested", 200))
+            .expectNext(String.format("Hello, nested %s!", method))
+            .verifyComplete();
 
         checkTransaction(getFirstTransaction(), method + " /functional/nested", method, 200);
     }

@@ -24,25 +24,22 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
-
-import javax.annotation.Nullable;
+import reactor.util.Logger;
+import reactor.util.Loggers;
 
 public class GreetingWebClient {
-
-    private static final Logger logger = LoggerFactory.getLogger(GreetingWebClient.class);
 
     private final WebClient client;
     private final String baseUri;
@@ -51,6 +48,8 @@ public class GreetingWebClient {
     private final int port;
     private final MultiValueMap<String, String> headers;
     private final Scheduler clientScheduler;
+
+    private static final Logger logger = Loggers.getLogger(GreetingWebClient.class);
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
@@ -69,72 +68,92 @@ public class GreetingWebClient {
         this.clientScheduler = Schedulers.newElastic("webflux-client");
     }
 
-    public String getHelloMono() {
-        return executeAndCheckRequest("GET", "/hello", 200);
+    public Mono<String> getHelloMono() {
+        return requestMono("GET", "/hello", 200);
     }
 
-    public String getMappingError404() {
-        return executeAndCheckRequest("GET", "/error-404", 404);
+    public Mono<String> getMappingError404() {
+        return requestMono("GET", "/error-404", 404);
     }
 
-    public String getHandlerError() {
-        return executeAndCheckRequest("GET", "/error-handler", 500);
+    public Mono<String> getHandlerError() {
+        return requestMono("GET", "/error-handler", 500);
     }
 
-    public String getMonoError() {
-        return executeAndCheckRequest("GET", "/error-mono", 500);
+    public Mono<String> getMonoError() {
+        return requestMono("GET", "/error-mono", 500);
     }
 
-    @Nullable
-    public String getMonoEmpty() {
-        return executeAndCheckRequest("GET", "/empty-mono", 200);
+    public Mono<String> getMonoEmpty() {
+        return requestMono("GET", "/empty-mono", 200);
     }
 
-    public String methodMapping(String method) {
-        return executeAndCheckRequest(method, "/hello-mapping", 200);
+    public Mono<String> methodMapping(String method) {
+        return requestMono(method, "/hello-mapping", 200);
     }
 
-    public String withPathParameter(String param) {
-        return executeAndCheckRequest("GET", "/with-parameters/" + param, 200);
+    public Mono<String> withPathParameter(String param) {
+        return requestMono("GET", "/with-parameters/" + param, 200);
     }
 
     // nested routes, only relevant for functional routing
-    public String nested(String method) {
-        return executeAndCheckRequest(method, "/nested", 200);
+    public Mono<String> nested(String method) {
+        return requestMono(method, "/nested", 200);
     }
 
-    public String duration(long durationMillis) {
-        return executeAndCheckRequest("GET", "/duration?duration=" + durationMillis, 200);
+    public Mono<String> duration(long durationMillis) {
+        return requestMono("GET", "/duration?duration=" + durationMillis, 200);
     }
 
-    public String childSpans(int count, long durationMillis, long delay) {
-        return executeAndCheckRequest("GET", String.format("/child-flux?duration=%d&count=%d&delay=%d", durationMillis, count, delay), 200);
+    // returned as flux, but will only produce one element
+    public Flux<String> childSpans(int count, long durationMillis, long delay) {
+        return requestFlux(String.format("/child-flux?duration=%d&count=%d&delay=%d", durationMillis, count, delay));
     }
 
-    public String executeAndCheckRequest(String method, String path, int expectedStatus) {
-        logger.info("execute request : {} {}{}", method, baseUri, path);
-        return responseToString(buildRequest(method, path, expectedStatus));
+    // returned as a stream of elements
+    public Flux<ServerSentEvent<String>> childSpansSSE(int count, long durationMillis, long delay) {
+        return requestFluxSSE(String.format("/child-flux/sse?duration=%d&count=%d&delay=%d", durationMillis, count, delay));
     }
 
-    private String responseToString(Mono<ClientResponse> clientResponse){
-        return clientResponse.flatMap(r -> r.bodyToMono(String.class))
-            .blockOptional()
-            .orElse("");
+    // only relevant for annotated controller
+    public Mono<String> customTransactionName() {
+        return requestMono("GET", "/custom-transaction-name", 200);
     }
 
-    private Mono<ClientResponse> buildRequest(String method, String path, int expectedStatus) {
+    public Mono<String> requestMono(String method, String path, int expectedStatus) {
+        return request(method, path, expectedStatus)
+            .bodyToMono(String.class)
+            .publishOn(clientScheduler)
+            .log(logger);
+    }
+
+    private Flux<String> requestFlux(String path) {
+        return request("GET", path, 200)
+            .bodyToFlux(String.class)
+            .publishOn(clientScheduler)
+            .log(logger);
+    }
+
+    private Flux<ServerSentEvent<String>> requestFluxSSE(String path) {
+
+        // required to get proper return generic type
+        ParameterizedTypeReference<ServerSentEvent<String>> type = new ParameterizedTypeReference<>() {
+        };
+
+        return request("GET", path, 200)
+            .bodyToFlux(type)
+            .publishOn(clientScheduler)
+            .log(logger);
+    }
+
+
+    private WebClient.ResponseSpec request(String method, String path, int expectedStatus) {
         return client.method(HttpMethod.valueOf(method))
             .uri(path)
             .accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON)
             .headers(httpHeaders -> httpHeaders.addAll(headers))
-            .exchange()// exchange or retrieve ?
-            .map(r -> {
-                if (r.rawStatusCode() != expectedStatus) {
-                    throw new IllegalStateException(String.format("unexpected status code %d for path %s", r.rawStatusCode(), path));
-                }
-                return r;
-            })
-            .publishOn(clientScheduler);
+            .retrieve()
+            .onRawStatus(status -> status != expectedStatus, r -> Mono.error(new IllegalStateException(String.format("unexpected response status %d", r.rawStatusCode()))));
     }
 
     @Override

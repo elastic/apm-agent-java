@@ -30,6 +30,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,8 +51,9 @@ public class FunctionalEndpointTest extends ApplicationTest {
     @ParameterizedTest
     @CsvSource({"GET", "POST"})
     void nestedRoutes(String method) {
-        assertThat(client.nested(method))
-            .isEqualTo(String.format("Hello, nested %s!", method));
+        StepVerifier.create(client.nested(method))
+            .expectNext(String.format("Hello, nested %s!", method))
+            .verifyComplete();
 
     }
 }

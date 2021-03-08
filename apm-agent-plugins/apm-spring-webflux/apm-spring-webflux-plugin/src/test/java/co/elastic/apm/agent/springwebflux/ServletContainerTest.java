@@ -31,6 +31,7 @@ import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,7 +59,9 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
     void shouldOnlyCreateOneTransaction() throws InterruptedException {
 
         // using a request with path parameter so we are sure servlet path and webflux path template are not equal
-        client.withPathParameter("42");
+        StepVerifier.create(client.withPathParameter("42"))
+            .expectNext("Hello, 42!")
+            .verifyComplete();
 
         // at least one transaction expected
         Transaction transaction = reporter.getFirstTransaction(200);

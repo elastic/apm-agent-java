@@ -37,9 +37,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -68,8 +72,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void dispatchError() {
-        String errorMsg = client.getHandlerError();
-        assertThat(errorMsg).contains("intentional handler exception");
+        StepVerifier.create(client.getHandlerError())
+            .expectErrorMatches(expectClientError(500))
+            .verify();
 
         String expectedName = client.useFunctionalEndpoint()
             ? "GET /functional/error-handler"
@@ -80,7 +85,10 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     @Test
     void dispatchHello() {
         client.setHeader("random-value", "12345");
-        assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
+
+        StepVerifier.create(client.getHelloMono())
+            .expectNext("Hello, Spring!")
+            .verifyComplete();
 
         String expectedName = client.useFunctionalEndpoint()
             ? "GET /functional/hello"
@@ -102,7 +110,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void dispatch404() {
-        assertThat(client.getMappingError404()).contains("Not Found");
+        StepVerifier.create(client.getMappingError404())
+            .expectErrorMatches(expectClientError(404))
+            .verify();
 
         Transaction transaction = checkTransaction(getFirstTransaction(), "GET unknown route", "GET", 404);
 
@@ -111,11 +121,21 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(404);
     }
 
+    private Predicate<Throwable> expectClientError(int expectedStatus) {
+        return error -> (error instanceof WebClientResponseException)
+            && ((WebClientResponseException) error).getRawStatusCode() == expectedStatus;
+    }
+
     @ParameterizedTest
     @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
     void methodMapping(String method) {
-        assertThat(client.methodMapping(method))
-            .isEqualTo("HEAD".equals(method) ? "" : String.format("Hello, %s!", method));
+        var verifier = StepVerifier.create(client.methodMapping(method));
+        if ("HEAD".equals(method)) {
+            verifier.verifyComplete();
+        } else {
+            verifier.expectNext(String.format("Hello, %s!", method))
+                .verifyComplete();
+        }
 
         String expectedName;
 
@@ -138,8 +158,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         // while we can't accurately measure how long transaction takes, we need to ensure that what we measure is
         // at least somehow consistent, thus we test with a comfortable 50% margin
         long duration = 1000;
-        assertThat(client.duration(duration))
-            .isEqualTo(String.format("Hello, duration=%d!", duration));
+        StepVerifier.create(client.duration(duration))
+            .expectNext(String.format("Hello, duration=%d!", duration))
+            .verifyComplete();
 
         String expectedName = client.useFunctionalEndpoint() ? "GET /functional/duration" : "GreetingAnnotated#duration";
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
@@ -151,7 +172,9 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void shouldInstrumentPathWithParameters() {
-        client.withPathParameter("1234");
+        StepVerifier.create(client.withPathParameter("1234"))
+            .expectNext("Hello, 1234!")
+            .verifyComplete();
 
         String expectedName = client.useFunctionalEndpoint() ? "GET " + client.getPathPrefix() + "/with-parameters/{id}" : "GreetingAnnotated#withParameters";
 
@@ -163,20 +186,47 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @Test
     void childSpans() {
-
-        assertThat(client.childSpans(3, 10, 10)).isEqualTo("child 1child 2child 3");
+        // only one element is expected with all values at once
+        StepVerifier.create(client.childSpans(3, 10, 10))
+            .expectNext("child 1child 2child 3")
+            .verifyComplete();
 
         String expectedName = client.useFunctionalEndpoint() ? "GET " + client.getPathPrefix() + "/child-flux" : "GreetingAnnotated#getChildSpans";
+        checkChildSpans(expectedName, "/child-flux?duration=10&count=3&delay=10");
+    }
+
+    @Test
+    void childSpansServerSideEvents() {
+        // elements are streamed and provided separately
+        StepVerifier.create(client.childSpansSSE(3, 10, 10))
+            .expectNextMatches(checkSSE(1))
+            .expectNextMatches(checkSSE(2))
+            .expectNextMatches(checkSSE(3))
+            .verifyComplete();
+
+        String expectedName = client.useFunctionalEndpoint() ? "GET " + client.getPathPrefix() + "/child-flux/sse" : "GreetingAnnotated#getChildSpansSSE";
+        checkChildSpans(expectedName, "/child-flux/sse?duration=10&count=3&delay=10");
+    }
+
+    private static Predicate<ServerSentEvent<String>> checkSSE(final int index) {
+        return sse -> {
+            String data = sse.data();
+            if (data == null) {
+                return false;
+            }
+            return data.equals(String.format("child %d", index));
+        };
+    }
+
+    private void checkChildSpans(String expectedName, String pathAndQuery) {
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
-        checkUrl(transaction, "/child-flux?duration=10&count=3&delay=10");
+        checkUrl(transaction, pathAndQuery);
 
         reporter.awaitSpanCount(3);
         reporter.getSpans().forEach(span -> {
             assertThat(span.getNameAsString()).endsWith(String.format("id=%s", span.getTraceContext().getId()));
         });
-
-
     }
 
     static void checkUrl(GreetingWebClient client, Transaction transaction, String pathAndQuery) {

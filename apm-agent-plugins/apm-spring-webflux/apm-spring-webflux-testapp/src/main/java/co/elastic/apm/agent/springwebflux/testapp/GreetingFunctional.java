@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
@@ -76,9 +77,14 @@ public class GreetingFunctional {
             .GET("/functional/duration", accept(MediaType.TEXT_PLAIN), request -> {
                 return response(greetingHandler.duration(getDuration(request)));
             })
-            .GET("/functional/child-flux", accept(MediaType.TEXT_PLAIN), request -> ServerResponse.ok().body(
-                greetingHandler.childSpans(getCount(request), getDelay(request), getDuration(request)), String.class
-            ))
+            .GET("/functional/child-flux", accept(MediaType.TEXT_PLAIN), request -> ServerResponse.ok()
+                .body(greetingHandler.childSpans(getCount(request), getDelay(request), getDuration(request)), String.class
+                ))
+            .route(path("/functional/child-flux/sse"),
+                request -> ServerResponse.ok()
+                    .body(greetingHandler.childSpans(getCount(request), getDelay(request), getDuration(request))
+                        .map(greetingHandler::toSSE), ServerSentEvent.class
+                    ))
             // error handler
             .onError(
                 e -> true, (e, request) -> ServerResponse
@@ -94,11 +100,11 @@ public class GreetingFunctional {
         return request.queryParam("duration").map(Long::parseLong).orElse(0L);
     }
 
-    private int getCount(ServerRequest request){
+    private int getCount(ServerRequest request) {
         return request.queryParam("count").map(Integer::parseInt).orElse(1);
     }
 
-    private Long getDelay(ServerRequest request){
+    private Long getDelay(ServerRequest request) {
         return request.queryParam("delay").map(Long::parseLong).orElse(0L);
     }
 

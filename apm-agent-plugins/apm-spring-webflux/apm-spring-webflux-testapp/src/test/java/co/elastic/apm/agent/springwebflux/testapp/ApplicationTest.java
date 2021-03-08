@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -46,42 +47,55 @@ public abstract class ApplicationTest {
 
     @Test
     void helloMono() {
-        assertThat(client.getHelloMono()).isEqualTo("Hello, Spring!");
+        StepVerifier.create(client.getHelloMono())
+            .expectNext("Hello, Spring!")
+            .verifyComplete();
     }
 
     @Test
     void mappingError() {
-        assertThat(client.getMappingError404())
-            .contains("/error-404");
+        StepVerifier.create(client.getMappingError404())
+            .expectNextMatches( s->s.contains("/error-404"))
+            .verifyComplete();
     }
 
     @Test
     void handlerException() {
-        assertThat(client.getHandlerError())
-            .contains("intentional handler exception");
+        StepVerifier.create(client.getHandlerError())
+            .expectNextMatches(s->s.contains("intentional handler exception"))
+            .verifyComplete();
     }
 
     @Test
     void handlerMonoError() {
-        assertThat(client.getMonoError())
-            .isEqualTo("error handler: intentional error");
+        StepVerifier.create(client.getMonoError())
+            .expectNextMatches(s-> s.equals("error handler: intentional error"))
+            .verifyComplete();
     }
 
     @Test
     void handlerMonoEmpty() {
-        assertThat(client.getMonoEmpty()).isEmpty();
+        StepVerifier.create(client.getMonoEmpty())
+            .verifyComplete();
     }
 
     @ParameterizedTest
     @CsvSource({"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"})
     void methodMapping(String method) {
-        assertThat(client.methodMapping(method))
-            .isEqualTo("HEAD".equals(method) ? "" : String.format("Hello, %s!", method));
+        var verifier = StepVerifier.create(client.methodMapping(method));
+        if ("HEAD".equals(method)) {
+            verifier.verifyComplete();
+        } else {
+            verifier.expectNext(String.format("Hello, %s!", method))
+                .verifyComplete();
+        }
     }
 
     @Test
     void withPathParameter() {
-        assertThat(client.withPathParameter("42")).isEqualTo("Hello, 42!");
+        StepVerifier.create(client.withPathParameter("42"))
+            .expectNext("Hello, 42!")
+            .verifyComplete();
     }
 
     @Test

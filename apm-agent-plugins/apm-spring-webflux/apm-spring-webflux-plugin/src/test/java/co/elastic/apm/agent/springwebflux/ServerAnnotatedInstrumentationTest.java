@@ -26,9 +26,8 @@ package co.elastic.apm.agent.springwebflux;
 
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,10 +40,10 @@ public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrument
 
     // only implemented in annotated server version, should not be really different with functional
     @Test
-//    @Disabled
     void allowCustomTransactionName() {
-        Assertions.assertThat(client.executeAndCheckRequest("GET", "/custom-transaction-name", 200));
-//            .isEqualTo("Hello, transaction!");
+        StepVerifier.create(client.customTransactionName())
+            .expectNextMatches(s -> s.startsWith("Hello, transaction="))
+            .verifyComplete();
 
         Transaction transaction = getFirstTransaction();
         assertThat(transaction.getNameAsString()).isEqualTo("user-provided-name");

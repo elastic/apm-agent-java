@@ -26,6 +26,7 @@ package co.elastic.apm.agent.springwebflux.testapp;
 
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Span;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -66,7 +67,7 @@ public class GreetingHandler {
             .map(i -> String.format("Hello flux %d", i));
     }
 
-    public Flux<String> childSpans(int count, long delayMillis, long durationMilis) {
+    public Flux<String> childSpans(int count, long delayMillis, long durationMillis) {
         return Flux.range(1, count)
             .subscribeOn(CHILDREN_SCHEDULER)
             // initial delay
@@ -76,14 +77,18 @@ public class GreetingHandler {
                 Span span = ElasticApm.currentTransaction().startSpan();
                 span.setName(String.format("%s id=%s", name, span.getId()));
                 try {
-                    Thread.sleep(durationMilis);
+                    Thread.sleep(durationMillis);
                 } catch (InterruptedException e) {
                     // silently ignored
                 } finally {
                     span.end();
                 }
             });
+    }
 
+    public ServerSentEvent<String> toSSE(String s) {
+        // TODO : we should be able to inject a comment into SSE event for context propagation
+        return ServerSentEvent.<String>builder().data(s).build();
     }
 
     // Emulates a transaction that takes a known amount of time

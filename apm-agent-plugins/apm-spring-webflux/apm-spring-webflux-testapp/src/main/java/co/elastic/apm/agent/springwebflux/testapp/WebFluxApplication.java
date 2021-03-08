@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import reactor.core.publisher.Mono;
 
 import javax.net.ServerSocketFactory;
 import java.io.Closeable;
@@ -39,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 @SpringBootApplication
 public class WebFluxApplication {
@@ -77,16 +79,18 @@ public class WebFluxApplication {
                 logger.info("sample request {} / {} ({} endpoint)", i + 1, count, functional ? "functional" : "annotated");
 
                 GreetingWebClient client = clientProvider.apply(functional);
-                client.getHelloMono();
-                client.getMappingError404();
-                client.getHandlerError();
-                client.getMonoError();
-                client.getMonoEmpty();
-
-                for (String method : Arrays.asList("GET", "POST", "PUT", "DELETE")) {
-                    client.methodMapping(method);
-                }
-                client.withPathParameter("12345");
+                Stream.of(
+                    client.getHelloMono(),
+                    client.getMappingError404(),
+                    client.getHandlerError(),
+                    client.getMonoError(),
+                    client.getMonoEmpty(),
+                    client.methodMapping("GET"),
+                    client.methodMapping("POST"),
+                    client.methodMapping("PUT"),
+                    client.methodMapping("DELETE"),
+                    client.withPathParameter("12345")
+                ).forEach(Mono::subscribe);
             }
         }
         return count > 0;
