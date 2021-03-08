@@ -25,6 +25,7 @@ When multiple JVMs are running on the same host and report data for the same ser
 * <<metrics-jvm>>
 * <<metrics-application>>
 * <<metrics-micrometer>>
+* <<metrics-only-mode>>
 
 [float]
 [[metrics-system]]
@@ -503,3 +504,14 @@ Fields:
 
 * `${name}`: The value of `functionCounter.count()` (the delta when using `CountingMode.STEP`).
 --
+
+[float]
+[[metrics-only-mode]]
+=== Using the agent only for metrics collection
+
+There are cases where you would want to use the agent only to collect and ship metrics, without tracing any Java code.
+This may be useful, for example, when you already have an APM Server set up, and you want to ingest all metrics listed
+above from a JVM that runs something other than your application into Elasticsearch.
+
+In such cases, you may set the <<config-instrument, `instrument`>> config option to `false`. By doing so, agent will
+not apply bytecode instrumentation, but metrics collection and sending will be executed as usual.

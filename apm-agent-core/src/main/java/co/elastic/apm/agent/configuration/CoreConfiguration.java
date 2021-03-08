@@ -75,8 +75,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
         .key(INSTRUMENT)
         .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should instrument the application to collect performance metrics for the app. " +
-            "When set to false, Elastic APM will not affect your application at all.\n" +
+        .description("A boolean specifying if the agent should instrument the application to collect traces for the app.\n " +
+            "When set to `false`, Elastic APM will not apply bytecode instrumentation, thus it would have no effect on \n" +
+            "your application, however it would still collect and send metrics to APM Server.\n" +
             "\n" +
             "NOTE: Both active and instrument needs to be true for instrumentation to be running.\n" +
             "\n" +
