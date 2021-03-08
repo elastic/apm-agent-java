@@ -76,8 +76,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key(INSTRUMENT)
         .configurationCategory(CORE_CATEGORY)
         .description("A boolean specifying if the agent should instrument the application to collect traces for the app.\n " +
-            "When set to `false`, Elastic APM will not apply bytecode instrumentation, thus it would have no effect on \n" +
-            "your application, however it would still collect and send metrics to APM Server.\n" +
+            "When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on \n" +
+            "your application. However, the agent would still apply instrumentation related to manual tracing options and it \n" +
+            "would still collect and send metrics to APM Server.\n" +
             "\n" +
             "NOTE: Both active and instrument needs to be true for instrumentation to be running.\n" +
             "\n" +

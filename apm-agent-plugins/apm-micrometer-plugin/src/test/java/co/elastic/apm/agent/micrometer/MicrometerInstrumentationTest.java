@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,8 +27,11 @@ package co.elastic.apm.agent.micrometer;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
@@ -42,13 +45,13 @@ import static org.mockito.Mockito.when;
 class MicrometerInstrumentationTest {
 
     private MockReporter reporter;
+    private ConfigurationRegistry config;
 
     @BeforeEach
     void setUp() {
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        config = SpyConfiguration.createSpyConfig();
         when(config.getConfig(ReporterConfiguration.class).getMetricsIntervalMs()).thenReturn(5L);
         reporter = new MockReporter();
-        ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
     }
 
     @AfterEach
@@ -58,8 +61,39 @@ class MicrometerInstrumentationTest {
 
     @Test
     void testRegisterMeterRegisty() {
+        ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         registry.counter("foo").increment();
-        reporter.awaitUntilAsserted(() -> assertThat(reporter.getBytes()).isNotEmpty());
+        reporter.awaitUntilAsserted(() -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
+    }
+
+    @Test
+    void testReportedWhenInstrumentConfigDisabled() {
+        when(config.getConfig(CoreConfiguration.class).isInstrument()).thenReturn(false);
+        ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        registry.counter("foo").increment();
+        reporter.awaitUntilAsserted(() -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
+    }
+
+    private int countFooSamples() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        return (int) reporter.getBytes().stream().filter((serializedMetricSet) -> {
+            try {
+                boolean isFooMetric = false;
+                JsonNode metricSetTree = objectMapper.readTree(serializedMetricSet);
+                JsonNode metricSet = metricSetTree.get("metricset");
+                if (metricSet != null) {
+                    JsonNode samples = metricSet.get("samples");
+                    if (samples != null) {
+                        isFooMetric = samples.get("foo") != null;
+                    }
+                }
+                return isFooMetric;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return true;
+        }).count();
     }
 }
