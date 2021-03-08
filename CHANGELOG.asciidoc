@@ -21,7 +21,7 @@ endif::[]
 === Unreleased
 
 [[release-notes-1.22.0]]
-==== 1.22.0 - YYYY/MM/DD
+==== 1.22.0 - 2021/MM/DD
 
 [float]
 ===== Features
@@ -35,17 +35,19 @@ to assist with such efforts.
 * Update existing Hibernate Search 6 instrumentation to the final relase
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
+* Support for OkHttp 4.4+ -  {pull}1672[#1672]
 
 [float]
 ===== Bug fixes
 * fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
 * fixed a couple of bugs with the external plugin mechanism (not documented until now) - {pull}1660[#1660]
+* Update to async-profiler 1.8.4 to prevent crashes on Java 7 - {pull}1678[#1678]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
 [[release-notes-1.21.0]]
-==== 1.21.0 - 2020/02/09
+==== 1.21.0 - 2021/02/09
 
 [float]
 ===== Breaking changes
