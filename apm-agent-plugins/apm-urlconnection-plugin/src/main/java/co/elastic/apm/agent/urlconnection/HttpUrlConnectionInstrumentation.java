@@ -81,7 +81,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                 return null;
             }
             Span span = inFlightSpans.get(thiz);
-            if (span == null && !connected) {
+            if (span == null && !Boolean.TRUE.equals(connected)) {
                 final URL url = thiz.getURL();
                 span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
                 if (span != null) {
