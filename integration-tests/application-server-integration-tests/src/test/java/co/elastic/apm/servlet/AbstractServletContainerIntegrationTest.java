@@ -161,7 +161,6 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withStartupTimeout(Duration.ofMinutes(5));
         for (TestApp testApp : getTestApps()) {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
-            System.out.println("testApp = " + testApp);
             try {
                 testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
                     checkFilePresent(pathToFile);
