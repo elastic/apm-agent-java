@@ -39,6 +39,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -46,12 +48,16 @@ class MicrometerInstrumentationTest {
 
     private MockReporter reporter;
     private ConfigurationRegistry config;
+    private int lastMeasuredMetricSetNumber;
+    private int lastFooSamples;
 
     @BeforeEach
     void setUp() {
         config = SpyConfiguration.createSpyConfig();
-        when(config.getConfig(ReporterConfiguration.class).getMetricsIntervalMs()).thenReturn(5L);
+        when(config.getConfig(ReporterConfiguration.class).getMetricsIntervalMs()).thenReturn(50L);
         reporter = new MockReporter();
+        lastMeasuredMetricSetNumber = 0;
+        lastFooSamples = 0;
     }
 
     @AfterEach
@@ -60,7 +66,7 @@ class MicrometerInstrumentationTest {
     }
 
     @Test
-    void testRegisterMeterRegisty() {
+    void testRegisterMeterRegistry() {
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         registry.counter("foo").increment();
@@ -78,22 +84,27 @@ class MicrometerInstrumentationTest {
 
     private int countFooSamples() {
         final ObjectMapper objectMapper = new ObjectMapper();
-        return (int) reporter.getBytes().stream().filter((serializedMetricSet) -> {
-            try {
-                boolean isFooMetric = false;
-                JsonNode metricSetTree = objectMapper.readTree(serializedMetricSet);
-                JsonNode metricSet = metricSetTree.get("metricset");
-                if (metricSet != null) {
-                    JsonNode samples = metricSet.get("samples");
-                    if (samples != null) {
-                        isFooMetric = samples.get("foo") != null;
+        List<byte[]> metricSets = reporter.getBytes();
+        if (metricSets.size() > lastMeasuredMetricSetNumber) {
+            lastMeasuredMetricSetNumber = metricSets.size();
+            lastFooSamples = (int) metricSets.stream().filter((serializedMetricSet) -> {
+                try {
+                    boolean isFooMetric = false;
+                    JsonNode metricSetTree = objectMapper.readTree(serializedMetricSet);
+                    JsonNode metricSet = metricSetTree.get("metricset");
+                    if (metricSet != null) {
+                        JsonNode samples = metricSet.get("samples");
+                        if (samples != null) {
+                            isFooMetric = samples.get("foo") != null;
+                        }
                     }
+                    return isFooMetric;
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                return isFooMetric;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return true;
-        }).count();
+                return true;
+            }).count();
+        }
+        return lastFooSamples;
     }
 }
