@@ -85,19 +85,6 @@ class MetaDataTest {
         when(coreConfiguration.getCloudProvider()).thenReturn(provider);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         assertThat(metaDataFuture).isNotInstanceOf(MetaData.NoWaitFuture.class);
-        Exception timeoutException = null;
-        try {
-            metaDataFuture.get(0, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            timeoutException = e;
-        }
-        if (provider != GCP && provider != currentCloudProvider) {
-            // The GCP fails quickly on DNS lookup
-            // [windows10] With AWS provider TimeoutException not captured
-            if (!(System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win") && provider == AWS)) {
-                assertThat(timeoutException).isInstanceOf(TimeoutException.class);
-            }
-        }
         // In AWS we may need two timeouts - one for the API token and one for the metadata itself
         long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
         MetaData metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);

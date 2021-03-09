@@ -26,8 +26,6 @@ package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
@@ -37,7 +35,7 @@ import java.io.FilenameFilter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisabledIfSystemProperty(named = "os.name", matches = "Windows 10")
+@DisabledOnOs(OS.WINDOWS)
 public class AsyncProfilerTest {
 
     @BeforeEach

@@ -29,9 +29,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -40,9 +39,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SamplingProfilerQueueTest {
 
     @Test
-    @DisabledIfSystemProperty(named = "os.name", matches = "Windows 10")
+    @DisabledOnOs(OS.WINDOWS)
     void testFillQueue() throws Exception {
-        System.out.println(System.getProperty("os.name"));;
+        System.out.println(System.getProperty("os.name"));
+        ;
         ElasticApmTracer tracer = MockTracer.create();
 
         ScheduledThreadPoolExecutor scheduler = ExecutorUtils.createSingleThreadSchedulingDaemonPool("sampling-profiler");

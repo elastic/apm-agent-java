@@ -36,6 +36,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
@@ -69,7 +71,7 @@ class CallTreeSpanifyTest {
     }
 
     @Test
-    @DisabledIfSystemProperty(named = "os.name", matches = "Windows 10")
+    @DisabledOnOs(OS.WINDOWS)
     void testSpanification() throws Exception {
         CallTree.Root callTree = CallTreeTest.getCallTree(tracer, new String[]{
             " dd   ",
