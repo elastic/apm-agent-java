@@ -128,11 +128,6 @@ public class GreetingAnnotated {
         return greetingHandler.helloMessage(id);
     }
 
-    @GetMapping("/flux")
-    public Flux<String> getFlux(@RequestParam(value = "count", required = false, defaultValue = "3") int count) {
-        return greetingHandler.helloFlux(count);
-    }
-
     @GetMapping(path = "/child-flux")
     public Flux<String> getChildSpans(@RequestParam(value = "count", required = false, defaultValue = "3") int count,
                                       @RequestParam(value = "duration", required = false, defaultValue = "5") long durationMillis,

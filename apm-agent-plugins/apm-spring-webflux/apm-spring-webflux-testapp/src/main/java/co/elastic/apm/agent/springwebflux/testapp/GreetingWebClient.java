@@ -42,7 +42,6 @@ import reactor.util.Loggers;
 public class GreetingWebClient {
 
     private final WebClient client;
-    private final String baseUri;
     private final String pathPrefix;
     private final boolean useFunctionalEndpoint;
     private final int port;
@@ -57,7 +56,7 @@ public class GreetingWebClient {
 
     public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint) {
         this.pathPrefix = useFunctionalEndpoint ? "/functional" : "/annotated";
-        this.baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
+        String baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
         this.port = port;
         this.client = WebClient.builder()
             .baseUrl(baseUri)
