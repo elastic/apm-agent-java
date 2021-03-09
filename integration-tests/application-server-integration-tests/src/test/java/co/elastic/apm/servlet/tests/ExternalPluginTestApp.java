@@ -63,7 +63,8 @@ public class ExternalPluginTestApp extends TestApp {
         } else {
             System.out.println("External plugin dir does not exit");
         }
-        File pluginJar = Arrays.stream(externalPluginBuildDir.listFiles(file -> file.getName().startsWith("external-plugin-") && file.getName().endsWith(".jar")))
+        File pluginJar = Arrays.stream(externalPluginBuildDir
+            .listFiles(file -> file.getName().startsWith("external-pluging-") && !file.getName().contains("javadoc") && file.getName().endsWith(".jar")))
             .findFirst()
             .orElse(null);
         assert pluginJar != null;
