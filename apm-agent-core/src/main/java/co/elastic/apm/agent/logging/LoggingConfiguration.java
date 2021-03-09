@@ -92,7 +92,8 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .description("Sets the logging level for the agent.\n" +
             "This option is case-insensitive.\n" +
             "\n" +
-            "NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.")
+            "NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent; \n" +
+            "`OFF` is only available since version 1.16.0")
         .dynamic(true)
         .addChangeListener(new ConfigurationOption.ChangeListener<LogLevel>() {
             @Override

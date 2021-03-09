@@ -47,11 +47,27 @@ public class ExternalPluginTestApp extends TestApp {
 
     @Override
     public Map<String, String> getAdditionalFilesToBind() {
-        File agentBuildDir = new File("../external-plugin-test/external-plugin/target/");
-        File pluginJar = Arrays.stream(agentBuildDir.listFiles(file -> file.getName().startsWith("external-plugin-") && file.getName().endsWith(".jar")))
+        File externalPluginBuildDir = new File("../external-plugin-test/external-plugin/target/");
+        System.out.println("externalPluginBuildDir = " + externalPluginBuildDir);
+        if (externalPluginBuildDir.exists()) {
+            System.out.println("External plugin dir exists");
+            File[] files = externalPluginBuildDir.listFiles();
+            if (files == null) {
+                System.out.println("No files in the external plugin build dir");
+            } else {
+                System.out.println("Files in external plugin build dir: ");
+                for (File file : files) {
+                    System.out.println("  " + file);
+                }
+            }
+        } else {
+            System.out.println("External plugin dir does not exit");
+        }
+        File pluginJar = Arrays.stream(externalPluginBuildDir.listFiles(file -> file.getName().startsWith("external-plugin-") && file.getName().endsWith(".jar")))
             .findFirst()
             .orElse(null);
         assert pluginJar != null;
+        System.out.println("pluginJar = " + pluginJar);
         return Map.of(pluginJar.getAbsolutePath(), "/plugins/" + pluginJar.getName());
     }
 
