@@ -318,6 +318,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public LogEcsReformatting getLogEcsReformatting() {
         return logEcsReformatting.get();
     }
+
     @Nullable
     public String getLogEcsFormattingDestinationDir() {
         String logShadingDestDir = logEcsFormattingDestinationDir.get().trim();
