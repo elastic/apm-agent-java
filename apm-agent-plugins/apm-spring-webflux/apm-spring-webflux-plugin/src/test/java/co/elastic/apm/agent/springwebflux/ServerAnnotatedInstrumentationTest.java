@@ -24,28 +24,12 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
-import org.junit.jupiter.api.Test;
-import reactor.test.StepVerifier;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class ServerAnnotatedInstrumentationTest extends AbstractServerInstrumentationTest {
 
     @Override
     protected GreetingWebClient getClient() {
         return app.getClient(false);
-    }
-
-    // only implemented in annotated server version, should not be really different with functional
-    @Test
-    void allowCustomTransactionName() {
-        StepVerifier.create(client.customTransactionName())
-            .expectNextMatches(s -> s.startsWith("Hello, transaction="))
-            .verifyComplete();
-
-        Transaction transaction = getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo("user-provided-name");
     }
 }

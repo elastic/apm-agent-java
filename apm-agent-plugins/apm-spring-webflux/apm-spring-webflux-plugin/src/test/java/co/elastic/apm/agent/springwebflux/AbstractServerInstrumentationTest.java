@@ -41,6 +41,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.function.Predicate;
@@ -158,7 +159,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         // while we can't accurately measure how long transaction takes, we need to ensure that what we measure is
         // at least somehow consistent, thus we test with a comfortable 50% margin
         long duration = 1000;
-        StepVerifier.create(client.duration(duration))
+        Duration verifyDuration = StepVerifier.create(client.duration(duration))
             .expectNext(String.format("Hello, duration=%d!", duration))
             .verifyComplete();
 
@@ -166,6 +167,8 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
         assertThat(transaction.getDurationMs())
             .isCloseTo(duration * 1d, Offset.offset(duration / 2d));
+
+        assertThat(verifyDuration).isCloseTo(Duration.ofMillis(duration), Duration.ofMillis(duration / 2));
 
         checkUrl(transaction, "/duration?duration=" + duration);
     }
@@ -182,6 +185,16 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
         checkUrl(transaction, "/with-parameters/1234");
 
+    }
+
+    @Test
+    void allowCustomTransactionName() {
+        StepVerifier.create(client.customTransactionName())
+            .expectNextMatches(s -> s.startsWith("Hello, transaction="))
+            .verifyComplete();
+
+        Transaction transaction = getFirstTransaction();
+        assertThat(transaction.getNameAsString()).isEqualTo("user-provided-name");
     }
 
     @Test

@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.springwebflux.testapp;
 
+import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Transaction;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -36,6 +38,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
@@ -74,8 +77,12 @@ public class GreetingFunctional {
             .GET("/functional/error-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoError())
             .GET("/functional/empty-mono", accept(MediaType.TEXT_PLAIN), request -> greetingHandler.monoEmpty())
             // with known transaction duration
-            .GET("/functional/duration", accept(MediaType.TEXT_PLAIN), request -> {
-                return response(greetingHandler.duration(getDuration(request)));
+            .GET("/functional/duration", accept(MediaType.TEXT_PLAIN), request -> response(greetingHandler.duration(getDuration(request))))
+            // custom transaction name set through API
+            .GET("/functional/custom-transaction-name", accept(MediaType.TEXT_PLAIN), request -> {
+                Transaction transaction = Objects.requireNonNull(ElasticApm.currentTransaction(), "active transaction is required");
+                transaction.setName("user-provided-name");
+                return response(greetingHandler.helloMessage("transaction=" + ElasticApm.currentTransaction().getId()));
             })
             .GET("/functional/child-flux", accept(MediaType.TEXT_PLAIN), request -> ServerResponse.ok()
                 .body(greetingHandler.childSpans(getCount(request), getDelay(request), getDuration(request)), String.class

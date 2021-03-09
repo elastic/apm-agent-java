@@ -34,8 +34,6 @@ import reactor.test.StepVerifier;
 
 import java.util.function.Predicate;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 public abstract class ApplicationTest {
 
     protected GreetingWebClient client;
@@ -65,7 +63,7 @@ public abstract class ApplicationTest {
 
     @Test
     void handlerException() {
-        StepVerifier.create(client.getMonoError())
+        StepVerifier.create(client.getHandlerError())
             .expectErrorMatches(expectClientError(500))
             .verify();
     }
@@ -115,6 +113,20 @@ public abstract class ApplicationTest {
             .expectNextMatches(checkSSE(1))
             .expectNextMatches(checkSSE(2))
             .expectNextMatches(checkSSE(3))
+            .verifyComplete();
+    }
+
+    @Test
+    void customTransactionName() {
+        StepVerifier.create(client.customTransactionName())
+            .expectNext("Hello, transaction=!")
+            .verifyComplete();
+    }
+
+    @Test
+    void duration() {
+        StepVerifier.create(client.duration(42))
+            .expectNext("Hello, duration=42!")
             .verifyComplete();
     }
 

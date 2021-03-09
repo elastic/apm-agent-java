@@ -62,11 +62,6 @@ public class GreetingHandler {
         return "error handler: " + t.getMessage();
     }
 
-    public Flux<String> helloFlux(int count) {
-        return Flux.range(1, count)
-            .map(i -> String.format("Hello flux %d", i));
-    }
-
     public Flux<String> childSpans(int count, long delayMillis, long durationMillis) {
         return Flux.range(1, count)
             .subscribeOn(CHILDREN_SCHEDULER)
