@@ -64,11 +64,11 @@ public class ExternalPluginTestApp extends TestApp {
             System.out.println("External plugin dir does not exit");
         }
         File pluginJar = Arrays.stream(externalPluginBuildDir
-            .listFiles(file -> file.getName().startsWith("external-pluging-") && !file.getName().contains("javadoc") && file.getName().endsWith(".jar")))
+            .listFiles(file -> file.getName().startsWith("external-plugin-") && !file.getName().contains("javadoc") && file.getName().endsWith(".jar")))
             .findFirst()
             .orElse(null);
-        assert pluginJar != null;
         System.out.println("pluginJar = " + pluginJar);
+        assert pluginJar != null;
         return Map.of(pluginJar.getAbsolutePath(), "/plugins/" + pluginJar.getName());
     }
 
