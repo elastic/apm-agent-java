@@ -32,14 +32,13 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -65,28 +64,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.internal.bytebuddy.matcher.ElementMatchers.is;
-import static org.junit.Assume.assumeFalse;
 
-public class ApmServerLogShipperTest {
+@DisabledOnOs(OS.WINDOWS)
+class ApmServerLogShipperTest {
 
-    @Rule
-    public WireMockRule mockApmServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockServer mockApmServer = new WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort());
     private TailableFile tailableFile;
     private ApmServerLogShipper logShipper;
     private File logFile;
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
     private ApmServerClient apmServerClient;
 
-    @Before
-    public void setUp() throws Exception {
-        if (isWindows10()) {
-            return;
-        }
-
+    @BeforeEach
+    void setUp() throws Exception {
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         mockApmServer.stubFor(post("/intake/v2/logs").willReturn(ok()));
         mockApmServer.stubFor(get("/").willReturn(ok()));
+        mockApmServer.start();
 
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class));
         startClientWithValidUrls();
@@ -101,24 +95,17 @@ public class ApmServerLogShipperTest {
         apmServerClient.start(List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
     }
 
-    private boolean isWindows10() {
-        return "Windows 10".equals(System.getProperty("os.name"));
-    }
+    @AfterEach
+    void tearDown() {
+        mockApmServer.stop();
 
-    @After
-    public void tearDown() {
-        if (isWindows10()) {
-            return;
-        }
         if (!logFile.delete()) {
             logFile.deleteOnExit();
         }
     }
 
     @Test
-    public void testSendLogs() throws Exception {
-        assumeFalse(isWindows10());
-
+    void testSendLogs() throws Exception {
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(tailableFile.tail(buffer, logShipper, 100)).isEqualTo(1);
         logShipper.endRequest();
@@ -132,9 +119,7 @@ public class ApmServerLogShipperTest {
     }
 
     @Test
-    public void testSendLogsAfterServerUrlsSet() throws Exception {
-        assumeFalse(isWindows10());
-
+    void testSendLogsAfterServerUrlsSet() throws Exception {
         apmServerClient.start(Lists.emptyList());
         Files.write(logFile.toPath(), List.of("foo"));
         assertThat(logShipper.getErrorCount()).isEqualTo(0);
