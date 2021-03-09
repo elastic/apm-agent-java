@@ -426,7 +426,10 @@ If you want to dynamically change the status of the agent, use <<config-recordin
 [[config-instrument]]
 ==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
-A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+A boolean specifying if the agent should instrument the application to collect traces for the app.
+ When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+would still collect and send metrics to APM Server.
 
 NOTE: Both active and instrument needs to be true for instrumentation to be running.
 
@@ -2538,7 +2541,10 @@ The default unit for this option is `ms`.
 #
 # enabled=true
 
-# A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+# A boolean specifying if the agent should instrument the application to collect traces for the app.
+#  When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+# your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+# would still collect and send metrics to APM Server.
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
 # 
