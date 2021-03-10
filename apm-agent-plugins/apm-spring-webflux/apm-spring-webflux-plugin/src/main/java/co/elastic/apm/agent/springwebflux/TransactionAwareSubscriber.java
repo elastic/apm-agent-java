@@ -29,18 +29,24 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.reactor.TracedSubscriber;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Subscription;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
 import reactor.core.CoreSubscriber;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.List;
@@ -60,7 +66,9 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.M
  *
  * @param <T>
  */
-public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transaction> {
+public class TransactionAwareSubscriber<T> extends TracedSubscriber<T, Transaction> {
+
+    private static final WeakConcurrentMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.createMap();
 
     private final ServerWebExchange exchange;
     private final boolean endOnComplete;
@@ -101,7 +109,7 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
 
     @Override
     public void onNext(T next) {
-        if(!keepActive){
+        if (!keepActive) {
             super.onNext(next);
         } else {
             subscriber.onNext(next);
@@ -110,7 +118,7 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
 
     @Override
     public void onError(Throwable throwable) {
-        if(!keepActive){
+        if (!keepActive) {
             super.onError(throwable);
         } else {
             subscriber.onError(throwable);
@@ -137,6 +145,12 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
         // ensure that we don't try to end transaction twice
         // we rely on default implementation thread safety (backed by a concurrent map).
         if (transaction != exchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE)) {
+            return;
+        }
+
+        if (ignoreTransaction(exchange, transaction)) {
+            transaction.ignoreTransaction();
+            transaction.end();
             return;
         }
 
@@ -178,6 +192,39 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T,Transactio
             transaction.end();
         }
 
+    }
+
+    private static boolean ignoreTransaction(ServerWebExchange exchange, Transaction transaction) {
+        // Annotated controllers have the invoked handler method available in exchange
+        // thus we can rely on this to ignore methods that return ServerSideEvents which should not report transactions
+        Object attribute = exchange.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
+        if (!(attribute instanceof HandlerMethod)) {
+            return false;
+        }
+
+        HandlerMethod handlerMethod = (HandlerMethod) attribute;
+        Boolean ignoredCache = ignoredHandlerMethods.get(handlerMethod);
+        if (ignoredCache != null) {
+            return ignoredCache;
+        }
+
+        Type returnType = handlerMethod.getMethod().getGenericReturnType();
+        if (!(returnType instanceof ParameterizedType)) {
+            ignoredHandlerMethods.put(handlerMethod, false);
+            return false;
+        }
+
+        Type[] genReturnTypes = ((ParameterizedType) returnType).getActualTypeArguments();
+        //noinspection ForLoopReplaceableByForEach
+        for (int i = 0; i < genReturnTypes.length; i++) {
+            if (genReturnTypes[i].getTypeName().startsWith(WebFluxInstrumentation.SSE_EVENT_CLASS)) {
+                ignoredHandlerMethods.put(handlerMethod, true);
+                return true;
+            }
+        }
+
+        ignoredHandlerMethods.put(handlerMethod, false);
+        return false;
     }
 
     private static void fillRequest(Transaction transaction, ServerWebExchange exchange) {
