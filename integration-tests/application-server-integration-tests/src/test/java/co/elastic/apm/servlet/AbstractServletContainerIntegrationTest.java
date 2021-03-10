@@ -159,6 +159,17 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
+        for (TestApp testApp : getTestApps()) {
+            testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
+            try {
+                testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
+                    checkFilePresent(pathToFile);
+                    servletContainer.withFileSystemBind(pathToFile, containerPath);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
                 String pathToAppFile = testApp.getAppFilePath();
@@ -231,12 +242,12 @@ public abstract class AbstractServletContainerIntegrationTest {
             "argument properly to the command line");
     }
 
-    private static void checkFilePresent(String pathToWar) {
-        final File warFile = new File(pathToWar);
-        logger.info("Check file {}", warFile.getAbsolutePath());
-        assertThat(warFile).exists();
-        assertThat(warFile).isFile();
-        assertThat(warFile.length()).isGreaterThan(0);
+    private static void checkFilePresent(String pathToFile) {
+        final File file = new File(pathToFile);
+        logger.info("Check file {}", file.getAbsolutePath());
+        assertThat(file).exists();
+        assertThat(file).isFile();
+        assertThat(file.length()).isGreaterThan(0);
     }
 
     protected void enableDebugging(GenericContainer<?> servletContainer) {

@@ -121,6 +121,7 @@ Click on a key to get more information.
 ** <<config-central-config>>
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
+** <<config-plugins-dir>>
 ** <<config-use-elastic-traceparent-header>>
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
@@ -425,7 +426,10 @@ If you want to dynamically change the status of the agent, use <<config-recordin
 [[config-instrument]]
 ==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
-A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+A boolean specifying if the agent should instrument the application to collect traces for the app.
+ When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+would still collect and send metrics to APM Server.
 
 NOTE: Both active and instrument needs to be true for instrumentation to be running.
 
@@ -1112,6 +1116,36 @@ NOTE: this option can only be set via system properties, environment variables o
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-plugins-dir]]
+==== `plugins_dir` (experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+A folder that contains external agent plugins.
+
+Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+The agent will load all instrumentations that are declared in the
+`META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+See `integration-tests/external-plugin-test` for an example plugin.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.plugins_dir` | `plugins_dir` | `ELASTIC_APM_PLUGINS_DIR`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.14.0])
 
@@ -1543,7 +1577,8 @@ The resulting documents in Elasticsearch look similar to this:
 Sets the logging level for the agent.
 This option is case-insensitive.
 
-NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
+NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent; 
+`OFF` is only available since version 1.16.0
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -2506,7 +2541,10 @@ The default unit for this option is `ms`.
 #
 # enabled=true
 
-# A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+# A boolean specifying if the agent should instrument the application to collect traces for the app.
+#  When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+# your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+# would still collect and send metrics to APM Server.
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
 # 
@@ -2884,6 +2922,19 @@ The default unit for this option is `ms`.
 #
 # config_file=_AGENT_HOME_/elasticapm.properties
 
+# A folder that contains external agent plugins.
+# 
+# Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+# The agent will load all instrumentations that are declared in the
+# `META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+# See `integration-tests/external-plugin-test` for an example plugin.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# plugins_dir=
+
 # To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 # These headers (`traceparent` and `tracestate`) are defined in the
@@ -3152,7 +3203,8 @@ The default unit for this option is `ms`.
 # Sets the logging level for the agent.
 # This option is case-insensitive.
 # 
-# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
+# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent; 
+# `OFF` is only available since version 1.16.0
 #
 # Valid options: OFF, ERROR, CRITICAL, WARN, WARNING, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
