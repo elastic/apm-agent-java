@@ -209,7 +209,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     }
 
     @Test
-    void childSpansServerSideEvents() {
+    void childSpansServerSideEvents_shouldNotCreateTransaction() {
         // elements are streamed and provided separately
         StepVerifier.create(client.childSpansSSE(3, 10, 10))
             .expectNextMatches(checkSSE(1))
@@ -217,8 +217,15 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .expectNextMatches(checkSSE(3))
             .verifyComplete();
 
-        String expectedName = client.useFunctionalEndpoint() ? "GET " + client.getPathPrefix() + "/child-flux/sse" : "GreetingAnnotated#getChildSpansSSE";
-        checkChildSpans(expectedName, "/child-flux/sse?duration=10&count=3&delay=10");
+        // Transaction should be ignored as streaming is not supported.
+        // Given the number of responses could be infinite, we can't instrument this as a regular transaction
+        // that would have potentially infinite duration.
+
+        reporter.assertNoTransaction(200);
+
+        // While we'd like to not have any span captured here, there are spans that will be created and reported
+        // because the transaction is made a noop very late.
+        // reporter.assertNoSpan(200);
     }
 
     private static Predicate<ServerSentEvent<String>> checkSSE(final int index) {

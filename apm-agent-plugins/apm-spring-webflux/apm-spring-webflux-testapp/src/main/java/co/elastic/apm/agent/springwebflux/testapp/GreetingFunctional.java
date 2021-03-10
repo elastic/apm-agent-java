@@ -126,6 +126,6 @@ public class GreetingFunctional {
     private Mono<ServerResponse> response(Mono<String> value) {
         return value.flatMap(s -> ServerResponse.ok()
             .contentType(MediaType.TEXT_PLAIN)
-            .body(BodyInserters.fromValue(s)));
+            .bodyValue(s));
     }
 }

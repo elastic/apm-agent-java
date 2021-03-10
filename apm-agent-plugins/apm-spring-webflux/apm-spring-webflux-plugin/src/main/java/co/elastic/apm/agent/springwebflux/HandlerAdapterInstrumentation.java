@@ -109,6 +109,11 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             return resultMono;
         }
 
+        // Transaction might have been disabled in-flight
+        if (transaction.isNoop()) {
+            return resultMono;
+        }
+
         return wrapHandlerAdapter(resultMono, transaction, exchange);
 
     }

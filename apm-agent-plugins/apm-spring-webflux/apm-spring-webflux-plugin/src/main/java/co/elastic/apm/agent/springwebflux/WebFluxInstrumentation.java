@@ -52,8 +52,10 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
     public static final String SERVLET_TRANSACTION = WebFluxInstrumentation.class.getName() + ".servlet_transaction";
 
+    public static final String SSE_EVENT_CLASS = "org.springframework.http.codec.ServerSentEvent";
+
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
+    public final Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("spring-webflux");
     }
 
@@ -127,7 +129,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
 
     private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final boolean endOnComplete, final boolean keepActive, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond
-        mono = mono.<T>transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
+        mono = mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override
             public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
                 // don't wrap known #error #just #empty as they have instantaneous execution
