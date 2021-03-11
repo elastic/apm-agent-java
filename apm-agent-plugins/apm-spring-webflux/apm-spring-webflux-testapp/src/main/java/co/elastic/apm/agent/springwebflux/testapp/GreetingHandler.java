@@ -82,7 +82,7 @@ public class GreetingHandler {
     }
 
     public ServerSentEvent<String> toSSE(String s) {
-        // TODO : we should be able to inject a comment into SSE event for context propagation
+        // we might be able to inject a comment into SSE event for context propagation
         return ServerSentEvent.<String>builder().data(s).build();
     }
 
