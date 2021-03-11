@@ -35,6 +35,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -61,6 +62,11 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
     public static Object onEnter(@Advice.Origin Class<?> clazz,
                                  @Advice.Argument(0) ServerWebExchange exchange) {
 
+        List<String> upgradeHeader = exchange.getRequest().getHeaders().get("upgrade");
+        if (upgradeHeader != null && upgradeHeader.contains("websocket")) {
+            // just ignore upgrade WS upgrade requests for now
+            return null;
+        }
         return getOrCreateTransaction(clazz, exchange);
     }
 

@@ -32,6 +32,9 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.socket.WebSocketMessage;
+import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
+import org.springframework.web.reactive.socket.client.WebSocketClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -39,7 +42,15 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 
+import java.net.URI;
+import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
+
 public class GreetingWebClient {
+
+    private static final Logger logger = Loggers.getLogger(GreetingWebClient.class);
 
     private final WebClient client;
     private final String pathPrefix;
@@ -47,8 +58,9 @@ public class GreetingWebClient {
     private final int port;
     private final MultiValueMap<String, String> headers;
     private final Scheduler clientScheduler;
+    private final WebSocketClient wsClient;
+    private final String wsBaseUri;
 
-    private static final Logger logger = Loggers.getLogger(GreetingWebClient.class);
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
@@ -57,6 +69,7 @@ public class GreetingWebClient {
     public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint) {
         this.pathPrefix = useFunctionalEndpoint ? "/functional" : "/annotated";
         String baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
+        this.wsBaseUri = String.format("ws://%s:%d", host, port);
         this.port = port;
         this.client = WebClient.builder()
             .baseUrl(baseUri)
@@ -65,6 +78,7 @@ public class GreetingWebClient {
         this.useFunctionalEndpoint = useFunctionalEndpoint;
         this.headers = new HttpHeaders();
         this.clientScheduler = Schedulers.newElastic("webflux-client");
+        this.wsClient = new ReactorNettyWebSocketClient();
     }
 
     public Mono<String> getHelloMono() {
@@ -107,6 +121,26 @@ public class GreetingWebClient {
     // returned as flux, but will only produce one element
     public Flux<String> childSpans(int count, long durationMillis, long delay) {
         return requestFlux(String.format("/child-flux?duration=%d&count=%d&delay=%d", durationMillis, count, delay));
+    }
+
+    public List<String> webSocketPingPong(int count) {
+
+        // taken from https://github.com/spring-projects/spring-framework/blob/master/spring-webflux/src/test/java/org/springframework/web/reactive/socket/WebSocketIntegrationTests.java
+        Flux<String> input = Flux.range(1, count).map(i -> "ping-" + i);
+
+        AtomicReference<List<String>> actualRef = new AtomicReference<>();
+        this.wsClient.execute(URI.create(wsBaseUri+"/ping"), session ->
+            session.send(input.map(session::textMessage))
+                .thenMany(session.receive()
+                    .take(count)
+                    .map(WebSocketMessage::getPayloadAsText))
+                .collectList()
+                .doOnNext(actualRef::set)
+                .then())
+            .block(Duration.ofSeconds(5));
+
+        Objects.requireNonNull(actualRef.get());
+        return actualRef.get();
     }
 
     // returned as a stream of elements
