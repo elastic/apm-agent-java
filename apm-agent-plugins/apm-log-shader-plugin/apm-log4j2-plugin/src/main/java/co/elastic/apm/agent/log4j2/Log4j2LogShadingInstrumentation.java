@@ -43,7 +43,7 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j2");
+        ret.add("log4j2-ecs");
         return ret;
     }
 

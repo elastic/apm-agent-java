@@ -43,7 +43,7 @@ public abstract class LogbackLogShadingInstrumentation extends AbstractLogShadin
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("logback");
+        ret.add("logback-ecs");
         return ret;
     }
 

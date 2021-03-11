@@ -47,7 +47,7 @@ public class Slf4jLoggerErrorCapturingInstrumentation extends AbstractLoggerErro
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("slf4j");
+        ret.add("slf4j-error");
         return ret;
     }
 }

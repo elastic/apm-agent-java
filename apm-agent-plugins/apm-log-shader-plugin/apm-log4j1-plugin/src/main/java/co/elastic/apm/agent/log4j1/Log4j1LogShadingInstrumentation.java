@@ -43,7 +43,7 @@ public abstract class Log4j1LogShadingInstrumentation extends AbstractLogShading
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("log4j1");
+        ret.add("log4j1-ecs");
         return ret;
     }
 
