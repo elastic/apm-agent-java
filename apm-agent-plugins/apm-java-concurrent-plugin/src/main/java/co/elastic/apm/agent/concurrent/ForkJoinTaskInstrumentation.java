@@ -43,6 +43,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
  * Instruments {@link ForkJoinTask#fork()} to support parallel streams.
  */
 public class ForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return is(ForkJoinTask.class);

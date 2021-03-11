@@ -2,7 +2,4 @@ co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorRunnableInstrume
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorCallableInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorInvokeAnyAllInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ForkJoinPoolInstrumentation
-
-# comment to work-around https://github.com/elastic/apm-agent-java/issues/1673
-# or disable debug agent: File | Settings | Build, Execution, Deployment | Debugger | Async Stack Traces
 co.elastic.apm.agent.concurrent.ForkJoinTaskInstrumentation

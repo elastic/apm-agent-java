@@ -168,7 +168,8 @@ public class WebFluxApplication {
      * Starts application on provided port
      *
      * @param port       port to use
-     * @param logEnabled true to enable client & server logging (very verbose, better for debugging)
+     * @param server     server implementation to use
+     * @param logEnabled true to enable client and server logging (very verbose, better for debugging)
      * @return application context
      */
     public static App run(int port, String server, boolean logEnabled) {
