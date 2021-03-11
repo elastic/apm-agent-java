@@ -77,7 +77,7 @@ public abstract class LogbackLogShadingInstrumentation extends AbstractLogShadin
     public static class StopAppenderInstrumentation extends LogbackLogShadingInstrumentation {
 
         /**
-         * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#stop())}
+         * Instrumenting {@link ch.qos.logback.core.OutputStreamAppender#stop}
          */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
