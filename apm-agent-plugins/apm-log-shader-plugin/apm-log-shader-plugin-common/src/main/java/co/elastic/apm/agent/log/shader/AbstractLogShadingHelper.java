@@ -28,7 +28,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.payload.ServiceFactory;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.logging.LogEcsReformatting;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.sdk.state.GlobalState;
@@ -130,17 +129,18 @@ public abstract class AbstractLogShadingHelper<A> {
     @Nullable
     protected abstract A createAndConfigureAppender(A originalAppender, String appenderName);
 
+    /**
+     * We currently get the same service name that is reported in the metadata document.
+     * This may mismatch automatically-discovered service names (if not configured). However, we only set it
+     * once when configuring our appender, so we can have only one service name. In addition, if we use the
+     * in-context service name (eg through MDC), all log events that will not occur within a traced transaction
+     * will get a the global service name.
+     *
+     * @return the configured service name or the globally-automatically-discovered one (not one that is context-dependent)
+     */
     @Nullable
     protected String getServiceName() {
-        String serviceName = configuredServiceName;
-        AbstractSpan<?> active = tracer.getActive();
-        if (active != null) {
-            String runtimeServiceName = active.getTraceContext().getServiceName();
-            if (runtimeServiceName != null) {
-                serviceName = runtimeServiceName;
-            }
-        }
-        return serviceName;
+        return configuredServiceName;
     }
 
     protected long getMaxLogFileSize() {
