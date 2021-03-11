@@ -62,7 +62,7 @@ class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
         if (originalAppender instanceof FileAppender) {
             try {
                 FileAppender fileAppender = (FileAppender) originalAppender;
-                String shadeFile = Utils.computeShadeLogFilePath(fileAppender.getFile());
+                String shadeFile = Utils.computeShadeLogFilePath(fileAppender.getFile(), getConfiguredShadeDir());
 
                 EcsLayout ecsLayout = new EcsLayout();
                 ecsLayout.setServiceName(getServiceName());

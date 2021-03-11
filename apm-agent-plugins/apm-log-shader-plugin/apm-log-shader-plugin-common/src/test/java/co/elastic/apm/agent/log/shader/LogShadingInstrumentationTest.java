@@ -61,6 +61,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     private final LoggerFacade logger;
     private final ObjectMapper objectMapper;
+    private LoggingConfiguration loggingConfig;
 
     public LogShadingInstrumentationTest() {
         logger = createLoggerFacade();
@@ -70,11 +71,12 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     @BeforeEach
     public void setup() {
         logger.open();
-        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.SHADE);
+        loggingConfig = config.getConfig(LoggingConfiguration.class);
+        when(loggingConfig.getLogEcsReformatting()).thenReturn(LogEcsReformatting.SHADE);
     }
 
     private void initiateShadeDir(String dirName) throws IOException {
-        when(config.getConfig(LoggingConfiguration.class).getLogEcsFormattingDestinationDir()).thenReturn(dirName);
+        when(loggingConfig.getLogEcsFormattingDestinationDir()).thenReturn(dirName);
         Files.deleteIfExists(Paths.get(getShadeLogFilePath()));
         Files.deleteIfExists(Paths.get(getShadeLogFilePath() + ".1"));
     }
@@ -125,10 +127,10 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     public void testLogShadingDisabled() throws Exception {
         initiateShadeDir("disabled");
         logger.trace(TRACE_MESSAGE);
-        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.OFF);
+        when(loggingConfig.getLogEcsReformatting()).thenReturn(LogEcsReformatting.OFF);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
-        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.SHADE);
+        when(loggingConfig.getLogEcsReformatting()).thenReturn(LogEcsReformatting.SHADE);
         logger.error(ERROR_MESSAGE);
 
         ArrayList<String[]> rawLogLines = readRawLogLines();
@@ -143,7 +145,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     @Test
     public void testLogShadingReplaceOriginal() throws IOException {
         initiateShadeDir("replace");
-        when(config.getConfig(LoggingConfiguration.class).getLogEcsReformatting()).thenReturn(LogEcsReformatting.REPLACE);
+        when(loggingConfig.getLogEcsReformatting()).thenReturn(LogEcsReformatting.REPLACE);
         logger.trace(TRACE_MESSAGE);
         logger.debug(DEBUG_MESSAGE);
         logger.warn(WARN_MESSAGE);
@@ -196,7 +198,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
 
     @Nonnull
     protected String getShadeLogFilePath() {
-        return Utils.computeShadeLogFilePath(logger.getLogFilePath());
+        return Utils.computeShadeLogFilePath(logger.getLogFilePath(), loggingConfig.getLogEcsFormattingDestinationDir());
     }
 
     private void verifyEcsFormat(String[] splitRawLogLine, JsonNode ecsLogLineTree, @Nullable String traceId) throws Exception {
@@ -230,7 +232,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
     @Test
     public void testShadeLogRolling() throws IOException {
         initiateShadeDir("rolling");
-        when(config.getConfig(LoggingConfiguration.class).getLogFileSize()).thenReturn(100L);
+        when(loggingConfig.getLogFileSize()).thenReturn(100L);
         logger.trace("First line");
         waitForFileRolling();
         logger.debug("Second Line");

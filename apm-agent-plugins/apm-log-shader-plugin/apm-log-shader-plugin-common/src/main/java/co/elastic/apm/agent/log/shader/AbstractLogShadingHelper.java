@@ -65,6 +65,11 @@ public abstract class AbstractLogShadingHelper<A> {
     private static final WeakConcurrentMap<Object, Object> appenderToShadeAppender = WeakMapSupplier.createMap();
 
     @Nullable
+    protected String getConfiguredShadeDir() {
+        return loggingConfiguration.getLogEcsFormattingDestinationDir();
+    }
+
+    @Nullable
     public A getOrCreateShadeAppenderFor(A originalAppender) {
         if (isShadingAppender(originalAppender)) {
             return null;

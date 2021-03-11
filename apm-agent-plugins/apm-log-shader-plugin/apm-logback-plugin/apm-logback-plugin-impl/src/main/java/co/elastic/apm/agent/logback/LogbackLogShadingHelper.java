@@ -54,7 +54,7 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
     @Override
     protected FileAppender<ILoggingEvent> createAndConfigureAppender(FileAppender<ILoggingEvent> originalAppender, String appenderName) {
         RollingFileAppender<ILoggingEvent> shadeAppender = new RollingFileAppender<>();
-        String shadeFile = Utils.computeShadeLogFilePath(originalAppender.getFile());
+        String shadeFile = Utils.computeShadeLogFilePath(originalAppender.getFile(), getConfiguredShadeDir());
         shadeAppender.setFile(shadeFile);
 
         EcsEncoder ecsEncoder = new EcsEncoder();

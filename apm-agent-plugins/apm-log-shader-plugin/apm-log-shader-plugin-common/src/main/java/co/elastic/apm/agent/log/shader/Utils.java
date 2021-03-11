@@ -24,9 +24,6 @@
  */
 package co.elastic.apm.agent.log.shader;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
-import co.elastic.apm.agent.logging.LoggingConfiguration;
-
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,7 +31,6 @@ import java.nio.file.Paths;
 public class Utils {
 
     private static final String SHADE_FILE_EXTENSION = ".ecs.json";
-    private static final LoggingConfiguration config = GlobalTracer.requireTracerImpl().getConfig(LoggingConfiguration.class);
 
     /**
      * Computes a shade log file path based on a given log file. The shade log file will have the same name as the
@@ -44,10 +40,10 @@ public class Utils {
      * @param originalLogFile the log file to which a shade file path is required
      * @return the shade log file path
      */
-    public static String computeShadeLogFilePath(String originalLogFile) {
+    public static String computeShadeLogFilePath(String originalLogFile, @Nullable String configuredShadeFileDestinationDir) {
         Path originalFilePath = Paths.get(originalLogFile);
         Path logFileName = Paths.get(replaceFileExtensionToEcsJson(originalFilePath.getFileName().toString()));
-        Path shadeDir = computeShadeLogsDir(originalFilePath);
+        Path shadeDir = computeShadeLogsDir(originalFilePath, configuredShadeFileDestinationDir);
         if (shadeDir != null) {
             logFileName = shadeDir.resolve(logFileName);
         }
@@ -55,10 +51,9 @@ public class Utils {
     }
 
     @Nullable
-    private static Path computeShadeLogsDir(Path originalFilePath) {
+    private static Path computeShadeLogsDir(Path originalFilePath, @Nullable String configuredShadeFileDestinationDir) {
         Path shadeDir;
         Path logsDir = originalFilePath.getParent();
-        String configuredShadeFileDestinationDir = config.getLogEcsFormattingDestinationDir();
         if (configuredShadeFileDestinationDir == null) {
             shadeDir = logsDir;
         } else {

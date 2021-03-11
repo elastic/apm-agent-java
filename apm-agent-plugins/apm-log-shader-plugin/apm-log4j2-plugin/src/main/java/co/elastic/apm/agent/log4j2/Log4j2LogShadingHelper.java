@@ -83,7 +83,7 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
             return null;
         }
 
-        String shadeFile = Utils.computeShadeLogFilePath(logFile);
+        String shadeFile = Utils.computeShadeLogFilePath(logFile, getConfiguredShadeDir());
 
         EcsLayout ecsLayout = EcsLayout.newBuilder()
             .setServiceName(getServiceName())
