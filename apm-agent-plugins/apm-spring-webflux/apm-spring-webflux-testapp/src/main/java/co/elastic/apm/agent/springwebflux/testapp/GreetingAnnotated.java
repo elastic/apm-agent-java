@@ -88,7 +88,6 @@ public class GreetingAnnotated {
 
     @ExceptionHandler
     public ResponseEntity<String> handleException(RuntimeException e) {
-        e.printStackTrace(System.err);
         return ResponseEntity.status(500)
             .body(greetingHandler.exceptionMessage(e));
     }

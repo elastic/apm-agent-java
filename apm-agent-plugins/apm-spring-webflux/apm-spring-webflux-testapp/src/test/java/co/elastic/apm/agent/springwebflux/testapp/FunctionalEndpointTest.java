@@ -41,7 +41,7 @@ public class FunctionalEndpointTest extends ApplicationTest {
 
     @Override
     protected GreetingWebClient createClient() {
-        return new GreetingWebClient("localhost", serverPort, true);
+        return new GreetingWebClient("localhost", serverPort, true, true);
     }
 
     // nested routes are only available on functional endpoint

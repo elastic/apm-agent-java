@@ -38,7 +38,7 @@ public class AnnotatedEndpointTest extends ApplicationTest {
 
     @Override
     protected GreetingWebClient createClient() {
-        return new GreetingWebClient("localhost", serverPort, false);
+        return new GreetingWebClient("localhost", serverPort, false, true);
     }
 
 }

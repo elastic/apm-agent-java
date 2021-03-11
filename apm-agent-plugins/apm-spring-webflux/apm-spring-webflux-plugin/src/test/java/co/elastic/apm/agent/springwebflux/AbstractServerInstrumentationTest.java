@@ -55,7 +55,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @BeforeAll
     static void startApp() {
-        app = WebFluxApplication.run(-1, "netty");
+        app = WebFluxApplication.run(-1, "netty", true);
     }
 
     @AfterAll
