@@ -60,6 +60,9 @@ public abstract class Log4j1LogShadingInstrumentation extends AbstractLogShading
 
     public static class ShadingInstrumentation extends Log4j1LogShadingInstrumentation {
 
+        /**
+         * Instrumenting {@link org.apache.log4j.WriterAppender#subAppend(org.apache.log4j.spi.LoggingEvent)}
+         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("subAppend").and(takesArgument(0, named("org.apache.log4j.spi.LoggingEvent")));
@@ -74,9 +77,12 @@ public abstract class Log4j1LogShadingInstrumentation extends AbstractLogShading
 
     public static class StopAppenderInstrumentation extends Log4j1LogShadingInstrumentation {
 
+        /**
+         * Instrumenting {@link org.apache.log4j.WriterAppender#close()}
+         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("stop").and(takesArguments(0));
+            return named("close").and(takesArguments(0));
         }
 
         @Override

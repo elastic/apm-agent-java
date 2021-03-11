@@ -51,7 +51,13 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
         return INSTANCE;
     }
 
-    private Log4j2LogShadingHelper() {}
+    private Log4j2LogShadingHelper() {
+    }
+
+    @Override
+    protected String getFormatterClassName(AbstractOutputStreamAppender<?> appender) {
+        return appender.getLayout().getClass().getName();
+    }
 
     @Override
     protected String getAppenderName(AbstractOutputStreamAppender<?> appender) {
@@ -87,6 +93,7 @@ class Log4j2LogShadingHelper extends AbstractLogShadingHelper<AbstractOutputStre
 
         EcsLayout ecsLayout = EcsLayout.newBuilder()
             .setServiceName(getServiceName())
+            .setEventDataset(getEventDataset(originalAppender))
             .setIncludeMarkers(false)
             .setIncludeOrigin(false)
             .setStackTraceAsArray(false)

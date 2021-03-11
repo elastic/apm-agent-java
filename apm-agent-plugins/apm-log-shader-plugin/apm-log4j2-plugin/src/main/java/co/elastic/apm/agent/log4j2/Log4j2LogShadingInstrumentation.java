@@ -36,7 +36,6 @@ import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShadingInstrumentation {
 
@@ -60,6 +59,9 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
 
     public static class ShadingInstrumentation extends Log4j2LogShadingInstrumentation {
 
+        /**
+         * Instrumenting {@link org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender#append(org.apache.logging.log4j.core.LogEvent)}
+         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("append").and(takesArgument(0, named("org.apache.logging.log4j.core.LogEvent")));
@@ -74,9 +76,12 @@ public abstract class Log4j2LogShadingInstrumentation extends AbstractLogShading
 
     public static class StopAppenderInstrumentation extends Log4j2LogShadingInstrumentation {
 
+        /**
+         * Instrumenting {@link org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender#stop()}
+         */
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return named("stop").and(takesArguments(0));
+            return named("stop");
         }
 
         @Override

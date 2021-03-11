@@ -213,6 +213,7 @@ public abstract class LogShadingInstrumentationTest extends AbstractInstrumentat
         assertThat(splitRawLogLine[4]).isEqualTo(ecsLogLineTree.get("message").textValue());
         String serviceName = tracer.getMetaData().get(2000, TimeUnit.MILLISECONDS).getService().getName();
         assertThat(ecsLogLineTree.get("service.name").textValue()).isEqualTo(serviceName);
+        assertThat(ecsLogLineTree.get("event.dataset").textValue()).isEqualTo(serviceName + ".FILE");
         if (traceId != null) {
             assertThat(ecsLogLineTree.get("trace.id").textValue()).isEqualTo(traceId);
         } else {

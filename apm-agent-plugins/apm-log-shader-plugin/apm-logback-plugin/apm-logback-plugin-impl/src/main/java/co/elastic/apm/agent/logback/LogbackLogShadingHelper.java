@@ -44,7 +44,13 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
         return INSTANCE;
     }
 
-    private LogbackLogShadingHelper() {}
+    private LogbackLogShadingHelper() {
+    }
+
+    @Override
+    protected String getFormatterClassName(FileAppender<ILoggingEvent> appender) {
+        return appender.getEncoder().getClass().getName();
+    }
 
     @Override
     protected String getAppenderName(FileAppender<ILoggingEvent> appender) {
@@ -59,6 +65,7 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
 
         EcsEncoder ecsEncoder = new EcsEncoder();
         ecsEncoder.setServiceName(getServiceName());
+        ecsEncoder.setEventDataset(getEventDataset(originalAppender));
         ecsEncoder.setIncludeMarkers(false);
         ecsEncoder.setIncludeOrigin(false);
         ecsEncoder.setStackTraceAsArray(false);
@@ -78,7 +85,7 @@ class LogbackLogShadingHelper extends AbstractLogShadingHelper<FileAppender<ILog
             VersionUtils.setMaxFileSize(triggeringPolicy, getMaxLogFileSize());
         } catch (Throwable throwable) {
             // We cannot log here because this plugin escapes slf4j package reallocation.
-            System.out.println("Failed to set max file size for log shader file-rolling strategy. Using the default " +
+            logInfo("Failed to set max file size for log shader file-rolling strategy. Using the default " +
                 "Logback setting instead - " + SizeBasedTriggeringPolicy.DEFAULT_MAX_FILE_SIZE + ". Error message: " +
                 throwable.getMessage());
         }

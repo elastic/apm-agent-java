@@ -33,6 +33,8 @@ import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -46,6 +48,10 @@ import javax.annotation.Nullable;
 @GlobalState
 public abstract class AbstractLogShadingHelper<A> {
 
+    // Escape shading
+    private static final String ecsLoggingPackageName = "co!elastic!logging".replace('!', '.');
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractLogShadingHelper.class);
     public static final String ECS_SHADE_APPENDER_NAME = "EcsShadeAppender";
 
     private static final Object NULL_APPENDER = new Object();
@@ -70,7 +76,7 @@ public abstract class AbstractLogShadingHelper<A> {
 
     @Nullable
     public A getOrCreateShadeAppenderFor(A originalAppender) {
-        if (isShadingAppender(originalAppender)) {
+        if (isShadingAppender(originalAppender) || isUsingEcsLogging(originalAppender)) {
             return null;
         }
 
@@ -124,6 +130,29 @@ public abstract class AbstractLogShadingHelper<A> {
         return getAppenderName(appender) == ECS_SHADE_APPENDER_NAME;
     }
 
+    /**
+     * Checks if the user has set up ECS-logging separately as well. We cannot use rely on the actual class (e.g.
+     * through {@code instanceof}) because the ECS-logging dependency used by this plugin is shaded and because we
+     * are looking for ECS encoder/layout from an arbitrary version that could be loaded by any class loader.
+     *
+     * @param appender used appender
+     * @return true if the provided appender already configured to use ECS formatting
+     */
+    private boolean isUsingEcsLogging(A appender) {
+        return getFormatterClassName(appender).startsWith(ecsLoggingPackageName);
+    }
+
+    /**
+     * Returns the name of the class name of the underlying that is responsible for the actual ECS formatting, e.g.
+     * the encoder or layout. The purpose of this method is to provide the ability to check whether the appender is
+     * already configured to use ECS-formatting (independently or through the Java agent)
+     *
+     * @param appender used appender
+     * @return class name of the underlying formatting entity
+     */
+    protected abstract String getFormatterClassName(A appender);
+
+    @Nullable
     protected abstract String getAppenderName(A appender);
 
     @Nullable
@@ -143,9 +172,37 @@ public abstract class AbstractLogShadingHelper<A> {
         return configuredServiceName;
     }
 
+    /**
+     * Computes a proper value for the ECS {@code event.dataset} field based on the service name and the appender name
+     *
+     * @param appender the appender for which event dataset is to be calculated
+     * @return event dataset in the form of {@code <service-name>.<appender-name>}, or {@code <service-name>.log}
+     */
+    protected String getEventDataset(A appender) {
+        String appenderName = getAppenderName(appender);
+        if (appenderName == null) {
+            appenderName = "log";
+        }
+        String serviceName = getServiceName();
+        if (serviceName == null) {
+            return appenderName;
+        } else {
+            return serviceName + "." + appenderName;
+        }
+    }
+
     protected long getMaxLogFileSize() {
         return loggingConfiguration.getLogFileSize();
     }
 
     protected abstract void closeShadeAppender(A shadeAppender);
+
+    /**
+     * Since we shade slf4j in submodules, this provides a way to properly log a message to the agent log.
+     *
+     * @param message message to log
+     */
+    protected void logInfo(String message) {
+        logger.info(message);
+    }
 }

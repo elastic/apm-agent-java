@@ -47,7 +47,13 @@ class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
         return INSTANCE;
     }
 
-    Log4j1LogShadingHelper() {}
+    Log4j1LogShadingHelper() {
+    }
+
+    @Override
+    protected String getFormatterClassName(WriterAppender appender) {
+        return appender.getLayout().getClass().getName();
+    }
 
     @Override
     protected String getAppenderName(WriterAppender appender) {
@@ -66,6 +72,7 @@ class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
 
                 EcsLayout ecsLayout = new EcsLayout();
                 ecsLayout.setServiceName(getServiceName());
+                ecsLayout.setEventDataset(getEventDataset(originalAppender));
                 ecsLayout.setIncludeOrigin(false);
                 ecsLayout.setStackTraceAsArray(false);
 
