@@ -93,6 +93,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
             .and(not(nameContains("jboss")))
             .and(not(nameContains("undertow")))
             .and(not(nameContains("netty")))
+                .and(not(nameContains("vertx")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
             .and(not(nameStartsWith("com.hazelcast")))
             .and(not(isProxy()));
