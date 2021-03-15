@@ -2,5 +2,4 @@ co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorRunnableInstrume
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorCallableInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ExecutorInvokeAnyAllInstrumentation
 co.elastic.apm.agent.concurrent.ExecutorInstrumentation$ForkJoinPoolInstrumentation
-co.elastic.apm.agent.concurrent.IdeaDebugAgentInstrumentation
 co.elastic.apm.agent.concurrent.ForkJoinTaskInstrumentation

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -42,7 +41,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 /**
  * Instruments {@link ForkJoinTask#fork()} to support parallel streams.
  */
-public class ForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
+public class ForkJoinTaskInstrumentation extends BaseInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return is(ForkJoinTask.class);

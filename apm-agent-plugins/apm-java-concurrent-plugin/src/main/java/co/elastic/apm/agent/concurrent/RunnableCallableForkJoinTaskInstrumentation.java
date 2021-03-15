@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.concurrent;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.DynamicTransformer;
 import net.bytebuddy.asm.Advice;
@@ -49,14 +48,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * {@linkplain DynamicTransformer#ensureInstrumented(Class, Collection) ensure}
  * that particular {@link Callable}, {@link Runnable} and {@link ForkJoinTask} classes are instrumented.
  */
-public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInstrumentation {
+public class RunnableCallableForkJoinTaskInstrumentation extends BaseInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return hasSuperType(
             is(Runnable.class)
-            .or(is(Callable.class))
-            .or(is(ForkJoinTask.class))
+                .or(is(Callable.class))
+                .or(is(ForkJoinTask.class))
         );
     }
 
