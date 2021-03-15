@@ -124,6 +124,7 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void testDedotMetricName() {
+        assertThat(tracer.getConfig(MetricsConfiguration.class).isDedotCustomMetrics()).isTrue();
         meterRegistry.counter("foo.bar").increment(42);
 
         JsonNode metricSet = getSingleMetricSet();

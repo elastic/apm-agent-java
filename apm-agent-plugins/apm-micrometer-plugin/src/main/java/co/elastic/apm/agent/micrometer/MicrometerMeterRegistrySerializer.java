@@ -143,7 +143,7 @@ public class MicrometerMeterRegistrySerializer {
             if (i > 0) {
                 jw.writeByte(COMMA);
             }
-            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizeLabelKey(tag.getKey(), replaceBuilder), replaceBuilder, jw);
+            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(tag.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
             DslJsonSerializer.writeStringValue(tag.getValue(), replaceBuilder, jw);
         }
@@ -232,7 +232,7 @@ public class MicrometerMeterRegistrySerializer {
     private static void serializeValueStart(String key, String suffix, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
         replaceBuilder.setLength(0);
         if (dedotMetricName) {
-            DslJsonSerializer.sanitizeLabelKey(key, replaceBuilder);
+            DslJsonSerializer.sanitizePropertyName(key, replaceBuilder);
         } else {
             replaceBuilder.append(key);
         }
