@@ -25,7 +25,7 @@ endif::[]
 
 [float]
 ===== Breaking changes
-* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts - {pull}1700[#1700]
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts. De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
 
 [float]
 ===== Features

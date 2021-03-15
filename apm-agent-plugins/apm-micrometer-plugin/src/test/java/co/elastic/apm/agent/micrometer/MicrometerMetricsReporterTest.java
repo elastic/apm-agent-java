@@ -26,6 +26,7 @@ package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -59,6 +60,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 
 class MicrometerMetricsReporterTest {
@@ -121,11 +123,20 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
-    void testDotsInMetricName() {
+    void testDedotMetricName() {
         meterRegistry.counter("foo.bar").increment(42);
 
         JsonNode metricSet = getSingleMetricSet();
         assertThat(metricSet.get("metricset").get("samples").get("foo_bar").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testDisableDedotMetricName() {
+        when(tracer.getConfig(MetricsConfiguration.class).isDedotCustomMetrics()).thenReturn(false);
+        meterRegistry.counter("foo.bar").increment(42);
+
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples").get("foo.bar").get("value").doubleValue()).isEqualTo(42);
     }
 
     @Test
