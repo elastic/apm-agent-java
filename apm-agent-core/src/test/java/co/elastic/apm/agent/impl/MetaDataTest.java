@@ -42,7 +42,6 @@ import java.util.concurrent.TimeoutException;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AUTO;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -84,16 +83,6 @@ class MetaDataTest {
         when(coreConfiguration.getCloudProvider()).thenReturn(provider);
         Future<MetaData> metaDataFuture = MetaData.create(config, null);
         assertThat(metaDataFuture).isNotInstanceOf(MetaData.NoWaitFuture.class);
-        Exception timeoutException = null;
-        try {
-            metaDataFuture.get(0, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            timeoutException = e;
-        }
-        if (provider != GCP && provider != currentCloudProvider) {
-            // The GCP fails quickly on DNS lookup
-            assertThat(timeoutException).isInstanceOf(TimeoutException.class);
-        }
         // In AWS we may need two timeouts - one for the API token and one for the metadata itself
         long timeout = (long) (coreConfiguration.geCloudMetadataDiscoveryTimeoutMs() * ((provider == AWS) ? 2.5 : 1.5));
         MetaData metaData = metaDataFuture.get(timeout, TimeUnit.MILLISECONDS);
