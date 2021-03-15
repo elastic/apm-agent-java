@@ -24,6 +24,10 @@ endif::[]
 ==== 1.22.0 - 2021/MM/DD
 
 [float]
+===== Breaking changes
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts - {pull}1700[#1700]
+
+[float]
 ===== Features
 * Introducing a new mechanism to ease the development of community instrumentation plugins. See <<config-plugins-dir>> for
 more details. This configuration was already added in 1.18.0, but more extensive and continuous integration testing
