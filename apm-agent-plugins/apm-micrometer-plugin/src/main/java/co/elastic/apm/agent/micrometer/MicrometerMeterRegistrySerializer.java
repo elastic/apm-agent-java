@@ -96,26 +96,26 @@ public class MicrometerMeterRegistrySerializer {
                     Meter meter = meters.get(i);
                     if (meter instanceof Timer) {
                         Timer timer = (Timer) meter;
-                        hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
+                        hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder);
                     } else if (meter instanceof FunctionTimer) {
                         FunctionTimer timer = (FunctionTimer) meter;
-                        hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
+                        hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder);
                     } else if (meter instanceof LongTaskTimer) {
                         LongTaskTimer timer = (LongTaskTimer) meter;
-                        hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue);
+                        hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue, replaceBuilder);
                     } else if (meter instanceof DistributionSummary) {
                         DistributionSummary timer = (DistributionSummary) meter;
-                        hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue);
+                        hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue, replaceBuilder);
                     } else if (meter instanceof Gauge) {
                         Gauge gauge = (Gauge) meter;
-                        hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw);
+                        hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw, replaceBuilder);
 
                     } else if (meter instanceof Counter) {
                         Counter counter = (Counter) meter;
-                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder);
                     } else if (meter instanceof FunctionCounter) {
                         FunctionCounter counter = (FunctionCounter) meter;
-                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder);
                     }
                 }
                 jw.writeByte(JsonWriter.OBJECT_END);
@@ -152,14 +152,15 @@ public class MicrometerMeterRegistrySerializer {
      * @param count     count
      * @param totalTime total time
      * @param hasValue  whether a value has already been written
+     * @param replaceBuilder
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime, boolean hasValue) {
+    private static boolean serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime, boolean hasValue, StringBuilder replaceBuilder) {
         if (isValidValue(totalTime)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".count", count, jw);
+            serializeValue(id, ".count", count, jw, replaceBuilder);
             jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".sum.us", totalTime, jw);
+            serializeValue(id, ".sum.us", totalTime, jw, replaceBuilder);
             return true;
         }
         return hasValue;
@@ -173,21 +174,22 @@ public class MicrometerMeterRegistrySerializer {
      * @param count       count
      * @param totalAmount total amount of recorded events
      * @param hasValue    whether a value has already been written
+     * @param replaceBuilder
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalAmount, boolean hasValue) {
+    private static boolean serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalAmount, boolean hasValue, StringBuilder replaceBuilder) {
         if (isValidValue(totalAmount)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".count", count, jw);
+            serializeValue(id, ".count", count, jw, replaceBuilder);
             jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".sum", totalAmount, jw);
+            serializeValue(id, ".sum", totalAmount, jw, replaceBuilder);
             return true;
         }
         return hasValue;
     }
 
-    private static void serializeValue(Meter.Id id, String suffix, long value, JsonWriter jw) {
-        serializeValueStart(id.getName(), suffix, jw);
+    private static void serializeValue(Meter.Id id, String suffix, long value, JsonWriter jw, StringBuilder replaceBuilder) {
+        serializeValueStart(id.getName(), suffix, jw, replaceBuilder);
         NumberConverter.serialize(value, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
@@ -199,28 +201,35 @@ public class MicrometerMeterRegistrySerializer {
      * @param value    meter value
      * @param hasValue whether a value has already been written
      * @param jw       writer
+     * @param replaceBuilder
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, JsonWriter jw) {
+    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, JsonWriter jw, StringBuilder replaceBuilder) {
         if (isValidValue(value)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, "", value, jw);
+            serializeValue(id, "", value, jw, replaceBuilder);
             return true;
         }
         return hasValue;
     }
 
-    private static void serializeValue(Meter.Id id, String suffix, double value, JsonWriter jw) {
-        serializeValueStart(id.getName(), suffix, jw);
+    private static void serializeValue(Meter.Id id, String suffix, double value, JsonWriter jw, StringBuilder replaceBuilder) {
+        serializeValueStart(id.getName(), suffix, jw, replaceBuilder);
         NumberConverter.serialize(value, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeValueStart(String key, String suffix, JsonWriter jw) {
-        jw.writeByte(JsonWriter.QUOTE);
-        jw.writeAscii(key);
-        jw.writeAscii(suffix);
-        jw.writeByte(JsonWriter.QUOTE);
+    private static void serializeValueStart(String key, String suffix, JsonWriter jw, StringBuilder replaceBuilder) {
+        replaceBuilder.setLength(0);
+        DslJsonSerializer.sanitizeLabelKey(key, replaceBuilder);
+        if (suffix != null) {
+            if (replaceBuilder.length() == 0) {
+                replaceBuilder.append(key);
+            }
+            replaceBuilder.append(suffix);
+        }
+        jw.writeString(replaceBuilder);
+
         jw.writeByte(JsonWriter.SEMI);
         jw.writeByte(JsonWriter.OBJECT_START);
         jw.writeByte(JsonWriter.QUOTE);
