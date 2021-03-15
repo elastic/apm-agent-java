@@ -615,7 +615,7 @@ public class ElasticApmAgent {
         return new AgentBuilder.Default(byteBuddy)
             .with(RedefinitionStrategy.RETRANSFORMATION)
             // when runtime attaching, only retransform up to 100 classes at once and sleep 100ms in-between as retransformation causes a stop-the-world pause
-            .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(1))
+            .with(premain ? RedefinitionStrategy.BatchAllocator.ForTotal.INSTANCE : RedefinitionStrategy.BatchAllocator.ForFixedSize.ofSize(100))
             .with(premain ? RedefinitionStrategy.Listener.NoOp.INSTANCE : RedefinitionStrategy.Listener.Pausing.of(100, TimeUnit.MILLISECONDS))
             .with(new RedefinitionStrategy.Listener.Adapter() {
                 @Override
