@@ -5,7 +5,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
 
     static {
-        if (Boolean.parseBoolean(System.getProperty("intellij.debug.agent"))) {
+        if (Boolean.getBoolean("intellij.debug.agent")) {
             // InteliJ debugger also instrument some java.util.concurrent classes and changes the class structure.
             // However, the changes are not re-applied when re-transforming already loaded classes, which makes our
             // agent unable to see those structural changes and try to load classes with their original bytecode
