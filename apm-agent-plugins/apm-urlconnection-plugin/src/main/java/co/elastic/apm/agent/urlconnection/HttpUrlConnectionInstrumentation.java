@@ -74,7 +74,8 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object enter(@Advice.This HttpURLConnection thiz,
-                                 @Advice.FieldValue("connected") boolean connected,
+                                 @Advice.FieldValue(value = "connected",
+                                   declaringType = URLConnection.class) boolean connected,
                                  @Advice.Origin String signature) {
 
             if (tracer.getActive() == null) {
