@@ -47,6 +47,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 public class GreetingWebClient {
 
@@ -60,13 +61,14 @@ public class GreetingWebClient {
     private final Scheduler clientScheduler;
     private final WebSocketClient wsClient;
     private final String wsBaseUri;
+    private final boolean logEnabled;
 
 
     // this client also applies a few basic checks to ensure that application behaves
     // as expected within unit tests and in packaged application without duplicating
     // all the testing logic.
 
-    public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint) {
+    public GreetingWebClient(String host, int port, boolean useFunctionalEndpoint, boolean logEnabled) {
         this.pathPrefix = useFunctionalEndpoint ? "/functional" : "/annotated";
         String baseUri = String.format("http://%s:%d%s", host, port, pathPrefix);
         this.wsBaseUri = String.format("ws://%s:%d", host, port);
@@ -79,6 +81,7 @@ public class GreetingWebClient {
         this.headers = new HttpHeaders();
         this.clientScheduler = Schedulers.newElastic("webflux-client");
         this.wsClient = new ReactorNettyWebSocketClient();
+        this.logEnabled = logEnabled;
     }
 
     public Mono<String> getHelloMono() {
@@ -137,7 +140,7 @@ public class GreetingWebClient {
                 .collectList()
                 .doOnNext(actualRef::set)
                 .then())
-            .block(Duration.ofSeconds(5));
+            .block(Duration.ofMillis(1000));
 
         Objects.requireNonNull(actualRef.get());
         return actualRef.get();
@@ -154,17 +157,36 @@ public class GreetingWebClient {
     }
 
     public Mono<String> requestMono(String method, String path, int expectedStatus) {
-        return request(method, path, expectedStatus)
+        Mono<String> request = request(method, path, expectedStatus)
             .bodyToMono(String.class)
-            .publishOn(clientScheduler)
-            .log(logger);
+            .publishOn(clientScheduler);
+        return logEnabled ? request.log(logger) : request;
+    }
+
+    public void sampleRequests() {
+
+        Duration timeout = Duration.ofMillis(1000);
+
+        getHelloMono().block(timeout);
+        getMappingError404().onErrorResume(e -> Mono.empty()).block(timeout);
+        getHandlerError().onErrorResume(e -> Mono.empty()).block(timeout);
+        getMonoError().onErrorResume(e -> Mono.empty()).block(timeout);
+
+        Stream.of("GET","POST","PUT","DELETE").forEach(method -> methodMapping(method).block(timeout));
+
+        withPathParameter("12345").block(timeout);
+
+        childSpansSSE(10, 1, 3)
+            .blockLast(timeout);
+
+        webSocketPingPong(5);
     }
 
     private Flux<String> requestFlux(String path) {
-        return request("GET", path, 200)
+        Flux<String> request = request("GET", path, 200)
             .bodyToFlux(String.class)
-            .publishOn(clientScheduler)
-            .log(logger);
+            .publishOn(clientScheduler);
+        return logEnabled ? request.log(logger) : request;
     }
 
     private Flux<ServerSentEvent<String>> requestFluxSSE(String path) {
@@ -173,10 +195,11 @@ public class GreetingWebClient {
         ParameterizedTypeReference<ServerSentEvent<String>> type = new ParameterizedTypeReference<>() {
         };
 
-        return request("GET", path, 200)
+        Flux<ServerSentEvent<String>> request = request("GET", path, 200)
             .bodyToFlux(type)
-            .publishOn(clientScheduler)
-            .log(logger);
+            .publishOn(clientScheduler);
+
+        return logEnabled ? request.log(logger) : request;
     }
 
 

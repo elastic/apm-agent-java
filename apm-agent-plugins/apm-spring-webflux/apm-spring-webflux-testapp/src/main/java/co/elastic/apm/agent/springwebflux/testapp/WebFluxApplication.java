@@ -26,10 +26,10 @@ package co.elastic.apm.agent.springwebflux.testapp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import reactor.core.publisher.Mono;
 
 import javax.net.ServerSocketFactory;
 import java.io.Closeable;
@@ -37,9 +37,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @SpringBootApplication
@@ -56,44 +58,86 @@ public class WebFluxApplication {
         int count = Integer.parseInt(parseOption(arguments, "--count", "0"));
 
         boolean isClient = arguments.contains("--client");
+        boolean logEnabled = arguments.contains("--log");
 
-        if (isClient) {
-            if (count <= 0) {
-                // execute at least once, otherwise it's useless
-                count = 1;
-            }
-            doSampleRequests(useFunc -> new GreetingWebClient("localhost", port, useFunc), count);
-        } else {
+        boolean isBench = arguments.contains("--benchmark");
+        boolean waitForKey = arguments.contains("--wait");
+
+        if (isBench) {
             // start the whole server & client
-            App app = run(port, server);
-            if (doSampleRequests(app::getClient, count)) {
-                // shutdown app when using sample requests, otherwise let it run like a regular spring boot app
+            App app = run(port, server, logEnabled);
+
+            count = Math.max(count, 100); // any smaller benchmark is not meaningful
+            try {
+                if(waitForKey){
+                    waitForKey();
+                }
+
+                // warmup has same duration as benchmark to help having consistent results
+                logger.info("warmup requests ({})", count);
+                doSampleRequests(app::getClient, count);
+                logger.info("warmup complete");
+
+                if(waitForKey){
+                    waitForKey();
+                }
+
+                logger.info("start benchmark ({})", count);
+                doSampleRequests(app::getClient, count);
+                logger.info("benchmark complete");
+
+                if(waitForKey){
+                    waitForKey();
+                }
+
+
+            } finally {
                 app.close();
             }
+        } else if (isClient) {
+            count = Math.max(count, 1);
+            doSampleRequests(useFunc -> new GreetingWebClient("localhost", port, useFunc, logEnabled), count);
+        } else {
+            // leave server running
         }
+
     }
 
-    private static boolean doSampleRequests(Function<Boolean, GreetingWebClient> clientProvider, int count) {
-        for (int i = 0; i < count; i++) {
-            for (Boolean functional : Arrays.asList(true, false)) {
-                logger.info("sample request {} / {} ({} endpoint)", i + 1, count, functional ? "functional" : "annotated");
+    private static void doSampleRequests(Function<Boolean, GreetingWebClient> clientProvider, int count) {
+        List<GreetingWebClient> clients = Stream.of(true, false)
+            .map(clientProvider)
+            .collect(Collectors.toList());
 
-                GreetingWebClient client = clientProvider.apply(functional);
-                Stream.of(
-                    client.getHelloMono(),
-                    client.getMappingError404(),
-                    client.getHandlerError(),
-                    client.getMonoError(),
-                    client.getMonoEmpty(),
-                    client.methodMapping("GET"),
-                    client.methodMapping("POST"),
-                    client.methodMapping("PUT"),
-                    client.methodMapping("DELETE"),
-                    client.withPathParameter("12345")
-                ).forEach(Mono::subscribe);
+        long start = System.currentTimeMillis();
+        int statusFrequency = count <= 10 ? 1: count / 10;
+
+        long timeLastUpdate = start;
+        int countLastUpdate = 0;
+
+        for (int i = 1; i <= count; i++) {
+            clients.forEach(GreetingWebClient::sampleRequests);
+
+            if (i % statusFrequency == 0 || i == count) {
+                long now = System.currentTimeMillis();
+                long timeSpent = now - timeLastUpdate;
+                int countSinceLastUpdate = i - countLastUpdate;
+                System.out.printf("progress = %1$6.02f %% (%2$d), count = %3$d in %4$d ms, average = %5$.02f ms%n",
+                    i * 100d / count,
+                    i,
+                    countSinceLastUpdate,
+                    timeSpent,
+                    timeSpent * 1d / countSinceLastUpdate
+                );
+                timeLastUpdate = now;
+                countLastUpdate = i;
+
+                if (i == count) {
+                    long totalTime = System.currentTimeMillis() - start;
+                    System.out.printf("total count = %d in %d ms, average = %.02f%n", count, totalTime, 1.0D * totalTime / count);
+                }
             }
         }
-        return count > 0;
+
     }
 
     /**
@@ -102,14 +146,16 @@ public class WebFluxApplication {
     public static class App implements Closeable {
         private final int port;
         private final ConfigurableApplicationContext context;
+        private final boolean logEnabled;
 
-        private App(int port, ConfigurableApplicationContext context) {
+        private App(int port, ConfigurableApplicationContext context, boolean logEnabled) {
             this.port = port;
             this.context = context;
+            this.logEnabled = logEnabled;
         }
 
         public GreetingWebClient getClient(boolean useFunctional) {
-            return new GreetingWebClient("localhost", port, useFunctional);
+            return new GreetingWebClient("localhost", port, useFunctional, logEnabled);
         }
 
         @Override
@@ -121,20 +167,25 @@ public class WebFluxApplication {
     /**
      * Starts application on provided port
      *
-     * @param port port to use
+     * @param port       port to use
+     * @param server     server implementation to use
+     * @param logEnabled true to enable client and server logging (very verbose, better for debugging)
      * @return application context
      */
-    public static App run(int port, String server) {
+    public static App run(int port, String server, boolean logEnabled) {
         if (port < 0) {
             port = getAvailableRandomPort();
         }
 
         SpringApplication app = new SpringApplication(WebFluxApplication.class);
-        app.setDefaultProperties(Map.of(
-            "server.port", port,
-            "server", server
-        ));
-        return new App(port, app.run());
+        Map<String, Object> appProperties = new HashMap<>();
+        app.setBannerMode(Banner.Mode.OFF);
+        appProperties.put("server.port", port);
+        appProperties.put("server", server);
+        appProperties.put("logging.level.org.springframework", logEnabled ? "ERROR": "OFF");
+        app.setDefaultProperties(appProperties);
+
+        return new App(port, app.run(), logEnabled);
     }
 
     private static String parseOption(List<String> arguments, String option, String defaultValue) {
@@ -153,6 +204,15 @@ public class WebFluxApplication {
             port = DEFAULT_PORT;
         }
         return port;
+    }
+
+    private static void waitForKey() {
+        System.out.println("hit any key to continue");
+        try {
+            System.in.read();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
 }

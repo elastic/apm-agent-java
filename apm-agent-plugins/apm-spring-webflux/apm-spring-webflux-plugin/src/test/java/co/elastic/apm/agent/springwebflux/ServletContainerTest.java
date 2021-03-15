@@ -44,7 +44,7 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
     static void startApp() {
 
         // using tomcat explicitly as netty is not a servlet container
-        app = WebFluxApplication.run(-1, "tomcat");
+        app = WebFluxApplication.run(-1, "tomcat", true);
 
         // client type and server endpoint do not matter here
         client = app.getClient(true);
