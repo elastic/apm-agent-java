@@ -162,7 +162,9 @@ pipeline {
                   deleteDir()
                   unstash 'source'
                   dir("${BASE_DIR}"){
-                    bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                    retryWithSleep(retries: 5, seconds: 10) {
+                      bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                    }
                   }
                 }
               }
