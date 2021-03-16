@@ -60,6 +60,13 @@
             <type>war</type>
         </dependency>
         <dependency>
+            <!-- this dependency is only important in order to make sure the external plugin jar exists -->
+            <groupId>${project.groupId}</groupId>
+            <artifactId>external-plugin</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
             <version>${project.version}</version>

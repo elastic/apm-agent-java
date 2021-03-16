@@ -43,7 +43,6 @@ import java.util.concurrent.TimeoutException;
 
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AUTO;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.AWS;
-import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.GCP;
 import static co.elastic.apm.agent.configuration.CoreConfiguration.CloudProvider.NONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
