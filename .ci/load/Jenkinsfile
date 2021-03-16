@@ -28,7 +28,7 @@ pipeline {
         skipDefaultCheckout() // don't re-checkout at avery stage
     }
     parameters {
-        string(name: "apm_version", defaultValue: "master", description: "Java agent version, use git ref or values from curl -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/elastic/apm-agent-java/tags | jq '.[] | .name'")
+        string(name: "apm_version", defaultValue: "master", description: "Java agent version, use pr/<PR-number> or git ref or values from curl -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/elastic/apm-agent-java/tags | jq '.[] | .name'")
         string(name: "jvm_version", defaultValue: "adoptopenjdk-8u275-linux", description: "JVM, use values from: curl -s https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64 | jq '.[] | .id'")
         string(name: "jvm_options", defaultValue: "", description: "Extra JVM options")
         string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")
