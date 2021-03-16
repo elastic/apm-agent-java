@@ -148,7 +148,7 @@ pipeline {
           agent { label 'windows-2019-docker-immutable' }
           options { skipDefaultCheckout() }
           environment {
-            JAVA_HOME = "${env.HOME}\\.java\\${env.JAVA_VERSION}"
+            JAVA_HOME = "C:\\Users\\jenkins\\.java\\${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
           }
           when {
