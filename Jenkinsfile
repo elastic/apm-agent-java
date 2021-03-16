@@ -144,7 +144,7 @@ pipeline {
             }
           }
         }
-        stage('Windows Tests') {
+        stage('Windows') {
           agent { label 'windows-2019-docker-immutable' }
           options { skipDefaultCheckout() }
           environment {
@@ -155,18 +155,31 @@ pipeline {
             beforeAgent true
             expression { return params.test_ci }
           }
-          steps {
-            withGithubNotify(context: 'Windows Tests', tab: 'tests') {
-              deleteDir()
-              unstash 'source'
-              dir("${BASE_DIR}"){
-                bat "mvnw clean install -Dmaven.javadoc.skip=true"
+          stages {
+            stage('Windows Build') {
+              steps {
+                withGithubNotify(context: 'Windows Build') {
+                  deleteDir()
+                  unstash 'source'
+                  dir("${BASE_DIR}"){
+                    bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                  }
+                }
               }
             }
-          }
-          post {
-            always {
-              reportTestResults()
+            stage('Windows Test') {
+              steps {
+                withGithubNotify(context: 'Windows Tests', tab: 'tests') {
+                  dir("${BASE_DIR}"){
+                    bat "mvnw test"
+                  }
+                }
+              }
+              post {
+                always {
+                  reportTestResultsOnly()
+                }
+              }
             }
           }
         }
@@ -367,8 +380,12 @@ pipeline {
 }
 
 def reportTestResults(){
+  reportTestResultsOnly()
+  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
+}
+
+def reportTestResultsOnly(){
   junit(allowEmptyResults: true,
     keepLongStdio: true,
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
 }
