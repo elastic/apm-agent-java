@@ -142,6 +142,33 @@ pipeline {
             }
           }
         }
+        stage('Windows Tests') {
+          agent { label 'windows-2019-docker-immutable' }
+          options { skipDefaultCheckout() }
+          environment {
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}\\.java\\java11"
+            PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
+          }
+          when {
+            beforeAgent true
+            expression { return params.test_ci }
+          }
+          steps {
+            withGithubNotify(context: 'Windows Tests', tab: 'tests') {
+              deleteDir()
+              unstash 'source'
+              dir("${BASE_DIR}"){
+                bat "mvnw clean install -Dmaven.javadoc.skip=true"
+              }
+            }
+          }
+          post {
+            always {
+              reportTestResults()
+            }
+          }
+        }
         /**
           Run smoke tests for different servers and databases.
         */
