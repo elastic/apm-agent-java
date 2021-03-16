@@ -134,7 +134,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
                 // don't wrap known #error #just #empty as they have instantaneous execution
                 if (publisher instanceof Fuseable.ScalarCallable) {
-                    log.trace("skip wrapping {}", subscriber.toString());
+                    log.trace("skip wrapping publisher {}", publisher);
                     return subscriber;
                 }
 

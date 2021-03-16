@@ -9,14 +9,6 @@ Server-side transactions instrumentation with support for:
 - Functional routes
 - deployment within a Servlet container/application-server
 
-## TODO
-
-- cleanup existing TODOs in codebase
-- test & document sample application
-    - run with agent CLI -> should instrument and cover all requests
-    - run with agent attach -> should have similar behavior as above.
-    - add benchmark mode (might not be required yet)
-
 Short term:
 
 - [ ] Server-side context propagation: capture upstream transaction HTTP headers (if any)

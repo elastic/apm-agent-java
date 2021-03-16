@@ -95,7 +95,7 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
         }
     }
 
-    protected void activate() {
+    private void activate() {
         // only activate on the outer method call, not the nested calls within same thread
         if (callDepth.isNestedCallAndIncrement()) {
             return;
@@ -104,8 +104,7 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
         context.activate();
     }
 
-
-    protected void deactivate() {
+    private void deactivate() {
         // only deactivate on the outer method call, not the nested calls within same thread
         if (callDepth.isNestedCallAndDecrement()) {
             return;

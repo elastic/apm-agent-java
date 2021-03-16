@@ -28,11 +28,13 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.reactor.TracedSubscriber;
+import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -57,22 +59,25 @@ import static co.elastic.apm.agent.springwebflux.WebFluxInstrumentation.SERVLET_
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
- * Transaction-aware subscriber that will terminate transaction on error and optionally on completion.
- * Transaction activation is handled in two ways:
- * <ul>
- *     <li>indirectly through {@link TracedSubscriber} wrapping from reactor plugin</li>
- *     <li>directly when executed outside of {@link TracedSubscriber} wrapping</li>
- * </ul>
+ * Transaction-aware subscriber that will activate transaction and terminate it on error and optionally on completion.
  *
  * @param <T>
  */
-public class TransactionAwareSubscriber<T> extends TracedSubscriber<T, Transaction> {
+public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
+    private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
+
+    private static final CallDepth callDepth = CallDepth.get(TransactionAwareSubscriber.class);
     private static final WeakConcurrentMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.createMap();
+
+    protected final CoreSubscriber<? super T> subscriber;
+    protected final Transaction context;
 
     private final ServerWebExchange exchange;
     private final boolean endOnComplete;
     private final boolean keepActive;
+    // only for human-friendly debugging
+    private final String description;
 
     /**
      * @param subscriber    subscriber to wrap
@@ -91,7 +96,9 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T, Transacti
                                       boolean keepActive,
                                       String description) {
 
-        super(subscriber, transaction, description);
+        this.context = transaction;
+        this.subscriber = subscriber;
+        this.description = description;
         this.exchange = exchange;
         this.endOnComplete = endOnComplete;
         this.keepActive = keepActive;
@@ -99,46 +106,84 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T, Transacti
 
     @Override
     public void onSubscribe(Subscription s) {
-        if (!keepActive) {
-            super.onSubscribe(s);
-        } else {
-            activate();
+        activate();
+        try {
             subscriber.onSubscribe(s);
+        } finally {
+            deactivateIfRequired();
         }
     }
 
+
+
     @Override
     public void onNext(T next) {
-        if (!keepActive) {
-            super.onNext(next);
-        } else {
+        activateIfRequired();
+        try {
             subscriber.onNext(next);
+        } finally {
+            deactivateIfRequired();
         }
     }
 
     @Override
     public void onError(Throwable throwable) {
-        if (!keepActive) {
-            super.onError(throwable);
-        } else {
+        activateIfRequired();
+        try {
             subscriber.onError(throwable);
+        } finally {
             deactivate();
         }
+
         endTransaction(context, exchange, throwable);
     }
 
     @Override
     public void onComplete() {
-        if (!keepActive) {
-            super.onComplete();
-        } else {
+        activateIfRequired();
+        try {
             subscriber.onComplete();
+        } finally {
             deactivate();
         }
 
         if (endOnComplete) {
             endTransaction(context, exchange, null);
         }
+    }
+
+    private void activateIfRequired() {
+        // if kept active, then should be already active
+        if (keepActive) {
+            return;
+        }
+        activate();
+    }
+
+    private void deactivateIfRequired() {
+        // if kept active, then no need to deactivate
+        if (keepActive) {
+            return;
+        }
+        deactivate();
+    }
+
+    private void activate() {
+        // only activate on the outer method call, not the nested calls within same thread
+        if (callDepth.isNestedCallAndIncrement()) {
+            return;
+        }
+        log.trace("{} activate context", description);
+        context.activate();
+    }
+
+    private void deactivate() {
+        // only deactivate on the outer method call, not the nested calls within same thread
+        if (callDepth.isNestedCallAndDecrement()) {
+            return;
+        }
+        log.trace("{} deactivate context", description);
+        context.deactivate();
     }
 
     static void endTransaction(Transaction transaction, ServerWebExchange exchange, @Nullable Throwable thrown) {
@@ -281,4 +326,5 @@ public class TransactionAwareSubscriber<T> extends TracedSubscriber<T, Transacti
             }
         }
     }
+
 }

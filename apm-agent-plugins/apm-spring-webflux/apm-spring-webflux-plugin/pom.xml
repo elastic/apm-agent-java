@@ -28,13 +28,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-            <version>${version.reactor}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webflux</artifactId>
             <version>${version.spring}</version>
@@ -46,13 +39,6 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
             <scope>provided</scope>
-        </dependency>
-
-        <!-- spring webflux relies on reactor, thus instrumentation depends on it -->
-        <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-reactor-plugin</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>
