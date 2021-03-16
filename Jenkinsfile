@@ -163,7 +163,7 @@ pipeline {
                   unstash 'source'
                   dir("${BASE_DIR}"){
                     retryWithSleep(retries: 5, seconds: 10) {
-                      bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true"
+                      bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
                     }
                   }
                 }
