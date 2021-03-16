@@ -16,6 +16,7 @@ pipeline {
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
     OPBEANS_REPO = 'opbeans-java'
+    JAVA_VERSION = "${params.JAVA_VERSION}"
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -31,6 +32,7 @@ pipeline {
     issueCommentTrigger('(?i)(.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?(?:benchmark\\W+)?tests(?:\\W+please)?|/test).*')
   }
   parameters {
+    string(name: 'JAVA_VERSION', defaultValue: 'java11', description: 'What Java version?')
     string(name: 'MAVEN_CONFIG', defaultValue: '-V -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dhttps.protocols=TLSv1.2 -Dmaven.wagon.http.retryHandler.count=3 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25', description: 'Additional maven options.')
     booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
@@ -44,7 +46,7 @@ pipeline {
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
@@ -117,7 +119,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -146,7 +148,7 @@ pipeline {
           agent { label 'windows-2019-docker-immutable' }
           options { skipDefaultCheckout() }
           environment {
-            JAVA_HOME = "${env.HOME}\\.java\\java11"
+            JAVA_HOME = "${env.HOME}\\.java\\${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
           }
           when {
@@ -176,7 +178,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -206,7 +208,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -237,7 +239,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
@@ -287,7 +289,7 @@ pipeline {
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java11"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/${env.JAVA_VERSION}"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
