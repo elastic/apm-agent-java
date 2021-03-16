@@ -172,11 +172,14 @@ public class GreetingWebClient {
         getHandlerError().onErrorResume(e -> Mono.empty()).block(timeout);
         getMonoError().onErrorResume(e -> Mono.empty()).block(timeout);
 
-        Stream.of("GET","POST","PUT","DELETE").forEach(method -> methodMapping(method).block(timeout));
+        Stream.of("GET", "POST", "PUT", "DELETE").forEach(method -> methodMapping(method).block(timeout));
 
         withPathParameter("12345").block(timeout);
 
-        childSpansSSE(10, 1, 3)
+        childSpans(5, 3, 1)
+            .blockLast(timeout);
+
+        childSpansSSE(5, 3, 1)
             .blockLast(timeout);
 
         webSocketPingPong(5);
