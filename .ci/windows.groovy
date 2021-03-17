@@ -40,23 +40,19 @@ pipeline {
     }
     stage('Windows Build') {
       steps {
-        withGithubNotify(context: 'Windows Build') {
-          deleteDir()
-          unstash 'source'
-          dir("${BASE_DIR}"){
-            retryWithSleep(retries: 5, seconds: 10) {
-              bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
-            }
+        deleteDir()
+        unstash 'source'
+        dir("${BASE_DIR}"){
+          retryWithSleep(retries: 5, seconds: 10) {
+            bat "mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.gitcommitid.skip=true"
           }
         }
       }
     }
     stage('Windows Verify') {
       steps {
-        withGithubNotify(context: 'Windows Verify', tab: 'tests') {
-          dir("${BASE_DIR}"){
-            bat "mvnw verify"
-          }
+        dir("${BASE_DIR}"){
+          bat "mvnw verify"
         }
       }
       post {
