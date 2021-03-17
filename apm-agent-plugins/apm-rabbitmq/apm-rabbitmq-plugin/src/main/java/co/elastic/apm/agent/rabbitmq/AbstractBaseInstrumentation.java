@@ -81,7 +81,7 @@ public abstract class AbstractBaseInstrumentation extends TracerAwareInstrumenta
         return age;
     }
 
-    protected static void captureHeaders(Map<String, Object> headers, Message message) {
+    protected static void captureHeaders(@Nullable Map<String, Object> headers, Message message) {
         if (!isCaptureHeaders() || headers == null || headers.size() <= 0) {
             return;
         }

@@ -62,7 +62,9 @@ public class SetMessageListenerInstrumentation extends SpringBaseInstrumentation
         return MessageListenerContainerWrappingAdvice.class;
     }
 
-    public static class MessageListenerContainerWrappingAdvice extends SpringBaseAdvice {
+    private static final MessageListenerHelper helper = new MessageListenerHelper();
+
+    public static class MessageListenerContainerWrappingAdvice {
 
         @Nullable
         @AssignTo.Argument(0)
