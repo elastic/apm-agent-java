@@ -55,8 +55,8 @@ public class RunnableCallableForkJoinTaskInstrumentation extends TracerAwareInst
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return hasSuperType(
             is(Runnable.class)
-            .or(is(Callable.class))
-            .or(is(ForkJoinTask.class))
+                .or(is(Callable.class))
+                .or(is(ForkJoinTask.class))
         );
     }
 

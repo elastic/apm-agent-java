@@ -147,6 +147,8 @@ Click on a key to get more information.
 ** <<config-log-format-file>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
+* <<config-metrics>>
+** <<config-dedot-custom-metrics>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -1844,6 +1846,35 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
 |============
 
+[[config-metrics]]
+=== Metrics configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-dedot-custom-metrics]]
+==== `dedot_custom_metrics` (added[1.22.0])
+
+Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+
+WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
+An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
+The first metric maps `foo` to a number and the second metric maps `foo` as an object.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS`
+|============
+
 [[config-profiling]]
 === Profiling configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -3410,6 +3441,22 @@ The default unit for this option is `ms`.
 # Default value: 
 #
 # ignore_message_queues=
+
+############################################
+# Metrics                                  #
+############################################
+
+# Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+# 
+# WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
+# An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
+# The first metric maps `foo` to a number and the second metric maps `foo` as an object.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# dedot_custom_metrics=true
 
 ############################################
 # Profiling                                #

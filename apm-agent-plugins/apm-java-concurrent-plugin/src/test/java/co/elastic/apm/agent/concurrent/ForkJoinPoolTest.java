@@ -94,7 +94,7 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
             .parallel()
             .<AbstractSpan<?>>map(s -> tracer.getActive())
             .distinct())
-        .containsExactly(transaction);
+            .containsExactly(transaction);
     }
 
     public static class AdaptedSupplier<V> extends ForkJoinTask<V> implements Runnable {
@@ -127,7 +127,9 @@ public class ForkJoinPoolTest extends AbstractInstrumentationTest {
         }
 
         @Override
-        public final void run() { invoke(); }
+        public final void run() {
+            invoke();
+        }
 
     }
 }
