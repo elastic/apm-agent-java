@@ -24,10 +24,7 @@
  */
 package co.elastic.apm.agent.rabbitmq.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.core.Queue;
+import co.elastic.apm.agent.rabbitmq.TestConstants;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
@@ -36,13 +33,14 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static co.elastic.apm.agent.rabbitmq.TestConstants.FANOUT_EXCHANGE;
-import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_BAR;
-import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_FOO;
-
 @Configuration
 @EnableRabbit
-public class FanoutConfiguration extends BaseConfiguration {
+public class RabbitListenerConfiguration extends DefaultBindingSpringConfiguration {
+
+    @RabbitListener(queues = TestConstants.QUEUE_NAME)
+    public void processMessage(String message) {
+        testSpan();
+    }
 
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
@@ -51,42 +49,4 @@ public class FanoutConfiguration extends BaseConfiguration {
         factory.setMessageConverter(new Jackson2JsonMessageConverter());
         return factory;
     }
-
-    @Bean
-    public FanoutExchange foobarExchange() {
-        return new FanoutExchange(FANOUT_EXCHANGE);
-    }
-
-    @Bean
-    public Binding bindingFoo() {
-        return BindingBuilder.bind(queueFoo()).to(foobarExchange());
-    }
-
-    @Bean
-    public Binding bindingBar() {
-        return BindingBuilder.bind(queueBar()).to(foobarExchange());
-    }
-
-    @Bean
-    Queue queueBar() {
-        return new Queue(QUEUE_BAR, false);
-    }
-
-    @Bean
-    Queue queueFoo() {
-        return new Queue(QUEUE_FOO, false);
-    }
-
-    @RabbitListener(queues = QUEUE_FOO)
-    public void processFooMessage(String message) {
-        System.out.println("foo process");
-        testSpan();
-    }
-
-    @RabbitListener(queues = QUEUE_BAR)
-    public void processBarMessage(String message) {
-        System.out.println("bar process");
-        testSpan();
-    }
-
 }

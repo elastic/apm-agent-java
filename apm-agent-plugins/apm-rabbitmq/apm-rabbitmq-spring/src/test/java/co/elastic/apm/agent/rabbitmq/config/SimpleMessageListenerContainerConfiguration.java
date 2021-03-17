@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,34 +22,22 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq;
+package co.elastic.apm.agent.rabbitmq.config;
 
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageListener;
+import co.elastic.apm.agent.rabbitmq.TestConstants;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.Nullable;
+@Configuration
+public class SimpleMessageListenerContainerConfiguration extends MessageListenerConfiguration {
 
-public class MessageListenerHelper {
-
-    @Nullable
-    public MessageListener wrapLambda(@Nullable MessageListener listener) {
-        if (listener != null && listener.getClass().getName().contains("/")) {
-            return new MessageListenerHelper.MessageListenerWrapper(listener);
-        }
-        return listener;
-    }
-
-    public static class MessageListenerWrapper implements MessageListener {
-
-        private final MessageListener delegate;
-
-        public MessageListenerWrapper(MessageListener delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void onMessage(Message message) {
-            delegate.onMessage(message);
-        }
+    @Bean
+    public SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
+        container.setQueueNames(TestConstants.QUEUE_NAME);
+        container.setMessageListener(messageListener());
+        return container;
     }
 }

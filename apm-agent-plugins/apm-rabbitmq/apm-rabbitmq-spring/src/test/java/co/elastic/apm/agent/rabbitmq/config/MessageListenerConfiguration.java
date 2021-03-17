@@ -24,21 +24,21 @@
  */
 package co.elastic.apm.agent.rabbitmq.config;
 
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
-
 @Configuration
-public class SimpleMessageListenerContainerConfiguration extends MessageListenerConfiguration {
+public class MessageListenerConfiguration extends DefaultBindingSpringConfiguration {
 
     @Bean
-    public SimpleMessageListenerContainer container(ConnectionFactory connectionFactory) {
-        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
-        container.setQueueNames(QUEUE_NAME);
-        container.setMessageListener(messageListener());
-        return container;
+    public MessageListener messageListener() {
+        return new MessageListener() {
+            @Override
+            public void onMessage(Message message) {
+                testSpan();
+            }
+        };
     }
 }

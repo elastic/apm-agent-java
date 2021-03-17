@@ -10,7 +10,7 @@
         <version>1.21.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>apm-rabbitmq-spring-test</artifactId>
+    <artifactId>apm-rabbitmq-spring</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
@@ -23,13 +23,19 @@
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
-            <classifier>tests</classifier>
-            <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+            <version>${version.spring-boot}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -42,12 +48,6 @@
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-api-plugin</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-            <version>${version.spring-boot}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -68,5 +68,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
 </project>

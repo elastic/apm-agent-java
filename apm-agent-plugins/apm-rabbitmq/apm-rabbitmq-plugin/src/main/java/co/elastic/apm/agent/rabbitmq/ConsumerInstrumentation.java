@@ -31,6 +31,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -38,6 +39,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -52,9 +54,15 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        // Spring RabbitMQ is supported through Spring interfaces, rather than the RabbitMQ API (apm-rabbitmq-spring module)
+        return not(nameStartsWith("org.springframework."));
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         // Instrumentation applied at runtime, thus no need to check type
-        return not(nameStartsWith("org.springframework."));
+        return any();
     }
 
     @Override

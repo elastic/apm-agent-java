@@ -24,21 +24,15 @@
  */
 package co.elastic.apm.agent.rabbitmq.config;
 
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.listener.DirectMessageListenerContainer;
+import org.springframework.amqp.core.MessageListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static co.elastic.apm.agent.rabbitmq.TestConstants.QUEUE_NAME;
-
 @Configuration
-public class DirectMessageListenerContainerConfiguration extends MessageListenerConfiguration {
+public class LambdaMessageListenerConfiguration extends DefaultBindingSpringConfiguration {
 
     @Bean
-    DirectMessageListenerContainer container(ConnectionFactory connectionFactory) {
-        DirectMessageListenerContainer directMessageListenerContainer = new DirectMessageListenerContainer(connectionFactory);
-        directMessageListenerContainer.setQueueNames(QUEUE_NAME);
-        directMessageListenerContainer.setMessageListener(messageListener());
-        return directMessageListenerContainer;
+    public MessageListener messageListener() {
+        return message -> testSpan();
     }
 }

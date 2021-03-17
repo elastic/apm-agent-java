@@ -36,12 +36,8 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.containers.RabbitMQContainer;
 
-import java.io.IOException;
 import java.util.List;
 
-import static co.elastic.apm.agent.rabbitmq.TestConstants.DOCKER_TESTCONTAINER_RABBITMQ_IMAGE;
-import static co.elastic.apm.agent.rabbitmq.TestConstants.ROUTING_KEY;
-import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
@@ -51,7 +47,7 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
     static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         @Override
         public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-            container = new RabbitMQContainer(DOCKER_TESTCONTAINER_RABBITMQ_IMAGE);
+            container = new RabbitMQContainer(TestConstants.DOCKER_TESTCONTAINER_RABBITMQ_IMAGE);
             container.start();
 
             TestPropertyValues.of(
@@ -64,7 +60,7 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
     }
 
     @AfterClass
-    public static void after() throws IOException {
+    public static void after() {
         container.close();
         ElasticApmAgent.reset();
     }
@@ -77,7 +73,7 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
         disableRecyclingValidation();
 
         String message = "foo-bar";
-        rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, ROUTING_KEY, message);
+        rabbitTemplate.convertAndSend(TestConstants.TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, message);
 
         getReporter().awaitTransactionCount(1);
         getReporter().awaitSpanCount(1);
