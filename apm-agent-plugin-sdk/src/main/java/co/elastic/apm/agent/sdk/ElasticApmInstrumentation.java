@@ -47,8 +47,8 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
  * For internal plugins, the whole package (starting at the {@linkplain #getAdviceClass() advice's} package)
- * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the class this instruments as
- * parents.
+ * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the
+ * instrumented class as parents.
  * This class loader is also known as the {@code IndyPluginClassLoader}.
  * For external plugin, the whole jar will be loaded from the indy plugin class loader.
  * <p>

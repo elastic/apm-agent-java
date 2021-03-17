@@ -40,6 +40,9 @@ to assist with such efforts.
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
 * Support for OkHttp 4.4+ -  {pull}1672[#1672]
+* Adding capability to automatically create ECS-JSON-formatted version of the original application log files, through
+the <<config-log-ecs-reformatting>> config option. This allows effortless ingestion of logs to Elasticsearch without
+any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
 
 [float]
 ===== Bug fixes
