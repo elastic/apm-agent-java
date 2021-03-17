@@ -152,7 +152,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .addValidator(new ConfigurationOption.Validator<Boolean>() {
             @Override
             public void assertValid(Boolean value) {
-                if (logCorrelationEnabled != null && isLogCorrelationEnabled() && Boolean.FALSE.equals(value)) {
+                if (logCorrelationEnabled != null && logCorrelationEnabled.get() && Boolean.FALSE.equals(value)) {
                     // the reason is that otherwise the MDC will not be cleared when disabling while a span is currently active
                     throw new IllegalArgumentException("Disabling the log correlation at runtime is not possible.");
                 }
