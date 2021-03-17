@@ -24,10 +24,6 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.context.Message;
-import com.rabbitmq.client.AMQP;
-
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -36,13 +32,5 @@ public abstract class RabbitmqBaseInstrumentation extends AbstractBaseInstrument
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("rabbitmq");
-    }
-
-    protected static long getTimestamp(@Nullable AMQP.BasicProperties properties) {
-        return getTimestamp(properties != null ? properties.getTimestamp() : null);
-    }
-
-    protected static void captureHeaders(@Nullable AMQP.BasicProperties properties, Message message) {
-        captureHeaders(properties.getHeaders(), message);
     }
 }
