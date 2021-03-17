@@ -37,8 +37,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
-
 @Configuration
 public class BaseConfiguration {
 
@@ -73,7 +71,5 @@ public class BaseConfiguration {
 
     @CaptureSpan(value = "testSpan", type = "http", subtype = "get", action = "test")
     public void testSpan() {
-        for (int i = 0; i < 10; i++) {
-        }
     }
 }

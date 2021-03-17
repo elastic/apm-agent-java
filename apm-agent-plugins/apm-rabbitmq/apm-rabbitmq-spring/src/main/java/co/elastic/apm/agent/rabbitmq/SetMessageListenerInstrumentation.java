@@ -70,7 +70,7 @@ public class SetMessageListenerInstrumentation extends SpringBaseInstrumentation
         @AssignTo.Argument(0)
         @Advice.OnMethodEnter(inline = false)
         public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
-            return helper.wrapLambda(original);
+            return helper.registerAndWrapLambda(original);
         }
     }
 }
