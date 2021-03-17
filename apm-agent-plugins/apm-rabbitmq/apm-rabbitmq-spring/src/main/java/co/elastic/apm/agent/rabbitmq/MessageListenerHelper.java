@@ -32,9 +32,12 @@ import javax.annotation.Nullable;
 public class MessageListenerHelper {
 
     @Nullable
-    public MessageListener wrapLambda(@Nullable MessageListener listener) {
-        if (listener != null && listener.getClass().getName().contains("/")) {
-            return new MessageListenerWrapper(listener);
+    public MessageListener registerAndWrapLambda(@Nullable MessageListener listener) {
+        if (listener != null) {
+            if (listener.getClass().getName().contains("/")) {
+                listener = new MessageListenerWrapper(listener);
+            }
+            SpringAmqpTransactionNameUtil.register(listener);
         }
         return listener;
     }

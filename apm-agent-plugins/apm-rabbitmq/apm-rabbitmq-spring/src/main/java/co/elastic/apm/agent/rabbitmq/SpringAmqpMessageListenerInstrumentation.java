@@ -31,6 +31,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageListener;
+import org.springframework.amqp.core.MessageProperties;
 
 import javax.annotation.Nullable;
 
@@ -58,16 +60,20 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
         return SpringAmqpMessageListenerAdvice.class;
     }
 
-    public static class SpringAmqpMessageListenerAdvice extends SpringBaseAdvice {
+    public static class SpringAmqpMessageListenerAdvice {
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object beforeMessageHandle(@Advice.Origin Class<?> originClazz,
+        public static Object beforeMessageHandle(@Advice.This MessageListener listener,
                                                  @Advice.Argument(value = 0) @Nullable final Message message) {
             if (message == null) {
                 return null;
             }
-            String exchangeOrQueue = message.getMessageProperties().getReceivedExchange();
+            MessageProperties messageProperties = message.getMessageProperties();
+            if (messageProperties == null) {
+                return null;
+            }
+            String exchangeOrQueue = messageProperties.getReceivedExchange();
             if (null == exchangeOrQueue || isIgnored(exchangeOrQueue)) {
                 return null;
             }
@@ -76,19 +82,22 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
             if (transaction != null) {
                 return null;
             }
-            transaction = tracer.startChildTransaction(message.getMessageProperties(), SpringRabbitMQTextHeaderGetter.INSTANCE, originClazz.getClassLoader());
+            transaction = tracer.startChildTransaction(messageProperties, SpringRabbitMQTextHeaderGetter.INSTANCE, listener.getClass().getClassLoader());
             if (transaction == null) {
                 return null;
             }
 
             transaction.withType("messaging")
-                .withName("RabbitMQ RECEIVE from ").appendToName(normalizeExchangeName(exchangeOrQueue));
+                .withName(SpringAmqpTransactionNameUtil.getTransactionNamePrefix(listener))
+                .appendToName(" RECEIVE from ")
+                .appendToName(normalizeExchangeName(exchangeOrQueue));
 
             transaction.setFrameworkName("Spring AMQP");
 
-            co.elastic.apm.agent.impl.context.Message internalMessage = captureMessage(exchangeOrQueue, getTimestamp(message.getMessageProperties()), transaction);
+            long timestamp = getTimestamp(messageProperties.getTimestamp());
+            co.elastic.apm.agent.impl.context.Message internalMessage = captureMessage(exchangeOrQueue, timestamp, transaction);
             // only capture incoming messages headers for now (consistent with other messaging plugins)
-            captureHeaders(message.getMessageProperties(), internalMessage);
+            captureHeaders(messageProperties.getHeaders(), internalMessage);
             return transaction.activate();
         }
 

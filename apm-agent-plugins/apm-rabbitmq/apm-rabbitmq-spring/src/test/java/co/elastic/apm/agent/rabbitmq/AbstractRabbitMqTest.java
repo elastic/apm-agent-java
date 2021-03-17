@@ -26,6 +26,7 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -36,8 +37,14 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.containers.RabbitMQContainer;
 
+
 import java.util.List;
 
+import static co.elastic.apm.agent.rabbitmq.RabbitMQTest.checkParentChild;
+import static co.elastic.apm.agent.rabbitmq.RabbitMQTest.checkSendSpan;
+import static co.elastic.apm.agent.rabbitmq.RabbitMQTest.checkTransaction;
+import static co.elastic.apm.agent.rabbitmq.RabbitMQTest.getNonRootTransaction;
+import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
@@ -72,19 +79,25 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
     public void verifyThatTransactionWithSpanCreated() {
         disableRecyclingValidation();
 
+        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         String message = "foo-bar";
-        rabbitTemplate.convertAndSend(TestConstants.TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, message);
+        rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, message);
+        rootTransaction.deactivate().end();
 
-        getReporter().awaitTransactionCount(1);
-        getReporter().awaitSpanCount(1);
+        getReporter().awaitTransactionCount(2);
+        getReporter().awaitSpanCount(2);
 
-        List<Transaction> transactionList = getReporter().getTransactions();
+        Transaction receiveTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
+        checkTransaction(receiveTransaction, TOPIC_EXCHANGE_NAME, "Spring AMQP");
+        assertThat(receiveTransaction.getSpanCount().getTotal().get()).isEqualTo(1);
 
-        assertThat(transactionList.size()).isEqualTo(1);
-        Transaction transaction = transactionList.get(0);
-        assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ RECEIVE from spring-boot-exchange");
+        List<Span> spans = getReporter().getSpans();
+        Span sendSpan = spans.get(0);
+        checkSendSpan(sendSpan, TOPIC_EXCHANGE_NAME, container.getHost(), container.getAmqpPort());
+        checkParentChild(sendSpan, receiveTransaction);
 
-        assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(1);
-        assertThat(getReporter().getFirstSpan().getNameAsString()).isEqualTo("testSpan");
+        Span testSpan = spans.get(1);
+        assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
+        checkParentChild(receiveTransaction, testSpan);
     }
 }

@@ -116,9 +116,11 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
 
             transaction.setFrameworkName("RabbitMQ");
 
-            Message message = captureMessage(exchange, getTimestamp(properties), transaction);
+            Message message = captureMessage(exchange, getTimestamp(properties != null ? properties.getTimestamp() : null), transaction);
             // only capture incoming messages headers for now (consistent with other messaging plugins)
-            captureHeaders(properties, message);
+            if (properties != null) {
+                captureHeaders(properties.getHeaders(), message);
+            }
             return transaction.activate();
         }
 

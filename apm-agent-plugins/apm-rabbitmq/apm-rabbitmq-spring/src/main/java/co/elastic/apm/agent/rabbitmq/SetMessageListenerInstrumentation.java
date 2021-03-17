@@ -62,13 +62,15 @@ public class SetMessageListenerInstrumentation extends SpringBaseInstrumentation
         return MessageListenerContainerWrappingAdvice.class;
     }
 
-    public static class MessageListenerContainerWrappingAdvice extends SpringBaseAdvice {
+    private static final MessageListenerHelper helper = new MessageListenerHelper();
+
+    public static class MessageListenerContainerWrappingAdvice {
 
         @Nullable
         @AssignTo.Argument(0)
         @Advice.OnMethodEnter(inline = false)
         public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
-            return helper.wrapLambda(original);
+            return helper.registerAndWrapLambda(original);
         }
     }
 }

@@ -54,6 +54,7 @@ public abstract class AbstractTextHeaderGetter<T> implements TextHeaderGetter<T>
         }
     }
 
+    @Nullable
     protected abstract Map<String, Object> getHeaders(T carrier);
 
 }

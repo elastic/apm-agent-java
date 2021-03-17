@@ -147,7 +147,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
 
             properties = propagateTraceContext(exitSpan, properties);
 
-            captureMessage(exchange, getTimestamp(properties), exitSpan);
+            captureMessage(exchange, getTimestamp(properties.getTimestamp()), exitSpan);
             captureDestination(exchange, channel, exitSpan);
 
             return new Object[]{properties, exitSpan};
@@ -246,7 +246,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
                 span.requestDiscarding();
             }
 
-            captureMessage(queue, getTimestamp(properties), span);
+            captureMessage(queue, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
             captureDestination(exchange, channel, span);
 
             span.captureException(thrown)
