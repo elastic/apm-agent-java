@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.util.VersionUtils;
 
