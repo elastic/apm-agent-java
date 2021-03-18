@@ -77,8 +77,6 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
 
     @Test
     public void verifyThatTransactionWithSpanCreated() {
-        disableRecyclingValidation();
-
         Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         String message = "foo-bar";
         rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, message);
