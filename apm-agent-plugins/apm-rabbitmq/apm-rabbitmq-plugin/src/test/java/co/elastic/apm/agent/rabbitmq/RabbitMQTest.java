@@ -685,7 +685,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         Destination destination = span.getContext().getDestination();
 
-//        assertThat(destination.getAddress().toString()).isEqualTo(host);
+        assertThat(destination.getAddress().toString()).isEqualTo(host);
         assertThat(destination.getPort()).isEqualTo(port);
 
         Destination.Service service = destination.getService();
