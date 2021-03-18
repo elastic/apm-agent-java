@@ -24,16 +24,23 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
-import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentation {
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return not(isInterface()).and(hasSuperType(named("org.springframework.amqp.core.MessageListener")));
+    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -44,5 +51,16 @@ public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentat
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
             .and(classLoaderCanLoadClass("org.springframework.amqp.core.MessageListener"));
+    }
+
+    protected static class BaseAdvice {
+
+        protected static final MessageBatchHelper messageBatchHelper;
+
+        static {
+            ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
+
+            messageBatchHelper = new MessageBatchHelperImpl(elasticApmTracer);
+        }
     }
 }

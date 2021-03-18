@@ -44,10 +44,6 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrumentation {
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named("org.springframework.amqp.core.MessageListener")));
-    }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -87,12 +83,12 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
                 return null;
             }
 
-            transaction.withType("messaging")
+            transaction.withType(AmqpConstants.TRANSACTION_MESSAGING_TYPE)
                 .withName(SpringAmqpTransactionNameUtil.getTransactionNamePrefix(listener))
                 .appendToName(" RECEIVE from ")
                 .appendToName(normalizeExchangeName(exchangeOrQueue));
 
-            transaction.setFrameworkName("Spring AMQP");
+            transaction.setFrameworkName(AmqpConstants.FRAMEWORK_NAME);
 
             long timestamp = getTimestamp(messageProperties.getTimestamp());
             co.elastic.apm.agent.impl.context.Message internalMessage = captureMessage(exchangeOrQueue, timestamp, transaction);
