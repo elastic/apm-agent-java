@@ -60,4 +60,9 @@ public class FanoutTest extends AbstractRabbitMqTest {
             assertThat(getReporter().getFirstSpan().getNameAsString()).isEqualTo("testSpan");
         }
     }
+
+    @Test
+    public void verifyTransactionWithDefaultExchangeName() {
+    }
+
 }

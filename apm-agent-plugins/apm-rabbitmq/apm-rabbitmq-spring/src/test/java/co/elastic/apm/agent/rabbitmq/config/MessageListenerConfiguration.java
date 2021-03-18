@@ -24,6 +24,9 @@
  */
 package co.elastic.apm.agent.rabbitmq.config;
 
+import co.elastic.apm.agent.rabbitmq.RabbitMQTest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageListener;
 import org.springframework.context.annotation.Bean;
@@ -32,11 +35,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MessageListenerConfiguration extends DefaultBindingSpringConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(MessageListenerConfiguration.class);
+
     @Bean
     public MessageListener messageListener() {
         return new MessageListener() {
             @Override
             public void onMessage(Message message) {
+                logger.info("Handle message = {}", message.toString());
                 testSpan();
             }
         };

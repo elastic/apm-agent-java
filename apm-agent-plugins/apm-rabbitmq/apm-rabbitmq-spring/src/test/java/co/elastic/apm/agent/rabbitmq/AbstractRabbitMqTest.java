@@ -51,10 +51,13 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
 
     private static RabbitMQContainer container;
 
+    private static final String MESSAGE = "foo-bar";
+
     static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         @Override
         public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
             container = new RabbitMQContainer(TestConstants.DOCKER_TESTCONTAINER_RABBITMQ_IMAGE);
+            container.withExtraHost("localhost", "127.0.0.1");
             container.start();
 
             TestPropertyValues.of(
@@ -78,8 +81,7 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
     @Test
     public void verifyThatTransactionWithSpanCreated() {
         Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
-        String message = "foo-bar";
-        rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, message);
+        rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
         rootTransaction.deactivate().end();
 
         getReporter().awaitTransactionCount(2);
@@ -97,5 +99,19 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
         Span testSpan = spans.get(1);
         assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         checkParentChild(receiveTransaction, testSpan);
+    }
+
+    @Test
+    public void verifyTransactionWithDefaultExchangeName() {
+        Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
+        rabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, MESSAGE);
+        rootTransaction.deactivate().end();
+
+        getReporter().awaitTransactionCount(2);
+        getReporter().awaitSpanCount(2);
+
+        Transaction receiveTransaction = getNonRootTransaction(rootTransaction, getReporter().getTransactions());
+        checkTransaction(receiveTransaction, "", "Spring AMQP");
+        assertThat(receiveTransaction.getSpanCount().getTotal().get()).isEqualTo(1);
     }
 }
