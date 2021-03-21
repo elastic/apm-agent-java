@@ -79,7 +79,7 @@ class MicrometerInstrumentationTest {
         ElasticApmAgent.initInstrumentation(MockTracer.createRealTracer(reporter, config), ByteBuddyAgent.install());
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         registry.counter("foo").increment();
-        reporter.awaitUntilAsserted(() -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
+        reporter.awaitUntilAsserted(2000, () -> assertThat(countFooSamples()).isGreaterThanOrEqualTo(1));
     }
 
     private int countFooSamples() {
