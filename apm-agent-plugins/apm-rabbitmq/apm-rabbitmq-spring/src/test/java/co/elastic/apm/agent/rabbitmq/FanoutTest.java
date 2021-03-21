@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.rabbitmq.config.FanoutConfiguration;
 import org.junit.Test;
@@ -39,30 +40,28 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@ContextConfiguration(classes = {FanoutConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
-public class FanoutTest extends AbstractRabbitMqTest {
+@ContextConfiguration(classes = {FanoutConfiguration.class}, initializers = {RabbitMqTestBase.Initializer.class})
+public class FanoutTest extends RabbitMqTestBase {
 
     @Test
-    @Override
     public void verifyThatTransactionWithSpanCreated() {
         String message = "hello from foobar";
         rabbitTemplate.setExchange(FANOUT_EXCHANGE);
         rabbitTemplate.convertAndSend(message);
 
         getReporter().awaitTransactionCount(2);
+        getReporter().awaitSpanCount(2);
 
         List<Transaction> transactionList = getReporter().getTransactions();
-
         assertThat(transactionList.size()).isEqualTo(2);
         for (Transaction transaction : transactionList) {
             assertThat(transaction.getNameAsString()).isEqualTo("RabbitMQ RECEIVE from foobar");
             assertThat(transaction.getSpanCount().getTotal().get()).isEqualTo(1);
-            assertThat(getReporter().getFirstSpan().getNameAsString()).isEqualTo("testSpan");
+        }
+
+        List<Span> testSpans = getReporter().getSpans();
+        for (Span testSpan : testSpans) {
+            assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
         }
     }
-
-    @Test
-    public void verifyTransactionWithDefaultExchangeName() {
-    }
-
 }

@@ -24,19 +24,9 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.junit.AfterClass;
 import org.junit.Test;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.util.TestPropertyValues;
-import org.springframework.context.ApplicationContextInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.testcontainers.containers.RabbitMQContainer;
-
 
 import java.util.List;
 
@@ -47,39 +37,22 @@ import static co.elastic.apm.agent.rabbitmq.RabbitMQTest.getNonRootTransaction;
 import static co.elastic.apm.agent.rabbitmq.TestConstants.TOPIC_EXCHANGE_NAME;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
-
-    private static RabbitMQContainer container;
+public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
 
     private static final String MESSAGE = "foo-bar";
 
-    static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-        @Override
-        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-            container = new RabbitMQContainer(TestConstants.DOCKER_TESTCONTAINER_RABBITMQ_IMAGE);
-            container.withExtraHost("localhost", "127.0.0.1");
-            container.start();
-
-            TestPropertyValues.of(
-                "spring.rabbitmq.host=" + container.getHost(),
-                "spring.rabbitmq.port=" + container.getAmqpPort(),
-                "spring.rabbitmq.username=" + container.getAdminUsername(),
-                "spring.rabbitmq.password=" + container.getAdminPassword())
-                .applyTo(configurableApplicationContext.getEnvironment());
-        }
-    }
-
-    @AfterClass
-    public static void after() {
-        container.close();
-        ElasticApmAgent.reset();
-    }
-
-    @Autowired
-    public RabbitTemplate rabbitTemplate;
-
     @Test
     public void verifyThatTransactionWithSpanCreated() {
+        rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
+        Transaction receiveTransaction = reporter.getFirstTransaction(1000);
+        checkTransaction(receiveTransaction, TOPIC_EXCHANGE_NAME, "Spring AMQP");
+        Span testSpan = reporter.getFirstSpan(1000);
+        assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
+        checkParentChild(receiveTransaction, testSpan);
+    }
+
+    @Test
+    public void verifyThatTransactionWithSpanCreated_DistributedTracing() {
         Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_NAME, TestConstants.ROUTING_KEY, MESSAGE);
         rootTransaction.deactivate().end();
@@ -103,6 +76,16 @@ public abstract class AbstractRabbitMqTest extends AbstractInstrumentationTest {
 
     @Test
     public void verifyTransactionWithDefaultExchangeName() {
+        rabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, MESSAGE);
+        Transaction receiveTransaction = reporter.getFirstTransaction(1000);
+        checkTransaction(receiveTransaction, "", "Spring AMQP");
+        assertThat(receiveTransaction.getSpanCount().getTotal().get()).isEqualTo(1);
+        Span testSpan = reporter.getFirstSpan(1000);
+        assertThat(testSpan.getNameAsString()).isEqualTo("testSpan");
+    }
+
+    @Test
+    public void verifyTransactionWithDefaultExchangeName_DistributedTracing() {
         Transaction rootTransaction = startTestRootTransaction("Rabbit-Test Root Transaction");
         rabbitTemplate.convertAndSend(TestConstants.QUEUE_NAME, MESSAGE);
         rootTransaction.deactivate().end();
