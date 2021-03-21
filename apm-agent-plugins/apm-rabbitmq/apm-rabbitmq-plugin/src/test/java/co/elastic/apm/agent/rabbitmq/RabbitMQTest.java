@@ -52,9 +52,9 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -674,9 +674,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         Destination destination = span.getContext().getDestination();
 
         assertThat(destination.getPort()).isEqualTo(container.getAmqpPort());
-        if (!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win")) {
-            assertThat(destination.getAddress().toString()).isEqualTo(container.getHost());
-        }
+        assertThat(destination.getAddress().toString()).isEqualTo(URI.create(container.getAmqpUrl()).getHost());
 
         Destination.Service service = destination.getService();
 
