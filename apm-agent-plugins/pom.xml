@@ -57,6 +57,7 @@
         <module>apm-jdk-httpclient-plugin</module>
         <module>apm-rabbitmq</module>
         <module>apm-okhttp-test</module>
+        <module>apm-cassandra</module>
     </modules>
 
     <dependencies>

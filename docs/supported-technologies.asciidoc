@@ -228,6 +228,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The actual query will not be recorded.
 |1.12.0
 
+|Cassandra
+|2.x+
+|
+|1.22.0
+
 |===
 
 [float]
