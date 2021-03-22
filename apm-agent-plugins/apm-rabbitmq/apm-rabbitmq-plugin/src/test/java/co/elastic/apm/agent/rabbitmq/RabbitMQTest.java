@@ -52,6 +52,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -531,7 +532,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         rootTransaction.deactivate().end();
     }
 
-    private static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions) {
+    static Transaction getNonRootTransaction(Transaction rootTransaction, List<Transaction> transactions) {
         Transaction childTransaction = null;
         for (Transaction t : transactions) {
             if (t != rootTransaction) {
@@ -573,7 +574,7 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         return new AMQP.BasicProperties.Builder().headers(new HashMap<>()).build();
     }
 
-    private static void checkParentChild(AbstractSpan<?> parent, AbstractSpan<?> child) {
+    static void checkParentChild(AbstractSpan<?> parent, AbstractSpan<?> child) {
         assertThat(child.getTraceContext().getParentId())
             .describedAs("child (%s) should be a child of (%s)", child, parent)
             .isEqualTo(parent.getTraceContext().getId());
@@ -584,10 +585,14 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     }
 
     private static void checkTransaction(Transaction transaction, String exchange) {
+        checkTransaction(transaction, exchange, "RabbitMQ");
+    }
+
+    static void checkTransaction(Transaction transaction, String exchange, String frameworkName) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString())
             .isEqualTo("RabbitMQ RECEIVE from %s", exchange.isEmpty() ? "<default>" : exchange);
-        assertThat(transaction.getFrameworkName()).isEqualTo("RabbitMQ");
+        assertThat(transaction.getFrameworkName()).isEqualTo(frameworkName);
 
         assertThat(transaction.getOutcome()).isEqualTo(Outcome.SUCCESS);
 
@@ -643,24 +648,34 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     }
 
     private static void checkSendSpan(Span span, String exchange) {
+        checkSendSpan(span, exchange, container.getAmqpUrl());
+    }
+
+    static void checkSendSpan(Span span, String exchange, String amqpUrl) {
+        URI uri = URI.create(amqpUrl);
         String exchangeName = exchange.isEmpty() ? "<default>" : exchange;
         checkSpanCommon(span,
             "send",
             String.format("RabbitMQ SEND to %s", exchangeName),
             exchangeName,
-            String.format("rabbitmq/%s", exchangeName));
-
+            String.format("rabbitmq/%s", exchangeName),
+            uri.getHost(),
+            uri.getPort());
     }
 
-    private static void checkPollSpan(Span span, String queue, String normalizedExchange){
+    private static void checkPollSpan(Span span, String queue, String normalizedExchange) {
         checkSpanCommon(span,
             "poll",
             String.format("RabbitMQ POLL from %s", queue),
             queue,
-            String.format("rabbitmq/%s", normalizedExchange));
+            String.format("rabbitmq/%s", normalizedExchange),
+            container.getHost(),
+            container.getAmqpPort());
     }
 
-    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName, String expectedResource){
+    private static void
+    checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName,
+                                        String expectedResource, String host, int port) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo(expectedAction);
@@ -672,8 +687,8 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         Destination destination = span.getContext().getDestination();
 
-        assertThat(destination.getPort()).isEqualTo(container.getAmqpPort());
-        assertThat(destination.getAddress().toString()).isEqualTo(container.getHost());
+        assertThat(destination.getAddress().toString()).isEqualTo(host);
+        assertThat(destination.getPort()).isEqualTo(port);
 
         Destination.Service service = destination.getService();
 
