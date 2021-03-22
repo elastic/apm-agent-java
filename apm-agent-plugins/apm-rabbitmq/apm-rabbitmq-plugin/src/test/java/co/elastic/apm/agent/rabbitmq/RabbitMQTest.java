@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -684,7 +685,9 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
         Destination destination = span.getContext().getDestination();
 
         URI uri = URI.create(amqpUrl);
-        assertThat(destination.getAddress().toString()).isEqualTo(uri.getHost());
+        if (!System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win")) {
+            assertThat(destination.getAddress().toString()).isEqualTo(uri.getHost());
+        }
         assertThat(destination.getPort()).isEqualTo(uri.getPort());
 
         Destination.Service service = destination.getService();
