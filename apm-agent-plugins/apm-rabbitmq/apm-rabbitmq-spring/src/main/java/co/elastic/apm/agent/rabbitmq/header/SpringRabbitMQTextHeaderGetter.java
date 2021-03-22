@@ -24,19 +24,19 @@
  */
 package co.elastic.apm.agent.rabbitmq.header;
 
-import com.rabbitmq.client.AMQP;
+import org.springframework.amqp.core.MessageProperties;
 
 import java.util.Map;
 
-public class RabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<AMQP.BasicProperties> {
+public class SpringRabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<MessageProperties> {
 
-    public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
+    public static final SpringRabbitMQTextHeaderGetter INSTANCE = new SpringRabbitMQTextHeaderGetter();
 
-    private RabbitMQTextHeaderGetter() {
+    private SpringRabbitMQTextHeaderGetter() {
     }
 
     @Override
-    protected Map<String, Object> getHeaders(AMQP.BasicProperties carrier) {
+    protected Map<String, Object> getHeaders(MessageProperties carrier) {
         return carrier.getHeaders();
     }
 }

@@ -22,21 +22,27 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq.header;
+package co.elastic.apm.agent.rabbitmq;
 
-import com.rabbitmq.client.AMQP;
+import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Map;
+import java.util.Collection;
+import java.util.Collections;
 
-public class RabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<AMQP.BasicProperties> {
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
-    public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
+public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentation {
 
-    private RabbitMQTextHeaderGetter() {
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singletonList("spring-amqp");
     }
 
     @Override
-    protected Map<String, Object> getHeaders(AMQP.BasicProperties carrier) {
-        return carrier.getHeaders();
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return not(isBootstrapClassLoader())
+            .and(classLoaderCanLoadClass("org.springframework.amqp.core.MessageListener"));
     }
 }

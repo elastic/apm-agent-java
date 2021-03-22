@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,21 +22,22 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq.header;
+package co.elastic.apm.agent.rabbitmq;
 
-import com.rabbitmq.client.AMQP;
+import co.elastic.apm.agent.sdk.state.GlobalState;
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 
-import java.util.Map;
+@GlobalState
+public class SpringAmqpTransactionNameUtil {
 
-public class RabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<AMQP.BasicProperties> {
+    private static final WeakConcurrentSet<Object> rabbitListeners = WeakMapSupplier.createSet();
 
-    public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
-
-    private RabbitMQTextHeaderGetter() {
+    public static String getTransactionNamePrefix(Object listener) {
+        return rabbitListeners.contains(listener) ? "RabbitMQ" : "Spring AMQP";
     }
 
-    @Override
-    protected Map<String, Object> getHeaders(AMQP.BasicProperties carrier) {
-        return carrier.getHeaders();
+    public static void register(Object listener) {
+        rabbitListeners.add(listener);
     }
 }
