@@ -52,6 +52,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -647,18 +648,19 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     }
 
     private static void checkSendSpan(Span span, String exchange) {
-        checkSendSpan(span, exchange, container.getHost(), container.getAmqpPort());
+        checkSendSpan(span, exchange, container.getAmqpUrl());
     }
 
-    static void checkSendSpan(Span span, String exchange, String host, int port) {
+    static void checkSendSpan(Span span, String exchange, String amqpUrl) {
+        URI uri = URI.create(amqpUrl);
         String exchangeName = exchange.isEmpty() ? "<default>" : exchange;
         checkSpanCommon(span,
             "send",
             String.format("RabbitMQ SEND to %s", exchangeName),
             exchangeName,
             String.format("rabbitmq/%s", exchangeName),
-            host,
-            port);
+            uri.getHost(),
+            uri.getPort());
     }
 
     private static void checkPollSpan(Span span, String queue, String normalizedExchange) {
