@@ -22,21 +22,15 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq.header;
+package co.elastic.apm.agent.rabbitmq;
 
-import com.rabbitmq.client.AMQP;
+import java.util.Collection;
+import java.util.Collections;
 
-import java.util.Map;
-
-public class RabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<AMQP.BasicProperties> {
-
-    public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
-
-    private RabbitMQTextHeaderGetter() {
-    }
+public abstract class RabbitmqBaseInstrumentation extends AbstractBaseInstrumentation {
 
     @Override
-    protected Map<String, Object> getHeaders(AMQP.BasicProperties carrier) {
-        return carrier.getHeaders();
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singletonList("rabbitmq");
     }
 }
