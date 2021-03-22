@@ -652,15 +652,13 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     }
 
     static void checkSendSpan(Span span, String exchange, String amqpUrl) {
-        URI uri = URI.create(amqpUrl);
         String exchangeName = exchange.isEmpty() ? "<default>" : exchange;
         checkSpanCommon(span,
             "send",
             String.format("RabbitMQ SEND to %s", exchangeName),
             exchangeName,
             String.format("rabbitmq/%s", exchangeName),
-            uri.getHost(),
-            uri.getPort());
+            amqpUrl);
     }
 
     private static void checkPollSpan(Span span, String queue, String normalizedExchange) {
@@ -669,13 +667,11 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
             String.format("RabbitMQ POLL from %s", queue),
             queue,
             String.format("rabbitmq/%s", normalizedExchange),
-            container.getHost(),
-            container.getAmqpPort());
+            container.getAmqpUrl());
     }
 
-    private static void
-    checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName,
-                                        String expectedResource, String host, int port) {
+    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName,
+                                        String expectedResource, String amqpUrl) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo(expectedAction);
@@ -687,8 +683,9 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         Destination destination = span.getContext().getDestination();
 
-        assertThat(destination.getAddress().toString()).isEqualTo(host);
-        assertThat(destination.getPort()).isEqualTo(port);
+        URI uri = URI.create(amqpUrl);
+        assertThat(destination.getAddress().toString()).isEqualTo(uri.getHost());
+        assertThat(destination.getPort()).isEqualTo(uri.getPort());
 
         Destination.Service service = destination.getService();
 
