@@ -26,6 +26,7 @@ package co.elastic.apm.agent.micrometer;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -45,7 +46,6 @@ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.simple.CountingMode;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,7 +118,33 @@ class MicrometerMetricsReporterTest {
         JsonNode metricSet = getSingleMetricSet();
         assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
         assertThat(metricSet.get("metricset").get("samples")).hasSize(1);
-        assertThat(metricSet.get("metricset").get("samples").get("root.metric.include").get("value").doubleValue()).isEqualTo(42);
+        assertThat(metricSet.get("metricset").get("samples").get("root_metric_include").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testDedotMetricName() {
+        assertThat(tracer.getConfig(MetricsConfiguration.class).isDedotCustomMetrics()).isTrue();
+        meterRegistry.counter("foo.bar").increment(42);
+
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples").get("foo_bar").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testDisableDedotMetricName() {
+        doReturn(false).when(tracer.getConfig(MetricsConfiguration.class)).isDedotCustomMetrics();
+        meterRegistry.counter("foo.bar").increment(42);
+
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples").get("foo.bar").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testNonAsciiMetricNameDisabledMetrics() {
+        meterRegistry.counter("网络").increment(42);
+
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples").get("网络").get("value").doubleValue()).isEqualTo(42);
     }
 
     @Test
@@ -230,6 +256,18 @@ class MicrometerMetricsReporterTest {
         assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
         assertThat(metricSet.get("metricset").get("samples").get("timer.count").get("value").intValue()).isEqualTo(2);
         assertThat(metricSet.get("metricset").get("samples").get("timer.sum.us").get("value").longValue()).isEqualTo(3);
+    }
+
+    @Test
+    void testTimerWithDotInMetricName() {
+        Timer timer = Timer.builder("timer.dot").tag("foo", "bar").register(meterRegistry);
+        timer.record(1, TimeUnit.MICROSECONDS);
+        timer.record(2, TimeUnit.MICROSECONDS);
+
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("tags").get("foo").textValue()).isEqualTo("bar");
+        assertThat(metricSet.get("metricset").get("samples").get("timer_dot.count").get("value").intValue()).isEqualTo(2);
+        assertThat(metricSet.get("metricset").get("samples").get("timer_dot.sum.us").get("value").longValue()).isEqualTo(3);
     }
 
     @Test

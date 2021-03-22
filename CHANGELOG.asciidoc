@@ -24,6 +24,10 @@ endif::[]
 ==== 1.22.0 - 2021/MM/DD
 
 [float]
+===== Breaking changes
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts. De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
+
+[float]
 ===== Features
 * Introducing a new mechanism to ease the development of community instrumentation plugins. See <<config-plugins-dir>> for
 more details. This configuration was already added in 1.18.0, but more extensive and continuous integration testing
@@ -36,6 +40,10 @@ to assist with such efforts.
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
 * Support for OkHttp 4.4+ -  {pull}1672[#1672]
+* Adding capability to automatically create ECS-JSON-formatted version of the original application log files, through
+the <<config-log-ecs-reformatting>> config option. This allows effortless ingestion of logs to Elasticsearch without
+any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
+* Add support to Spring AMQP - {pull}1657[#1657]
 
 [float]
 ===== Bug fixes
