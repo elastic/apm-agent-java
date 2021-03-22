@@ -74,8 +74,6 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
 
         Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
         if (attribute instanceof Transaction) {
-            Transaction transaction = (Transaction) attribute;
-            transaction.activate();
 
             if (handler instanceof HandlerMethod) {
                 // store name for annotated controllers
@@ -101,18 +99,19 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
         }
 
         Transaction transaction = (Transaction) enterTransaction;
-        transaction.captureException(thrown)
-            .deactivate();
+        transaction.captureException(thrown);
 
-        if (resultMono == null || thrown != null) {
-            // no need to wrap in case of exception
+        if (resultMono == null){
             return resultMono;
         }
 
-        // Transaction might have been disabled in-flight
         if (transaction.isNoop()) {
+            transaction.deactivate();
             return resultMono;
         }
+
+        // in case an exception it thrown, it's too early to end transaction
+        // otherwise the status code returned isn't the expected one
 
         return wrapHandlerAdapter(resultMono, transaction, exchange);
 

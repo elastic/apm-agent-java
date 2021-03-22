@@ -72,9 +72,7 @@ public class GreetingHandler {
                 Span span = ElasticApm.currentTransaction().startSpan();
                 span.setName(String.format("%s id=%s", name, span.getId()));
                 try {
-                    Thread.sleep(durationMillis);
-                } catch (InterruptedException e) {
-                    // silently ignored
+                    fakeWork(durationMillis);
                 } finally {
                     span.end();
                 }
@@ -90,7 +88,15 @@ public class GreetingHandler {
     // the whole transaction duration should include the delay
     public Mono<String> duration(long durationMillis) {
         return helloMessage(String.format("duration=%d", durationMillis))
-            .delayElement(Duration.ofMillis(durationMillis));
+            .doOnNext(m -> fakeWork(durationMillis));
+    }
+
+    private static void fakeWork(long durationMs) {
+        try {
+            Thread.sleep(durationMs);
+        } catch (InterruptedException e) {
+            // silently ignored
+        }
     }
 
 }

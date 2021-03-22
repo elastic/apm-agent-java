@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
+import co.elastic.apm.agent.context.InFlightRegistry;
+import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
@@ -71,13 +73,14 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     private static final WeakConcurrentMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.createMap();
 
     protected final CoreSubscriber<? super T> subscriber;
-    protected final Transaction context;
 
     private final ServerWebExchange exchange;
     private final boolean endOnComplete;
     private final boolean keepActive;
-    // only for human-friendly debugging
+
     private final String description;
+    private final Transaction transaction;
+    private final Tracer tracer;
 
     /**
      * @param subscriber    subscriber to wrap
@@ -90,106 +93,114 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
      * @param description   human-readable description to make debugging easier
      */
     public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
+                                      Tracer tracer,
                                       Transaction transaction,
                                       ServerWebExchange exchange,
                                       boolean endOnComplete,
                                       boolean keepActive,
                                       String description) {
 
-        this.context = transaction;
         this.subscriber = subscriber;
-        this.description = description;
         this.exchange = exchange;
         this.endOnComplete = endOnComplete;
+        this.description = description;
+        this.transaction = transaction;
         this.keepActive = keepActive;
+        this.tracer = tracer;
+
+        InFlightRegistry.inFlightStart(transaction);
     }
 
     @Override
     public void onSubscribe(Subscription s) {
-        activate();
+        boolean hasActivated = doEnter(true, "onSubscribe");
         try {
             subscriber.onSubscribe(s);
         } finally {
-            deactivateIfRequired();
+            doExit(hasActivated && !keepActive, "onSubscribe");
         }
     }
 
-
-
     @Override
     public void onNext(T next) {
-        activateIfRequired();
+        boolean hasActivated = doEnter(!keepActive, "onNext");
         try {
             subscriber.onNext(next);
         } finally {
-            deactivateIfRequired();
+            doExit(hasActivated, "onNext");
         }
     }
 
     @Override
     public void onError(Throwable throwable) {
-        activateIfRequired();
+        doEnter(!keepActive, "onError");
         try {
             subscriber.onError(throwable);
         } finally {
-            deactivate();
+            if (doExit(true, "onError")) { // always de-activate in case of error
+                endTransaction(throwable);
+            }
         }
-
-        endTransaction(context, exchange, throwable);
     }
 
     @Override
     public void onComplete() {
-        activateIfRequired();
+        boolean hasActivated = doEnter(!keepActive, "onComplete");
         try {
             subscriber.onComplete();
         } finally {
-            deactivate();
-        }
-
-        if (endOnComplete) {
-            endTransaction(context, exchange, null);
+            if (doExit(endOnComplete || hasActivated, "onComplete")) {
+                if (endOnComplete) {
+                    endTransaction(null);
+                }
+            }
         }
     }
 
-    private void activateIfRequired() {
-        // if kept active, then should be already active
-        if (keepActive) {
-            return;
-        }
-        activate();
-    }
-
-    private void deactivateIfRequired() {
-        // if kept active, then no need to deactivate
-        if (keepActive) {
-            return;
-        }
-        deactivate();
-    }
-
-    private void activate() {
+    private boolean doEnter(boolean activate, String method) {
         // only activate on the outer method call, not the nested calls within same thread
         if (callDepth.isNestedCallAndIncrement()) {
-            return;
+            return false;
         }
-        log.trace("{} activate context", description);
-        context.activate();
+        debugTrace(true, method);
+
+        if (!activate || transaction == tracer.getActive()) {
+            return false;
+        }
+
+        return InFlightRegistry.activateInFlight(transaction);
     }
 
-    private void deactivate() {
-        // only deactivate on the outer method call, not the nested calls within same thread
+    private void debugTrace(boolean isEnter, String method) {
+        if (!log.isDebugEnabled()) {
+            return;
+        }
+        log.debug("{} {} {}", isEnter ? ">>>>" : "<<<<", description, method);
+    }
+
+    private boolean doExit(boolean deactivate, String method) {
+        // only activate on the outer method call, not the nested calls within same thread
         if (callDepth.isNestedCallAndDecrement()) {
-            return;
+            return false;
         }
-        log.trace("{} deactivate context", description);
-        context.deactivate();
+
+        debugTrace(false, method);
+
+        if (!deactivate) {
+            return false;
+        }
+
+        return InFlightRegistry.deactivateInFlight(transaction);
     }
 
-    static void endTransaction(Transaction transaction, ServerWebExchange exchange, @Nullable Throwable thrown) {
-        // ensure that we don't try to end transaction twice
-        // we rely on default implementation thread safety (backed by a concurrent map).
-        if (transaction != exchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE)) {
+    private void endTransaction(@Nullable Throwable thrown){
+        // Ensure reactor instrumentation ignores this transaction for activation
+        InFlightRegistry.inFlightEnd(transaction);
+
+        Object exchangeTransaction = exchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE);
+        if (exchangeTransaction != transaction) {
+            // transaction might be already terminated due to instrumentation of more than one
+            // dispatcher/handler/invocation-handler class
             return;
         }
 

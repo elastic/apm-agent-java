@@ -114,20 +114,20 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
 
     public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         // we need to wrap returned mono to terminate transaction
-        return doWrap(mono, transaction, exchange, true, false, "webflux-dispatcher");
+        return doWrap(mono, transaction, exchange, true,  "webflux-dispatcher");
     }
 
     public static <T> Mono<T> wrapHandlerAdapter(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        return doWrap(mono, transaction, exchange, false, false, "webflux-handler-adapter");
+        return doWrap(mono, transaction, exchange, true,  "webflux-handler-adapter");
     }
 
     public static <T> Mono<T> wrapInvocableHandlerMethod(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         // We can keep transaction active here as execution of the whole mono is within the same thread.
         // That might be just an implementation detail, but so far it works.
-        return doWrap(mono, transaction, exchange, false, true, "webflux-invocable-handler-method");
+        return doWrap(mono, transaction, exchange, true, "webflux-invocable-handler-method");
     }
 
-    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final boolean endOnComplete, final boolean keepActive, final String description) {
+    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final boolean keepActive, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond
         mono = mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override
@@ -138,8 +138,8 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
                     return subscriber;
                 }
 
-                log.trace("wrapping {} subscriber with transaction {}, end on complete = {}", description, transaction, endOnComplete);
-                return new TransactionAwareSubscriber<T>(subscriber, transaction, exchange, endOnComplete, keepActive, description);
+                log.trace("wrapping {} subscriber with transaction {}", description, transaction);
+                return new TransactionAwareSubscriber<T>(subscriber, tracer, transaction, exchange, true, keepActive, description);
             }
         }));
         if (log.isTraceEnabled()) {

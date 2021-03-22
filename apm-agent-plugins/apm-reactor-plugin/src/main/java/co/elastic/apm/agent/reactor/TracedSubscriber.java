@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.reactor;
 
+import co.elastic.apm.agent.context.InFlightRegistry;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.state.CallDepth;
@@ -37,11 +38,12 @@ import reactor.core.Fuseable;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Operators;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscriber<T> {
+public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final Logger log = LoggerFactory.getLogger(TracedSubscriber.class);
 
@@ -51,76 +53,99 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
     private static final String HOOK_KEY = "elastic-apm";
 
     protected final CoreSubscriber<? super T> subscriber;
-    protected final C context;
 
-    // only for human-friendly debugging
-    private final String description;
+    private final AbstractSpan<?> context;
+    private final Tracer tracer;
 
-    public TracedSubscriber(CoreSubscriber<? super T> subscriber,
-                            C context,
-                            String description) {
-        this.context = context;
+    public TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
         this.subscriber = subscriber;
-        this.description = description;
+        this.context = context;
+        this.tracer = tracer;
+
+        InFlightRegistry.inFlightStart(context);
     }
 
     @Override
     public void onSubscribe(Subscription s) {
-        activate();
+        boolean hasActivated = doEnter("onSubscribe");
         try {
             subscriber.onSubscribe(s);
         } finally {
-            deactivate();
+            doExit(hasActivated, "onSubscribe");
         }
     }
 
-
     @Override
     public void onNext(T next) {
-        activate();
+        boolean hasActivated = doEnter("onNext");
         try {
             subscriber.onNext(next);
         } finally {
-            deactivate();
+            doExit(hasActivated, "onNext");
         }
     }
 
     @Override
     public void onError(Throwable t) {
-        activate();
+        boolean hasActivated = doEnter("onError");
         try {
             subscriber.onError(t);
         } finally {
-            deactivate();
+            doExit(hasActivated, "onError");
         }
-    }
-
-    private void activate() {
-        // only activate on the outer method call, not the nested calls within same thread
-        if (callDepth.isNestedCallAndIncrement()) {
-            return;
-        }
-        log.trace("{} activate context", description);
-        context.activate();
-    }
-
-    private void deactivate() {
-        // only deactivate on the outer method call, not the nested calls within same thread
-        if (callDepth.isNestedCallAndDecrement()) {
-            return;
-        }
-        log.trace("{} deactivate context", description);
-        context.deactivate();
     }
 
     @Override
     public void onComplete() {
-        activate();
+        boolean hasActivated = doEnter("onComplete");
         try {
             subscriber.onComplete();
         } finally {
-            deactivate();
+            doExit(hasActivated, "onComplete");
         }
+    }
+
+    @Nullable
+    private boolean doEnter(String method) {
+        // only do something on outer method call, not the nested calls within same thread
+        if (callDepth.isNestedCallAndIncrement()) {
+            return false;
+        }
+
+        debugTrace(true, method);
+
+        if (tracer.getActive() == context) {
+            // already activated
+            return false;
+        }
+
+        return InFlightRegistry.activateInFlight(context);
+    }
+
+    private void doExit(boolean deactivate, String method) {
+        // only do something on outer method call, not the nested calls within same thread
+        if (callDepth.isNestedCallAndDecrement()) {
+            return;
+        }
+
+        debugTrace(false, method);
+
+        if (!deactivate) {
+            return;
+        }
+
+        if(tracer.getActive() != context){
+            return;
+        }
+
+        InFlightRegistry.deactivateInFlight(context);
+    }
+
+    private void debugTrace(boolean isEnter, String method) {
+        if (!log.isDebugEnabled()) {
+            return;
+        }
+        log.debug("{} reactor {}", isEnter ? ">>" : "<<", method);
     }
 
     /**
@@ -172,7 +197,7 @@ public class TracedSubscriber<T,C extends AbstractSpan<?>> implements CoreSubscr
 
                 log.trace("wrapping subscriber {} with active span/transaction {}", subscriber.toString(), active);
 
-                return new TracedSubscriber<>(subscriber, active, "reactor");
+                return new TracedSubscriber<>(subscriber, tracer, active);
             }
         });
     }
