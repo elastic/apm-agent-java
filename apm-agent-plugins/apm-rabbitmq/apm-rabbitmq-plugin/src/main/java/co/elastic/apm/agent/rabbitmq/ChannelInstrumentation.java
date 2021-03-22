@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rabbitmq;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -63,7 +62,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * Instruments implementations of {@link com.rabbitmq.client.Channel}
  */
-public abstract class ChannelInstrumentation extends BaseInstrumentation {
+public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -148,7 +147,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
 
             properties = propagateTraceContext(exitSpan, properties);
 
-            captureMessage(exchange, properties, exitSpan);
+            captureMessage(exchange, getTimestamp(properties.getTimestamp()), exitSpan);
             captureDestination(exchange, channel, exitSpan);
 
             return new Object[]{properties, exitSpan};
@@ -247,7 +246,7 @@ public abstract class ChannelInstrumentation extends BaseInstrumentation {
                 span.requestDiscarding();
             }
 
-            captureMessage(queue, properties, span);
+            captureMessage(queue, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
             captureDestination(exchange, channel, span);
 
             span.captureException(thrown)

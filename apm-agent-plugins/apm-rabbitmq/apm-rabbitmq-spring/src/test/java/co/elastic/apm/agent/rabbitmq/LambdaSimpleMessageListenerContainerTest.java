@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2020 Elastic and contributors
+ * Copyright (C) 2018 - 2021 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,21 +22,17 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.rabbitmq.header;
+package co.elastic.apm.agent.rabbitmq;
 
-import com.rabbitmq.client.AMQP;
+import co.elastic.apm.agent.rabbitmq.config.LambdaSimpleMessageListenerContainerConfiguration;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Map;
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@ContextConfiguration(classes = {LambdaSimpleMessageListenerContainerConfiguration.class}, initializers = {AbstractRabbitMqTest.Initializer.class})
+public class LambdaSimpleMessageListenerContainerTest extends AbstractRabbitMqTest {
 
-public class RabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<AMQP.BasicProperties> {
-
-    public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
-
-    private RabbitMQTextHeaderGetter() {
-    }
-
-    @Override
-    protected Map<String, Object> getHeaders(AMQP.BasicProperties carrier) {
-        return carrier.getHeaders();
-    }
 }
