@@ -44,6 +44,8 @@ to assist with such efforts.
 the <<config-log-ecs-reformatting>> config option. This allows effortless ingestion of logs to Elasticsearch without
 any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
 * Add support to Spring AMQP - {pull}1657[#1657]
+* Adds the ability to automatically configure usage of the OpenTracing bridge in systems using ServiceLoader - {pull}1708[#1708]
+* Update to async-profiler 1.8.5
 * Cassandra instrumentation - {pull}1712[#1712]
 
 [float]
