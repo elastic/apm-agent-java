@@ -24,39 +24,19 @@
  */
 package co.elastic.apm.agent.rabbitmq.header;
 
-import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import com.rabbitmq.client.AMQP;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 
-public class RabbitMQTextHeaderGetter implements TextHeaderGetter<AMQP.BasicProperties> {
+public class RabbitMQTextHeaderGetter extends AbstractTextHeaderGetter<AMQP.BasicProperties> {
 
     public static final RabbitMQTextHeaderGetter INSTANCE = new RabbitMQTextHeaderGetter();
 
     private RabbitMQTextHeaderGetter() {
     }
 
-    @Nullable
     @Override
-    public String getFirstHeader(String headerName, AMQP.BasicProperties carrier) {
-        Map<String, Object> headers = carrier.getHeaders();
-        if (headers == null || headers.isEmpty()) {
-            return null;
-        }
-        Object headerValue = headers.get(headerName);
-        if (headerValue != null) {
-            // com.rabbitmq.client.impl.LongStringHelper.ByteArrayLongString
-            return headerValue.toString();
-        }
-        return null;
-    }
-
-    @Override
-    public <S> void forEach(String headerName, AMQP.BasicProperties carrier, S state, HeaderConsumer<String, S> consumer) {
-        String header = getFirstHeader(headerName, carrier);
-        if (header != null) {
-            consumer.accept(header, state);
-        }
+    protected Map<String, Object> getHeaders(AMQP.BasicProperties carrier) {
+        return carrier.getHeaders();
     }
 }

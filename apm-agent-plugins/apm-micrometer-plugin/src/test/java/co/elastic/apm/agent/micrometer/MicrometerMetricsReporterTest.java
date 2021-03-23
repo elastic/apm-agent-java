@@ -60,7 +60,6 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 
 class MicrometerMetricsReporterTest {
@@ -133,7 +132,7 @@ class MicrometerMetricsReporterTest {
 
     @Test
     void testDisableDedotMetricName() {
-        when(tracer.getConfig(MetricsConfiguration.class).isDedotCustomMetrics()).thenReturn(false);
+        doReturn(false).when(tracer.getConfig(MetricsConfiguration.class)).isDedotCustomMetrics();
         meterRegistry.counter("foo.bar").increment(42);
 
         JsonNode metricSet = getSingleMetricSet();
