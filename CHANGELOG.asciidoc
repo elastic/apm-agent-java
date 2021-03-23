@@ -45,12 +45,14 @@ the <<config-log-ecs-reformatting>> config option. This allows effortless ingest
 any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
 * Add support to Spring AMQP - {pull}1657[#1657]
 * Adds the ability to automatically configure usage of the OpenTracing bridge in systems using ServiceLoader - {pull}1708[#1708]
+* Update to async-profiler 1.8.5
 
 [float]
 ===== Bug fixes
 * fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
 * fixed a couple of bugs with the external plugin mechanism (not documented until now) - {pull}1660[#1660]
 * Update to async-profiler 1.8.4 to prevent crashes on Java 7 - {pull}1678[#1678]
+* Fix runtime attach conflict with multiple users - {pull}1704[#1704]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
