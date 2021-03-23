@@ -74,6 +74,14 @@ public class UserRegistry {
         return System.getProperty("user.name");
     }
 
+    /**
+     * Prints the temp dir of the current user to the console.
+     * <p>
+     * Executed within {@link User#runAsUserWithCurrentClassPath(java.lang.Class)}, to discover the temp dir of a given user in macOS.
+     * Forks a new JVM that runs in the context of a given user and runs this main method.
+     * This indirection is needed as each user has their own temp directory in macOS.
+     * </p>
+     */
     public static void main(String[] args) {
         System.out.println(System.getProperty("java.io.tmpdir"));
     }
@@ -92,25 +100,18 @@ public class UserRegistry {
     }
 
     private String findTempDir(User user) throws IOException, InterruptedException {
-        if (Platform.isMac()) {
-            if (user.canSwitchToUser()) {
-                // every user has their own temp folder on MacOS
-                // to discover it, we're starting a simple Java program in the context of the user
-                // that outputs the value of the java.io.tmpdir system property
-                Process process = user.runAsUserWithCurrentClassPath(UserRegistry.class).start();
-                process.waitFor();
-                if (process.exitValue() == 0) {
-                    return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
-                }
+        if (Platform.isWindows()) {
+            throw new IllegalStateException("Discovering the temp dir of a given user is not supported in Windows as the runAs method has no implementation for Windows");
+        }
+        if (user.canSwitchToUser()) {
+            // every user has their own temp folder on MacOS
+            // to discover it, we're starting a simple Java program in the context of the user
+            // that outputs the value of the java.io.tmpdir system property
+            Process process = user.runAsUserWithCurrentClassPath(UserRegistry.class).start();
+            process.waitFor();
+            if (process.exitValue() == 0) {
+                return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
             }
-        } else if (Platform.isWindows()) {
-            String temp = System.getenv("TEMP");
-            if (temp == null) {
-                temp = "c:/Temp";
-            }
-            return temp;
-        } else {
-            return "/tmp";
         }
         return null;
     }

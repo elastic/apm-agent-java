@@ -75,9 +75,9 @@ class DiscoveryRulesTest {
         discoveryRules.includePid("1");
         discoveryRules.includePid("2");
         DiscoveryRules.DiscoveryRule firstMatch2 = discoveryRules.firstMatch(jvmWithPid("1"), userRegistry);
-        assertThat(firstMatch2.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isTrue();
+        assertThat(firstMatch2.getMatchingType()).isEqualTo(DiscoveryRules.MatcherType.INCLUDE);
         DiscoveryRules.DiscoveryRule firstMatch1 = discoveryRules.firstMatch(jvmWithPid("2"), userRegistry);
-        assertThat(firstMatch1.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isTrue();
+        assertThat(firstMatch1.getMatchingType()).isEqualTo(DiscoveryRules.MatcherType.INCLUDE);
         assertThat(discoveryRules.isMatching(jvmWithPid("3"), userRegistry)).isFalse();
     }
 
@@ -86,9 +86,9 @@ class DiscoveryRulesTest {
         discoveryRules.includePid("1");
         discoveryRules.excludePid("2");
         DiscoveryRules.DiscoveryRule firstMatch2 = discoveryRules.firstMatch(jvmWithPid("1"), userRegistry);
-        assertThat(firstMatch2.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isTrue();
+        assertThat(firstMatch2.getMatchingType()).isEqualTo(DiscoveryRules.MatcherType.INCLUDE);
         DiscoveryRules.DiscoveryRule firstMatch1 = discoveryRules.firstMatch(jvmWithPid("2"), userRegistry);
-        assertThat(firstMatch1.getMatchingType() == DiscoveryRules.MatcherType.INCLUDE).isFalse();
+        assertThat(firstMatch1.getMatchingType()).isNotEqualTo(DiscoveryRules.MatcherType.INCLUDE);
         assertThat(discoveryRules.isMatching(jvmWithPid("3"), userRegistry)).isFalse();
     }
 

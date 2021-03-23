@@ -28,11 +28,26 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.VirtualMachine;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Properties;
 
 public class GetAgentProperties {
 
+    /**
+     * Prints the system and agent properties of the JVM with the provided pid to stdout,
+     * it a way that can be consumed by {@link Properties#load(InputStream)}.
+     * This works by attaching to the JVM with the provided pid and by calling
+     * {@link com.sun.tools.attach.VirtualMachine#getSystemProperties()} and {@link com.sun.tools.attach.VirtualMachine#getAgentProperties()}.
+     * <p>
+     * In {@link #getAgentAndSystemPropertiesSwitchUser}, a new JVM is forked running this main method.
+     * This JVM runs in the context of the same user that runs the JVM with the provided pid.
+     * This indirection is needed as it's not possible to attach to a JVM that runs under a different user.
+     * </p>
+     *
+     * @param args contains a single argument - the process id of the target VM
+     * @throws Exception
+     */
     public static void main(String[] args) throws Exception {
         getAgentAndSystemPropertiesCurrentUser(args[0]).store(System.out, null);
     }
@@ -86,8 +101,6 @@ public class GetAgentProperties {
             } finally {
                 vm.getMethod("detach").invoke(virtualMachineInstance);
             }
-        } catch (RuntimeException exception) {
-            throw exception;
         } catch (Exception exception) {
             throw new IllegalStateException("Error during attachment using: " + accessor, exception);
         }
