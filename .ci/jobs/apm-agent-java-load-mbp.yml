@@ -41,4 +41,4 @@
                 timeout: 100
             timeout: '15'
             use-author: true
-            wipe-workspace: 'True'
+            wipe-workspace: true

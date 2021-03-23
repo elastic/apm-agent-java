@@ -57,7 +57,7 @@ public class GlobalThreadLocal<T> extends DetachedThreadLocal<T> {
         return get(adviceClass.getName() + "." + key, defaultValue);
     }
 
-    private static <T> GlobalThreadLocal<T> get(String key, @Nullable T defaultValue) {
+    static <T> GlobalThreadLocal<T> get(String key, @Nullable T defaultValue) {
         GlobalThreadLocal<?> threadLocal = registry.get(key);
         if (threadLocal == null) {
             registry.putIfAbsent(key, new GlobalThreadLocal<T>(defaultValue));

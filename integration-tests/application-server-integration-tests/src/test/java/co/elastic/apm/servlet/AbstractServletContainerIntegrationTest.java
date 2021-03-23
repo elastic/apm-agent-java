@@ -161,10 +161,14 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withStartupTimeout(Duration.ofMinutes(5));
         for (TestApp testApp : getTestApps()) {
             testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
-            testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
-                checkFilePresent(pathToFile);
-                servletContainer.withFileSystemBind(pathToFile, containerPath);
-            });
+            try {
+                testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
+                    checkFilePresent(pathToFile);
+                    servletContainer.withFileSystemBind(pathToFile, containerPath);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
@@ -239,11 +243,11 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private static void checkFilePresent(String pathToFile) {
-        final File warFile = new File(pathToFile);
-        logger.info("Check file {}", warFile.getAbsolutePath());
-        assertThat(warFile).exists();
-        assertThat(warFile).isFile();
-        assertThat(warFile.length()).isGreaterThan(0);
+        final File file = new File(pathToFile);
+        logger.info("Check file {}", file.getAbsolutePath());
+        assertThat(file).exists();
+        assertThat(file).isFile();
+        assertThat(file.length()).isGreaterThan(0);
     }
 
     protected void enableDebugging(GenericContainer<?> servletContainer) {
