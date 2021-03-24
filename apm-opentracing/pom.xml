@@ -46,6 +46,14 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- https://github.com/opentracing-contrib/java-tracerresolver -->
+        <dependency>
+            <groupId>io.opentracing.contrib</groupId>
+            <artifactId>opentracing-tracerresolver</artifactId>
+            <version>0.1.8</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

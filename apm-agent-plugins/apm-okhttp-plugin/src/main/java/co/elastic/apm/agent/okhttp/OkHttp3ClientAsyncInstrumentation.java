@@ -44,6 +44,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -147,7 +149,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("okhttp3.RealCall");
+        return nameStartsWith("okhttp3.").and(nameEndsWith(".RealCall"));
     }
 
     @Override

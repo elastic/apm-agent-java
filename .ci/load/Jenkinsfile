@@ -28,7 +28,7 @@ pipeline {
         skipDefaultCheckout() // don't re-checkout at avery stage
     }
     parameters {
-        string(name: "apm_version", defaultValue: "master", description: "Java agent version, use git ref or values from curl -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/elastic/apm-agent-java/tags | jq '.[] | .name'")
+        string(name: "apm_version", defaultValue: "master", description: "Java agent version, use pr/&lt;PR-number&gt; or git ref or values from curl -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/elastic/apm-agent-java/tags | jq '.[] | .name'")
         string(name: "jvm_version", defaultValue: "adoptopenjdk-8u275-linux", description: "JVM, use values from: curl -s https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64 | jq '.[] | .id'")
         string(name: "jvm_options", defaultValue: "", description: "Extra JVM options")
         string(name: "concurrent_requests", defaultValue: "100", description: "The number of concurrent requests to test with")
@@ -46,6 +46,7 @@ pipeline {
     stages {
         stage('Pre-flight') {
             steps {
+                deleteDir()
                 gitCheckout(basedir: '.', githubNotifyFirstTimeContributor: true, shallow: false)
                 echo 'Getting authentication information from Vault'
                 withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
@@ -121,7 +122,7 @@ pipeline {
                     )
                     dir("${APP_BASE_DIR}") {
                         echo "Building test application using JDK = ${build_jdk_path}"
-                        sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode package -DskipTests=true -Dcheckstyle.skip")
+                        sh(script: "JAVA_HOME=${build_jdk_path} ./mvnw --batch-mode clean package -DskipTests=true -Dcheckstyle.skip")
                         sh(script: "cp -v target/*.${binary_ext} ${WORKSPACE}/app.${binary_ext}")
                     }
 
@@ -248,7 +249,7 @@ pipeline {
                             }
 
                             // flight recorder is not supported on all JDKs
-                            if(params.jfr) {
+                            if (params.jfr) {
                                 cmd = "${cmd} -XX:+FlightRecorder"
                                 cmd = "${cmd} -XX:StartFlightRecording=filename=${WORKSPACE}/flight.jfr"
                             }
@@ -259,7 +260,11 @@ pipeline {
                                 app_binary = "${WORKSPACE}/app.war"
                             }
 
+                            // avoid logging every thrown exception in app log to prevent large app logs and reduce noise
+                            cmd = "${cmd} -Dlogging.level.org.apache.catalina.core=OFF"
+
                             cmd = "${cmd} -jar ${app_binary}"
+
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
                             withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {

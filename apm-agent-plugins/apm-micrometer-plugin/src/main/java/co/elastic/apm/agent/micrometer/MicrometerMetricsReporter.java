@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.micrometer;
 
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -38,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +50,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(MicrometerMetricsReporter.class);
 
     private final WeakConcurrentSet<MeterRegistry> meterRegistries = WeakMapSupplier.createSet();
-    private final MicrometerMeterRegistrySerializer serializer = new MicrometerMeterRegistrySerializer();
+    private final MicrometerMeterRegistrySerializer serializer;
     private final Reporter reporter;
     private final ElasticApmTracer tracer;
     private boolean scheduledReporting = false;
@@ -59,6 +59,7 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         this.tracer = tracer;
         this.reporter = tracer.getReporter();
         tracer.addShutdownHook(this);
+        serializer = new MicrometerMeterRegistrySerializer(tracer.getConfig(MetricsConfiguration.class));
     }
 
     public void registerMeterRegistry(MeterRegistry meterRegistry) {

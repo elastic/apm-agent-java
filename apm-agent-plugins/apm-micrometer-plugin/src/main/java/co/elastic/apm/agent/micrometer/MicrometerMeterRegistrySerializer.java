@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.micrometer;
 
+import co.elastic.apm.agent.configuration.MetricsConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -53,7 +54,12 @@ public class MicrometerMeterRegistrySerializer {
     private static final byte NEW_LINE = (byte) '\n';
     private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final StringBuilder replaceBuilder = new StringBuilder();
+    private final MetricsConfiguration config;
     private int previousSize = 512;
+
+    public MicrometerMeterRegistrySerializer(MetricsConfiguration config) {
+        this.config = config;
+    }
 
     public JsonWriter serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
         JsonWriter jw = dslJson.newWriter((int) (previousSize * 1.25));
@@ -62,7 +68,7 @@ public class MicrometerMeterRegistrySerializer {
         return jw;
     }
 
-    static void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
+    void serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros, final StringBuilder replaceBuilder, final JsonWriter jw) {
         final Map<List<Tag>, List<Meter>> metersGroupedByTags = new HashMap<>();
         for (Map.Entry<Meter.Id, Meter> entry : metersById.entrySet()) {
             List<Tag> tags = entry.getKey().getTags();
@@ -79,7 +85,8 @@ public class MicrometerMeterRegistrySerializer {
         }
     }
 
-    static void serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+    void serializeMetricSet(List<Tag> tags, List<Meter> meters, long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
+        boolean dedotMetricName = config.isDedotCustomMetrics();
         jw.writeByte(JsonWriter.OBJECT_START);
         {
             DslJsonSerializer.writeFieldName("metricset", jw);
@@ -96,26 +103,26 @@ public class MicrometerMeterRegistrySerializer {
                     Meter meter = meters.get(i);
                     if (meter instanceof Timer) {
                         Timer timer = (Timer) meter;
-                        hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
+                        hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
                     } else if (meter instanceof FunctionTimer) {
                         FunctionTimer timer = (FunctionTimer) meter;
-                        hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue);
+                        hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
                     } else if (meter instanceof LongTaskTimer) {
                         LongTaskTimer timer = (LongTaskTimer) meter;
-                        hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue);
+                        hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
                     } else if (meter instanceof DistributionSummary) {
                         DistributionSummary timer = (DistributionSummary) meter;
-                        hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue);
+                        hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue, replaceBuilder, dedotMetricName);
                     } else if (meter instanceof Gauge) {
                         Gauge gauge = (Gauge) meter;
-                        hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw);
+                        hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw, replaceBuilder, dedotMetricName);
 
                     } else if (meter instanceof Counter) {
                         Counter counter = (Counter) meter;
-                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
                     } else if (meter instanceof FunctionCounter) {
                         FunctionCounter counter = (FunctionCounter) meter;
-                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw);
+                        hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
                     }
                 }
                 jw.writeByte(JsonWriter.OBJECT_END);
@@ -136,7 +143,7 @@ public class MicrometerMeterRegistrySerializer {
             if (i > 0) {
                 jw.writeByte(COMMA);
             }
-            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizeLabelKey(tag.getKey(), replaceBuilder), replaceBuilder, jw);
+            DslJsonSerializer.writeStringValue(DslJsonSerializer.sanitizePropertyName(tag.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
             DslJsonSerializer.writeStringValue(tag.getValue(), replaceBuilder, jw);
         }
@@ -152,14 +159,16 @@ public class MicrometerMeterRegistrySerializer {
      * @param count     count
      * @param totalTime total time
      * @param hasValue  whether a value has already been written
+     * @param replaceBuilder
+     * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime, boolean hasValue) {
+    private static boolean serializeTimer(JsonWriter jw, Meter.Id id, long count, double totalTime, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
         if (isValidValue(totalTime)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".count", count, jw);
+            serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".sum.us", totalTime, jw);
+            serializeValue(id, ".sum.us", totalTime, jw, replaceBuilder, dedotMetricName);
             return true;
         }
         return hasValue;
@@ -173,21 +182,23 @@ public class MicrometerMeterRegistrySerializer {
      * @param count       count
      * @param totalAmount total amount of recorded events
      * @param hasValue    whether a value has already been written
+     * @param replaceBuilder
+     * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalAmount, boolean hasValue) {
+    private static boolean serializeDistributionSummary(JsonWriter jw, Meter.Id id, long count, double totalAmount, boolean hasValue, StringBuilder replaceBuilder, boolean dedotMetricName) {
         if (isValidValue(totalAmount)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".count", count, jw);
+            serializeValue(id, ".count", count, jw, replaceBuilder, dedotMetricName);
             jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, ".sum", totalAmount, jw);
+            serializeValue(id, ".sum", totalAmount, jw, replaceBuilder, dedotMetricName);
             return true;
         }
         return hasValue;
     }
 
-    private static void serializeValue(Meter.Id id, String suffix, long value, JsonWriter jw) {
-        serializeValueStart(id.getName(), suffix, jw);
+    private static void serializeValue(Meter.Id id, String suffix, long value, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
+        serializeValueStart(id.getName(), suffix, jw, replaceBuilder, dedotMetricName);
         NumberConverter.serialize(value, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
@@ -199,28 +210,40 @@ public class MicrometerMeterRegistrySerializer {
      * @param value    meter value
      * @param hasValue whether a value has already been written
      * @param jw       writer
+     * @param replaceBuilder
+     * @param dedotMetricName
      * @return true if a value has been written before, including this one; false otherwise
      */
-    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, JsonWriter jw) {
+    private static boolean serializeValue(Meter.Id id, double value, boolean hasValue, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
         if (isValidValue(value)) {
             if (hasValue) jw.writeByte(JsonWriter.COMMA);
-            serializeValue(id, "", value, jw);
+            serializeValue(id, "", value, jw, replaceBuilder, dedotMetricName);
             return true;
         }
         return hasValue;
     }
 
-    private static void serializeValue(Meter.Id id, String suffix, double value, JsonWriter jw) {
-        serializeValueStart(id.getName(), suffix, jw);
+    private static void serializeValue(Meter.Id id, String suffix, double value, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
+        serializeValueStart(id.getName(), suffix, jw, replaceBuilder, dedotMetricName);
         NumberConverter.serialize(value, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeValueStart(String key, String suffix, JsonWriter jw) {
-        jw.writeByte(JsonWriter.QUOTE);
-        jw.writeAscii(key);
-        jw.writeAscii(suffix);
-        jw.writeByte(JsonWriter.QUOTE);
+    private static void serializeValueStart(String key, String suffix, JsonWriter jw, StringBuilder replaceBuilder, boolean dedotMetricName) {
+        replaceBuilder.setLength(0);
+        if (dedotMetricName) {
+            DslJsonSerializer.sanitizePropertyName(key, replaceBuilder);
+        } else {
+            replaceBuilder.append(key);
+        }
+        if (suffix != null) {
+            if (replaceBuilder.length() == 0) {
+                replaceBuilder.append(key);
+            }
+            replaceBuilder.append(suffix);
+        }
+        jw.writeString(replaceBuilder);
+
         jw.writeByte(JsonWriter.SEMI);
         jw.writeByte(JsonWriter.OBJECT_START);
         jw.writeByte(JsonWriter.QUOTE);

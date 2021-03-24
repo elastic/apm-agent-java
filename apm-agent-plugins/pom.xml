@@ -29,6 +29,7 @@
         <module>apm-spring-resttemplate</module>
         <module>apm-httpclient-core</module>
         <module>apm-log-correlation-plugin</module>
+        <module>apm-log-shader-plugin</module>
         <module>apm-log-shipper-plugin</module>
         <module>apm-es-restclient-plugin</module>
         <module>apm-okhttp-plugin</module>
@@ -55,6 +56,7 @@
         <module>apm-micrometer-plugin</module>
         <module>apm-jdk-httpclient-plugin</module>
         <module>apm-rabbitmq</module>
+        <module>apm-okhttp-test</module>
     </modules>
 
     <dependencies>

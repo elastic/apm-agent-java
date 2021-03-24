@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
+set +e
+
 source /usr/local/bin/bash_standard_lib.sh
 
-JAVA_HOME=$HOME/.java/java11 \
-  ./mvnw dependency:go-offline --fail-never -q -B
-
-JAVA_HOME=$HOME/.java/java11 ./mvnw clean verify \
-  --fail-never -q -B \
+retry 3 JAVA_HOME=$HOME/.java/java11 \
+  ./mvnw clean package \
+  -q -B \
+  -DskipTests=true \
   -Dmaven.javadoc.skip=true \
   -Dhttps.protocols=TLSv1.2 \
-  -Dmaven.wagon.http.retryHandler.count=3 \
+  -Dmaven.wagon.http.retryHandler.count=10 \
   -Dmaven.wagon.httpconnectionManager.ttlSeconds=25 \
   -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 

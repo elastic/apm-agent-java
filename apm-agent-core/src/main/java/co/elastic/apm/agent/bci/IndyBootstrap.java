@@ -32,6 +32,7 @@ import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ import org.stagemonitor.util.IOUtils;
 import sun.misc.Unsafe;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.ConstantCallSite;
@@ -78,12 +80,13 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     Common               linking of CallSite {@link ExternalPluginClassLoader}
  *     ↑    ↑             (on first invocation) ↑ ├ AdviceClass          ╷
  * WebApp1  WebApp2                  ╷          │ ├ AdviceHelper      creates
- *          ↑ - InstrumentedClass    ╷          │ └ GlobalState          ╷
- *          │                ╷       ╷          │                        ╷
+ *          ↑ - InstrumentedClass    ╷          │ ├ GlobalState          ╷
+ *          │                ╷       ╷          │ └ LookupExposer        ╷
  *          │                INVOKEDYNAMIC      │                        ↓
  *          └────────────────┼──────────────────{@link IndyPluginClassLoader}
  *                           └╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶→ ├ AdviceClass
- *                                              └ AdviceHelper
+ *                                              ├ AdviceHelper
+ *                                              └ LookupExposer
  * Legend:
  *  ╶╶→ method calls
  *  ──→ class loader parent/child relationships
@@ -179,6 +182,14 @@ public class IndyBootstrap {
      * Ends with {@code clazz} because if it ended with {@code class}, it would be loaded like a regular class.
      */
     private static final String INDY_BOOTSTRAP_RESOURCE = "bootstrap/IndyBootstrapDispatcher.clazz";
+
+    /**
+     * The name of the class we use as the lookup class during the invokedynamic bootstrap flow. The bytecode of this
+     * class is injected into the plugin class loader, then loaded from that class loader and used as the lookup class
+     * to link the instrumented call site to the advice method.
+     */
+    public static final String LOOKUP_EXPOSER_CLASS_NAME = "co.elastic.apm.agent.bci.classloading.LookupExposer";
+
     /**
      * Caches the names of classes that are defined within a package and it's subpackages
      */
@@ -308,25 +319,37 @@ public class IndyBootstrap {
             MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
 
             ClassLoader adviceClassLoader = ElasticApmAgent.getClassLoader(adviceClassName);
+            ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
             if (adviceClassLoader instanceof ExternalPluginClassLoader) {
                 pluginClasses.addAll(((ExternalPluginClassLoader) adviceClassLoader).getClassNames());
+                File agentJarFile = ElasticApmAgent.getAgentJarFile();
+                if (agentJarFile == null) {
+                    throw new IllegalStateException("External plugin cannot be applied - can't find agent jar");
+                }
+                classFileLocator = new ClassFileLocator.Compound(
+                    ClassFileLocator.ForClassLoader.of(adviceClassLoader),
+                    ClassFileLocator.ForJarFile.of(agentJarFile)
+                );
             } else {
                 pluginClasses.addAll(getClassNamesFromBundledPlugin(adviceClassName, adviceClassLoader));
+                classFileLocator = ClassFileLocator.ForClassLoader.of(adviceClassLoader);
             }
-            pluginClasses.add("co.elastic.apm.agent.bci.classloading.LookupExposer");
+            pluginClasses.add(LOOKUP_EXPOSER_CLASS_NAME);
             ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
                 lookup.lookupClass().getClassLoader(),
                 pluginClasses,
                 adviceClassLoader,
+                classFileLocator,
                 isAnnotatedWith(named(GlobalState.class.getName()))
                     // no plugin CL necessary as all types are available form bootstrap CL
                     // also, this plugin is used as a dependency in other plugins
                     .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
-            Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass("co.elastic.apm.agent.bci.classloading.LookupExposer");
+            Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
             // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
             MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
+            // When calling findStatic now, the lookup class will be one that is loaded by the plugin class loader
             MethodHandle methodHandle = indyLookup.findStatic(adviceInPluginCL, adviceMethodName, adviceMethodType);
             return new ConstantCallSite(methodHandle);
         } catch (Exception e) {

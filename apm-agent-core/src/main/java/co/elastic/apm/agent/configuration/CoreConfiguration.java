@@ -75,8 +75,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
         .key(INSTRUMENT)
         .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should instrument the application to collect performance metrics for the app. " +
-            "When set to false, Elastic APM will not affect your application at all.\n" +
+        .description("A boolean specifying if the agent should instrument the application to collect traces for the app.\n " +
+            "When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on \n" +
+            "your application. However, the agent would still apply instrumentation related to manual tracing options and it \n" +
+            "would still collect and send metrics to APM Server.\n" +
             "\n" +
             "NOTE: Both active and instrument needs to be true for instrumentation to be running.\n" +
             "\n" +
@@ -528,7 +530,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("plugins_dir")
         .tags("added[1.18.0]")
         .configurationCategory(CORE_CATEGORY)
-        .tags("internal", "experimental")
+        .tags("experimental")
         .description("A folder that contains external agent plugins.\n" +
             "\n" +
             "Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.\n" +

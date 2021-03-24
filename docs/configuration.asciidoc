@@ -121,6 +121,7 @@ Click on a key to get more information.
 ** <<config-central-config>>
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
+** <<config-plugins-dir>>
 ** <<config-use-elastic-traceparent-header>>
 ** <<config-span-min-duration>>
 ** <<config-cloud-provider>>
@@ -139,11 +140,15 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
+** <<config-log-ecs-reformatting>>
+** <<config-log-ecs-reformatting-dir>>
 ** <<config-log-file-size>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
+* <<config-metrics>>
+** <<config-dedot-custom-metrics>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -425,7 +430,10 @@ If you want to dynamically change the status of the agent, use <<config-recordin
 [[config-instrument]]
 ==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
-A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+A boolean specifying if the agent should instrument the application to collect traces for the app.
+ When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+would still collect and send metrics to APM Server.
 
 NOTE: Both active and instrument needs to be true for instrumentation to be running.
 
@@ -701,7 +709,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -1108,6 +1116,36 @@ NOTE: this option can only be set via system properties, environment variables o
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.config_file` | `config_file` | `ELASTIC_APM_CONFIG_FILE`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-plugins-dir]]
+==== `plugins_dir` (experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+A folder that contains external agent plugins.
+
+Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+The agent will load all instrumentations that are declared in the
+`META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+See `integration-tests/external-plugin-test` for an example plugin.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.plugins_dir` | `plugins_dir` | `ELASTIC_APM_PLUGINS_DIR`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1543,7 +1581,8 @@ The resulting documents in Elasticsearch look similar to this:
 Sets the logging level for the agent.
 This option is case-insensitive.
 
-NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
+NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent; 
+`OFF` is only available since version 1.16.0
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -1620,6 +1659,77 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-ecs-reformatting]]
+==== `log_ecs_reformatting` (added[1.22.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Specifying whether and how the agent should automatically reformat application logs 
+into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
+Once this option is enabled with any valid option, log correlation will be activated as well, regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. 
+
+Available options:
+
+ - OFF - application logs are not reformatted. 
+ - SHADE - agent logs are reformatted and "shade" ECS-JSON-formatted logs are automatically created in 
+   addition to the original application logs. Shade logs will have the same name as the original logs, 
+   but with the ".ecs.json" extension instead of the original extension. Destination directory for the 
+   shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> 
+   configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they 
+   use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> 
+   configuration and while allowing maximum of two shade log files.
+ - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
+   you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
+   with a different file extension.
+
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Valid options: `OFF`, `SHADE`, `REPLACE`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `OFF` | LogEcsReformatting | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_ecs_reformatting` | `log_ecs_reformatting` | `ELASTIC_APM_LOG_ECS_REFORMATTING`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-ecs-reformatting-dir]]
+==== `log_ecs_reformatting_dir`
+
+If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, 
+the shade log files will be written alongside the original logs in the same directory by default. 
+Use this configuration in order to write the shade logs into an alternative destination. Omitting this 
+config or setting it to an empty string will restore the default behavior. If relative path is used, 
+this path will be used relative to the original logs directory.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_ecs_reformatting_dir` | `log_ecs_reformatting_dir` | `ELASTIC_APM_LOG_ECS_REFORMATTING_DIR`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1734,6 +1844,35 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
+|============
+
+[[config-metrics]]
+=== Metrics configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-dedot-custom-metrics]]
+==== `dedot_custom_metrics` (added[1.22.0])
+
+Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+
+WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
+An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
+The first metric maps `foo` to a number and the second metric maps `foo` as an object.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS`
 |============
 
 [[config-profiling]]
@@ -2506,7 +2645,10 @@ The default unit for this option is `ms`.
 #
 # enabled=true
 
-# A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+# A boolean specifying if the agent should instrument the application to collect traces for the app.
+#  When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+# your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+# would still collect and send metrics to APM Server.
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
 # 
@@ -2651,7 +2793,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2883,6 +3025,19 @@ The default unit for this option is `ms`.
 # Default value: _AGENT_HOME_/elasticapm.properties
 #
 # config_file=_AGENT_HOME_/elasticapm.properties
+
+# A folder that contains external agent plugins.
+# 
+# Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+# The agent will load all instrumentations that are declared in the
+# `META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+# See `integration-tests/external-plugin-test` for an example plugin.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# plugins_dir=
 
 # To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
@@ -3152,7 +3307,8 @@ The default unit for this option is `ms`.
 # Sets the logging level for the agent.
 # This option is case-insensitive.
 # 
-# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent.
+# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent; 
+# `OFF` is only available since version 1.16.0
 #
 # Valid options: OFF, ERROR, CRITICAL, WARN, WARNING, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
@@ -3190,6 +3346,45 @@ The default unit for this option is `ms`.
 # Default value: false
 #
 # enable_log_correlation=false
+
+# Specifying whether and how the agent should automatically reformat application logs 
+# into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+# further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
+# Once this option is enabled with any valid option, log correlation will be activated as well, regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. 
+# 
+# Available options:
+# 
+#  - OFF - application logs are not reformatted. 
+#  - SHADE - agent logs are reformatted and "shade" ECS-JSON-formatted logs are automatically created in 
+#    addition to the original application logs. Shade logs will have the same name as the original logs, 
+#    but with the ".ecs.json" extension instead of the original extension. Destination directory for the 
+#    shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> 
+#    configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they 
+#    use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> 
+#    configuration and while allowing maximum of two shade log files.
+#  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
+#    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
+#    with a different file extension.
+# 
+#
+# Valid options: OFF, SHADE, REPLACE
+# This setting can be changed at runtime
+# Type: LogEcsReformatting
+# Default value: OFF
+#
+# log_ecs_reformatting=OFF
+
+# If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, 
+# the shade log files will be written alongside the original logs in the same directory by default. 
+# Use this configuration in order to write the shade logs into an alternative destination. Omitting this 
+# config or setting it to an empty string will restore the default behavior. If relative path is used, 
+# this path will be used relative to the original logs directory.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# log_ecs_reformatting_dir=
 
 # The size of the log file.
 # 
@@ -3246,6 +3441,22 @@ The default unit for this option is `ms`.
 # Default value: 
 #
 # ignore_message_queues=
+
+############################################
+# Metrics                                  #
+############################################
+
+# Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+# 
+# WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
+# An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
+# The first metric maps `foo` to a number and the second metric maps `foo` as an object.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# dedot_custom_metrics=true
 
 ############################################
 # Profiling                                #
