@@ -27,6 +27,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
+import co.elastic.apm.agent.premain.JavaVersionBootstrapCheck;
 import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.util.PackageScanner;
@@ -156,7 +157,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  *     <li>
  *         The {@code INVOKEDYNAMIC} support of early Java 7 versions is not reliable.
  *         That's why we disable the agent on them.
- *         See also {@link JvmRuntimeInfo#isJavaVersionSupported}
+ *         See also {@link JavaVersionBootstrapCheck}
  *     </li>
  *     <li>
  *         There are some things to watch out for when writing plugins,
@@ -224,7 +225,7 @@ public class IndyBootstrap {
             indyBootstrapDispatcherClass = Class.forName(INDY_BOOTSTRAP_CLASS_NAME, false, null);
         }
 
-        if (JvmRuntimeInfo.getMajorVersion() >= 9 && JvmRuntimeInfo.isJ9VM()) {
+        if (JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 9 && JvmRuntimeInfo.ofCurrentVM().isJ9VM()) {
             try {
                 logger.info("Overriding IndyBootstrapDispatcher class's module to java.base module. This is required in J9 VMs.");
                 setJavaBaseModule(indyBootstrapDispatcherClass);

@@ -20,12 +20,59 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.22.0]]
-==== 1.22.0 - 2021/MM/DD
+[[release-notes-1.22.1]]
+==== 1.22.1 - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
-* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts. De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
+* There are breaking changes in the <<setup-attach-cli,attacher cli>>.
+  See the Features section for more information.
+
+[float]
+===== Features
+* Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMs - {pull}1667[#1667]
+** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
+** There is also a slim version of the cli application that does not bundle the Java agent.
+It requires the `--agent-jar` option to be set.
+** Improved logging +
+The application uses {ecs-logging-java-ref}/intro.html[Java ECS logging] to emit JSON logs.
+The log level can be configured with the `--log-level` option.
+By default, the program is logging to the console but using the `--log-file` option, it can also log to a file.
+** Attach to JVMs running under a different user (unix only) +
+The JVM requires the attacher to be running under the same user as the target VM (the attachee).
+The `apm-agent-attach-standalone.jar` can now be run with a user that has permissions to switch to the user that runs the target VM.
+On Windows, the attacher can still only attach to JVMs that are running with under the same user.
+** New include/exclude discovery rules +
+*** `--include-all`: Attach to all discovered JVMs. If no matchers are provided, it will not attach to any JVMs.
+*** `--include-user`/`--exclude-user`: Attach to all JVMs of a given operating system user.
+*** `--include-main`/`--exclude-main`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+*** `--include-vmargs`/`--exclude-vmargs`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+** Removal of options +
+*** The deprecated `--arg` option has been removed.
+*** The `-i`/`--include`, `-e`/`exclude` options have been removed in favor of the `--<include|exclude>-<main|vmargs>` options.
+*** The `-p`/`--pid` options have been removed in favor of the `--include-pid` option.
+** Changed behavior of  the `-l`/`--list` option +
+The option now only lists JVMs that match the include/exclude discovery rules.
+Thus, it can be used to do a dry-run of the matchers without actually performing an attachment.
+It even works in combination with `--continuous` now.
+By default, the VM arguments are not printed, but only when the `-a`/`--list-vmargs` option is set.
+** Remove dependency on `jps` +
+Even when matching on the main class name or on system properties,
+** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.22.0]]
+==== 1.22.0 - 2021/03/24
+
+[float]
+===== Breaking changes
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
+De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
 
 [float]
 ===== Features
@@ -40,15 +87,22 @@ to assist with such efforts.
 * The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
 * Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
 * Support for OkHttp 4.4+ -  {pull}1672[#1672]
+* Adding capability to automatically create ECS-JSON-formatted version of the original application log files, through
+the <<config-log-ecs-reformatting>> config option. This allows effortless ingestion of logs to Elasticsearch without
+any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
+* Add support to Spring AMQP - {pull}1657[#1657]
+* Adds the ability to automatically configure usage of the OpenTracing bridge in systems using ServiceLoader - {pull}1708[#1708]
+* Update to async-profiler 1.8.5 - includes a fix to a Java 7 crash and enhanced safe mode to better deal with
+corrupted stack frames.
+* Add a warning on startup when `-Xverify:none` or `-noverify` flags are set as this can lead to crashes that are very
+difficult to debug - {pull}1593[#1593]. In an upcoming version, the agent will not start when these flags are set,
+unless the system property `elastic.apm.disable_bootstrap_checks` is set to true.
 
 [float]
 ===== Bug fixes
 * fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
 * fixed a couple of bugs with the external plugin mechanism (not documented until now) - {pull}1660[#1660]
-* Update to async-profiler 1.8.4 to prevent crashes on Java 7 - {pull}1678[#1678]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Fix runtime attach conflict with multiple users - {pull}1704[#1704]
 
 [[release-notes-1.21.0]]
 ==== 1.21.0 - 2021/02/09
@@ -475,7 +529,7 @@ config option]
 ===== Features
 * Add ability to manually specify reported https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-hostname[hostname]
 * Add support for https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases[Redis Jedis client]
-* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list[`--include` and `--exclude` flags]
+* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the <<setup-attach-cli-usage-options, `--include` and `--exclude` flags>>
 * Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
 * Improve servlet error capture {pull}812[#812]
   Among others, now also takes Spring MVC `@ExceptionHandler`s into account 
