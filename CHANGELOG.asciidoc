@@ -30,7 +30,7 @@ endif::[]
 
 [float]
 ===== Features
-* Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMS
+* Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMs - {pull}1667[#1667]
 ** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
 ** There is also a slim version of the cli application that does not bundle the Java agent.
 It requires the `--agent-jar` option to be set.
