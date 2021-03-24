@@ -20,12 +20,28 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.22.0]]
-==== 1.22.0 - 2021/MM/DD
+[[release-notes-1.22.1]]
+==== 1.22.1 - YYYY/MM/DD
 
 [float]
 ===== Breaking changes
-* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts. De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
+
+[float]
+===== Features
+
+[float]
+===== Bug fixes
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.22.0]]
+==== 1.22.0 - 2021/03/24
+
+[float]
+===== Breaking changes
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
+De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
 
 [float]
 ===== Features
@@ -45,19 +61,17 @@ the <<config-log-ecs-reformatting>> config option. This allows effortless ingest
 any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
 * Add support to Spring AMQP - {pull}1657[#1657]
 * Adds the ability to automatically configure usage of the OpenTracing bridge in systems using ServiceLoader - {pull}1708[#1708]
-* Update to async-profiler 1.8.5
-* Add a warning on startup when `-Xverify:none` or `-noverify` flags are set as this can lead to crashes that are very difficult to debug - {pull}1593[#1593]
-  In an upcoming version, the agent will not start when these flags are set, unless the system property `elastic.apm.disable_bootstrap_checks` is set to true.
+* Update to async-profiler 1.8.5 - includes a fix to a Java 7 crash and enhanced safe mode to better deal with
+corrupted stack frames.
+* Add a warning on startup when `-Xverify:none` or `-noverify` flags are set as this can lead to crashes that are very
+difficult to debug - {pull}1593[#1593]. In an upcoming version, the agent will not start when these flags are set,
+unless the system property `elastic.apm.disable_bootstrap_checks` is set to true.
 
 [float]
 ===== Bug fixes
 * fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
 * fixed a couple of bugs with the external plugin mechanism (not documented until now) - {pull}1660[#1660]
-* Update to async-profiler 1.8.4 to prevent crashes on Java 7 - {pull}1678[#1678]
 * Fix runtime attach conflict with multiple users - {pull}1704[#1704]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
 
 [[release-notes-1.21.0]]
 ==== 1.21.0 - 2021/02/09
