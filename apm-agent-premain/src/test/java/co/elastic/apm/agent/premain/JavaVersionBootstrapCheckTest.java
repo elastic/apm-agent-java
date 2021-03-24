@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class JvmRuntimeInfoTest {
+class JavaVersionBootstrapCheckTest {
 
     private static final String HOTSPOT_VM_NAME = "Java HotSpot(TM) 64-Bit Server VM";
 
@@ -143,12 +143,15 @@ class JvmRuntimeInfoTest {
 
     @Test
     void testIbmJava8SupportedAfterBuild2_8() {
-        JvmRuntimeInfo.parseVmInfo("1.8.0", "IBM J9 VM", "2.8");
-        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isFalse();
-        assertThat(JvmRuntimeInfo.isJ9VM()).isTrue();
-        JvmRuntimeInfo.parseVmInfo("1.8.0", "IBM J9 VM", "2.9");
-        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isTrue();
-        assertThat(JvmRuntimeInfo.isJ9VM()).isTrue();
+        JvmRuntimeInfo runtimeInfo = new JvmRuntimeInfo("1.8.0", "IBM J9 VM", "2.8");
+        JavaVersionBootstrapCheck check = new JavaVersionBootstrapCheck(runtimeInfo);
+        assertThat(check.isJavaVersionSupported()).isFalse();
+        assertThat(runtimeInfo.isJ9VM()).isTrue();
+
+        runtimeInfo = new JvmRuntimeInfo("1.8.0", "IBM J9 VM", "2.9");
+        check = new JavaVersionBootstrapCheck(runtimeInfo);
+        assertThat(check.isJavaVersionSupported()).isTrue();
+        assertThat(runtimeInfo.isJ9VM()).isTrue();
     }
 
     @Test
@@ -158,20 +161,22 @@ class JvmRuntimeInfoTest {
     }
 
     private static void checkHpUx(String unsupportedVersion, String supportedVersion){
-        JvmRuntimeInfo.parseVmInfo(unsupportedVersion, HOTSPOT_VM_NAME, null);
-        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isFalse();
-        assertThat(JvmRuntimeInfo.isHpUx()).isTrue();
+        JvmRuntimeInfo runtimeInfo = new JvmRuntimeInfo(unsupportedVersion, HOTSPOT_VM_NAME, null);
+        JavaVersionBootstrapCheck check = new JavaVersionBootstrapCheck(runtimeInfo);
+        assertThat(check.isJavaVersionSupported()).isFalse();
+        assertThat(runtimeInfo.isHpUx()).isTrue();
 
-        JvmRuntimeInfo.parseVmInfo(supportedVersion, HOTSPOT_VM_NAME, null);
-        assertThat(JvmRuntimeInfo.isJavaVersionSupported()).isTrue();
-        assertThat(JvmRuntimeInfo.isHpUx()).isTrue();
+        runtimeInfo = new JvmRuntimeInfo(supportedVersion, HOTSPOT_VM_NAME, null);
+        check = new JavaVersionBootstrapCheck(runtimeInfo);
+        assertThat(check.isJavaVersionSupported()).isTrue();
+        assertThat(runtimeInfo.isHpUx()).isTrue();
     }
 
     private static void checkSupported(String vmName, Stream<String> versions) {
         versions.forEach((v) -> {
-            JvmRuntimeInfo.parseVmInfo(v, vmName, null);
-            boolean supported = JvmRuntimeInfo.isJavaVersionSupported();
-            assertThat(supported)
+            JvmRuntimeInfo runtimeInfo = new JvmRuntimeInfo(v, vmName, null);
+            JavaVersionBootstrapCheck check = new JavaVersionBootstrapCheck(runtimeInfo);
+            assertThat(check.isJavaVersionSupported())
                 .describedAs("java.version = '%s' java.vm.name = '%s' should be supported", v, vmName)
                 .isTrue();
         });
@@ -179,9 +184,9 @@ class JvmRuntimeInfoTest {
 
     private static void checkNotSupported(String vmName, Stream<String> versions) {
         versions.forEach((v) -> {
-            JvmRuntimeInfo.parseVmInfo(v, vmName, null);
-            boolean supported = JvmRuntimeInfo.isJavaVersionSupported();
-            assertThat(supported)
+            JvmRuntimeInfo runtimeInfo = new JvmRuntimeInfo(v, vmName, null);
+            JavaVersionBootstrapCheck check = new JavaVersionBootstrapCheck(runtimeInfo);
+            assertThat(check.isJavaVersionSupported())
                 .describedAs("java.version = '%s' java.vm.name = '%s' should not be supported", v, vmName)
                 .isFalse();
         });

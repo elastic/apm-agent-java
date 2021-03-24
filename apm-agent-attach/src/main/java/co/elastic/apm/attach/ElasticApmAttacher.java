@@ -204,7 +204,12 @@ public class ElasticApmAttacher {
                     return null;
                 }
                 String hash = md5Hash(ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar"));
-                File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), "elastic-apm-agent-" + hash + ".jar");
+
+                // we have to include current user name as multiple copies of the same agent could be attached
+                // to multiple JVMs, each running under a different user. Also, we have to make it path-friendly.
+                String user = md5Hash(System.getProperty("user.name"));
+
+                File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), String.format("elastic-apm-agent-%s-%s.jar", user, hash));
                 if (!tempAgentJar.exists()) {
                     try (FileOutputStream out = new FileOutputStream(tempAgentJar)) {
                         FileChannel channel = out.getChannel();
@@ -239,5 +244,11 @@ public class ElasticApmAttacher {
             }
             return String.format("%032x", new BigInteger(1, md.digest()));
         }
+    }
+
+    static String md5Hash(String s) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        md.update(s.getBytes());
+        return String.format("%032x", new BigInteger(1, md.digest()));
     }
 }
