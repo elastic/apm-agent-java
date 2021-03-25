@@ -63,10 +63,9 @@ public class ElasticAttachmentProvider {
      * @return attachment provider
      */
     public synchronized static ByteBuddyAgent.AttachmentProvider get() {
-        if (provider != null) {
-            return provider;
+        if (provider == null) {
+            init(true);
         }
-        init(true);
         return provider;
     }
 }

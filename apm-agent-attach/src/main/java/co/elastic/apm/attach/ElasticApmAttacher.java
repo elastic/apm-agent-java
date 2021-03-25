@@ -38,7 +38,6 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
@@ -110,6 +109,10 @@ public class ElasticApmAttacher {
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach(Map<String, String> configuration) {
+        // optimization, this is checked in AgentMain#init again
+        if (Boolean.getBoolean("ElasticApm.attached")) {
+            return;
+        }
         attach(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve(), configuration);
     }
 
@@ -141,18 +144,6 @@ public class ElasticApmAttacher {
         return tempFile;
     }
 
-    static String toAgentArgs(Map<String, String> configuration) {
-        StringBuilder args = new StringBuilder();
-        for (Iterator<Map.Entry<String, String>> iterator = configuration.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<String, String> entry = iterator.next();
-            args.append(entry.getKey()).append('=').append(entry.getValue());
-            if (iterator.hasNext()) {
-                args.append(';');
-            }
-        }
-        return args.toString();
-    }
-
     /**
      * Attaches the agent to a remote JVM
      *
@@ -160,14 +151,21 @@ public class ElasticApmAttacher {
      * @param configuration the agent configuration
      */
     public static void attach(String pid, Map<String, String> configuration) {
-        // optimization, this is checked in AgentMain#init again
-        if (Boolean.getBoolean("ElasticApm.attached")) {
-            return;
-        }
+        attach(pid, configuration, AgentJarFileHolder.INSTANCE.agentJarFile);
+    }
+
+    /**
+     * Attaches the agent to a remote JVM
+     *
+     * @param pid           the PID of the JVM the agent should be attached on
+     * @param configuration the agent configuration
+     * @param agentJarFile
+     */
+    public static void attach(String pid, Map<String, String> configuration, File agentJarFile) {
         File tempFile = createTempProperties(configuration);
         String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
 
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
+        ByteBuddyAgent.attach(agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
         if (tempFile != null) {
             if (!tempFile.delete()) {
                 tempFile.deleteOnExit();
@@ -187,6 +185,10 @@ public class ElasticApmAttacher {
         ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ElasticAttachmentProvider.get());
     }
 
+    public static File getBundledAgentJarFile() {
+        return AgentJarFileHolder.INSTANCE.agentJarFile;
+    }
+
     private enum AgentJarFileHolder {
         INSTANCE;
 
@@ -199,7 +201,7 @@ public class ElasticApmAttacher {
         private static File getAgentJarFile() {
             try (InputStream agentJar = ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar")) {
                 if (agentJar == null) {
-                    throw new IllegalStateException("Agent jar not found");
+                    return null;
                 }
                 String hash = md5Hash(ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar"));
 
