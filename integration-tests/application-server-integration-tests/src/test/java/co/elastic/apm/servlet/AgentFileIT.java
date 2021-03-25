@@ -39,17 +39,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AgentFileIT {
 
     static String getPathToJavaagent() {
-        return getTargetJar("elastic-apm-agent", "");
+        return getTargetJar("elastic-apm-agent");
     }
 
     static String getPathToAttacher() {
-        return getTargetJar("apm-agent-attach", "-standalone");
+        return getTargetJar("apm-agent-attach-cli");
     }
 
     @Nullable
-    private static String getTargetJar(String project, String classifier) {
+    private static String getTargetJar(String project) {
         File agentBuildDir = new File("../../" + project + "/target/");
-        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?" + classifier + ".jar");
+        FileFilter fileFilter = file -> file.getName().matches(project + "-\\d\\.\\d+\\.\\d+(\\.RC\\d+)?(-SNAPSHOT)?.jar");
         return Arrays.stream(agentBuildDir.listFiles(fileFilter)).findFirst()
             .map(File::getAbsolutePath)
             .orElse(null);
