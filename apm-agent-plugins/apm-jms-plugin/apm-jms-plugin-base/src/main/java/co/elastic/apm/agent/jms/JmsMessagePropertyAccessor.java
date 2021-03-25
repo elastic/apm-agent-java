@@ -77,6 +77,9 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
     @Override
     public void setHeader(String headerName, String headerValue, Message message) {
         headerName = jmsifyHeaderName(headerName);
+        if (getFirstHeader(headerName, message) != null) {
+            return;
+        }
         try {
             message.setStringProperty(headerName, headerValue);
         } catch (MessageNotWriteableException e) {
