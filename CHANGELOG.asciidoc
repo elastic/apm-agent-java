@@ -62,6 +62,7 @@ Even when matching on the main class name or on system properties,
 
 [float]
 ===== Bug fixes
+* apm-log4j1-plugin and apm-log4j2-plugin no longer require slf4j on the classpath (#1722)
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
