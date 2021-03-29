@@ -17,10 +17,12 @@ public class MessageBatchIteratorWrapper implements Iterator<Message> {
 
     private final Iterator<Message> delegate;
     private final ElasticApmTracer tracer;
+    private final SpringAmqpTransactionHelper transactionHelper;
 
-    public MessageBatchIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer) {
+    public MessageBatchIteratorWrapper(Iterator<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
         this.delegate = delegate;
         this.tracer = tracer;
+        this.transactionHelper = transactionHelper;
     }
 
     @Override
@@ -45,7 +47,6 @@ public class MessageBatchIteratorWrapper implements Iterator<Message> {
         endCurrentTransaction();
 
         Message message = delegate.next();
-
         try {
             if (message == null) {
                 return message;
@@ -54,32 +55,7 @@ public class MessageBatchIteratorWrapper implements Iterator<Message> {
             if (messageProperties == null) {
                 return message;
             }
-            String exchange = messageProperties.getReceivedExchange();
-            if (null == exchange || AbstractBaseInstrumentation.isIgnored(exchange)) {
-                return null;
-            }
-
-            Transaction transaction = tracer.currentTransaction();
-            if (transaction != null) {
-                return null;
-            }
-            transaction = tracer.startChildTransaction(messageProperties, SpringRabbitMQTextHeaderGetter.INSTANCE, message.getClass().getClassLoader());
-            if (transaction == null) {
-                return null;
-            }
-
-            transaction.withType(AmqpConstants.TRANSACTION_MESSAGING_TYPE)
-                .withName(AmqpConstants.SPRING_AMQP_TRANSACTION_PREFIX)
-                .appendToName(" RECEIVE from ")
-                .appendToName(AbstractBaseInstrumentation.normalizeExchangeName(exchange));
-
-            transaction.setFrameworkName(AmqpConstants.FRAMEWORK_NAME);
-
-            long timestamp = AbstractBaseInstrumentation.getTimestamp(messageProperties.getTimestamp());
-            co.elastic.apm.agent.impl.context.Message internalMessage = AbstractBaseInstrumentation.captureMessage(exchange, timestamp, transaction);
-            // only capture incoming messages headers for now (consistent with other messaging plugins)
-            AbstractBaseInstrumentation.captureHeaders(messageProperties.getHeaders(), internalMessage);
-            transaction.activate();
+            transactionHelper.createTransaction(message, messageProperties, AmqpConstants.SPRING_AMQP_TRANSACTION_PREFIX);
         } catch (Throwable throwable) {
             logger.error("Error in transaction creation based on Spring AMQP batch message", throwable);
         }

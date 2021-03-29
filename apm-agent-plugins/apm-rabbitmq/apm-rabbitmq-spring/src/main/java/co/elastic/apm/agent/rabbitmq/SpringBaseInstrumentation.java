@@ -56,4 +56,15 @@ public abstract class SpringBaseInstrumentation extends AbstractBaseInstrumentat
         return not(isBootstrapClassLoader())
             .and(classLoaderCanLoadClass("org.springframework.amqp.core.MessageListener"));
     }
+
+    static class BaseAdvice {
+        protected static final MessageBatchHelper messageBatchHelper;
+        protected static final SpringAmqpTransactionHelper transactionHelper;
+
+        static {
+            ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
+            transactionHelper = new SpringAmqpTransactionHelperImpl(elasticApmTracer);
+            messageBatchHelper = new MessageBatchHelperImpl(elasticApmTracer, transactionHelper);
+        }
+    }
 }

@@ -26,13 +26,7 @@ public class SpringAmqpBatchMessageListenerInstrumentation extends SpringBaseIns
         return MessageListenerContainerWrappingAdvice.class;
     }
 
-    public static class MessageListenerContainerWrappingAdvice {
-        protected static final MessageBatchHelper messageBatchHelper;
-
-        static {
-            ElasticApmTracer elasticApmTracer = GlobalTracer.requireTracerImpl();
-            messageBatchHelper = new MessageBatchHelperImpl(elasticApmTracer);
-        }
+    public static class MessageListenerContainerWrappingAdvice extends BaseAdvice {
 
         @Nullable
         @AssignTo.Argument(0)

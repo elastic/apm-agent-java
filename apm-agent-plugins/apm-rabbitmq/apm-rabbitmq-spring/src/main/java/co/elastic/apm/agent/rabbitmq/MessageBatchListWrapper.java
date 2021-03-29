@@ -13,10 +13,12 @@ public class MessageBatchListWrapper implements List<Message> {
 
     private final List<Message> delegate;
     private final ElasticApmTracer tracer;
+    private final SpringAmqpTransactionHelper transactionHelper;
 
-    public MessageBatchListWrapper(List<Message> delegate, ElasticApmTracer tracer) {
+    public MessageBatchListWrapper(List<Message> delegate, ElasticApmTracer tracer, SpringAmqpTransactionHelper transactionHelper) {
         this.delegate = delegate;
         this.tracer = tracer;
+        this.transactionHelper = transactionHelper;
     }
 
     @Override
@@ -36,7 +38,7 @@ public class MessageBatchListWrapper implements List<Message> {
 
     @Override
     public Iterator<Message> iterator() {
-        return new MessageBatchIteratorWrapper(delegate.iterator(), tracer);
+        return new MessageBatchIteratorWrapper(delegate.iterator(), tracer, transactionHelper);
     }
 
     @Override
@@ -141,6 +143,6 @@ public class MessageBatchListWrapper implements List<Message> {
 
     @Override
     public List<Message> subList(int fromIndex, int toIndex) {
-        return new MessageBatchListWrapper(delegate.subList(fromIndex, toIndex), tracer);
+        return new MessageBatchListWrapper(delegate.subList(fromIndex, toIndex), tracer, transactionHelper);
     }
 }
