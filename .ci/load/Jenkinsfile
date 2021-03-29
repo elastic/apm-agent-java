@@ -197,8 +197,8 @@ pipeline {
 
                         // force kill any remaining app instance to ensure app can start
                         sh(script: ".ci/load/scripts/app.sh stopApp")
-
-                        script {
+                        metricbeat(es_secret: 'secret/apm-team/ci/load-test-cloud-elastic'){
+                          script {
                             echo "start application with JVM options '${params.jvm_options}'"
 
                             def java_home = sh(script: ".ci/load/scripts/fetch_sdk.sh ${params.jvm_version}", returnStdout: true).trim()
@@ -276,7 +276,7 @@ pipeline {
                             withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
                                 sh(script: ".ci/load/scripts/app.sh")
                             }
-
+                          }
                         }
                     }
                     post {
