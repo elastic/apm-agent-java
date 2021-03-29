@@ -64,6 +64,14 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-reactor-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+
         <!-- required to test integration with servlet instrumentation -->
         <dependency>
             <groupId>co.elastic.apm</groupId>

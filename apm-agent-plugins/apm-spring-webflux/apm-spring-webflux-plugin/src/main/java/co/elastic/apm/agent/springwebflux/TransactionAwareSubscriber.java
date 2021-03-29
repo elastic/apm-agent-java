@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
-import co.elastic.apm.agent.context.InFlightRegistry;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -69,7 +68,6 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
-    private static final CallDepth callDepth = CallDepth.get(TransactionAwareSubscriber.class);
     private static final WeakConcurrentMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.createMap();
 
     protected final CoreSubscriber<? super T> subscriber;
@@ -79,8 +77,16 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     private final boolean keepActive;
 
     private final String description;
-    private final Transaction transaction;
+
     private final Tracer tracer;
+
+    @Nullable
+    public Transaction transaction;
+
+    /**
+     * {@literal true} when a 'keep active' and the 'onSubscribe' method activated transaction
+     */
+    private boolean keepActiveActivation = false;
 
     /**
      * @param subscriber    subscriber to wrap

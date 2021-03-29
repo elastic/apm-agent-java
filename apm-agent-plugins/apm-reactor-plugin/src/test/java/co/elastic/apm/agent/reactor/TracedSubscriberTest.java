@@ -25,12 +25,17 @@
 package co.elastic.apm.agent.reactor;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.context.InFlight;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
@@ -41,6 +46,7 @@ import reactor.test.StepVerifier;
 
 import javax.annotation.Nullable;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -83,13 +89,30 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         TracedSubscriber.registerHooks(tracer);
     }
 
+    @ParameterizedTest(name = "context active = {0}")
+    @MethodSource("testLifecycleArgs")
+    void testLifecycle(boolean activeContext) {
+        transaction = startTestRootTransaction().deactivate();
+        SubscriberWrappingTest.testLifecycle(transaction,
+            activeContext,
+            false,
+            false,
+            (subscriber) -> new TracedSubscriber<>(subscriber, tracer, transaction));
+
+        // transaction is not active and should not be ended
+        transaction = null;
+    }
+
+    private static Stream<Arguments> testLifecycleArgs() {
+        return Stream.of(true, false).map(Arguments::of);
+    }
+
     @Test
     void contextPropagation_SameThread_WorksImplicitly() {
         // when running within same thread, the context propagation works implicitly without hooks
         TracedSubscriber.unregisterHooks();
 
-        startAndActivateRootTransaction();
-        AbstractSpan<?> transaction = tracer.getActive();
+        transaction = startTestRootTransaction("root");
 
         Flux<TestObservation> flux = Flux.just(1, 2, 3)
             .publishOn(Schedulers.immediate())
@@ -120,7 +143,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
     void contextPropagation_DifferentThreads() {
 
         // we have a transaction active in current thread
-        startAndActivateRootTransaction();
+        transaction = startTestRootTransaction("root");
 
         Flux<TestObservation> flux = Flux.just(1, 2, 3).log("input")
             // subscribe & publish on separate threads
@@ -138,7 +161,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
     @Test
     void contextPropagation_Flux_Map_Zip() {
-        startAndActivateRootTransaction();
+        transaction = startTestRootTransaction("root");
 
         Flux<TestObservation> flux = Flux.just(1, 2, 3).log("input")
             // publish & subscribe on separate threads
@@ -146,14 +169,14 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
             .publishOn(PUBLISH_SCHEDULER)
             //
             .zipWith(Flux.range(1, Integer.MAX_VALUE)
-                // explicitly set scheduler is required as range might use main thread otherwise
+                    // explicitly set scheduler is required as range might use main thread otherwise
                     .subscribeOn(PUBLISH_SCHEDULER)
                     .publishOn(SUBSCRIBE_SCHEDULER),
                 //
                 (a, b) -> TestObservation.capture(a + b)
-                // perform checks inline because we only keep test observation from last map operation
-                .checkActiveContext(transaction)
-                .checkThread(false))
+                    // perform checks inline because we only keep test observation from last map operation
+                    .checkActiveContext(transaction)
+                    .checkThread(false))
             .log("zip")
             //
             .map((i) -> TestObservation.capture(i.value));
@@ -164,22 +187,30 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
             .expectNextMatches(inOtherThread(transaction, 6))
             .verifyComplete();
 
+        // This is a known case where extra references are kept on Transaction, thus preventing proper recycling
+        // and incurring some extra GC work.
+        transaction.decrementReferences();
+        transaction.decrementReferences();
+
     }
 
     @Test
     void contextPropagation_Flux_error() {
         Throwable error = new RuntimeException("hello");
 
-        startAndActivateRootTransaction();
+        transaction = startTestRootTransaction("root");
 
-        Flux.error(error).subscribe(new BaseSubscriber<>() {
+        Flux.error(error)
+            .subscribeOn(PUBLISH_SCHEDULER)
+            .publishOn(SUBSCRIBE_SCHEDULER)
+            .subscribe(new BaseSubscriber<>() {
 
-            @Override
-            protected void hookOnError(Throwable throwable) {
-                assertThat(throwable).isSameAs(error);
-                checkActiveContext(transaction);
-            }
-        });
+                @Override
+                protected void hookOnError(Throwable throwable) {
+                    assertThat(throwable).isSameAs(error);
+                    checkActiveContext(transaction);
+                }
+            });
     }
 
     @Test
@@ -284,20 +315,12 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
     }
 
-    private void startAndActivateRootTransaction() {
-        transaction = tracer.startRootTransaction(null);
-        if (null != transaction) {
-            // transaction will be null when test is being stopped, thus avoid falsely reporting an error
-            transaction.withName("root").activate();
-        }
-    }
-
     private static void checkActiveContext(@Nullable AbstractSpan<?> expectedActive) {
         assertThat(tracer.getActive())
             .describedAs("active context not available")
             .isNotNull()
             .describedAs("active context is not the one we expect")
-            .isEqualTo(expectedActive);
+            .isSameAs(expectedActive);
     }
 
 }

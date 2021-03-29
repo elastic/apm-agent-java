@@ -139,7 +139,7 @@ public abstract class AbstractInstrumentationTest {
      * @return root transaction
      */
     protected Transaction startTestRootTransaction() {
-        return startTestRootTransaction("test transaction");
+        return startTestRootTransaction("test root transaction");
     }
 
 }

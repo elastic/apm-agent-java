@@ -24,10 +24,8 @@
  */
 package co.elastic.apm.agent.reactor;
 
-import co.elastic.apm.agent.context.InFlightRegistry;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
@@ -48,40 +46,50 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     private static final Logger log = LoggerFactory.getLogger(TracedSubscriber.class);
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
-    private static final CallDepth callDepth = CallDepth.get(TracedSubscriber.class);
 
     private static final String HOOK_KEY = "elastic-apm";
 
     protected final CoreSubscriber<? super T> subscriber;
 
-    private final AbstractSpan<?> context;
+    @Nullable
+    private AbstractSpan<?> context;
+
     private final Tracer tracer;
 
     public TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
         this.subscriber = subscriber;
         this.context = context;
         this.tracer = tracer;
-
-        InFlightRegistry.inFlightStart(context);
+        context.incrementReferences();
     }
 
     @Override
     public void onSubscribe(Subscription s) {
         boolean hasActivated = doEnter("onSubscribe");
+        Throwable thrown = null;
         try {
             subscriber.onSubscribe(s);
+        } catch (Throwable e) {
+            thrown = e;
+            throw e;
         } finally {
             doExit(hasActivated, "onSubscribe");
+            discardIf(thrown != null);
         }
     }
 
     @Override
     public void onNext(T next) {
         boolean hasActivated = doEnter("onNext");
+        Throwable thrown = null;
         try {
             subscriber.onNext(next);
+        } catch (Throwable e) {
+            thrown = e;
+            throw e;
         } finally {
             doExit(hasActivated, "onNext");
+            discardIf(thrown != null);
         }
     }
 
@@ -92,6 +100,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
             subscriber.onError(t);
         } finally {
             doExit(hasActivated, "onError");
+            discardIf(true);
         }
     }
 
@@ -102,50 +111,58 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
             subscriber.onComplete();
         } finally {
             doExit(hasActivated, "onComplete");
+            discardIf(true);
         }
     }
 
-    @Nullable
+    /**
+     * Wrapped method entry
+     *
+     * @param method method name (only for debugging)
+     * @return {@literal true} if context has been activated
+     */
     private boolean doEnter(String method) {
-        // only do something on outer method call, not the nested calls within same thread
-        if (callDepth.isNestedCallAndIncrement()) {
-            return false;
-        }
-
         debugTrace(true, method);
 
-        if (tracer.getActive() == context) {
-            // already activated
+        if (context == null || tracer.getActive() == context) {
+            // already activated or discarded
             return false;
         }
 
-        return InFlightRegistry.activateInFlight(context);
+        context.activate();
+        return true;
     }
 
+    /**
+     * Wrapped method exit
+     *
+     * @param deactivate {@literal true} to de-activate due to a previous activation, no-op otherwise
+     * @param method     method name (only for debugging)
+     */
     private void doExit(boolean deactivate, String method) {
-        // only do something on outer method call, not the nested calls within same thread
-        if (callDepth.isNestedCallAndDecrement()) {
-            return;
-        }
-
         debugTrace(false, method);
 
-        if (!deactivate) {
+        if (context == null || !deactivate) {
             return;
         }
 
-        if(tracer.getActive() != context){
+        // the current context has been activated on enter thus must be the active one
+        context.deactivate();
+    }
+
+    private void discardIf(boolean condition) {
+        if (!condition || context == null) {
             return;
         }
-
-        InFlightRegistry.deactivateInFlight(context);
+        context.decrementReferences();
+        context = null;
     }
 
     private void debugTrace(boolean isEnter, String method) {
-        if (!log.isDebugEnabled()) {
+        if (!log.isTraceEnabled()) {
             return;
         }
-        log.debug("{} reactor {}", isEnter ? ">>" : "<<", method);
+        log.trace("{} reactor {} {}", isEnter ? ">>" : "<<", method, context);
     }
 
     /**
@@ -195,7 +212,7 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
                     return subscriber;
                 }
 
-                log.trace("wrapping subscriber {} with active span/transaction {}", subscriber.toString(), active);
+                log.debug("wrapping subscriber {} publisher {} with active span/transaction {}", subscriber.toString(), publisher, active);
 
                 return new TracedSubscriber<>(subscriber, tracer, active);
             }
