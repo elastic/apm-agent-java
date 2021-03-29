@@ -32,9 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.vertx.AbstractVertxWebHelper;
 import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Scope;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -235,7 +233,17 @@ public abstract class CommonVertxWebTest extends AbstractVertxWebTest {
         executorService.submit(() -> http().get("/parallel/4"));
         executorService.submit(() -> http().get("/parallel/5"));
 
-        reporter.awaitTransactionCount(5);
+        long timeout = 5000; // use a longer timeout as this test includes explicit delayed async processing
+        int expectedTransactionCount = 5;
+        reporter.awaitUntilAsserted(timeout, () -> assertThat(reporter.getNumReportedTransactions())
+                .describedAs("expecting %d transactions, transactions = %s", expectedTransactionCount, reporter.getTransactions())
+                .isEqualTo(expectedTransactionCount));
+
+        int expectedSpanCount = expectedTransactionCount * 3;
+        reporter.awaitUntilAsserted(timeout, () -> assertThat(reporter.getNumReportedSpans())
+                .describedAs("expecting %d spans, spans = %s", expectedSpanCount, reporter.getSpans())
+                .isEqualTo(expectedSpanCount));
+
         assertThat(reporter.getTransactions().stream().map(transaction -> transaction.getContext().getRequest().getUrl().getPathname()))
                 .containsExactlyInAnyOrder("/parallel/1", "/parallel/2", "/parallel/3", "/parallel/4", "/parallel/5");
         assertThat(reporter.getTransactions().stream().map(AbstractSpan::getNameAsString).distinct()).containsExactlyInAnyOrder("GET /parallel/:param");
