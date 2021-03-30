@@ -741,7 +741,7 @@ class TraceContextTest {
         traceContext.serialize(serializedContext);
 
         TraceContext deserialized = TraceContext.with64BitId(tracer);
-        deserialized.deserialize(serializedContext, null);
+        deserialized.deserialize(serializedContext, null, null);
 
         assertThat(deserialized.traceIdAndIdEquals(serializedContext)).isTrue();
         assertThat(deserialized.getTraceId()).isEqualTo(traceContext.getTraceId());

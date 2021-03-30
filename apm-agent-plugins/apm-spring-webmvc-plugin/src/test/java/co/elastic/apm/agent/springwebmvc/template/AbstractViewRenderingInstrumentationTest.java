@@ -89,6 +89,7 @@ abstract class AbstractViewRenderingInstrumentationTest {
     @AfterEach
     final void cleanUp() {
         tracer.resetServiceNameOverrides();
+        tracer.resetServiceVersionOverrides();
         assertThat(tracer.getActive()).isNull();
     }
 

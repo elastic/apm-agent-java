@@ -78,6 +78,8 @@ public class ElasticApmTracer implements Tracer {
 
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = WeakMapSupplier.createMap();
 
+    private static final WeakConcurrentMap<ClassLoader, String> serviceVersionByClassLoader = WeakMapSupplier.createMap();
+
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
@@ -226,6 +228,10 @@ public class ElasticApmTracer implements Tracer {
         if (serviceName != null) {
             transaction.getTraceContext().setServiceName(serviceName);
         }
+        final String serviceVersion = getServiceVersion(initiatingClassLoader);
+        if (serviceVersion != null) {
+            transaction.getTraceContext().setServiceVersion(serviceVersion);
+        }
     }
 
     public Transaction noopTransaction() {
@@ -332,6 +338,7 @@ public class ElasticApmTracer implements Tracer {
             } else {
                 error.getTraceContext().getId().setToRandomValue();
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
+                error.getTraceContext().setServiceVersion(getServiceVersion(initiatingClassLoader));
             }
             return error;
         }
@@ -733,6 +740,33 @@ public class ElasticApmTracer implements Tracer {
 
     public void resetServiceNameOverrides() {
         serviceNameByClassLoader.clear();
+    }
+
+    @Override
+    public void overrideServiceVersionForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceVersion) {
+        // overriding the service version for the bootstrap class loader is not an actual use-case
+        // null may also mean we don't know about the initiating class loader
+        if (classLoader == null
+            || serviceVersion == null || serviceVersion.isEmpty()
+            // if the service version is set explicitly, don't override it
+            || coreConfiguration.getServiceVersionConfig().getUsedKey() != null) {
+            return;
+        }
+        if (!serviceVersionByClassLoader.containsKey(classLoader)) {
+            serviceVersionByClassLoader.putIfAbsent(classLoader, serviceVersion);
+        }
+    }
+
+    @Nullable
+    private String getServiceVersion(@Nullable ClassLoader initiatingClassLoader) {
+        if (initiatingClassLoader == null) {
+            return null;
+        }
+        return serviceVersionByClassLoader.get(initiatingClassLoader);
+    }
+
+    public void resetServiceVersionOverrides() {
+        serviceVersionByClassLoader.clear();
     }
 
     public ApmServerClient getApmServerClient() {

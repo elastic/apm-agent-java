@@ -666,10 +666,12 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeServiceName(TraceContext traceContext) {
         String serviceName = traceContext.getServiceName();
-        if (serviceName != null) {
+        String serviceVersion = traceContext.getServiceVersion();
+        if (serviceName != null || serviceVersion != null) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
-            writeLastField("name", serviceName);
+            writeField("name", serviceName);
+            writeLastField("version", serviceVersion);
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
@@ -677,14 +679,16 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeServiceNameWithFramework(@Nullable final Transaction transaction, final TraceContext traceContext) {
         String serviceName = traceContext.getServiceName();
+        String serviceVersion = traceContext.getServiceVersion();
         boolean isFrameworkNameNotNull = transaction != null && transaction.getFrameworkName() != null;
-        if (serviceName != null || isFrameworkNameNotNull) {
+        if (serviceName != null || serviceVersion != null || isFrameworkNameNotNull) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
             if (isFrameworkNameNotNull) {
                 serializeFramework(transaction.getFrameworkName(), transaction.getFrameworkVersion());
             }
-            writeLastField("name", serviceName);
+            writeField("name", serviceName);
+            writeLastField("version", serviceVersion);
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }

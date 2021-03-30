@@ -154,9 +154,9 @@ public class CallTree implements Recyclable {
         return lastSeen < timestamp;
     }
 
-    public static CallTree.Root createRoot(ObjectPool<CallTree.Root> rootPool, byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+    public static CallTree.Root createRoot(ObjectPool<CallTree.Root> rootPool, byte[] traceContext, @Nullable String serviceName, @Nullable String serviceVersion, long nanoTime) {
         CallTree.Root root = rootPool.createInstance();
-        root.set(traceContext, serviceName, nanoTime);
+        root.set(traceContext, serviceName, serviceVersion, nanoTime);
         return root;
     }
 
@@ -602,9 +602,9 @@ public class CallTree implements Recyclable {
             this.rootContext = TraceContext.with64BitId(tracer);
         }
 
-        private void set(byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+        private void set(byte[] traceContext, @Nullable String serviceName, @Nullable String serviceVersion, long nanoTime) {
             super.set(null, ROOT_FRAME, nanoTime);
-            this.rootContext.deserialize(traceContext, serviceName);
+            this.rootContext.deserialize(traceContext, serviceName, serviceVersion);
             setActiveSpan(traceContext, nanoTime);
         }
 
@@ -666,7 +666,7 @@ public class CallTree implements Recyclable {
             if (activeSpan == null) {
                 firstFrameAfterActivation = true;
                 activeSpan = TraceContext.with64BitId(tracer);
-                activeSpan.deserialize(activeSpanSerialized, rootContext.getServiceName());
+                activeSpan.deserialize(activeSpanSerialized, rootContext.getServiceName(), rootContext.getServiceVersion());
             }
             previousTopOfStack = topOfStack;
             topOfStack = addFrame(stackTrace, stackTrace.size(), activeSpan, activationTimestamp, nanoTime, callTreePool, minDurationNs, this);

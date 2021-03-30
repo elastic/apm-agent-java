@@ -478,6 +478,32 @@ class ElasticApmTracerTest {
     }
 
     @Test
+    void testOverrideServiceVersionWithoutExplicitServiceVersion() {
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .buildAndStart();
+        tracer.overrideServiceVersionForClassLoader(getClass().getClassLoader(), "overridden");
+
+        startTestRootTransaction().end();
+
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isEqualTo("overridden");
+    }
+
+    @Test
+    void testNotOverrideServiceVersionWhenServiceVersionConfigured() {
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(new PropertyFileConfigurationSource("test.elasticapm.with-service-version.properties"));
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+        tracer.overrideServiceVersionForClassLoader(getClass().getClassLoader(), "overridden");
+
+        startTestRootTransaction().end();
+
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceVersion()).isNull();
+    }
+
+    @Test
     void testCaptureExceptionAndGetErrorId() {
         Transaction transaction = startTestRootTransaction();
         String errorId = transaction.captureExceptionAndGetErrorId(new Exception("test"));
