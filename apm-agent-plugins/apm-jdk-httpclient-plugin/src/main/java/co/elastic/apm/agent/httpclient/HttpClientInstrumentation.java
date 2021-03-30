@@ -56,7 +56,7 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("send").and(returns(named("java.net.http.HttpResponse")));
+        return named("send").and(returns(hasSuperType(named("java.net.http.HttpResponse"))));
     }
 
     @Nullable
