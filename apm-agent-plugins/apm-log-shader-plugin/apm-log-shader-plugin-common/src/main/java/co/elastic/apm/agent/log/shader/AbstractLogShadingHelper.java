@@ -197,12 +197,15 @@ public abstract class AbstractLogShadingHelper<A> {
 
     protected abstract void closeShadeAppender(A shadeAppender);
 
-    /**
-     * Since we shade slf4j in submodules, this provides a way to properly log a message to the agent log.
-     *
-     * @param message message to log
-     */
+    /*********************************************************************************************************************
+     * Since we shade slf4j in submodules, the following methods provide a way to properly log a message to the agent log
+     ********************************************************************************************************************/
+
     protected void logInfo(String message) {
         logger.info(message);
+    }
+
+    protected void logError(String message, Throwable throwable) {
+        logger.error(message, throwable);
     }
 }

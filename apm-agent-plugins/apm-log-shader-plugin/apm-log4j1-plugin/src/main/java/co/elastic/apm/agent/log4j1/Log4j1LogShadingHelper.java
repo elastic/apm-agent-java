@@ -31,15 +31,11 @@ import co.elastic.logging.log4j.EcsLayout;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.RollingFileAppender;
 import org.apache.log4j.WriterAppender;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
 class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
-
-    private static final Logger logger = LoggerFactory.getLogger(Log4j1LogShadingHelper.class);
 
     private static final Log4j1LogShadingHelper INSTANCE = new Log4j1LogShadingHelper();
 
@@ -85,7 +81,7 @@ class Log4j1LogShadingHelper extends AbstractLogShadingHelper<WriterAppender> {
 
                 // todo - set rolling file pattern
             } catch (IOException e) {
-                logger.error("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
+                logError("Failed to create Log shading FileAppender. Auto ECS reformatting will not work.", e);
             }
         }
         return shadeAppender;
