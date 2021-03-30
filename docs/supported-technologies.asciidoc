@@ -231,7 +231,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Cassandra
 |2.x+
 |
-|1.22.0
+|1.23.0
 
 |===
 
