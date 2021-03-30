@@ -25,17 +25,12 @@
 package co.elastic.apm.agent.reactor;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.context.InFlight;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
@@ -46,7 +41,6 @@ import reactor.test.StepVerifier;
 
 import javax.annotation.Nullable;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,24 +81,9 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         // ensure clean as new hooks setup for all tests (some might have removed it)
         TracedSubscriber.unregisterHooks();
         TracedSubscriber.registerHooks(tracer);
-    }
 
-    @ParameterizedTest(name = "context active = {0}")
-    @MethodSource("testLifecycleArgs")
-    void testLifecycle(boolean activeContext) {
-        transaction = startTestRootTransaction().deactivate();
-        SubscriberWrappingTest.testLifecycle(transaction,
-            activeContext,
-            false,
-            false,
-            (subscriber) -> new TracedSubscriber<>(subscriber, tracer, transaction));
-
-        // transaction is not active and should not be ended
-        transaction = null;
-    }
-
-    private static Stream<Arguments> testLifecycleArgs() {
-        return Stream.of(true, false).map(Arguments::of);
+        // force GC execution as reference counting relies on it
+        triggerGc(5);
     }
 
     @Test

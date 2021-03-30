@@ -32,6 +32,7 @@ import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,13 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
     void beforeEach() {
         assertThat(reporter.getTransactions()).isEmpty();
         client = getClient();
+    }
+
+    @AfterEach
+    void afterEach() {
+
+        // force GC execution as reference counting relies on it
+        triggerGc(5);
     }
 
     protected abstract GreetingWebClient getClient();
@@ -184,7 +192,6 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         Transaction transaction = checkTransaction(getFirstTransaction(), expectedName, "GET", 200);
 
         checkUrl(transaction, "/with-parameters/1234");
-
     }
 
     @Test
@@ -193,8 +200,7 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
             .expectNextMatches(s -> s.startsWith("Hello, transaction="))
             .verifyComplete();
 
-        Transaction transaction = getFirstTransaction();
-        assertThat(transaction.getNameAsString()).isEqualTo("user-provided-name");
+        assertThat(getFirstTransaction().getNameAsString()).isEqualTo("user-provided-name");
     }
 
     @Test

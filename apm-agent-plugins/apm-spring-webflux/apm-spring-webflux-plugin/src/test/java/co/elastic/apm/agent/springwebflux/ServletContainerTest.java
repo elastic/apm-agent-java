@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
@@ -53,6 +54,12 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
     @AfterAll
     static void stopApp() {
         app.close();
+    }
+
+    @AfterEach
+    void after() {
+        // force GC execution as reference counting relies on it
+        triggerGc(5);
     }
 
     @Test

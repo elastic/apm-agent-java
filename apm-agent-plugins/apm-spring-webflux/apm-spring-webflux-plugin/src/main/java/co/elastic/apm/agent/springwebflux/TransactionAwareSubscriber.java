@@ -29,8 +29,8 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.sdk.state.CallDepth;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Subscription;
@@ -56,7 +56,7 @@ import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.springwebflux.WebFluxInstrumentation.SERVLET_TRANSACTION;
+import static co.elastic.apm.agent.springwebflux.WebFluxInstrumentation.isServletTransaction;
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
@@ -70,6 +70,8 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     private static final WeakConcurrentMap<HandlerMethod, Boolean> ignoredHandlerMethods = WeakMapSupplier.createMap();
 
+    private static final WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = SpanConcurrentHashMap.createWeakMap();
+
     protected final CoreSubscriber<? super T> subscriber;
 
     private final ServerWebExchange exchange;
@@ -79,9 +81,6 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     private final String description;
 
     private final Tracer tracer;
-
-    @Nullable
-    public Transaction transaction;
 
     /**
      * {@literal true} when a 'keep active' and the 'onSubscribe' method activated transaction
@@ -110,42 +109,52 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         this.exchange = exchange;
         this.endOnComplete = endOnComplete;
         this.description = description;
-        this.transaction = transaction;
         this.keepActive = keepActive;
         this.tracer = tracer;
 
-        InFlightRegistry.inFlightStart(transaction);
+        transactionMap.put(this, transaction);
     }
 
     @Override
     public void onSubscribe(Subscription s) {
         boolean hasActivated = doEnter(true, "onSubscribe");
+        Throwable thrown = null;
         try {
             subscriber.onSubscribe(s);
+        } catch (Throwable e) {
+            thrown = e;
+            throw e;
         } finally {
+            keepActiveActivation = hasActivated && keepActive;
             doExit(hasActivated && !keepActive, "onSubscribe");
+            discardIf(thrown != null, keepActiveActivation);
         }
     }
 
     @Override
     public void onNext(T next) {
         boolean hasActivated = doEnter(!keepActive, "onNext");
+        Throwable thrown = null;
         try {
             subscriber.onNext(next);
+        } catch (Throwable e) {
+            thrown = e;
+            throw e;
         } finally {
             doExit(hasActivated, "onNext");
+            discardIf(thrown != null, keepActiveActivation);
         }
     }
 
     @Override
     public void onError(Throwable throwable) {
-        doEnter(!keepActive, "onError");
+        boolean hasActivated = doEnter(!keepActive, "onError");
         try {
             subscriber.onError(throwable);
         } finally {
-            if (doExit(true, "onError")) { // always de-activate in case of error
-                endTransaction(throwable);
-            }
+            doExit(hasActivated, "onError");
+            endTransaction(throwable);
+            discardIf(true, keepActiveActivation);
         }
     }
 
@@ -155,56 +164,73 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         try {
             subscriber.onComplete();
         } finally {
-            if (doExit(endOnComplete || hasActivated, "onComplete")) {
-                if (endOnComplete) {
-                    endTransaction(null);
-                }
+            doExit(hasActivated, "onComplete");
+            if (endOnComplete) {
+                endTransaction(null);
             }
+            discardIf(true, keepActiveActivation);
         }
     }
 
     private boolean doEnter(boolean activate, String method) {
-        // only activate on the outer method call, not the nested calls within same thread
-        if (callDepth.isNestedCallAndIncrement()) {
-            return false;
-        }
         debugTrace(true, method);
+        Transaction transaction = getTransaction();
 
-        if (!activate || transaction == tracer.getActive()) {
+        if (!activate || transaction == null) {
             return false;
         }
 
-        return InFlightRegistry.activateInFlight(transaction);
+        if (transaction == tracer.getActive()) {
+            return false;
+        }
+
+        transaction.activate();
+        return true;
     }
 
-    private void debugTrace(boolean isEnter, String method) {
+    private void doExit(boolean deactivate, String method) {
+        debugTrace(false, method);
+        Transaction transaction = getTransaction();
+
+        if (!deactivate || transaction == null) {
+            return;
+        }
+
+        transaction.deactivate();
+    }
+
+    private void discardIf(boolean condition, boolean deactivateOnDiscard) {
+        Transaction transaction = getTransaction();
+        if (!condition || transaction == null) {
+            return;
+        }
+        if (deactivateOnDiscard) {
+            transaction.deactivate();
+        }
+        transactionMap.remove(this);
+    }
+
+    @Nullable
+    private Transaction getTransaction() {
+        return transactionMap.get(this);
+    }
+
+    private void debugTrace(boolean isEnter, String method) { // TODO : migrate to 'trace'
         if (!log.isDebugEnabled()) {
             return;
         }
         log.debug("{} {} {}", isEnter ? ">>>>" : "<<<<", description, method);
     }
 
-    private boolean doExit(boolean deactivate, String method) {
-        // only activate on the outer method call, not the nested calls within same thread
-        if (callDepth.isNestedCallAndDecrement()) {
-            return false;
+    private void endTransaction(@Nullable Throwable thrown) {
+        Transaction transaction = getTransaction();
+        if (transaction == null) {
+            // already discarded
+            return;
         }
 
-        debugTrace(false, method);
-
-        if (!deactivate) {
-            return false;
-        }
-
-        return InFlightRegistry.deactivateInFlight(transaction);
-    }
-
-    private void endTransaction(@Nullable Throwable thrown){
-        // Ensure reactor instrumentation ignores this transaction for activation
-        InFlightRegistry.inFlightEnd(transaction);
-
-        Object exchangeTransaction = exchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE);
-        if (exchangeTransaction != transaction) {
+        Object attribute = exchange.getAttributes().remove(WebFluxInstrumentation.TRANSACTION_ATTRIBUTE);
+        if (attribute != transaction) {
             // transaction might be already terminated due to instrumentation of more than one
             // dispatcher/handler/invocation-handler class
             return;
@@ -250,7 +276,7 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
         // In case transaction has been created by Servlet, we should not terminate it as the Servlet instrumentation
         // will take care of this.
-        if (Boolean.TRUE != exchange.getAttributes().get(SERVLET_TRANSACTION)) {
+        if (!isServletTransaction(exchange)) {
             transaction.end();
         }
 

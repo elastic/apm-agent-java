@@ -27,6 +27,8 @@ package co.elastic.apm.agent.reactor;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.sdk.state.GlobalVariables;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -47,20 +49,18 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final AtomicBoolean isRegistered = GlobalVariables.get(ReactorInstrumentation.class, "reactor-hook-enabled", new AtomicBoolean(false));
 
+    private static final WeakConcurrentMap<TracedSubscriber<?>, AbstractSpan<?>> contextMap = SpanConcurrentHashMap.createWeakMap();
+
     private static final String HOOK_KEY = "elastic-apm";
 
     protected final CoreSubscriber<? super T> subscriber;
-
-    @Nullable
-    private AbstractSpan<?> context;
 
     private final Tracer tracer;
 
     public TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
         this.subscriber = subscriber;
-        this.context = context;
         this.tracer = tracer;
-        context.incrementReferences();
+        contextMap.put(this, context);
     }
 
     @Override
@@ -124,6 +124,8 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     private boolean doEnter(String method) {
         debugTrace(true, method);
 
+        AbstractSpan<?> context = getContext();
+
         if (context == null || tracer.getActive() == context) {
             // already activated or discarded
             return false;
@@ -142,6 +144,8 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     private void doExit(boolean deactivate, String method) {
         debugTrace(false, method);
 
+        AbstractSpan<?> context = getContext();
+
         if (context == null || !deactivate) {
             return;
         }
@@ -151,18 +155,22 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     }
 
     private void discardIf(boolean condition) {
-        if (!condition || context == null) {
+        if (!condition) {
             return;
         }
-        context.decrementReferences();
-        context = null;
+        contextMap.remove(this);
     }
 
     private void debugTrace(boolean isEnter, String method) {
         if (!log.isTraceEnabled()) {
             return;
         }
-        log.trace("{} reactor {} {}", isEnter ? ">>" : "<<", method, context);
+        log.trace("{} reactor {} {}", isEnter ? ">>" : "<<", method, getContext());
+    }
+
+    @Nullable
+    private AbstractSpan<?> getContext(){
+        return contextMap.get(this);
     }
 
     /**

@@ -142,4 +142,19 @@ public abstract class AbstractInstrumentationTest {
         return startTestRootTransaction("test root transaction");
     }
 
+    /**
+     * Triggers Garbage collector execution with
+     *
+     * @param count number of times that the GC needs to be executed
+     */
+    protected static void triggerGc(int count) {
+        for (int i = 0; i < count; i++) {
+            System.gc();
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                // silently ignored
+            }
+        }
+    }
 }

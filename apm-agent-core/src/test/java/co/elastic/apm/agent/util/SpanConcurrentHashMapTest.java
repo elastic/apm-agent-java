@@ -1,3 +1,27 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2021 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
 package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.MockTracer;
@@ -17,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-class ContextAwareConcurrentMapTest {
+class SpanConcurrentHashMapTest {
 
     @Nullable
     private Object key;
@@ -28,7 +52,7 @@ class ContextAwareConcurrentMapTest {
         checkRefCount(testSpan, 0);
 
         key = new Object();
-        ContextAwareConcurrentMap<Object, TestSpan> map = new ContextAwareConcurrentMap<>();
+        SpanConcurrentHashMap<Object, TestSpan> map = new SpanConcurrentHashMap<>();
         map.put(key, testSpan);
 
         checkRefCount(testSpan, 1);
@@ -46,7 +70,7 @@ class ContextAwareConcurrentMapTest {
     void putTwice(PutOperation operation) {
         TestSpan testSpan = new TestSpan();
         key = new Object();
-        ContextAwareConcurrentMap<Object, TestSpan> map = new ContextAwareConcurrentMap<>();
+        SpanConcurrentHashMap<Object, TestSpan> map = new SpanConcurrentHashMap<>();
 
         checkRefCount(testSpan, 0);
 
@@ -66,7 +90,7 @@ class ContextAwareConcurrentMapTest {
         TestSpan ts2 = new TestSpan();
 
         key = new Object();
-        ContextAwareConcurrentMap<Object, TestSpan> map = new ContextAwareConcurrentMap<>();
+        SpanConcurrentHashMap<Object, TestSpan> map = new SpanConcurrentHashMap<>();
 
         operation.execute(map, key, ts1);
         operation.execute(map, key, ts2);
@@ -97,7 +121,7 @@ class ContextAwareConcurrentMapTest {
 
     @Test
     void clear() {
-        ContextAwareConcurrentMap<Object, TestSpan> map = new ContextAwareConcurrentMap<>();
+        SpanConcurrentHashMap<Object, TestSpan> map = new SpanConcurrentHashMap<>();
 
         List<AbstractSpan<?>> list = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
@@ -121,7 +145,7 @@ class ContextAwareConcurrentMapTest {
         key = new Object();
         TestSpan span = new TestSpan();
 
-        WeakConcurrentMap<Object, AbstractSpan<?>> map = ContextAwareConcurrentMap.createWeakMap();
+        WeakConcurrentMap<Object, AbstractSpan<?>> map = SpanConcurrentHashMap.createWeakMap();
 
         map.put(key, span);
 

@@ -39,9 +39,12 @@ import reactor.core.publisher.Operators;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
@@ -50,7 +53,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     public static final String TRANSACTION_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".transaction";
     public static final String ANNOTATED_BEAN_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".bean_name";
     public static final String ANNOTATED_METHOD_NAME_ATTRIBUTE = WebFluxInstrumentation.class.getName() + ".method_name";
-    public static final String SERVLET_TRANSACTION = WebFluxInstrumentation.class.getName() + ".servlet_transaction";
+    private static final String SERVLET_TRANSACTION = WebFluxInstrumentation.class.getName() + ".servlet_transaction";
 
     public static final String SSE_EVENT_CLASS = "org.springframework.http.codec.ServerSentEvent";
 
@@ -73,11 +76,7 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
             return null;
         }
 
-        transaction.withType("request")
-            // If transaction has been created by servlet, it is not active on the current thread
-            // which might be an implementation detail. However, it makes activation lifecycle easier as it is
-            // only managed within webflux/reactor plugins
-            .activate();
+        transaction.withType("request").activate();
 
         // store transaction in exchange to make it easy to retrieve from other handlers
         exchange.getAttributes().put(TRANSACTION_ATTRIBUTE, transaction);
@@ -85,6 +84,10 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         exchange.getAttributes().put(SERVLET_TRANSACTION, fromServlet);
 
         return transaction;
+    }
+
+    public static boolean isServletTransaction(ServerWebExchange exchange) {
+        return Boolean.TRUE == exchange.getAttributes().get(SERVLET_TRANSACTION);
     }
 
     @Nullable
@@ -114,11 +117,11 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
 
     public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
         // we need to wrap returned mono to terminate transaction
-        return doWrap(mono, transaction, exchange, true,  "webflux-dispatcher");
+        return doWrap(mono, transaction, exchange, true, "webflux-dispatcher");
     }
 
     public static <T> Mono<T> wrapHandlerAdapter(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        return doWrap(mono, transaction, exchange, true,  "webflux-handler-adapter");
+        return doWrap(mono, transaction, exchange, true, "webflux-handler-adapter");
     }
 
     public static <T> Mono<T> wrapInvocableHandlerMethod(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
@@ -139,7 +142,8 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
                 }
 
                 log.trace("wrapping {} subscriber with transaction {}", description, transaction);
-                return new TransactionAwareSubscriber<T>(subscriber, tracer, transaction, exchange, true, keepActive, description);
+
+                return new TransactionAwareSubscriber<>(subscriber, tracer, transaction, exchange, true, keepActive, description);
             }
         }));
         if (log.isTraceEnabled()) {
