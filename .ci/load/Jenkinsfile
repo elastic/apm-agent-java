@@ -18,6 +18,9 @@ pipeline {
         LOCUST_USERS = "${params.concurrent_requests}"
         LOCUST_IGNORE_ERRORS = "${params.ignore_application_errors}"
         ELASTIC_APM_VERIFY_SERVER_CERT = "false"
+        LOAD_TEST_CLOUD_SECRET = 'secret/apm-team/ci/load-test-cloud-elastic'
+        BANDSTAND_SECRET = 'secret/apm-team/ci/bandstand'
+        APM_LOAD_TEST_SECRET = 'secret/apm-team/ci/apm-load-test-server'
     }
     options {
         timeout(time: 72, unit: 'HOURS')
@@ -49,7 +52,7 @@ pipeline {
                 deleteDir()
                 gitCheckout(basedir: '.', githubNotifyFirstTimeContributor: true, shallow: false)
                 echo 'Getting authentication information from Vault'
-                withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                withSecretVault(secret: "${BANDSTAND_SECRET}", user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
                     setEnvVar('SESSION_TOKEN', sh(script: ".ci/load/scripts/start.sh", returnStdout: true).trim())
                 }
 
@@ -165,15 +168,16 @@ pipeline {
                     steps {
                         echo 'Preparing load generation..'
                         unstash('scripts')
-
-                        withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
-                            whenTrue(Boolean.valueOf(params.locustfile)) {
-                                echo 'Using user-supplied plan for load-generation with Locust'
-                                sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
-                            }
-                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                sh(script: ".ci/load/scripts/load_agent.sh")
-                            }
+                        metricbeat(es_secret: "${LOAD_TEST_CLOUD_SECRET}"){
+                          withSecretVault(secret: "${BANDSTAND_SECRET}", user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                              whenTrue(Boolean.valueOf(params.locustfile)) {
+                                  echo 'Using user-supplied plan for load-generation with Locust'
+                                  sh script: "echo \"${params.locustfile}\">.ci/load/scripts/locustfile.py"
+                              }
+                              catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                  sh(script: ".ci/load/scripts/load_agent.sh")
+                              }
+                          }
                         }
                     }
                 }
@@ -197,7 +201,7 @@ pipeline {
 
                         // force kill any remaining app instance to ensure app can start
                         sh(script: ".ci/load/scripts/app.sh stopApp")
-                        metricbeat(es_secret: 'secret/apm-team/ci/load-test-cloud-elastic'){
+                        metricbeat(es_secret: "${LOAD_TEST_CLOUD_SECRET}"){
                           script {
                             echo "start application with JVM options '${params.jvm_options}'"
 
@@ -267,13 +271,13 @@ pipeline {
 
                             cmd = "${cmd} > ${WORKSPACE}/app.log &"
 
-                            withSecretVault(secret: 'secret/apm-team/ci/apm-load-test-server', user_var_name: 'ELASTIC_APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
+                            withSecretVault(secret: "${APM_LOAD_TEST_SECRET}", user_var_name: 'ELASTIC_APM_SERVER_URL', pass_var_name: 'ELASTIC_APM_SECRET_TOKEN') {
                                 sh(script: "${cmd}")
                             }
 
                             // Foreground the orchestrator script for execution control
                             echo 'Starting bandstand client..'
-                            withSecretVault(secret: 'secret/apm-team/ci/bandstand', user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
+                            withSecretVault(secret: "${BANDSTAND_SECRET}", user_var_name: 'APP_TOKEN_TYPE', pass_var_name: 'APP_TOKEN') {
                                 sh(script: ".ci/load/scripts/app.sh")
                             }
                           }
