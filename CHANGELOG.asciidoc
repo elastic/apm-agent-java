@@ -63,6 +63,7 @@ Even when matching on the main class name or on system properties,
 
 [float]
 ===== Bug fixes
+* Fixed log correlation for log4j2 (#1720)
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
