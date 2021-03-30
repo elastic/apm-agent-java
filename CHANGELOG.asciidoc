@@ -59,6 +59,7 @@ By default, the VM arguments are not printed, but only when the `-a`/`--list-vma
 ** Remove dependency on `jps` +
 Even when matching on the main class name or on system properties,
 ** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
+* Avoid systematic `MessageNotWriteableException` error logging, now only visible in `debug`
 
 [float]
 ===== Bug fixes
