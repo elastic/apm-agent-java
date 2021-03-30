@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -79,10 +80,11 @@ public class ScheduledTransactionNameInstrumentation extends TracerAwareInstrume
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onMethodExit(@Advice.Enter @Nullable Object transactionObj,
-                                    @Advice.Thrown Throwable t) {
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (transactionObj instanceof Transaction) {
             Transaction transaction = (Transaction) transactionObj;
             transaction.captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
                 .deactivate()
                 .end();
         }

@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -73,8 +74,8 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_H
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QUEUE_PREFIX;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TEMP;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.TIBCO_TMP_QUEUE_PREFIX;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 
@@ -135,7 +136,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             transaction.activate()
                 .withName("JMS-Test Transaction")
                 .withType("request")
-                .withResult("success");
+                .withResult("success")
+                .withOutcome(Outcome.SUCCESS);
         }
     }
 

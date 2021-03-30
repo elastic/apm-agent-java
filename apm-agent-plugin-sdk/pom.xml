@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.19.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>com.blogspot.mydailyjava</groupId>
             <artifactId>weak-lock-free</artifactId>
-            <version>0.15</version>
+            <version>0.18</version>
         </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>

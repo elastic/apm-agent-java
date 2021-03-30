@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQMapMessage;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -54,7 +55,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SpringJmsTest extends AbstractInstrumentationTest {
 
     private static final String SPRING_TEST_QUEUE = "Spring-Test-Queue";
-    static final BlockingQueue<Map> resultQueue = new ArrayBlockingQueue<>(5);
+    static final BlockingQueue<Map<?, ?>> resultQueue = new ArrayBlockingQueue<>(5);
 
     private static Connection connection;
     private static ClassPathXmlApplicationContext ctx;
@@ -77,10 +78,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
     public void testSendListenSpringQueue() throws JMSException, InterruptedException {
         try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
-            Transaction transaction = tracer.startRootTransaction(null).activate();
-            transaction.withName("JMS-Spring-Test Transaction");
-            transaction.withType("request");
-            transaction.withResult("success");
+            Transaction transaction = startTestRootTransaction("JMS-Spring-Test Transaction");
 
             final String key1 = "key1";
             final String key2 = "key2";
@@ -98,7 +96,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
             Thread.sleep(500);
             transaction.deactivate().end();
 
-            Map result = resultQueue.poll(1, TimeUnit.SECONDS);
+            Map<?, ?> result = resultQueue.poll(1, TimeUnit.SECONDS);
 
             assertThat(result).isNotNull();
             assertThat(result.size()).isEqualTo(2);

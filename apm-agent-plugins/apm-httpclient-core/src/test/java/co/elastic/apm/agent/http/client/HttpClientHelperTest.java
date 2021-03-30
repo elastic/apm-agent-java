@@ -42,10 +42,7 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void beforeTest() {
-        tracer.startRootTransaction(null)
-            .withName("Test HTTP client")
-            .withType("test")
-            .activate();
+        startTestRootTransaction("Test HTTP client");
     }
 
     @AfterEach
@@ -55,8 +52,7 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void testNonDefaultPort() throws URISyntaxException {
-        HttpClientHelper.startHttpClientSpan(tracer.getActive(), "GET", new URI("http://user:pass@testing.local:1234/path?query"), null)
-            .end();
+        createSpanWithUrl("http://user:pass@testing.local:1234/path?query");
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl()).isEqualTo("http://testing.local:1234/path?query");
@@ -70,8 +66,7 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void testDefaultExplicitPort() throws URISyntaxException {
-        HttpClientHelper.startHttpClientSpan(tracer.getActive(), "GET", new URI("https://www.elastic.co:443/products/apm"), null)
-            .end();
+        createSpanWithUrl("https://www.elastic.co:443/products/apm");
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl()).isEqualTo("https://www.elastic.co:443/products/apm");
@@ -85,8 +80,7 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void testDefaultImplicitPort() throws URISyntaxException {
-        HttpClientHelper.startHttpClientSpan(tracer.getActive(), "GET", new URI("https://www.elastic.co/products/apm"), null)
-            .end();
+        createSpanWithUrl("https://www.elastic.co/products/apm");
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl()).isEqualTo("https://www.elastic.co/products/apm");
@@ -100,8 +94,7 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void testDefaultImplicitPortWithIpv4() throws URISyntaxException {
-        HttpClientHelper.startHttpClientSpan(tracer.getActive(), "GET", new URI("https://151.101.114.217/index.html"), null)
-            .end();
+        createSpanWithUrl("https://151.101.114.217/index.html");
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl()).isEqualTo("https://151.101.114.217/index.html");
@@ -115,8 +108,7 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
 
     @Test
     void testDefaultImplicitPortWithIpv6() throws URISyntaxException {
-        HttpClientHelper.startHttpClientSpan(tracer.getActive(), "GET", new URI("http://[2001:db8:a0b:12f0::1]/index.html"), null)
-            .end();
+        createSpanWithUrl("http://[2001:db8:a0b:12f0::1]/index.html");
         assertThat(reporter.getSpans()).hasSize(1);
         Span httpSpan = reporter.getFirstSpan();
         assertThat(httpSpan.getContext().getHttp().getUrl()).isEqualTo("http://[2001:db8:a0b:12f0::1]/index.html");
@@ -126,5 +118,10 @@ class HttpClientHelperTest extends AbstractInstrumentationTest {
         assertThat(destination.getService().getType()).isEqualTo(EXTERNAL_TYPE);
         assertThat(destination.getAddress().toString()).isEqualTo("2001:db8:a0b:12f0::1");
         assertThat(destination.getPort()).isEqualTo(80);
+    }
+
+    private void createSpanWithUrl(String s) throws URISyntaxException {
+        HttpClientHelper.startHttpClientSpan(tracer.getActive(), "GET", new URI(s), null)
+            .end();
     }
 }

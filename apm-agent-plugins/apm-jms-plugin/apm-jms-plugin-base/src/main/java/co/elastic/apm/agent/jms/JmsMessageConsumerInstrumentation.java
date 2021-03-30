@@ -24,9 +24,7 @@
  */
 package co.elastic.apm.agent.jms;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -60,13 +58,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumentation {
 
-    @VisibleForAdvice
     @SuppressWarnings("WeakerAccess")
     public static final Logger logger = LoggerFactory.getLogger(JmsMessageConsumerInstrumentation.class);
-
-    JmsMessageConsumerInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -83,10 +76,6 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
     public static class ReceiveInstrumentation extends JmsMessageConsumerInstrumentation {
 
-        public ReceiveInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("receive").and(takesArguments(0).or(takesArguments(1))).and(isPublic())
@@ -98,12 +87,12 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             return MessageConsumerAdvice.class;
         }
 
-        public static class MessageConsumerAdvice {
+        public static class MessageConsumerAdvice extends BaseAdvice {
 
-            @Advice.OnMethodEnter(suppress = Throwable.class)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
             @Nullable
-            public static AbstractSpan<?> beforeReceive(@Advice.Origin Class<?> clazz,
-                                                     @Advice.Origin("#m") String methodName) {
+            public static Object beforeReceive(@Advice.Origin Class<?> clazz,
+                                               @Advice.Origin("#m") String methodName) {
 
                 AbstractSpan<?> createdSpan = null;
                 boolean createPollingTransaction = false;
@@ -136,10 +125,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 }
 
-                if (messagingConfiguration != null) {
-                    createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
-                    createPollingTransaction |= "receiveNoWait".equals(methodName);
-                }
+                createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
+                createPollingTransaction |= "receiveNoWait".equals(methodName);
 
                 if (createPollingSpan) {
                     createdSpan = parent.createSpan()
@@ -160,17 +147,16 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 return createdSpan;
             }
 
-            @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
+            @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
             public static void afterReceive(@Advice.Origin Class<?> clazz,
                                             @Advice.Origin("#m") String methodName,
-                                            @Advice.Enter @Nullable final AbstractSpan<?> abstractSpan,
+                                            @Advice.Enter @Nullable final Object abstractSpanObj,
                                             @Advice.Return @Nullable final Message message,
-                                            @Advice.Thrown final Throwable throwable) {
-
-                //noinspection ConstantConditions
-                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
-                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
-
+                                            @Advice.Thrown @Nullable final Throwable throwable) {
+                AbstractSpan<?> abstractSpan = null;
+                if (abstractSpanObj instanceof AbstractSpan<?>) {
+                    abstractSpan = (AbstractSpan<?>) abstractSpanObj;
+                }
                 Destination destination = null;
                 String destinationName = null;
                 boolean discard = false;
@@ -178,10 +164,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 if (message != null) {
                     try {
                         destination = message.getJMSDestination();
-                        if (helper != null) {
-                            destinationName = helper.extractDestinationName(message, destination);
-                            discard = helper.ignoreDestination(destinationName);
-                        }
+                        destinationName = helper.extractDestinationName(message, destination);
+                        discard = helper.ignoreDestination(destinationName);
                     } catch (JMSException e) {
                         logger.error("Failed to retrieve meta info from Message", e);
                     }
@@ -190,7 +174,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         Transaction transaction = (Transaction) abstractSpan;
                         if (discard) {
                             transaction.ignoreTransaction();
-                        } else if (helper != null) {
+                        } else {
                             helper.makeChildOf(transaction, message);
                             transaction.withType(MESSAGING_TYPE);
                             helper.addMessageDetails(message, abstractSpan);
@@ -207,7 +191,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         if (discard) {
                             abstractSpan.requestDiscarding();
                         } else if (addDetails) {
-                            if (message != null && helper != null && destinationName != null) {
+                            if (message != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");
                                 helper.addDestinationDetails(message, destination, destinationName, abstractSpan);
                                 helper.setMessageAge(message, abstractSpan);
@@ -219,8 +203,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 }
 
-                if (!discard && tracer.currentTransaction() == null && helper != null
-                    && message != null && messagingConfiguration != null
+                if (!discard && tracer.currentTransaction() == null
+                    && message != null
                     && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
                     && !"receiveNoWait".equals(methodName)) {
 
@@ -244,9 +228,6 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
     }
 
     public static class SetMessageListenerInstrumentation extends JmsMessageConsumerInstrumentation {
-        public SetMessageListenerInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
@@ -258,19 +239,13 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             return ListenerWrappingAdvice.class;
         }
 
-        public static class ListenerWrappingAdvice {
+        public static class ListenerWrappingAdvice extends BaseAdvice {
 
             @Nullable
             @AssignTo.Argument(0)
-            @Advice.OnMethodEnter()
+            @Advice.OnMethodEnter(inline = false)
             public static MessageListener beforeSetListener(@Advice.Argument(0) @Nullable MessageListener original) {
-                //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked
-                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
-                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
-                if (helper != null) {
-                    return helper.wrapLambda(original);
-                }
-                return original;
+                return helper.wrapLambda(original);
             }
         }
     }

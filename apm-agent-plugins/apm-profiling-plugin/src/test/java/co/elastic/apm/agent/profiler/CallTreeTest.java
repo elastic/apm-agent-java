@@ -40,11 +40,13 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,7 +59,6 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class CallTreeTest {
@@ -77,12 +78,13 @@ class CallTreeTest {
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws IOException {
+        Objects.requireNonNull(tracer.getLifecycleListener(ProfilingFactory.class)).getProfiler().clear();
         tracer.stop();
     }
 
     @Test
-    void testCallTree() throws Exception {
+    void testCallTree() {
         TraceContext traceContext = TraceContext.with64BitId(MockTracer.create());
         CallTree.Root root = CallTree.createRoot(NoopObjectPool.ofRecyclable(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
         ObjectPool<CallTree> callTreePool = ListBasedObjectPool.ofRecyclable(new ArrayList<>(), Integer.MAX_VALUE, CallTree::new);
@@ -786,6 +788,28 @@ class CallTreeTest {
         });
     }
 
+    /*
+     * [1   ]     [1   ]
+     *  [2]   ->   [a ]
+     *   [a]       [2]
+     *
+     * Note: this test is currently failing
+     */
+    @Test
+    @Disabled("fix me")
+    void testNestedActivationBeforeCallTree() throws Exception {
+        assertCallTree(new String[]{
+            "  aaa ",
+            "12 2 1"
+        }, new Object[][]{
+            {"a",     3},
+        }, new Object[][]{
+            {"1",     5},
+            {"  a",   3}, // a is actually a child of the transaction
+            {"    2", 2}, // 2 is not within the child_ids of a
+        });
+    }
+
     private void assertCallTree(String[] stackTraces, Object[][] expectedTree) throws Exception {
         assertCallTree(stackTraces, expectedTree, null);
     }
@@ -921,7 +945,6 @@ class CallTreeTest {
         transaction.deactivate().end(nanoClock.nanoTime() / 1000);
         assertThat(root).isNotNull();
         root.end(callTreePool, 0);
-        profiler.clear();
         return root;
     }
 

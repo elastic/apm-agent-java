@@ -26,7 +26,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.ServiceNameUtil;
-import co.elastic.apm.agent.context.ExecutorServiceShutdownLifecycleListener;
+import co.elastic.apm.agent.context.ClosableLifecycleListenerAdapter;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
@@ -42,13 +42,13 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +57,12 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -111,14 +113,17 @@ public class ElasticApmTracer implements Tracer {
     private volatile TracerState tracerState = TracerState.UNINITIALIZED;
     private volatile boolean currentlyUnderStress = false;
     private volatile boolean recordingConfigOptionSet;
-    private final MetaData metaData;
+    private final String ephemeralId;
+    private final Future<MetaData> metaData;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory, ApmServerClient apmServerClient, MetaData metaData) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory,
+                     ApmServerClient apmServerClient, final String ephemeralId, Future<MetaData> metaData) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.apmServerClient = apmServerClient;
+        this.ephemeralId = ephemeralId;
         this.metaData = metaData;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
@@ -148,7 +153,6 @@ public class ElasticApmTracer implements Tracer {
         });
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         sharedPool = ExecutorUtils.createSingleThreadSchedulingDaemonPool("shared");
-        lifecycleListeners.add(new ExecutorServiceShutdownLifecycleListener(sharedPool));
 
         // sets the assertionsEnabled flag to true if indeed enabled
         //noinspection AssertWithSideEffects
@@ -416,21 +420,26 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public synchronized void stop() {
-        tracerState = TracerState.STOPPED;
-        logger.info("Tracer switched to STOPPED state");
-        try {
-            configurationRegistry.close();
-            reporter.close();
-        } catch (Exception e) {
-            logger.warn("Suppressed exception while calling stop()", e);
+        if (tracerState == TracerState.STOPPED) {
+            // may happen if explicitly stopped in a unit test and executed again within a shutdown hook
+            return;
         }
-
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             try {
                 lifecycleListener.stop();
             } catch (Exception e) {
                 logger.warn("Suppressed exception while calling stop()", e);
             }
+        }
+        ExecutorUtils.shutdownAndWaitTermination(sharedPool);
+        tracerState = TracerState.STOPPED;
+        logger.info("Tracer switched to STOPPED state");
+
+        try {
+            configurationRegistry.close();
+            reporter.close();
+        } catch (Exception e) {
+            logger.warn("Suppressed exception while calling stop()", e);
         }
     }
 
@@ -505,7 +514,7 @@ public class ElasticApmTracer implements Tracer {
      *                jvm parameter); false otherwise
      */
     public synchronized void start(boolean premain) {
-        long delayInitMs = getConfig(CoreConfiguration.class).getDelayInitMs();
+        long delayInitMs = getConfig(CoreConfiguration.class).getDelayTracerStartMs();
         if (premain && shouldDelayOnPremain()) {
             delayInitMs = Math.max(delayInitMs, 5000L);
         }
@@ -517,7 +526,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private boolean shouldDelayOnPremain() {
-        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
+        return JvmRuntimeInfo.ofCurrentVM().getMajorVersion() <= 8 &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 
@@ -730,11 +739,19 @@ public class ElasticApmTracer implements Tracer {
         return apmServerClient;
     }
 
-    public MetaData getMetaData() {
+    public String getEphemeralId() {
+        return ephemeralId;
+    }
+
+    public Future<MetaData> getMetaData() {
         return metaData;
     }
 
     public ScheduledThreadPoolExecutor getSharedSingleThreadedPool() {
         return sharedPool;
+    }
+
+    public void addShutdownHook(Closeable closeable) {
+        lifecycleListeners.add(ClosableLifecycleListenerAdapter.of(closeable));
     }
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -74,14 +74,18 @@ public class TestClassWithDependencyRunner {
     }
 
     public TestClassWithDependencyRunner(List<String> dependencies, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
+        this(dependencies, testClass.getName(), Arrays.stream(classesReferencingDependency).map(Class::getName).toArray(String[]::new));
+    }
+
+    public TestClassWithDependencyRunner(List<String> dependencies, String testClass, String... classesReferencingDependency) throws Exception {
         List<URL> urls = resolveArtifacts(dependencies);
-        List<Class<?>> classesToExport = new ArrayList<>();
+        List<String> classesToExport = new ArrayList<>();
         classesToExport.add(testClass);
         classesToExport.addAll(Arrays.asList(classesReferencingDependency));
         urls.add(exportToTempJarFile(classesToExport));
 
         URLClassLoader testClassLoader = new ChildFirstURLClassLoader(urls);
-        testRunner = new BlockJUnit4ClassRunner(testClassLoader.loadClass(testClass.getName()));
+        testRunner = new BlockJUnit4ClassRunner(testClassLoader.loadClass(testClass));
         classLoader = new WeakReference<>(testClassLoader);
     }
 
@@ -105,14 +109,15 @@ public class TestClassWithDependencyRunner {
         assertThat(classLoader.get()).isNull();
     }
 
-    private static URL exportToTempJarFile(List<Class<?>> classes) throws IOException {
+    private static URL exportToTempJarFile(List<String> classes) throws IOException {
         File tempTestJar = File.createTempFile("temp-test", ".jar");
         tempTestJar.deleteOnExit();
         try (JarOutputStream jarOutputStream = new JarOutputStream(new FileOutputStream(tempTestJar))) {
-            for (Class<?> clazz : classes) {
-                InputStream inputStream = clazz.getResourceAsStream('/' + clazz.getName().replace('.', '/') + ".class");
+            for (String clazz : classes) {
+                String resourceName = clazz.replace('.', '/') + ".class";
+                InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream(resourceName);
                 try (inputStream) {
-                    jarOutputStream.putNextEntry(new JarEntry(clazz.getName().replace('.', '/') + ".class"));
+                    jarOutputStream.putNextEntry(new JarEntry(resourceName));
                     byte[] buffer = new byte[1024];
                     int index;
                     while ((index = inputStream.read(buffer)) != -1) {

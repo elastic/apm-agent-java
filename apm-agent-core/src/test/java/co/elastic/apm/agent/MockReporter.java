@@ -24,16 +24,18 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
-import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,6 +44,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import org.awaitility.core.ThrowingRunnable;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -82,6 +85,7 @@ public class MockReporter implements Reporter {
     private final List<byte[]> bytes = new CopyOnWriteArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
+    private boolean checkUnknownOutcomes = true;
     private boolean closed;
 
     static {
@@ -90,7 +94,12 @@ public class MockReporter implements Reporter {
         errorSchema = getSchema("/schema/errors/error.json");
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
-        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+        ConfigurationRegistry spyConfig = SpyConfiguration.createSpyConfig();
+        dslJsonSerializer = new DslJsonSerializer(
+            spyConfig.getConfig(StacktraceConfiguration.class),
+            apmServerClient,
+            MetaData.create(spyConfig, null)
+        );
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
         SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
@@ -108,6 +117,13 @@ public class MockReporter implements Reporter {
         return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
     }
 
+    /**
+     * @param enable {@literal true} to enable unknown outcome check, {@literal false} to allow for unknown outcome
+     */
+    public void checkUnknownOutcome(boolean enable) {
+        checkUnknownOutcomes = enable;
+    }
+
     public void disableDestinationAddressCheck() {
         disableDestinationAddressCheck = true;
     }
@@ -120,6 +136,16 @@ public class MockReporter implements Reporter {
         if (closed) {
             return;
         }
+
+        String type = transaction.getType();
+        assertThat(type).isNotNull();
+
+        if (checkUnknownOutcomes) {
+            assertThat(transaction.getOutcome())
+                .describedAs("transaction outcome should be either success or failure for type = %s", type)
+                .isNotEqualTo(Outcome.UNKNOWN);
+        }
+
         verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
         transactions.add(transaction);
     }
@@ -131,6 +157,16 @@ public class MockReporter implements Reporter {
         }
         verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
         verifyDestinationFields(span);
+
+        String type = span.getType();
+        assertThat(type).isNotNull();
+
+        if (checkUnknownOutcomes) {
+            assertThat(span.getOutcome())
+                .describedAs("span outcome should be either success or failure for type = %s", type)
+                .isNotEqualTo(Outcome.UNKNOWN);
+        }
+
         spans.add(span);
     }
 
@@ -149,7 +185,7 @@ public class MockReporter implements Reporter {
         }
         Destination.Service service = destination.getService();
         assertThat(service.getName()).describedAs("service name is required").isNotEmpty();
-        assertThat(service.getResource()).describedAs("service resourse is required").isNotEmpty();
+        assertThat(service.getResource()).describedAs("service resource is required").isNotEmpty();
         assertThat(service.getType()).describedAs("service type is required").isNotNull();
     }
 
@@ -229,11 +265,15 @@ public class MockReporter implements Reporter {
     }
 
     public void awaitTransactionCount(int count) {
-        awaitUntilAsserted(() -> assertThat(getNumReportedTransactions()).isEqualTo(count));
+        awaitUntilAsserted(() -> assertThat(getNumReportedTransactions())
+            .describedAs("expecting %d transactions, transactions = %s", count, transactions)
+            .isEqualTo(count));
     }
 
     public void awaitSpanCount(int count) {
-        awaitUntilAsserted(() -> assertThat(getNumReportedSpans()).isEqualTo(count));
+        awaitUntilAsserted(() -> assertThat(getNumReportedSpans())
+            .describedAs("expecting %d spans", count)
+            .isEqualTo(count));
     }
 
     @Override

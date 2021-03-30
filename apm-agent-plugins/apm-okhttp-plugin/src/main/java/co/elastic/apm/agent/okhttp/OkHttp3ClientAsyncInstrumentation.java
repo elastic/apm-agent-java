@@ -26,6 +26,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -43,6 +44,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -122,7 +125,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
             @Override
             public void onFailure(Call call, IOException e) {
                 try {
-                    span.captureException(e).end();
+                    span.captureException(e).withOutcome(Outcome.FAILURE).end();
                 } catch (Throwable t) {
                     logger.error(t.getMessage(), t);
                 } finally {
@@ -146,7 +149,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("okhttp3.RealCall");
+        return nameStartsWith("okhttp3.").and(nameEndsWith(".RealCall"));
     }
 
     @Override

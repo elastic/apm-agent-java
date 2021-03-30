@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.report.ssl.SslUtils;
-import co.elastic.apm.agent.util.GlobalLocks;
+import co.elastic.apm.agent.util.UrlConnectionUtils;
 import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
@@ -92,13 +92,18 @@ public class ApmServerClient {
     }
 
     public void start(List<URL> shuffledUrls) {
-        this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
+        reporterConfiguration.getServerUrlOption().addChangeListener(new ConfigurationOption.ChangeListener<URL>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, URL oldValue, URL newValue) {
+                logger.debug("server_url overridden with value = ({}).", newValue);
+                setServerUrls(reporterConfiguration.getServerUrls());
+            }
+        });
+        reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
-                logger.debug("server_urls override with value = ({}).", newValue);
-                if (newValue != null && !newValue.isEmpty()) {
-                    setServerUrls(shuffleUrls(newValue));
-                }
+                logger.debug("server_urls overridden with value = ({}).", newValue);
+                setServerUrls(reporterConfiguration.getServerUrls());
             }
         });
         setServerUrls(Collections.unmodifiableList(shuffledUrls));
@@ -129,7 +134,7 @@ public class ApmServerClient {
 
     @Nonnull
     private HttpURLConnection startRequestToUrl(URL url) throws IOException {
-        final URLConnection connection = openUrlConnectionThreadSafely(url);
+        final URLConnection connection = UrlConnectionUtils.openUrlConnectionThreadSafely(url);
 
         // change SSL socket factory to support both TLS fallback and disabling certificate validation
         if (connection instanceof HttpsURLConnection) {
@@ -163,15 +168,6 @@ public class ApmServerClient {
         connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         return (HttpURLConnection) connection;
-    }
-
-    private URLConnection openUrlConnectionThreadSafely(URL url) throws IOException {
-        GlobalLocks.JUL_INIT_LOCK.lock();
-        try {
-            return url.openConnection();
-        } finally {
-            GlobalLocks.JUL_INIT_LOCK.unlock();
-        }
     }
 
     @Nullable

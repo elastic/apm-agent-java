@@ -1,4 +1,4 @@
-# APM Java Agent Load Geneator
+# APM Java Agent Load Generator
 
 This directory contains configuration files for load-testing the APM Java Agent.
 
@@ -27,15 +27,26 @@ To run a load test, navigate to the [APM Java Agent CI](https://apm-ci.elastic.c
 
 |Parameter|Description|
 |:-------:|:---------|
-|`apm_version`|The version of the APM Java Agent to use. After checking out the agent from source control, this is the git tag that will be used.|
-|`jvm_version`|The version of the JVM which will be used. This will be used as the version of Java both when building the agent and when launching the application.|
-|`concurrent_requests`|The number of concurrent, simulated users which will make requests against the test applicaiton.|
+|`apm_version`|The version of the APM Java Agent to use. After checking out the agent from source control, this is the git tag or ref that will be used.|
+|`jvm_version`|The version of the JVM which will be used. This will be used to run the application.|
+|`jvm_options`|Extra JVM options, for example `-Xmx512m`.|
+|`concurrent_requests`|The number of concurrent, simulated users which will make requests against the test application.|
 |`duration`|The duration for the load test. Specify this value using time units: (300s, 20m, 3h, 1h30m, etc.)|
 |`agent_config`|To override the defaults of the APM Java Agent config, paste a configuration file.|
 |`locustfile`|A Locust file controls the specifics of how load will be applied to the test application, such as which URLs are requested and at what rate. If this option is not specified, then `.ci/load/scripts/locustfile.py` will be used. For more information on writing a locustfile, [please see the documentation](https://docs.locust.io/en/stable/writing-a-locustfile.html).|
 
 
 After specifying the options, a test run will begin. One can view the progress of the test run by following along in the Jenkins Blue Ocean interface for the given job after it is launched. Typically, it takes several minutes for the machines to be provisioned before tests can begin.
+
+### JVM versions
+
+The list of JVMs that we can use for testing is very large and comes from https://jvm-catalog.elastic.co/, thus JVM version is provided
+by ID, you can get a list of supported values using the following command:
+
+```shell
+curl -s https://jvm-catalog.elastic.co/jdks/tags/linux,x86_64 | jq '.[] | .id'
+```
+
 
 ## Viewing test results
 

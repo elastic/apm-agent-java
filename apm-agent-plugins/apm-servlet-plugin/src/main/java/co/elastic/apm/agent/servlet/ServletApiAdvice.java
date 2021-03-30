@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
@@ -100,8 +101,10 @@ public class ServletApiAdvice {
                 if (Boolean.TRUE != excluded.get()) {
                     ServletContext servletContext = servletRequest.getServletContext();
                     if (servletContext != null) {
+                        ClassLoader servletCL = servletTransactionCreationHelper.getClassloader(servletContext);
                         // this makes sure service name discovery also works when attaching at runtime
-                        determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
+                        determineServiceName(servletContext.getServletContextName(), servletCL, servletContext.getContextPath());
+
                     }
 
                     Transaction transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
@@ -274,6 +277,7 @@ public class ServletApiAdvice {
             servletPathTL.clear();
             pathInfoTL.clear();
             span.captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
                 .deactivate()
                 .end();
         }

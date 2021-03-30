@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.util.JvmRuntimeInfo;
+import co.elastic.apm.agent.premain.JvmRuntimeInfo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -46,7 +46,7 @@ public class HttpClientInstrumentation extends AbstractHttpClientInstrumentation
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return new BooleanMatcher<>(JvmRuntimeInfo.getMajorVersion() >= 11).and(nameContains("HttpClient"));
+        return new BooleanMatcher<>(JvmRuntimeInfo.ofCurrentVM().getMajorVersion() >= 11).and(nameContains("HttpClient"));
     }
 
     @Override

@@ -27,6 +27,7 @@ package co.elastic.apm.agent.pluginapi;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Outcome;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -97,9 +98,9 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testResult() {
-        transaction.setResult("foo");
+        assertThat(transaction.setResult("foo")).isSameAs(transaction);
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+        checkResult("foo");
     }
 
     @Test
@@ -107,7 +108,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         transaction.setResult("foo");
         endTransaction();
         reporter.getFirstTransaction().withResultIfUnset("200");
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+        checkResult("foo");
     }
 
     @Test
@@ -115,8 +116,14 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         transaction.setResult("foo");
         transaction.setResult("bar");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("bar");
+        checkResult("bar");
     }
+
+    private void checkResult(String expected) {
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo(expected);
+    }
+
+
 
     @Test
     void testChaining() {
@@ -214,6 +221,37 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         }
         endTransaction();
         assertThat(errorId).isNotNull();
+    }
+
+    @Test
+    void setOutcome_unknown() {
+        reporter.checkUnknownOutcome(false);
+
+        testSetOutcome(Outcome.UNKNOWN);
+    }
+
+    @Test
+    void setOutcome_failure() {
+        testSetOutcome(Outcome.FAILURE);
+    }
+
+    @Test
+    void setOutcome_success() {
+        testSetOutcome(Outcome.SUCCESS);
+    }
+
+    private void testSetOutcome(Outcome outcome) {
+        // set it first to a different value than the expected one
+        Outcome[] values = Outcome.values();
+        transaction.setOutcome(values[(outcome.ordinal() + 1) % values.length]);
+
+        // only the last value set should be kept
+        transaction.setOutcome(outcome);
+        endTransaction();
+
+        // test on enum names to avoid importing the two Outcome enums
+        assertThat(reporter.getFirstTransaction().getOutcome().name())
+            .isEqualTo(outcome.name());
     }
 
     private void endTransaction() {

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.19.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -20,13 +20,17 @@
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
-        <version.cucumber>5.4.0</version.cucumber>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-plugin-sdk</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-premain</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -37,7 +41,7 @@
         <dependency>
             <groupId>org.jctools</groupId>
             <artifactId>jctools-core</artifactId>
-            <version>3.1.0</version>
+            <version>3.3.0</version>
         </dependency>
 
         <dependency>
@@ -53,7 +57,7 @@
         <dependency>
             <groupId>co.elastic.logging</groupId>
             <artifactId>log4j2-ecs-layout</artifactId>
-            <version>0.3.0</version>
+            <version>${version.log4j2-ecs-layout}</version>
         </dependency>
 
         <dependency>
@@ -145,6 +149,13 @@
             <version>${version.cucumber}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <version>${version.cucumber}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
