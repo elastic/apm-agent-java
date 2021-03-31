@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.jdbc.JdbcFilter;
-import co.elastic.apm.agent.objectpool.Allocator;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +39,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.Callable;
 
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.connectionSupported;
 import static co.elastic.apm.agent.jdbc.helper.JdbcGlobalState.metaDataMap;
@@ -58,9 +58,9 @@ public class JdbcHelper {
         return INSTANCE;
     }
 
-    private final SignatureParser signatureParser = new SignatureParser(new Allocator<Scanner>() {
+    private final SignatureParser signatureParser = new SignatureParser(new Callable<Scanner>() {
         @Override
-        public Scanner createInstance() {
+        public Scanner call() {
             return new Scanner(new JdbcFilter());
         }
     });

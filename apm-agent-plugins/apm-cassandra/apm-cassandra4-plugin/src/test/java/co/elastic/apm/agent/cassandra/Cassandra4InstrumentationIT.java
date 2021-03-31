@@ -31,15 +31,16 @@ import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -48,11 +49,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
+@Testcontainers
+class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(Cassandra4InstrumentationIT.class);
 
-    @ClassRule
+    @Container
     public static GenericContainer<?> cassandra = new GenericContainer<>("cassandra:4.0")
         .withExposedPorts(9042)
         .withLogConsumer(new Slf4jLogConsumer(logger))
@@ -62,9 +64,8 @@ public class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
     private Transaction transaction;
 
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws Exception {
-        cassandra.start();
         cassandraPort = cassandra.getMappedPort(9042);
     }
 
@@ -80,8 +81,8 @@ public class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
             .build();
     }
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
         try (CqlSession s = getSession(null)) {
             s.execute("CREATE KEYSPACE IF NOT EXISTS test WITH replication = {'class':'SimpleStrategy','replication_factor':'1'};");
         }
@@ -89,15 +90,15 @@ public class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
         session = getSession("test");
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         Optional.ofNullable(transaction).ifPresent(t -> t.deactivate().end());
         Optional.ofNullable(session).ifPresent(s -> s.execute("DROP KEYSPACE test"));
         Optional.ofNullable(session).ifPresent(Session::close);
     }
 
     @Test
-    public void test() throws Exception{
+    void test() throws Exception{
         session.execute("CREATE TABLE users (id UUID PRIMARY KEY, name text)");
         session.execute(session.prepare("INSERT INTO users (id, name) values (?, ?)").bind(UUID.randomUUID(), "alice"));
         session.executeAsync("SELECT * FROM users where name = 'alice' ALLOW FILTERING").toCompletableFuture().get();

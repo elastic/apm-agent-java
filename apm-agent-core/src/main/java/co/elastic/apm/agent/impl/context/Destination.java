@@ -164,10 +164,7 @@ public class Destination implements Recyclable {
     }
 
     public void withInetAddress(InetAddress inetAddress) {
-        byte[] src = inetAddress.getAddress();
-        if (src != null) {
-            this.address.append(src[0] & 0xff).append('.').append(src[1] & 0xff).append('.').append(src[2] & 0xff).append('.').append(src[3] & 0xff);
-        }
+        withAddress(inetAddress.getHostAddress());
     }
 
     /**

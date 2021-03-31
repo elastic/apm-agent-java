@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers;
 import co.elastic.apm.agent.cassandra.CassandraHelper;
 import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Host;
@@ -85,22 +86,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
 
     public static class Cassandra3Advice {
 
-        /**
-         * {@link Host#getSocketAddress()} has been added in 2.0.2
-         */
-        private static final boolean HAS_HOST_SOCKET_ADDRESS;
         private static final CassandraHelper cassandraHelper = new CassandraHelper(GlobalTracer.get());
-
-        static {
-            boolean hasHostSocketAddress = false;
-            try {
-                Class.forName("com.datastax.driver.core.Host").getMethod("getSocketAddress");
-                hasHostSocketAddress = true;
-            } catch (ReflectiveOperationException | LinkageError ignore) {
-            }
-            HAS_HOST_SOCKET_ADDRESS = hasHostSocketAddress;
-        }
-
 
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -133,11 +119,7 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
                     if (result != null) {
                         Host host = result.getExecutionInfo().getQueriedHost();
                         if (host != null) {
-                            if (HAS_HOST_SOCKET_ADDRESS) {
-                                span.getContext().getDestination().withSocketAddress(host.getSocketAddress());
-                            } else {
-                                span.getContext().getDestination().withInetAddress(host.getAddress());
-                            }
+                            DestinationAddressSetter.Resolver.get().setDestination(span, host);
                         }
                     }
                     span.end();
@@ -148,6 +130,56 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
                     span.endExceptionally(t);
                 }
             });
+        }
+    }
+
+    private interface DestinationAddressSetter {
+        void setDestination(Span span, Host host);
+
+        class Resolver {
+
+            @Nullable
+            private static volatile DestinationAddressSetter delegate;
+
+            static DestinationAddressSetter get() {
+                DestinationAddressSetter localDelegate = delegate;
+                if (localDelegate == null) {
+                    synchronized (Resolver.class) {
+                        localDelegate = delegate;
+                        if (localDelegate == null) {
+                            try {
+                                Class.forName("com.datastax.driver.core.Host").getMethod("getSocketAddress");
+                                delegate = localDelegate = (DestinationAddressSetter) Class.forName(DestinationAddressSetter.class.getName() + "$WithSocketAddress").getEnumConstants()[0];
+                            } catch (ReflectiveOperationException | LinkageError ignore) {
+                                delegate = localDelegate = WithInetAddress.INSTANCE;
+                            }
+                        }
+                    }
+                }
+                return localDelegate;
+            }
+        }
+
+        /**
+         * References the method {@link Destination#withSocketAddress(java.net.SocketAddress)} that has been introduced in 2.0.2
+         * We must not reference this class directly to avoid it being loaded which may cause a linkage error.
+         */
+        enum WithSocketAddress implements DestinationAddressSetter {
+            INSTANCE;
+
+            @Override
+            public void setDestination(Span span, Host host) {
+                span.getContext().getDestination().withSocketAddress(host.getSocketAddress());
+            }
+        }
+
+        enum WithInetAddress implements DestinationAddressSetter {
+            INSTANCE;
+
+            @Override
+            public void setDestination(Span span, Host host) {
+                span.getContext().getDestination().withInetAddress(host.getAddress());
+            }
         }
     }
 }

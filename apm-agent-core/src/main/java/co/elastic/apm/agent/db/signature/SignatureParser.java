@@ -24,10 +24,10 @@
  */
 package co.elastic.apm.agent.db.signature;
 
-import co.elastic.apm.agent.objectpool.Allocator;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -55,13 +55,7 @@ public class SignatureParser {
      */
     private static final int QUERY_LENGTH_CACHE_UPPER_THRESHOLD = 10_000;
 
-    private final Allocator<Scanner> scannerAllocator;
-    private final DetachedThreadLocal<Scanner> SCANNER = new DetachedThreadLocal<Scanner>(DetachedThreadLocal.Cleaner.INLINE) {
-        @Override
-        protected Scanner initialValue(Thread thread) {
-            return scannerAllocator.createInstance();
-        }
-    };
+    private final DetachedThreadLocal<Scanner> scanner;
 
     /**
      * Not using weak keys because ORMs like Hibernate generate equal SQL strings for the same query but don't reuse the same string instance.
@@ -72,16 +66,25 @@ public class SignatureParser {
             0.5f, Runtime.getRuntime().availableProcessors());
 
     public SignatureParser() {
-        this(new Allocator<Scanner>() {
+        this(new Callable<Scanner>() {
             @Override
-            public Scanner createInstance() {
+            public Scanner call() {
                 return new Scanner();
             }
         });
     }
 
-    public SignatureParser(Allocator<Scanner> scannerAllocator) {
-        this.scannerAllocator = scannerAllocator;
+    public SignatureParser(Callable<Scanner> scannerAllocator) {
+        scanner = new DetachedThreadLocal<Scanner>(DetachedThreadLocal.Cleaner.INLINE) {
+            @Override
+            protected Scanner initialValue(Thread thread) {
+                try {
+                    return scannerAllocator.call();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
     }
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
@@ -102,7 +105,7 @@ public class SignatureParser {
                 return;
             }
         }
-        Scanner scanner = SCANNER.get();
+        Scanner scanner = this.scanner.get();
         scanner.setQuery(query);
         parse(scanner, query, signature, dbLink);
 
