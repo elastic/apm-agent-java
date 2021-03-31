@@ -139,7 +139,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
             return named("execute").and(returns(void.class)).and(takesArguments(Runnable.class))
                 .or(named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Runnable.class)))
                 .or(named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Runnable.class, Object.class)))
-                .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Runnable.class, long.class, TimeUnit.class)));
+                .or(named("schedule").and(returns(hasSuperType(is(ScheduledFuture.class)))).and(takesArguments(Runnable.class, long.class, TimeUnit.class)));
         }
     }
 
@@ -171,7 +171,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("submit").and(returns(hasSuperType(is(Future.class)))).and(takesArguments(Callable.class))
-                .or(named("schedule").and(returns(ScheduledFuture.class)).and(takesArguments(Callable.class, long.class, TimeUnit.class)));
+                .or(named("schedule").and(returns(hasSuperType(is(ScheduledFuture.class)))).and(takesArguments(Callable.class, long.class, TimeUnit.class)));
         }
 
     }
@@ -233,7 +233,7 @@ public abstract class ExecutorInstrumentation extends TracerAwareInstrumentation
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("execute").and(returns(void.class)).and(takesArguments(ForkJoinTask.class))
-                .or(named("submit").and(returns(ForkJoinTask.class)).and(takesArguments(ForkJoinTask.class)))
+                .or(named("submit").and(returns(hasSuperType(is(ForkJoinTask.class)))).and(takesArguments(ForkJoinTask.class)))
                 .or(named("invoke").and(returns(Object.class)).and(takesArguments(ForkJoinTask.class)));
         }
 

@@ -73,7 +73,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-attach</artifactId>
+            <artifactId>apm-agent-attach-cli</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
