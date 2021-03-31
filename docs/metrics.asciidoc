@@ -314,9 +314,9 @@ You can filter and group by these dimensions:
 
 
 [[metrics-micrometer]]
-=== Custom metrics using Micrometer
+=== Micrometer metrics
 
-experimental::[]
+beta::[]
 
 The Elastic APM Java agent lets you use the popular metrics collection framework https://micrometer.io/[Micrometer] to track custom application metrics.
 
@@ -344,7 +344,11 @@ Please look for Micrometer-related release notes before updating.
 
 * Metrics with dots in their name can result in mapping conflicts.
 See https://github.com/elastic/apm/issues/347[elastic/apm#347]
-* Histograms aren't supported yet
+* Histograms(https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/DistributionSummary.html[DistributionSummary],
+https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/Timer.html[Timer],
+and https://www.javadoc.io/doc/io.micrometer/micrometer-core/latest/io/micrometer/core/instrument/LongTaskTimer.html[LongTaskTimer])
+are partially supported converting the histogram metric into two derived metric: a counter of the values and the sum of the values.
+For example, `DistributionSummary.builder("order").register(...).record(orderPrice)`` will create two metrics: `order.sum` and `order.count`.
 * When multiple `MeterRegistry` s are used, the metrics are de-duplicated based on their meter id.
   However, it is non-deterministic which metrics are favored if multiple meter registries are used within a compound meter registry.
 See https://github.com/elastic/apm-agent-java/issues/1476[#1476]
@@ -367,11 +371,13 @@ If you are using multiple registries within a `CompoundMeterRegistry`, the agent
 [[verify-micrometer-data]]
 ==== Verify micrometer data
 
-The easiest way to validate that metrics are successfully being reported to Kibana is by using Discover:
+Use Discover to validate that metrics are successfully reported to Kibana.
 
-* Select the `apm-*` index.
-* Filter the data to only show documents with metrics: `processor.name :"metric"`.
-* Optionally, apply additional filters by service or host names if micrometer was only instrumented on a subset of your environment.
+. Launch {kib}.
+. Open the main menu, then click *Discover*.
+. Select `apm-*` as your index pattern.
+. Filter the data to only show documents with metrics: `processor.name :"metric"`
+. Optionally, apply additional filters by service or host names if micrometer was only instrumented on a subset of your environment.
 
 You should now see documents containing both metrics collected by the APM agent and custom metrics from micrometer.
 Narrow your search with a known micrometer metric field.
@@ -383,11 +389,11 @@ For example, if you know `cache.puts` is a micrometer field, add `cache.puts: *`
 
 NOTE: Monotonically increased counters and Positive rate aggregations are not fully supported in the current version.
 
-TSVB is the recommended visualization for micrometer metrics.
+{kib-ref}/tsvb.html[TSVB] is the recommended visualization for micrometer metrics.
 First, make sure to select right aggregation. The most common options are:
 
-* Sum -- Useful for business metrics
-* Average -- Usually used for performance related metrics
+* Sum: Useful for business metrics
+* Average: Usually used for performance related metrics
 
 It's a common task to group metrics by attributes, including micrometer labels or attributes already collected by APM agents. This could be service versions, runtime versions, or even cloud metadata.
 
