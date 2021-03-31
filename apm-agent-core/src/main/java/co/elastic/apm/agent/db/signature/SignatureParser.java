@@ -74,7 +74,7 @@ public class SignatureParser {
         });
     }
 
-    public SignatureParser(Callable<Scanner> scannerAllocator) {
+    public SignatureParser(final Callable<Scanner> scannerAllocator) {
         scanner = new DetachedThreadLocal<Scanner>(DetachedThreadLocal.Cleaner.INLINE) {
             @Override
             protected Scanner initialValue(Thread thread) {
