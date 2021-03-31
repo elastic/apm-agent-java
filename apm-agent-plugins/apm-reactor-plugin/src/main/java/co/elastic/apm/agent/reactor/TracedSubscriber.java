@@ -53,11 +53,11 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
 
     private static final String HOOK_KEY = "elastic-apm";
 
-    protected final CoreSubscriber<? super T> subscriber;
+    private final CoreSubscriber<? super T> subscriber;
 
     private final Tracer tracer;
 
-    public TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
+    TracedSubscriber(CoreSubscriber<? super T> subscriber, Tracer tracer, AbstractSpan<?> context) {
         this.subscriber = subscriber;
         this.tracer = tracer;
         contextMap.put(this, context);

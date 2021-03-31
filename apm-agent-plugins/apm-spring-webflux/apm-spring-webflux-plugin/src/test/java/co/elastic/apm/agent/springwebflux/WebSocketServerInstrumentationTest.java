@@ -28,6 +28,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,11 @@ public class WebSocketServerInstrumentationTest extends AbstractInstrumentationT
     void beforeEach() {
         assertThat(reporter.getTransactions()).isEmpty();
         client = app.getClient(false); // functional/annotated does not matter for websockets
+    }
+
+    @AfterEach
+    void afterEach() {
+        AbstractServerInstrumentationTest.flushGcExpiry();
     }
 
     @Test

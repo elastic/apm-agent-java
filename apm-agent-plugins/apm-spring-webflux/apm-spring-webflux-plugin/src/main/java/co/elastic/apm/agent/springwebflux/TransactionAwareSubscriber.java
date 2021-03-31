@@ -60,11 +60,11 @@ import static co.elastic.apm.agent.springwebflux.WebFluxInstrumentation.isServle
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
- * Transaction-aware subscriber that will activate transaction and terminate it on error and optionally on completion.
+ * Transaction-aware subscriber that will activate transaction and terminate it on error or completion.
  *
  * @param <T>
  */
-public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
+class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionAwareSubscriber.class);
 
@@ -72,44 +72,34 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     private static final WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> transactionMap = SpanConcurrentHashMap.createWeakMap();
 
-    protected final CoreSubscriber<? super T> subscriber;
+    private final CoreSubscriber<? super T> subscriber;
 
     private final ServerWebExchange exchange;
-    private final boolean endOnComplete;
-    private final boolean keepActive;
 
     private final String description;
 
     private final Tracer tracer;
 
     /**
-     * {@literal true} when a 'keep active' and the 'onSubscribe' method activated transaction
+     * {@literal true} when transaction was activated on subscription
      */
-    private boolean keepActiveActivation = false;
+    private boolean activatedOnSubscribe = false;
 
     /**
      * @param subscriber    subscriber to wrap
      * @param transaction   transaction
      * @param exchange      server web exchange
-     * @param endOnComplete {@literal} true to terminate transaction on complete or error
-     * @param keepActive    {@literal true} to keep transaction active between {@link #onSubscribe(Subscription)} and
-     *                      terminal method call {@link #onError(Throwable)} or {@link #onComplete()},
-     *                      use {@literal false} to activate only during wrapped method invocation.
      * @param description   human-readable description to make debugging easier
      */
-    public TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
+    TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
                                       Tracer tracer,
                                       Transaction transaction,
                                       ServerWebExchange exchange,
-                                      boolean endOnComplete,
-                                      boolean keepActive,
                                       String description) {
 
         this.subscriber = subscriber;
         this.exchange = exchange;
-        this.endOnComplete = endOnComplete;
         this.description = description;
-        this.keepActive = keepActive;
         this.tracer = tracer;
 
         transactionMap.put(this, transaction);
@@ -117,7 +107,7 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
 
     @Override
     public void onSubscribe(Subscription s) {
-        boolean hasActivated = doEnter(true, "onSubscribe");
+        doEnter(true, "onSubscribe");
         Throwable thrown = null;
         try {
             subscriber.onSubscribe(s);
@@ -125,15 +115,13 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             thrown = e;
             throw e;
         } finally {
-            keepActiveActivation = hasActivated && keepActive;
-            doExit(hasActivated && !keepActive, "onSubscribe");
-            discardIf(thrown != null, keepActiveActivation);
+            doExit(thrown != null, "onSubscribe");
         }
     }
 
     @Override
     public void onNext(T next) {
-        boolean hasActivated = doEnter(!keepActive, "onNext");
+        doEnter(false, "onNext");
         Throwable thrown = null;
         try {
             subscriber.onNext(next);
@@ -141,73 +129,68 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             thrown = e;
             throw e;
         } finally {
-            doExit(hasActivated, "onNext");
-            discardIf(thrown != null, keepActiveActivation);
+            doExit(thrown != null, "onNext");
         }
     }
 
     @Override
     public void onError(Throwable throwable) {
-        boolean hasActivated = doEnter(!keepActive, "onError");
+        doEnter(false, "onError");
         try {
             subscriber.onError(throwable);
         } finally {
-            doExit(hasActivated, "onError");
             endTransaction(throwable);
-            discardIf(true, keepActiveActivation);
+            doExit(true, "onError");
         }
     }
 
     @Override
     public void onComplete() {
-        boolean hasActivated = doEnter(!keepActive, "onComplete");
+        doEnter(false, "onComplete");
         try {
             subscriber.onComplete();
         } finally {
-            doExit(hasActivated, "onComplete");
-            if (endOnComplete) {
-                endTransaction(null);
-            }
-            discardIf(true, keepActiveActivation);
+            endTransaction(null);
+            doExit(true, "onComplete");
         }
     }
 
-    private boolean doEnter(boolean activate, String method) {
+    private void doEnter(boolean isSubscribe, String method) {
         debugTrace(true, method);
-        Transaction transaction = getTransaction();
 
-        if (!activate || transaction == null) {
-            return false;
+        if (!isSubscribe) {
+            return;
+        }
+
+        Transaction transaction = getTransaction();
+        if (transaction == null) {
+            return;
         }
 
         if (transaction == tracer.getActive()) {
-            return false;
+            activatedOnSubscribe = false;
+            return;
         }
 
         transaction.activate();
-        return true;
+        activatedOnSubscribe = true;
     }
 
-    private void doExit(boolean deactivate, String method) {
+    private void doExit(boolean discard, String method) {
         debugTrace(false, method);
-        Transaction transaction = getTransaction();
 
-        if (!deactivate || transaction == null) {
+        Transaction transaction = getTransaction();
+        if (transaction == null) {
             return;
         }
 
-        transaction.deactivate();
-    }
+        if (discard) {
+            if (activatedOnSubscribe && tracer.getActive() == transaction) {
+                transaction.deactivate();
+            }
+            transactionMap.remove(this);
+        }
 
-    private void discardIf(boolean condition, boolean deactivateOnDiscard) {
-        Transaction transaction = getTransaction();
-        if (!condition || transaction == null) {
-            return;
-        }
-        if (deactivateOnDiscard) {
-            transaction.deactivate();
-        }
-        transactionMap.remove(this);
     }
 
     @Nullable

@@ -33,18 +33,14 @@ import org.springframework.http.server.reactive.AbstractServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.CoreSubscriber;
-import reactor.core.Fuseable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation {
 
@@ -116,36 +112,28 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
     }
 
     public static <T> Mono<T> wrapDispatcher(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        // we need to wrap returned mono to terminate transaction
-        return doWrap(mono, transaction, exchange, true, "webflux-dispatcher");
+        return doWrap(mono, transaction, exchange, "webflux-dispatcher");
     }
 
     public static <T> Mono<T> wrapHandlerAdapter(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        return doWrap(mono, transaction, exchange, true, "webflux-handler-adapter");
+        return doWrap(mono, transaction, exchange, "webflux-handler-adapter");
     }
 
     public static <T> Mono<T> wrapInvocableHandlerMethod(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        // We can keep transaction active here as execution of the whole mono is within the same thread.
-        // That might be just an implementation detail, but so far it works.
-        return doWrap(mono, transaction, exchange, true, "webflux-invocable-handler-method");
+        return doWrap(mono, transaction, exchange, "webflux-invocable-handler-method");
     }
 
-    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final boolean keepActive, final String description) {
-        //noinspection Convert2Lambda,rawtypes,Convert2Diamond
+    private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
+        //noinspection Convert2Lambda,rawtypes,Convert2Diamond,ReactiveStreamsUnusedPublisher
         mono = mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
             @Override
             public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
-                // don't wrap known #error #just #empty as they have instantaneous execution
-                if (publisher instanceof Fuseable.ScalarCallable) {
-                    log.trace("skip wrapping publisher {}", publisher);
-                    return subscriber;
-                }
-
                 log.trace("wrapping {} subscriber with transaction {}", description, transaction);
 
-                return new TransactionAwareSubscriber<>(subscriber, tracer, transaction, exchange, true, keepActive, description);
+                return new TransactionAwareSubscriber<>(subscriber, tracer, transaction, exchange, description);
             }
         }));
+
         if (log.isTraceEnabled()) {
             mono = mono.log(description);
         }

@@ -60,9 +60,25 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         // will trigger the 1st call to onAssembly
         Mono.just(1);
 
+        checkHookRegistration(true, "hook should be registered automatically");
+
+        // should be a no-op nce already registered
+        TracedSubscriber.registerHooks(tracer);
+
+        checkHookRegistration(true, "trying to register twice is no-op");
+
+        // trying to
+        TracedSubscriber.unregisterHooks();
+        checkHookRegistration(false, "should be un-registered");
+
+        TracedSubscriber.unregisterHooks();
+        checkHookRegistration(false, "unregister twice is no-op");
+    }
+
+    private static void checkHookRegistration(boolean registered, String msg){
         assertThat(TracedSubscriber.isHookRegistered())
-            .describedAs("hook should be registered automatically")
-            .isTrue();
+            .describedAs(msg)
+            .isEqualTo(registered);
     }
 
     @BeforeEach
