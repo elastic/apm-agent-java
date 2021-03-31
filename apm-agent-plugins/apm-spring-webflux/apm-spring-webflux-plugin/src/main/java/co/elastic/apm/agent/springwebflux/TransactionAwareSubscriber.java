@@ -216,10 +216,10 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     }
 
     private void debugTrace(boolean isEnter, String method) { // TODO : migrate to 'trace'
-        if (!log.isDebugEnabled()) {
+        if (!log.isTraceEnabled()) {
             return;
         }
-        log.debug("{} {} {}", isEnter ? ">>>>" : "<<<<", description, method);
+        log.trace("{} {} {}", isEnter ? ">>>>" : "<<<<", description, method);
     }
 
     /**
