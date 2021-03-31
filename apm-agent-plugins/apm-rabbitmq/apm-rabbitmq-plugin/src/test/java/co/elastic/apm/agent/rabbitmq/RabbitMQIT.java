@@ -676,12 +676,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         checkMessage(span.getContext().getMessage(), expectedQueueName);
 
-        Destination destination = span.getContext().getDestination();
-
-        assertThat(destination.getAddress().toString()).isEqualTo(connection.getAddress().getHostAddress());
-        assertThat(destination.getPort()).isEqualTo(connection.getPort());
-
-        Destination.Service service = destination.getService();
+        Destination.Service service = span.getContext().getDestination().getService();
 
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
