@@ -150,21 +150,27 @@ public class Destination implements Recyclable {
         service.resetState();
     }
 
-    public void withSocketAddress(SocketAddress socketAddress) {
+    public Destination withSocketAddress(SocketAddress socketAddress) {
         if (socketAddress instanceof InetSocketAddress) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-            InetAddress inetAddress = inetSocketAddress.getAddress();
-            if (inetAddress != null) {
-                withInetAddress(inetAddress);
-            } else {
-                withAddress(inetSocketAddress.getHostString());
-            }
-            withPort(inetSocketAddress.getPort());
+            withInetSocketAddress((InetSocketAddress) socketAddress);
         }
+        return this;
     }
 
-    public void withInetAddress(InetAddress inetAddress) {
+    public Destination withInetSocketAddress(InetSocketAddress inetSocketAddress) {
+        InetAddress inetAddress = inetSocketAddress.getAddress();
+        if (inetAddress != null) {
+            withInetAddress(inetAddress);
+        } else {
+            withAddress(inetSocketAddress.getHostString());
+        }
+        withPort(inetSocketAddress.getPort());
+        return this;
+    }
+
+    public Destination withInetAddress(InetAddress inetAddress) {
         withAddress(inetAddress.getHostAddress());
+        return this;
     }
 
     /**
