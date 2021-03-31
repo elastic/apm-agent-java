@@ -27,6 +27,7 @@ package co.elastic.apm.agent.reactor;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,8 +83,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         TracedSubscriber.unregisterHooks();
         TracedSubscriber.registerHooks(tracer);
 
-        // force GC execution as reference counting relies on it
-        triggerGc(5);
+        flushGcExpiry(TracedSubscriber.getContextMap(), 2);
     }
 
     @Test
@@ -165,11 +165,6 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
             .expectNextMatches(inOtherThread(transaction, 4))
             .expectNextMatches(inOtherThread(transaction, 6))
             .verifyComplete();
-
-        // This is a known case where extra references are kept on Transaction, thus preventing proper recycling
-        // and incurring some extra GC work.
-        transaction.decrementReferences();
-        transaction.decrementReferences();
 
     }
 

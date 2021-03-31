@@ -227,5 +227,12 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         });
     }
 
-
+    /**
+     * Only for testing
+     *
+     * @return in-flight storage for active contexts
+     */
+    public static WeakConcurrentMap<TracedSubscriber<?>, AbstractSpan<?>> getContextMap() {
+        return contextMap;
+    }
 }

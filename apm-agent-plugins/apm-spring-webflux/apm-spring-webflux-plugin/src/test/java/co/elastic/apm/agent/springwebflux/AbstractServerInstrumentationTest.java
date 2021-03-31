@@ -28,6 +28,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.reactor.TracedSubscriber;
 import co.elastic.apm.agent.springwebflux.testapp.GreetingWebClient;
 import co.elastic.apm.agent.springwebflux.testapp.WebFluxApplication;
 import org.assertj.core.data.Offset;
@@ -72,9 +73,14 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
 
     @AfterEach
     void afterEach() {
+        flushGcExpiry();
+    }
 
-        // force GC execution as reference counting relies on it
-        triggerGc(5);
+    static void flushGcExpiry(){
+        // ensure that both reactor & webflux storage maps are properly cleaned
+        // if they are not, it means there is a bug
+        flushGcExpiry(TracedSubscriber.getContextMap(), 2);
+        flushGcExpiry(TransactionAwareSubscriber.getTransactionMap(), 2);
     }
 
     protected abstract GreetingWebClient getClient();

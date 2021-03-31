@@ -59,7 +59,8 @@ public class ServletContainerTest extends AbstractInstrumentationTest {
     @AfterEach
     void after() {
         // force GC execution as reference counting relies on it
-        triggerGc(5);
+
+        AbstractServerInstrumentationTest.flushGcExpiry();
     }
 
     @Test

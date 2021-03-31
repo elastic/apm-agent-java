@@ -30,8 +30,8 @@ import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
-import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -220,6 +220,15 @@ public class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             return;
         }
         log.debug("{} {} {}", isEnter ? ">>>>" : "<<<<", description, method);
+    }
+
+    /**
+     * Only for testing
+     *
+     * @return storage map for in-flight transactions
+     */
+    static WeakConcurrentMap<TransactionAwareSubscriber<?>, Transaction> getTransactionMap() {
+        return transactionMap;
     }
 
     private void endTransaction(@Nullable Throwable thrown) {

@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -149,12 +150,39 @@ public abstract class AbstractInstrumentationTest {
      */
     protected static void triggerGc(int count) {
         for (int i = 0; i < count; i++) {
+            System.out.printf("before gc execution%n");
+            long start = System.currentTimeMillis();
             System.gc();
+            long duration = System.currentTimeMillis() - start;
+            System.out.printf("after gc execution %d ms%n",duration);
             try {
                 Thread.sleep(1);
             } catch (InterruptedException e) {
                 // silently ignored
             }
         }
+    }
+
+    /**
+     * Triggers a GC + max stale entry cleanup in order to trigger GC-based expiration
+     *
+     * @param map   map to flush
+     * @param count number of cleanup loops to execute
+     */
+    protected static void flushGcExpiry(WeakConcurrentMap<?, ?> map, int count) {
+        int left = count;
+        do {
+            System.out.printf("before gc execution%n");
+            long start = System.currentTimeMillis();
+            System.gc();
+            long duration = System.currentTimeMillis() - start;
+            System.out.printf("after gc execution %d ms%n", duration);
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                // silently ignored
+            }
+            map.expungeStaleEntries();
+        } while (left-- > 0);
     }
 }
