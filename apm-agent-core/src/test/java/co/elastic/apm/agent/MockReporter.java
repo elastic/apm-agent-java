@@ -179,7 +179,7 @@ public class MockReporter implements Reporter {
         if (!disableDestinationAddressCheck && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
             // see if this span's action is not supported for its subtype
             Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
-            if (!unsupportedActions.contains(span.getAction()) && span.getOutcome() != Outcome.FAILURE) {
+            if (!unsupportedActions.contains(span.getAction())) {
                 assertThat(destination.getAddress()).describedAs("destination address is required").isNotEmpty();
                 assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
