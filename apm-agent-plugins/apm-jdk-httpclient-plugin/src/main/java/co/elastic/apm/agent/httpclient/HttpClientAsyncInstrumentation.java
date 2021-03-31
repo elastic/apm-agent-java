@@ -57,7 +57,7 @@ public class HttpClientAsyncInstrumentation extends AbstractHttpClientInstrument
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("sendAsync")
-            .and(returns(named("java.util.concurrent.CompletableFuture")))
+            .and(returns(hasSuperType(named("java.util.concurrent.CompletableFuture"))))
             .and(takesArguments(3));
     }
 

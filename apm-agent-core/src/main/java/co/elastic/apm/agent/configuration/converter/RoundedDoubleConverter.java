@@ -28,7 +28,9 @@ import org.stagemonitor.configuration.converter.AbstractValueConverter;
 import org.stagemonitor.configuration.converter.DoubleValueConverter;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.util.Locale;
 
 public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
 
@@ -51,7 +53,7 @@ public class RoundedDoubleConverter extends AbstractValueConverter<Double> {
         for (int i = 0; i < precisionDigits; i++) {
             format.append("#");
         }
-        this.numberFormat = new DecimalFormat(format.toString());
+        this.numberFormat = new DecimalFormat(format.toString(), DecimalFormatSymbols.getInstance(Locale.ENGLISH));
         this.precisionFactor = Math.pow(10, precisionDigits);
     }
 
