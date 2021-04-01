@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -302,6 +303,15 @@ public class MockReporter implements Reporter {
 
     public synchronized List<Span> getSpans() {
         return Collections.unmodifiableList(spans);
+    }
+
+    public Span getSpanByName(String name) {
+        Optional<Span> optional = getSpans().stream().filter(s -> s.getNameAsString().equals(name)).findAny();
+        assertThat(optional)
+            .withFailMessage("No span with name '%s' found in reported spans %s", name,
+                getSpans().stream().map(Span::getNameAsString).collect(Collectors.toList()))
+            .isPresent();
+        return optional.get();
     }
 
     public synchronized int getNumReportedSpans() {

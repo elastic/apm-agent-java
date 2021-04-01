@@ -22,18 +22,21 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.jdbc.signature;
+package co.elastic.apm.agent.db.signature;
+
+import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.EOF;
-import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.FROM;
-import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.IDENT;
-import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.INTO;
-import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.LPAREN;
-import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.RPAREN;
+import static co.elastic.apm.agent.db.signature.Scanner.Token.EOF;
+import static co.elastic.apm.agent.db.signature.Scanner.Token.FROM;
+import static co.elastic.apm.agent.db.signature.Scanner.Token.IDENT;
+import static co.elastic.apm.agent.db.signature.Scanner.Token.INTO;
+import static co.elastic.apm.agent.db.signature.Scanner.Token.LPAREN;
+import static co.elastic.apm.agent.db.signature.Scanner.Token.RPAREN;
 
 public class SignatureParser {
 
@@ -51,15 +54,38 @@ public class SignatureParser {
      * We don't want to keep alive references to huge query strings
      */
     private static final int QUERY_LENGTH_CACHE_UPPER_THRESHOLD = 10_000;
+
+    private final DetachedThreadLocal<Scanner> scanner;
+
     /**
      * Not using weak keys because ORMs like Hibernate generate equal SQL strings for the same query but don't reuse the same string instance.
      * When relying on weak keys, we would not leverage any caching benefits if the query string is collected.
      * That means that we are leaking Strings but as the size of the map is limited that should not be an issue.
      */
-    private final static ConcurrentMap<String, String[]> signatureCache = new ConcurrentHashMap<String, String[]>(DISABLE_CACHE_THRESHOLD,
+    private final ConcurrentMap<String, String[]> signatureCache = new ConcurrentHashMap<String, String[]>(DISABLE_CACHE_THRESHOLD,
             0.5f, Runtime.getRuntime().availableProcessors());
 
-    private final Scanner scanner = new Scanner();
+    public SignatureParser() {
+        this(new Callable<Scanner>() {
+            @Override
+            public Scanner call() {
+                return new Scanner();
+            }
+        });
+    }
+
+    public SignatureParser(final Callable<Scanner> scannerAllocator) {
+        scanner = new DetachedThreadLocal<Scanner>(DetachedThreadLocal.Cleaner.INLINE) {
+            @Override
+            protected Scanner initialValue(Thread thread) {
+                try {
+                    return scannerAllocator.call();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
         querySignature(query, signature, null, preparedStatement);
@@ -79,9 +105,9 @@ public class SignatureParser {
                 return;
             }
         }
-
+        Scanner scanner = this.scanner.get();
         scanner.setQuery(query);
-        parse(query, signature, dbLink);
+        parse(scanner, query, signature, dbLink);
 
         if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
             // we don't mind a small overshoot due to race conditions
@@ -89,20 +115,20 @@ public class SignatureParser {
         }
     }
 
-    private void parse(String query, StringBuilder signature, @Nullable StringBuilder dbLink) {
+    private void parse(Scanner scanner, String query, StringBuilder signature, @Nullable StringBuilder dbLink) {
         final Scanner.Token firstToken = scanner.scanWhile(Scanner.Token.COMMENT);
         switch (firstToken) {
             case CALL:
                 signature.append("CALL");
                 if (scanner.scanUntil(Scanner.Token.IDENT)) {
-                    appendIdentifiers(signature, dbLink);
+                    appendIdentifiers(scanner, signature, dbLink);
                 }
                 return;
             case DELETE:
                 signature.append("DELETE");
                 if (scanner.scanUntil(FROM) && scanner.scanUntil(Scanner.Token.IDENT)) {
                     signature.append(" FROM");
-                    appendIdentifiers(signature, dbLink);
+                    appendIdentifiers(scanner, signature, dbLink);
                 }
                 return;
             case INSERT:
@@ -110,7 +136,7 @@ public class SignatureParser {
                 signature.append(firstToken.name());
                 if (scanner.scanUntil(Scanner.Token.INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
                     signature.append(" INTO");
-                    appendIdentifiers(signature, dbLink);
+                    appendIdentifiers(scanner, signature, dbLink);
                 }
                 return;
             case SELECT:
@@ -125,7 +151,7 @@ public class SignatureParser {
                         if (level == 0) {
                             if (scanner.scanToken(Scanner.Token.IDENT)) {
                                 signature.append(" FROM");
-                                appendIdentifiers(signature, dbLink);
+                                appendIdentifiers(scanner, signature, dbLink);
                             } else {
                                 return;
                             }
@@ -182,7 +208,7 @@ public class SignatureParser {
                 signature.append("MERGE");
                 if (scanner.scanToken(INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
                     signature.append(" INTO");
-                    appendIdentifiers(signature, dbLink);
+                    appendIdentifiers(scanner, signature, dbLink);
                 }
                 return;
             default:
@@ -192,7 +218,7 @@ public class SignatureParser {
         }
     }
 
-    private void appendIdentifiers(StringBuilder signature, @Nullable StringBuilder dbLink) {
+    private void appendIdentifiers(Scanner scanner, StringBuilder signature, @Nullable StringBuilder dbLink) {
         signature.append(' ');
         scanner.appendCurrentTokenText(signature);
         boolean connectedIdents = false, isDbLink = false;
