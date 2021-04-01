@@ -61,7 +61,8 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("getInputStream").and(returns(named("javax.servlet.ServletInputStream")));
+        return named("getInputStream")
+            .and(returns(hasSuperType(named("javax.servlet.ServletInputStream"))));
     }
 
     @Override

@@ -526,7 +526,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     private boolean shouldDelayOnPremain() {
-        return JvmRuntimeInfo.getMajorVersion() <= 8 &&
+        return JvmRuntimeInfo.ofCurrentVM().getMajorVersion() <= 8 &&
             ClassLoader.getSystemClassLoader().getResource("org/apache/catalina/startup/Bootstrap.class") != null;
     }
 

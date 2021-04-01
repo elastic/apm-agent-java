@@ -261,6 +261,7 @@ public class ElasticApmAgent {
         AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY, premain);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
         for (ConfigurationOption<?> instrumentationOption : coreConfig.getInstrumentationOptions()) {
+            //noinspection Convert2Lambda
             instrumentationOption.addChangeListener(new ConfigurationOption.ChangeListener() {
                 @Override
                 public void onChange(ConfigurationOption configurationOption, Object oldValue, Object newValue) {
@@ -493,7 +494,11 @@ public class ElasticApmAgent {
             }
         }
         if (!(classLoader instanceof ExternalPluginClassLoader) && adviceClassName.startsWith("co.elastic.apm.agent.") && adviceClassName.split("\\.").length > 6) {
-            throw new IllegalStateException(String.format("Indy-dispatched advice class %s must be at the root of the instrumentation plugin.", adviceClassName));
+            throw new IllegalStateException(String.format(
+                "Invalid Advice class - %s - Indy-dispatched advice class must be at the root of the instrumentation plugin.",
+                adviceClassName)
+            );
+
         }
     }
 

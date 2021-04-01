@@ -44,7 +44,8 @@ public class MdcActivationListener implements ActivationListener {
     // prevents the shade plugin from relocating org.slf4j.MDC to co.elastic.apm.agent.shaded.slf4j.MDC
     private static final String SLF4J_MDC = "org!slf4j!MDC".replace('!', '.');
     private static final String LOG4J_MDC = "org.apache.log4j.MDC";
-    private static final String LOG4J2_MDC = "org.apache.logging.log4j.ThreadContext";
+    // prevents the shade plugin from relocating org.apache.logging.log4j.ThreadContext to co.elastic.apm.agent.shaded.apache.logging.log4j.ThreadContext
+    private static final String LOG4J2_MDC = "org!apache!logging!log4j!ThreadContext".replace('!', '.');
 
     private static final String TRACE_ID = "trace.id";
     private static final String TRANSACTION_ID = "transaction.id";

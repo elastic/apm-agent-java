@@ -78,30 +78,8 @@ public class AgentMain {
             return;
         }
 
-        if (!JvmRuntimeInfo.isJavaVersionSupported()) {
-            // Gracefully abort agent startup is better than unexpected failure down the road when we known a given JVM
-            // version is not supported. Agent might trigger known JVM bugs causing JVM crashes, notably on early Java 8
-            // versions (but fixed in later versions), given those versions are obsolete and agent can't have workarounds
-            // for JVM internals, there is no other option but to use an up-to-date JVM instead.
-
-            String msgTemplate;
-
-            boolean doDisable;
-            if (Boolean.parseBoolean(System.getProperty("elastic.apm.disable_bootstrap_checks"))) {
-                // safety check disabled, warn end user that it might
-                doDisable = false;
-                msgTemplate = "WARNING : JVM version unknown or not supported, safety check disabled - %s %s %s";
-            } else {
-                doDisable = true;
-                msgTemplate = "Failed to start agent - JVM version not supported: %s %s %s.\nTo override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.";
-            }
-
-            System.err.println(String.format(msgTemplate,
-                JvmRuntimeInfo.getJavaVersion(), JvmRuntimeInfo.getJavaVmName(), JvmRuntimeInfo.getJavaVmVersion()));
-
-            if (doDisable) {
-                return;
-            }
+        if (!BootstrapChecks.defaults().isPassing()) {
+            return;
         }
 
         // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
@@ -133,12 +111,13 @@ public class AgentMain {
      * @return {@code true} for any Java 7 and early Java 8 HotSpot JVMs, {@code false} for all others
      */
     static boolean shouldDelayOnPremain() {
-        int majorVersion = JvmRuntimeInfo.getMajorVersion();
+        JvmRuntimeInfo runtimeInfo = JvmRuntimeInfo.ofCurrentVM();
+        int majorVersion = runtimeInfo.getMajorVersion();
         return
             (majorVersion == 7) ||
             // In case bootstrap checks were disabled
-            (majorVersion == 8 && JvmRuntimeInfo.isHpUx() && JvmRuntimeInfo.getUpdateVersion() < 2) ||
-            (majorVersion == 8 && JvmRuntimeInfo.isHotSpot() && JvmRuntimeInfo.getUpdateVersion() < 40);
+            (majorVersion == 8 && runtimeInfo.isHotSpot() && runtimeInfo.getUpdateVersion() < 2) ||
+            (majorVersion == 8 && runtimeInfo.isHotSpot() && runtimeInfo.getUpdateVersion() < 40);
     }
 
     private static void delayAndInitAgentAsync(final String agentArguments, final Instrumentation instrumentation,

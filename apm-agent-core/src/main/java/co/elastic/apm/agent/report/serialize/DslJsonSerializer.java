@@ -102,7 +102,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
-    private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
+    private static final String[] DISALLOWED_IN_PROPERTY_NAME = new String[]{".", "*", "\""};
     private static final List<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     // visible for testing
     final JsonWriter jw;
@@ -246,12 +246,12 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (!globalLabelKeys.isEmpty()) {
             writeFieldName("labels", jw);
             jw.writeByte(OBJECT_START);
-            writeStringValue(sanitizeLabelKey(globalLabelKeys.get(0), replaceBuilder), replaceBuilder, jw);
+            writeStringValue(sanitizePropertyName(globalLabelKeys.get(0), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
             writeStringValue(globalLabelValues.get(0), replaceBuilder, jw);
             for (int i = 1; i < globalLabelKeys.size(); i++) {
                 jw.writeByte(COMMA);
-                writeStringValue(sanitizeLabelKey(globalLabelKeys.get(i), replaceBuilder), replaceBuilder, jw);
+                writeStringValue(sanitizePropertyName(globalLabelKeys.get(i), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
                 writeStringValue(globalLabelValues.get(i), replaceBuilder, jw);
             }
@@ -1020,13 +1020,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         if (it.hasNext()) {
             Map.Entry<String, ?> kv = it.next();
-            writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
+            writeStringValue(sanitizePropertyName(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
             serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit, supportsNonStringValues);
             while (it.hasNext()) {
                 jw.writeByte(COMMA);
                 kv = it.next();
-                writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
+                writeStringValue(sanitizePropertyName(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
                 serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit, supportsNonStringValues);
             }
@@ -1067,7 +1067,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             if (i > 0) {
                 jw.writeByte(COMMA);
             }
-            writeStringValue(sanitizeLabelKey(labels.getKey(i), replaceBuilder), replaceBuilder, jw);
+            writeStringValue(sanitizePropertyName(labels.getKey(i), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
             serializeScalarValue(replaceBuilder, jw, labels.getValue(i), false, false);
         }
@@ -1098,10 +1098,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    public static CharSequence sanitizeLabelKey(String key, StringBuilder replaceBuilder) {
-        for (int i = 0; i < DISALLOWED_IN_LABEL_KEY.length; i++) {
-            if (key.contains(DISALLOWED_IN_LABEL_KEY[i])) {
-                return replaceAll(key, DISALLOWED_IN_LABEL_KEY, "_", replaceBuilder);
+    public static CharSequence sanitizePropertyName(String key, StringBuilder replaceBuilder) {
+        for (int i = 0; i < DISALLOWED_IN_PROPERTY_NAME.length; i++) {
+            if (key.contains(DISALLOWED_IN_PROPERTY_NAME[i])) {
+                return replaceAll(key, DISALLOWED_IN_PROPERTY_NAME, "_", replaceBuilder);
             }
         }
         return key;
