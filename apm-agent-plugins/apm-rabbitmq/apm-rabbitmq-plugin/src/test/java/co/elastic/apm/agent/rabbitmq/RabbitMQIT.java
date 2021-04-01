@@ -646,27 +646,35 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
         return headersMap;
     }
 
-    static void checkSendSpan(Span span, String exchange) {
+    private static void checkSendSpan(Span span, String exchange) {
+        checkSendSpan(span, exchange, connection.getAddress().getHostAddress(), connection.getPort());
+    }
+
+    static void checkSendSpan(Span span, String exchange, String host, int port) {
         String exchangeName = exchange.isEmpty() ? "<default>" : exchange;
         checkSpanCommon(span,
             "send",
             String.format("RabbitMQ SEND to %s", exchangeName),
-            exchangeName,
-            String.format("rabbitmq/%s", exchangeName)
+            exchangeName
         );
+
+        checkSpanDestination(span, host, port, String.format("rabbitmq/%s", exchangeName));
     }
 
     private static void checkPollSpan(Span span, String queue, String normalizedExchange) {
         checkSpanCommon(span,
             "poll",
             String.format("RabbitMQ POLL from %s", queue),
-            queue,
-            String.format("rabbitmq/%s", normalizedExchange));
+            queue);
+
+        checkSpanDestination(span,
+            connection.getAddress().getHostAddress(),
+            connection.getPort(),
+            String.format("rabbitmq/%s", normalizedExchange)
+        );
     }
 
-    private static void
-    checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName,
-                    String expectedResource) {
+    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo(expectedAction);
@@ -676,12 +684,18 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         checkMessage(span.getContext().getMessage(), expectedQueueName);
 
-        Destination.Service service = span.getContext().getDestination().getService();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
+    }
+
+    static void checkSpanDestination(Span span, String expectedHostAddress, int expectedPort, String expectedResource) {
+        Destination destination = span.getContext().getDestination();
+        assertThat(destination.getAddress().toString()).isEqualTo(expectedHostAddress);
+        assertThat(destination.getPort()).isEqualTo(expectedPort);
+
+        Destination.Service service = destination.getService();
 
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
         assertThat(service.getResource().toString()).isEqualTo(expectedResource);
-
-        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 }

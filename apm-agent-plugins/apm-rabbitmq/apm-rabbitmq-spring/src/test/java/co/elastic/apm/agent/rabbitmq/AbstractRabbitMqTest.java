@@ -66,7 +66,7 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
 
         List<Span> spans = getReporter().getSpans();
         Span sendSpan = spans.stream().filter(span -> span.getType().equals("messaging")).findFirst().get();
-        checkSendSpan(sendSpan, TOPIC_EXCHANGE_NAME);
+        checkSendSpan(sendSpan, TOPIC_EXCHANGE_NAME, LOCALHOST_ADDRESS, container.getAmqpPort());
         checkParentChild(sendSpan, receiveTransaction);
 
         Span testSpan = spans.stream().filter(span -> span.getType().equals("http")).findFirst().get();
@@ -98,7 +98,7 @@ public abstract class AbstractRabbitMqTest extends RabbitMqTestBase {
         assertThat(receiveTransaction.getSpanCount().getTotal().get()).isEqualTo(1);
 
         Span sendSpan = getReporter().getSpans().stream().filter(span -> span.getType().equals("messaging")).findFirst().get();
-        checkSendSpan(sendSpan, "");
+        checkSendSpan(sendSpan, "", LOCALHOST_ADDRESS, container.getAmqpPort());
         checkParentChild(sendSpan, receiveTransaction);
     }
 }
