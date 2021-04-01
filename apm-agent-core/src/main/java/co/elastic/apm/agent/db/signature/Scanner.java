@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.jdbc.signature;
+package co.elastic.apm.agent.db.signature;
 
 public class Scanner {
 
@@ -31,7 +31,15 @@ public class Scanner {
     private int end; // text end char offset
     private int pos; // read position char offset
     private int inputLength;
-    private final JdbcFilter filter = new JdbcFilter();
+    private final ScannerFilter filter;
+
+    public Scanner() {
+        this(ScannerFilter.NoOp.INSTANCE);
+    }
+
+    public Scanner(ScannerFilter filter) {
+        this.filter = filter;
+    }
 
     public void setQuery(String sql) {
         this.input = sql;
@@ -123,6 +131,10 @@ public class Scanner {
                     // /* comment */
                     next();
                     return scanBracketedComment();
+                } else if (isNextChar('/')) {
+                    // // line comment (ex. Cassandra QL)
+                    next();
+                    return scanSimpleComment();
                 }
                 return Token.OTHER;
             case '.':
@@ -303,7 +315,7 @@ public class Scanner {
         return input.charAt(pos);
     }
 
-    char next() {
+    public char next() {
         final char c = peek();
         pos++;
         end = pos;
@@ -349,7 +361,7 @@ public class Scanner {
         return hasNext() && peek() == c;
     }
 
-    boolean isNextCharIgnoreCase(char c) {
+    public boolean isNextCharIgnoreCase(char c) {
         return hasNext() && Character.toLowerCase(peek()) == Character.toLowerCase(c);
     }
 

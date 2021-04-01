@@ -22,10 +22,9 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.jdbc.signature;
+package co.elastic.apm.agent.db.signature;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -40,18 +39,13 @@ import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SignatureParserTest {
+public class SignatureParserTest {
 
-    private static SignatureParser signatureParser;
-
-    @BeforeAll
-    static void setUp() {
-        signatureParser = new SignatureParser();
-    }
+    protected SignatureParser signatureParser = new SignatureParser();
 
     @ParameterizedTest
     @MethodSource("getTestSignatures_shared")
-    void testSignature_shared(String input, String output, String comment) {
+    protected void testSignature_shared(String input, String output, String comment) {
         final StringBuilder signature = new StringBuilder();
         signatureParser.querySignature(input, signature, false);
         assertThat(signature.toString())
@@ -75,7 +69,7 @@ class SignatureParserTest {
         return parseTestParameters(TestJsonSpec.getJson(SignatureParserTest.class, "signature_tests.json"));
     }
 
-    private static Stream<Arguments> parseTestParameters(JsonNode json) {
+    protected static Stream<Arguments> parseTestParameters(JsonNode json) {
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(json.iterator(), Spliterator.ORDERED), false)
             .map(node -> {
                 String input = node.get("input").asText();

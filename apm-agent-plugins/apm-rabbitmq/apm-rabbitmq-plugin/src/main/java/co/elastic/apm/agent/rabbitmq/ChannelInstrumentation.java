@@ -296,7 +296,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
         service.getResource().append("/").append(exchange);
 
         Connection connection = channel.getConnection();
-        destination.withAddress(connection.getAddress().getHostName());
+        destination.withInetAddress(connection.getAddress());
         destination.withPort(connection.getPort());
     }
 }

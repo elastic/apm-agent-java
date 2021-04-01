@@ -27,6 +27,9 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 /**
  * Context information about a destination of outgoing calls.
@@ -145,6 +148,29 @@ public class Destination implements Recyclable {
         address.setLength(0);
         port = 0;
         service.resetState();
+    }
+
+    public Destination withSocketAddress(SocketAddress socketAddress) {
+        if (socketAddress instanceof InetSocketAddress) {
+            withInetSocketAddress((InetSocketAddress) socketAddress);
+        }
+        return this;
+    }
+
+    public Destination withInetSocketAddress(InetSocketAddress inetSocketAddress) {
+        InetAddress inetAddress = inetSocketAddress.getAddress();
+        if (inetAddress != null) {
+            withInetAddress(inetAddress);
+        } else {
+            withAddress(inetSocketAddress.getHostString());
+        }
+        withPort(inetSocketAddress.getPort());
+        return this;
+    }
+
+    public Destination withInetAddress(InetAddress inetAddress) {
+        withAddress(inetAddress.getHostAddress());
+        return this;
     }
 
     /**

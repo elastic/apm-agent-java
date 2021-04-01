@@ -52,7 +52,6 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,9 +70,9 @@ import static org.mockito.Mockito.when;
 /**
  * Tests the whole RabbitMQ instrumentation as a whole, both for transactions and spans
  */
-public class RabbitMQTest extends AbstractInstrumentationTest {
+public class RabbitMQIT extends AbstractInstrumentationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(RabbitMQTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(RabbitMQIT.class);
 
     private static final String IMAGE = "rabbitmq:3.7-management-alpine";
     private static final RabbitMQContainer container = new RabbitMQContainer(IMAGE);
@@ -648,34 +647,34 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
     }
 
     private static void checkSendSpan(Span span, String exchange) {
-        checkSendSpan(span, exchange, container.getAmqpUrl());
+        checkSendSpan(span, exchange, connection.getAddress().getHostAddress(), connection.getPort());
     }
 
-    static void checkSendSpan(Span span, String exchange, String amqpUrl) {
-        URI uri = URI.create(amqpUrl);
+    static void checkSendSpan(Span span, String exchange, String host, int port) {
         String exchangeName = exchange.isEmpty() ? "<default>" : exchange;
         checkSpanCommon(span,
             "send",
             String.format("RabbitMQ SEND to %s", exchangeName),
-            exchangeName,
-            String.format("rabbitmq/%s", exchangeName),
-            uri.getHost(),
-            uri.getPort());
+            exchangeName
+        );
+
+        checkSpanDestination(span, host, port, String.format("rabbitmq/%s", exchangeName));
     }
 
     private static void checkPollSpan(Span span, String queue, String normalizedExchange) {
         checkSpanCommon(span,
             "poll",
             String.format("RabbitMQ POLL from %s", queue),
-            queue,
-            String.format("rabbitmq/%s", normalizedExchange),
-            container.getHost(),
-            container.getAmqpPort());
+            queue);
+
+        checkSpanDestination(span,
+            connection.getAddress().getHostAddress(),
+            connection.getPort(),
+            String.format("rabbitmq/%s", normalizedExchange)
+        );
     }
 
-    private static void
-    checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName,
-                                        String expectedResource, String host, int port) {
+    private static void checkSpanCommon(Span span, String expectedAction, String expectedName, String expectedQueueName) {
         assertThat(span.getType()).isEqualTo("messaging");
         assertThat(span.getSubtype()).isEqualTo("rabbitmq");
         assertThat(span.getAction()).isEqualTo(expectedAction);
@@ -685,17 +684,18 @@ public class RabbitMQTest extends AbstractInstrumentationTest {
 
         checkMessage(span.getContext().getMessage(), expectedQueueName);
 
-        Destination destination = span.getContext().getDestination();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
+    }
 
-        assertThat(destination.getAddress().toString()).isEqualTo(host);
-        assertThat(destination.getPort()).isEqualTo(port);
+    static void checkSpanDestination(Span span, String expectedHostAddress, int expectedPort, String expectedResource) {
+        Destination destination = span.getContext().getDestination();
+        assertThat(destination.getAddress().toString()).isEqualTo(expectedHostAddress);
+        assertThat(destination.getPort()).isEqualTo(expectedPort);
 
         Destination.Service service = destination.getService();
 
         assertThat(service.getType()).isEqualTo("messaging");
         assertThat(service.getName().toString()).isEqualTo("rabbitmq");
         assertThat(service.getResource().toString()).isEqualTo(expectedResource);
-
-        assertThat(span.getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 }
