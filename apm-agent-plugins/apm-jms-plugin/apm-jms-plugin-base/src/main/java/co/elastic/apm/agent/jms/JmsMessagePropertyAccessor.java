@@ -85,7 +85,7 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         } catch (MessageNotWriteableException e) {
             logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
         } catch (JMSException e) {
-            logger.warn("Failed to set JMS message property {}.", headerName);
+            logger.warn("Failed to set JMS message property {}. Distributed tracing may not work.", headerName);
             logger.debug("Detailed error: ", e);
         }
     }

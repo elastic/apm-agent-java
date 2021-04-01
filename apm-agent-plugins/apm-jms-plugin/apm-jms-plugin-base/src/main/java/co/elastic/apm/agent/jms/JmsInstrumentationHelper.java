@@ -49,8 +49,6 @@ import java.util.Enumeration;
 
 public class JmsInstrumentationHelper {
 
-    private static final JmsMessagePropertyAccessor MSG_ACCESSOR = JmsMessagePropertyAccessor.instance();
-
     /**
      * In some cases, dashes are not allowed in JMS Message property names
      */
@@ -131,7 +129,7 @@ public class JmsInstrumentationHelper {
             .withAction("send")
             .activate();
 
-        span.propagateTraceContext(message, MSG_ACCESSOR);
+        span.propagateTraceContext(message, JmsMessagePropertyAccessor.instance());
         if (span.isSampled()) {
             span.getContext().getDestination().getService()
                 .withName("jms")
@@ -142,7 +140,7 @@ public class JmsInstrumentationHelper {
                 span.withName("JMS SEND to ");
                 addDestinationDetails(destination, destinationName, span);
                 if (isDestinationNameComputed) {
-                    MSG_ACCESSOR.setHeader(JMS_DESTINATION_NAME_PROPERTY, destinationName, message);
+                    JmsMessagePropertyAccessor.instance().setHeader(JMS_DESTINATION_NAME_PROPERTY, destinationName, message);
                 }
             }
         }
@@ -151,7 +149,7 @@ public class JmsInstrumentationHelper {
 
     @Nullable
     public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
-        Transaction transaction = tracer.startChildTransaction(parentMessage, MSG_ACCESSOR, instrumentedClass.getClassLoader());
+        Transaction transaction = tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
         if (transaction != null) {
             transaction.setFrameworkName(FRAMEWORK_NAME);
         }
@@ -159,7 +157,7 @@ public class JmsInstrumentationHelper {
     }
 
     public void makeChildOf(Transaction childTransaction, Message parentMessage) {
-        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, MSG_ACCESSOR);
+        TraceContext.<Message>getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
     }
 
     @Nullable
@@ -189,7 +187,7 @@ public class JmsInstrumentationHelper {
     public String extractDestinationName(@Nullable Message message, Destination destination) {
         String destinationName = null;
         if (message != null) {
-            destinationName = MSG_ACCESSOR.getFirstHeader(JMS_DESTINATION_NAME_PROPERTY, message);
+            destinationName = JmsMessagePropertyAccessor.instance().getFirstHeader(JMS_DESTINATION_NAME_PROPERTY, message);
         }
         if (destinationName == null) {
             try {
