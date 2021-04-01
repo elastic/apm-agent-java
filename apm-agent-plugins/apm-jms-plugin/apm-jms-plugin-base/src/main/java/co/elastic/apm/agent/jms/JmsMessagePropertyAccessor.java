@@ -35,6 +35,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageNotWriteableException;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 
@@ -76,8 +77,13 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
     @Override
     public void setHeader(String headerName, String headerValue, Message message) {
         headerName = jmsifyHeaderName(headerName);
+        if (getFirstHeader(headerName, message) != null) {
+            return;
+        }
         try {
             message.setStringProperty(headerName, headerValue);
+        } catch (MessageNotWriteableException e) {
+            logger.debug("Failed to set JMS message property due to read-only message", e);
         } catch (JMSException e) {
             logger.warn("Failed to set JMS message property. Distributed tracing cannot work without that.");
             logger.debug("Detailed error: ", e);

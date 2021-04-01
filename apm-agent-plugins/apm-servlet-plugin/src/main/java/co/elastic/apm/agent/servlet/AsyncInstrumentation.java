@@ -90,7 +90,7 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(named("javax.servlet.AsyncContext")))
+                .and(returns(hasSuperType(named("javax.servlet.AsyncContext"))))
                 .and(takesArguments(0)
                     .or(
                         takesArgument(0, named("javax.servlet.ServletRequest"))

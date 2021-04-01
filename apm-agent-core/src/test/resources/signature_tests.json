@@ -1,0 +1,46 @@
+[
+  {
+    "input": "SELECT *,(SELECT COUNT(*) FROM table2 WHERE table2.field1 = table1.id) AS count FROM schema.table1@\"DBLINK.FQDN.COM@USER\" WHERE table1.field1 = 'value'",
+    "output": "SELECT FROM schema.table1"
+  },
+  {
+    "input": "UPDATE IGNORE foo.bar@\"DBLINK.FQDN.COM@USER\" SET bar=1 WHERE baz=2",
+    "output": "UPDATE foo.bar"
+  },
+  {
+    "input": "INSERT LOW_PRIORITY IGNORE INTO schema.table1@\"DBLINK.FQDN.COM@USER\" (col) VALUES(?)",
+    "output": "INSERT INTO schema.table1"
+  },
+  {
+    "input": "DELETE FROM schema.table1@\"DBLINK.FQDN.COM@USER\"",
+    "output": "DELETE FROM schema.table1"
+  },
+  {
+    "input": "MERGE INTO TEST USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
+    "output": "MERGE INTO TEST"
+  },
+  {
+    "input": "MERGE INTO TEST ALIAS USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
+    "output": "MERGE INTO TEST"
+  },
+  {
+    "input": "MERGE INTO SCHEMA.TEST USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
+    "output": "MERGE INTO SCHEMA.TEST"
+  },
+  {
+    "input": "MERGE INTO SCHEMA.TEST@DBLINK USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
+    "output": "MERGE INTO SCHEMA.TEST"
+  },
+  {
+    "input": "MERGE INTO SCHEMA.TEST@\"DBLINK.FQDN.COM\" USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
+    "output": "MERGE INTO SCHEMA.TEST"
+  },
+  {
+    "input": "MERGE INTO SCHEMA.TEST@\"DBLINK.FQDN.COM@USER\" USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
+    "output": "MERGE INTO SCHEMA.TEST"
+  },
+  {
+    "input": "MERGE",
+    "output": "MERGE"
+  }
+]
