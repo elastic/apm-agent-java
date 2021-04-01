@@ -59,6 +59,7 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         MDC.clear();
         org.apache.log4j.MDC.clear();
         ThreadContext.clearAll();
+        org.jboss.logging.MDC.clear();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
     }
 
@@ -275,6 +276,8 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         assertThat(MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
         assertThat(ThreadContext.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
         assertThat(ThreadContext.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
+        assertThat(org.jboss.logging.MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
+        assertThat(org.jboss.logging.MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
         if (log4jMdcWorking == Boolean.TRUE) {
             assertThat(org.apache.log4j.MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
             assertThat(org.apache.log4j.MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
@@ -286,6 +289,8 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         assertThat(MDC.get("transaction.id")).isNull();
         assertThat(ThreadContext.get("trace.id")).isNull();
         assertThat(ThreadContext.get("transaction.id")).isNull();
+        assertThat(org.jboss.logging.MDC.get("trace.id")).isNull();
+        assertThat(org.jboss.logging.MDC.get("transaction.id")).isNull();
         if (log4jMdcWorking == Boolean.TRUE) {
             assertThat(org.apache.log4j.MDC.get("transaction.id")).isNull();
             assertThat(org.apache.log4j.MDC.get("trace.id")).isNull();
