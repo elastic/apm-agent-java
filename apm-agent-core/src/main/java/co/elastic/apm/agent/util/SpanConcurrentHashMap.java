@@ -35,6 +35,11 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Hash map dedicated to storage of in-flight spans & transactions, reference count is being incremented/decremented
+ * when entry is added/removed. Usage of this map is intended for providing GC-based storage of context associated
+ * to a framework-level object key, when the latter is collected by GC it allows to decrement and then recycle the
+ * span/transaction.
+ *
  * @param <K> key type
  * @param <V> context type
  */

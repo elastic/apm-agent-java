@@ -28,7 +28,6 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-import java.net.InetSocketAddress;
 
 public class Socket implements Recyclable {
 

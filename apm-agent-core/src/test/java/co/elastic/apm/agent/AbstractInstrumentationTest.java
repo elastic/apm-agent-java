@@ -144,26 +144,6 @@ public abstract class AbstractInstrumentationTest {
     }
 
     /**
-     * Triggers Garbage collector execution with
-     *
-     * @param count number of times that the GC needs to be executed
-     */
-    protected static void triggerGc(int count) {
-        for (int i = 0; i < count; i++) {
-            System.out.printf("before gc execution%n");
-            long start = System.currentTimeMillis();
-            System.gc();
-            long duration = System.currentTimeMillis() - start;
-            System.out.printf("after gc execution %d ms%n",duration);
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                // silently ignored
-            }
-        }
-    }
-
-    /**
      * Triggers a GC + max stale entry cleanup in order to trigger GC-based expiration
      *
      * @param map   map to flush

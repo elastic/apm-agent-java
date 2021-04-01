@@ -49,7 +49,7 @@ public class Url implements Recyclable {
     @Nullable
     private String hostname;
     /**
-     * The port of the request, e.g. '443'
+     * The port of the request, e.g. 443
      */
     private int port = -1;
     /**
