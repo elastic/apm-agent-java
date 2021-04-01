@@ -22,15 +22,19 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.jdbc.signature;
+package co.elastic.apm.agent.jdbc;
 
-class JdbcFilter {
+import co.elastic.apm.agent.db.signature.Scanner;
+import co.elastic.apm.agent.db.signature.ScannerFilter;
+
+public class JdbcFilter implements ScannerFilter {
 
     private boolean inQuote = false;
     private boolean inJdbcEscape = false;
     private boolean jdbcKeyWord = false;
 
-    boolean skip(Scanner s, char c) {
+    @Override
+    public boolean skip(Scanner s, char c) {
         switch (c) {
             case '{':
                 if (!inQuote) {
@@ -67,7 +71,8 @@ class JdbcFilter {
         return false;
     }
 
-    void reset() {
+    @Override
+    public void reset() {
         inQuote = false;
         inJdbcEscape = false;
         jdbcKeyWord = false;

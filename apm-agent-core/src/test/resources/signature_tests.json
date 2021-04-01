@@ -1,10 +1,5 @@
 [
   {
-    "comment": "JDBC escape syntax join",
-    "input": "SELECT * FROM {oj Countries JOIN Cities ON (Countries.country_ISO_code=Cities.country_ISO_code)}",
-    "output": "SELECT FROM Countries"
-  },
-  {
     "input": "SELECT *,(SELECT COUNT(*) FROM table2 WHERE table2.field1 = table1.id) AS count FROM schema.table1@\"DBLINK.FQDN.COM@USER\" WHERE table1.field1 = 'value'",
     "output": "SELECT FROM schema.table1"
   },
@@ -47,37 +42,5 @@
   {
     "input": "MERGE",
     "output": "MERGE"
-  },
-  {
-    "input": "{ ? = call FUNCTION() }",
-    "output": "CALL FUNCTION"
-  },
-  {
-    "input": "{ ? = call oj() }",
-    "output": "CALL oj"
-  },
-  {
-    "input": "{ ? = call SCHEMA.FUNCTION() }",
-    "output": "CALL SCHEMA.FUNCTION"
-  },
-  {
-    "input": "{ ? = call SCHEMA.FUNCTION@\"DBLINK.FQDN.COM@USER\"() }",
-    "output": "CALL SCHEMA.FUNCTION"
-  },
-  {
-    "input": "{ call PROCEDURE() }",
-    "output": "CALL PROCEDURE"
-  },
-  {
-    "input": "{call SCHEMA.PROCEDURE() }",
-    "output": "CALL SCHEMA.PROCEDURE"
-  },
-  {
-    "input": "{call SCHEMA.PROCEDURE@\"DBLINK.FQDN.COM@USER\"() }",
-    "output": "CALL SCHEMA.PROCEDURE"
-  },
-  {
-    "input": "{call PROCEDURE() }",
-    "output": "CALL PROCEDURE"
   }
 ]

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.rabbitmq.config;
 
-import co.elastic.apm.agent.rabbitmq.RabbitMQTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
