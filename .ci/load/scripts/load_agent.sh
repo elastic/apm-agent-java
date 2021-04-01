@@ -20,6 +20,7 @@
 set -exuo pipefail 
 
 POLL_FREQ=1
+POLL_TIMEOUT=600
 
 LOCUST_LOCUSTFILE="../locust.py"
 LOCUST_PRINT_STATS=1
@@ -86,11 +87,15 @@ function appIsReady() {
 }
 
 function waitForApp() {
+    counter=1
     while :
     do
         if appIsReady; then 
             break 
+        elif [ $counter -gt $POLL_TIMEOUT ]; then
+            exit 1
         fi
+        ((counter++))
         sleep $POLL_FREQ;
     done
 }
