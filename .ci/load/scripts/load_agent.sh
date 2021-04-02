@@ -93,6 +93,7 @@ function waitForApp() {
         if appIsReady; then 
             break 
         elif [ $counter -gt $POLL_TIMEOUT ]; then
+            echo "Poll timeout exceeded. Exiting with error code: 1"
             exit 1
         fi
         ((counter++))
