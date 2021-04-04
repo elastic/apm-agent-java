@@ -111,42 +111,50 @@ public class MicrometerMeterRegistrySerializer {
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
                 boolean hasValue = false;
-                for (int i = 0, size = meters.size(); i < size; i++) {
-                    Meter meter = meters.get(i);
-                    if (internallyDisabledMeters.contains(meter)) {
-                        continue;
-                    }
-                    try {
-                        if (meter instanceof Timer) {
-                            Timer timer = (Timer) meter;
-                            hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
-                        } else if (meter instanceof FunctionTimer) {
-                            FunctionTimer timer = (FunctionTimer) meter;
-                            hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
-                        } else if (meter instanceof LongTaskTimer) {
-                            LongTaskTimer timer = (LongTaskTimer) meter;
-                            hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
-                        } else if (meter instanceof DistributionSummary) {
-                            DistributionSummary timer = (DistributionSummary) meter;
-                            hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue, replaceBuilder, dedotMetricName);
-                        } else if (meter instanceof Gauge) {
-                            Gauge gauge = (Gauge) meter;
-                            hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw, replaceBuilder, dedotMetricName);
-                        } else if (meter instanceof Counter) {
-                            Counter counter = (Counter) meter;
-                            hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
-                        } else if (meter instanceof FunctionCounter) {
-                            FunctionCounter counter = (FunctionCounter) meter;
-                            hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
+
+                ClassLoader originalContextCL = Thread.currentThread().getContextClassLoader();
+                try {
+                    for (int i = 0, size = meters.size(); i < size; i++) {
+                        Meter meter = meters.get(i);
+                        if (internallyDisabledMeters.contains(meter)) {
+                            continue;
                         }
-                    } catch (Throwable throwable) {
-                        String meterName = meter.getId().getName();
-                        logger.warn("Failed to serialize Micrometer meter \"{}\" with tags {}. This meter will be " +
-                            "excluded from serialization going forward.", meterName, tags);
-                        logger.debug("Detailed info about failure to register Micrometer meter \"" + meterName +
-                            "\": ", throwable);
-                        internallyDisabledMeters.add(meter);
+                        try {
+                            // Setting the Meter CL as the context class loader during the Meter query operations
+                            Thread.currentThread().setContextClassLoader(meter.getClass().getClassLoader());
+                            if (meter instanceof Timer) {
+                                Timer timer = (Timer) meter;
+                                hasValue = serializeTimer(jw, timer.getId(), timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
+                            } else if (meter instanceof FunctionTimer) {
+                                FunctionTimer timer = (FunctionTimer) meter;
+                                hasValue = serializeTimer(jw, timer.getId(), (long) timer.count(), timer.totalTime(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
+                            } else if (meter instanceof LongTaskTimer) {
+                                LongTaskTimer timer = (LongTaskTimer) meter;
+                                hasValue = serializeTimer(jw, timer.getId(), timer.activeTasks(), timer.duration(TimeUnit.MICROSECONDS), hasValue, replaceBuilder, dedotMetricName);
+                            } else if (meter instanceof DistributionSummary) {
+                                DistributionSummary timer = (DistributionSummary) meter;
+                                hasValue = serializeDistributionSummary(jw, timer.getId(), timer.count(), timer.totalAmount(), hasValue, replaceBuilder, dedotMetricName);
+                            } else if (meter instanceof Gauge) {
+                                Gauge gauge = (Gauge) meter;
+                                hasValue = serializeValue(gauge.getId(), gauge.value(), hasValue, jw, replaceBuilder, dedotMetricName);
+                            } else if (meter instanceof Counter) {
+                                Counter counter = (Counter) meter;
+                                hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
+                            } else if (meter instanceof FunctionCounter) {
+                                FunctionCounter counter = (FunctionCounter) meter;
+                                hasValue = serializeValue(counter.getId(), counter.count(), hasValue, jw, replaceBuilder, dedotMetricName);
+                            }
+                        } catch (Throwable throwable) {
+                            String meterName = meter.getId().getName();
+                            logger.warn("Failed to serialize Micrometer meter \"{}\" with tags {}. This meter will be " +
+                                "excluded from serialization going forward.", meterName, tags);
+                            logger.debug("Detailed info about failure to register Micrometer meter \"" + meterName +
+                                "\": ", throwable);
+                            internallyDisabledMeters.add(meter);
+                        }
                     }
+                } finally {
+                    Thread.currentThread().setContextClassLoader(originalContextCL);
                 }
                 jw.writeByte(JsonWriter.OBJECT_END);
             }

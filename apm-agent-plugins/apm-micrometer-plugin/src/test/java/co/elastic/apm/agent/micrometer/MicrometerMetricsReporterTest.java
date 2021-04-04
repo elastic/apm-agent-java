@@ -325,6 +325,27 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
+    void testWorkingWithProperContextCL() {
+        List<Tag> tags = List.of(Tag.of("foo", "bar"));
+        meterRegistry.gauge("gauge1", tags, 42, v -> {
+            if (Thread.currentThread().getContextClassLoader() == null) {
+                throw new RuntimeException("Context CL cannot be null when querying this gauge");
+            }
+            return 42D;
+        });
+        JsonNode metricSet;
+        ClassLoader originalContextCL = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(null);
+            metricSet = getSingleMetricSet();
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalContextCL);
+        }
+        assertThat(metricSet.get("metricset").get("samples").get("gauge1").get("value").doubleValue()).isEqualTo(42D);
+        assertThat(metricsReporter.getFailedMeters()).isEmpty();
+    }
+
+    @Test
     void tryExclusionOfFailedGauge_singleGauge() {
         List<Tag> tags = List.of(Tag.of("foo", "bar"));
         meterRegistry.gauge("gauge1", tags, 42, v -> {
@@ -354,8 +375,7 @@ class MicrometerMetricsReporterTest {
             .isNull();
 
         // serialization should handle ignoring the 1st value
-        assertThat(metricSet.get("metricset").get("samples").get("gauge2").get("value").doubleValue())
-            .isEqualTo(42D);
+        assertThat(metricSet.get("metricset").get("samples").get("gauge2").get("value").doubleValue()).isEqualTo(42D);
         assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge1");
     }
 
@@ -370,8 +390,7 @@ class MicrometerMetricsReporterTest {
         JsonNode metricSet = getSingleMetricSet();
 
         // serialization should handle ignoring the 1st value
-        assertThat(metricSet.get("metricset").get("samples").get("gauge1").get("value").doubleValue())
-            .isEqualTo(42D);
+        assertThat(metricSet.get("metricset").get("samples").get("gauge1").get("value").doubleValue()).isEqualTo(42D);
 
         assertThat(metricSet.get("metricset").get("samples").get("gauge2"))
             .describedAs("value of %s is not expected to be written to json", "gauge1")
