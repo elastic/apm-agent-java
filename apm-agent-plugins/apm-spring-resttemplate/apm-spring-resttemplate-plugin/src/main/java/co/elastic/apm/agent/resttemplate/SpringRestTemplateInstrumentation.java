@@ -67,8 +67,8 @@ public class SpringRestTemplateInstrumentation extends TracerAwareInstrumentatio
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return SpringRestTemplateAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.resttemplate.SpringRestTemplateAdvice";
     }
 
     @Override

@@ -26,7 +26,6 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -63,8 +62,8 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttp
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ApacheHttpAsyncClientRedirectAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientRedirectInstrumentation$ApacheHttpAsyncClientRedirectAdvice";
     }
 
     @Override

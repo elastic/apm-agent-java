@@ -56,8 +56,8 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return SpringAmqpMessageListenerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.rabbitmq.SpringAmqpMessageListenerInstrumentation$SpringAmqpMessageListenerAdvice";
     }
 
     public static class SpringAmqpMessageListenerAdvice {

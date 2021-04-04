@@ -84,8 +84,8 @@ public class Cassandra4Instrumentation extends TracerAwareInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return Cassandra4Advice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.cassandra4.Cassandra4Instrumentation$Cassandra4Advice";
     }
 
     public static class Cassandra4Advice {
