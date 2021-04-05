@@ -53,8 +53,8 @@ public class ViewRenderInstrumentation extends TracerAwareInstrumentation {
     private static Map<String, String> subTypeCache = new ConcurrentHashMap<>();
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ViewRenderAdviceService.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebmvc.ViewRenderInstrumentation$ViewRenderAdviceService";
     }
 
     public static class ViewRenderAdviceService {

@@ -68,8 +68,8 @@ public abstract class LogbackLogShadingInstrumentation extends AbstractLogShadin
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return LogbackAppenderAppendAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.logback.LogbackAppenderAppendAdvice";
         }
 
     }
@@ -85,8 +85,8 @@ public abstract class LogbackLogShadingInstrumentation extends AbstractLogShadin
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return LogbackAppenderStopAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.logback.LogbackAppenderStopAdvice";
         }
 
     }

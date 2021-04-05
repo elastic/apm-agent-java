@@ -79,8 +79,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return MessageProducerNoDestinationAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerNoDestinationInstrumentation$MessageProducerNoDestinationAdvice";
         }
 
         public static class MessageProducerNoDestinationAdvice extends BaseAdvice {
@@ -122,8 +122,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return MessageProducerWithDestinationAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageProducerInstrumentation$JmsMessageProducerWithDestinationInstrumentation$MessageProducerWithDestinationAdvice";
         }
 
         public static class MessageProducerWithDestinationAdvice extends BaseAdvice {
