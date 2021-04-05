@@ -42,8 +42,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ExceptionHandlerInstrumentation extends TracerAwareInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ExceptionHandlerAdviceService.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebmvc.ExceptionHandlerInstrumentation$ExceptionHandlerAdviceService";
     }
 
     public static class ExceptionHandlerAdviceService {

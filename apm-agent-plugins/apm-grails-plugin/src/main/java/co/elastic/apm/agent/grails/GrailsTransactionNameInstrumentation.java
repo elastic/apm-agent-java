@@ -75,8 +75,8 @@ public class GrailsTransactionNameInstrumentation extends TracerAwareInstrumenta
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return HandlerAdapterAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.grails.GrailsTransactionNameInstrumentation$HandlerAdapterAdvice";
     }
 
     @Override

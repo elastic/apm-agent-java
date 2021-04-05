@@ -24,7 +24,7 @@
         <dependency>
             <groupId>com.datastax.oss</groupId>
             <artifactId>java-driver-core</artifactId>
-            <version>4.10.0</version>
+            <version>4.11.0</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>

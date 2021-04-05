@@ -74,8 +74,8 @@ public class JobTransactionNameInstrumentation extends TracerAwareInstrumentatio
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return JobTransactionNameAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.quartzjob.JobTransactionNameAdvice";
     }
 
 }

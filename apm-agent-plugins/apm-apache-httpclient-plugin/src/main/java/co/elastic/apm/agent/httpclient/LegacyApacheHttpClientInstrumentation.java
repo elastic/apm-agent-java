@@ -104,8 +104,8 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return LegacyApacheHttpClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.LegacyApacheHttpClientInstrumentation$LegacyApacheHttpClientAdvice";
     }
 
     @Override
