@@ -33,6 +33,7 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;
@@ -105,10 +106,27 @@ public abstract class AsyncInstrumentation extends AbstractServletInstrumentatio
         }
 
         public static class StartAsyncAdvice {
-            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());
+            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper;
+
+            static {
+                asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());
+
+                // todo - for analysis, REMOVE
+                LoggerFactory.getLogger(StartAsyncAdvice.class).debug("StartAsyncAdvice is statically initialized. Class loader is " +
+                        StartAsyncAdvice.class.getClassLoader() +
+                        ", asyncHelper class loader is " + asyncHelper.getClass().getClassLoader() +
+                        ", asyncHelper interface class loader is " + asyncHelper.getClass().getInterfaces()[0].getClassLoader(),
+                    new Throwable());
+            }
 
             @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
             public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {
+
+                // todo - for analysis, REMOVE
+                LoggerFactory.getLogger(StartAsyncAdvice.class).debug("asyncHelper class loader is " + asyncHelper.getClass().getClassLoader() +
+                        ", AsyncContextAdviceHelper class loader is " + AsyncContextAdviceHelper.class.getClassLoader(),
+                    new Throwable());
+
                 if (asyncContext == null) {
                     return;
                 }

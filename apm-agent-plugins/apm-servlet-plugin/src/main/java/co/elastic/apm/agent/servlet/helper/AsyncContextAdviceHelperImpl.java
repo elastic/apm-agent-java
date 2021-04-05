@@ -34,6 +34,7 @@ import co.elastic.apm.agent.servlet.AsyncInstrumentation;
 import co.elastic.apm.agent.servlet.ServletApiAdvice;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 import org.jctools.queues.atomic.AtomicQueueFactory;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
@@ -50,6 +51,13 @@ public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncC
     private final ObjectPool<ApmAsyncListener> asyncListenerObjectPool;
     private final ServletTransactionHelper servletTransactionHelper;
     private final Tracer tracer;
+
+    static {
+        // todo - for analysis, REMOVE
+        LoggerFactory.getLogger(AsyncContextAdviceHelperImpl.class).debug("AsyncContextAdviceHelperImpl is statically initialized. Class loader is " +
+            AsyncContextAdviceHelperImpl.class.getClassLoader() + ", interface loader is " +
+            AsyncContextAdviceHelperImpl.class.getInterfaces()[0].getClassLoader(), new Throwable());
+    }
 
     public AsyncContextAdviceHelperImpl(ElasticApmTracer tracer) {
         this.tracer = tracer;
