@@ -28,8 +28,6 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
@@ -49,7 +47,6 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisabledOnOs(OS.WINDOWS)
 class AsyncServletTest extends AbstractServletTest {
 
     private static final String ACTIVE_TRANSACTION_ATTRIBUTE = "active-transaction";
