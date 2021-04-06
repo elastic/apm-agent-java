@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.bci.classloading;
 
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
@@ -92,6 +94,12 @@ class IndyPluginClassLoaderParent extends ClassLoader {
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
+
+            // todo - for analysis, REMOVE
+            if (name.equals("co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl")) {
+                LoggerFactory.getLogger(IndyPluginClassLoaderParent.class).error("AsyncContextAdviceHelperImpl loading should not be delegated to me", new Throwable());
+            }
+
             for (int i = 0; i < agentPackages.length; i++) {
                 if (name.startsWith(agentPackages[i])) {
                     Class<?> type = agentClassLoader.loadClass(name);
