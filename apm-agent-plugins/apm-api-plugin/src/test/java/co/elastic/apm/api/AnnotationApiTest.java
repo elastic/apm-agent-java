@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,7 +25,9 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.transaction.Span;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +42,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
 
         assertThat(reporter.getSpans()).hasSize(2);
 
@@ -52,10 +55,23 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    public void testAgentPaused_CaptureTransaction() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+        new AnnotationTestClass().transaction();
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
+    }
+
+    @Test
     void testCaptureTransactionAnnotationException() {
         assertThatThrownBy(AnnotationTestClass::transactionWithException).isInstanceOf(RuntimeException.class);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("AnnotationTestClass#transactionWithException");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("catch me if you can");
     }
@@ -72,6 +88,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transactionWithType");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("job");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
 
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
@@ -83,7 +100,6 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
     @Test
     void testMissingSubtype() {
-        reporter.reset();
         AnnotationTestClass.transactionForMissingSpanSubtype();
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
@@ -101,11 +117,24 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedTransaction");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("type");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
 
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedSpanOrTransaction");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
         assertThat(reporter.getFirstSpan().getSubtype()).isEqualTo("subtype");
         assertThat(reporter.getFirstSpan().getAction()).isEqualTo("action");
+    }
+
+    @Test
+    public void testAgentPaused_TracedAnnotation() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+        TracedAnnotationTest.tracedTransaction();
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test
@@ -116,6 +145,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedSpanOrTransaction");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("API");
     }
 
     public static class AnnotationTestClass {

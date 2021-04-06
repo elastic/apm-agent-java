@@ -8,16 +8,24 @@ endif::[]
 
 There are three different ways to set up the Elastic APM Java Agent:
 
-. <<setup-javaagent>> - Manually set up and configure the agent with the `-javaagent` JVM flag.
-. <<setup-attach-cli>> - Automatically set up the agent without needing to alter the configuration of your application server.
-. <<setup-attach-api>> - Use the `apm-agent-attach` artifact and the `attach` API to set up the agent.
+. <<setup-javaagent>> +
+  Manually set up and configure the agent with the `-javaagent` JVM flag.
+. <<setup-attach-cli>> +
+  Automatically set up the agent without needing to alter the configuration of your application server.
+. <<setup-attach-api>> +
+  Use the `apm-agent-attach` artifact and the `attach` API to set up the agent.
 
 [float]
 [[get-started-configuration]]
 === Configuration
 
-Once you've set up the Agent,
-see the <<configuration,configuration guide>> on how to configure Elastic APM.
+Once you've set up the Agent, see the <<configuration,configuration guide>> on how to configure Elastic APM.
+
+[float]
+[[ssl-setup]]
+=== SSL/TLS communication with APM Server
+
+If {apm-server-ref-v}/ssl-setup.html[SSL/TLS communication] is enabled on the APM Server, make sure to check out the <<ssl-configuration, SSL setup guide>>.
 
 [float]
 [[supported-technologies]]
@@ -29,3 +37,4 @@ for details on if the Elastic APM agent supports auto-instrumentation of the tec
 include::./setup-javaagent.asciidoc[]
 include::./setup-attach-cli.asciidoc[]
 include::./setup-attach-api.asciidoc[]
+include::./setup-ssl.asciidoc[Set up SSL]

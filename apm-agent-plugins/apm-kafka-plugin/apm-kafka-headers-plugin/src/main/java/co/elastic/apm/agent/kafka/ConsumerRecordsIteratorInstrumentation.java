@@ -26,6 +26,7 @@ package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -59,25 +60,28 @@ public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecords
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ConsumerRecordsAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.ConsumerRecordsIteratorInstrumentation$ConsumerRecordsAdvice";
     }
 
     @SuppressWarnings("rawtypes")
     public static class ConsumerRecordsAdvice {
 
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void wrapIterator(@Nullable @Advice.Return(readOnly = false) Iterator<ConsumerRecord> iterator) {
-            if (tracer == null || tracer.currentTransaction() != null) {
-                return;
+        public static Iterator<ConsumerRecord> wrapIterator(@Advice.Return @Nullable final Iterator<ConsumerRecord> iterator) {
+            if (!tracer.isRunning() || tracer.currentTransaction() != null || iterator == null) {
+                return iterator;
             }
 
             //noinspection ConstantConditions,rawtypes
             KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
-            if (iterator != null && kafkaInstrumentationHelper != null) {
-                iterator = kafkaInstrumentationHelper.wrapConsumerRecordIterator(iterator);
+            if (kafkaInstrumentationHelper != null) {
+                return kafkaInstrumentationHelper.wrapConsumerRecordIterator(iterator);
             }
+            return iterator;
         }
     }
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -65,16 +65,16 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return WaitForAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.process.ProcessExitInstrumentation$WaitFor$WaitForAdvice";
         }
 
         public static class WaitForAdvice {
 
-            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-            private static void onExit(@Advice.This Process process) {
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.This Process process) {
 
-                if (tracer == null || tracer.getActive() == null) {
+                if (tracer.getActive() == null) {
                     return;
                 }
 
@@ -103,16 +103,16 @@ public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentat
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return DestroyAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.process.ProcessExitInstrumentation$Destroy$DestroyAdvice";
         }
 
         public static class DestroyAdvice {
 
-            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-            private static void onExit(@Advice.This Process process) {
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+            public static void onExit(@Advice.This Process process) {
 
-                if (tracer == null || tracer.getActive() == null) {
+                if (tracer.getActive() == null) {
                     return;
                 }
 

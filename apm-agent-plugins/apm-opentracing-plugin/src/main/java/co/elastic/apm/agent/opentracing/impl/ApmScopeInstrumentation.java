@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,7 +26,6 @@ package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -40,15 +39,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
 
     @VisibleForAdvice
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> dispatcher,
-                               @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext) {
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> dispatcher) {
         if (dispatcher != null) {
             dispatcher.deactivate();
-        } else if (traceContext != null) {
-            if (tracer != null) {
-                tracer.deactivate(traceContext);
-            }
         }
     }
 

@@ -14,6 +14,7 @@ This section lists all supported technologies.
 * <<supported-scheduling-frameworks>>
 * <<supported-logging-frameworks>>
 * <<supported-process-frameworks>>
+* <<supported-rpc-frameworks>>
 * <<supported-java-methods>>
 * <<supported-metrics>>
 * <<supported-technologies-caveats>>
@@ -43,18 +44,36 @@ the agent does not capture transactions.
 |Vendor |Supported versions | Notes
 
 |Oracle JDK
-|7, 8, 9, 10, 11
+|7u60+, 8u40+, 9, 10, 11
 |`--module-path` has not been tested yet
 
 |Open JDK
-|7, 8, 9, 10, 11
+|7u60+, 8u40+, 9, 10, 11
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
-|8
+|8 service refresh 5+ (build 2.9 or 8.0.5.0)
 |
 
+|HP-UX JVM
+| 7.0.10+, 8.0.02+
+|
 |===
+
+NOTE: Early Java 8 versions before update 40 are *not supported* because they have
+several bugs that might result in JVM crashes when a java agent is active,
+thus agent *will not start* on those versions.
+Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to invokedynamic.
+
+Here is an example of the message displayed when this happens.
+```
+Failed to start agent - JVM version not supported: 1.8.0_31 Java HotSpot(TM) 64-Bit Server VM 25.31-b07.
+To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.
+```
+
+As this message states, you can disable this check if required by adding `-Delastic.apm.disable_bootstrap_checks` to
+the JVM arguments.
+
 
 [float]
 [[supported-web-frameworks]]
@@ -65,6 +84,8 @@ the agent does not capture transactions.
 |Servlet API
 |3+
 |A transaction will be created for all incoming HTTP requests to your Servlet API-based application.
+ Starting in version 1.18.0, additional spans are created if the servlet dispatches execution to another servlet through the `forward` or
+ `include` APIs, or to an error page.
  See also <<supported-app-servers>>
 |1.0.0
 
@@ -106,6 +127,11 @@ rendering
 
  Note: JAX-WS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>> and when using the HTTP binding.
 |1.4.0
+
+|Grails
+|3+
+|
+|1.17.0
 
 |===
 
@@ -158,8 +184,8 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |The agent automatically creates DB spans for all your JDBC queries.
  This includes JDBC queries executed by O/R mappers like Hibernate.
 
- *Note:* Make sure that your JDBC driver is at least compiled for Java 1.5.
- For example, commons dbcp versions before 1.4 are not supported.
+ *Note:* Make sure that your JDBC driver is at least compiled for Java 1.4.
+ Drivers compiled with a lower version are not supported.
  IBM DB2 db2jcc drivers are also not supported.
  Please update to db2jcc4.
 |1.0.0
@@ -173,7 +199,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |5.x (on by default), 6.x (off by default)
 |The agent automatically creates Hibernate Search spans for queries done through the Hibernate Search API.
 
- *Note:* this feature is marked as incubating for version 6.x, which means it is off by default. In order to enable,
+ *Note:* this feature is marked as experimental for version 6.x, which means it is off by default. In order to enable,
  set the <<config-disable-instrumentations>> config option to an empty string
 |1.9.0
 
@@ -187,6 +213,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |The agent creates spans for interactions with the Lettuce client.
 |1.13.0
 
+|Redis Redisson
+|2.1.5+
+|The agent creates spans for interactions with the Redisson client.
+|1.15.0
+
 |MongoDB driver
 |3.x
 |The agent creates spans for interactions with the MongoDB driver.
@@ -196,6 +227,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The name of the span is `<db>.<collection>.<command>`.
  The actual query will not be recorded.
 |1.12.0
+
+|Cassandra
+|2.x+
+|
+|1.23.0
 
 |===
 
@@ -221,12 +257,12 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 1.6.0
 
 |Spring RestTemplate
-|4+
+|3.1.1+
 |
 | 0.7.0
 
 |OkHttp
-|2, 3
+|2, 3, 4 (4.4+ since 1.22.0)
 |
 |1.4.0 (synchronous calls via `Call#execute()`)
  1.5.0 (async calls via `Call#enquene(Callback)`)
@@ -247,6 +283,16 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 1.7.0
 
+|Apache Dubbo
+| 2.5+, except for 2.7.0, 2.7.1, and 2.7.2
+| This is an experimental plugin. Remove `experimental` from <<config-disable-instrumentations,`disable_instrumentations`>> to enable.
+| 1.17.0
+
+|JDK 11 HttpClient
+|
+|
+| 1.18.0
+
 |===
 
 
@@ -261,10 +307,28 @@ This section lists all supported asynchronous frameworks.
 |===
 |Framework |Supported versions | Description | Since
 
-|ExecutorService
+|`ExecutorService`
 |
-|The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
+|The agent propagates the context for `ExecutorService` s.
 |1.4.0
+
+|`ScheduledExecutorService`
+|
+|The agent propagates the context for `ScheduledExecutorService#schedule` (this does not include `scheduleAtFixedRate` or `scheduleWithFixedDelay`.
+|1.17.0
+
+|`ForkJoinPool`
+|
+|The agent propagates the context for `ForkJoinPool` s.
+|1.17.0
+
+|Scala Future
+|2.13.x
+|The agent propagates the context when using the `scala.concurrent.Future` or `scala.concurrent.Promise`.
+It will propagate the context when using chaining methods such as `map`, `flatMap`, `traverse`, ...
+
+NOTE: To enable Scala Future support, you need to enable experimental plugins.
+|1.18.0
 
 |===
 
@@ -285,7 +349,7 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|Enabled by default since 1.13.0, added as an incubating plugin in 1.7.0
+|Enabled by default since 1.13.0, added as an experimental plugin in 1.7.0
 
 |Kafka
 | <0.11.0 - without distributed tracing; 0.11.0+ - full support
@@ -297,8 +361,27 @@ If both producer and consumer are traced, then distributed tracing is supported,
 side will be a part of the same trace containing the producer side as well. Kafka streams are not traced.
 |1.13.0
 
+|RabbitMQ
+|3.x - 5.x
+|The agent captures RabbitMQ Message sends, consumption and polling.
+When the producer sends a message within a traced transaction, a send span will be created and the transaction resulting
+from the message consumption will be correlated to the same trace.
+When a message is consumed, a transaction is created, regardless if the send action is traced.
+When a message is polled, a span is created for the polling operation and optionally have message fields if a message
+has been returned.
+|1.20.0
+
 |===
 
+For RabbitMQ:
+
+- `context.message.queue.name` field will contain queue name when using polling, exchange name otherwise.
+- `context.message.destination.resource` field will contain `rabbitmq/XXX` where `XXX` is exchange name.
+
+Some exchange/queue names are normalized in order to keep low cardinality and user-friendlyness
+- default exchange is indicated with `<default>`.
+- `null` exchange is normalized to `<unknown>`, for example when polling without a message.
+- generated queues whose name start with `amq.gen-` are normalized to `amq.gen-*`.
 
 [float]
 [[supported-scheduling-frameworks]]
@@ -310,19 +393,25 @@ When using a scheduling framework a transaction for every execution will be crea
 
 |Scheduling Annotation
 |
-|The agent instruments any method defined in a package configured in <<config-application-packages>> and annotated with one of the following:  
-`org.springframework.scheduling.annotation.Scheduled`  
-`org.springframework.scheduling.annotation.Schedules`  
-`javax.ejb.Schedule`  
+|The agent instruments any method defined in a package configured in <<config-application-packages>> and annotated with one of the following:
+`org.springframework.scheduling.annotation.Scheduled`
+`org.springframework.scheduling.annotation.Schedules`
+`javax.ejb.Schedule`
 `javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
 |1.6.0
 
 |Quartz
-|
-|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution 
+|2.0+
+|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution
 
-NOTE: only classes from packages configured in <<config-application-packages>>  will be instrumented.
+NOTE: only classes from the quartz-jobs dependency will be instrumented automatically. For the instrumentation of other jobs the package must be added to the <<config-application-packages>> parameter.
 |1.8.0
+
+|TimerTask
+|
+|The agent instruments the `run` method in a package configured in <<config-application-packages>> of any class extending `java.util.TimerTask`, and creates a transaction with the type `scheduled`, representing the job execution
+|1.18.0
+
 |===
 
 [float]
@@ -338,25 +427,59 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
  the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
  See the <<config-enable-log-correlation>> configuration option for more details.
 
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0)
-|1.0.0
+ Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+
+|Trace correlation - 1.0.0
+
+Error capturing - 1.10.0
 
 |log4j2
-|2.0+
+|Trace correlation - 2.0+
+
+ECS Reformatting - 2.6+
+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
-See the <<config-enable-log-correlation>> configuration option for more details.
 
- Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
-|1.11.0 (error capturing), 1.13.0 (log correlation via `ThreadContext`)
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
+
+Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
+|Trace correlation - 1.13.0
+
+Error capturing - 1.10.0
+
+ECS Reformatting - 1.22.0
 
 
 |log4j
-|1.x
+|Trace correlation - 1.x
+
+ECS Reformatting - 1.2.17
+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
-See the <<config-enable-log-correlation>> configuration option for more details.
-|1.13.0
+
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
+|Trace correlation - 1.13.0
+
+ECS Reformatting - 1.22.0
+
+|Logback
+|1.1.0+
+|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
+|1.22.0
+
+|JBoss Logging
+|3.0.0+
+|When <<config-enable-log-correlation>> is set to `true`,
+the agent will add a http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
+entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlation>> configuration option for more details.
+|1.23.0
 
 |===
 
@@ -380,36 +503,25 @@ See the <<config-enable-log-correlation>> configuration option for more details.
 |===
 
 [float]
+[[supported-rpc-frameworks]]
+=== RPC frameworks
+
+|===
+|Framework |Supported versions | Description | Since
+
+| gRPC
+| 1.6.1+
+| Client (synchronous & asynchronous) & Server instrumentation.
+  Streaming calls are currently not instrumented.
+| 1.16.0
+
+|===
+
+[float]
 [[supported-java-methods]]
 === Java method monitoring
 
-If you are seeing gaps in the span timeline and want to include certain methods, there are several options:
-
-|===
-|Style |Description | Advantages | Disadvantages
-
-|API/Code
-|Get the <<api-current-span, current span>> (possibly created by auto instrumentation) and <<api-span-start-span, create a child>> span.
- You can also use the <<opentracing-bridge, OpenTracing API>> instead of the Elastic specific API.
-|This is the most flexible way: you can add labels to the span and customize the span type, name, and timestamp.
-|Wrong usage of the API may lead to invalid traces (scope leaks).
-
-|Annotations
-|Annotate any method with <<api-capture-span, `@CaptureSpan`>>, <<api-capture-transaction, `@CaptureTransaction`>> or <<api-traced, `@Traced`>>.
-|Easier and more robust as there's nothing you can do wrong like forgetting to end a span or close a scope.
- It's also a bit more performant than the programmatic way.
-|Less flexible on it's own but can be combined with the API.
- Just get the <<api-current-span, current span>> on an annotated method and customize the span to your liking.
-
-|Configuration
-|Use the <<config-trace-methods, `trace_methods`>> configuration option to specify additional methods to instrument.
-|You don't need to modify the source code.
- That makes it possible to monitor code in 3rd party libraries.
- You can match  methods via wildcards in the package, class or method name,
- by their modifier (like `public`), by a particular annotation, and more.
-|Easy to overuse by matching too many methods which hurts performance. Use together with <<config-trace-methods-duration-threshold, `trace_methods_duration_threshold`>> if setting for entire packages instead of specific methods in order to reduce overhead and avoid having too many spans in the APM app.
-
-|===
+If you are seeing gaps in the span timeline and want to include additional methods, there are several options. See <<java-method-monitoring>> for more information.
 
 [float]
 [[supported-metrics]]
@@ -427,16 +539,17 @@ If you are seeing gaps in the span timeline and want to include certain methods,
 |Set the configuration option <<config-capture-jmx-metrics, `capture_jmx_metrics`>> in order to monitor any JMX metric.
 |1.11.0
 
+|Micrometer (<<metrics-micrometer-beta-caveats,beta>>)
+|Automatically detects and reports the metrics of each `MeterRegistry`.
+ See <<metrics-micrometer>> for more details.
+|1.18.0
+
 |===
 
 [float]
 [[supported-technologies-caveats]]
 === Caveats
-* Certain OSGi containers need the following configuration setting in case you see exceptions like
-  `java.lang.NoClassDefFoundError: co/elastic/apm/jdbc/StatementInstrumentation`:
-  `org.osgi.framework.bootdelegation=co.elastic.apm.agent.*`
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
   Try to grant `java.security.AllPermission` to the agent.
-

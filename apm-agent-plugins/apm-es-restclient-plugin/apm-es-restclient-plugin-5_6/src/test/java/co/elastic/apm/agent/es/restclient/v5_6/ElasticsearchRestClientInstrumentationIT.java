@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.es.restclient.v5_6;
 
 import co.elastic.apm.agent.es.restclient.AbstractEsClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -123,6 +124,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThat(re.getResponse().getStatusLine().getStatusCode()).isEqualTo(400);
 
         assertThatErrorsExistWhenDeleteNonExistingIndex();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.FAILURE);
     }
 
     @Test
@@ -137,8 +140,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
 
         doPerformRequest("DELETE", "/" + SECOND_INDEX);
 
-
         validateSpanContentAfterIndexDeleteRequest();
+
+        assertThat(reporter.getFirstSpan().getOutcome()).isEqualTo(Outcome.SUCCESS);
     }
 
     @Test
@@ -204,7 +208,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         reporter.reset();
         DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
-
     }
 
     @Test

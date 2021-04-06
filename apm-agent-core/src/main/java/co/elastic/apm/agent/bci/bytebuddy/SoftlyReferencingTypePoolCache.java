@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.sdk.weakmap.NullSafeWeakConcurrentMap;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -53,15 +54,16 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
     /*
      * Weakly referencing ClassLoaders to avoid class loader leaks
      * Softly referencing the type pool cache so that it does not cause OOMEs
+     * deliberately doesn't use WeakMapSupplier as this class manages the cleanup manually
      */
     private final WeakConcurrentMap<ClassLoader, CacheProviderWrapper> cacheProviders =
-        new WeakConcurrentMap<ClassLoader, CacheProviderWrapper>(false);
+        new NullSafeWeakConcurrentMap<ClassLoader, CacheProviderWrapper>(false);
     private final ElementMatcher<ClassLoader> ignoredClassLoaders;
 
     public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
                                           final int clearIfNotAccessedSinceMinutes, ElementMatcher.Junction<ClassLoader> ignoredClassLoaders) {
         super(readerMode);
-        ExecutorUtils.createSingleThreadSchedulingDeamonPool("type-cache-pool-cleaner", 1)
+        ExecutorUtils.createSingleThreadSchedulingDaemonPool("type-cache-pool-cleaner")
             .scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {

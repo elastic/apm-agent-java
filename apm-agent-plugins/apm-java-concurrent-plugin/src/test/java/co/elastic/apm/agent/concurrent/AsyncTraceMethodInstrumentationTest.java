@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,13 +25,12 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,11 +40,11 @@ import org.junit.jupiter.api.TestInfo;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.Arrays;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 class AsyncTraceMethodInstrumentationTest {
@@ -56,22 +55,25 @@ class AsyncTraceMethodInstrumentationTest {
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
-        reporter = new MockReporter();
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
+        reporter = mockInstrumentationSetup.getReporter();
+        ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
             MethodMatcher.of("private co.elastic.apm.agent.concurrent.AsyncTraceMethodInstrumentationTest$TestAsyncTraceMethodsClass#*"))
         );
 
-        Set<String> tags = testInfo.getTags();
-        if (!tags.isEmpty()) {
-            when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
+        for (String tag : testInfo.getTags()) {
+            TimeDuration duration = TimeDuration.of(tag.split("=")[1]);
+            if (tag.startsWith("span_min_duration=")) {
+                doReturn(duration).when(coreConfiguration).getSpanMinDuration();
+            }
+            if (tag.startsWith("trace_methods_duration_threshold=")) {
+                doReturn(duration).when(coreConfiguration).getTraceMethodsDurationThreshold();
+            }
         }
 
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
+        tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
@@ -88,7 +90,7 @@ class AsyncTraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("200ms")
+    @Tag("span_min_duration=200ms")
     void testWithHighThreshold() {
         new TestAsyncTraceMethodsClass().invokeAsync();
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -96,8 +98,25 @@ class AsyncTraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("50ms")
-    void testWithCrossedThreshold() {
+    @Tag("span_min_duration=50ms")
+    @Tag("trace_methods_duration_threshold=200ms")
+    void testWithHigherSpecificThreshold() {
+        new TestAsyncTraceMethodsClass().invokeAsync();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(2);
+    }
+
+    @Test
+    @Tag("span_min_duration=50ms")
+    void testWithCrossedThreshold_Generic() {
+        new TestAsyncTraceMethodsClass().invokeAsync();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(4);
+    }
+
+    @Test
+    @Tag("trace_methods_duration_threshold=50ms")
+    void testWithCrossedThreshold_Specific() {
         new TestAsyncTraceMethodsClass().invokeAsync();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(4);
@@ -108,6 +127,9 @@ class AsyncTraceMethodInstrumentationTest {
 
         /**
          * Calling this method results in this method call tree:
+         * <pre>
+         *
+         *
          *
          *                      main thread                         |           worker thread
          * -------------------------------------------------------------------------------------------
@@ -121,6 +143,7 @@ class AsyncTraceMethodInstrumentationTest {
          *                                                          |                |
          *                                                          |                --- longMethod
          *                                                          |
+         * </pre>
          */
         private void invokeAsync() {
             blockingMethodOnMainThread();
@@ -135,7 +158,7 @@ class AsyncTraceMethodInstrumentationTest {
         }
 
         private Future<?> nonBlockingMethodOnMainThread() {
-            return ExecutorServiceWrapper.wrap(Executors.newFixedThreadPool(1)).submit(TestAsyncTraceMethodsClass.this::methodOnWorkerThread);
+            return Executors.newFixedThreadPool(1).submit(TestAsyncTraceMethodsClass.this::methodOnWorkerThread);
         }
 
         private void methodOnWorkerThread() {

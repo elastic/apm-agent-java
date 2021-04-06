@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,12 +24,13 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.util.JmxUtils;
 import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;
@@ -47,7 +48,7 @@ import java.util.Map;
 import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 
 /**
- * Record metrics related to the CPU, gathered by the JVM.
+ * Record metrics related to the CPU and memory, gathered by the JVM.
  * <p>
  * Supported JVM implementations:
  * <ul>
@@ -58,20 +59,9 @@ import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
  * This implementation is based on io.micrometer.core.instrument.binder.system.ProcessorMetrics,
  * under Apache License 2.0
  */
-public class SystemMetrics implements LifecycleListener {
-
-    /**
-     * List of public, exported interface class names from supported JVM implementations.
-     */
-    private static final List<String> OPERATING_SYSTEM_BEAN_CLASS_NAMES = Arrays.asList(
-        "com.sun.management.OperatingSystemMXBean", // HotSpot
-        "com.ibm.lang.management.OperatingSystemMXBean" // J9
-    );
+public class SystemMetrics extends AbstractLifecycleListener {
 
     private final OperatingSystemMXBean operatingSystemBean;
-
-    @Nullable
-    private final Class<?> operatingSystemBeanClass;
 
     @Nullable
     private final Method systemCpuUsage;
@@ -95,12 +85,11 @@ public class SystemMetrics implements LifecycleListener {
 
     SystemMetrics(File memInfoFile) {
         this.operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
-        this.operatingSystemBeanClass = getFirstClassFound(OPERATING_SYSTEM_BEAN_CLASS_NAMES);
-        this.systemCpuUsage = detectMethod("getSystemCpuLoad");
-        this.processCpuUsage = detectMethod("getProcessCpuLoad");
-        this.freeMemory = detectMethod("getFreePhysicalMemorySize");
-        this.totalMemory = detectMethod("getTotalPhysicalMemorySize");
-        this.virtualProcessMemory = detectMethod("getCommittedVirtualMemorySize");
+        this.systemCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getSystemCpuLoad");
+        this.processCpuUsage = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getProcessCpuLoad");
+        this.freeMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getFreePhysicalMemorySize");
+        this.totalMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getTotalPhysicalMemorySize");
+        this.virtualProcessMemory = JmxUtils.getOperatingSystemMBeanMethod(operatingSystemBean, "getCommittedVirtualMemorySize");
         this.memInfoFile = memInfoFile;
     }
 
@@ -110,24 +99,18 @@ public class SystemMetrics implements LifecycleListener {
     }
 
     void bindTo(MetricRegistry metricRegistry) {
-        metricRegistry.addUnlessNegative("system.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
+        // J9 always returns -1 on the first call
+        metricRegistry.addUnlessNan("system.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(systemCpuUsage);
             }
         });
 
-        metricRegistry.addUnlessNegative("system.process.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
+        metricRegistry.addUnlessNan("system.process.cpu.total.norm.pct", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(processCpuUsage);
-            }
-        });
-
-        metricRegistry.addUnlessNan("system.memory.total", Labels.EMPTY, new DoubleSupplier() {
-            @Override
-            public double get() {
-                return invoke(totalMemory);
             }
         });
 
@@ -161,11 +144,34 @@ public class SystemMetrics implements LifecycleListener {
                     }
                 }
             });
+
+            metricRegistry.addUnlessNan("system.memory.total", Labels.EMPTY, new DoubleSupplier() {
+                @Override
+                public double get() {
+                    try (BufferedReader fileReader = new BufferedReader(new FileReader(memInfoFile))) {
+                        for (String memInfoLine = fileReader.readLine(); memInfoLine != null && !memInfoLine.isEmpty(); memInfoLine = fileReader.readLine()) {
+                            if (memInfoLine.startsWith("MemTotal:")) {
+                                final String[] memInfoSplit = StringUtils.split(memInfoLine, ' ');
+                                return Long.parseLong(memInfoSplit[1]) * 1024;
+                            }
+                        }
+                        return Double.NaN;
+                    } catch (Exception e) {
+                        return Double.NaN;
+                    }
+                }
+            });
         } else {
             metricRegistry.addUnlessNan("system.memory.actual.free", Labels.EMPTY, new DoubleSupplier() {
                 @Override
                 public double get() {
                     return invoke(freeMemory);
+                }
+            });
+            metricRegistry.addUnlessNan("system.memory.total", Labels.EMPTY, new DoubleSupplier() {
+                @Override
+                public double get() {
+                    return invoke(totalMemory);
                 }
             });
         }
@@ -184,34 +190,5 @@ public class SystemMetrics implements LifecycleListener {
         } catch (Throwable e) {
             return Double.NaN;
         }
-    }
-
-    @Nullable
-    private Method detectMethod(String name) {
-        if (operatingSystemBeanClass == null) {
-            return null;
-        }
-        try {
-            // ensure the Bean we have is actually an instance of the interface
-            operatingSystemBeanClass.cast(operatingSystemBean);
-            return operatingSystemBeanClass.getMethod(name);
-        } catch (ClassCastException | NoSuchMethodException | SecurityException e) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private Class<?> getFirstClassFound(List<String> classNames) {
-        for (String className : classNames) {
-            try {
-                return Class.forName(className);
-            } catch (ClassNotFoundException ignore) {
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public void stop() throws Exception {
     }
 }

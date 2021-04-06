@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,14 +27,20 @@ package co.elastic.apm.agent.context;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 public abstract class AbstractLifecycleListener implements LifecycleListener {
-    protected final ElasticApmTracer tracer;
-
-    protected AbstractLifecycleListener(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+    @Override
+    public void init(ElasticApmTracer tracer) throws Exception {
     }
 
     @Override
-    public void start(ElasticApmTracer tracer) {
+    public void start(ElasticApmTracer tracer) throws Exception {
+    }
+
+    @Override
+    public void pause() throws Exception {
+    }
+
+    @Override
+    public void resume() throws Exception {
     }
 
     @Override

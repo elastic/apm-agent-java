@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-es-restclient-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.13.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-es-restclient-plugin-6_4</artifactId>
@@ -17,6 +17,13 @@
     </properties>
 
     <dependencies>
+        <!-- Common code where helper is located -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-es-restclient-plugin-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Elasticsearch rest client -->
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
@@ -28,14 +35,13 @@
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
             <version>${version.elasticsearch}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Common code where helper is located -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-es-restclient-plugin-common</artifactId>
-            <version>${project.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Elasticsearch testcontainer -->

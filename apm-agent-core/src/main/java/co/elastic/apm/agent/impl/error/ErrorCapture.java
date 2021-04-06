@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,24 +25,30 @@
 package co.elastic.apm.agent.impl.error;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.List;
 
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
 public class ErrorCapture implements Recyclable {
+
+    private static final Logger logger = LoggerFactory.getLogger(ErrorCapture.class);
 
     private final TraceContext traceContext;
 
@@ -52,6 +58,7 @@ public class ErrorCapture implements Recyclable {
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
     private final TransactionContext context = new TransactionContext();
+    private final ElasticApmTracer tracer;
     /**
      * Information about the originally thrown error.
      */
@@ -68,7 +75,6 @@ public class ErrorCapture implements Recyclable {
      */
     private TransactionInfo transactionInfo = new TransactionInfo();
 
-    private ElasticApmTracer tracer;
     private final StringBuilder culprit = new StringBuilder();
 
     public ErrorCapture(ElasticApmTracer tracer) {
@@ -123,11 +129,17 @@ public class ErrorCapture implements Recyclable {
     /**
      * Creates a reference to a {@link TraceContext}
      *
-     * @return {@code this}, for chaining
      * @param parent parent trace context
+     * @return {@code this}, for chaining
      */
-    public ErrorCapture asChildOf(TraceContextHolder<?> parent) {
+    public ErrorCapture asChildOf(AbstractSpan<?> parent) {
         this.traceContext.asChildOf(parent.getTraceContext());
+        if (traceContext.getTraceId().isEmpty()) {
+            logger.debug("Creating an Error as child of {} with a null trace_id", parent.getNameAsString());
+            if (logger.isTraceEnabled()) {
+                logger.trace("Stack trace related to Error capture: ", new Throwable());
+            }
+        }
         if (parent instanceof Transaction) {
             Transaction transaction = (Transaction) parent;
             // The error might have occurred in a different thread than the one the transaction was recorded
@@ -198,6 +210,35 @@ public class ErrorCapture implements Recyclable {
         culprit.append(')');
     }
 
+    public ErrorCapture activate() {
+        List<ActivationListener> activationListeners = tracer.getActivationListeners();
+        for (int i = 0; i < activationListeners.size(); i++) {
+            try {
+                activationListeners.get(i).beforeActivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
+        return this;
+    }
+
+    public ErrorCapture deactivate() {
+        List<ActivationListener> activationListeners = tracer.getActivationListeners();
+        for (int i = 0; i < activationListeners.size(); i++) {
+            try {
+                // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
+                activationListeners.get(i).afterDeactivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
+        return this;
+    }
+
     public static class TransactionInfo implements Recyclable {
         /**
          * A hint for UI to be able to show whether a recorded trace for the corresponding transaction is expected
@@ -235,5 +276,9 @@ public class ErrorCapture implements Recyclable {
 
     public void setTransactionType(@Nullable String type) {
         transactionInfo.type = type;
+    }
+
+    public void end() {
+        tracer.endError(this);
     }
 }

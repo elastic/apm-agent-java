@@ -5,14 +5,14 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.13.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
@@ -24,7 +24,17 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-premain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-indy-bootstrap-module</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -46,12 +56,37 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-bootdelegation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-cassandra3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-cassandra4-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-error-logging-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-grails-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-httpclient-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jdk-httpclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -86,7 +121,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jms-plugin</artifactId>
+            <artifactId>apm-redisson-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jms-plugin-base</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -121,6 +161,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-grpc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-kafka-base-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -131,12 +176,22 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mongoclient-plugin</artifactId>
+            <artifactId>apm-logback-plugin-impl</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mule4-plugin</artifactId>
+            <artifactId>apm-log4j1-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log4j2-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-mongoclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -147,6 +202,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-opentracing-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-profiling-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-rabbitmq-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -162,6 +227,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-log-correlation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log-shipper-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-micrometer-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -192,6 +267,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-process-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-dubbo-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-scala-concurrent-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -261,6 +346,17 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>
+                                        <exclude>META-INF/versions/**</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!--
+                                        We have to exclude the log4j plugin descriptor file because we can't shade its contents
+                                        Therefore, we have to manually specify the plugin packages via PluginManager.addPackage
+                                        -->
+                                        <exclude>**/Log4j2Plugins.dat</exclude>
                                     </excludes>
                                 </filter>
                                 <filter>
@@ -281,6 +377,10 @@
                                     <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>org.objectweb.asm</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.asm</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>com.dslplatform</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
                                 </relocation>
@@ -293,20 +393,37 @@
                                     <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>co.elastic.logging</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.logging</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.logging</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.apache.logging</shadedPattern>
+                                </relocation>
+
+                                <relocation>
+                                    <!-- makes sure we don't load log4j2.{properties|xml|yml|json} files-->
+                                    <pattern>log4j2</pattern>
+                                    <shadedPattern>elasticapmlog4j2</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- makes sure we don't pollute the system classloader with Log4j2-{charsets.properties|*.xsd} files-->
+                                    <pattern>Log4j-</pattern>
+                                    <shadedPattern>ElasticApmLog4j-</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- makes sure that direct link to resources in meta-inf are also relocated, otherwise will load log4j plugins from app -->
+                                    <pattern>META-INF/org/apache/logging</pattern>
+                                    <shadedPattern>META-INF/co/elastic/apm/agent/shaded/logging</shadedPattern>
+                                </relocation>
+
+                                <relocation>
                                     <pattern>org.stagemonitor</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.jctools</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
-                                </relocation>
-                                <!--
-                                Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
-                                Although this is not a package but a string constant, it does work
-                                -->
-                                <relocation>
-                                    <pattern>simplelogger.properties</pattern>
-                                    <shadedPattern>elasticapmlogger.properties</shadedPattern>
                                 </relocation>
                                 <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
                                 <relocation>
@@ -321,6 +438,13 @@
                                     <pattern>org.HdrHistogram</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
                                 </relocation>
+
+                                <!-- This reverts logging frameworks temporary packages given during the execution of the package
+                                phase of the apm-log-shader-plugin to their original packages -->
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.logshading.shaded</pattern>
+                                    <shadedPattern>org</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
@@ -332,6 +456,7 @@
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
                                         <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
+                                        <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
                                     </manifestEntries>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
@@ -349,6 +474,8 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
+                    <source>8</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
                 </configuration>
                 <executions>
                     <execution>
@@ -362,6 +489,19 @@
                                 <dependencySourceInclude>${project.groupId}:apm-agent-core</dependencySourceInclude>
                             </dependencySourceIncludes>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>4.0.2</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

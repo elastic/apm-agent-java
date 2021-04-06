@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.cache;
 
+import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +66,7 @@ public class WeakKeySoftValueLoadingCache<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(WeakKeySoftValueLoadingCache.class);
 
-    private final WeakConcurrentMap<K, CacheValue<K, V>> cache = new WeakConcurrentMap.WithInlinedExpunction<>();
+    private final WeakConcurrentMap<K, CacheValue<K, V>> cache = WeakMapSupplier.createMap();
     private final ValueSupplier<K, V> valueSupplier;
 
     public WeakKeySoftValueLoadingCache(ValueSupplier<K, V> valueSupplier) {

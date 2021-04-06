@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.assertj.core.api.Java6Assertions;
 import org.junit.After;
@@ -46,6 +47,15 @@ import static org.awaitility.Awaitility.await;
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
     protected RedisServer server;
     protected int redisPort;
+    private String expectedAddress;
+
+    public AbstractRedisInstrumentationTest() {
+        this.expectedAddress = "localhost";
+    }
+
+    public AbstractRedisInstrumentationTest(String expectedAddress) {
+        this.expectedAddress = expectedAddress;
+    }
 
     private static int getAvailablePort() throws IOException {
         try (ServerSocket socket = ServerSocketFactory.getDefault().createServerSocket(0, 1, InetAddress.getByName("localhost"))) {
@@ -62,11 +72,13 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
             .port(redisPort)
             .build();
         server.start();
+        tracer.startRootTransaction(null).activate();
     }
 
     @After
     @AfterEach
     public final void stopRedis() {
+        tracer.currentTransaction().deactivate().end();
         server.stop();
     }
 
@@ -77,6 +89,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
         assertThat(reporter.getSpans().stream().map(Span::getAction).distinct()).containsExactly("query");
         assertThat(reporter.getSpans().stream().map(Span::isExit).distinct()).containsExactly(true);
+        assertThat(reporter.getSpans().stream().map(Span::getOutcome).distinct()).containsExactly(Outcome.SUCCESS);
         verifyDestinationDetails(reporter.getSpans());
     }
 
@@ -84,7 +97,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         for (Span span : spanList) {
             Destination destination = span.getContext().getDestination();
             if (destinationAddressSupported()) {
-                assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+                assertThat(destination.getAddress().toString()).isEqualTo(expectedAddress);
                 assertThat(destination.getPort()).isEqualTo(redisPort);
             }
             Destination.Service service = destination.getService();

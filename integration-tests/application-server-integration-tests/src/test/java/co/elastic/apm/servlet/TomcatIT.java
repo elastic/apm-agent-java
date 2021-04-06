@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiServletContainerTestApp;
+import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -33,7 +34,9 @@ import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @RunWith(Parameterized.class)
 public class TomcatIT extends AbstractServletContainerIntegrationTest {
@@ -71,11 +74,24 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class, CdiServletContainerTestApp.class);
+        List<Class<? extends TestApp>> testClasses = new ArrayList<>();
+        testClasses.add(ServletApiTestApp.class);
+        testClasses.add(CdiServletContainerTestApp.class);
+        testClasses.add(ExternalPluginTestApp.class);
+        if (!getImageName().contains("jre7")) {
+            // The JSF test app depends on myfaces 2.3.2 which requires Java 8 or higher
+            testClasses.add(JsfServletContainerTestApp.class);
+        }
+        return testClasses;
     }
 
     @Override
-    protected boolean runtimeAttach() {
+    protected boolean runtimeAttachSupported() {
         return true;
+    }
+
+    @Override
+    protected String getJavaagentEnvVariable() {
+        return "CATALINA_OPTS";
     }
 }

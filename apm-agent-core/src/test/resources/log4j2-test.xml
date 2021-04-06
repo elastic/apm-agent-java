@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d [%thread] %-5level %logger{36} - %msg%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Root level="warn">
+            <AppenderRef ref="Console"/>
+        </Root>
+
+        <!-- make json validation less verbose -->
+        <Logger name="com.networknt.schema" level="warn"/>
+
+        <!-- agent always in debug for easier -->
+        <Logger name="co.elastic.apm" level="debug"/>
+    </Loggers>
+</Configuration>

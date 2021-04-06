@@ -24,13 +24,16 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.concurrent.JavaConcurrent;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -46,7 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@code org.apache.commons.exec.DefaultExecutor#createThread(Runnable, String)} and any direct subclass
  * that overrides it.
  */
-public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
+public class CommonsExecAsyncInstrumentation extends TracerAwareInstrumentation {
 
     private static final String DEFAULT_EXECUTOR_CLASS = "org.apache.commons.exec.DefaultExecutor";
     // only known subclass of default implementation
@@ -81,21 +84,23 @@ public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return CommonsExecAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.process.CommonsExecAsyncInstrumentation$CommonsExecAdvice";
     }
 
     public static final class CommonsExecAdvice {
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onEnter(@Advice.Argument(value = 0, readOnly = false) Runnable runnable) {
-            if (tracer == null || tracer.getActive() == null) {
-                return;
-            }
-            // context propagation is done by wrapping existing runnable argument
+        @Nullable
+        @AssignTo.Argument(0)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Runnable onEnter(Runnable runnable) {
+            return JavaConcurrent.withContext(runnable, tracer);
+        }
 
-            //noinspection UnusedAssignment
-            runnable = tracer.getActive().withActive(runnable);
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static void onExit(@Advice.Thrown Throwable thrown,
+                                  @Advice.Argument(value = 0) Runnable runnable) {
+            JavaConcurrent.doFinally(thrown, runnable);
         }
     }
 }

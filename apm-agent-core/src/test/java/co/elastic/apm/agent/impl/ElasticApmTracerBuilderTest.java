@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -29,6 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,7 +65,9 @@ class ElasticApmTracerBuilderTest {
         Path file = Files.createFile(tempDir.resolve("elstcapm.tmp"));
         Files.write(file, List.of("instrument=false"));
 
-        ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder("c=" + file.toAbsolutePath()).build().getConfigurationRegistry();
+        List<ConfigurationSource> configSources = ElasticApmTracerBuilder.getConfigSources("c=" + file.toAbsolutePath());
+
+        ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder(configSources).build().getConfigurationRegistry();
         CoreConfiguration config = configurationRegistry.getConfig(CoreConfiguration.class);
         assertThat(config.isInstrument()).isFalse();
     }

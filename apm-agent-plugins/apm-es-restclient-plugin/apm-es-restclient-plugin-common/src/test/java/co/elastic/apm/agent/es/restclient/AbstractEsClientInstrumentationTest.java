@@ -25,10 +25,11 @@
 package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.context.Destination;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
@@ -41,14 +42,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.ELASTICSEARCH;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SEARCH_QUERY_PATH_SUFFIX;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_ACTION;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
-    @SuppressWarnings("NullableProblems")
     protected static ElasticsearchContainer container;
 
     protected static final String INDEX = "my-index";
@@ -58,6 +57,9 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     protected static final String FOO = "foo";
     protected static final String BAR = "bar";
     protected static final String BAZ = "baz";
+    protected static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
+    protected static final String MSEARCH_QUERY_PATH_SUFFIX = "_msearch";
+    protected static final String COUNT_QUERY_PATH_SUFFIX = "_count";
 
     protected boolean async;
 
@@ -76,13 +78,17 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @After
     public void endTransaction() {
-        try {
-            Transaction currentTransaction = tracer.currentTransaction();
-            if (currentTransaction != null) {
-                currentTransaction.deactivate().end();
-            }
-        } finally {
-            reporter.reset();
+        int spanCount = reporter.getNumReportedSpans();
+        if (spanCount > 0) {
+            reporter.getSpans().forEach(s -> assertThat(s.getOutcome())
+                .describedAs("span outcome should be either failure or success")
+                .isNotEqualTo(Outcome.UNKNOWN));
+        }
+
+
+        Transaction currentTransaction = tracer.currentTransaction();
+        if (currentTransaction != null) {
+            currentTransaction.deactivate().end();
         }
     }
 
@@ -99,10 +105,8 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
         assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
         assertThat(span.getNameAsString()).isEqualTo(expectedName);
-
         assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
-
-        if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
+        if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(MSEARCH_QUERY_PATH_SUFFIX) && !expectedName.contains(COUNT_QUERY_PATH_SUFFIX)) {
             assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
         }
     }
@@ -119,6 +123,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         validateSpanContentWithoutContext(span, expectedName, statusCode, method);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
         validateDestinationContextContent(span.getContext().getDestination());
+        assertThat(span.getOutcome()).isNotEqualTo(Outcome.UNKNOWN);
     }
 
     private void validateDestinationContextContent(Destination destination) {

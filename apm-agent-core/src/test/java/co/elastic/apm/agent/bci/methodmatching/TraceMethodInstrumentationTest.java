@@ -25,16 +25,19 @@
 package co.elastic.apm.agent.bci.methodmatching;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,22 +48,27 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.lang.annotation.Retention;
 import java.util.Arrays;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.List;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 class TraceMethodInstrumentationTest {
 
     private MockReporter reporter;
+    private TestObjectPoolFactory objectPoolFactory;
     private ElasticApmTracer tracer;
     private CoreConfiguration coreConfiguration;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
-        reporter = new MockReporter();
-        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
+        reporter = mockInstrumentationSetup.getReporter();
+        objectPoolFactory = mockInstrumentationSetup.getObjectPoolFactory();
+        ConfigurationRegistry config = mockInstrumentationSetup.getConfig();
         coreConfiguration = config.getConfig(CoreConfiguration.class);
         when(coreConfiguration.getTraceMethods()).thenReturn(Arrays.asList(
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
@@ -74,21 +82,24 @@ class TraceMethodInstrumentationTest {
             WildcardMatcher.valueOf("*exclude*"),
             WildcardMatcher.valueOf("manuallyTraced")));
 
-        Set<String> tags = testInfo.getTags();
-        if (!tags.isEmpty()) {
-            when(coreConfiguration.getTraceMethodsDurationThreshold()).thenReturn(TimeDuration.of(tags.iterator().next()));
+        for (String tag : testInfo.getTags()) {
+            TimeDuration duration = TimeDuration.of(tag.split("=")[1]);
+            if (tag.startsWith("span_min_duration=")) {
+                doReturn(duration).when(coreConfiguration).getSpanMinDuration();
+            }
+            if (tag.startsWith("trace_methods_duration_threshold=")) {
+                doReturn(duration).when(coreConfiguration).getTraceMethodsDurationThreshold();
+            }
         }
 
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
+        tracer = mockInstrumentationSetup.getTracer();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }
 
     @AfterEach
     void tearDown() {
         ElasticApmAgent.reset();
+
     }
 
     @Test
@@ -98,6 +109,18 @@ class TraceMethodInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("TestClass#traceMeToo");
+    }
+
+    @Test
+    void testReInitTraceMethod() throws Exception {
+        when(coreConfiguration.getTraceMethods()).thenReturn(
+            List.of(MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe()")));
+        ElasticApmAgent.reInitInstrumentation().get();
+        TestClass.traceMe();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
+        // if original configuration was used, a span would have been created - see `testTraceMethod`
+        assertThat(reporter.getSpans()).hasSize(0);
     }
 
     @Test
@@ -154,7 +177,19 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("200ms")
+    void testAgentPaused() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+        new TestDiscardableMethods(tracer).root(true);
+        assertThat(reporter.getTransactions()).hasSize(0);
+        assertThat(reporter.getSpans()).hasSize(0);
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
+    }
+
+    @Test
+    @Tag("span_min_duration=200ms")
     void testDiscardMethods_DiscardAll() {
         new TestDiscardableMethods(tracer).root(false);
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -162,7 +197,25 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("200ms")
+    @Tag("span_min_duration=50ms")
+    @Tag("trace_methods_duration_threshold=200ms")
+    void testDiscardMethods_DiscardAll_HigherWinns_SpecificThreshold() {
+        new TestDiscardableMethods(tracer).root(false);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(0);
+    }
+
+    @Test
+    @Tag("span_min_duration=200ms")
+    @Tag("trace_methods_duration_threshold=50ms")
+    void testDiscardMethods_DiscardAll_HigherWinns_GenericThreshold() {
+        new TestDiscardableMethods(tracer).root(false);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(0);
+    }
+
+    @Test
+    @Tag("span_min_duration=200ms")
     void testDiscardMethods_Manual() {
         new TestDiscardableMethods(tracer).root(true);
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -170,8 +223,16 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("50ms")
-    void testDiscardMethods_ThresholdCrossed() {
+    @Tag("span_min_duration=50ms")
+    void testDiscardMethods_GeneralThresholdCrossed() {
+        new TestDiscardableMethods(tracer).root(true);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(5);
+    }
+
+    @Test
+    @Tag("trace_methods_duration_threshold=50ms")
+    void testDiscardMethods_SpecificThresholdCrossed() {
         new TestDiscardableMethods(tracer).root(true);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(5);
@@ -186,11 +247,11 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("50ms")
+    @Tag("span_min_duration=50ms")
     void testErrorCapture_TraceErrorBranch() {
         new TestErrorCapture().root();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getSpans()).hasSize(2);
+        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("TestErrorCapture#throwException", "TestErrorCapture#catchException");
         assertThat(reporter.getErrors()).hasSize(1);
     }
 
@@ -310,10 +371,12 @@ class TraceMethodInstrumentationTest {
         }
 
         private void manuallyTraced() {
-            tracer.getActive().createSpan()
-                .activate()
-                .deactivate()
-                .end();
+            AbstractSpan<?> active = tracer.getActive();
+            if (active != null) {
+                Span span = active.createSpan();
+                span.propagateTraceContext(new HashMap<>(), (k, v, m) -> m.put(k, v));
+                span.end();
+            }
         }
 
         private void beforeLongMethod() {

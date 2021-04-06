@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,17 +24,14 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
-import org.junit.Rule;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nullable;
 
+import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ContainerInfoTest {
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     @Test
     void testContainerIdParsing() {
@@ -84,6 +81,35 @@ public class ContainerInfoTest {
         String line = "1:name=systemd:/kubepods/besteffort/pod" + podId + "/" + containerId;
         SystemInfo systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+
+        // 12:pids:/kubepods/kubepods/besteffort/pod0e886e9a-3879-45f9-b44d-86ef9df03224/244a65edefdffe31685c42317c9054e71dc1193048cf9459e2a4dd35cbc1dba4
+        containerId = "244a65edefdffe31685c42317c9054e71dc1193048cf9459e2a4dd35cbc1dba4";
+        podId = "0e886e9a-3879-45f9-b44d-86ef9df03224";
+        line = "12:pids:/kubepods/kubepods/besteffort/pod" + podId + "/" + containerId;
+        systemInfo = assertContainerId(line, containerId);
+        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+
+        // 10:cpuset:/kubepods/pod5eadac96-ab58-11ea-b82b-0242ac110009/7fe41c8a2d1da09420117894f11dd91f6c3a44dfeb7d125dc594bd53468861df
+        containerId = "7fe41c8a2d1da09420117894f11dd91f6c3a44dfeb7d125dc594bd53468861df";
+        podId = "5eadac96-ab58-11ea-b82b-0242ac110009";
+        line = "10:cpuset:/kubepods/pod" + podId + "/" + containerId;
+        systemInfo = assertContainerId(line, containerId);
+        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+    }
+
+    @Test
+    void testUbuntuCgroup() {
+        String line = "1:name=systemd:/user.slice/user-1000.slice/user@1000.service/apps.slice/apps-org.gnome.Terminal" +
+            ".slice/vte-spawn-75bc72bd-6642-4cf5-b62c-0674e11bfc84.scope";
+        assertThat(createSystemInfo().parseContainerId(line).getContainerInfo()).isNull();
+    }
+
+    @Test
+    void testOpenshiftFormDisney() {
+        String line = "9:freezer:/kubepods.slice/kubepods-pod22949dce_fd8b_11ea_8ede_98f2b32c645c.slice" +
+            "/docker-b15a5bdedd2e7645c3be271364324321b908314e4c77857bbfd32a041148c07f.scope";
+        SystemInfo systemInfo = assertContainerId(line, "b15a5bdedd2e7645c3be271364324321b908314e4c77857bbfd32a041148c07f");
+        assertKubernetesInfo(systemInfo, "22949dce-fd8b-11ea-8ede-98f2b32c645c", "my-host", null, null);
     }
 
     @Test
@@ -97,7 +123,7 @@ public class ContainerInfoTest {
     }
 
     @Test
-    void testKubernetesDownwardApi() {
+    void testKubernetesDownwardApi() throws Exception {
         String line = "1:name=systemd:/kubepods/besteffort/pode9b90526-f47d-11e8-b2a5-080027b9f4fb/15aa6e53-b09a-40c7-8558-c6c31e36c88a";
         String containerId = "15aa6e53-b09a-40c7-8558-c6c31e36c88a";
         SystemInfo systemInfo = assertContainerId(line, containerId);
@@ -110,21 +136,23 @@ public class ContainerInfoTest {
         String podName = "downward-api-pod-name";
         String nodeName = "downward-api-node-name";
         String namespace = "downward-api-namespace";
-        environmentVariables.set("KUBERNETES_NODE_NAME", nodeName);
-        environmentVariables.set("KUBERNETES_POD_NAME", podName);
-        environmentVariables.set("KUBERNETES_NAMESPACE", namespace);
-        environmentVariables.set("KUBERNETES_POD_UID", podUid);
-        systemInfo.findContainerDetails();
+        withEnvironmentVariable("KUBERNETES_NODE_NAME", nodeName)
+            .and("KUBERNETES_POD_NAME", podName)
+            .and("KUBERNETES_NAMESPACE", namespace)
+            .and("KUBERNETES_POD_UID", podUid)
+            .execute(systemInfo::findContainerDetails);
         assertKubernetesInfo(systemInfo, podUid, podName, nodeName, namespace);
 
         // test partial settings
         systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, originalPodUid, hostName, null, null);
-        environmentVariables.clear("KUBERNETES_POD_UID", "KUBERNETES_POD_NAME");
+        withEnvironmentVariable("KUBERNETES_NODE_NAME", nodeName)
+            .and("KUBERNETES_POD_NAME", null)
+            .and("KUBERNETES_NAMESPACE", namespace)
+            .and("KUBERNETES_POD_UID", null)
+            .execute(systemInfo::findContainerDetails);
         systemInfo.findContainerDetails();
         assertKubernetesInfo(systemInfo, originalPodUid, hostName, nodeName, namespace);
-
-        environmentVariables.clear("KUBERNETES_NAMESPACE", "KUBERNETES_NODE_NAME");
     }
 
     private SystemInfo createSystemInfo() {

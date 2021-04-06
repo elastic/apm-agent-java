@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.impl.sampling;
 
 import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.TraceState;
 
 /**
  * This implementation of {@link Sampler} samples based on a sampling probability (or sampling rate) between 0.0 and 1.0.
@@ -52,10 +53,16 @@ public class ProbabilitySampler implements Sampler {
 
     private final long lowerBound;
     private final long higherBound;
+    private final double sampleRate;
+
+    // Because header value only contains sampling rate, we can cache it here
+    private final String traceStateHeader;
 
     private ProbabilitySampler(double samplingRate) {
-        higherBound = (long) (Long.MAX_VALUE * samplingRate);
-        lowerBound = -higherBound;
+        this.higherBound = (long) (Long.MAX_VALUE * samplingRate);
+        this.lowerBound = -higherBound;
+        this.sampleRate = samplingRate;
+        this.traceStateHeader = TraceState.getHeaderValue(samplingRate);
     }
 
     public static Sampler of(double samplingRate) {
@@ -70,7 +77,17 @@ public class ProbabilitySampler implements Sampler {
 
     @Override
     public boolean isSampled(Id traceId) {
-        final long mostSignificantBits = traceId.getLeastSignificantBits();
-        return mostSignificantBits > lowerBound && mostSignificantBits < higherBound;
+        final long leastSignificantBits = traceId.getLeastSignificantBits();
+        return leastSignificantBits > lowerBound && leastSignificantBits < higherBound;
+    }
+
+    @Override
+    public double getSampleRate() {
+        return sampleRate;
+    }
+
+    @Override
+    public String getTraceStateHeader() {
+        return traceStateHeader;
     }
 }

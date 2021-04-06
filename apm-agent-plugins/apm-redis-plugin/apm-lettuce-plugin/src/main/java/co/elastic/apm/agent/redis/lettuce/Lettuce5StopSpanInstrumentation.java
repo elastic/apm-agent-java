@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.lettuce.core.protocol.RedisCommand;
@@ -54,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *     <li>{@link RedisCommand#cancel()}</li>
  * </ul>
  */
-public abstract class Lettuce5StopSpanInstrumentation extends ElasticApmInstrumentation {
+public abstract class Lettuce5StopSpanInstrumentation extends TracerAwareInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(Lettuce5StopSpanInstrumentation.class);
@@ -72,6 +72,11 @@ public abstract class Lettuce5StopSpanInstrumentation extends ElasticApmInstrume
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("redis", "lettuce");
+    }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
     }
 
     public static class OnComplete extends Lettuce5StopSpanInstrumentation {

@@ -1,0 +1,2 @@
+co.elastic.apm.agent.logback.LogbackLogShadingInstrumentation$ShadingInstrumentation
+co.elastic.apm.agent.logback.LogbackLogShadingInstrumentation$StopAppenderInstrumentation

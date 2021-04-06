@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,20 +24,18 @@
  */
 package co.elastic.apm.agent.redis.jedis;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import redis.clients.jedis.Protocol;
 
 import java.util.Arrays;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -48,12 +46,12 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * it would otherwise be set to the {@link redis.clients.jedis.Jedis} client method name.
  * This is good enough as a default but we want all Redis clients to produce the same span names.
  */
-public class JedisSpanNameInstrumentation extends ElasticApmInstrumentation {
+public class JedisSpanNameInstrumentation extends TracerAwareInstrumentation {
 
     @Advice.OnMethodEnter
     private static void setSpanNameToRedisProtocolCommand(@Advice.Argument(1) Object command) {
         if (tracer != null) {
-            TraceContextHolder<?> active = tracer.getActive();
+            AbstractSpan<?> active = tracer.getActive();
             if (active instanceof Span) {
                 Span activeSpan = (Span) active;
                 if ("redis".equals(activeSpan.getSubtype())) {
@@ -80,5 +78,10 @@ public class JedisSpanNameInstrumentation extends ElasticApmInstrumentation {
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("redis", "jedis");
+    }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
     }
 }

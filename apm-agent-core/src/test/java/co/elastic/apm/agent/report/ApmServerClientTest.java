@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,26 +24,37 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import co.elastic.apm.agent.objectpool.impl.BookkeeperObjectPool;
 import co.elastic.apm.agent.util.Version;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.assertj.core.util.Lists;
+import org.awaitility.core.ConditionFactory;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder.okForJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -53,7 +64,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doReturn;
+import static org.awaitility.Awaitility.await;
 
 public class ApmServerClientTest {
 
@@ -64,10 +75,12 @@ public class ApmServerClientTest {
     private ApmServerClient apmServerClient;
     private ConfigurationRegistry config;
     private ElasticApmTracer tracer;
+    private TestObjectPoolFactory objectPoolFactory;
     private ReporterConfiguration reporterConfiguration;
+    private List<URL> urlList;
 
     @Before
-    public void setUp() throws MalformedURLException {
+    public void setUp() throws IOException {
         URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
         URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
         // APM server 6.x style
@@ -81,17 +94,76 @@ public class ApmServerClientTest {
 
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        doReturn(List.of(url1, url2)).when(reporterConfiguration).getServerUrls();
+        objectPoolFactory = new TestObjectPoolFactory();
+        config.save("server_urls", url1.toString() + "," + url2.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        urlList = List.of(UrlValueConverter.INSTANCE.convert(url1.toString()), UrlValueConverter.INSTANCE.convert(url2.toString()));
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
-            .build();
+            .withObjectPoolFactory(objectPoolFactory)
+            .buildAndStart();
 
-        apmServerClient = new ApmServerClient(reporterConfiguration, tracer.getConfig(ReporterConfiguration.class).getServerUrls());
+        apmServerClient = tracer.getApmServerClient();
+        apmServerClient.start(tracer.getConfig(ReporterConfiguration.class).getServerUrls());
+    }
+
+    @Test
+    public void testClientMethodsWithEmptyUrls() throws IOException {
+        // tests setting server_url to an empty string in configuration
+        apmServerClient.start(Lists.emptyList());
+        awaitUpToOneSecond().untilAsserted(
+            () -> assertThat(apmServerClient.getApmServerVersion(1, TimeUnit.SECONDS)).isEqualTo(Version.UNKNOWN_VERSION)
+        );
+        assertThat(apmServerClient.getCurrentUrl()).isNull();
+        assertThat(apmServerClient.appendPathToCurrentUrl("/path")).isNull();
+        assertThat(apmServerClient.startRequest("/whatever")).isNull();
+    }
+
+    @Test
+    public void testDroppingAndRecyclingEventsWithEmptyUrls() {
+        Reporter reporter = tracer.getReporter();
+        long droppedStart = reporter.getDropped();
+
+        // tests setting server_url to an empty string in configuration
+        apmServerClient.start(Lists.emptyList());
+
+        BookkeeperObjectPool<Transaction> transactionPool = objectPoolFactory.getTransactionPool();
+        int transactionsRequestedBefore = transactionPool.getRequestedObjectCount();
+        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
+        assertThat(transactionPool.getRequestedObjectCount()).isEqualTo(transactionsRequestedBefore + 1);
+        int transactionsInPoolAfterCreation = transactionPool.getObjectsInPool();
+
+        BookkeeperObjectPool<Span> spanPool = objectPoolFactory.getSpanPool();
+        int spansRequestedBefore = spanPool.getRequestedObjectCount();
+        final Span span = Objects.requireNonNull(transaction).createSpan();
+        assertThat(transactionPool.getRequestedObjectCount()).isEqualTo(spansRequestedBefore + 1);
+        int spansInPoolAfterCreation = spanPool.getObjectsInPool();
+
+        BookkeeperObjectPool<ErrorCapture> errorPool = objectPoolFactory.getErrorPool();
+        int errorsRequestedBefore = errorPool.getRequestedObjectCount();
+        span.captureException(new Throwable());
+        assertThat(errorPool.getRequestedObjectCount()).isEqualTo(errorsRequestedBefore + 1);
+        int errorsInPoolAfterCreation = errorPool.getObjectsInPool();
+
+        span.end();
+        transaction.end();
+
+        awaitUpToOneSecond().untilAsserted(
+            () -> assertThat(transactionPool.getObjectsInPool()).isEqualTo(transactionsInPoolAfterCreation + 1)
+        );
+        assertThat(spanPool.getObjectsInPool()).isEqualTo(spansInPoolAfterCreation + 1);
+        assertThat(errorPool.getObjectsInPool()).isEqualTo(errorsInPoolAfterCreation + 1);
+        assertThat(reporter.getDropped()).isEqualTo(droppedStart + 3);
+    }
+
+    private static ConditionFactory awaitUpToOneSecond() {
+        return await()
+            .pollInterval(1, TimeUnit.MILLISECONDS)
+            .timeout(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void testInitialCurrentUrlIsFirstUrl() throws Exception {
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
 
         apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
 
@@ -102,7 +174,7 @@ public class ApmServerClientTest {
     @Test
     public void testUseNextUrlOnError() throws Exception {
         apmServerClient.incrementAndGetErrorCount(0);
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer2.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer2.port());
 
         apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
 
@@ -123,7 +195,7 @@ public class ApmServerClientTest {
     @Test
     public void testRetry() throws Exception {
         assertThat(apmServerClient.<String>execute("/test", conn -> new String(conn.getInputStream().readAllBytes()))).isEqualTo("hello from server 2");
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer2.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer2.port());
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/test")));
         assertThat(apmServerClient.getErrorCount()).isEqualTo(1);
@@ -137,7 +209,7 @@ public class ApmServerClientTest {
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         // two failures -> urls wrap
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
         assertThat(apmServerClient.getErrorCount()).isEqualTo(2);
     }
 
@@ -150,7 +222,7 @@ public class ApmServerClientTest {
         apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         // no failures -> urls in initial state
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(Objects.requireNonNull(apmServerClient.getCurrentUrl()).getPort()).isEqualTo(apmServer1.port());
         assertThat(apmServerClient.getErrorCount()).isZero();
     }
 
@@ -174,13 +246,51 @@ public class ApmServerClientTest {
     }
 
     @Test
-    public void testGetServerUrlsVerifyThatServerUrlsWillBeReloaded() throws IOException {
-        URL tempUrl = new URL("http", "localhost", 9999, "");
-        config.save("server_urls", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
-
+    public void testServerUrlsOverridesDefaultServerUrl() {
         List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+        // since only server_urls is set, we expect it to override the default server_url setting
+        assertThat(updatedServerUrls).isEqualTo(urlList);
+    }
 
+    @Test
+    public void testServerUrlsIsReloadedOnChange() throws IOException {
+        config.save("server_urls", "http://localhost:9999,http://localhost:9998", SpyConfiguration.CONFIG_SOURCE_NAME);
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+        assertThat(updatedServerUrls).isEqualTo(List.of(
+            UrlValueConverter.INSTANCE.convert("http://localhost:9999"),
+            UrlValueConverter.INSTANCE.convert("http://localhost:9998")
+        ));
+    }
+
+    @Test
+    public void testDefaultServerUrls() throws IOException {
+        config.save("server_urls", "", SpyConfiguration.CONFIG_SOURCE_NAME);
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+        URL tempUrl = new URL("http", "localhost", 8200, "");
+        // server_urls setting is removed, we expect the default URL to be used
         assertThat(updatedServerUrls).isEqualTo(List.of(tempUrl));
+    }
+
+    @Test
+    public void testServerUrlSettingOverridesServerUrls() throws IOException {
+        URL tempUrl = new URL("http", "localhost", 9999, "");
+        config.save("server_url", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+        assertThat(updatedServerUrls).isEqualTo(List.of(tempUrl));
+    }
+
+    @Test
+    public void testDisableSend() {
+        // We have to go through that because the disable_send config is non-dynamic
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
+            new PropertyFileConfigurationSource("test.elasticapm.disable-send.properties")
+        );
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(new MockReporter())
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+        List<URL> updatedServerUrls = tracer.getApmServerClient().getServerUrls();
+        assertThat(updatedServerUrls).isEmpty();
     }
 
     @Test
@@ -188,15 +298,17 @@ public class ApmServerClientTest {
         assertThat(apmServerClient.isAtLeast(Version.of("6.7.0"))).isTrue();
         assertThat(apmServerClient.isAtLeast(Version.of("6.7.1"))).isFalse();
         assertThat(apmServerClient.supportsNonStringLabels()).isTrue();
-        apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "6.6.1"))));
-        config.save("server_urls", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        apmServer1.stubFor(get(urlEqualTo("/"))
+            .willReturn(okForJson(Map.of("version", "6.6.1"))));
+        config.save("server_url", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
         assertThat(apmServerClient.supportsNonStringLabels()).isFalse();
 
     }
 
     @Test
     public void testWithEmptyServerUrlList() {
-        ApmServerClient client = new ApmServerClient(reporterConfiguration, Collections.emptyList());
+        ApmServerClient client = new ApmServerClient(reporterConfiguration);
+        client.start(Collections.emptyList());
         Exception exception = null;
         try {
             client.execute("/irrelevant", connection -> null);

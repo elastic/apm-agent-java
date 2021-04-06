@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,9 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.sdk.weakmap.NullSafeWeakConcurrentMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
@@ -75,8 +77,12 @@ import java.util.WeakHashMap;
  * Note: trying to load the helper class implementations from the bootstrap classloader leads to {@link NoClassDefFoundError}s.
  * </p>
  *
+ * @deprecated Use {@link TracerAwareInstrumentation#indyPlugin() indy plugins} instead.
+ * As the whole package the indy plugin is defined it is loaded from {@link IndyPluginClassLoader},
+ * a separate helper class manager is not needed anymore.
  * @param <T> the type of the helper interface
  */
+@Deprecated
 @VisibleForAdvice
 public abstract class HelperClassManager<T> {
     private static final Logger logger = LoggerFactory.getLogger(HelperClassManager.class);
@@ -141,8 +147,12 @@ public abstract class HelperClassManager<T> {
      * which has to be collectible when the web application is un-deployed.
      * </p>
      *
+     * @deprecated Use {@link TracerAwareInstrumentation#indyPlugin() indy plugins} instead.
+     * As the whole package the indy plugin is defined it is loaded from {@link IndyPluginClassLoader},
+     * a separate helper class manager is not needed anymore.
      * @param <T> the type of the helper class interface
      */
+    @Deprecated
     public static class ForSingleClassLoader<T> extends HelperClassManager<T> {
 
         @Nullable
@@ -198,8 +208,12 @@ public abstract class HelperClassManager<T> {
      * In order to optimize performance, stale entries are removed only when new helpers are being loaded (normally at the beginning of
      * startup time and when new applications are deployed). These maps shouldn't grow big as they have an entry per class loader.
      *
+     * @deprecated Use {@link TracerAwareInstrumentation#indyPlugin() indy plugins} instead.
+     * As the whole package the indy plugin is defined it is loaded from {@link IndyPluginClassLoader},
+     * a separate helper class manager is not needed anymore.
      * @param <T>
      */
+    @Deprecated
     public static class ForAnyClassLoader<T> extends HelperClassManager<T> {
 
         // doesn't need to be concurrent - invoked only from a synchronized context
@@ -209,7 +223,8 @@ public abstract class HelperClassManager<T> {
 
         private ForAnyClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             super(tracer, implementation, additionalHelpers);
-            clId2helperMap = new WeakConcurrentMap<>(false);
+            // deliberately doesn't use WeakMapSupplier as this class manages the cleanup manually
+            clId2helperMap = new NullSafeWeakConcurrentMap<>(false);
         }
 
         /**
@@ -287,7 +302,7 @@ public abstract class HelperClassManager<T> {
             classInjector = new ClassInjector.UsingReflection(targetClassLoader, pd, PackageDefinitionStrategy.NoOp.INSTANCE,
                 true);
         }
-        final byte[] classBytes = getAgentClassBytes(className);
+        final byte[] classBytes = ClassFileLocator.ForClassLoader.of(ElasticApmAgent.getAgentClassLoader()).locate(className).resolve();
         final TypeDescription typeDesc =
             new TypeDescription.Latent(className, 0, null, Collections.<TypeDescription.Generic>emptyList());
         Map<TypeDescription, byte[]> typeMap = new HashMap<>();
@@ -298,7 +313,7 @@ public abstract class HelperClassManager<T> {
     private static <T> T createHelper(@Nullable ClassLoader targetClassLoader, ElasticApmTracer tracer, String implementation,
                                       String... additionalHelpers) {
         try {
-            final Map<String, byte[]> typeDefinitions = getTypeDefinitions(asList(implementation, additionalHelpers));
+            final Map<String, byte[]> typeDefinitions = getTypeDefinitions(asList(implementation, additionalHelpers), ElasticApmAgent.getAgentClassLoader());
             Class<? extends T> helperClass;
             try {
                 helperClass = loadHelperClass(targetClassLoader, implementation, typeDefinitions);
@@ -333,17 +348,13 @@ public abstract class HelperClassManager<T> {
         return (Class<T>) helperCL.loadClass(implementation);
     }
 
-    private static Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames) throws IOException {
+    private static Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames, ClassLoader classLoader) throws IOException {
         Map<String, byte[]> typeDefinitions = new HashMap<>();
         for (final String helperName : helperClassNames) {
-            final byte[] classBytes = getAgentClassBytes(helperName);
+            final byte[] classBytes = ClassFileLocator.ForClassLoader.of(classLoader).locate(helperName).resolve();
             typeDefinitions.put(helperName, classBytes);
         }
         return typeDefinitions;
     }
 
-    private static byte[] getAgentClassBytes(String className) throws IOException {
-        final ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(ClassLoader.getSystemClassLoader());
-        return locator.locate(className).resolve();
-    }
 }

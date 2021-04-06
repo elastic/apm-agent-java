@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,11 +25,10 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 class SpanTest {
 
@@ -51,5 +50,23 @@ class SpanTest {
         assertThat(span.getType()).isNull();
         assertThat(span.getSubtype()).isNull();
         assertThat(span.getAction()).isNull();
+        assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
+    }
+
+    @Test
+    void testOutcomeExplicitlyToUnknown() {
+        Transaction transaction = MockTracer.createRealTracer().startRootTransaction(null);
+        assertThat(transaction).isNotNull();
+        Span span = transaction.createSpan()
+            .withName("SELECT FROM product_types")
+            .withType("db")
+            .withSubtype("postgresql")
+            .withAction("query")
+            .withOutcome(Outcome.UNKNOWN);
+
+        // end operation will apply heuristic if not set
+        span.end();
+
+        assertThat(span.getOutcome()).isEqualTo(Outcome.UNKNOWN);
     }
 }

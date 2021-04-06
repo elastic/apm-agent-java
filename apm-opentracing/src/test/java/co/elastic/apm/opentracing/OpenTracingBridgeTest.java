@@ -26,6 +26,9 @@ package co.elastic.apm.opentracing;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
+import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -41,6 +44,8 @@ import io.opentracing.tag.Tags;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +64,9 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         apmTracer = new ElasticApmTracer();
-        reporter.reset();
+        // OT always leaks the spans
+        // see co.elastic.apm.agent.opentracing.impl.ApmSpanBuilderInstrumentation.CreateSpanInstrumentation.doCreateTransactionOrSpan
+        disableRecyclingValidation();
     }
 
     @AfterEach
@@ -82,6 +89,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1000);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("test");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("OpenTracing");
     }
 
     @Test
@@ -138,7 +146,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
-        transaction.resetState();
 
         final Span childSpan = apmTracer.buildSpan("span")
             .asChildOf(span.context())
@@ -156,7 +163,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
-        transaction.resetState();
 
         try (Scope scope = apmTracer.activateSpan(span)) {
             final Span childSpan = apmTracer.buildSpan("span")
@@ -206,6 +212,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         // manually finish span
         scope.span().finish(1);
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("OpenTracing");
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("test");
     }
@@ -225,6 +232,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final co.elastic.apm.agent.impl.transaction.Span nestedSpan = reporter.getSpans().get(0);
         assertThat(transaction.getDuration()).isGreaterThan(0);
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
+        assertThat(transaction.getFrameworkName()).isEqualTo("OpenTracing");
         assertThat(reporter.getSpans()).hasSize(2);
         assertThat(span.getNameAsString()).isEqualTo("span");
         assertThat(span.isChildOf(transaction)).isTrue();
@@ -236,6 +244,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     void testCreateActiveTransactionAndSpans() {
         Span otTransaction = apmTracer.buildSpan("transaction").start();
         try (Scope transactionScope = apmTracer.activateSpan(otTransaction)) {
+            assertThat(apmTracer.activeSpan()).isEqualTo(otTransaction);
+            assertThat(tracer.getActive()).isEqualTo(((ApmSpan) otTransaction).getSpan());
             Span otSpan = apmTracer.buildSpan("span").start();
             try (Scope spanScope = apmTracer.activateSpan(otSpan)) {
                 Span otNestedSpan = apmTracer.buildSpan("nestedSpan").start();
@@ -253,11 +263,39 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final co.elastic.apm.agent.impl.transaction.Span nestedSpan = reporter.getSpans().get(0);
         assertThat(transaction.getDuration()).isGreaterThan(0);
         assertThat(transaction.getNameAsString()).isEqualTo("transaction");
+        assertThat(transaction.getFrameworkName()).isEqualTo("OpenTracing");
         assertThat(reporter.getSpans()).hasSize(2);
         assertThat(span.getNameAsString()).isEqualTo("span");
         assertThat(span.isChildOf(transaction)).isTrue();
         assertThat(nestedSpan.getNameAsString()).isEqualTo("nestedSpan");
         assertThat(nestedSpan.isChildOf(span)).isTrue();
+    }
+
+    @Test
+    public void testAgentPaused() {
+        TracerInternalApiUtils.pauseTracer(tracer);
+        int transactionCount = objectPoolFactory.getTransactionPool().getRequestedObjectCount();
+        int spanCount = objectPoolFactory.getSpanPool().getRequestedObjectCount();
+
+        Span otTransaction = apmTracer.buildSpan("transaction").start();
+        try (Scope transactionScope = apmTracer.activateSpan(otTransaction)) {
+            assertThat(apmTracer.activeSpan()).isNull();
+            assertThat(tracer.getActive()).isNull();
+            Span otSpan = apmTracer.buildSpan("span").start();
+            try (Scope spanScope = apmTracer.activateSpan(otSpan)) {
+                Span otNestedSpan = apmTracer.buildSpan("nestedSpan").start();
+                try (Scope nestedSpanScope = apmTracer.activateSpan(otNestedSpan)) {
+                }
+                otNestedSpan.finish();
+            }
+            otSpan.finish();
+        }
+        otTransaction.finish();
+
+        assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(objectPoolFactory.getTransactionPool().getRequestedObjectCount()).isEqualTo(transactionCount);
+        assertThat(objectPoolFactory.getSpanPool().getRequestedObjectCount()).isEqualTo(spanCount);
     }
 
     @Test
@@ -299,6 +337,34 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         });
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 100, 200, 400, 500})
+    void testHttpMappingResultAndOutcome(int status) {
+        String method = "GET";
+        String url = "http://localhost:8080";
+
+        Transaction transaction = createTransactionFromOtTags(httpRequestMap("server", status));
+        assertThat(transaction.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpServerStatus(status));
+        assertThat(transaction.getResult()).isEqualTo(ResultUtil.getResultByHttpStatus(status));
+        assertThat(transaction.getContext().getResponse().getStatusCode()).isEqualTo(status);
+        assertThat(transaction.getContext().getRequest().getMethod()).isEqualTo(method);
+        assertThat(transaction.getContext().getRequest().getUrl().getFull().toString()).isEqualTo(url);
+
+        co.elastic.apm.agent.impl.transaction.Span span = createSpanFromOtTags(httpRequestMap("client", status));
+        assertThat(span.getOutcome()).isEqualTo(ResultUtil.getOutcomeByHttpClientStatus(status));
+        Http spanHttp = span.getContext().getHttp();
+        assertThat(spanHttp.getStatusCode()).isEqualTo(status);
+        assertThat(spanHttp.getUrl()).isEqualTo(url);
+        assertThat(spanHttp.getMethod()).isEqualTo(method);
+    }
+
+    private static Map<String,Object> httpRequestMap(String kind, int status){
+        return Map.of("span.kind", (Object) kind,
+            "http.url", "http://localhost:8080",
+            "http.method", "GET",
+            "http.status_code", status);
+    }
+
     @Test
     void testCreatingClientTransactionCreatesNoopSpan() {
         assertThat(apmTracer.scopeManager().activeSpan()).isNull();
@@ -310,10 +376,16 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
                 Span nestedSpan = apmTracer.buildSpan("nestedSpan").start();
                 try (ApmScope nestedSpanScope = (ApmScope) apmTracer.activateSpan(nestedSpan)) {
                     assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(nestedSpan);
+                } finally {
+                    nestedSpan.finish();
                 }
                 assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(span);
+            } finally {
+                span.finish();
             }
             assertThat(apmTracer.scopeManager().activeSpan()).isEqualTo(transaction);
+        } finally {
+            transaction.finish();
         }
         assertThat(apmTracer.scopeManager().activeSpan()).isNull();
         assertThat(reporter.getSpans()).isEmpty();
@@ -332,6 +404,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             span.finish();
         }
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("error");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");
@@ -515,28 +588,40 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstSpan().getContext().getLabel("bar")).isEqualTo("baz");
     }
 
-    private Transaction createTransactionFromOtTags(Map<String, String> tags) {
+    private Transaction createTransactionFromOtTags(Map<String, ?> tags) {
         final Tracer.SpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
-        tags.forEach(spanBuilder::withTag);
+        applyTags(tags, spanBuilder);
         spanBuilder.start().finish();
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
-        reporter.reset();
+        reporter.resetWithoutRecycling();
         return transaction;
     }
 
-    private co.elastic.apm.agent.impl.transaction.Span createSpanFromOtTags(Map<String, String> tags) {
+    private void applyTags(Map<String, ?> tags, Tracer.SpanBuilder spanBuilder) {
+        tags.forEach((k, v) -> {
+           if(v instanceof String){
+               spanBuilder.withTag(k, (String)v);
+           } else if (v instanceof Number){
+               spanBuilder.withTag(k, (Number)v);
+           } else {
+               throw new IllegalStateException("unexpected type");
+           }
+        });
+    }
+
+    private co.elastic.apm.agent.impl.transaction.Span createSpanFromOtTags(Map<String, Object> tags) {
         final Span transaction = apmTracer.buildSpan("transaction").start();
         try (Scope transactionScope = apmTracer.activateSpan(transaction)) {
             final Tracer.SpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
-            tags.forEach(spanBuilder::withTag);
+            applyTags(tags, spanBuilder);
             spanBuilder.start().finish();
         }
         transaction.finish();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         final co.elastic.apm.agent.impl.transaction.Span span = reporter.getFirstSpan();
-        reporter.reset();
+        reporter.resetWithoutRecycling();
         return span;
     }
 }

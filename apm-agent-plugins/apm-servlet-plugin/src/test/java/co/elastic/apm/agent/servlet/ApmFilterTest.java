@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,8 +26,10 @@ package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.TracerInternalApiUtils;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
+import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.impl.context.web.WebConfiguration;
@@ -79,7 +81,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testDisabled() throws IOException, ServletException {
-        when(tracer.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        TracerInternalApiUtils.pauseTracer(tracer);
         filterChain.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
@@ -89,13 +91,17 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/foo/bar");
         request.setQueryString("foo=bar");
         filterChain.doFilter(request, new MockHttpServletResponse());
-        Url url = reporter.getFirstTransaction().getContext().getRequest().getUrl();
+
+        TransactionContext transactionContext = reporter.getFirstTransaction().getContext();
+        Url url = transactionContext.getRequest().getUrl();
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getSearch()).isEqualTo("foo=bar");
         assertThat(url.getPort().toString()).isEqualTo("80");
         assertThat(url.getHostname()).isEqualTo("localhost");
         assertThat(url.getPathname()).isEqualTo("/foo/bar");
         assertThat(url.getFull().toString()).isEqualTo("http://localhost/foo/bar?foo=bar");
+
+        assertThat(transactionContext.getResponse().getStatusCode()).isEqualTo(200);
     }
 
     @Test

@@ -24,20 +24,13 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -56,21 +49,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * this makes sure to record a transaction in that case.
  * </p>
  */
-public class ServletInstrumentation extends ElasticApmInstrumentation {
+public class ServletInstrumentation extends AbstractServletInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
+    static final String SERVLET_API_DISPATCH = "servlet-api-dispatch";
 
-    @Nullable
-    @VisibleForAdvice
-    // referring to HttpServletRequest is legal because of type erasure
-    public static HelperClassManager<ServletTransactionCreationHelper<HttpServletRequest>> servletTransactionCreationHelperManager;
-
-    public ServletInstrumentation(ElasticApmTracer tracer) {
-        ServletApiAdvice.init(tracer);
-        servletTransactionCreationHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-            "co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelperImpl",
-            "co.elastic.apm.agent.servlet.helper.ServletRequestHeaderGetter"
-        );
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList(SERVLET_API, SERVLET_API_DISPATCH);
     }
 
     @Override
@@ -92,18 +78,8 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ServletApiAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(SERVLET_API);
-    }
-
-    @VisibleForAdvice
-    public interface ServletTransactionCreationHelper<R> {
-        @Nullable
-        Transaction createAndActivateTransaction(R request);
-    }
 }

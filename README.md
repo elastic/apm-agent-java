@@ -16,14 +16,13 @@ Docs are located [here](https://www.elastic.co/guide/en/apm/agent/java/current/i
 
 ## Getting Help
 
-If you find a bug,
-please [report an issue](https://github.com/elastic/apm-agent-java/issues/new).
-For any other assistance,
-please open or add to a topic on the [APM discuss forum](https://discuss.elastic.co/c/apm).
+If you find a bug or an issue, please
+1. open a new topic on the [APM discuss forum](https://discuss.elastic.co/tags/c/apm/java) (or add to an existing one)
+1. [report an issue](https://github.com/elastic/apm-agent-java/issues/new) on the java agent repository
 
-If you need help or hit an issue,
-please start by opening a topic on our discuss forums.
-Please note that we reserve GitHub tickets for confirmed bugs and enhancement requests.
+Please note that we reserve GitHub tickets for actionable things we can work on, thus confirmed bugs and enhancement requests only.
+
+Help requests are better served in [APM discuss forum](https://discuss.elastic.co/tags/c/observability/apm/58/java).
 
 ## Contributing
 
@@ -31,8 +30,9 @@ See the [contributing documentation](CONTRIBUTING.md)
 
 ## Snapshots
 
-Download the latest snapshot from master
-[here](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST).
+Snapshots are built from `master` branch and are available [here](https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST).
+
+Those snapshots include features & bugfixes for the next release, see [releases notes](https://www.elastic.co/guide/en/apm/agent/java/master/_unreleased.html) details.
 
 ## Build form source
 

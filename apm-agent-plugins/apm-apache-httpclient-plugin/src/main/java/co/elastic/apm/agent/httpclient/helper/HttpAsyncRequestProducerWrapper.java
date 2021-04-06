@@ -40,12 +40,12 @@ import org.apache.http.protocol.HttpContext;
 import java.io.IOException;
 
 class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyclable {
-    private final ApacheHttpAsyncClientHelperImpl asyncClientHelper;
+    private final ApacheHttpAsyncClientHelper asyncClientHelper;
     private volatile HttpAsyncRequestProducer delegate;
     private Span span;
     private TextHeaderSetter<HttpRequest> headerSetter;
 
-    HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelperImpl helper) {
+    HttpAsyncRequestProducerWrapper(ApacheHttpAsyncClientHelper helper) {
         this.asyncClientHelper = helper;
     }
 
@@ -74,7 +74,7 @@ class HttpAsyncRequestProducerWrapper implements HttpAsyncRequestProducer, Recyc
                 span.withName(method).appendToName(" ");
                 span.getContext().getHttp().withMethod(method).withUrl(requestLine.getUri());
             }
-            span.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
+            span.propagateTraceContext(request, headerSetter);
         }
 
         HttpHost host = getTarget();

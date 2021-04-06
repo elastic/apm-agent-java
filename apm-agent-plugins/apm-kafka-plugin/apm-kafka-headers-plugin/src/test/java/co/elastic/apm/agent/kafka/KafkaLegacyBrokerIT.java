@@ -63,12 +63,13 @@ import java.util.UUID;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 /**
  * Tests newer client with a 0.10.2.2 version.
  * This test is disabled because may fail on CI, maybe because of running in parallel to the current broker test.
- * It is still useful to be ran locally to test the legacy broker.
+ * It is still useful to run locally to test the legacy broker.
  * <p>
  * Each test sends a message to a request topic and waits on a reply message. This serves two purposes:
  * 1.  reduce waits to a minimum within tests
@@ -139,11 +140,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() {
-        reporter.reset();
-        Transaction transaction = tracer.startRootTransaction(null).activate();
-        transaction.withName("Kafka-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        startTestRootTransaction("Kafka-Test");
         testScenario = TestScenario.NORMAL;
     }
 
@@ -214,7 +211,7 @@ public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     @Test
     public void testBodyCaptureEnabled() {
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        doReturn(CoreConfiguration.EventType.ALL).when(coreConfiguration).getCaptureBody();
         testScenario = TestScenario.BODY_CAPTURE_ENABLED;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
