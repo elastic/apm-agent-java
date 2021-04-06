@@ -607,6 +607,8 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
 
         // RabbitMQ does not provide timestamp by default
         assertThat(message.getAge()).isLessThan(0);
+        assertThat(message.getRoutingKey()).isNotEmpty();
+        System.out.println("###ROUTING = " + message.getRoutingKey());
     }
 
 
