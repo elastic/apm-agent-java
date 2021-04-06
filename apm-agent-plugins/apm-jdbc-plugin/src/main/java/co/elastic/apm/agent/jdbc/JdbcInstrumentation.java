@@ -25,9 +25,7 @@
 package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -35,27 +33,9 @@ public abstract class JdbcInstrumentation extends TracerAwareInstrumentation {
 
     private static final Collection<String> JDBC_GROUPS = Collections.singleton("jdbc");
 
-    @Nullable
-    private static volatile JdbcHelper jdbcHelper;
-
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
         return JDBC_GROUPS;
     }
 
-    protected static JdbcHelper getJdbcHelper() {
-        // lazily initialize helper to prevent trying to load classes in java.sql package with the bootstrap classloader
-        // this method should only be called from advices
-        JdbcHelper local = jdbcHelper;
-        if (local != null) {
-            return local;
-        }
-        synchronized (JdbcHelper.class) {
-            local = jdbcHelper;
-            if (local == null) {
-                local = jdbcHelper = new JdbcHelper();
-            }
-            return local;
-        }
-    }
 }

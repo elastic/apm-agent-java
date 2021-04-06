@@ -47,7 +47,7 @@ public class ConnectionCommandInstrumentation extends MongoClientInstrumentation
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ConnectionAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.mongoclient.ConnectionAdvice";
     }
 }

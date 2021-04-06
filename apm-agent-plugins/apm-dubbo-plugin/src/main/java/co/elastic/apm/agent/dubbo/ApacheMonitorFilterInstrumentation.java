@@ -64,8 +64,8 @@ public class ApacheMonitorFilterInstrumentation extends AbstractDubboInstrumenta
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ApacheMonitorFilterAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.dubbo.advice.ApacheMonitorFilterAdvice";
     }
 
 }

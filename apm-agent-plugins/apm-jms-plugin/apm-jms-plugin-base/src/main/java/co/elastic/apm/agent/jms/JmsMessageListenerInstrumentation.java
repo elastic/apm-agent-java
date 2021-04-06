@@ -63,8 +63,8 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return MessageListenerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.jms.JmsMessageListenerInstrumentation$MessageListenerAdvice";
     }
 
     public static class MessageListenerAdvice extends BaseAdvice {
