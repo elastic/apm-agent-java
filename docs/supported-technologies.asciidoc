@@ -474,6 +474,13 @@ ECS Reformatting - 1.22.0
 ECS-compatible format (since 1.22.0, experimental)
 |1.22.0
 
+|JBoss Logging
+|3.0.0+
+|When <<config-enable-log-correlation>> is set to `true`,
+the agent will add a http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
+entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlation>> configuration option for more details.
+|1.23.0
+
 |===
 
 [float]
