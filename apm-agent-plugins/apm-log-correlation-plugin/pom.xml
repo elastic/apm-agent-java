@@ -36,6 +36,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+            <version>3.4.1.Final</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-error-logging-plugin</artifactId>
             <version>${project.version}</version>

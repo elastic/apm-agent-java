@@ -71,8 +71,8 @@ public class RequestStreamRecordingInstrumentation extends AbstractServletInstru
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return GetInputStreamAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation$GetInputStreamAdvice";
     }
 
     public static class GetInputStreamAdvice {

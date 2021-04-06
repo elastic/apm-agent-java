@@ -93,8 +93,8 @@ public class SpringTransactionNameInstrumentation extends TracerAwareInstrumenta
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return HandlerAdapterAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebmvc.SpringTransactionNameInstrumentation$HandlerAdapterAdvice";
     }
 
     @Override

@@ -84,8 +84,8 @@ public class CommonsExecAsyncInstrumentation extends TracerAwareInstrumentation 
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return CommonsExecAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.process.CommonsExecAsyncInstrumentation$CommonsExecAdvice";
     }
 
     public static final class CommonsExecAdvice {

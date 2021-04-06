@@ -28,9 +28,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Tracer;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
-import co.elastic.apm.agent.sdk.advice.AssignTo;
-import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
-import net.bytebuddy.asm.Advice;
 
 /**
  * The constructor can optionally have a {@link ElasticApmTracer} parameter.
@@ -48,7 +45,7 @@ public abstract class TracerAwareInstrumentation extends ElasticApmInstrumentati
      * @deprecated Overriding this method means not the instrumentation is not an indy plugin.
      * The usage of non-indy plugins is deprecated.
      * @return whether to load the classes of this plugin in dedicated plugin class loaders (one for each unique class loader)
-     * and dispatch to the {@linkplain #getAdviceClass() advice} via an {@code INVOKEDYNAMIC} instruction.
+     * and dispatch to the {@linkplain #getAdviceClassName() advice} via an {@code INVOKEDYNAMIC} instruction.
      */
     @Deprecated
     public boolean indyPlugin() {
