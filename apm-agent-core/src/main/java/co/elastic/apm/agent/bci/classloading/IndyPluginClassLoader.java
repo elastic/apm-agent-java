@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.bci.classloading;
 
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
@@ -50,17 +51,19 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         Class<?> loadedClass = null;
         if (name.equals("co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl")) {
-            loadedClass = findLoadedClass(name);
-            if (loadedClass == null) {
-                LoggerFactory.getLogger(IndyPluginClassLoader.class).debug("findLoadedClass() couldn't find a AsyncContextAdviceHelperImpl class");
-            } else {
-                LoggerFactory.getLogger(IndyPluginClassLoader.class).debug("findLoadedClass() found a loaded AsyncContextAdviceHelperImpl", new Throwable());
+            Logger logger = LoggerFactory.getLogger(IndyPluginClassLoader.class);
+            try {
+                loadedClass = findClass(name);
+                if (loadedClass == null) {
+                    logger.error("findClass() couldn't find an AsyncContextAdviceHelperImpl class", new Throwable());
+                } else {
+                    logger.debug("findClass() found a loaded AsyncContextAdviceHelperImpl");
+                }
+            } catch (Exception e) {
+                logger.error("findClass() for AsyncContextAdviceHelperImpl failed", e);
             }
         }
         loadedClass = super.loadClass(name, resolve);
-        if (name.equals("co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl")) {
-            LoggerFactory.getLogger(IndyPluginClassLoader.class).debug("AsyncContextAdviceHelperImpl CL: {}", loadedClass.getClassLoader());
-        }
         return loadedClass;
     }
 }
