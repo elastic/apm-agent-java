@@ -57,39 +57,47 @@ public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
             .and(takesArgument(0, named("org.springframework.web.server.ServerWebExchange")));
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.Origin Class<?> clazz,
-                                 @Advice.Argument(0) ServerWebExchange exchange) {
-
-        List<String> upgradeHeader = exchange.getRequest().getHeaders().get("upgrade");
-        if (upgradeHeader != null && upgradeHeader.contains("websocket")) {
-            // just ignore upgrade WS upgrade requests for now
-            return null;
-        }
-        return getOrCreateTransaction(clazz, exchange);
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebflux.DispatcherHandlerInstrumentation$HandleAdvice";
     }
 
-    @Nullable
-    @AssignTo.Return(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static Object onExit(@Advice.Enter @Nullable Object enterTransaction,
-                                @Advice.Argument(0) ServerWebExchange exchange,
-                                @Advice.Thrown @Nullable Throwable thrown,
-                                @Advice.Return @Nullable Mono<?> returnValue) {
+    public static class HandleAdvice {
 
-        if (!(enterTransaction instanceof Transaction)) {
-            return returnValue;
-        }
-        Transaction transaction = (Transaction) enterTransaction;
-        transaction.deactivate();
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.Origin Class<?> clazz,
+                                     @Advice.Argument(0) ServerWebExchange exchange) {
 
-        if (thrown != null || returnValue == null) {
-            // in case of thrown exception, we don't need to wrap to end transaction
-            return returnValue;
+            List<String> upgradeHeader = exchange.getRequest().getHeaders().get("upgrade");
+            if (upgradeHeader != null && upgradeHeader.contains("websocket")) {
+                // just ignore upgrade WS upgrade requests for now
+                return null;
+            }
+            return getOrCreateTransaction(clazz, exchange);
         }
 
-        return wrapDispatcher(returnValue, transaction, exchange);
+        @Nullable
+        @AssignTo.Return(typing = Assigner.Typing.DYNAMIC) // required to provide the Mono<?> return value type
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static Object onExit(@Advice.Enter @Nullable Object enterTransaction,
+                                    @Advice.Argument(0) ServerWebExchange exchange,
+                                    @Advice.Thrown @Nullable Throwable thrown,
+                                    @Advice.Return @Nullable Mono<?> returnValue) {
+
+            if (!(enterTransaction instanceof Transaction)) {
+                return returnValue;
+            }
+            Transaction transaction = (Transaction) enterTransaction;
+            transaction.deactivate();
+
+            if (thrown != null || returnValue == null) {
+                // in case of thrown exception, we don't need to wrap to end transaction
+                return returnValue;
+            }
+
+            return wrapDispatcher(returnValue, transaction, exchange);
+        }
     }
 
 }

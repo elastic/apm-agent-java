@@ -67,53 +67,63 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             .and(takesArgument(1, Object.class));
     }
 
-    @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange,
-                                 @Advice.Argument(1) Object handler) {
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebflux.HandlerAdapterInstrumentation$HandleAdvice";
+    }
 
-        Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
-        if (attribute instanceof Transaction) {
+    public static class HandleAdvice {
 
-            if (handler instanceof HandlerMethod) {
-                // store name for annotated controllers
-                HandlerMethod handlerMethod = (HandlerMethod) handler;
-                exchange.getAttributes().put(ANNOTATED_BEAN_NAME_ATTRIBUTE, handlerMethod.getBeanType().getSimpleName());
-                exchange.getAttributes().put(ANNOTATED_METHOD_NAME_ATTRIBUTE, handlerMethod.getMethod().getName());
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static Object onEnter(@Advice.Argument(0) ServerWebExchange exchange,
+                                     @Advice.Argument(1) Object handler) {
+
+            Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
+            if (attribute instanceof Transaction) {
+
+                if (handler instanceof HandlerMethod) {
+                    // store name for annotated controllers
+                    HandlerMethod handlerMethod = (HandlerMethod) handler;
+                    exchange.getAttributes().put(ANNOTATED_BEAN_NAME_ATTRIBUTE, handlerMethod.getBeanType().getSimpleName());
+                    exchange.getAttributes().put(ANNOTATED_METHOD_NAME_ATTRIBUTE, handlerMethod.getMethod().getName());
+                }
             }
+
+            return attribute;
         }
 
-        return attribute;
+        @Nullable
+        @AssignTo.Return
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static Mono<HandlerResult> onExit(@Advice.Argument(0) ServerWebExchange exchange,
+                                                 @Advice.Thrown @Nullable Throwable thrown,
+                                                 @Advice.Enter @Nullable Object enterTransaction,
+                                                 @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
+
+            if (!(enterTransaction instanceof Transaction)) {
+                return resultMono;
+            }
+
+            Transaction transaction = (Transaction) enterTransaction;
+            transaction.captureException(thrown);
+
+            if (resultMono == null){
+                return resultMono;
+            }
+
+            if (transaction.isNoop()) {
+                transaction.deactivate();
+                return resultMono;
+            }
+
+            // in case an exception it thrown, it's too early to end transaction
+            // otherwise the status code returned isn't the expected one
+
+            return wrapHandlerAdapter(resultMono, transaction, exchange);
+
+        }
     }
 
-    @Nullable
-    @AssignTo.Return
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static Mono<HandlerResult> onExit(@Advice.Argument(0) ServerWebExchange exchange,
-                                             @Advice.Thrown @Nullable Throwable thrown,
-                                             @Advice.Enter @Nullable Object enterTransaction,
-                                             @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
 
-        if (!(enterTransaction instanceof Transaction)) {
-            return resultMono;
-        }
-
-        Transaction transaction = (Transaction) enterTransaction;
-        transaction.captureException(thrown);
-
-        if (resultMono == null){
-            return resultMono;
-        }
-
-        if (transaction.isNoop()) {
-            transaction.deactivate();
-            return resultMono;
-        }
-
-        // in case an exception it thrown, it's too early to end transaction
-        // otherwise the status code returned isn't the expected one
-
-        return wrapHandlerAdapter(resultMono, transaction, exchange);
-
-    }
 }

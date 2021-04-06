@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.springwebflux;
 
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -67,28 +68,36 @@ public class BodyInsertersInstrumentation extends WebFluxInstrumentation {
             .and(takesArgument(1, Class.class).or(takesArgument(1, named("org.springframework.core.ParameterizedTypeReference"))));
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onEnter(@Advice.Argument(1) @Nullable Object arg) {
-        if (arg == null) {
-            return;
-        }
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebflux.BodyInsertersInstrumentation$OnEnterAdvice";
+    }
 
-        ResolvableType type = null;
-        if (arg instanceof ParameterizedTypeReference) {
-            type = ResolvableType.forType(((ParameterizedTypeReference<?>) arg).getType());
-        } else if (arg instanceof Class) {
-            type = ResolvableType.forClass((Class<?>) arg);
-        }
+    public static class OnEnterAdvice {
 
-        if (type == null) {
-            return;
-        }
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter(@Advice.Argument(1) @Nullable Object arg) {
+            if (arg == null) {
+                return;
+            }
 
-        if (type.getType().getTypeName().equals(SSE_EVENT_CLASS)) {
-            Transaction transaction = tracer.currentTransaction();
-            if (transaction != null) {
-                // mark the transaction to be ignored and later discarded
-                transaction.ignoreTransaction();
+            ResolvableType type = null;
+            if (arg instanceof ParameterizedTypeReference) {
+                type = ResolvableType.forType(((ParameterizedTypeReference<?>) arg).getType());
+            } else if (arg instanceof Class) {
+                type = ResolvableType.forClass((Class<?>) arg);
+            }
+
+            if (type == null) {
+                return;
+            }
+
+            if (type.getType().getTypeName().equals(SSE_EVENT_CLASS)) {
+                Transaction transaction = GlobalTracer.get().currentTransaction();
+                if (transaction != null) {
+                    // mark the transaction to be ignored and later discarded
+                    transaction.ignoreTransaction();
+                }
             }
         }
     }

@@ -58,24 +58,33 @@ public class InvocableHandlerMethodInstrumentation extends WebFluxInstrumentatio
             .and(returns(named("reactor.core.publisher.Mono")));
     }
 
-    @Nullable
-    @AssignTo.Return
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static Mono<HandlerResult> onExit(@Advice.Thrown @Nullable Throwable thrown,
-                                             @Advice.Argument(0) ServerWebExchange exchange,
-                                             @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
-
-        Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
-        if (!(attribute instanceof Transaction)) {
-            return resultMono;
-        }
-        Transaction transaction = (Transaction) attribute;
-
-        if (resultMono == null || thrown != null) {
-            // no need to wrap in case of exception
-            return resultMono;
-        }
-
-        return wrapInvocableHandlerMethod(resultMono, transaction, exchange);
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.springwebflux.InvocableHandlerMethodInstrumentation$InvokeAdvice";
     }
+
+    public static class InvokeAdvice {
+
+        @Nullable
+        @AssignTo.Return
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
+        public static Mono<HandlerResult> onExit(@Advice.Thrown @Nullable Throwable thrown,
+                                                 @Advice.Argument(0) ServerWebExchange exchange,
+                                                 @Advice.Return @Nullable Mono<HandlerResult> resultMono) {
+
+            Object attribute = exchange.getAttribute(TRANSACTION_ATTRIBUTE);
+            if (!(attribute instanceof Transaction)) {
+                return resultMono;
+            }
+            Transaction transaction = (Transaction) attribute;
+
+            if (resultMono == null || thrown != null) {
+                // no need to wrap in case of exception
+                return resultMono;
+            }
+
+            return wrapInvocableHandlerMethod(resultMono, transaction, exchange);
+        }
+    }
+
 }
