@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.bson.Document;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -51,7 +52,9 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @BeforeClass
     public static void startContainer() {
-        container = new GenericContainer("mongo:3.4").withExposedPorts(PORT);
+        container = new GenericContainer<>("mongo:3.4")
+            .withExposedPorts(PORT);
+        container.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
         container.start();
     }
 

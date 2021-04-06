@@ -36,6 +36,7 @@ import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -88,6 +89,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     @BeforeAll
     static void before() {
         container.withLogConsumer(new Slf4jLogConsumer(logger))
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
             .start();
 
         factory = new ConnectionFactory();

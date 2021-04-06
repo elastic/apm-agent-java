@@ -32,9 +32,12 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runners.Parameterized;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
@@ -66,6 +69,19 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     @Parameterized.Parameters(name = "Async={0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
+    }
+
+    protected static void startContainer(String image) {
+        container = new ElasticsearchContainer(image);
+        container.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
+        container.start();
+    }
+
+    @AfterClass
+    public static void stopContainer() {
+        if (container != null) {
+            container.stop();
+        }
     }
 
     @Before
@@ -151,7 +167,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
 
-        List<Span>spans = reporter.getSpans();
+        List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
     }
