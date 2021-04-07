@@ -57,7 +57,9 @@ class Cassandra3InstrumentationIT extends AbstractInstrumentationTest {
         .withExposedPorts(9042)
         .withLogConsumer(new Slf4jLogConsumer(logger))
         .withStartupTimeout(Duration.ofSeconds(120))
-        .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
+        .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(700))
+        .withEnv("HEAP_NEWSIZE", "400m")
+        .withEnv("MAX_HEAP_SIZE", "512m");
     private static Session session;
     private static Cluster cluster;
     private Transaction transaction;
