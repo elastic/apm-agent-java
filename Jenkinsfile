@@ -67,18 +67,6 @@ pipeline {
             }
           }
         }
-        stage('Stable') {
-          options { skipDefaultCheckout() }
-          steps {
-            deleteDir()
-            unstash 'source'
-            dir("${BASE_DIR}"){
-              setupAPMGitEmail(global: false)
-              sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
-              gitCreateTag(tag: 'stable', tagArgs: '--force', pushArgs: '--force')
-            }
-          }
-        }
         /**
         Build on a linux environment.
         */
@@ -314,6 +302,21 @@ pipeline {
                            string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
+      }
+    }
+    stage('Stable') {
+      options { skipDefaultCheckout() }
+      when {
+        branch 'master'
+      }
+      steps {
+        deleteDir()
+        unstash 'source'
+        dir("${BASE_DIR}"){
+          setupAPMGitEmail(global: false)
+          sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
+          gitCreateTag(tag: 'stable', tagArgs: '--force', pushArgs: '--force')
+        }
       }
     }
     stage('AfterRelease') {
