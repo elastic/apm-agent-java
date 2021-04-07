@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -41,7 +41,7 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
         super(DriverManager.getConnection(url), expectedDbVendor);
     }
 
-    @Parameterized.Parameters(name = "{0} {1}")
+    @Parameterized.Parameters(name = "{1} {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {"jdbc:tc:mysql:5://hostname/databasename", "mysql"},
@@ -49,7 +49,8 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
             {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql"},
             {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb"},
             {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "sqlserver"},
-            {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2"}
+            {"jdbc:tc:db2:11.5.0.0a://hostname/databasename", "db2"},
+            {"jdbc:tc:oracle://hostname/databasename", "oracle"},
         });
     }
 

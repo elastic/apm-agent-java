@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,7 +35,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 import org.mockserver.model.ClearType;
@@ -61,8 +60,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,12 +80,17 @@ import static org.mockserver.model.HttpRequest.request;
  * <p>
  * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
  * </p>
+ * <p>
+ * Servlet containers that support runtime attach are being tested with it by default. In order to test those through
+ * the `javaagent` route, set {@link #ENABLE_RUNTIME_ATTACH} to {@code false}
+ * </p>
  */
 public abstract class AbstractServletContainerIntegrationTest {
     private static final String pathToJavaagent;
     private static final String pathToAttach;
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
     static boolean ENABLE_DEBUGGING = false;
+    static boolean ENABLE_RUNTIME_ATTACH = true;
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
         .withNetworkAliases("apm-server")
@@ -128,24 +134,42 @@ public abstract class AbstractServletContainerIntegrationTest {
             enableDebugging(servletContainer);
             this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
+        if (runtimeAttachSupported() && !ENABLE_RUNTIME_ATTACH) {
+            // If runtime attach is off for Servlet containers that support that, we need to add the javaagent here
+            appendToEnvVariable(servletContainer, getJavaagentEnvVariable(), "-javaagent:/elastic-apm-agent.jar");
+        }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         this.containerName = containerName;
         servletContainer
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URLS", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withEnv("ELASTIC_APM_METRICS_INTERVAL", "1s")
             .withEnv("ELASTIC_APM_CAPTURE_JMX_METRICS", "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=test_heap_metric]")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
+            .withEnv("ELASTIC_APM_CIRCUIT_BREAKER_ENABLED", "true")
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
+            .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
+            .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
+            .withFileSystemBind(pathToAttach, "/apm-agent-attach-cli.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
+        for (TestApp testApp : getTestApps()) {
+            testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
+            try {
+                testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
+                    checkFilePresent(pathToFile);
+                    servletContainer.withFileSystemBind(pathToFile, containerPath);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
                 String pathToAppFile = testApp.getAppFilePath();
@@ -154,9 +178,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             }
         }
         this.servletContainer.start();
-        if (runtimeAttach()) {
+        if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
-                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
+                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-cli.jar", "--include-all");
                 System.out.println(result.getStdout());
                 System.out.println(result.getStderr());
             } catch (Exception e) {
@@ -169,6 +193,16 @@ public abstract class AbstractServletContainerIntegrationTest {
                 checkFilePresent(pathToAppFile);
                 servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
             }
+        }
+    }
+
+    private void appendToEnvVariable(GenericContainer<?> servletContainer, String key, String value) {
+        Map<String, String> envMap = servletContainer.getEnvMap();
+        String currentValue = envMap.get(key);
+        if (currentValue == null) {
+            servletContainer.withEnv(key, value);
+        } else {
+            servletContainer.withEnv(key, currentValue + " " + value);
         }
     }
 
@@ -187,16 +221,33 @@ public abstract class AbstractServletContainerIntegrationTest {
         return true;
     }
 
-    protected boolean runtimeAttach() {
+    /**
+     * Change to false in the Servlet-container implementation in order to attach through {@code premain()}
+     * See also {@link AbstractServletContainerIntegrationTest#getJavaagentEnvVariable()}
+     *
+     * @return whether the agent should be attached using the remote attach option or through `javaagent`
+     */
+    protected boolean runtimeAttachSupported() {
         return false;
     }
 
-    private static void checkFilePresent(String pathToWar) {
-        final File warFile = new File(pathToWar);
-        logger.info("Check file {}", warFile.getAbsolutePath());
-        assertThat(warFile).exists();
-        assertThat(warFile).isFile();
-        assertThat(warFile.length()).isGreaterThan(0);
+    /**
+     * Override with the name of the environment variable to which the `javaagent` argument should be appended.
+     * See also {@link AbstractServletContainerIntegrationTest#runtimeAttachSupported()}
+     *
+     * @return the name of the environment variable to which the `javaagent` argument should be appended
+     */
+    protected String getJavaagentEnvVariable() {
+        throw new UnsupportedOperationException("You must provide the proper config that will append the `javaagent` " +
+            "argument properly to the command line");
+    }
+
+    private static void checkFilePresent(String pathToFile) {
+        final File file = new File(pathToFile);
+        logger.info("Check file {}", file.getAbsolutePath());
+        assertThat(file).exists();
+        assertThat(file).isFile();
+        assertThat(file.length()).isGreaterThan(0);
     }
 
     protected void enableDebugging(GenericContainer<?> servletContainer) {
@@ -277,13 +328,17 @@ public abstract class AbstractServletContainerIntegrationTest {
                                             Map<String, String> headersMap) throws IOException, InterruptedException {
         Response response = executeRequest(pathToTest, headersMap);
         if (expectedResponseCode != null) {
-            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+            assertThat(response.code())
+                .withFailMessage(response.toString() + getServerLogs())
+                .isEqualTo(expectedResponseCode);
         }
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
         String responseString = responseBody.string();
         if (expectedContent != null) {
-            assertThat(responseString).contains(expectedContent);
+            assertThat(responseString)
+                .describedAs("unexpected response content")
+                .contains(expectedContent);
         }
         return responseString;
     }
@@ -291,7 +346,9 @@ public abstract class AbstractServletContainerIntegrationTest {
     public String executeAndValidatePostRequest(String pathToTest, RequestBody postBody, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
         Response response = executePostRequest(pathToTest, postBody);
         if (expectedResponseCode != null) {
-            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+            assertThat(response.code())
+                .withFailMessage(response.toString() + getServerLogs())
+                .isEqualTo(expectedResponseCode);
         }
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
@@ -304,10 +361,10 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
         return httpClient.newCall(new Request.Builder()
-                .post(postBody)
-                .url(getBaseUrl() + pathToTest)
-                .build())
-                .execute();
+            .post(postBody)
+            .url(getBaseUrl() + pathToTest)
+            .build())
+            .execute();
     }
 
     public Response executeRequest(String pathToTest, Map<String, String> headersMap) throws IOException {
@@ -345,7 +402,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .describedAs("at least one span is expected")
             .isNotEmpty();
         for (JsonNode span : reportedSpans) {
-            assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
+            assertThat(span.get("transaction_id").textValue())
+                .describedAs("Unexpected transaction id for span %s", span)
+                .isEqualTo(transactionId);
         }
         return reportedSpans;
     }
@@ -382,12 +441,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         return null;
     }
 
-    @NotNull
     public List<String> getPathsToTest() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
-    @NotNull
     public List<String> getPathsToTestErrors() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
@@ -407,9 +464,18 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public List<JsonNode> getReportedSpans() {
-        final List<JsonNode> transactions = getEvents("span");
-        transactions.forEach(mockReporter::verifySpanSchema);
-        return transactions;
+        List<JsonNode> spans = getEvents("span").stream()
+            .filter(s -> !isInferredSpan(s))
+            .collect(Collectors.toList());
+        spans.forEach(mockReporter::verifySpanSchema);
+        return spans;
+    }
+
+    private boolean isInferredSpan(JsonNode s) {
+        return Optional.ofNullable(s.get("type"))
+            .map(JsonNode::textValue)
+            .filter(type -> type.endsWith("inferred"))
+            .isPresent();
     }
 
     public List<JsonNode> getReportedErrors() {
@@ -424,10 +490,14 @@ public abstract class AbstractServletContainerIntegrationTest {
             final ObjectMapper objectMapper = new ObjectMapper();
             for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))) {
                 final String bodyAsString = httpRequest.getBodyAsString();
-                validateEventMetadata(bodyAsString);
                 for (String ndJsonLine : bodyAsString.split("\n")) {
                     final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
                     if (ndJson.get(eventType) != null) {
+                        // as inferred spans are created only after the profiling session ends
+                        // they can leak into another test
+                        if (!isInferredSpan(ndJson.get(eventType))) {
+                            validateEventMetadata(bodyAsString);
+                        }
                         events.add(ndJson.get(eventType));
                     }
                 }
@@ -445,7 +515,7 @@ public abstract class AbstractServletContainerIntegrationTest {
                 final JsonNode event = objectMapper.readTree(line);
                 final JsonNode metadata = event.get("metadata");
                 if (metadata != null) {
-                    validataMetadataEvent(metadata);
+                    validateMetadataEvent(metadata);
                 } else {
                     validateServiceName(event.get("error"));
                     validateServiceName(event.get("span"));
@@ -464,11 +534,13 @@ public abstract class AbstractServletContainerIntegrationTest {
             assertThat(contextService)
                 .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
-                assertThat(contextService.get("name").textValue()).isEqualTo(expectedServiceName);
+            assertThat(contextService.get("name").textValue())
+                .describedAs("Event has non-expected service name %s", event)
+                .isEqualTo(expectedServiceName);
         }
     }
 
-    private void validataMetadataEvent(JsonNode metadata) {
+    private void validateMetadataEvent(JsonNode metadata) {
         JsonNode service = metadata.get("service");
         assertThat(service.get("name").textValue()).isEqualTo(expectedDefaultServiceName);
         JsonNode agent = service.get("agent");
@@ -499,5 +571,9 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     public OkHttpClient getHttpClient() {
         return httpClient;
+    }
+
+    public boolean isHotSpotBased() {
+        return true;
     }
 }

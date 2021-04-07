@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,13 +25,11 @@
 package co.elastic.apm.spring.boot;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import co.elastic.apm.api.ElasticApm;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
@@ -76,13 +74,10 @@ public abstract class AbstractSpringBootTest {
 
     @BeforeClass
     public static void beforeClass() {
-        config = SpyConfiguration.createSpyConfig();
-        reporter = new MockReporter();
-        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+        MockTracer.MockInstrumentationSetup mockInstrumentationSetup = MockTracer.createMockInstrumentationSetup();
+        config = mockInstrumentationSetup.getConfig();
+        reporter = mockInstrumentationSetup.getReporter();
+        ElasticApmAgent.initInstrumentation(mockInstrumentationSetup.getTracer(), ByteBuddyAgent.install());
     }
 
     @Before
@@ -113,6 +108,8 @@ public abstract class AbstractSpringBootTest {
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
         assertThat(transaction.getTraceContext().getServiceName()).isEqualTo("spring-boot-test");
+        assertThat(transaction.getFrameworkName()).isEqualTo("Spring Web MVC");
+        assertThat(transaction.getFrameworkVersion()).isEqualTo("5.1.9.RELEASE");
     }
 
     @Test
@@ -122,6 +119,7 @@ public abstract class AbstractSpringBootTest {
             .contains("// empty test script");
 
         assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("ResourceHttpRequestHandler");
+        assertThat(reporter.getFirstTransaction().getFrameworkName()).isEqualTo("Spring Web MVC");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("username");
     }
 

@@ -24,17 +24,24 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.sdk.state.GlobalThreadLocal;
+import co.elastic.apm.agent.servlet.helper.ServletTransactionCreationHelper;
+import co.elastic.apm.agent.util.TransactionNameUtils;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -48,110 +55,161 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 
-/**
- * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
- * {@code javax.servlet}, as these are inlined into the matching methods.
- * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- */
 public class ServletApiAdvice {
 
-    @Nullable
-    @VisibleForAdvice
-    public static ServletTransactionHelper servletTransactionHelper;
-    @Nullable
-    @VisibleForAdvice
-    public static ElasticApmTracer tracer;
-    @VisibleForAdvice
-    public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return Boolean.FALSE;
-        }
-    };
+    private static final String FRAMEWORK_NAME = "Servlet API";
+    static final String SPAN_TYPE = "servlet";
+    static final String SPAN_SUBTYPE = "request-dispatcher";
+    private static final ServletTransactionHelper servletTransactionHelper;
+    private static final ServletTransactionCreationHelper servletTransactionCreationHelper;
 
-    @VisibleForAdvice
-    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
-
-    static void init(ElasticApmTracer tracer) {
-        ServletApiAdvice.tracer = tracer;
-        servletTransactionHelper = new ServletTransactionHelper(tracer);
+    static {
+        servletTransactionHelper = new ServletTransactionHelper(GlobalTracer.requireTracerImpl());
+        servletTransactionCreationHelper = new ServletTransactionCreationHelper(GlobalTracer.requireTracerImpl());
     }
 
+    private static final GlobalThreadLocal<Boolean> excluded = GlobalThreadLocal.get(ServletApiAdvice.class, "excluded");
+    private static final GlobalThreadLocal<Object> servletPathTL = GlobalThreadLocal.get(ServletApiAdvice.class, "servletPath");
+    private static final GlobalThreadLocal<Object> pathInfoTL = GlobalThreadLocal.get(ServletApiAdvice.class, "pathInfo");
+
+    private static final List<String> requestExceptionAttributes = Arrays.asList(RequestDispatcher.ERROR_EXCEPTION, "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
+
     @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
-                                             @Advice.Local("transaction") Transaction transaction,
-                                             @Advice.Local("scope") Scope scope) {
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static Object onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
-            return;
+            return null;
         }
+        AbstractSpan<?> ret = null;
         // re-activate transactions for async requests
         final Transaction transactionAttr = (Transaction) servletRequest.getAttribute(TRANSACTION_ATTRIBUTE);
         if (tracer.currentTransaction() == null && transactionAttr != null) {
-            scope = transactionAttr.activateInScope();
+            return transactionAttr.activateInScope();
         }
-        if (servletTransactionHelper != null &&
-            servletRequest instanceof HttpServletRequest &&
-            servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
-            !Boolean.TRUE.equals(excluded.get())) {
 
-            ServletContext servletContext = servletRequest.getServletContext();
-            if (servletContext != null) {
-                // this makes sure service name discovery also works when attaching at runtime
-                determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
-            }
-
+        if (tracer.isRunning() && servletRequest instanceof HttpServletRequest) {
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            if (ServletInstrumentation.servletTransactionCreationHelperManager != null) {
-                ServletInstrumentation.ServletTransactionCreationHelper<HttpServletRequest> helper =
-                    ServletInstrumentation.servletTransactionCreationHelperManager.getForClassLoaderOfClass(HttpServletRequest.class);
-                if (helper != null) {
-                    transaction = helper.createAndActivateTransaction(request);
-                }
-            }
+            DispatcherType dispatcherType = servletRequest.getDispatcherType();
+            CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
 
-            if (transaction == null) {
-                // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
-                excluded.set(Boolean.TRUE);
-                return;
-            }
-            final Request req = transaction.getContext().getRequest();
-            if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
-                if (request.getCookies() != null) {
-                    for (Cookie cookie : request.getCookies()) {
-                        req.addCookie(cookie.getName(), cookie.getValue());
+            if (dispatcherType == DispatcherType.REQUEST) {
+                if (Boolean.TRUE != excluded.get()) {
+                    ServletContext servletContext = servletRequest.getServletContext();
+                    if (servletContext != null) {
+                        ClassLoader servletCL = servletTransactionCreationHelper.getClassloader(servletContext);
+                        // this makes sure service name discovery also works when attaching at runtime
+                        determineServiceName(servletContext.getServletContextName(), servletCL, servletContext.getContextPath());
+
+                    }
+
+                    Transaction transaction = servletTransactionCreationHelper.createAndActivateTransaction(request);
+
+                    if (transaction == null) {
+                        // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
+                        excluded.set(Boolean.TRUE);
+                    } else {
+                        final Request req = transaction.getContext().getRequest();
+                        if (transaction.isSampled() && coreConfig.isCaptureHeaders()) {
+                            if (request.getCookies() != null) {
+                                for (Cookie cookie : request.getCookies()) {
+                                    req.addCookie(cookie.getName(), cookie.getValue());
+                                }
+                            }
+                            final Enumeration<String> headerNames = request.getHeaderNames();
+                            if (headerNames != null) {
+                                while (headerNames.hasMoreElements()) {
+                                    final String headerName = headerNames.nextElement();
+                                    req.addHeader(headerName, request.getHeaders(headerName));
+                                }
+                            }
+                        }
+                        transaction.setFrameworkName(FRAMEWORK_NAME);
+
+                        servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
+                            request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
+                            request.getRemoteAddr(), request.getHeader("Content-Type"));
+
+                        ret = transaction;
                     }
                 }
-                final Enumeration headerNames = request.getHeaderNames();
-                if (headerNames != null) {
-                    while (headerNames.hasMoreElements()) {
-                        final String headerName = (String) headerNames.nextElement();
-                        req.addHeader(headerName, request.getHeaders(headerName));
+            } else if (dispatcherType != DispatcherType.ASYNC &&
+                !coreConfig.getDisabledInstrumentations().contains(ServletInstrumentation.SERVLET_API_DISPATCH)) {
+                final AbstractSpan<?> parent = tracer.getActive();
+                if (parent != null) {
+                    Object servletPath = null;
+                    Object pathInfo = null;
+                    RequestDispatcherSpanType spanType = null;
+                    if (dispatcherType == DispatcherType.FORWARD) {
+                        spanType = RequestDispatcherSpanType.FORWARD;
+                        servletPath = request.getServletPath();
+                        pathInfo = request.getPathInfo();
+                    } else if (dispatcherType == DispatcherType.INCLUDE) {
+                        spanType = RequestDispatcherSpanType.INCLUDE;
+                        servletPath = request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
+                        pathInfo = request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
+                    } else if (dispatcherType == DispatcherType.ERROR) {
+                        spanType = RequestDispatcherSpanType.ERROR;
+                        servletPath = request.getServletPath();
+                    }
+
+                    if (spanType != null && (areNotEqual(servletPathTL.get(), servletPath) || areNotEqual(pathInfoTL.get(), pathInfo))) {
+                        ret = parent.createSpan()
+                            .appendToName(spanType.getNamePrefix())
+                            .withAction(spanType.getAction())
+                            .withType(SPAN_TYPE)
+                            .withSubtype(SPAN_SUBTYPE);
+
+                        if (servletPath != null) {
+                            ret.appendToName(servletPath.toString());
+                            servletPathTL.set(servletPath);
+                        }
+                        if (pathInfo != null) {
+                            ret.appendToName(pathInfo.toString());
+                            pathInfoTL.set(pathInfo);
+                        }
+                        ret.activate();
                     }
                 }
             }
+        }
+        return ret;
+    }
 
-            servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
-                request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
-                request.getRemoteAddr(), request.getHeader("Content-Type"));
+    private static boolean areNotEqual(@Nullable Object first, @Nullable Object second) {
+        if (first == null) {
+            return second != null;
+        } else {
+            return !first.equals(second);
         }
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                             @Advice.Argument(1) ServletResponse servletResponse,
-                                            @Advice.Local("transaction") @Nullable Transaction transaction,
-                                            @Advice.Local("scope") @Nullable Scope scope,
+                                            @Advice.Enter @Nullable Object transactionOrScopeOrSpan,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer == null) {
             return;
         }
-        excluded.set(Boolean.FALSE);
+        Transaction transaction = null;
+        Scope scope = null;
+        Span span = null;
+        if (transactionOrScopeOrSpan instanceof Transaction) {
+            transaction = (Transaction) transactionOrScopeOrSpan;
+        } else if (transactionOrScopeOrSpan instanceof Scope) {
+            scope = (Scope) transactionOrScopeOrSpan;
+        } else if (transactionOrScopeOrSpan instanceof Span) {
+            span = (Span) transactionOrScopeOrSpan;
+        }
+
+        excluded.clear();
         if (scope != null) {
             scope.close();
         }
@@ -159,13 +217,12 @@ public class ServletApiAdvice {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-                ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction);
+                TransactionNameUtils.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK));
                 final Principal userPrincipal = httpServletRequest.getUserPrincipal();
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }
         }
-        if (servletTransactionHelper != null &&
-            transaction != null &&
+        if (transaction != null &&
             servletRequest instanceof HttpServletRequest &&
             servletResponse instanceof HttpServletResponse) {
 
@@ -194,6 +251,7 @@ public class ServletApiAdvice {
                 }
 
                 Throwable t2 = null;
+                boolean overrideStatusCodeOnThrowable = true;
                 if (t == null) {
                     final int size = requestExceptionAttributes.size();
                     for (int i = 0; i < size; i++) {
@@ -201,14 +259,27 @@ public class ServletApiAdvice {
                         Object throwable = request.getAttribute(attributeName);
                         if (throwable instanceof Throwable) {
                             t2 = (Throwable) throwable;
+                            if (!attributeName.equals(RequestDispatcher.ERROR_EXCEPTION)) {
+                                overrideStatusCodeOnThrowable = false;
+                            }
                             break;
                         }
                     }
                 }
 
-                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, true);
+                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(),
+                    overrideStatusCodeOnThrowable, request.getMethod(), parameterMap, request.getServletPath(),
+                    request.getPathInfo(), contentTypeHeader, true
+                );
             }
+        }
+        if (span != null) {
+            servletPathTL.clear();
+            pathInfoTL.clear();
+            span.captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE : Outcome.SUCCESS)
+                .deactivate()
+                .end();
         }
     }
 }

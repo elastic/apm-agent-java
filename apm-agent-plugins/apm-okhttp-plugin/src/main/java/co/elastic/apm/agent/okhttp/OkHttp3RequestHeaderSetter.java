@@ -27,7 +27,10 @@ package co.elastic.apm.agent.okhttp;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import okhttp3.Request;
 
+@SuppressWarnings("unused")
 public class OkHttp3RequestHeaderSetter implements TextHeaderSetter<Request.Builder> {
+
+    public static final OkHttp3RequestHeaderSetter INSTANCE = new OkHttp3RequestHeaderSetter();
 
     @Override
     public void setHeader(String headerName, String headerValue, Request.Builder requestBuilder) {

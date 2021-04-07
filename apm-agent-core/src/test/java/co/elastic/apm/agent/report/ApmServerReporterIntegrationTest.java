@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,10 +25,9 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -65,7 +64,6 @@ class ApmServerReporterIntegrationTest {
     private final ElasticApmTracer tracer = MockTracer.create();
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
-    private ConfigurationRegistry config;
 
     @BeforeAll
     static void startServer() {
@@ -94,7 +92,7 @@ class ApmServerReporterIntegrationTest {
             exchange.setStatusCode(200).endExchange();
         };
         receivedIntakeApiCalls.set(0);
-        config = SpyConfiguration.createSpyConfig();
+        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
@@ -102,13 +100,18 @@ class ApmServerReporterIntegrationTest {
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start();
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
-            reporterConfiguration,
-            processorEventHandler,
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            new MetaData(title, service, system, Collections.emptyMap()),
-            apmServerClient);
-        reporter = new ApmServerReporter(false, reporterConfiguration, config.getConfig(CoreConfiguration.class), v2handler);
+                reporterConfiguration,
+                processorEventHandler,
+                new DslJsonSerializer(
+                        mock(StacktraceConfiguration.class),
+                        apmServerClient,
+                        MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+                ),
+                apmServerClient);
+        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
+        reporter.start();
     }
 
     @Test

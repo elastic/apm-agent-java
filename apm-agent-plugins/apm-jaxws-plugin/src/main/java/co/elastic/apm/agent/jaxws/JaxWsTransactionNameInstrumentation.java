@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.jaxws;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -49,7 +49,9 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentation {
+public class JaxWsTransactionNameInstrumentation extends TracerAwareInstrumentation {
+
+    private static final String FRAMEWORK_NAME = "JAX-WS";
 
     private final Collection<String> applicationPackages;
 
@@ -57,13 +59,12 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@SimpleMethodSignature String signature) {
-        if (tracer != null) {
-            final Transaction transaction = tracer.currentTransaction();
-            if (transaction != null) {
-                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
-            }
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void setTransactionName(@SimpleMethodSignature String signature) {
+        final Transaction transaction = tracer.currentTransaction();
+        if (transaction != null) {
+            transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
+            transaction.setFrameworkName(FRAMEWORK_NAME);
         }
     }
 
@@ -100,4 +101,5 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("jax-ws");
     }
+
 }

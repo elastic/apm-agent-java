@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,11 +24,10 @@
  */
 package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.concurrent.JavaConcurrent;
+import co.elastic.apm.agent.impl.GlobalTracer;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
+import co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -52,30 +51,9 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-/**
- * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
- * {@code javax.servlet}, as these are inlined into the matching methods.
- * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
- * See https://github.com/raphw/byte-buddy/issues/465 for more information.
- * However, the helper class {@link AsyncContextAdviceHelper} has access to the Servlet API,
- * as it is loaded by the child classloader of {@link AsyncContext}
- * (see {@link StartAsyncInstrumentation.StartAsyncAdvice#onExitStartAsync(AsyncContext)}
- * and {@link AsyncContextInstrumentation.AsyncContextStartAdvice#onEnterAsyncContextStart(Runnable)}).
- */
-public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
+public abstract class AsyncInstrumentation extends AbstractServletInstrumentation {
 
     private static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
-    @Nullable
-    @VisibleForAdvice
-    // referring to AsyncContext is legal because of type erasure
-    public static HelperClassManager<AsyncContextAdviceHelper<AsyncContext>> asyncHelperManager;
-
-    public AsyncInstrumentation(ElasticApmTracer tracer) {
-        asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-            "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
-            "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
-            "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
-    }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -87,9 +65,6 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
     }
 
     public static class StartAsyncInstrumentation extends AsyncInstrumentation {
-        public StartAsyncInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -115,7 +90,7 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return isPublic()
                 .and(named("startAsync"))
-                .and(returns(named("javax.servlet.AsyncContext")))
+                .and(returns(hasSuperType(named("javax.servlet.AsyncContext"))))
                 .and(takesArguments(0)
                     .or(
                         takesArgument(0, named("javax.servlet.ServletRequest"))
@@ -125,29 +100,24 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return StartAsyncAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation$StartAsyncAdvice";
         }
 
-        @VisibleForAdvice
         public static class StartAsyncAdvice {
+            private static final AsyncContextAdviceHelper<AsyncContext> asyncHelper = new AsyncContextAdviceHelperImpl(GlobalTracer.requireTracerImpl());
 
-            @Advice.OnMethodExit(suppress = Throwable.class)
-            private static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
-                if (tracer != null && asyncHelperManager != null) {
-                    AsyncContextAdviceHelper<AsyncContext> helperImpl = asyncHelperManager.getForClassLoaderOfClass(AsyncContext.class);
-                    if (helperImpl != null) {
-                        helperImpl.onExitStartAsync(asyncContext);
-                    }
+            @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+            public static void onExitStartAsync(@Advice.Return @Nullable AsyncContext asyncContext) {
+                if (asyncContext == null) {
+                    return;
                 }
+                asyncHelper.onExitStartAsync(asyncContext);
             }
         }
     }
 
     public static class AsyncContextInstrumentation extends AsyncInstrumentation {
-        public AsyncContextInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -168,29 +138,23 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return AsyncContextStartAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation$AsyncContextStartAdvice";
         }
 
-        @VisibleForAdvice
         public static class AsyncContextStartAdvice {
 
-            @Advice.OnMethodEnter(suppress = Throwable.class)
-            private static void onEnterAsyncContextStart(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-                if (tracer != null && runnable != null && tracer.isWrappingAllowedOnThread()) {
-                    final Transaction transaction = tracer.currentTransaction();
-                    if (transaction != null) {
-                        runnable = transaction.withActive(runnable);
-                        tracer.avoidWrappingOnThread();
-                    }
-                }
+            @Nullable
+            @AssignTo.Argument(0)
+            @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+            public static Runnable onEnterAsyncContextStart(@Advice.Argument(0) @Nullable Runnable runnable) {
+                return JavaConcurrent.withContext(runnable, tracer);
             }
 
-            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class)
-            private static void onExitAsyncContextStart() {
-                if (tracer != null) {
-                    tracer.allowWrappingOnThread();
-                }
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, inline = false)
+            public static void onExitAsyncContextStart(@Nullable @Advice.Thrown Throwable thrown,
+                                                        @Advice.Argument(value = 0) @Nullable Runnable runnable) {
+                JavaConcurrent.doFinally(thrown, runnable);
             }
         }
     }

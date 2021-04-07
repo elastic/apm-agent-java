@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.redis.jedis;
 
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,10 +55,8 @@ class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     @Test
     void testJedis() {
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            jedis.set("foo", "bar");
-            assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
-        }
+        jedis.set("foo", "bar");
+        assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
 
         assertTransactionWithRedisSpans("SET", "GET");
     }

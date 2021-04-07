@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -159,14 +159,30 @@ public class MetricRegistry {
         return null;
     }
 
-    public void report(MetricsReporter metricsReporter) {
+    /**
+     * Executes the following steps within a single read-operation critical section:
+     * <ul>
+     *     <li>Switch between active and inactive MetricSet containers</li>
+     *     <li>Report the inactivated MetricSets (optional)</li>
+     *     <li>Reset the inactivated MetricSets</li>
+     * </ul>
+     *
+     * @param metricsReporter a reporter to be used for reporting the inactivated MetricSets. May be {@code null}
+     *                        if reporting is not required.
+     */
+    public void flipPhaseAndReport(@Nullable MetricsReporter metricsReporter) {
         try {
             phaser.readerLock();
             ConcurrentMap<Labels.Immutable, MetricSet> temp = inactiveMetricSets;
             inactiveMetricSets = activeMetricSets;
             activeMetricSets = temp;
             phaser.flipPhase();
-            metricsReporter.report(inactiveMetricSets);
+            if (metricsReporter != null) {
+                metricsReporter.report(inactiveMetricSets);
+            }
+            for (MetricSet metricSet : inactiveMetricSets.values()) {
+                metricSet.resetState();
+            }
         } finally {
             phaser.readerUnlock();
         }

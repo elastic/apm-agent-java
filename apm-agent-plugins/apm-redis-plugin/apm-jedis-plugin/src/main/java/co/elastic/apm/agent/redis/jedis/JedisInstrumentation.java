@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.redis.jedis;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import net.bytebuddy.asm.Advice;
@@ -45,16 +45,18 @@ import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JedisInstrumentation extends ElasticApmInstrumentation {
+public class JedisInstrumentation extends TracerAwareInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeSendCommand(@Advice.This(typing = Assigner.Typing.DYNAMIC) BinaryJedis thiz,
                                           @Advice.Local("span") Span span,
                                           @Advice.Origin("#m") String method) {
         span = RedisSpanUtils.createRedisSpan(method);
-        span.getContext().getDestination()
-            .withAddress(thiz.getClient().getHost())
-            .withPort(thiz.getClient().getPort());
+        if (span != null) {
+            span.getContext().getDestination()
+                .withAddress(thiz.getClient().getHost())
+                .withPort(thiz.getClient().getPort());
+        }
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
@@ -86,5 +88,10 @@ public class JedisInstrumentation extends ElasticApmInstrumentation {
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("redis", "jedis");
+    }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
     }
 }

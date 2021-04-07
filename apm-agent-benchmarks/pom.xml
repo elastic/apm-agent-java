@@ -5,19 +5,16 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.13.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jmh.version>1.21</jmh.version>
-        <javac.target>1.8</javac.target>
         <uberjar.name>benchmarks</uberjar.name>
-        <maven.compiler.target>9</maven.compiler.target>
-        <maven.compiler.testTarget>9</maven.compiler.testTarget>
+        <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
         <maven.compiler.showWarnings>false</maven.compiler.showWarnings>
         <maven.compiler.errorprone>false</maven.compiler.errorprone>
         <animal.sniffer.skip>true</animal.sniffer.skip>
@@ -53,6 +50,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-lettuce-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-profiling-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -125,7 +127,7 @@
         <dependency>
             <groupId>org.agrona</groupId>
             <artifactId>agrona</artifactId>
-            <version>0.9.18</version>
+            <version>1.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.ehcache</groupId>

@@ -65,7 +65,7 @@ class StacktraceSerializationTest {
         stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
         // always enable
         when(stacktraceConfiguration.getSpanFramesMinDurationMs()).thenReturn(-1L);
-        serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class));
+        serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class), tracer.getMetaData());
         objectMapper = new ObjectMapper();
         stacktrace = getStackTrace();
     }

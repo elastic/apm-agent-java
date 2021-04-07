@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,11 +25,11 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -72,17 +72,16 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                           @Advice.Argument(0) long finishMicros,
-                                           @Advice.Argument(value = 1, optional = true) @Nullable Object traceContext) {
+        private static void finishInternal(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+                                           @Advice.Argument(0) long finishMicros) {
             if (span != null) {
-                doFinishInternal(span, finishMicros, traceContext);
-                span = null;
+                doFinishInternal(span, finishMicros);
             }
         }
 
         @VisibleForAdvice
-        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros, @Nullable Object traceContext) {
+        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros) {
+            abstractSpan.incrementReferences();
             if (abstractSpan instanceof Transaction) {
                 Transaction transaction = (Transaction) abstractSpan;
                 if (transaction.getType() == null) {
@@ -103,12 +102,6 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 abstractSpan.end(finishMicros);
             } else {
                 abstractSpan.end();
-            }
-
-            // If the finished span is the active span, replace with the corresponding TraceContext
-            if (tracer != null && traceContext != null && abstractSpan == tracer.getActive() && traceContext instanceof TraceContext) {
-                tracer.deactivate(abstractSpan);
-                tracer.activate((TraceContext) traceContext);
             }
         }
     }
@@ -193,7 +186,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             }
         }
 
-        private static void addTag(AbstractSpan transaction, String key, Object value) {
+        private static void addTag(AbstractSpan<?> transaction, String key, Object value) {
             if (value instanceof Number) {
                 transaction.addLabel(key, (Number) value);
             } else if (value instanceof Boolean) {
@@ -213,13 +206,15 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 transaction.withResult(value.toString());
                 return true;
             } else if ("error".equals(key)) {
-                if (Boolean.FALSE.equals(value)) {
+                if (Boolean.TRUE.equals(value)) {
                     transaction.withResultIfUnset("error");
                 }
                 return true;
             } else if ("http.status_code".equals(key) && value instanceof Number) {
-                transaction.getContext().getResponse().withStatusCode(((Number) value).intValue());
-                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
+                int status = ((Number) value).intValue();
+                transaction.getContext().getResponse().withStatusCode(status);
+                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
+                transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(status));
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.method".equals(key)) {
@@ -283,6 +278,17 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                     span.withType("ext");
                 }
                 return true;
+            } else if ("http.status_code".equals(key) && value instanceof Number) {
+                int status =((Number) value).intValue();
+                span.getContext().getHttp().withStatusCode(status);
+                span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
+                return true;
+            } else if ("http.url".equals(key) && value instanceof String) {
+                span.getContext().getHttp().withUrl((String) value);
+                return true;
+            } else if ("http.method".equals(key) && value instanceof String) {
+                span.getContext().getHttp().withMethod((String) value);
+                return true;
             }
             return false;
         }
@@ -298,12 +304,11 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             super(named("getTraceContext"));
         }
 
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan,
-                                           @Advice.Return(readOnly = false) Object traceContext) {
-            if (abstractSpan != null) {
-                traceContext = abstractSpan.getTraceContext().copy();
-            }
+        public static Object getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan) {
+            return abstractSpan;
         }
     }
 

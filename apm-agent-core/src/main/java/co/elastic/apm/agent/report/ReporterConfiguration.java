@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,6 +30,7 @@ import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -43,7 +44,10 @@ import java.util.List;
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNotInRange;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
+
     public static final String REPORTER_CATEGORY = "Reporter";
+    public static final URL LOCAL_APM_SERVER_URL = UrlValueConverter.INSTANCE.convert("http://localhost:8200");
+
     private final ConfigurationOption<String> secretToken = ConfigurationOption.stringOption()
         .key("secret_token")
         .configurationCategory(REPORTER_CATEGORY)
@@ -54,9 +58,37 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .sensitive()
         .build();
 
-    private final ConfigurationOption<List<URL>> serverUrl = ConfigurationOption.urlsOption()
+    private final ConfigurationOption<String> apiKey = ConfigurationOption.stringOption()
+        .key("api_key")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("This string is used to ensure that only your agents can send data to your APM server.\n" +
+            "\n" +
+            "Agents can use API keys as a replacement of secret token, APM server can have multiple API keys.\n" +
+            "When both secret token and API key are used, API key has priority and secret token is ignored.\n" +
+            "Use if APM Server requires an API key.")
+        .sensitive()
+        .build();
+
+    private final ConfigurationOption<URL> serverUrl = ConfigurationOption.urlOption()
+        .key("server_url")
+        .configurationCategory(REPORTER_CATEGORY)
+        .label("The URL for your APM Server")
+        .description("The URL must be fully qualified, including protocol (http or https) and port.\n" +
+            "\n" +
+            "If SSL is enabled on the APM Server, use the `https` protocol. For more information, see \n" +
+            "<<ssl-configuration>>.\n" +
+            "\n" +
+            "If outgoing HTTP traffic has to go through a proxy,\n" +
+            "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
+            "See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] \n" +
+            "for more information.\n" +
+            "\n" +
+            "NOTE: This configuration can only be reloaded dynamically as of 1.8.0")
+        .dynamic(true)
+        .buildWithDefault(LOCAL_APM_SERVER_URL);
+
+    private final ConfigurationOption<List<URL>> serverUrls = ConfigurationOption.urlsOption()
         .key("server_urls")
-        .aliasKeys("server_url")
         .configurationCategory(REPORTER_CATEGORY)
         .label("The URLs for your APM Servers")
         .description("The URLs must be fully qualified, including protocol (http or https) and port.\n" +
@@ -65,13 +97,30 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Achieves load-balancing by shuffling the list of configured URLs.\n" +
             "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.\n" +
             "\n" +
-            "If outgoing HTTP traffic has to go through a proxy," +
-            "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
-            "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.\n" +
+            "If SSL is enabled on the APM Server, use the `https` protocol. For more information, see \n" +
+            "<<ssl-configuration>>.\n" +
             "\n" +
-            "NOTE: This configuration can only be reloaded dynamically as of 1.8.0")
+            "If outgoing HTTP traffic has to go through a proxy,\n" +
+            "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
+            "See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] \n" +
+            "for more information.\n" +
+            "\n" +
+            "NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order \n" +
+            "to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you \n" +
+            "are only setting a single URL.")
         .dynamic(true)
-        .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
+        .buildWithDefault(Collections.<URL>emptyList());
+
+    private final ConfigurationOption<Boolean> disableSend = ConfigurationOption.booleanOption()
+        .key("disable_send")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("If set to `true`, the agent will work as usual, except from any task requiring communication with \n" +
+            "the APM server. Events will be dropped and the agent won't be able to receive central configuration, which \n" +
+            "means that any other configuration cannot be changed in this state without restarting the service. \n" +
+            "An example use case for this would be maintaining the ability to create traces and log \n" +
+            "trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.")
+        .dynamic(false)
+        .buildWithDefault(false);
 
     private final ConfigurationOption<TimeDuration> serverTimeout = TimeDurationValueConverter.durationOption("s")
         .key("server_timeout")
@@ -107,7 +156,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "A lower value will decrease the heap overhead of the agent,\n" +
             "while a higher value makes it less likely to lose events in case of a temporary spike in throughput.")
-        .dynamic(true)
+        .dynamic(false)
         .buildWithDefault(512);
 
     private final ConfigurationOption<Boolean> reportSynchronously = ConfigurationOption.booleanOption()
@@ -173,8 +222,52 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return secretToken.get();
     }
 
+    @Nullable
+    public String getApiKey() {
+        return apiKey.get();
+    }
+
+    /**
+     * Provides the combined output of two config options - {@code server_url} and {@code server_urls}, with precedence
+     * for the singular form. If {@link ReporterConfiguration#serverUrl} is set with an empty string and
+     * {@link ReporterConfiguration#serverUrls} is not set, this method is expected to provide an empty list.
+     *
+     * Algorithm:
+     *  1.  if the server_url value is set, then:
+     *      a.  if it is set with the default value (i.e == LOCAL_APM_SERVER_URL) - look for server_urls
+     *          i.  if server_urls is not empty - use it
+     *          ii. otherwise - use the default
+     *      b.  otherwise use it and if server_urls is not empty - log a warning
+     *  2.  otherwise use the value from server_urls
+     *
+     * @return a list of APM Server URLs resulting from the combination of {@code server_url} and {@code server_urls}
+     */
     public List<URL> getServerUrls() {
-        return serverUrl.get();
+        if (disableSend.get()) {
+            return Collections.emptyList();
+        }
+        List<URL> calculatedUrlList;
+        URL singleUrl = serverUrl.get();
+        List<URL> urlList = serverUrls.get();
+        if (singleUrl != null) {
+            if (singleUrl == LOCAL_APM_SERVER_URL) {
+                if (urlList != null && !urlList.isEmpty()) {
+                    calculatedUrlList = urlList;
+                } else {
+                    calculatedUrlList = Collections.singletonList(singleUrl);
+                }
+            } else {
+                calculatedUrlList = Collections.singletonList(singleUrl);
+                if (urlList != null && !urlList.isEmpty()) {
+                    // It should be safe to get a logger at this point as it is called after LoggingConfiguration.init()
+                    LoggerFactory.getLogger(getClass()).info("Both \"server_urls\" and \"server_url\" configuration options " +
+                        "are set, therefore the \"server_urls\" configuration will be ignored.");
+                }
+            }
+        } else {
+            calculatedUrlList = urlList;
+        }
+        return calculatedUrlList;
     }
 
     public TimeDuration getServerTimeout() {
@@ -213,8 +306,11 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return disableMetrics.get();
     }
 
-    public ConfigurationOption<List<URL>> getServerUrlsOption() {
+    public ConfigurationOption<URL> getServerUrlOption() {
         return this.serverUrl;
     }
 
+    public ConfigurationOption<List<URL>> getServerUrlsOption() {
+        return this.serverUrls;
+    }
 }

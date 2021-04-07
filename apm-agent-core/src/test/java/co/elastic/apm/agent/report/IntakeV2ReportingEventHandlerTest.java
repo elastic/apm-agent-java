@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,8 +26,7 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.MetaDataMock;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -37,6 +36,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -102,7 +103,8 @@ class IntakeV2ReportingEventHandlerTest {
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final ProcessInfo title = new ProcessInfo("title");
         final Service service = new Service();
-        apmServerClient = new ApmServerClient(reporterConfiguration, List.of(
+        apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start(List.of(
             new URL(HTTP_LOCALHOST + mockApmServer1.port()),
             // testing ability to configure a server url with additional path (ending with "/" in this case)
             new URL(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + "/")
@@ -110,16 +112,25 @@ class IntakeV2ReportingEventHandlerTest {
         reportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            new MetaData(title, service, system, Collections.emptyMap()), apmServerClient);
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                apmServerClient,
+                MetaDataMock.create(title, service, system, null, Collections.emptyMap())
+            ),
+            apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        apmServerClient.start(List.of(new URL("http://non.existing:8080")));
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
-            new MetaData(title1, service1, system, Collections.emptyMap()),
-            new ApmServerClient(reporterConfiguration, List.of(new URL("http://non.existing:8080"))));
+            new DslJsonSerializer(
+                mock(StacktraceConfiguration.class),
+                this.apmServerClient,
+                MetaDataMock.create(title1, service1, system, null, Collections.emptyMap())
+            ),
+            apmServerClient);
     }
 
     @AfterEach
@@ -130,9 +141,11 @@ class IntakeV2ReportingEventHandlerTest {
     @Test
     void testUrls() throws MalformedURLException {
         URL server1url = apmServerClient.appendPathToCurrentUrl(INTAKE_V2_URL);
+        assertThat(server1url).isNotNull();
         assertThat(server1url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer1.port() + INTAKE_V2_URL);
         apmServerClient.onConnectionError();
         URL server2url = apmServerClient.appendPathToCurrentUrl(INTAKE_V2_URL);
+        assertThat(server2url).isNotNull();
         assertThat(server2url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + INTAKE_V2_URL);
         // just to restore
         apmServerClient.onConnectionError();
@@ -143,16 +156,18 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
+        reportBytes("{\"foo\":\"bar\"}\n".getBytes());
         assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
         assertThat(reportingEventHandler.getBufferSize()).isEqualTo(0);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
-        assertThat(ndJsonNodes).hasSize(4);
+        assertThat(ndJsonNodes).hasSize(5);
         assertThat(ndJsonNodes.get(0).get("metadata")).isNotNull();
         assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
         assertThat(ndJsonNodes.get(2).get("span")).isNotNull();
         assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
+        assertThat(ndJsonNodes.get(4).get("foo").textValue()).isEqualTo("bar");
     }
 
     @Test
@@ -166,7 +181,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction(reportingEventHandler);
         sendShutdownEvent();
         reportSpan();
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
         assertThat(ndJsonNodes).hasSize(2);
@@ -179,7 +194,7 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(serviceUnavailable()));
 
         reportTransaction(reportingEventHandler);
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
         mockApmServer1.verify(postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
         mockApmServer2.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
 
@@ -187,7 +202,7 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer2.resetRequests();
 
         reportTransaction(reportingEventHandler);
-        reportingEventHandler.flush();
+        reportingEventHandler.endRequest();
         mockApmServer1.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
         mockApmServer2.verify(postRequestedFor(urlEqualTo(APM_SERVER_PATH + INTAKE_V2_URL)));
     }
@@ -228,6 +243,15 @@ class IntakeV2ReportingEventHandlerTest {
     private void reportError() {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setError(new ErrorCapture(MockTracer.create()));
+
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
+    }
+
+    private void reportBytes(byte[] bytes) {
+        final ReportingEvent reportingEvent = new ReportingEvent();
+        JsonWriter jw = new DslJson<>().newWriter();
+        jw.writeAscii(bytes);
+        reportingEvent.setJsonWriter(jw);
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }

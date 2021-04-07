@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -55,7 +55,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "You can set the application package using Java system properties:\n" +
             "`-Delastic.apm.application_packages=com.myproject`\n" +
             "\n" +
-            "If you are only interested in specific subpackages, you can separate them with commas:\n" + 
+            "If you are only interested in specific subpackages, you can separate them with commas:\n" +
             "`-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`")
         .dynamic(true)
         .buildWithDefault(Collections.<String>emptyList());
@@ -75,8 +75,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .aliasKeys("span_frames_min_duration_ms")
         .tags("performance")
         .configurationCategory(STACKTRACE_CATEGORY)
-        .description("In its default settings, the APM agent will collect a stack trace with every recorded span.\n" +
-            "While this is very helpful to find the exact place in your code that causes the span, " +
+        .description("While this is very helpful to find the exact place in your code that causes the span, " +
             "collecting this stack trace does have some overhead. " +
             "\n" +
             "When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. " +

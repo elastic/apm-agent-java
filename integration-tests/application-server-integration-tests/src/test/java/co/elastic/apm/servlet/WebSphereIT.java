@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
+import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -55,7 +56,12 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
 
     @Parameterized.Parameters(name = "WebSphere {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{{"8.5.5"}, {"webProfile7"}});
+        return Arrays.asList(new Object[][]{
+            {"webProfile6"},
+            {"webProfile7"},
+            {"webProfile8"},
+            {"latest"}
+        });
     }
 
     @Override
@@ -64,7 +70,17 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
+    public boolean isHotSpotBased() {
+        return false;
+    }
+
+    @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, CdiApplicationServerTestApp.class);
+        return Arrays.asList(
+            ServletApiTestApp.class,
+            JsfApplicationServerTestApp.class,
+            CdiApplicationServerTestApp.class,
+            ExternalPluginTestApp.class
+        );
     }
 }

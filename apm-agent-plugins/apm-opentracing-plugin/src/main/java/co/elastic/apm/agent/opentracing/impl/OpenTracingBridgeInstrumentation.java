@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,12 +24,12 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public abstract class OpenTracingBridgeInstrumentation extends ElasticApmInstrumentation {
+public abstract class OpenTracingBridgeInstrumentation extends TracerAwareInstrumentation {
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;
@@ -38,5 +38,10 @@ public abstract class OpenTracingBridgeInstrumentation extends ElasticApmInstrum
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("opentracing");
+    }
+
+    @Override
+    public boolean indyPlugin() {
+        return false;
     }
 }

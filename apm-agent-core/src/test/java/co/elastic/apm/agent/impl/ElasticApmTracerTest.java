@@ -26,12 +26,14 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.AbstractLifecycleListener;
+import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -42,11 +44,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,7 +72,7 @@ class ElasticApmTracerTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .build();
+            .buildAndStart();
     }
 
     @AfterEach
@@ -81,7 +83,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testThreadLocalStorage() {
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
             Span span = tracerImpl.getActive().createSpan();
@@ -99,7 +101,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testNestedSpan() {
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
             Span span = tracerImpl.getActive().createSpan();
@@ -124,7 +126,7 @@ class ElasticApmTracerTest {
     @Test
     void testDisableStacktraces() {
         when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0L);
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
@@ -138,7 +140,7 @@ class ElasticApmTracerTest {
     @Test
     void testEnableStacktraces() throws InterruptedException {
         when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1L);
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
@@ -153,7 +155,7 @@ class ElasticApmTracerTest {
     @Test
     void testDisableStacktracesForFastSpans() {
         when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100L);
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
@@ -168,7 +170,7 @@ class ElasticApmTracerTest {
     @Test
     void testEnableStacktracesForSlowSpans() throws InterruptedException {
         when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1L);
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
@@ -180,9 +182,14 @@ class ElasticApmTracerTest {
         assertThat(reporter.getFirstSpan().getStacktrace()).isNotNull();
     }
 
+    @Nullable
+    private Transaction startTestRootTransaction() {
+        return tracerImpl.startRootTransaction(getClass().getClassLoader());
+    }
+
     @Test
     void testRecordException() {
-        tracerImpl.captureException(new Exception("test"), getClass().getClassLoader());
+        tracerImpl.captureAndReportException(new Exception("test"), getClass().getClassLoader());
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException()).isNotNull();
@@ -202,8 +209,8 @@ class ElasticApmTracerTest {
         when(config.getConfig(CoreConfiguration.class).getIgnoreExceptions())
             .thenReturn(wildcardList);
 
-        tracerImpl.captureException(new DummyException1(), getClass().getClassLoader());
-        tracerImpl.captureException(new DummyException2(), getClass().getClassLoader());
+        tracerImpl.captureAndReportException(new DummyException1(), getClass().getClassLoader());
+        tracerImpl.captureAndReportException(new DummyException2(), getClass().getClassLoader());
         assertThat(reporter.getErrors()).isEmpty();
     }
 
@@ -229,7 +236,7 @@ class ElasticApmTracerTest {
 
     private void innerRecordExceptionWithTrace(boolean sampled) {
         Transaction transaction = tracerImpl.startRootTransaction(ConstantSampler.of(sampled), -1, null);
-        transaction.withType("test-type");
+        transaction.withType("request");
         try (Scope scope = transaction.activateInScope()) {
             transaction.getContext().getRequest()
                 .addHeader("foo", "bar")
@@ -273,7 +280,7 @@ class ElasticApmTracerTest {
     @Test
     void testEnableDropSpans() {
         when(tracerImpl.getConfig(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(1);
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
@@ -288,40 +295,26 @@ class ElasticApmTracerTest {
             transaction.end();
         }
         assertThat(reporter.getFirstTransaction().isSampled()).isTrue();
-        assertThat(reporter.getFirstTransaction().getSpanCount().getDropped().get()).isEqualTo(1);
-        assertThat(reporter.getFirstTransaction().getSpanCount().getStarted().get()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getSpanCount().getDropped()).hasValue(1);
+        assertThat(reporter.getFirstTransaction().getSpanCount().getReported()).hasValue(1);
+        assertThat(reporter.getFirstTransaction().getSpanCount().getTotal()).hasValue(2);
         assertThat(reporter.getSpans()).hasSize(1);
     }
 
     @Test
-    void testDisable() {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader()); // 1
-        try (Scope scope = transaction.activateInScope()) {
-            assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
-            assertThat(transaction.isSampled()).isFalse();
-            Span span = transaction.createSpan();
-            try (Scope spanScope = span.activateInScope()) {
-                assertThat(tracerImpl.getActive()).isSameAs(span);
-                assertThat(tracerImpl.getActive()).isNotNull();
-            }
-            span.end();
-            assertThat(tracerImpl.getActive()).isSameAs(transaction);
-        }
-        transaction.end();
-        assertThat(tracerImpl.currentTransaction()).isNull();
-        assertThat(reporter.getTransactions()).isEmpty();
-        assertThat(reporter.getSpans()).isEmpty();
+    void testPause() {
+        tracerImpl.pause();
+        assertThat(startTestRootTransaction()).isNull();
     }
 
     @Test
-    void testDisableMidTransaction() {
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+    void testPauseMidTransaction() {
+        Transaction transaction = startTestRootTransaction();
         try (Scope scope = transaction.activateInScope()) {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
+            tracerImpl.pause();
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
-                when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span.withName("test");
                 assertThat(span.getNameAsString()).isEqualTo("test");
                 assertThat(tracerImpl.getActive()).isSameAs(span);
@@ -330,7 +323,6 @@ class ElasticApmTracerTest {
             }
             Span span2 = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span2.activateInScope()) {
-                when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span2.withName("test2");
                 assertThat(span2.getNameAsString()).isEqualTo("test2");
                 assertThat(tracerImpl.getActive()).isSameAs(span2);
@@ -348,7 +340,8 @@ class ElasticApmTracerTest {
     @Test
     void testSamplingNone() throws IOException {
         config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
-        Transaction transaction = tracerImpl.startRootTransaction(null).withType("request");
+        Transaction transaction = startTestRootTransaction().withType("request");
+
         try (Scope scope = transaction.activateInScope()) {
             transaction.setUser("1", "jon.doe@example.com", "jondoe");
             Span span = tracerImpl.getActive().createSpan();
@@ -362,41 +355,6 @@ class ElasticApmTracerTest {
         assertThat(reporter.getSpans()).hasSize(0);
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
-    }
-
-    @Test
-    void testLifecycleListener() {
-        int startBefore = TestLifecycleListener.start.get();
-        int stopBefore = TestLifecycleListener.stop.get();
-        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-        assertThat(TestLifecycleListener.start.get()).isEqualTo(startBefore + 1);
-        assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore);
-
-        tracer.stop();
-        assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore + 1);
-    }
-
-    /*
-     * Has an entry in
-     * src/test/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener
-     */
-    public static class TestLifecycleListener extends AbstractLifecycleListener {
-
-        public static final AtomicInteger start = new AtomicInteger();
-        public static final AtomicInteger stop = new AtomicInteger();
-
-        public TestLifecycleListener(ElasticApmTracer tracer) {
-            super(tracer);
-            start.incrementAndGet();
-        }
-
-        @Override
-        public void stop() {
-            stop.incrementAndGet();
-        }
     }
 
     @Test
@@ -428,32 +386,31 @@ class ElasticApmTracerTest {
 
     @Test
     void testStartSpanAfterTransactionHasEnded() {
-        final Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
-        final TraceContext transactionTraceContext = transaction.getTraceContext().copy();
+        final Transaction transaction = startTestRootTransaction();
+        assertThat(transaction).isNotNull();
+        transaction.incrementReferences();
         transaction.end();
 
-        reporter.assertRecycledAfterDecrementingReferences();
 
-        tracerImpl.activate(transactionTraceContext);
-        try {
-            assertThat(tracerImpl.getActive()).isEqualTo(transactionTraceContext);
+        try (Scope transactionScope = transaction.activateInScope()) {
+            assertThat(tracerImpl.getActive()).isEqualTo(transaction);
             final Span span = tracerImpl.startSpan(TraceContext.fromActive(), tracerImpl);
             assertThat(span).isNotNull();
             try (Scope scope = span.activateInScope()) {
-                assertThat(tracerImpl.currentTransaction()).isNull();
+                assertThat(tracerImpl.currentTransaction()).isNotNull();
                 assertThat(tracerImpl.getActive()).isSameAs(span);
             } finally {
                 span.end();
             }
-        } finally {
-            tracerImpl.deactivate(transactionTraceContext);
         }
         assertThat(tracerImpl.getActive()).isNull();
+        transaction.decrementReferences();
+        reporter.assertRecycledAfterDecrementingReferences();
     }
 
     @Test
     void testActivateDeactivateTwice() {
-        final Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        final Transaction transaction = startTestRootTransaction();
         assertThat(tracerImpl.currentTransaction()).isNull();
         tracerImpl.activate(transaction);
         assertThat(tracerImpl.currentTransaction()).isEqualTo(transaction);
@@ -472,28 +429,57 @@ class ElasticApmTracerTest {
     void testOverrideServiceNameWithoutExplicitServiceName() {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
-            .build();
+            .buildAndStart();
         tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
-        tracer.startRootTransaction(getClass().getClassLoader()).end();
+
+        startTestRootTransaction().end();
+
 
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
 
     @Test
-    void testOverrideServiceNameExplicitServiceName() {
+    void testNotOverrideServiceNameWhenServiceNameConfigured() {
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties"));
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
-            .withConfig("service_name", "explicit-service-name")
             .reporter(reporter)
-            .build();
-
+            .configurationRegistry(localConfig)
+            .buildAndStart();
         tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
-        tracer.startRootTransaction(getClass().getClassLoader()).end();
+
+        startTestRootTransaction().end();
+
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
     }
 
     @Test
+    void testNotOverrideServiceNameWhenDefaultServiceNameConfigured() {
+        // In-explicitly affecting the discovered default service name
+        String command = System.setProperty("sun.java.command", "TEST_SERVICE_NAME");
+
+        ConfigurationRegistry localConfig = SpyConfiguration.createSpyConfig(
+            new PropertyFileConfigurationSource("test.elasticapm.with-service-name.properties")
+        );
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+            .reporter(reporter)
+            .configurationRegistry(localConfig)
+            .buildAndStart();
+        tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
+        startTestRootTransaction().end();
+
+        CoreConfiguration coreConfig = localConfig.getConfig(CoreConfiguration.class);
+        assertThat(ServiceNameUtil.getDefaultServiceName()).isEqualTo(coreConfig.getServiceName());
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
+        if (command != null) {
+            System.setProperty("sun.java.command", command);
+        } else {
+            System.clearProperty("sun.java.command");
+        }
+    }
+
+    @Test
     void testCaptureExceptionAndGetErrorId() {
-        Transaction transaction = tracerImpl.startRootTransaction(getClass().getClassLoader());
+        Transaction transaction = startTestRootTransaction();
         String errorId = transaction.captureExceptionAndGetErrorId(new Exception("test"));
         transaction.end();
 

@@ -19,6 +19,17 @@ Upload the *complete* logs to a service like https://gist.github.com.
 The logs should include everything from the application startup up until the first request has been executed.
 
 [float]
+[[trouble-shooting-additional-agent]]
+=== Running alongside other agents
+Like many other Java agents, our agent instruments classes by injecting bytecode into them on runtime. Our bytecode
+instrumentation guarantees to produce only valid bytecode and to never change the class's "schema". If you are using
+other Java agents in addition to ours that have the same guarantees, they should not interfere with each other.
+However, some Java agents do not conform to these guarantees, in which case there may be issues with using them in
+parallel to ours. If you encounter errors, one of the first things to do is to remove any additional agent in order to
+check whether this is indeed a case of agent mismatch. We may still find a way to make them work together, but this
+information would be cruicial for our ability to assist, so make sure to include it when reporting such issues.
+
+[float]
 [[trouble-shooting-logging]]
 === Logging
 There are several <<config-logging, logging related configuration options>>.
@@ -50,15 +61,15 @@ Each request should at least add some lines similar to these in the logs:
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - startSpan '' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 {
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Activating '' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 on thread 66
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Deactivating 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 on thread 66
-[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - } endSpan 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - endSpan 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Receiving SPAN event (sequence 23)
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Starting new request to http://localhost:8200/intake/v2/events
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Deactivating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01 on thread 66
-[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - } endSpan 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.transaction.Span - endSpan 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Scheduling request timeout in 10s
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Receiving SPAN event (sequence 24)
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - Deactivating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01 on thread 66
-[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - } endTransaction 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.agent.impl.ElasticApmTracer - endTransaction 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01
 [apm-reporter] DEBUG co.elastic.apm.agent.report.IntakeV2ReportingEventHandler - Receiving TRANSACTION event (sequence 25)
 ----
 
@@ -141,8 +152,8 @@ and `Elastic APM server is not available`.
 
 If you see the message `Elastic APM server is not available`,
 the agent has problems connecting to the APM server.
-Check the setting of <<config-server-urls>> and make sure the agent is able to connect to the server.
-Try to execute `curl -v <apm-server-url>/healthcheck` from the machine the agent is running on.
+Check the setting of <<config-server-url>> and make sure the agent is able to connect to the server.
+Try to execute `curl -v <apm-server-url>` from the machine the agent is running on.
 The server should respond with a 200 status code.
 
 If the APM server does not respond successfully,
@@ -204,9 +215,88 @@ Updating them to a more recent version should resolve the problem.
 [[trouble-shooting-incorrect-manual-jar-file]]
 ==== Failed to find Premain-Class manifest attribute ====
 
-If you are using a manual setup with a `-javaagent` flag against an application server and are seeing the 
+If you are using a manual setup with a `-javaagent` flag against an application server and are seeing the
 `Failed to find Premain-Class manifest attribute` error and a failure to start, then you might be pointing
 at the incorrect jar file.
 
-The correct jar file to be pointing at should be in the form of `elastic-apm-agent-<version>.jar` and 
+The correct jar file to be pointing at should be in the form of `elastic-apm-agent-<version>.jar` and
 further information about how to download this file can be found <<setup-javaagent, in the manual setup instructions.>>
+
+[float]
+[[trouble-shooting-communication]]
+==== Communication with APM Server ====
+
+`unable to find valid certification path to requested target` - server authentication fails. Check out
+<<ssl-server-authentication>>.
+
+`java.net.SocketException: Broken pipe` - one option is that client authentication fails. Check out
+<<ssl-client-authentication>>.
+
+For other SSL/TLS related problems, - check out
+https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#Troubleshooting[the JSSE
+troubleshooting section].
+You can add `-Djavax.net.debug=all` to the JVM cmd line to get more details about your problem.
+
+[float]
+[[trouble-shooting-uncommon-issues]]
+=== Uncommon problems
+
+[float]
+[[trouble-shooting-jvm-crashes]]
+==== JVM Crashes ====
+
+More often than not, JVM crashes indicate a JVM bug being surfaced by the installation of the Java agent within the
+specific configuration of the traced application and it's dependencies. Therefore, the first thing to try is upgrade
+the JVM to the latest minor version.
+
+Known issues:
+
+- Early Java 8 versions before update 40 are *not supported* because they have
+several bugs that might result in JVM crashes when a java agent is active,
+thus agent *will not start* on those versions.
+- Similarly, Java 7 versions before update 60 are not supported as they are buggy in regard to `invokedynamic`.
+- Later Java 7 versions (> update 60) and early Java 8 versions (< update 40) are known to crash with agent versions
+1.18.0-1.20.0 at some random point after (sometimes long after) startup due to
+https://bugs.openjdk.java.net/browse/JDK-8041920[a bug] causing the creation of faulty native code by the C2
+compiler. Symptoms of such crashes are non-deterministic. In order to prevent such crashes, we added a built-in delay
+for agent initialization in agent version 1.21.0, that will be automatically applied on these Java versions.
+If crashes still occur with agent version > 1.20.0, try one of the followings:
+  1. Add `-XX:CompileCommand=exclude,java.lang.invoke.LambdaForm*::*` to the command line to avoid the problematic JIT
+compilation
+  2. Increase the delay from the default (3000ms) by setting the `elastic.apm.delay_agent_premain_ms` System property
+to indicate the number of milliseconds to delay, through the command line, for example:
+`-Delastic.apm.delay_agent_premain_ms=10000`.
+- When <<config-profiling-inferred-spans-enabled>> is set to `true`, it uses a native library that collects low-level
+information from the JVM. All known issues so far had been fixed. Try to disable it if you think the crash may be related.
+We continuously upgrade to the latest async profiler version, so upgrading your agent to the latest version may already
+contain a fix.
+
+Whenever you encounter a JVM crash, please report through https://discuss.elastic.co/c/observability/apm/58[our forum]
+or by opening an issue on our https://github.com/elastic/apm-agent-java[GitHub repository]. Look for the crash log
+(e.g. an `hs_err_pid<PID>.log`) and provide it when reporting, as well as all factors describing you setup and scenario.
+
+[float]
+[[trouble-shooting-jvm-hangs]]
+==== JVM Hangs ====
+If your JVM gets hang when attaching the Java agent, please create a thread dump (e.g. through `jstack`) and report
+through https://discuss.elastic.co/c/observability/apm/58[our forum] or by opening an issue on our
+https://github.com/elastic/apm-agent-java[GitHub repository].
+
+[float]
+[[disable-agent]]
+=== Disable the Agent
+In the unlikely event the agent causes disruptions to a production application,
+you can disable the agent while you troubleshoot.
+
+Using <<configuration-dynamic,dynamic configuration>>,
+you can disable the recording of events by setting <<config-recording,`recording`>> to `false`.
+
+If that doesn't work, you can completely disable the agent by setting
+<<config-enabled,`enabled`>> to `false`.
+You'll need to restart your application for this change to take effect.
+
+[float]
+[[trouble-shooting-unsupported-framework-versions]]
+=== Unsupported framework versions ===
+- JSF - myfaces some 2.2.x versions are not supported on JDK 15 - see
+https://github.com/raphw/byte-buddy/issues/979[related bug].

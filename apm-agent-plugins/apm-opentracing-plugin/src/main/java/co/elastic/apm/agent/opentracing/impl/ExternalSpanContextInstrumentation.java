@@ -25,7 +25,10 @@
 package co.elastic.apm.agent.opentracing.impl;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -65,17 +68,27 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
             super(named("toTraceId"));
         }
 
-        @SuppressWarnings("Duplicates")
+        @Nullable
+        @AssignTo.Field(value = "childTraceContext")
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static TraceContext toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+                                     @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (textMap == null) {
+                return childTraceContext;
+            }
+            return parseTextMap(textMap);
+
+        }
+
+
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
-                                     @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext,
-                                     @Advice.Return(readOnly = false) String traceId) {
-            if (textMap != null && childTraceContext == null) {
-                childTraceContext = parseTextMap(textMap);
+        public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (childTraceContext == null) {
+                return null;
             }
-            if (childTraceContext != null) {
-                traceId = childTraceContext.getTraceId().toString();
-            }
+            return childTraceContext.getTraceId().toString();
         }
     }
 
@@ -85,23 +98,32 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
             super(named("toSpanId"));
         }
 
-        @SuppressWarnings("Duplicates")
+        @Nullable
+        @AssignTo.Field(value = "childTraceContext")
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static TraceContext toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+                                    @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (textMap == null) {
+                return childTraceContext;
+            }
+            return parseTextMap(textMap);
+        }
+
+        @Nullable
+        @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
-                                    @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext,
-                                    @Advice.Return(readOnly = false) String spanId) {
-            if (textMap != null && childTraceContext == null) {
-                childTraceContext = parseTextMap(textMap);
+        public static String onExit(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext) {
+            if (childTraceContext == null) {
+                return null;
             }
-            if (childTraceContext != null) {
-                spanId = childTraceContext.getParentId().toString();
-            }
+            return childTraceContext.getParentId().toString();
         }
     }
 
     @VisibleForAdvice
     @Nullable
     public static TraceContext parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
+        ElasticApmTracer tracer = GlobalTracer.getTracerImpl();
         if (tracer != null) {
             TraceContext childTraceContext = TraceContext.with64BitId(tracer);
             if (TraceContext.<Iterable<Map.Entry<String, String>>>getFromTraceContextTextHeaders().asChildOf(childTraceContext, textMap, OpenTracingTextMapBridge.instance())) {

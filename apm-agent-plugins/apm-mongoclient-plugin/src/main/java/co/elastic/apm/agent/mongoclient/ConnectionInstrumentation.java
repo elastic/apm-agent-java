@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,7 +24,7 @@
  */
 package co.elastic.apm.agent.mongoclient;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
@@ -32,12 +32,10 @@ import com.mongodb.ServerAddress;
 import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -60,12 +58,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ConnectionInstrumentation extends MongoClientInstrumentation {
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("com.mongodb.")
-            .and(hasSuperType(named("com.mongodb.connection.Connection")));
-    }
-
-    @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return nameStartsWith("insert")
             .or(nameStartsWith("update"))
@@ -81,7 +73,11 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
     public static Span onEnter(@Advice.This Connection thiz,
                                @Advice.Argument(0) MongoNamespace namespace,
                                @Advice.Origin("#m") String methodName) {
-        Span span = ElasticApmInstrumentation.createExitSpan();
+        Span span = null;
+        final AbstractSpan<?> activeSpan = tracer.getActive();
+        if (activeSpan != null && !activeSpan.isExit()) {
+            span = activeSpan.createExitSpan();
+        }
 
         if (span == null) {
             return null;

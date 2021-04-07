@@ -1,0 +1,2 @@
+co.elastic.apm.agent.log4j2.Log4j2LogShadingInstrumentation$ShadingInstrumentation
+co.elastic.apm.agent.log4j2.Log4j2LogShadingInstrumentation$StopAppenderInstrumentation

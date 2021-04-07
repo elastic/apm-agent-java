@@ -24,6 +24,10 @@ function setUp() {
     then
         CORE_INDEX=7
         BASE_FREQ="3.6GHz"
+    elif [ "${CPU_MODEL}" == "Intel(R) Core(TM) i7-8665U CPU @ 1.90GHz " ]
+    then
+        CORE_INDEX=7
+        BASE_FREQ="1.9GHz"
     else
         >&2 echo "Cannot determine base frequency for CPU model [${CPU_MODEL}]. Please adjust the build script."
         exit 1
