@@ -1,10 +1,12 @@
 # Spring WebFlux plugin
 
-This plugin provides instrumentation for [Spring WebFlux](https://docs.spring.io/spring/docs/current/spring-framework-reference/web-reactive.html) framework.
+This plugin provides instrumentation
+for [Spring WebFlux](https://docs.spring.io/spring/docs/current/spring-framework-reference/web-reactive.html) framework.
 
 ## Features
 
 Server-side transactions instrumentation with support for:
+
 - Annotated controllers
 - Functional routes
 - deployment within a Servlet container/application-server
@@ -31,6 +33,7 @@ Short term:
 The `apm-spring-webflux-testapp` module provides a standalone spring boot application.
 
 In order to run it, you can:
+
 - run spring-boot maven plugin
     ```
     mvn spring-boot:run
@@ -42,6 +45,7 @@ In order to run it, you can:
     ```
 
 Optional parameters
+
 - `--port 8080` set server port, use `-1` for a random port
 - `--server netty` set server implementation, valid values are `netty` and `tomcat`
 - `--count N` execute `N` sets of sample requests against application, defaults to `0`

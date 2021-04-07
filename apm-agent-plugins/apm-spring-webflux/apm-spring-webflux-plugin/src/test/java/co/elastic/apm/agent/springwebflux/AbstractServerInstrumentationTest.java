@@ -76,10 +76,10 @@ public abstract class AbstractServerInstrumentationTest extends AbstractInstrume
         flushGcExpiry();
     }
 
-    static void flushGcExpiry(){
+    static void flushGcExpiry() {
         // ensure that both reactor & webflux storage maps are properly cleaned
-        // if they are not, it means there is a bug
-        flushGcExpiry(TracedSubscriber.getContextMap(), 3);
+        // if they are not, it means there is a leaked reference that isn't properly decremented.
+        flushGcExpiry(TracedSubscriber.getContextMap(), 1);
         flushGcExpiry(TransactionAwareSubscriber.getTransactionMap(), 3);
     }
 

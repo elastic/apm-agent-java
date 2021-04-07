@@ -69,7 +69,7 @@ public class WebFluxApplication {
 
             count = Math.max(count, 100); // any smaller benchmark is not meaningful
             try {
-                if(waitForKey){
+                if (waitForKey) {
                     waitForKey();
                 }
 
@@ -78,7 +78,7 @@ public class WebFluxApplication {
                 doSampleRequests(app::getClient, count);
                 logger.info("warmup complete");
 
-                if(waitForKey){
+                if (waitForKey) {
                     waitForKey();
                 }
 
@@ -86,7 +86,7 @@ public class WebFluxApplication {
                 doSampleRequests(app::getClient, count);
                 logger.info("benchmark complete");
 
-                if(waitForKey){
+                if (waitForKey) {
                     waitForKey();
                 }
 
@@ -109,7 +109,7 @@ public class WebFluxApplication {
             .collect(Collectors.toList());
 
         long start = System.currentTimeMillis();
-        int statusFrequency = count <= 10 ? 1: count / 10;
+        int statusFrequency = count <= 10 ? 1 : count / 10;
 
         long timeLastUpdate = start;
         int countLastUpdate = 0;
@@ -182,7 +182,7 @@ public class WebFluxApplication {
         app.setBannerMode(Banner.Mode.OFF);
         appProperties.put("server.port", port);
         appProperties.put("server", server);
-        appProperties.put("logging.level.org.springframework", logEnabled ? "ERROR": "OFF");
+        appProperties.put("logging.level.org.springframework", logEnabled ? "ERROR" : "OFF");
         app.setDefaultProperties(appProperties);
 
         return new App(port, app.run(), logEnabled);

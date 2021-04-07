@@ -30,6 +30,7 @@ import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,9 +64,15 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         contextMap.put(this, context);
     }
 
+    /**
+     * Wraps {@link Subscriber#onSubscribe(Subscription)} for context propagation, executed in "subscriber scheduler".
+     *
+     * @param s subscription
+     */
     @Override
     public void onSubscribe(Subscription s) {
-        boolean hasActivated = doEnter("onSubscribe");
+        AbstractSpan<?> context = getContext();
+        boolean hasActivated = doEnter("onSubscribe", context);
         Throwable thrown = null;
         try {
             subscriber.onSubscribe(s);
@@ -73,14 +80,20 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
             thrown = e;
             throw e;
         } finally {
-            doExit(hasActivated, "onSubscribe");
+            doExit(hasActivated, "onSubscribe", context);
             discardIf(thrown != null);
         }
     }
 
+    /**
+     * Wraps {@link Subscriber#onNext(Object)} for context propagation, executed in "publisher scheduler"
+     *
+     * @param next next item
+     */
     @Override
     public void onNext(T next) {
-        boolean hasActivated = doEnter("onNext");
+        AbstractSpan<?> context = getContext();
+        boolean hasActivated = doEnter("onNext", context);
         Throwable thrown = null;
         try {
             subscriber.onNext(next);
@@ -88,29 +101,39 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
             thrown = e;
             throw e;
         } finally {
-            doExit(hasActivated, "onNext");
+            doExit(hasActivated, "onNext", context);
             discardIf(thrown != null);
         }
     }
 
+    /**
+     * Wraps {@link Subscriber#onError(Throwable)} for context propagation, executed in "publisher scheduler"
+     *
+     * @param t error
+     */
     @Override
     public void onError(Throwable t) {
-        boolean hasActivated = doEnter("onError");
+        AbstractSpan<?> context = getContext();
+        boolean hasActivated = doEnter("onError", context);
         try {
             subscriber.onError(t);
         } finally {
-            doExit(hasActivated, "onError");
+            doExit(hasActivated, "onError", context);
             discardIf(true);
         }
     }
 
+    /**
+     * Wraps {@link Subscriber#onComplete()} for context propagation, executed in "publisher scheduler"
+     */
     @Override
     public void onComplete() {
-        boolean hasActivated = doEnter("onComplete");
+        AbstractSpan<?> context = getContext();
+        boolean hasActivated = doEnter("onComplete", context);
         try {
             subscriber.onComplete();
         } finally {
-            doExit(hasActivated, "onComplete");
+            doExit(hasActivated, "onComplete", context);
             discardIf(true);
         }
     }
@@ -118,13 +141,12 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
     /**
      * Wrapped method entry
      *
-     * @param method method name (only for debugging)
+     * @param method  method name (only for debugging)
+     * @param context context
      * @return {@literal true} if context has been activated
      */
-    private boolean doEnter(String method) {
-        debugTrace(true, method);
-
-        AbstractSpan<?> context = getContext();
+    private boolean doEnter(String method, @Nullable AbstractSpan<?> context) {
+        debugTrace(true, method, context);
 
         if (context == null || tracer.getActive() == context) {
             // already activated or discarded
@@ -140,13 +162,17 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
      *
      * @param deactivate {@literal true} to de-activate due to a previous activation, no-op otherwise
      * @param method     method name (only for debugging)
+     * @param context    context
      */
-    private void doExit(boolean deactivate, String method) {
-        debugTrace(false, method);
-
-        AbstractSpan<?> context = getContext();
+    private void doExit(boolean deactivate, String method, @Nullable AbstractSpan<?> context) {
+        debugTrace(false, method, context);
 
         if (context == null || !deactivate) {
+            return;
+        }
+
+        if (context != tracer.getActive()) {
+            // don't attempt to deactivate if not the active one
             return;
         }
 
@@ -161,15 +187,18 @@ public class TracedSubscriber<T> implements CoreSubscriber<T> {
         contextMap.remove(this);
     }
 
-    private void debugTrace(boolean isEnter, String method) {
+    private void debugTrace(boolean isEnter, String method, @Nullable AbstractSpan<?> context) {
         if (!log.isTraceEnabled()) {
             return;
         }
-        log.trace("{} reactor {} {}", isEnter ? ">>" : "<<", method, getContext());
+        log.trace("{} reactor {} {}", isEnter ? ">>" : "<<", method, context);
     }
 
+    /**
+     * @return context associated with {@literal this}.
+     */
     @Nullable
-    private AbstractSpan<?> getContext(){
+    private AbstractSpan<?> getContext() {
         return contextMap.get(this);
     }
 

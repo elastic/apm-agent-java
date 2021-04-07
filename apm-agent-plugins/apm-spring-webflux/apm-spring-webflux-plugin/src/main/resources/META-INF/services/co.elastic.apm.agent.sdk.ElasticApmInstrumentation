@@ -1,4 +1,3 @@
 co.elastic.apm.agent.springwebflux.DispatcherHandlerInstrumentation
 co.elastic.apm.agent.springwebflux.HandlerAdapterInstrumentation
-co.elastic.apm.agent.springwebflux.InvocableHandlerMethodInstrumentation
 co.elastic.apm.agent.springwebflux.BodyInsertersInstrumentation

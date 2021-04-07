@@ -33,6 +33,7 @@ import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.util.SpanConcurrentHashMap;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +61,7 @@ import static co.elastic.apm.agent.springwebflux.WebFluxInstrumentation.isServle
 import static org.springframework.web.reactive.function.server.RouterFunctions.MATCHING_PATTERN_ATTRIBUTE;
 
 /**
- * Transaction-aware subscriber that will activate transaction and terminate it on error or completion.
+ * Transaction-aware subscriber that will (optionally) activate transaction and terminate it on error or completion.
  *
  * @param <T>
  */
@@ -86,16 +87,16 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
     private boolean activatedOnSubscribe = false;
 
     /**
-     * @param subscriber    subscriber to wrap
-     * @param transaction   transaction
-     * @param exchange      server web exchange
-     * @param description   human-readable description to make debugging easier
+     * @param subscriber  subscriber to wrap
+     * @param transaction transaction
+     * @param exchange    server web exchange
+     * @param description human-readable description to make debugging easier
      */
     TransactionAwareSubscriber(CoreSubscriber<? super T> subscriber,
-                                      Tracer tracer,
-                                      Transaction transaction,
-                                      ServerWebExchange exchange,
-                                      String description) {
+                               Tracer tracer,
+                               Transaction transaction,
+                               ServerWebExchange exchange,
+                               String description) {
 
         this.subscriber = subscriber;
         this.exchange = exchange;
@@ -105,9 +106,15 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         transactionMap.put(this, transaction);
     }
 
+    /**
+     * Wraps {@link Subscriber#onSubscribe(Subscription)} for context propagation, executed in "subscribe scheduler".
+     * Might activate transaction if not already active. When activating the transaction is kept active after method execution.
+     * Refer to {@link #doEnter} for details on activation.
+     */
     @Override
     public void onSubscribe(Subscription s) {
-        doEnter(true, "onSubscribe");
+        Transaction transaction = getTransaction();
+        doEnter(true, "onSubscribe", transaction);
         Throwable thrown = null;
         try {
             subscriber.onSubscribe(s);
@@ -115,13 +122,20 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             thrown = e;
             throw e;
         } finally {
-            doExit(thrown != null, "onSubscribe");
+            doExit(thrown != null, "onSubscribe", transaction);
         }
     }
 
+    /**
+     * Wraps {@link Subscriber#onNext(Object)} for context propagation, executed in "publisher scheduler".
+     * Assumes the transaction is already active, will discard transaction reference if any exception is thrown.
+     *
+     * @param next next item
+     */
     @Override
     public void onNext(T next) {
-        doEnter(false, "onNext");
+        Transaction transaction = getTransaction();
+        doEnter(false, "onNext", transaction);
         Throwable thrown = null;
         try {
             subscriber.onNext(next);
@@ -129,41 +143,50 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
             thrown = e;
             throw e;
         } finally {
-            doExit(thrown != null, "onNext");
+            doExit(thrown != null, "onNext", transaction);
         }
     }
 
+    /**
+     * Wraps {@link Subscriber#onError(Throwable)} for context propagation, executed in "publisher scheduler".
+     * Assumes the transaction is already active, will terminate transaction and optionally deactivate if it was
+     * previously activated by {@link #onSubscribe(Subscription)}.
+     *
+     * @param t error
+     */
     @Override
-    public void onError(Throwable throwable) {
-        doEnter(false, "onError");
+    public void onError(Throwable t) {
+        Transaction transaction = getTransaction();
+        doEnter(false, "onError", transaction);
         try {
-            subscriber.onError(throwable);
+            subscriber.onError(t);
         } finally {
-            endTransaction(throwable);
-            doExit(true, "onError");
+            endTransaction(t, transaction);
+            doExit(true, "onError", transaction);
         }
     }
 
+    /**
+     * Wraps {@link Subscriber#onComplete()} for context propagation, executed in "publisher scheduler".
+     * Assumes the transaction is already active, will terminate transaction and optionally deactivate if it was
+     * previously activated by {@link #onSubscribe(Subscription)}.
+     */
     @Override
     public void onComplete() {
-        doEnter(false, "onComplete");
+        Transaction transaction = getTransaction();
+        doEnter(false, "onComplete", transaction);
         try {
             subscriber.onComplete();
         } finally {
-            endTransaction(null);
-            doExit(true, "onComplete");
+            endTransaction(null, transaction);
+            doExit(true, "onComplete", transaction);
         }
     }
 
-    private void doEnter(boolean isSubscribe, String method) {
-        debugTrace(true, method);
+    private void doEnter(boolean isSubscribe, String method, @Nullable Transaction transaction) {
+        debugTrace(true, method, transaction);
 
-        if (!isSubscribe) {
-            return;
-        }
-
-        Transaction transaction = getTransaction();
-        if (transaction == null) {
+        if (!isSubscribe || transaction == null) {
             return;
         }
 
@@ -176,10 +199,9 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         activatedOnSubscribe = true;
     }
 
-    private void doExit(boolean discard, String method) {
-        debugTrace(false, method);
+    private void doExit(boolean discard, String method, @Nullable Transaction transaction) {
+        debugTrace(false, method, transaction);
 
-        Transaction transaction = getTransaction();
         if (transaction == null) {
             return;
         }
@@ -198,11 +220,11 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         return transactionMap.get(this);
     }
 
-    private void debugTrace(boolean isEnter, String method) { // TODO : migrate to 'trace'
+    private void debugTrace(boolean isEnter, String method, @Nullable Transaction transaction) {
         if (!log.isTraceEnabled()) {
             return;
         }
-        log.trace("{} {} {}", isEnter ? ">>>>" : "<<<<", description, method);
+        log.trace("{} {} {} {}", isEnter ? ">>>>" : "<<<<", description, method, transaction);
     }
 
     /**
@@ -214,8 +236,7 @@ class TransactionAwareSubscriber<T> implements CoreSubscriber<T> {
         return transactionMap;
     }
 
-    private void endTransaction(@Nullable Throwable thrown) {
-        Transaction transaction = getTransaction();
+    private void endTransaction(@Nullable Throwable thrown, @Nullable Transaction transaction) {
         if (transaction == null) {
             // already discarded
             return;

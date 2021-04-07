@@ -132,7 +132,7 @@ public class GreetingWebClient {
         Flux<String> input = Flux.range(1, count).map(i -> "ping-" + i);
 
         AtomicReference<List<String>> actualRef = new AtomicReference<>();
-        this.wsClient.execute(URI.create(wsBaseUri+"/ping"), session ->
+        this.wsClient.execute(URI.create(wsBaseUri + "/ping"), session ->
             session.send(input.map(session::textMessage))
                 .thenMany(session.receive()
                     .take(count)

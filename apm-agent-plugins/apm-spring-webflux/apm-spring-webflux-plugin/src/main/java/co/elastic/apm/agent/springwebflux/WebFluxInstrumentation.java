@@ -119,17 +119,16 @@ public abstract class WebFluxInstrumentation extends TracerAwareInstrumentation 
         return doWrap(mono, transaction, exchange, "webflux-handler-adapter");
     }
 
-    public static <T> Mono<T> wrapInvocableHandlerMethod(Mono<T> mono, Transaction transaction, ServerWebExchange exchange) {
-        return doWrap(mono, transaction, exchange, "webflux-invocable-handler-method");
-    }
-
     private static <T> Mono<T> doWrap(Mono<T> mono, final Transaction transaction, final ServerWebExchange exchange, final String description) {
         //noinspection Convert2Lambda,rawtypes,Convert2Diamond,ReactiveStreamsUnusedPublisher
         mono = mono.transform(Operators.liftPublisher(new BiFunction<Publisher, CoreSubscriber<? super T>, CoreSubscriber<? super T>>() {
-            @Override
+            @Override // liftPublisher too (or whole transform param)
             public CoreSubscriber<? super T> apply(Publisher publisher, CoreSubscriber<? super T> subscriber) {
                 log.trace("wrapping {} subscriber with transaction {}", description, transaction);
 
+                // If there is already an active transaction, it's tempting to avoid wrapping as the context propagation
+                // would be already provided through reactor instrumentation. However, we can't as the transaction
+                // name would not be properly set to match Webflux annotated controllers/router definitions.
                 return new TransactionAwareSubscriber<>(subscriber, tracer, transaction, exchange, description);
             }
         }));

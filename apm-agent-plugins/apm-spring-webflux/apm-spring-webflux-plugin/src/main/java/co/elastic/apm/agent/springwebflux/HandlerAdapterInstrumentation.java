@@ -108,11 +108,13 @@ public class HandlerAdapterInstrumentation extends WebFluxInstrumentation {
             Transaction transaction = (Transaction) enterTransaction;
             transaction.captureException(thrown);
 
-            if (resultMono == null){
+            if (resultMono == null) {
                 return resultMono;
             }
 
             if (transaction.isNoop()) {
+                // when exception has been disabled within method invocation, we need to properly disable it
+                // without the need to use wrapping
                 transaction.deactivate();
                 return resultMono;
             }

@@ -41,8 +41,8 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments {@link org.springframework.web.reactive.DispatcherHandler#handle(ServerWebExchange)} that handles functional
- * controller transaction creation and lifecycle through wrapping
+ * Instruments {@link org.springframework.web.reactive.DispatcherHandler#handle(ServerWebExchange)} that handles both
+ * transaction creation and lifecycle through wrapping. This is used for both annotation-based and functional variants.
  */
 public class DispatcherHandlerInstrumentation extends WebFluxInstrumentation {
 

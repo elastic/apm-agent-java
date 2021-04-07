@@ -108,7 +108,7 @@ public abstract class ApplicationTest {
     }
 
     @Test
-    void withChildrenSpansSSE(){
+    void withChildrenSpansSSE() {
         StepVerifier.create(client.childSpansSSE(3, 50, 10))
             .expectNextMatches(checkSSE(1))
             .expectNextMatches(checkSSE(2))

@@ -27,12 +27,10 @@ package co.elastic.apm.agent.reactor;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
@@ -99,7 +97,7 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
         TracedSubscriber.unregisterHooks();
         TracedSubscriber.registerHooks(tracer);
 
-        flushGcExpiry(TracedSubscriber.getContextMap(), 2);
+        flushGcExpiry(TracedSubscriber.getContextMap(), 1);
     }
 
     @Test
@@ -190,26 +188,29 @@ class TracedSubscriberTest extends AbstractInstrumentationTest {
 
         transaction = startTestRootTransaction("root");
 
-        Flux.error(error)
+        Flux<Object> flux = Flux.error(error)
             .subscribeOn(PUBLISH_SCHEDULER)
             .publishOn(SUBSCRIBE_SCHEDULER)
-            .subscribe(new BaseSubscriber<>() {
-
-                @Override
-                protected void hookOnError(Throwable throwable) {
-                    assertThat(throwable).isSameAs(error);
-                    checkActiveContext(transaction);
-                }
+            .onErrorMap(t -> {
+                assertThat(t).isSameAs(error);
+                checkActiveContext(transaction);
+                return t;
             });
+
+        StepVerifier.create(flux.log())
+            .verifyErrorMatches(t -> t == error);
     }
 
     @Test
     void ignoreNoActiveContext() {
         assertThat(tracer.getActive()).isNull();
 
-        // will throw an NPE due to trying to activate/deactivate a null context
-        Flux.just(1, 2, 3)
-            .subscribe();
+        // might throw an NPE if trying to activate/deactivate a null context
+        Flux<Integer> flux = Flux.just(1, 2, 3);
+
+        StepVerifier.create(flux.log())
+            .expectNext(1, 2, 3)
+            .verifyComplete();
     }
 
     private static long currentThreadId() {
