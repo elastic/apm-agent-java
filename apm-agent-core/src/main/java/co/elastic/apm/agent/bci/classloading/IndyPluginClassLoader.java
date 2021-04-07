@@ -25,8 +25,6 @@
 package co.elastic.apm.agent.bci.classloading;
 
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -44,26 +42,5 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
 
     public IndyPluginClassLoader(ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
         super(agentClassLoader, true, typeDefinitions, PersistenceHandler.MANIFEST);
-    }
-
-    // todo - for analysis, REMOVE
-    @Override
-    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        Class<?> loadedClass = null;
-        if (name.equals("co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl")) {
-            Logger logger = LoggerFactory.getLogger(IndyPluginClassLoader.class);
-            try {
-                loadedClass = findClass(name);
-                if (loadedClass == null) {
-                    logger.error("findClass() couldn't find an AsyncContextAdviceHelperImpl class", new Throwable());
-                } else {
-                    logger.debug("findClass() found a loaded AsyncContextAdviceHelperImpl");
-                }
-            } catch (Exception e) {
-                logger.error("findClass() for AsyncContextAdviceHelperImpl failed", e);
-            }
-        }
-        loadedClass = super.loadClass(name, resolve);
-        return loadedClass;
     }
 }
