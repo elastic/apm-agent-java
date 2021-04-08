@@ -1175,7 +1175,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeField("full", url.getFull());
         writeField("hostname", url.getHostname());
-        writeField("port", Integer.toString(url.getPort())); // serialize as a string for compatibility
+        int port = url.getPort();
+        if (apmServerClient.supportsNumericUrlPort()) {
+            writeField("port", port);
+        } else {
+            // serialize as a string for compatibility
+            writeField("port", Integer.toString(port));
+        }
         writeField("pathname", url.getPathname());
         writeField("search", url.getSearch());
         writeLastField("protocol", url.getProtocol());
