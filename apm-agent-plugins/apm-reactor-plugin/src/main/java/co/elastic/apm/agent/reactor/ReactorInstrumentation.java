@@ -30,8 +30,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -59,12 +59,22 @@ public class ReactorInstrumentation extends TracerAwareInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("reactor");
+        return Arrays.asList("reactor", "experimental");
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-    public static void onEnter() {
-        TracedSubscriber.registerHooks(tracer);
+    @Override
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.reactor.ReactorInstrumentation$RegisterHookAdvice";
     }
+
+    public static class RegisterHookAdvice {
+
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onEnter() {
+            TracedSubscriber.registerHooks(tracer);
+        }
+
+    }
+
 
 }

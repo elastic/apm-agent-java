@@ -49,6 +49,7 @@ public class NullSafeWeakConcurrentMap<K, V> extends WeakConcurrentMap<K, V> {
     }
 
     // duplicated from WeakConcurrentMap because it's not protected
+    // might be removed once (and if) https://github.com/raphw/weak-lock-free/pull/14 is released.
     private static boolean isPersistentClassLoader(@Nullable ClassLoader classLoader) {
         try {
             return classLoader == null // bootstrap class loader
