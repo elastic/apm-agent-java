@@ -11,14 +11,6 @@ Server-side transactions instrumentation with support for:
 - Functional routes
 - deployment within a Servlet container/application-server
 
-Short term:
-
-- [ ] Server-side context propagation: capture upstream transaction HTTP headers (if any)
-- [ ] Webflux client instrumentation >> delegate to another PR
-    - [ ] create spans to wrap HTTP request execution
-    - [ ] send current transaction/span IDs to HTTP headers
-    - instrument all sub-classes of `ClientHttpConnector` seems a good start
-
 ## Test application
 
 ### Features
