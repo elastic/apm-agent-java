@@ -37,10 +37,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -72,8 +70,8 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected static void startContainer(String image) {
-        container = new ElasticsearchContainer(image);
-        container.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
+        container = new ElasticsearchContainer(image)
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
         container.start();
     }
 
@@ -86,10 +84,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     @Before
     public void startTransaction() {
-        Transaction transaction = tracer.startRootTransaction(null).activate();
-        transaction.withName("ES Transaction");
-        transaction.withType("request");
-        transaction.withResultIfUnset("success");
+        startTestRootTransaction("ES Transaction");
     }
 
     @After
@@ -108,7 +103,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         }
     }
 
-    public void assertThatErrorsExistWhenDeleteNonExistingIndex() throws IOException {
+    public void assertThatErrorsExistWhenDeleteNonExistingIndex() {
 
         List<ErrorCapture> errorCaptures = reporter.getErrors();
         assertThat(errorCaptures).hasSize(1);
