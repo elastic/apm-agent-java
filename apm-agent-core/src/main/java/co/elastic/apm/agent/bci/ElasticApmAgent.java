@@ -535,8 +535,8 @@ public class ElasticApmAgent {
     }
 
     private static void checkNotAgentType(TypeDescription.Generic type, String description, String adviceClass, String adviceMethod) {
-        // we have to use 'raw' type to avoid trying to resolve classes that are not visible in bootstrap classloader
-        // for example, a plugin may use framework types in advice signature
+        // We have to use 'raw' type as framework classes are not accessible to the boostrap classloader, and
+        // trying to resolve them will create exceptions.
         String name = type.asRawType().getTypeName();
         if (name.startsWith("co.elastic.apm")) {
             throw new IllegalStateException(String.format("Advice %s in %s#%s must not be an agent type: %s", description, adviceClass, adviceMethod, name));
