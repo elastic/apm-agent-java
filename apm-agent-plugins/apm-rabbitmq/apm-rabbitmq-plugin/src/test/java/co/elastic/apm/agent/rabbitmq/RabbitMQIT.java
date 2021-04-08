@@ -53,6 +53,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     @BeforeAll
     static void before() {
         container.withLogConsumer(new Slf4jLogConsumer(logger))
+            .withStartupTimeout(Duration.ofSeconds(120))
             .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
             .start();
 
