@@ -128,16 +128,15 @@ class SpanConcurrentHashMapTest {
             TestSpan span = new TestSpan();
             list.add(span);
             map.put(i, span);
-            checkRefCount(span, 1);
         }
+        checkRefCount(list, 1);
 
         // clear twice, should only decrement once
         map.clear();
-        map.clear();
+        checkRefCount(list, 0);
 
-        for (AbstractSpan<?> span : list) {
-            checkRefCount(span, 0);
-        }
+        map.clear();
+        checkRefCount(list, 0);
     }
 
     @Test
@@ -162,6 +161,11 @@ class SpanConcurrentHashMapTest {
         });
 
         checkRefCount(span, 0);
+    }
+
+
+    private void checkRefCount(List<AbstractSpan<?>> spans, int expected) {
+        spans.forEach(span -> checkRefCount(span, expected));
     }
 
     private void checkRefCount(AbstractSpan<?> span, int expected) {
