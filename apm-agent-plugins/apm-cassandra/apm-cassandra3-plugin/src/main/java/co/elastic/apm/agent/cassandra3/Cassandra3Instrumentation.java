@@ -80,8 +80,8 @@ public class Cassandra3Instrumentation extends TracerAwareInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return Cassandra3Advice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.cassandra3.Cassandra3Instrumentation$Cassandra3Advice";
     }
 
     public static class Cassandra3Advice {

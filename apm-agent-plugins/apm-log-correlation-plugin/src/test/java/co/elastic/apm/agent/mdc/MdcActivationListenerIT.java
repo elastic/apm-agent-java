@@ -82,6 +82,7 @@ class MdcActivationListenerIT {
         MDC.clear();
         org.apache.log4j.MDC.clear();
         ThreadContext.clearAll();
+        org.jboss.logging.MDC.clear();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
     }
 
@@ -158,11 +159,13 @@ class MdcActivationListenerIT {
     private void assertMdcErrorIdIsEmpty() {
         assertThat(MDC.get("error.id")).isNull();
         assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
+        assertThat(org.jboss.logging.MDC.get("error.id")).isNull();
     }
 
     private Answer<Void> assertMdcErrorIdIsNotEmpty() {
         assertThat(MDC.get("error.id")).isNotBlank();
         assertThat(org.apache.log4j.MDC.get("error.id")).isNotNull();
+        assertThat(org.jboss.logging.MDC.get("error.id")).isNotNull();
         return null;
     }
 }
