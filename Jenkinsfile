@@ -3,7 +3,7 @@
 @Library('apm@current') _
 
 pipeline {
-  agent { label 'linux && immutable' }
+  agent { label 'debian-9' }
   environment {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"

@@ -50,7 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -78,11 +77,7 @@ public class RabbitMQIT extends AbstractInstrumentationTest {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMQIT.class);
 
     private static final String IMAGE = "rabbitmq:3.7-management-alpine";
-    private static final RabbitMQContainer container = new RabbitMQContainer(IMAGE)
-        // override the log message wait strategy because it does not work with docker 20.10.5
-        // see https://github.com/moby/moby/issues/41820
-        // and https://github.com/testcontainers/testcontainers-java/issues/3613
-        .waitingFor(Wait.forListeningPort());
+    private static final RabbitMQContainer container = new RabbitMQContainer(IMAGE);
 
     private static final String ROUTING_KEY = "test.key";
 
