@@ -53,8 +53,8 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
     @BeforeClass
     public static void startContainer() {
         container = new GenericContainer<>("mongo:3.4")
-            .withExposedPorts(PORT);
-        container.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
+            .withExposedPorts(PORT)
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
         container.start();
     }
 
