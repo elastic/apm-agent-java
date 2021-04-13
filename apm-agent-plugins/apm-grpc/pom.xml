@@ -5,7 +5,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-plugins</artifactId>
-        <version>1.18.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-grpc</artifactId>
@@ -25,7 +25,7 @@
         <module>apm-grpc-plugin</module>
         <module>apm-grpc-test-1.6.1</module>
         <!-- other intermediate gRPC versions that have been tested : 1.7.1, 1,9.1, 1.13.2, 1.22.0, 1.23.0, 1.27.1 -->
-       <!-- <module>apm-grpc-test-latest</module>-->
+       <module>apm-grpc-test-latest</module>
    </modules>
 
     <build>

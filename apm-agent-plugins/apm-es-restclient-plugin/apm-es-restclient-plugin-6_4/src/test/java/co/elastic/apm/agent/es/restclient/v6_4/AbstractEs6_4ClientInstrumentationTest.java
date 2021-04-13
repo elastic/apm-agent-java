@@ -332,11 +332,11 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
     }
 
 
-    private interface ClientMethod<Req, Res> {
+    protected interface ClientMethod<Req, Res> {
         void invoke(Req request, RequestOptions options, ActionListener<Res> listener);
     }
 
-    private <Req, Res> Res invokeAsync(Req request, ClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {
+    protected  <Req, Res> Res invokeAsync(Req request, ClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {
         final CompletableFuture<Res> resultFuture = new CompletableFuture<>();
         method.invoke(request, RequestOptions.DEFAULT, new ActionListener<>() {
             @Override

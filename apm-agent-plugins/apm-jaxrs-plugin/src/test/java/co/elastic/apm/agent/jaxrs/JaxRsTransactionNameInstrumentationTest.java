@@ -312,11 +312,15 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
      * @param path the path to make the get request against
      */
     private void doRequest(String path) {
-        final Transaction request = tracer.startRootTransaction(null).withType("request").activate();
+        final Transaction request = tracer.startRootTransaction(null)
+            .withType("request")
+            .activate();
         try {
             assertThat(getClient().target(getBaseUri()).path(path).request().buildGet().invoke(String.class)).isEqualTo("ok");
         } finally {
-            request.deactivate().end();
+            request
+                .deactivate()
+                .end();
         }
     }
 

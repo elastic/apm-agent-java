@@ -27,10 +27,13 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
@@ -62,23 +65,33 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Before
     public final void setUpWiremock() {
+        // ensure that HTTP spans outcome is not unknown
         wireMockRule.stubFor(any(urlEqualTo("/"))
-            .willReturn(aResponse()
+            .willReturn(dummyResponse()
                 .withStatus(200)));
         wireMockRule.stubFor(get(urlEqualTo("/error"))
-            .willReturn(aResponse()
+            .willReturn(dummyResponse()
                 .withStatus(515)));
         wireMockRule.stubFor(get(urlEqualTo("/redirect"))
             .willReturn(seeOther("/")));
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
-        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader());
-        transaction.withName("parent of http span").withType("request").activate();
+
+        startTestRootTransaction("parent of http span");
+    }
+
+    protected ResponseDefinitionBuilder dummyResponse() {
+        return aResponse()
+            // old spring 3.0 require content type
+            .withHeader("Content-Type", "text/plain")
+            .withBody("hello");
     }
 
     @After
     public final void after() {
-        tracer.currentTransaction().deactivate().end();
+        Transaction transaction = tracer.currentTransaction();
+        assertThat(transaction).isNotNull();
+        transaction.deactivate().end();
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
@@ -107,7 +120,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     @Test
     public void testHttpCallWithIpv4() throws Exception {
         performGet("http://127.0.0.1:" + wireMockRule.port() + "/");
-        verifyHttpSpan("http", "127.0.0.1", wireMockRule.port(), "/");
+        verifyHttpSpan("127.0.0.1", "/");
     }
 
     @Test
@@ -115,33 +128,50 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         if (!isIpv6Supported()) {
             return;
         }
-        performGet("http://[::1]:" + wireMockRule.port() + "/");
-        verifyHttpSpan("http", "[::1]", wireMockRule.port(), "/");
+        performGet(String.format("http://[::1]:%d/", wireMockRule.port()));
+        verifyHttpSpan("[::1]", "/");
     }
 
-    protected void verifyHttpSpan(String path) {
-        verifyHttpSpan("http", "localhost", wireMockRule.port(), path);
+    protected Span verifyHttpSpan(String path) {
+        return verifyHttpSpan("localhost", path);
     }
 
-    protected void verifyHttpSpan(String scheme, String host, int port, String path) {
+    protected Span verifyHttpSpan(String host, String path, int status){
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
-        String baseUrl = scheme + "://" + host + ":" + port;
-        assertThat(span.getContext().getHttp().getUrl()).isEqualTo(baseUrl + path);
-        assertThat(span.getContext().getHttp().getStatusCode()).isEqualTo(200);
+
+        int port = wireMockRule.port();
+
+        String baseUrl = String.format("http://%s:%d", host, port);
+
+        Http httpContext = span.getContext().getHttp();
+
+        assertThat(httpContext.getUrl()).isEqualTo(baseUrl + path);
+        assertThat(httpContext.getStatusCode()).isEqualTo(status);
+
+        assertThat(span.getOutcome()).isEqualTo(status <= 400 ? Outcome.SUCCESS : Outcome.FAILURE);
+
         assertThat(span.getType()).isEqualTo("external");
         assertThat(span.getSubtype()).isEqualTo("http");
         assertThat(span.getAction()).isNull();
+
         Destination destination = span.getContext().getDestination();
         int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
         int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
         assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
-        assertThat(destination.getPort()).isEqualTo(wireMockRule.port());
+        assertThat(destination.getPort()).isEqualTo(port);
         assertThat(destination.getService().getName().toString()).isEqualTo(baseUrl);
-        assertThat(destination.getService().getResource().toString()).isEqualTo(host + ":" + wireMockRule.port());
+        assertThat(destination.getService().getResource().toString()).isEqualTo("%s:%d", host, port);
         assertThat(destination.getService().getType()).isEqualTo("external");
-        verifyTraceContextHeaders(reporter.getFirstSpan(), path);
+
+        verifyTraceContextHeaders(span, path);
+
+        return span;
+    }
+
+    protected Span verifyHttpSpan(String host, String path) {
+        return verifyHttpSpan(host, path, 200);
     }
 
     private void verifyTraceContextHeaders(Span span, String path) {
@@ -161,10 +191,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getFirstSpan(500)).isNotNull();
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
+        verifyHttpSpan("localhost", path, 404);
     }
 
     @Test
@@ -172,10 +199,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/error";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getFirstSpan(500)).isNotNull();
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
+        verifyHttpSpan("localhost", path, 515);
     }
 
     @Test
@@ -183,13 +207,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/redirect";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getFirstSpan(500)).isNotNull();
-        assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
+        Span span = verifyHttpSpan(path);
 
-        verifyTraceContextHeaders(reporter.getFirstSpan(), "/redirect");
-        verifyTraceContextHeaders(reporter.getFirstSpan(), "/");
+        verifyTraceContextHeaders(span, "/redirect");
+        verifyTraceContextHeaders(span, "/");
     }
 
     @Test
@@ -201,14 +222,16 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/circular-redirect";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getFirstSpan(500)).isNotNull();
+        Span span = reporter.getFirstSpan(500);
+        assertThat(span).isNotNull();
+
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(span.getOutcome()).isEqualTo(Outcome.FAILURE);
 
-        verifyTraceContextHeaders(reporter.getFirstSpan(), "/circular-redirect");
+        verifyTraceContextHeaders(span, "/circular-redirect");
     }
 
     protected String getBaseUrl() {

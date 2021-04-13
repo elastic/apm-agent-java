@@ -68,8 +68,8 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return KafkaProducerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.KafkaProducerInstrumentation$KafkaProducerAdvice";
     }
 
     @SuppressWarnings("rawtypes")
@@ -78,7 +78,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         @AssignTo.Argument(1)
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static Callback beforeSend(@Advice.Argument(0) final ProducerRecord record,
-                                      @Advice.Argument(1) @Nullable Callback callback) {
+                                          @Advice.Argument(1) @Nullable Callback callback) {
             Span span = null;
 
             //noinspection ConstantConditions

@@ -26,6 +26,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
@@ -39,14 +40,17 @@ import okhttp3.Request;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClient3ExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttp3ClientInstrumentation$OkHttpClient3ExecuteAdvice";
     }
 
     public static class OkHttpClient3ExecuteAdvice {
@@ -87,6 +91,8 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
                     if (response != null) {
                         int statusCode = response.code();
                         span.getContext().getHttp().withStatusCode(statusCode);
+                    } else if (t != null) {
+                        span.withOutcome(Outcome.FAILURE);
                     }
                     span.captureException(t);
                 } finally {
@@ -98,11 +104,11 @@ public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumen
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("okhttp3.RealCall");
+        return nameStartsWith("okhttp3.").and(nameEndsWith(".RealCall"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute").and(returns(named("okhttp3.Response")));
+        return named("execute").and(returns(hasSuperType(named("okhttp3.Response"))));
     }
 }

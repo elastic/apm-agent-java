@@ -25,27 +25,33 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.BinaryHeaderMapAccessor;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.MultiValueMapAccessor;
 import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import co.elastic.apm.agent.util.HexUtils;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -252,6 +258,9 @@ class TraceContextTest {
         );
         final TraceContext child = TraceContext.with64BitId(tracer);
         assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, textHeaderMap, TextHeaderMapAccessor.INSTANCE)).isFalse();
+
+        assertThat(child.isRecorded()).isFalse();
+
         Map<String, String> outgoingHeaders = new HashMap<>();
         child.propagateTraceContext(outgoingHeaders, TextHeaderMapAccessor.INSTANCE);
         assertThat(outgoingHeaders.get(TraceContext.TRACESTATE_HEADER_NAME)).isNull();
@@ -473,11 +482,110 @@ class TraceContextTest {
     void testSetSampled() {
         final TraceContext traceContext = TraceContext.with64BitId(tracer);
         traceContext.asRootSpan(ConstantSampler.of(false));
+
+        // not sampled means zero sample rate
         assertThat(traceContext.isSampled()).isFalse();
+        assertThat(traceContext.getSampleRate()).isEqualTo(0d);
+
+        // sampled without sample rate
         traceContext.setRecorded(true);
+
         assertThat(traceContext.isSampled()).isTrue();
+        assertThat(traceContext.getSampleRate()).isNaN();
+
+        // sampled with sample rate
+        traceContext.getTraceState().set(0.5d, TraceState.getHeaderValue(0.5d));
+
+        assertThat(traceContext.isSampled()).isTrue();
+        assertThat(traceContext.getSampleRate()).isEqualTo(0.5d);
+
+        // not sampled, sample rate should be unset
         traceContext.setRecorded(false);
         assertThat(traceContext.isSampled()).isFalse();
+        assertThat(traceContext.getSampleRate()).isEqualTo(0.0d);
+    }
+
+    @Test
+    void testRootSpanShouldAddsSampleRateToTraceState() {
+        final TraceContext traceContext = createRootSpan(0.42d);
+        String traceState = traceContext.getTraceState().toTextHeader();
+        assertThat(traceState).isEqualTo("es=s:0.42");
+    }
+
+    private TraceContext createRootSpan(double sampleRate){
+        final TraceContext traceContext = TraceContext.with64BitId(tracer);
+
+        Sampler sampler = mock(Sampler.class);
+        when(sampler.isSampled(any(Id.class))).thenReturn(true);
+        when(sampler.getSampleRate()).thenReturn(sampleRate);
+        when(sampler.getTraceStateHeader()).thenReturn(TraceState.getHeaderValue(sampleRate));
+
+        traceContext.asRootSpan(sampler);
+        return traceContext;
+    }
+
+    @Test
+    void testTracedChildSpanWithoutTraceState() {
+        Map<String, String> headers = Map.of(
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01"
+        );
+        TraceContext child = createChildSpanFromHeaders(headers);
+
+        assertThat(child.isSampled()).isTrue();
+        assertThat(child.getSampleRate()).isNaN();
+    }
+
+    @Test
+    void testNonTracedChildSpanWithoutTraceState() {
+        Map<String, String> headers = Map.of(
+            TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00"
+        );
+        TraceContext child = createChildSpanFromHeaders(headers);
+
+        assertThat(child.isSampled()).isFalse();
+        assertThat(child.getSampleRate()).isEqualTo(0.0d);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        // invalid tracestate values: just assume no sample rate is provided
+        "|NaN",
+        "es=|NaN",
+        "es=s|NaN",
+        "es=s:|NaN",
+        "es=s:a|NaN",
+        // valid tracestate values with sample rate
+        "es=s:1|1",
+        "es=s:0.42|0.42",
+        // other vendors entries
+        "a=123,es=s:0.42|0.42",
+    })
+    void checkExpectedSampleRate(@Nullable String traceState, double expectedRate) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put(TraceContext.W3C_TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+        if (null != traceState) {
+            headers.put(TraceContext.TRACESTATE_HEADER_NAME, traceState);
+        }
+
+        TraceContext child = createChildSpanFromHeaders(headers);
+
+        assertThat(child.isSampled()).isTrue();
+
+        assertThat(child.getSampleRate())
+            .describedAs("tracestate = '%s' should have sample rate = %s", traceState, expectedRate)
+            // Casting to Double is required so that comparison of two Double#NaN will be correct (see Double#equals javadoc for info)
+            .isEqualTo(Double.valueOf(expectedRate));
+
+        assertThat(child.getTraceState().toTextHeader())
+                .describedAs("tracestate should be kept as-is")
+                .isEqualTo(traceState);
+
+    }
+
+    private TraceContext createChildSpanFromHeaders(Map<String, String> inHeaders) {
+        TraceContext child = TraceContext.with64BitId(tracer);
+        assertThat(TraceContext.<Map<String, String>>getFromTraceContextTextHeaders().asChildOf(child, inHeaders, TextHeaderMapAccessor.INSTANCE)).isTrue();
+        return child;
     }
 
     @Test
@@ -510,6 +618,19 @@ class TraceContextTest {
         childContext.propagateTraceContext(binaryHeaderMap, BinaryHeaderMapAccessor.INSTANCE);
         verifyTraceContextContents(binaryHeaderMap.get(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME),
             childContext.getTraceId().toString(), childContext.getId().toString(), (byte) 0x00, (byte) 0x01);
+    }
+
+    @Test
+    void testRootContextSampleRateFromSampler() {
+        Sampler sampler = mock(Sampler.class);
+        when(sampler.isSampled(any(Id.class))).thenReturn(true);
+        when(sampler.getSampleRate()).thenReturn(0.42d);
+
+        final TraceContext rootContext = TraceContext.with64BitId(tracer);
+        rootContext.asRootSpan(sampler);
+
+        assertThat(rootContext.isRecorded()).isTrue();
+        assertThat(rootContext.getSampleRate()).isEqualTo(0.42d);
     }
 
     @Test
@@ -609,13 +730,17 @@ class TraceContextTest {
 
     @Test
     void testDeserialization() {
-        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        ElasticApmTracer tracer = MockTracer.create();
+        CoreConfiguration configuration = tracer.getConfig(CoreConfiguration.class);
+        when(configuration.getTracestateSizeLimit()).thenReturn(Integer.MAX_VALUE);
+
+        final TraceContext traceContext = TraceContext.with64BitId(tracer);
         traceContext.asRootSpan(ConstantSampler.of(true));
 
         byte[] serializedContext = new byte[TraceContext.SERIALIZED_LENGTH];
         traceContext.serialize(serializedContext);
 
-        TraceContext deserialized = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        TraceContext deserialized = TraceContext.with64BitId(tracer);
         deserialized.deserialize(serializedContext, null);
 
         assertThat(deserialized.traceIdAndIdEquals(serializedContext)).isTrue();

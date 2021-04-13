@@ -187,6 +187,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
                 }
             };
         }
+
         void accept(T t) throws Exception;
     }
 

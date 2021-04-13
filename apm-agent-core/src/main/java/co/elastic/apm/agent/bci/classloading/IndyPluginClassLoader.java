@@ -25,10 +25,7 @@
 package co.elastic.apm.agent.bci.classloading;
 
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
-import net.bytebuddy.dynamic.loading.MultipleParentClassLoader;
 
-import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -39,7 +36,11 @@ import java.util.Map;
  * @see co.elastic.apm.agent.bci.IndyBootstrap
  */
 public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
-    public IndyPluginClassLoader(@Nullable ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
-        super(new MultipleParentClassLoader(agentClassLoader, Arrays.asList(agentClassLoader, targetClassLoader)), true, typeDefinitions, PersistenceHandler.MANIFEST);
+    public IndyPluginClassLoader(ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
+        super(new IndyPluginClassLoaderParent(agentClassLoader, targetClassLoader), true, typeDefinitions, PersistenceHandler.MANIFEST);
+    }
+
+    public IndyPluginClassLoader(ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
+        super(agentClassLoader, true, typeDefinitions, PersistenceHandler.MANIFEST);
     }
 }

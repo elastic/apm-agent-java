@@ -68,7 +68,7 @@ public class RedisConnectionInstrumentation extends TracerAwareInstrumentation {
             Channel channel = connection.getChannel();
             InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
             span.getContext().getDestination()
-                .withAddress(remoteAddress.getAddress().getHostAddress())
+                .withInetAddress(remoteAddress.getAddress())
                 .withPort(remoteAddress.getPort());
         }
     }

@@ -28,11 +28,16 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.URI;
 
 public class HttpClientHelper {
+
+    private static final Logger logger = LoggerFactory.getLogger(HttpClientHelper.class);
+
     public static final String EXTERNAL_TYPE = "external";
     public static final String HTTP_SUBTYPE = "http";
 
@@ -63,10 +68,14 @@ public class HttpClientHelper {
                 .withSubtype(HTTP_SUBTYPE)
                 .appendToName(method).appendToName(" ").appendToName(hostName);
 
-            if (uri != null) {
-                span.getContext().getHttp().withUrl(uri);
-            }
+            span.getContext().getHttp()
+                .withUrl(uri)
+                .withMethod(method);
+
             setDestinationServiceDetails(span, scheme, hostName, port);
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("Created an HTTP exit span: {} for URI: {}. Parent span: {}", span, uri, parent);
         }
         return span;
     }

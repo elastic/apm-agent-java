@@ -52,7 +52,11 @@ the agent does not capture transactions.
 |`--module-path` has not been tested yet
 
 |IBM J9 VM
-|8 service refresh 5+
+|8 service refresh 5+ (build 2.9 or 8.0.5.0)
+|
+
+|HP-UX JVM
+| 7.0.10+, 8.0.02+
 |
 |===
 
@@ -63,8 +67,12 @@ Similarly, Java 7 versions before update 60 are not supported as they are buggy 
 
 Here is an example of the message displayed when this happens.
 ```
-Failed ot start agent - JVM version not supported: 1.8.0_31
+Failed to start agent - JVM version not supported: 1.8.0_31 Java HotSpot(TM) 64-Bit Server VM 25.31-b07.
+To override Java version verification, set the 'elastic.apm.disable_bootstrap_checks' System property to 'true'.
 ```
+
+As this message states, you can disable this check if required by adding `-Delastic.apm.disable_bootstrap_checks` to
+the JVM arguments.
 
 
 [float]
@@ -220,6 +228,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The actual query will not be recorded.
 |1.12.0
 
+|Cassandra
+|2.x+
+|
+|1.23.0
+
 |===
 
 [float]
@@ -244,12 +257,12 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 | 1.6.0
 
 |Spring RestTemplate
-|4+
+|3.1.1+
 |
 | 0.7.0
 
 |OkHttp
-|2, 3
+|2, 3, 4 (4.4+ since 1.22.0)
 |
 |1.4.0 (synchronous calls via `Call#execute()`)
  1.5.0 (async calls via `Call#enquene(Callback)`)
@@ -348,8 +361,27 @@ If both producer and consumer are traced, then distributed tracing is supported,
 side will be a part of the same trace containing the producer side as well. Kafka streams are not traced.
 |1.13.0
 
+|RabbitMQ
+|3.x - 5.x
+|The agent captures RabbitMQ Message sends, consumption and polling.
+When the producer sends a message within a traced transaction, a send span will be created and the transaction resulting
+from the message consumption will be correlated to the same trace.
+When a message is consumed, a transaction is created, regardless if the send action is traced.
+When a message is polled, a span is created for the polling operation and optionally have message fields if a message
+has been returned.
+|1.20.0
+
 |===
 
+For RabbitMQ:
+
+- `context.message.queue.name` field will contain queue name when using polling, exchange name otherwise.
+- `context.message.destination.resource` field will contain `rabbitmq/XXX` where `XXX` is exchange name.
+
+Some exchange/queue names are normalized in order to keep low cardinality and user-friendlyness
+- default exchange is indicated with `<default>`.
+- `null` exchange is normalized to `<unknown>`, for example when polling without a message.
+- generated queues whose name start with `amq.gen-` are normalized to `amq.gen-*`.
 
 [float]
 [[supported-scheduling-frameworks]]
@@ -398,26 +430,56 @@ NOTE: only classes from the quartz-jobs dependency will be instrumented automati
  Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0).
 When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
 
-|1.0.0, 1.10.0 (error capturing)
+|Trace correlation - 1.0.0
+
+Error capturing - 1.10.0
 
 |log4j2
-|2.0+
+|Trace correlation - 2.0+
+
+ECS Reformatting - 2.6+
+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/2.x/manual/thread-context.html[ThreadContext] entry for `trace.id` and `transaction.id`.
-See the <<config-enable-log-correlation>> configuration option for more details.
+
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
 
 Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
 When doing so, the ID corresponding the captured error (`error.id`) is added to the MDC as well (since 1.16.0).
-|1.13.0
+|Trace correlation - 1.13.0
+
+Error capturing - 1.10.0
+
+ECS Reformatting - 1.22.0
 
 
 |log4j
-|1.x
+|Trace correlation - 1.x
+
+ECS Reformatting - 1.2.17
+
 |When <<config-enable-log-correlation>> is set to `true`,
 the agent will add a https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
-See the <<config-enable-log-correlation>> configuration option for more details.
 
-|1.13.0
+When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
+|Trace correlation - 1.13.0
+
+ECS Reformatting - 1.22.0
+
+|Logback
+|1.1.0+
+|When <<config-log-ecs-reformatting, `log_ecs_reformatting`>> is enabled, logs will be automatically reformatted into
+ECS-compatible format (since 1.22.0, experimental)
+|1.22.0
+
+|JBoss Logging
+|3.0.0+
+|When <<config-enable-log-correlation>> is set to `true`,
+the agent will add a http://javadox.com/org.jboss.logging/jboss-logging/3.3.0.Final/org/jboss/logging/MDC.html[MDC]
+entry for `trace.id` and `transaction.id`. See the <<config-enable-log-correlation>> configuration option for more details.
+|1.23.0
 
 |===
 
@@ -477,7 +539,7 @@ If you are seeing gaps in the span timeline and want to include additional metho
 |Set the configuration option <<config-capture-jmx-metrics, `capture_jmx_metrics`>> in order to monitor any JMX metric.
 |1.11.0
 
-|Micrometer
+|Micrometer (<<metrics-micrometer-beta-caveats,beta>>)
 |Automatically detects and reports the metrics of each `MeterRegistry`.
  See <<metrics-micrometer>> for more details.
 |1.18.0

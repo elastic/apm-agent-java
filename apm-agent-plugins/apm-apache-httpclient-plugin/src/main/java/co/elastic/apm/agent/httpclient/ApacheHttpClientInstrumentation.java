@@ -27,6 +27,7 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
@@ -34,6 +35,7 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.conn.routing.HttpRoute;
@@ -88,14 +90,20 @@ public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrum
                 }
                 span.captureException(t);
             } finally {
+                // in case of circular redirect, we get an exception but status code won't be available without response
+                // thus we have to deal with span outcome directly
+                if (t instanceof CircularRedirectException) {
+                    span.withOutcome(Outcome.FAILURE);
+                }
+
                 span.deactivate().end();
             }
         }
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ApacheHttpClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.ApacheHttpClientInstrumentation$ApacheHttpClientAdvice";
     }
 
     @Override

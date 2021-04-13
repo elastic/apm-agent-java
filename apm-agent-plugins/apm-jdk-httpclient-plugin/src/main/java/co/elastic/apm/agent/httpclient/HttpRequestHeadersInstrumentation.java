@@ -33,6 +33,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.net.http.HttpHeaders;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,12 +61,13 @@ public class HttpRequestHeadersInstrumentation extends AbstractHttpClientInstrum
         return named("headers").and(returns(named("java.net.http.HttpHeaders")));
     }
 
-    @Nonnull
+
+    @Nullable
     @AssignTo.Return
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static HttpHeaders onAfterExecute(@Advice.Return @Nonnull final HttpHeaders httpHeaders) {
+    public static HttpHeaders onAfterExecute(@Advice.Return @Nullable final HttpHeaders httpHeaders) {
         Span span = tracer.getActiveSpan();
-        if (span == null) {
+        if (span == null || httpHeaders == null) { // in case of thrown exception return value might be null
             return httpHeaders;
         }
         Map<String, List<String>> headersMap = new LinkedHashMap<>(httpHeaders.map());
