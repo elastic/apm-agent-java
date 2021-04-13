@@ -103,7 +103,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                     .withName(RECEIVE_NAME_PREFIX);
 
                 if (destinationName != null) {
-                    helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
+                    helper.addDestinationDetails(destination, destinationName, transaction.appendToName(" from "));
                 }
                 helper.addMessageDetails(message, transaction);
                 helper.setMessageAge(message, transaction);
