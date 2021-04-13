@@ -35,18 +35,6 @@ public class TestContainersUtils {
     private TestContainersUtils() {
     }
 
-    static {
-        // ensure that we have a known and explicit failure when using a buggy docker version
-        String versionStr = DockerClientFactory.instance().client().versionCmd().exec().getVersion();
-        String[] version = versionStr.split("\\.");
-        if (version[0].equals("20") && version[1].equals("10")) {
-            Integer patch = Integer.parseInt(version[2]);
-            if (patch < 6) {
-                throw new IllegalStateException("known issue with docker,using " + versionStr + ", use 19.x or >= 20.10.6, see https://github.com/moby/moby/issues/41820 or https://github.com/testcontainers/testcontainers-java/issues/3613 for details");
-            }
-        }
-    }
-
     public static Consumer<CreateContainerCmd> withMemoryLimit(int limitMb) {
         return cmd -> Objects.requireNonNull(cmd.getHostConfig()).withMemory(limitMb * 1024 * 1024L);
     }
