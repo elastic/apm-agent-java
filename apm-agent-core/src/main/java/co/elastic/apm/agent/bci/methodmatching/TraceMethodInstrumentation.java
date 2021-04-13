@@ -43,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.matches;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -104,12 +105,8 @@ public class TraceMethodInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return matches(methodMatcher.getClassMatcher())
+            .and(not(isProxy()))
             .and(methodMatcher.getAnnotationMatcher())
-            .and(not(nameContains("$JaxbAccessor")))
-            .and(not(nameContains("$$")))
-            .and(not(nameContains("CGLIB")))
-            .and(not(nameContains("EnhancerBy")))
-            .and(not(nameContains("$Proxy")))
             .and(declaresMethod(matches(methodMatcher.getMethodMatcher())));
     }
 

@@ -60,7 +60,7 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         try {
             value = message.getStringProperty(headerName);
         } catch (JMSException e) {
-            logger.error("Failed to extract JMS message property", e);
+            logger.error("Failed to extract JMS message property {}", headerName, e);
         }
         return value;
     }
@@ -83,9 +83,9 @@ public class JmsMessagePropertyAccessor extends AbstractHeaderGetter<String, Mes
         try {
             message.setStringProperty(headerName, headerValue);
         } catch (MessageNotWriteableException e) {
-            logger.debug("Failed to set JMS message property due to read-only message", e);
+            logger.debug("Failed to set JMS message property {} due to read-only message", headerName, e);
         } catch (JMSException e) {
-            logger.warn("Failed to set JMS message property. Distributed tracing cannot work without that.");
+            logger.warn("Failed to set JMS message property {}. Distributed tracing may not work.", headerName);
             logger.debug("Detailed error: ", e);
         }
     }
