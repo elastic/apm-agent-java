@@ -77,8 +77,8 @@ public class ConsumerInstrumentation extends RabbitmqBaseInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return RabbitConsumerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.rabbitmq.ConsumerInstrumentation$RabbitConsumerAdvice";
     }
 
     public static class RabbitConsumerAdvice {

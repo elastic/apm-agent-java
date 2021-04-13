@@ -61,8 +61,8 @@ public class ConsumerRecordsRecordListInstrumentation extends KafkaConsumerRecor
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ConsumerRecordsAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.ConsumerRecordsRecordListInstrumentation$ConsumerRecordsAdvice";
     }
 
     @SuppressWarnings("rawtypes")

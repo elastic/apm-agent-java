@@ -55,8 +55,8 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return KafkaConsumerAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.kafka.KafkaConsumerInstrumentation$KafkaConsumerAdvice";
     }
 
     public static class KafkaConsumerAdvice {

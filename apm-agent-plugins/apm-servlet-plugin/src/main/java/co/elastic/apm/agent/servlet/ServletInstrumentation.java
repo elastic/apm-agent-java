@@ -78,8 +78,8 @@ public class ServletInstrumentation extends AbstractServletInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ServletApiAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
     }
 
 }
