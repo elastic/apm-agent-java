@@ -66,7 +66,7 @@ Even when matching on the main class name or on system properties,
 ===== Bug fixes
 * Fixed log correlation for log4j2 - {pull}1720[#1720]
 * Fix apm-log4j1-plugin and apm-log4j2-plugin dependency on slf4j - {pull}1723[#1723]
-* Avoid systematic `MessageNotWriteableException` error logging, now only visible in `debug` - {pull}1715[#1715]
+* Avoid systematic `MessageNotWriteableException` error logging, now only visible in `debug` - {pull}1715[#1715] and {pull}1730[#1730]
 * Fix rounded number format for non-english locales - {pull}1728[#1728]
 * Fix `NullPointerException` on legacy Apache client instrumentation when host is `null` - {pull}1746[#1746]
 * Apply consistent proxy class exclusion heuristic - {pull}1738[#1738]
