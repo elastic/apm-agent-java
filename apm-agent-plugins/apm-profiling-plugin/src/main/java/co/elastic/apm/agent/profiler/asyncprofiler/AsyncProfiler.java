@@ -114,7 +114,7 @@ public class AsyncProfiler {
                 throw new IllegalStateException("Async-profiler does not work on Linux " + arch);
             }
         } else if (os.contains("mac")) {
-            return "libasyncProfiler-macos";
+            return "libasyncProfiler-macos-x64";
         } else {
             throw new IllegalStateException("Async-profiler does not work on " + os);
         }

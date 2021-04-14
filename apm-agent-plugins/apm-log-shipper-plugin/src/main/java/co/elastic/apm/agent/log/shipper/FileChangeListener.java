@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.log.shipper;
 
-import java.io.IOException;
-
 public interface FileChangeListener {
 
     /**
@@ -37,10 +35,10 @@ public interface FileChangeListener {
      * @param length
      * @param eol
      * @return
-     * @throws IOException If there is an exception while processing the line.
-     *                     Throwing an exception stops tailing the file.
+     * @throws Exception If there is an exception while processing the line.
+     *                   Throwing an exception stops tailing the file.
      */
-    boolean onLineAvailable(TailableFile file, byte[] line, int offset, int length, boolean eol) throws IOException;
+    boolean onLineAvailable(TailableFile file, byte[] line, int offset, int length, boolean eol) throws Exception;
 
     void onIdle();
 

@@ -60,8 +60,8 @@ public class FilterChainInstrumentation extends AbstractServletInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ServletApiAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.servlet.ServletApiAdvice";
     }
 
 }

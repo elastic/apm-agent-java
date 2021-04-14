@@ -5,14 +5,14 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.19.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
@@ -21,6 +21,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
             <version>${version.slf4j}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-premain</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -52,6 +57,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-bootdelegation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-cassandra3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-cassandra4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -161,6 +176,21 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-logback-plugin-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log4j1-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log4j2-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-mongoclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -181,6 +211,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-rabbitmq-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-redis-common</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -196,12 +231,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-micrometer-plugin</artifactId>
+            <artifactId>apm-log-shipper-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-shipper-plugin</artifactId>
+            <artifactId>apm-micrometer-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -402,6 +437,13 @@
                                 <relocation>
                                     <pattern>org.HdrHistogram</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
+                                </relocation>
+
+                                <!-- This reverts logging frameworks temporary packages given during the execution of the package
+                                phase of the apm-log-shader-plugin to their original packages -->
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.logshading.shaded</pattern>
+                                    <shadedPattern>org</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>

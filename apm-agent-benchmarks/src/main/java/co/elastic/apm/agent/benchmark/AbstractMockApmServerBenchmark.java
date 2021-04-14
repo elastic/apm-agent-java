@@ -88,7 +88,7 @@ public class AbstractMockApmServerBenchmark extends AbstractBenchmark {
 //                     .add("profiling_inferred_spans", "true")
 //                     .add("profiling_interval", "10s")
                     .add("classes_excluded_from_instrumentation", "java.*,com.sun.*,sun.*")
-                    .add("server_urls", "http://localhost:" + port))
+                    .add("server_url", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
             .buildAndStart();

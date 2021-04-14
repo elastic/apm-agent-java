@@ -44,7 +44,7 @@ public class ExcludedExecutorClassTest extends AbstractInstrumentationTest {
     public void setUp() {
         executor = Executors.newFixedThreadPool(1);
         ExecutorInstrumentation.excludedClasses.add(executor.getClass().getName());
-        transaction = tracer.startRootTransaction(null).withName("Transaction").activate();
+        transaction = startTestRootTransaction();
     }
 
     @After

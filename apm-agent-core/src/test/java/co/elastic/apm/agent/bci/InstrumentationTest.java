@@ -50,24 +50,17 @@ import org.apache.commons.pool2.impl.CallStackUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.event.SubstituteLoggingEvent;
 import org.stagemonitor.configuration.ConfigurationRegistry;
-import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -77,7 +70,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 class InstrumentationTest {
 
@@ -101,20 +93,6 @@ class InstrumentationTest {
     @Test
     void testIntercept() {
         init(List.of(new TestInstrumentation()));
-        assertThat(interceptMe()).isEqualTo("intercepted");
-    }
-
-    @Test
-    void testExternalPlugin(@TempDir File pluginsDir) throws Exception {
-        File pluginJar = new File(pluginsDir, "plugin.jar");
-        try (JarOutputStream jarOutputStream = new JarOutputStream(new FileOutputStream(pluginJar))) {
-            jarOutputStream.putNextEntry(new JarEntry("co/elastic/apm/agent/plugin/external/TestInstrumentation.class"));
-            jarOutputStream.write(IOUtils.readToBytes(IOUtils.getResourceAsStream("TestInstrumentation.clazz")));
-            jarOutputStream.putNextEntry(new JarEntry("META-INF/services/" + ElasticApmInstrumentation.class.getName()));
-            jarOutputStream.write("co.elastic.apm.agent.plugin.external.TestInstrumentation".getBytes(UTF_8));
-        }
-        when(coreConfig.getPluginsDir()).thenReturn(pluginsDir.getAbsolutePath());
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         assertThat(interceptMe()).isEqualTo("intercepted");
     }
 
@@ -447,33 +425,25 @@ class InstrumentationTest {
 
     @Test
     void testInlinedIndyAdvice() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new InlinedIndyAdviceInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(InlinedIndyAdviceInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceInSubpackage() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AdviceInSubpackageInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AdviceInSubpackageInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentReturnType() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AgentTypeReturnInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeReturnInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void testAdviceWithAgentParameterType() {
-        assertThatThrownBy(() -> ElasticApmAgent.initInstrumentation(tracer,
-            ByteBuddyAgent.install(),
-            Collections.singletonList(new AgentTypeParameterInstrumentation())))
+        assertThatThrownBy(() -> ElasticApmAgent.validateAdvice(AgentTypeParameterInstrumentation.class))
             .isInstanceOf(IllegalStateException.class);
     }
 

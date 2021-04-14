@@ -53,8 +53,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class ApacheHttpAsyncClientInstrumentation extends BaseApacheHttpClientInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ApacheHttpAsyncClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientInstrumentation$ApacheHttpAsyncClientAdvice";
     }
 
     @Override

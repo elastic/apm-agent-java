@@ -49,8 +49,4 @@ public abstract class MongoClientInstrumentation extends TracerAwareInstrumentat
         return Collections.singletonList("mongodb-client");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }

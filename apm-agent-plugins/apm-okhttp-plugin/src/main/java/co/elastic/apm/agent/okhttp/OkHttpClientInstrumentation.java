@@ -26,6 +26,7 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.squareup.okhttp.HttpUrl;
@@ -45,8 +46,8 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumentation {
 
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClientExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttpClientInstrumentation$OkHttpClientExecuteAdvice";
     }
 
     public static class OkHttpClientExecuteAdvice {
@@ -86,6 +87,8 @@ public class OkHttpClientInstrumentation extends AbstractOkHttpClientInstrumenta
                     if (response != null) {
                         int statusCode = response.code();
                         span.getContext().getHttp().withStatusCode(statusCode);
+                    } else if (t != null) {
+                        span.withOutcome(Outcome.FAILURE);
                     }
                     span.captureException(t);
                 } finally {

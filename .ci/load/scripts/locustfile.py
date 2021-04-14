@@ -1,6 +1,5 @@
 from locust import HttpUser, task, constant_pacing
 
-
 class QuickstartUser(HttpUser):
     wait_time = constant_pacing(1)
 
@@ -15,4 +14,9 @@ class QuickstartUser(HttpUser):
 
     @task(3)
     def gen_error(self):
-        self.client.get("/oups")
+        # because 500 error is expected, we treat any other result as failure
+        with self.client.get("/oups", catch_response=True) as response:
+            if response.status_code == 500:
+                response.success()
+            else:
+                response.failure('unexpected status code = {}'.format(response.status_code))

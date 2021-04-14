@@ -206,8 +206,10 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 }
                 return true;
             } else if ("http.status_code".equals(key) && value instanceof Number) {
-                transaction.getContext().getResponse().withStatusCode(((Number) value).intValue());
-                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
+                int status = ((Number) value).intValue();
+                transaction.getContext().getResponse().withStatusCode(status);
+                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
+                transaction.withOutcome(ResultUtil.getOutcomeByHttpServerStatus(status));
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.method".equals(key)) {
@@ -271,6 +273,17 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 if (span.getType() == null && ("producer".equals(value) || "client".equals(value))) {
                     span.withType("ext");
                 }
+                return true;
+            } else if ("http.status_code".equals(key) && value instanceof Number) {
+                int status =((Number) value).intValue();
+                span.getContext().getHttp().withStatusCode(status);
+                span.withOutcome(ResultUtil.getOutcomeByHttpClientStatus(status));
+                return true;
+            } else if ("http.url".equals(key) && value instanceof String) {
+                span.getContext().getHttp().withUrl((String) value);
+                return true;
+            } else if ("http.method".equals(key) && value instanceof String) {
+                span.getContext().getHttp().withMethod((String) value);
                 return true;
             }
             return false;

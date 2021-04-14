@@ -27,6 +27,7 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
@@ -37,6 +38,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.methods.HttpUriRequest;
 
 import javax.annotation.Nullable;
@@ -54,7 +56,7 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
     public static class LegacyApacheHttpClientAdvice {
         @Nullable
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
-        public static Object onBeforeExecute(@Advice.Argument(0) HttpHost host,
+        public static Object onBeforeExecute(@Advice.Argument(0) @Nullable HttpHost host,
                                              @Advice.Argument(1) HttpRequest request) {
             final AbstractSpan<?> parent = tracer.getActive();
             if (parent == null) {
@@ -64,7 +66,8 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 return null;
             }
             HttpUriRequest uriRequest = (HttpUriRequest) request;
-            Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), host.getHostName());
+            String hostName = (host != null) ? host.getHostName() : null;
+            Span span = HttpClientHelper.startHttpClientSpan(parent, uriRequest.getMethod(), uriRequest.getURI(), hostName);
             if (span != null) {
                 span.activate();
                 span.propagateTraceContext(request, RequestHeaderAccessor.INSTANCE);
@@ -90,14 +93,20 @@ public class LegacyApacheHttpClientInstrumentation extends BaseApacheHttpClientI
                 }
                 span.captureException(t);
             } finally {
+                // in case of circular redirect, we get an exception but status code won't be available without response
+                // thus we have to deal with span outcome directly
+                if (t instanceof CircularRedirectException) {
+                    span.withOutcome(Outcome.FAILURE);
+                }
+
                 span.deactivate().end();
             }
         }
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return LegacyApacheHttpClientAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.httpclient.LegacyApacheHttpClientInstrumentation$LegacyApacheHttpClientAdvice";
     }
 
     @Override

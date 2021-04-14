@@ -94,7 +94,22 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
      * </pre>
      */
     @Nullable
+    @SuppressWarnings("JavadocReference") // for link to TraceContext#parentId
     private LongList childIds;
+
+    /**
+     * outcome set by span/transaction instrumentation
+     */
+    @Nullable
+    private Outcome outcome;
+
+    /**
+     * outcome set by user explicitly
+     */
+    @Nullable
+    private Outcome userOutcome = null;
+
+    private boolean hasCapturedExceptions;
 
     public int getReferenceCount() {
         return references.get();
@@ -259,7 +274,7 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     /**
      * Only intended for testing purposes as this allocates a {@link String}
      *
-     * @return
+     * @return name
      */
     public String getNameAsString() {
         return name.toString();
@@ -329,6 +344,9 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
         discardRequested = false;
         isExit = false;
         childIds = null;
+        outcome = null;
+        userOutcome = null;
+        hasCapturedExceptions = false;
     }
 
     public Span createSpan() {
@@ -370,9 +388,14 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
+            hasCapturedExceptions = true;
             captureException(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
+    }
+
+    public void endExceptionally(@Nullable Throwable t) {
+        captureException(t).end();
     }
 
     @Nullable
@@ -428,6 +451,20 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
             logger.warn("End has already been called: {}", this);
             assert false;
         }
+    }
+
+    /**
+     * @return true if outcome has NOT been set, either by user or through instrumentation
+     */
+    protected boolean outcomeNotSet() {
+        return userOutcome == null && outcome == null;
+    }
+
+    /**
+     * @return true if an exception has been captured
+     */
+    protected boolean hasCapturedExceptions() {
+        return hasCapturedExceptions;
     }
 
     protected abstract void beforeEnd(long epochMicros);
@@ -584,4 +621,37 @@ public abstract class AbstractSpan<T extends AbstractSpan<T>> implements Recycla
     }
 
     protected abstract T thiz();
+
+    /**
+     * @return user outcome if set, otherwise outcome value
+     */
+    public Outcome getOutcome() {
+        if (userOutcome != null) {
+            return userOutcome;
+        }
+        return outcome != null ? outcome : Outcome.UNKNOWN;
+    }
+
+    /**
+     * Sets outcome
+     *
+     * @param outcome outcome
+     * @return this
+     */
+    public T withOutcome(Outcome outcome) {
+        this.outcome = outcome;
+        return thiz();
+    }
+
+    /**
+     * Sets user outcome, which has priority over outcome set through {@link #withOutcome(Outcome)}
+     *
+     * @param outcome user outcome
+     * @return this
+     */
+    public T withUserOutcome(Outcome outcome) {
+        this.userOutcome = outcome;
+        return thiz();
+    }
+
 }

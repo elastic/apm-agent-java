@@ -5,7 +5,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.19.1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>application-server-integration-tests</artifactId>
@@ -55,12 +55,25 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>external-plugin-app</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <!-- this dependency is only important in order to make sure the external plugin jar exists -->
+            <groupId>${project.groupId}</groupId>
+            <artifactId>external-plugin</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-attach</artifactId>
+            <artifactId>apm-agent-attach-cli</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

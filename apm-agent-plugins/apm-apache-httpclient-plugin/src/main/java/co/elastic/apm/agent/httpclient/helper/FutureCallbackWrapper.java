@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.httpclient.helper;
 
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.apache.http.HttpResponse;
@@ -104,6 +105,10 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
                 }
             }
             localSpan.captureException(e);
+
+            if (e != null) {
+                localSpan.withOutcome(Outcome.FAILURE);
+            }
         } finally {
             localSpan.end();
         }

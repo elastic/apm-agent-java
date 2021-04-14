@@ -34,7 +34,7 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import co.elastic.apm.agent.util.ThreadUtils;
+import co.elastic.apm.agent.premain.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,9 +54,9 @@ public class LogShipperFactory extends AbstractLifecycleListener {
 
     public LogShipperFactory(ElasticApmTracer tracer) {
         ApmServerClient apmServerClient = tracer.getApmServerClient();
-        DslJsonSerializer serializer = new DslJsonSerializer(tracer.getConfig(StacktraceConfiguration.class), apmServerClient);
-        ApmServerLogShipper logShipper = new ApmServerLogShipper(apmServerClient, tracer.getConfig(ReporterConfiguration.class), tracer.getMetaData(), serializer);
-        ExecutorUtils.NamedThreadFactory threadFactory = new ExecutorUtils.NamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix("log-shipper"));
+        DslJsonSerializer serializer = new DslJsonSerializer(tracer.getConfig(StacktraceConfiguration.class), apmServerClient, tracer.getMetaData());
+        ApmServerLogShipper logShipper = new ApmServerLogShipper(apmServerClient, tracer.getConfig(ReporterConfiguration.class), serializer);
+        ExecutorUtils.SingleNamedThreadFactory threadFactory = new ExecutorUtils.SingleNamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix("log-shipper"));
         fileTailer = new FileTailer(logShipper, BUFFER_SIZE, MAX_LINES_PER_CYCLE, IDLE_TIME_MS, threadFactory);
     }
 
@@ -72,7 +72,7 @@ public class LogShipperFactory extends AbstractLifecycleListener {
             return;
         }
         if (logFile.equals(LoggingConfiguration.SYSTEM_OUT)) {
-            TailableFile tailableFile = fileTailer.tailFile(Log4j2ConfigurationFactory.getTempLogFile(tracer.getMetaData().getService().getAgent().getEphemeralId()));
+            TailableFile tailableFile = fileTailer.tailFile(Log4j2ConfigurationFactory.getTempLogFile(tracer.getEphemeralId()));
             logger.debug("Tailing temp agent log file {}", tailableFile);
             tailableFile.deleteStateFileOnExit();
             fileTailer.start();

@@ -101,7 +101,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         public static Object onBeforeExecute(@Advice.This Statement statement,
                                              @Advice.Argument(0) String sql) {
 
-            return getJdbcHelper().createJdbcSpan(sql, statement, tracer.getActive(), false);
+            return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
 
@@ -148,7 +148,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         public static Object onBeforeExecute(@Advice.This Statement statement,
                                            @Advice.Argument(0) String sql) {
 
-            return getJdbcHelper().createJdbcSpan(sql, statement, tracer.getActive(), false);
+            return JdbcHelper.get().createJdbcSpan(sql, statement, tracer.getActive(), false);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
@@ -186,7 +186,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void storeSql(@Advice.This Statement statement, @Advice.Argument(0) String sql) {
-            getJdbcHelper().mapStatementToSql(statement, sql);
+            JdbcHelper.get().mapStatementToSql(statement, sql);
         }
     }
 
@@ -213,19 +213,20 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
-            JdbcHelper helper = getJdbcHelper();
+            JdbcHelper helper = JdbcHelper.get();
             String sql = helper.retrieveSqlForStatement(statement);
             return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
 
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-        public static void onAfterExecute(@Advice.Enter @Nullable Object span,
-                                          @Advice.Thrown Throwable t,
-                                          @Advice.Return Object returnValue) {
-            if (span == null) {
+        public static void onAfterExecute(@Advice.Enter @Nullable Object spanObj,
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Return @Nullable Object returnValue) {
+            if (!(spanObj instanceof Span)) {
                 return;
             }
+            Span span = (Span)spanObj;
 
             // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
             // does not seem to return the sum of all elements. As we can use instanceof to check return type
@@ -243,11 +244,11 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
                     affectedCount += array[i];
                 }
             }
-            ((Span) span).getContext()
+            span.getContext()
                 .getDb()
                 .withAffectedRowsCount(affectedCount);
 
-            ((Span) span).captureException(t)
+            span.captureException(t)
                 .deactivate()
                 .end();
         }
@@ -275,7 +276,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
 
-            JdbcHelper helper = getJdbcHelper();
+            JdbcHelper helper = JdbcHelper.get();
             String sql = helper.retrieveSqlForStatement(statement);
             return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }
@@ -320,7 +321,7 @@ public abstract class StatementInstrumentation extends JdbcInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         @SuppressWarnings("DuplicatedCode")
         public static Object onBeforeExecute(@Advice.This Statement statement) {
-            JdbcHelper helper = getJdbcHelper();
+            JdbcHelper helper = JdbcHelper.get();
             @Nullable String sql = helper.retrieveSqlForStatement(statement);
             return helper.createJdbcSpan(sql, statement, tracer.getActive(), true);
         }

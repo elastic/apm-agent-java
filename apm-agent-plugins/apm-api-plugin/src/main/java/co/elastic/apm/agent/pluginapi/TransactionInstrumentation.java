@@ -39,7 +39,7 @@ import javax.annotation.Nullable;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * Injects the actual implementation of the public API class co.elastic.apm.api.TransactionImpl.
+ * Injects the actual implementation of the public API class {@code co.elastic.apm.api.TransactionImpl}.
  */
 public class TransactionInstrumentation extends ApiInstrumentation {
 
@@ -78,10 +78,11 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("ensureParentId"));
         }
 
+        @Nullable
         @AssignTo.Return
         @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static String ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Object transaction,
-                                            @Advice.Return String returnValue) {
+                                            @Advice.Return @Nullable String returnValue) {
             if (transaction instanceof Transaction) {
                 final TraceContext traceContext = ((Transaction) transaction).getTraceContext();
                 Id parentId = traceContext.getParentId();

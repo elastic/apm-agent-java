@@ -30,6 +30,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -44,6 +45,7 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.pluginapi.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
@@ -51,6 +53,7 @@ import static co.elastic.apm.agent.pluginapi.Utils.FRAMEWORK_NAME;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class TracedInstrumentation extends TracerAwareInstrumentation {
 
@@ -102,10 +105,11 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
     public static void onMethodExit(@Advice.Enter @Nullable Object abstractSpan,
-                                    @Advice.Thrown Throwable t) {
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (abstractSpan instanceof AbstractSpan<?>) {
             ((AbstractSpan<?>) abstractSpan)
                 .captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE : Outcome.FAILURE)
                 .deactivate()
                 .end();
         }
@@ -119,6 +123,7 @@ public class TracedInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>none())
+            .and(not(isProxy()))
             .and(declaresMethod(getMethodMatcher()));
     }
 

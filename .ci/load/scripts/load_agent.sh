@@ -20,11 +20,12 @@
 set -exuo pipefail 
 
 POLL_FREQ=1
+POLL_TIMEOUT=300
 
 LOCUST_LOCUSTFILE="../locust.py"
 LOCUST_PRINT_STATS=1
 
-if [ $LOCUST_IGNORE_ERRORS = "true" ]; then
+if [ "${LOCUST_IGNORE_ERRORS:-}" = "true" ]; then
     export LOCUST_EXIT_CODE_ON_ERROR=0
 else
     export LOCUST_EXIT_CODE_ON_ERROR=1
@@ -86,11 +87,16 @@ function appIsReady() {
 }
 
 function waitForApp() {
+    counter=1
     while :
     do
         if appIsReady; then 
             break 
+        elif [ $counter -gt $POLL_TIMEOUT ]; then
+            echo "Poll timeout exceeded. Exiting with error code: 1"
+            exit 1
         fi
+        ((counter++))
         sleep $POLL_FREQ;
     done
 }
@@ -120,7 +126,15 @@ function startLoad() {
     \"hostname\": \"test_app\", \
     \"port\": \"8080\"}" \
     $ORCH_URL/api/ready 
-    docker run -e "LOCUST_EXIT_CODE_ON_ERROR=$LOCUST_EXIT_CODE_ON_ERROR" -e "LOCUST_HOST=$LOCUST_HOST" -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" -e "LOCUST_USERS=$LOCUST_USERS" -p 8089:8089 -v ${PWD}/.ci/load/scripts:/locust locustio/locust -f /locust/locustfile.py --headless
+    docker run \
+        -e "LOCUST_EXIT_CODE_ON_ERROR=$LOCUST_EXIT_CODE_ON_ERROR" \
+        -e "LOCUST_HOST=$LOCUST_HOST" \
+        -e "LOCUST_RUN_TIME=$LOCUST_RUN_TIME" \
+        -e "LOCUST_USERS=$LOCUST_USERS" \
+        -p 8089:8089 \
+        -v ${PWD}/.ci/load/scripts:/locust \
+        locustio/locust \
+        -f /locust/locustfile.py --headless
 }
 
 

@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.Locale;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -35,17 +37,18 @@ class RoundedDoubleConverterTest {
 
     @ParameterizedTest
     @CsvSource({
+        "0.00001,0.0001",
         "0.55554,0.5555",
         "0.55555,0.5556",
-        "0.55556,0.5556"})
-    void testRounding(String input, String expectedOutput) {
+        "0.55556,0.5556",
+        "10.000,10"})
+    void testRoundingAndTextFormat(String input, String expectedOutput) {
         RoundedDoubleConverter converter = new RoundedDoubleConverter(4);
 
         Double expected = Double.valueOf(expectedOutput);
         Double converted = converter.convert(input);
 
         assertThat(converted).isEqualTo(expected);
-        assertThat(converted.toString()).isEqualTo(expectedOutput);
         assertThat(converter.toString(converted)).isEqualTo(expectedOutput);
     }
 
@@ -70,4 +73,21 @@ class RoundedDoubleConverterTest {
         assertThat(converted).isEqualTo(expected);
     }
 
+    @Test
+    void testNonEnglishLocale() {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.GERMAN);
+
+            RoundedDoubleConverter converter = new RoundedDoubleConverter(4);
+
+            Double expected = Double.valueOf("0.0001");
+            Double converted = converter.convert("0.0001");
+
+            assertThat(converted).isEqualTo(expected);
+            assertThat(converter.toString(converted)).isEqualTo("0.0001");
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
 }

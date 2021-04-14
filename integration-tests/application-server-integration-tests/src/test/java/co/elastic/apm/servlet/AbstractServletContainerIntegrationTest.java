@@ -142,7 +142,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.containerName = containerName;
         servletContainer
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URLS", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
@@ -157,8 +157,19 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
+            .withFileSystemBind(pathToAttach, "/apm-agent-attach-cli.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
+        for (TestApp testApp : getTestApps()) {
+            testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
+            try {
+                testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
+                    checkFilePresent(pathToFile);
+                    servletContainer.withFileSystemBind(pathToFile, containerPath);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
                 String pathToAppFile = testApp.getAppFilePath();
@@ -169,7 +180,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer.start();
         if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
-                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
+                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-cli.jar", "--include-all");
                 System.out.println(result.getStdout());
                 System.out.println(result.getStderr());
             } catch (Exception e) {
@@ -231,12 +242,12 @@ public abstract class AbstractServletContainerIntegrationTest {
             "argument properly to the command line");
     }
 
-    private static void checkFilePresent(String pathToWar) {
-        final File warFile = new File(pathToWar);
-        logger.info("Check file {}", warFile.getAbsolutePath());
-        assertThat(warFile).exists();
-        assertThat(warFile).isFile();
-        assertThat(warFile.length()).isGreaterThan(0);
+    private static void checkFilePresent(String pathToFile) {
+        final File file = new File(pathToFile);
+        logger.info("Check file {}", file.getAbsolutePath());
+        assertThat(file).exists();
+        assertThat(file).isFile();
+        assertThat(file.length()).isGreaterThan(0);
     }
 
     protected void enableDebugging(GenericContainer<?> servletContainer) {

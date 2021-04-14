@@ -20,8 +20,136 @@ endif::[]
 
 === Unreleased
 
-[[release-notes-1.19.1]]
-==== 1.19.1 - YYYY/MM/DD
+[[release-notes-1.22.1]]
+==== 1.22.1 - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+* There are breaking changes in the <<setup-attach-cli,attacher cli>>.
+  See the Features section for more information.
+
+[float]
+===== Features
+* Overhaul of the <<setup-attach-cli,attacher cli>> application that allows to attach the agent to running JVMs - {pull}1667[#1667]
+** The artifact of the standalone cli applicaiton is now called `apm-agent-attach-cli`. The attacher API is still called `apm-agent-attach`.
+** There is also a slim version of the cli application that does not bundle the Java agent.
+It requires the `--agent-jar` option to be set.
+** Improved logging +
+The application uses {ecs-logging-java-ref}/intro.html[Java ECS logging] to emit JSON logs.
+The log level can be configured with the `--log-level` option.
+By default, the program is logging to the console but using the `--log-file` option, it can also log to a file.
+** Attach to JVMs running under a different user (unix only) +
+The JVM requires the attacher to be running under the same user as the target VM (the attachee).
+The `apm-agent-attach-standalone.jar` can now be run with a user that has permissions to switch to the user that runs the target VM.
+On Windows, the attacher can still only attach to JVMs that are running with under the same user.
+** New include/exclude discovery rules +
+*** `--include-all`: Attach to all discovered JVMs. If no matchers are provided, it will not attach to any JVMs.
+*** `--include-user`/`--exclude-user`: Attach to all JVMs of a given operating system user.
+*** `--include-main`/`--exclude-main`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+*** `--include-vmargs`/`--exclude-vmargs`: Attach to all JVMs that whose main class/jar name, or system properties match the provided regex.
+** Removal of options +
+*** The deprecated `--arg` option has been removed.
+*** The `-i`/`--include`, `-e`/`exclude` options have been removed in favor of the `--<include|exclude>-<main|vmargs>` options.
+*** The `-p`/`--pid` options have been removed in favor of the `--include-pid` option.
+** Changed behavior of  the `-l`/`--list` option +
+The option now only lists JVMs that match the include/exclude discovery rules.
+Thus, it can be used to do a dry-run of the matchers without actually performing an attachment.
+It even works in combination with `--continuous` now.
+By default, the VM arguments are not printed, but only when the `-a`/`--list-vmargs` option is set.
+** Remove dependency on `jps` +
+Even when matching on the main class name or on system properties,
+** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
+* Cassandra instrumentation - {pull}1712[#1712]
+* Log correlation supports JBoss Logging - {pull}1737[#1737]
+
+[float]
+===== Bug fixes
+* Fixed log correlation for log4j2 - {pull}1720[#1720]
+* Fix apm-log4j1-plugin and apm-log4j2-plugin dependency on slf4j - {pull}1723[#1723]
+* Avoid systematic `MessageNotWriteableException` error logging, now only visible in `debug` - {pull}1715[#1715] and {pull}1730[#1730]
+* Fix rounded number format for non-english locales - {pull}1728[#1728]
+* Fix `NullPointerException` on legacy Apache client instrumentation when host is `null` - {pull}1746[#1746]
+* Apply consistent proxy class exclusion heuristic - {pull}1738[#1738]
+
+[float]
+===== Refactors
+* Migrate MongoDB plugin to indy dispatcher {pull}1369[#1369]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.22.0]]
+==== 1.22.0 - 2021/03/24
+
+[float]
+===== Breaking changes
+* Dots in metric names of Micrometer metrics get replaced with underscores to avoid mapping conflicts.
+De-dotting be disabled via <<config-dedot-custom-metrics, `dedot_custom_metrics`>>. - {pull}1700[#1700]
+
+[float]
+===== Features
+* Introducing a new mechanism to ease the development of community instrumentation plugins. See <<config-plugins-dir>> for
+more details. This configuration was already added in 1.18.0, but more extensive and continuous integration testing
+allows us to expose it now. It is still marked as "experimental" though, meaning that future changes in the mechanism
+may break early contributed plugins. However, we highly encourage our community to try it out and we will do our best
+to assist with such efforts.
+* Deprecating `ignore_user_agents` in favour of `transaction_ignore_user_agents`, maintaining the same functionality -
+{pull}1644[#1644]
+* Update existing Hibernate Search 6 instrumentation to the final relase
+* The <<config-use-path-as-transaction-name, `use_path_as_transaction_name`>> option is now dynamic
+* Flushing internal and micrometer metrics before the agent shuts down - {pull}1658[#1658]
+* Support for OkHttp 4.4+ -  {pull}1672[#1672]
+* Adding capability to automatically create ECS-JSON-formatted version of the original application log files, through
+the <<config-log-ecs-reformatting>> config option. This allows effortless ingestion of logs to Elasticsearch without
+any further configuration. Supports log4j1, log4j2 and Logback. {pull}1261[#1261]
+* Add support to Spring AMQP - {pull}1657[#1657]
+* Adds the ability to automatically configure usage of the OpenTracing bridge in systems using ServiceLoader - {pull}1708[#1708]
+* Update to async-profiler 1.8.5 - includes a fix to a Java 7 crash and enhanced safe mode to better deal with
+corrupted stack frames.
+* Add a warning on startup when `-Xverify:none` or `-noverify` flags are set as this can lead to crashes that are very
+difficult to debug - {pull}1593[#1593]. In an upcoming version, the agent will not start when these flags are set,
+unless the system property `elastic.apm.disable_bootstrap_checks` is set to true.
+
+[float]
+===== Bug fixes
+* fix sample rate rounded to zero when lower than precision - {pull}1655[#1655]
+* fixed a couple of bugs with the external plugin mechanism (not documented until now) - {pull}1660[#1660]
+* Fix runtime attach conflict with multiple users - {pull}1704[#1704]
+
+[[release-notes-1.21.0]]
+==== 1.21.0 - 2021/02/09
+
+[float]
+===== Breaking changes
+* Following PR {pull}1650[#1650], there are two slight changes with the <<config-server-url>> and <<config-server-urls>>
+configuration options:
+    1.  So far, setting `server_urls` with an empty string would allow the agent to work normally, apart from any action
+        that requires communication with the APM Server, including the attempt to fetch a central configuration.
+        Starting in this agent version, setting `server_urls` to empty string doesn't have any special meaning, it is
+        the default expected configuration, where `server_url` will be used instead. In order to achieve the same
+        behaviour, use the new <<config-disable-send>> configuration.
+    2.  Up to this version, `server_url` was used as an alias to `server_urls`, meaning that one could potentially set
+        the `server_url` config with a comma-separated list of multiple APM Server addresses, and that would have been a
+        valid configuration. Starting in this agent version, `server_url` is a separate configuration, and it only accepts
+        Strings that represent a single valid URL. Specifically, empty strings and commas are invalid.
+
+[float]
+===== Features
+* Add cloud provider metadata to reported events, see
+https://github.com/elastic/apm/blob/master/specs/agents/metadata.md#cloud-provider-metadata[spec] for details.
+By default, the agent will try to automatically detect the cloud provider on startup, but this can be
+configured through the <<config-cloud-provider, `cloud_provider`>> config option - {pull}1599[#1599]
+* Add span & transaction `outcome` field to improve error rate calculations - {pull}1613[#1613]
+
+[float]
+===== Bug fixes
+* Fixing crashes observed in Java 7 at sporadic timing by applying a few seconds delay on bootstrap - {pull}1594[#1594]
+* Fallback to using "TLS" `SSLContext` when "SSL" is not available - {pull}1633[#1633]
+* Fixing agent startup failure with `NullPointerException` thrown by Byte-buddy's `MultipleParentClassLoader` - {pull}1647[#1647]
+* Fix cached type resolution triggering `ClassCastException` - {pull}1649[#1649]
+
+[[release-notes-1.20.0]]
+==== 1.20.0 - 2021/01/07
 
 [float]
 ===== Breaking changes
@@ -31,20 +159,26 @@ endif::[]
 
 [float]
 ===== Features
+* Add support for RabbitMQ clients - {pull}1328[#1328]
 
 [float]
 ===== Bug fixes
 * Fix small memory allocation regression introduced with tracestate header {pull}1508[#1508]
-* Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[1531]
-* Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[1537]
+* Fix `NullPointerException` from `WeakConcurrentMap.put` through the Elasticsearch client instrumentation - {pull}1531[#1531]
+* Sending `transaction_id` and `parent_id` only for events that contain a valid `trace_id` as well - {pull}1537[#1537]
 * Fix `ClassNotFoundError` with old versions of Spring resttemplate {pull}1524[#1524]
+* Fix Micrometer-driven metrics validation errors by the APM Server when sending with illegal values - {pull}1559[#1559]
+* Serialize all stack trace frames when setting `stack_trace_limit=-1` instead of none - {pull}1571[#1571]
+* Fix `UnsupportedOperationException` when calling `ServletContext.getClassLoader()` - {pull}1576[#1576]
+* Fix improper request body capturing - {pull}1579[#1579]
+* Avoid `NullPointerException` due to null return values instrumentation advices - {pull}1601[#1601]
+* Update async-profiler to 1.8.3 {pull}1602[1602]
+* Use null-safe data structures to avoid `NullPointerException` {pull}1597[1597]
+* Fix memory leak in sampling profiler mechanism - {pull}1592[#1592]
 
 [float]
 ===== Refactors
-* Migrate some plugins to indy dispatcher {pull}1405[1405] {pull}1394[1394]
-
-[[release-notes-1.x]]
-=== Java Agent version 1.x
+* Migrate some plugins to indy dispatcher {pull}1405[#1405] {pull}1394[#1394]
 
 [[release-notes-1.19.0]]
 ==== 1.19.0 - 2020/11/10
@@ -407,7 +541,7 @@ config option]
 ===== Features
 * Add ability to manually specify reported https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-hostname[hostname]
 * Add support for https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases[Redis Jedis client]
-* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list[`--include` and `--exclude` flags]
+* Add support for identifying target JVM to attach apm agent to using JVM property. See also the documentation of the <<setup-attach-cli-usage-options, `--include` and `--exclude` flags>>
 * Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
 * Improve servlet error capture {pull}812[#812]
   Among others, now also takes Spring MVC `@ExceptionHandler`s into account 

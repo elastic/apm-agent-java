@@ -30,6 +30,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -46,9 +47,11 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
 
@@ -82,10 +85,12 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
-    public static void onMethodExit(@Nullable @Advice.Enter Object span,
-                                    @Advice.Thrown Throwable t) {
+    public static void onMethodExit(@Advice.Enter @Nullable Object span,
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (span instanceof Span) {
-            ((Span) span).captureException(t)
+            ((Span) span)
+                .captureException(t)
+                .withOutcome(t != null ? Outcome.FAILURE: Outcome.SUCCESS)
                 .deactivate()
                 .end();
         }
@@ -99,6 +104,7 @@ public class CaptureSpanInstrumentation extends TracerAwareInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>none())
+            .and(not(isProxy()))
             .and(declaresMethod(getMethodMatcher()));
     }
 
