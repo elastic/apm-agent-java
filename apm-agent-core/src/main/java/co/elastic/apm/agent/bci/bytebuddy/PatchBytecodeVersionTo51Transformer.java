@@ -71,8 +71,6 @@ public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transfo
                             patchVersion = true;
                             //
                             version = Opcodes.V1_7;
-                        } else {
-                            throw new IllegalStateException("should not be applied to class file version " + version);
                         }
                         super.visit(version, access, name, signature, superName, interfaces);
                     }
