@@ -28,14 +28,15 @@ import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
 import co.elastic.apm.agent.premain.JavaVersionBootstrapCheck;
-import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.premain.JvmRuntimeInfo;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.util.IOUtils;
 import sun.misc.Unsafe;
 
@@ -55,6 +56,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -346,7 +349,10 @@ public class IndyBootstrap {
                 isAnnotatedWith(named(GlobalState.class.getName()))
                     // no plugin CL necessary as all types are available form bootstrap CL
                     // also, this plugin is used as a dependency in other plugins
-                    .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
+                    .or(nameStartsWith("co.elastic.apm.agent.concurrent"))
+                    // if config classes would be loaded from the plugin CL,
+                    // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
+                    .or(hasSuperType(is(ConfigurationOptionProvider.class))));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
             ElasticApmAgent.validateAdvice(adviceInPluginCL);
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
