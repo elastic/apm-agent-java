@@ -49,10 +49,15 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
  * {@link Advice.WithCustomMapping#bootstrap} which is important for {@linkplain TracerAwareInstrumentation#indyPlugin() indy plugins}.
  */
 public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transformer {
+
+    private static boolean isAtLeastJava7(TypeDescription typeDescription) {
+        ClassFileVersion classFileVersion = typeDescription.getClassFileVersion();
+        return classFileVersion != null && classFileVersion.getJavaVersion() >= 7;
+    }
+
     @Override
     public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule) {
-        ClassFileVersion classFileVersion = typeDescription.getClassFileVersion();
-        if (classFileVersion != null && classFileVersion.getJavaVersion() >= 7) {
+        if (isAtLeastJava7(typeDescription)) {
             // we can avoid the expensive (and somewhat dangerous) stack frame re-computation if stack frames are already
             // present in the bytecode, which also allows eagerly loading types that might be present in the method
             // body, but not yet loaded by the JVM.
@@ -62,6 +67,13 @@ public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transfo
             @Override
             public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context,
                                      TypePool typePool, FieldList<FieldDescription.InDefinedShape> fieldList, MethodList<?> methodList, int writerFlags, int readerFlags) {
+
+                if (isAtLeastJava7(typeDescription)) {
+                    // in this case we won't prevent recomputing stack frames, but at least we avoid extra visitor wrapping
+                    // this happens for example with db2 JDBC driver
+                    return classVisitor;
+                }
+
                 return new ClassVisitor(Opcodes.ASM7, classVisitor) {
                     private boolean patchVersion;
 
