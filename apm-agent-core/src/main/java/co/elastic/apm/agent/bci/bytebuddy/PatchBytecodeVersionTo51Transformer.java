@@ -50,6 +50,12 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transformer {
     @Override
     public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule) {
+        if (typeDescription.getClassFileVersion().getJavaVersion() >= 7) {
+            // we can avoid the expensive (and somewhat dangerous) stack frame re-computation if stack frames are already
+            // present in the bytecode, which also allows eagerly loading types that might be present in the method
+            // body, but not yet loaded by the JVM.
+            return builder;
+        }
         return builder.visit(new AsmVisitorWrapper.AbstractBase() {
             @Override
             public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context,
@@ -63,6 +69,8 @@ public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transfo
                             patchVersion = true;
                             //
                             version = Opcodes.V1_7;
+                        } else {
+                            throw new IllegalStateException("should not be applied to class file version " + version);
                         }
                         super.visit(version, access, name, signature, superName, interfaces);
                     }
