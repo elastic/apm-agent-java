@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
+import net.bytebuddy.ClassFileVersion;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.AsmVisitorWrapper;
@@ -50,7 +51,8 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transformer {
     @Override
     public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule) {
-        if (typeDescription.getClassFileVersion().getJavaVersion() >= 7) {
+        ClassFileVersion classFileVersion = typeDescription.getClassFileVersion();
+        if (classFileVersion != null && classFileVersion.getJavaVersion() >= 7) {
             // we can avoid the expensive (and somewhat dangerous) stack frame re-computation if stack frames are already
             // present in the bytecode, which also allows eagerly loading types that might be present in the method
             // body, but not yet loaded by the JVM.
