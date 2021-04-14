@@ -71,6 +71,10 @@ Even when matching on the main class name or on system properties,
 * Fix `NullPointerException` on legacy Apache client instrumentation when host is `null` - {pull}1746[#1746]
 * Apply consistent proxy class exclusion heuristic - {pull}1738[#1738]
 
+[float]
+===== Refactors
+* Migrate some plugins to indy dispatcher {pull}1369[#1369] {pull}1410[#1410] {pull}1374[#1374]
+
 [[release-notes-1.x]]
 === Java Agent version 1.x
 
