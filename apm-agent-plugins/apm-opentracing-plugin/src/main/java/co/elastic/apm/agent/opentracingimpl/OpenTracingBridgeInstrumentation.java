@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
 
@@ -40,8 +40,4 @@ public abstract class OpenTracingBridgeInstrumentation extends TracerAwareInstru
         return Collections.singleton("opentracing");
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }
