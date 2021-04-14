@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import org.slf4j.Logger;
@@ -32,11 +31,13 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -49,7 +50,6 @@ public class AbstractIntakeApiHandler {
     protected final ReporterConfiguration reporterConfiguration;
     protected final PayloadSerializer payloadSerializer;
     protected final ApmServerClient apmServerClient;
-    protected final byte[] metaData;
     protected Deflater deflater;
     protected long currentlyTransmitting = 0;
     protected long reported = 0;
@@ -61,18 +61,11 @@ public class AbstractIntakeApiHandler {
     protected int errorCount;
     protected volatile boolean shutDown;
 
-    public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, MetaData metaData, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
+    public AbstractIntakeApiHandler(ReporterConfiguration reporterConfiguration, PayloadSerializer payloadSerializer, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
         this.apmServerClient = apmServerClient;
         this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
-        payloadSerializer.serializeMetaDataNdJson(metaData);
-        this.metaData = payloadSerializer.toString().getBytes(StandardCharsets.UTF_8);
-        try {
-            payloadSerializer.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /*
@@ -100,21 +93,50 @@ public class AbstractIntakeApiHandler {
     }
 
     @Nullable
-    protected HttpURLConnection startRequest(String endpoint) throws IOException {
+    protected HttpURLConnection startRequest(String endpoint) throws Exception {
+        payloadSerializer.blockUntilReady();
         final HttpURLConnection connection = apmServerClient.startRequest(endpoint);
         if (connection != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Starting new request to {}", connection.getURL());
+            try {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Starting new request to {}", connection.getURL());
+                }
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
+                connection.setRequestProperty("Content-Encoding", "deflate");
+                connection.setRequestProperty("Content-Type", "application/x-ndjson");
+                connection.setUseCaches(false);
+                connection.connect();
+                os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
+                payloadSerializer.setOutputStream(os);
+                payloadSerializer.appendMetaDataNdJsonToStream();
+                payloadSerializer.flushToOutputStream();
+            } catch (IOException e) {
+                logger.error("Error trying to connect to APM Server at {}. Some details about SSL configurations corresponding " +
+                    "the current connection are logged at INFO level.", connection.getURL());
+                if (logger.isInfoEnabled() && connection instanceof HttpsURLConnection) {
+                    HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
+                    try {
+                        logger.info("Cipher suite used for this connection: {}", httpsURLConnection.getCipherSuite());
+                    } catch (Exception e1) {
+                        SSLSocketFactory sslSocketFactory = httpsURLConnection.getSSLSocketFactory();
+                        logger.info("Default cipher suites: {}", Arrays.toString(sslSocketFactory.getDefaultCipherSuites()));
+                        logger.info("Supported cipher suites: {}", Arrays.toString(sslSocketFactory.getSupportedCipherSuites()));
+                    }
+                    try {
+                        logger.info("APM Server certificates: {}", Arrays.toString(httpsURLConnection.getServerCertificates()));
+                    } catch (Exception e1) {
+                        // ignore - invalid
+                    }
+                    try {
+                        logger.info("Local certificates: {}", Arrays.toString(httpsURLConnection.getLocalCertificates()));
+                    } catch (Exception e1) {
+                        // ignore - invalid
+                    }
+                }
+                throw e;
             }
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
-            connection.setRequestProperty("Content-Encoding", "deflate");
-            connection.setRequestProperty("Content-Type", "application/x-ndjson");
-            connection.setUseCaches(false);
-            connection.connect();
-            os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
-            os.write(metaData);
         }
         return connection;
     }
@@ -122,7 +144,7 @@ public class AbstractIntakeApiHandler {
     public void endRequest() {
         if (connection != null) {
             try {
-                payloadSerializer.flush();
+                payloadSerializer.fullFlush();
                 if (os != null) {
                     os.close();
                 }

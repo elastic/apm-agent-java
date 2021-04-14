@@ -33,16 +33,19 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.apache.logging.log4j.ThreadContext;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -52,23 +55,14 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
 
     private LoggingConfiguration loggingConfiguration;
     private Boolean log4jMdcWorking;
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         org.apache.log4j.MDC.put("test", true);
         log4jMdcWorking = (Boolean) org.apache.log4j.MDC.get("test");
-        MDC.clear();
-        org.apache.log4j.MDC.clear();
-        ThreadContext.clearAll();
-        loggingConfiguration = config.getConfig(LoggingConfiguration.class);
-        // initializes thread eagerly to avoid InheritableThreadLocal to inherit values to this thread
-        executorService.submit(() -> {}).get();
-    }
 
-    @AfterEach
-    void tearDown() {
-        executorService.shutdown();
+        forAllMdc(MdcImpl::clear);
+        loggingConfiguration = config.getConfig(LoggingConfiguration.class);
     }
 
     @Test
@@ -234,28 +228,38 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
 
     @Test
     void testMdcIntegrationContextScopeInDifferentThread() throws Exception {
-        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
-        assertMdcIsEmpty();
-        try (Scope scope = transaction.activateInScope()) {
-            assertMdcIsSet(transaction);
-            final Span child = transaction.createSpan();
-            try (Scope childScope = child.activateInScope()) {
-                assertMdcIsSet(child);
-                executorService.submit(() -> {
-                    assertMdcIsEmpty();
-                    try (Scope otherThreadScope = child.activateInScope()) {
-                        assertMdcIsSet(child);
-                    }
-                    assertMdcIsEmpty();
-                }).get();
-                assertMdcIsSet(child);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            // initializes thread eagerly to avoid InheritableThreadLocal to inherit values to this thread
+            executorService.submit(() -> {
+            }).get();
+
+            when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+            final Transaction transaction = tracer.startRootTransaction(getClass().getClassLoader()).withType("request").withName("test");
+            assertMdcIsEmpty();
+            try (Scope scope = transaction.activateInScope()) {
+                assertMdcIsSet(transaction);
+                final Span child = transaction.createSpan();
+                try (Scope childScope = child.activateInScope()) {
+                    assertMdcIsSet(child);
+                    executorService.submit(() -> {
+                        assertMdcIsEmpty();
+                        try (Scope otherThreadScope = child.activateInScope()) {
+                            assertMdcIsSet(child);
+                        }
+                        assertMdcIsEmpty();
+                    }).get();
+                    assertMdcIsSet(child);
+                }
+                child.end();
+                assertMdcIsSet(transaction);
+            } finally {
+                transaction.end();
             }
-            child.end();
-            assertMdcIsSet(transaction);
+        } finally {
+            executorService.shutdownNow();
         }
         assertMdcIsEmpty();
-        transaction.end();
     }
 
     @Test
@@ -269,26 +273,56 @@ class MdcActivationListenerTest extends AbstractInstrumentationTest {
         assertThat(loggingConfiguration.isLogCorrelationEnabled()).isTrue();
     }
 
-    private void assertMdcIsSet(AbstractSpan span) {
-        assertThat(MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
-        assertThat(MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
-        assertThat(ThreadContext.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
-        assertThat(ThreadContext.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
-        if (log4jMdcWorking == Boolean.TRUE) {
-            assertThat(org.apache.log4j.MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
-            assertThat(org.apache.log4j.MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
+    private void assertMdcIsSet(AbstractSpan<?> span) {
+        forAllMdc(mdc -> {
+            assertThat(mdc.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
+            assertThat(mdc.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
+        });
+    }
+
+    private enum MdcImpl {
+        Slf4j(
+            MDC::get,
+            MDC::clear),
+        Log4j1(
+            k -> (String) org.apache.log4j.MDC.get(k),
+            org.apache.log4j.MDC::clear),
+        Log4j2(
+            ThreadContext::get,
+            ThreadContext::clearAll),
+        JbossLogging(
+            k -> (String) org.jboss.logging.MDC.get(k),
+            org.jboss.logging.MDC::clear);
+
+        private final Function<String, String> get;
+        private final Runnable clear;
+
+        MdcImpl(Function<String, String> get, Runnable clear) {
+            this.get = get;
+            this.clear = clear;
+        }
+
+        @Nullable
+        String get(String key) {
+            return get.apply(key);
+        }
+
+        void clear() {
+            clear.run();
         }
     }
 
     private void assertMdcIsEmpty() {
-        assertThat(MDC.get("trace.id")).isNull();
-        assertThat(MDC.get("transaction.id")).isNull();
-        assertThat(ThreadContext.get("trace.id")).isNull();
-        assertThat(ThreadContext.get("transaction.id")).isNull();
-        if (log4jMdcWorking == Boolean.TRUE) {
-            assertThat(org.apache.log4j.MDC.get("transaction.id")).isNull();
-            assertThat(org.apache.log4j.MDC.get("trace.id")).isNull();
-        }
+        forAllMdc(mdc -> {
+            assertThat(mdc.get("trace.id")).isNull();
+            assertThat(mdc.get("transaction.id")).isNull();
+        });
+    }
+
+    private void forAllMdc(Consumer<MdcImpl> task) {
+        Stream.of(MdcImpl.values())
+            .filter(mdc -> mdc != MdcImpl.Log4j1 || log4jMdcWorking)
+            .forEach(task);
     }
 
 }

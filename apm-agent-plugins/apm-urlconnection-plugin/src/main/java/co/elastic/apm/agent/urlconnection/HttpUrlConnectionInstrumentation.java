@@ -25,8 +25,8 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.sdk.weakmap.WeakMapSupplier;
@@ -47,12 +47,12 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstrumentation {
 
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();
+    private static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = WeakMapSupplier.createMap();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -66,7 +66,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(is(HttpURLConnection.class));
+        return hasSuperType(is(HttpURLConnection.class)).and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")));
     }
 
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
@@ -76,6 +76,7 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
         public static Object enter(@Advice.This HttpURLConnection thiz,
                                  @Advice.FieldValue("connected") boolean connected,
                                  @Advice.Origin String signature) {
+
             if (tracer.getActive() == null) {
                 return null;
             }
@@ -97,10 +98,11 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void exit(@Advice.This HttpURLConnection thiz,
-                                @Nullable @Advice.Thrown Throwable t,
+                                @Advice.Thrown @Nullable Throwable t,
                                 @Advice.FieldValue("responseCode") int responseCode,
-                                @Nullable @Advice.Enter Object spanObject,
+                                @Advice.Enter @Nullable Object spanObject,
                                 @Advice.Origin String signature) {
+
             Span span = (Span) spanObject;
             if (span == null) {
                 return;
@@ -114,7 +116,11 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
                 span.captureException(t).end();
             } else if (t != null) {
                 inFlightSpans.remove(thiz);
-                span.captureException(t).end();
+
+                // an exception here is synonym of failure, for example with circular redirects
+                span.captureException(t)
+                    .withOutcome(Outcome.FAILURE)
+                    .end();
             } else {
                 // if connect or getOutputStream has been called we can't end the span right away
                 // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
@@ -139,11 +145,13 @@ public abstract class HttpUrlConnectionInstrumentation extends TracerAwareInstru
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
-                                           @Nullable @Advice.Thrown Throwable t,
+                                           @Advice.Thrown @Nullable Throwable t,
                                            @Advice.FieldValue("responseCode") int responseCode) {
             Span span = inFlightSpans.remove(thiz);
             if (span != null) {
-                span.captureException(t).end();
+                span.captureException(t)
+                    .withOutcome(t != null ? Outcome.FAILURE: Outcome.SUCCESS)
+                    .end();
             }
         }
 

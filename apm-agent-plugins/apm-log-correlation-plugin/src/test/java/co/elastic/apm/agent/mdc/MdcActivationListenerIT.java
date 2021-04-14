@@ -27,8 +27,8 @@ package co.elastic.apm.agent.mdc;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.error.logging.Log4j2LoggerErrorCapturingInstrumentation;
-import co.elastic.apm.agent.error.logging.Slf4jLoggerErrorCapturingInstrumentation;
+import co.elastic.apm.agent.errorlogging.Log4j2LoggerErrorCapturingInstrumentation;
+import co.elastic.apm.agent.errorlogging.Slf4jLoggerErrorCapturingInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -82,6 +82,7 @@ class MdcActivationListenerIT {
         MDC.clear();
         org.apache.log4j.MDC.clear();
         ThreadContext.clearAll();
+        org.jboss.logging.MDC.clear();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
     }
 
@@ -158,11 +159,13 @@ class MdcActivationListenerIT {
     private void assertMdcErrorIdIsEmpty() {
         assertThat(MDC.get("error.id")).isNull();
         assertThat(org.apache.log4j.MDC.get("error.id")).isNull();
+        assertThat(org.jboss.logging.MDC.get("error.id")).isNull();
     }
 
     private Answer<Void> assertMdcErrorIdIsNotEmpty() {
         assertThat(MDC.get("error.id")).isNotBlank();
         assertThat(org.apache.log4j.MDC.get("error.id")).isNotNull();
+        assertThat(org.jboss.logging.MDC.get("error.id")).isNotNull();
         return null;
     }
 }

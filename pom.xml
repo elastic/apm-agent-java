@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <version>1.18.1.RC1-SNAPSHOT</version>
+    <version>1.22.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -63,13 +63,16 @@
         <module>integration-tests</module>
         <module>apm-agent-attach</module>
         <module>apm-agent-plugin-sdk</module>
+        <module>apm-indy-bootstrap-module</module>
+        <module>apm-agent-premain</module>
+        <module>apm-agent-attach-cli</module>
     </modules>
 
     <properties>
 
         <maven.compiler.target>7</maven.compiler.target>
         <maven.compiler.testTarget>11</maven.compiler.testTarget>
-        
+
         <maven.compiler.source>${maven.compiler.target}</maven.compiler.source>
         <maven.compiler.testSource>${maven.compiler.testTarget}</maven.compiler.testSource>
 
@@ -94,21 +97,27 @@
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
         <version.jackson>[2.10.0,)</version.jackson>
-        <version.junit-jupiter>5.6.2</version.junit-jupiter>
-        <version.junit.vintage>4.13</version.junit.vintage>
-        <version.junit-vintage-engine>5.6.2</version.junit-vintage-engine>
+        <version.junit-jupiter>5.7.1</version.junit-jupiter>
+        <version.junit.vintage>4.13.2</version.junit.vintage>
+        <version.junit-vintage-engine>5.7.1</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
-        <version.okhttp>3.9.1</version.okhttp>
-        <version.slf4j>1.7.25</version.slf4j>
+        <version.okhttp>4.9.1</version.okhttp>
+        <version.slf4j>1.7.30</version.slf4j>
         <!-- this is the last version of log4j that is compatible with Java 7 -->
         <version.log4j>2.12.1</version.log4j>
+        <version.log4j2-ecs-layout>1.0.1</version.log4j2-ecs-layout>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.json-schema-validator>0.1.19</version.json-schema-validator>
-        <version.byte-buddy>1.10.12</version.byte-buddy>
+        <version.json-schema-validator>1.0.51</version.json-schema-validator>
+        <!-- Byte Buddy and ASM must be kept in sync -->
+        <version.byte-buddy>1.10.22</version.byte-buddy>
+        <version.asm>9.1</version.asm>
+        <version.cucumber>5.4.0</version.cucumber>
 
         <!-- used both for plugin & annotations dependency -->
         <version.animal-sniffer>1.17</version.animal-sniffer>
+
+        <version.testcontainers>1.15.1</version.testcontainers>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -128,10 +137,16 @@
             <id>IntelliJ</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <!-- makes profile enabled in Intellij only -->
+                    <name>idea.maven.embedder.version</name>
+                </property>
             </activation>
             <properties>
                 <!-- use same java version as tests -->
                 <maven.compiler.target>${maven.compiler.testTarget}</maven.compiler.target>
+                <!-- used by intelij to set per-module language level when target version is overriden in module -->
+                <maven.compiler.source>${maven.compiler.testTarget}</maven.compiler.source>
             </properties>
         </profile>
         <profile>
@@ -499,7 +514,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.10.6</version>
+                <version>${version.testcontainers}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -555,13 +570,13 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.12.2</version>
+            <version>3.19.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.3.3</version>
+            <version>3.9.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -585,13 +600,13 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-standalone</artifactId>
-            <version>2.18.0</version>
+            <version>2.27.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.0.1</version>
+            <version>4.0.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -39,6 +39,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ServiceConfigurationError;
@@ -51,6 +52,8 @@ public class DependencyInjectingServiceLoader<T> {
     private final Object[] constructorArguments;
     private final Class<?>[] constructorTypes;
     private final List<T> instances = new ArrayList<>();
+    private final Set<Class<?>> implementationClassCache;
+    private final Set<URL> resourcePathCache;
 
     private DependencyInjectingServiceLoader(Class<T> clazz, Object... constructorArguments) {
         this(clazz, Collections.singletonList(clazz.getClassLoader()), constructorArguments);
@@ -64,6 +67,8 @@ public class DependencyInjectingServiceLoader<T> {
             types.add(constructorArgument.getClass());
         }
         constructorTypes = types.toArray(new Class[]{});
+        implementationClassCache = new HashSet<>();
+        resourcePathCache = new HashSet<>();
         try {
             for (ClassLoader classLoader : classLoaders) {
                 final Enumeration<URL> resources = getServiceDescriptors(classLoader, clazz);
@@ -98,12 +103,15 @@ public class DependencyInjectingServiceLoader<T> {
         Set<String> implementations = new LinkedHashSet<>();
         while (resources.hasMoreElements()) {
             final URL url = resources.nextElement();
-            try (InputStream inputStream = url.openStream()) {
-                final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-                while (reader.ready()) {
-                    String line = reader.readLine().trim();
-                    if (!isComment(line) && !line.isEmpty()) {
-                        implementations.add(line);
+            // If this resource path was not yet used for service implementations discovery, read from it
+            if (resourcePathCache.add(url)) {
+                try (InputStream inputStream = url.openStream()) {
+                    final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+                    while (reader.ready()) {
+                        String line = reader.readLine().trim();
+                        if (!isComment(line) && !line.isEmpty()) {
+                            implementations.add(line);
+                        }
                     }
                 }
             }
@@ -124,6 +132,10 @@ public class DependencyInjectingServiceLoader<T> {
     private T instantiate(ClassLoader classLoader, String implementation) {
         try {
             final Class<?> implementationClass = Class.forName(implementation, true, classLoader);
+            if (!implementationClassCache.add(implementationClass)) {
+                // If this service implementation class was already instantiated, no need for another instance
+                return null;
+            }
             checkClassModifiers(implementationClass);
             Constructor<?> constructor = getMatchingConstructor(implementationClass);
             if (constructor != null) {
@@ -138,7 +150,7 @@ public class DependencyInjectingServiceLoader<T> {
             String msg = String.format("unable to instantiate '%s', please check descriptor in META-INF", implementation);
             throw new ServiceConfigurationError(msg, e);
         } catch(UnsupportedClassVersionError e) {
-            logger.error(String.format("unable to instantiate '%s', unsupported class version error: %s", implementation, e.getMessage()));
+            logger.debug(String.format("unable to instantiate '%s', unsupported class version error: %s", implementation, e.getMessage()));
             return null;
         } catch (Exception e) {
             throw new ServiceConfigurationError(e.getMessage(), e);

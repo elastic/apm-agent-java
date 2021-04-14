@@ -146,8 +146,7 @@ public class ServletTransactionHelper {
                 transaction.ignoreTransaction();
             } else {
                 doOnAfter(transaction, exception, committed, status, overrideStatusCodeOnThrowable, method,
-                    parameterMap, servletPath, pathInfo, contentTypeHeader)
-                ;
+                    parameterMap, servletPath, pathInfo, contentTypeHeader);
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -168,12 +167,10 @@ public class ServletTransactionHelper {
             status = 500;
         }
         fillResponse(transaction.getContext().getResponse(), committed, status);
-        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
-        transaction.withType("request");
+        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status))
+            .withType("request")
+            .captureException(exception);
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
-        if (exception != null) {
-            transaction.captureException(exception);
-        }
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction transaction) {
@@ -296,46 +293,6 @@ public class ServletTransactionHelper {
                 return "2.0";
             default:
                 return protocol.replace("HTTP/", "");
-        }
-    }
-
-    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction) {
-        if (servletClass == null) {
-            return;
-        }
-        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK);
-        if (transactionName == null) {
-            return;
-        }
-        String servletClassName = servletClass.getName();
-        transactionName.append(servletClassName, servletClassName.lastIndexOf('.') + 1, servletClassName.length());
-        if (method != null) {
-            transactionName.append('#');
-            switch (method) {
-                case "DELETE":
-                    transactionName.append("doDelete");
-                    break;
-                case "HEAD":
-                    transactionName.append("doHead");
-                    break;
-                case "GET":
-                    transactionName.append("doGet");
-                    break;
-                case "OPTIONS":
-                    transactionName.append("doOptions");
-                    break;
-                case "POST":
-                    transactionName.append("doPost");
-                    break;
-                case "PUT":
-                    transactionName.append("doPut");
-                    break;
-                case "TRACE":
-                    transactionName.append("doTrace");
-                    break;
-                default:
-                    transactionName.append(method);
-            }
         }
     }
 

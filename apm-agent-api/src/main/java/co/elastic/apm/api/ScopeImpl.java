@@ -26,7 +26,7 @@ package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
 
-public class ScopeImpl implements Scope {
+class ScopeImpl implements Scope {
 
     @Nonnull
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
@@ -39,6 +39,6 @@ public class ScopeImpl implements Scope {
 
     @Override
     public void close() {
-        // co.elastic.apm.agent.plugin.api.ApiScopeInstrumentation
+        // co.elastic.apm.agent.pluginapi.ApiScopeInstrumentation
     }
 }

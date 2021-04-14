@@ -35,7 +35,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 import org.mockserver.model.ClearType;
@@ -81,12 +80,17 @@ import static org.mockserver.model.HttpRequest.request;
  * <p>
  * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
  * </p>
+ * <p>
+ * Servlet containers that support runtime attach are being tested with it by default. In order to test those through
+ * the `javaagent` route, set {@link #ENABLE_RUNTIME_ATTACH} to {@code false}
+ * </p>
  */
 public abstract class AbstractServletContainerIntegrationTest {
     private static final String pathToJavaagent;
     private static final String pathToAttach;
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
     static boolean ENABLE_DEBUGGING = false;
+    static boolean ENABLE_RUNTIME_ATTACH = true;
     private static MockServerContainer mockServerContainer = new MockServerContainer()
         //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(MockServerContainer.class)))
         .withNetworkAliases("apm-server")
@@ -130,11 +134,15 @@ public abstract class AbstractServletContainerIntegrationTest {
             enableDebugging(servletContainer);
             this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
+        if (runtimeAttachSupported() && !ENABLE_RUNTIME_ATTACH) {
+            // If runtime attach is off for Servlet containers that support that, we need to add the javaagent here
+            appendToEnvVariable(servletContainer, getJavaagentEnvVariable(), "-javaagent:/elastic-apm-agent.jar");
+        }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         this.containerName = containerName;
         servletContainer
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URLS", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
@@ -145,11 +153,23 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
+            .withEnv("ELASTIC_APM_APPLICATION_PACKAGES", "co.elastic") // allows to use API annotations, we have to use a broad package due to multiple apps
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
+            .withFileSystemBind(pathToAttach, "/apm-agent-attach-cli.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
+        for (TestApp testApp : getTestApps()) {
+            testApp.getAdditionalEnvVariables().forEach(servletContainer::withEnv);
+            try {
+                testApp.getAdditionalFilesToBind().forEach((pathToFile, containerPath) -> {
+                    checkFilePresent(pathToFile);
+                    servletContainer.withFileSystemBind(pathToFile, containerPath);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
                 String pathToAppFile = testApp.getAppFilePath();
@@ -158,9 +178,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             }
         }
         this.servletContainer.start();
-        if (runtimeAttach()) {
+        if (runtimeAttachSupported() && ENABLE_RUNTIME_ATTACH) {
             try {
-                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
+                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-cli.jar", "--include-all");
                 System.out.println(result.getStdout());
                 System.out.println(result.getStderr());
             } catch (Exception e) {
@@ -173,6 +193,16 @@ public abstract class AbstractServletContainerIntegrationTest {
                 checkFilePresent(pathToAppFile);
                 servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
             }
+        }
+    }
+
+    private void appendToEnvVariable(GenericContainer<?> servletContainer, String key, String value) {
+        Map<String, String> envMap = servletContainer.getEnvMap();
+        String currentValue = envMap.get(key);
+        if (currentValue == null) {
+            servletContainer.withEnv(key, value);
+        } else {
+            servletContainer.withEnv(key, currentValue + " " + value);
         }
     }
 
@@ -191,16 +221,33 @@ public abstract class AbstractServletContainerIntegrationTest {
         return true;
     }
 
-    protected boolean runtimeAttach() {
+    /**
+     * Change to false in the Servlet-container implementation in order to attach through {@code premain()}
+     * See also {@link AbstractServletContainerIntegrationTest#getJavaagentEnvVariable()}
+     *
+     * @return whether the agent should be attached using the remote attach option or through `javaagent`
+     */
+    protected boolean runtimeAttachSupported() {
         return false;
     }
 
-    private static void checkFilePresent(String pathToWar) {
-        final File warFile = new File(pathToWar);
-        logger.info("Check file {}", warFile.getAbsolutePath());
-        assertThat(warFile).exists();
-        assertThat(warFile).isFile();
-        assertThat(warFile.length()).isGreaterThan(0);
+    /**
+     * Override with the name of the environment variable to which the `javaagent` argument should be appended.
+     * See also {@link AbstractServletContainerIntegrationTest#runtimeAttachSupported()}
+     *
+     * @return the name of the environment variable to which the `javaagent` argument should be appended
+     */
+    protected String getJavaagentEnvVariable() {
+        throw new UnsupportedOperationException("You must provide the proper config that will append the `javaagent` " +
+            "argument properly to the command line");
+    }
+
+    private static void checkFilePresent(String pathToFile) {
+        final File file = new File(pathToFile);
+        logger.info("Check file {}", file.getAbsolutePath());
+        assertThat(file).exists();
+        assertThat(file).isFile();
+        assertThat(file.length()).isGreaterThan(0);
     }
 
     protected void enableDebugging(GenericContainer<?> servletContainer) {
@@ -289,7 +336,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(responseBody).isNotNull();
         String responseString = responseBody.string();
         if (expectedContent != null) {
-            assertThat(responseString).contains(expectedContent);
+            assertThat(responseString)
+                .describedAs("unexpected response content")
+                .contains(expectedContent);
         }
         return responseString;
     }
@@ -392,12 +441,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         return null;
     }
 
-    @NotNull
     public List<String> getPathsToTest() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
-    @NotNull
     public List<String> getPathsToTestErrors() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }

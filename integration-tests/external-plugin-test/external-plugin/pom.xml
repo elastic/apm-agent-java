@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>external-plugin-test</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.22.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>external-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-plugin-sdk</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
+        Example if you'd like to include a dependency:
+        All external dependencies have to be included in the plugin jar.
+        The maven shade plugin takes care of that (see build section of this file).
+        As external plugins are loaded from an isolated class loader, you don't have to relocate the package names.
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.9</version>
+        </dependency>
+        -->
+
+        <!--
+        A test dependency on the agent is needed so that the apm-api-plugin instruments apm-agent-api to inject the actual implementation.
+        Not doing this will return noop transactions in the tests.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <!--
+            TODO use this artifact when we don't shade anymore
+            <artifactId>elastic-apm-agent</artifactId>
+            -->
+            <artifactId>apm-api-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+        The test-jar of the core plugin provides useful test helpers such as AbstractInstrumentationTest and MockReporter.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <type>test-jar</type>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+        Declaring a dependency, normally in a provided scope, on the library that contains the instrumentation targets
+        of this plugin. This way, our instrumentation/advice can use library types, without bundling them into the plugin.
+        This will also make available for testing.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>plugin-instrumentation-target</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+            Currently, Byte Buddy has to be shaded in the same way the agent does.
+            This will likely change in the future, making it required not to shade.
+            -->
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <relocations>
+                                <relocation>
+                                    <pattern>net.bytebuddy</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

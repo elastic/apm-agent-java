@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import co.elastic.apm.agent.premain.ThreadUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 

@@ -24,13 +24,10 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,6 +44,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -54,30 +53,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInstrumentation {
 
-    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(OkHttp3ClientAsyncInstrumentation.class);
 
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClient3ExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttp3ClientAsyncInstrumentation$OkHttpClient3ExecuteAdvice";
     }
 
-    @Nullable
-    @VisibleForAdvice
-    public static HelperClassManager<WrapperCreator<Callback>> callbackWrapperCreator;
-
-    public OkHttp3ClientAsyncInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-        synchronized (OkHttp3ClientAsyncInstrumentation.class) {
-            if(callbackWrapperCreator == null) {
-                callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    OkHttp3ClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
-                    OkHttp3ClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
-            }
-        }
-    }
-
-    @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
         @AssignTo(
@@ -85,16 +67,15 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
             arguments = @AssignTo.Argument(index = 1, value = 0)
         )
         @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable okhttp3.Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
-            if (tracer.getActive() == null || callbackWrapperCreator == null) {
+            if (tracer.getActive() == null) {
                 return null;
             }
 
-            final WrapperCreator<Callback> wrapperCreator = callbackWrapperCreator.getForClassLoaderOfClass(clazz);
-            if (originalRequest == null || originalCallback == null || wrapperCreator == null) {
+            if (originalRequest == null || originalCallback == null) {
                 return null;
             }
 
@@ -107,20 +88,15 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
                 OkHttpClientHelper.computeHostName(url.host()), url.port());
             if (span != null) {
                 span.activate();
-                if (headerSetterHelperManager != null) {
-                    TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
-                    if (headerSetter != null) {
-                        Request.Builder builder = originalRequest.newBuilder();
-                        span.propagateTraceContext(builder, headerSetter);
-                        request = builder.build();
-                    }
-                }
-                callback = wrapperCreator.wrap(callback, span);
+                Request.Builder builder = originalRequest.newBuilder();
+                span.propagateTraceContext(builder, OkHttp3RequestHeaderSetter.INSTANCE);
+                request = builder.build();
+                callback = CallbackWrapperCreator.INSTANCE.wrap(callback, span);
             }
-            return new Object[] {request, callback, span};
+            return new Object[]{request, callback, span};
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void onAfterEnqueue(@Advice.Enter @Nullable Object[] enter) {
             Span span = enter != null ? (Span) enter[2] : null;
             if (span != null) {
@@ -130,6 +106,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
     }
 
     public static class CallbackWrapperCreator implements WrapperCreator<Callback> {
+        public static final CallbackWrapperCreator INSTANCE = new CallbackWrapperCreator();
 
         @Override
         public Callback wrap(final Callback delegate, Span span) {
@@ -148,7 +125,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
             @Override
             public void onFailure(Call call, IOException e) {
                 try {
-                    span.captureException(e).end();
+                    span.captureException(e).withOutcome(Outcome.FAILURE).end();
                 } catch (Throwable t) {
                     logger.error(t.getMessage(), t);
                 } finally {
@@ -172,7 +149,7 @@ public class OkHttp3ClientAsyncInstrumentation extends AbstractOkHttp3ClientInst
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("okhttp3.RealCall");
+        return nameStartsWith("okhttp3.").and(nameEndsWith(".RealCall"));
     }
 
     @Override

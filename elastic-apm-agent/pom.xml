@@ -5,14 +5,14 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.18.1.RC1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elastic-apm-agent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <elastic.apm.agent>co.elastic.apm.agent.premain.AgentMain</elastic.apm.agent>
         <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
@@ -24,7 +24,17 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-premain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-indy-bootstrap-module</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -47,6 +57,16 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-bootdelegation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-cassandra3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-cassandra4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -106,7 +126,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jms-plugin</artifactId>
+            <artifactId>apm-jms-plugin-base</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -156,6 +176,21 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-logback-plugin-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log4j1-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-log4j2-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-mongoclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -176,6 +211,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-rabbitmq-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-redis-common</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -191,12 +231,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-micrometer-plugin</artifactId>
+            <artifactId>apm-log-shipper-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-log-shipper-plugin</artifactId>
+            <artifactId>apm-micrometer-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -398,6 +438,13 @@
                                     <pattern>org.HdrHistogram</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
                                 </relocation>
+
+                                <!-- This reverts logging frameworks temporary packages given during the execution of the package
+                                phase of the apm-log-shader-plugin to their original packages -->
+                                <relocation>
+                                    <pattern>co.elastic.apm.agent.logshading.shaded</pattern>
+                                    <shadedPattern>org</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
@@ -409,6 +456,7 @@
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
                                         <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
+                                        <SCM-Revision>${git.commit.id.abbrev}</SCM-Revision>
                                     </manifestEntries>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
@@ -441,6 +489,19 @@
                                 <dependencySourceInclude>${project.groupId}:apm-agent-core</dependencySourceInclude>
                             </dependencySourceIncludes>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>4.0.2</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

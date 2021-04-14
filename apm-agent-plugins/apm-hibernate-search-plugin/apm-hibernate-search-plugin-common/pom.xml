@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-hibernate-search-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.18.1.RC1-SNAPSHOT</version>
+        <version>1.22.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-hibernate-search-plugin-common</artifactId>

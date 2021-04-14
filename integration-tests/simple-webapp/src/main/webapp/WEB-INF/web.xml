@@ -110,4 +110,13 @@
         <url-pattern>/include</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>TestApiServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.TestApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TestApiServlet</servlet-name>
+        <url-pattern>/test-public-api</url-pattern>
+    </servlet-mapping>
+
 </web-app>

@@ -127,6 +127,9 @@ class AsyncTraceMethodInstrumentationTest {
 
         /**
          * Calling this method results in this method call tree:
+         * <pre>
+         *
+         *
          *
          *                      main thread                         |           worker thread
          * -------------------------------------------------------------------------------------------
@@ -140,6 +143,7 @@ class AsyncTraceMethodInstrumentationTest {
          *                                                          |                |
          *                                                          |                --- longMethod
          *                                                          |
+         * </pre>
          */
         private void invokeAsync() {
             blockingMethodOnMainThread();

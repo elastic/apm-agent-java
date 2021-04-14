@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -53,15 +52,15 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
     }
 
     @Override
-    public Class<?> getAdviceClass() {
-        return ProcessBuilderStartAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.process.ProcessStartInstrumentation$ProcessBuilderStartAdvice";
     }
 
     public static class ProcessBuilderStartAdvice {
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)
         public static void onExit(@Advice.This ProcessBuilder processBuilder,
-                                  @Advice.Return Process process,
+                                  @Advice.Return @Nullable Process process,
                                   @Advice.Thrown @Nullable Throwable t) {
 
             AbstractSpan<?> parentSpan = tracer.getActive();
@@ -74,7 +73,12 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                 parentSpan.captureException(t);
             }
 
-            ProcessHelper.startProcess(parentSpan, process, processBuilder.command());
+            if (process != null) {
+                // when an exception is thrown, there is no return value
+                ProcessHelper.startProcess(parentSpan, process, processBuilder.command());
+            }
+
+
         }
     }
 }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.httpclient.helper;
 
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.apache.http.HttpResponse;
@@ -35,14 +36,14 @@ import org.apache.http.protocol.HttpCoreContext;
 import javax.annotation.Nullable;
 
 class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
-    private final ApacheHttpAsyncClientHelperImpl helper;
+    private final ApacheHttpAsyncClientHelper helper;
     @Nullable
     private FutureCallback<T> delegate;
     @Nullable
     private HttpContext context;
     private volatile Span span;
 
-    FutureCallbackWrapper(ApacheHttpAsyncClientHelperImpl helper) {
+    FutureCallbackWrapper(ApacheHttpAsyncClientHelper helper) {
         this.helper = helper;
     }
 
@@ -104,6 +105,10 @@ class FutureCallbackWrapper<T> implements FutureCallback<T>, Recyclable {
                 }
             }
             localSpan.captureException(e);
+
+            if (e != null) {
+                localSpan.withOutcome(Outcome.FAILURE);
+            }
         } finally {
             localSpan.end();
         }

@@ -70,12 +70,20 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Integer> asyncProfilerSafeMode = ConfigurationOption.<Integer>integerOption()
         .key("async_profiler_safe_mode")
         .configurationCategory(PROFILING_CATEGORY)
-        .dynamic(false)
+        .dynamic(true)
         .description("Can be used for analysis: the Async Profiler's area that deals with recovering stack trace frames \n" +
             "is known to be sensitive in some systems. It is used as a bit mask using values are between 0 and 31, \n" +
             "where 0 enables all recovery attempts and 31 disables all five (corresponding 1, 2, 4, 8 and 16).")
         .tags("internal")
         .buildWithDefault(0);
+
+    private final ConfigurationOption<Boolean> postProcessingEnabled = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_inferred_spans_post_processing_enabled")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(true)
+        .description("Can be used to test the effect of the async-profiler in isolation from the agent's post-processing.")
+        .tags("added[1.18.0]", "internal")
+        .buildWithDefault(true);
 
     private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
         .key("profiling_inferred_spans_sampling_interval")
@@ -184,10 +192,6 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         return asyncProfilerSafeMode.get();
     }
 
-    public boolean isProfilingDisabled() {
-        return !isProfilingEnabled();
-    }
-
     public TimeDuration getSamplingInterval() {
         return samplingInterval.get();
     }
@@ -222,5 +226,9 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public String getProfilerLibDirectory() {
         return profilerLibDirectory.isDefault() ? System.getProperty("java.io.tmpdir") : profilerLibDirectory.get();
+    }
+
+    public boolean isPostProcessingEnabled() {
+        return postProcessingEnabled.get();
     }
 }

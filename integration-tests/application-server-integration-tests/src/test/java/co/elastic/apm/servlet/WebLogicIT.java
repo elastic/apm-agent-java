@@ -25,11 +25,11 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
+import co.elastic.apm.servlet.tests.ExternalPluginTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -67,11 +67,17 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class, CdiApplicationServerTestApp.class);
+        return Arrays.asList(
+            ServletApiTestApp.class,
+            JsfApplicationServerTestApp.class,
+            SoapTestApp.class,
+            CdiApplicationServerTestApp.class,
+            ExternalPluginTestApp.class
+        );
     }
 
     @Override
-    public @NotNull List<String> getPathsToTestErrors() {
+    public List<String> getPathsToTestErrors() {
         // WebLogic can't handle the case when a exception is thrown in the runnable submitted to AsyncContext#start(Runnable)
         // it requires AsyncContext#complete() to be called, otherwise it throws a timeout
         return List.of("/index.jsp", "/servlet", "/async-dispatch-servlet");
@@ -85,7 +91,7 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected boolean runtimeAttach() {
+    protected boolean runtimeAttachSupported() {
         return true;
     }
 }

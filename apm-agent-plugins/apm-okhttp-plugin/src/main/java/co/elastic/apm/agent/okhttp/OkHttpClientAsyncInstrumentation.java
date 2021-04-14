@@ -24,13 +24,10 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.sdk.advice.AssignTo;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
@@ -52,30 +49,13 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstrumentation {
 
-    @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(OkHttpClientAsyncInstrumentation.class);
 
     @Override
-    public Class<?> getAdviceClass() {
-        return OkHttpClient3ExecuteAdvice.class;
+    public String getAdviceClassName() {
+        return "co.elastic.apm.agent.okhttp.OkHttpClientAsyncInstrumentation$OkHttpClient3ExecuteAdvice";
     }
 
-    @Nullable
-    @VisibleForAdvice
-    public static HelperClassManager<WrapperCreator<Callback>> callbackWrapperCreator;
-
-    public OkHttpClientAsyncInstrumentation(ElasticApmTracer tracer) {
-        super(tracer);
-        synchronized (OkHttpClientAsyncInstrumentation.class) {
-            if (callbackWrapperCreator == null) {
-                callbackWrapperCreator = HelperClassManager.ForAnyClassLoader.of(tracer,
-                    OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator",
-                    OkHttpClientAsyncInstrumentation.class.getName() + "$CallbackWrapperCreator$CallbackWrapper");
-            }
-        }
-    }
-
-    @VisibleForAdvice
     public static class OkHttpClient3ExecuteAdvice {
 
         @AssignTo(
@@ -83,16 +63,15 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             arguments = @AssignTo.Argument(index = 1, value = 0)
         )
         @Nullable
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object[] onBeforeEnqueue(final @Advice.Origin Class<? extends Call> clazz,
                                                final @Advice.FieldValue("originalRequest") @Nullable Request originalRequest,
                                                final @Advice.Argument(0) @Nullable Callback originalCallback) {
-            if (tracer.getActive() == null || callbackWrapperCreator == null) {
+            if (tracer.getActive() == null) {
                 return null;
             }
 
-            final WrapperCreator<Callback> wrapperCreator = callbackWrapperCreator.getForClassLoaderOfClass(clazz);
-            if (originalRequest == null || originalCallback == null || wrapperCreator == null) {
+            if (originalRequest == null || originalCallback == null) {
                 return null;
             }
 
@@ -105,20 +84,15 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
                 OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
             if (span != null) {
                 span.activate();
-                if (headerSetterHelperManager != null) {
-                    TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
-                    if (headerSetter != null) {
-                        Request.Builder builder = originalRequest.newBuilder();
-                        span.propagateTraceContext(builder, headerSetter);
-                        request = builder.build();
-                    }
-                }
-                callback = wrapperCreator.wrap(originalCallback, span);
+                Request.Builder builder = originalRequest.newBuilder();
+                span.propagateTraceContext(builder, OkHttpRequestHeaderSetter.INSTANCE);
+                request = builder.build();
+                callback = CallbackWrapperCreator.INSTANCE.wrap(originalCallback, span);
             }
-            return new Object[] {request, callback, span};
+            return new Object[]{request, callback, span};
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
         public static void onAfterEnqueue(@Advice.Enter @Nullable Object[] enter) {
             Span span = enter != null ? (Span) enter[2] : null;
             if (span != null) {
@@ -128,6 +102,8 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
     }
 
     public static class CallbackWrapperCreator implements WrapperCreator<Callback> {
+
+        public static final CallbackWrapperCreator INSTANCE = new CallbackWrapperCreator();
 
         @Override
         public Callback wrap(final Callback delegate, Span span) {
@@ -146,7 +122,9 @@ public class OkHttpClientAsyncInstrumentation extends AbstractOkHttpClientInstru
             @Override
             public void onFailure(Request req, IOException e) {
                 try {
-                    span.captureException(e).end();
+                    span.captureException(e)
+                        .withOutcome(Outcome.FAILURE)
+                        .end();
                 } catch (Throwable t) {
                     logger.error(t.getMessage(), t);
                 } finally {

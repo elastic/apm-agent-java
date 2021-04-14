@@ -56,7 +56,7 @@ Only the external file can be used for dynamic configuration.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
-<<config-server-urls>> and <<config-application-packages>>.
+<<config-server-url>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
 [source,bash]
@@ -64,7 +64,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example,org.another.example
--Delastic.apm.server_urls=http://localhost:8200
+-Delastic.apm.server_url=http://localhost:8200
 ----
 
 [source,properties]
@@ -72,7 +72,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example,org.another.example
-server_urls=http://localhost:8200
+server_url=http://localhost:8200
 ----
 
 [source,bash]
@@ -80,7 +80,7 @@ server_urls=http://localhost:8200
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
-ELASTIC_APM_SERVER_URLS=http://localhost:8200
+ELASTIC_APM_SERVER_URL=http://localhost:8200
 ----
 
 [float]
@@ -121,12 +121,14 @@ Click on a key to get more information.
 ** <<config-central-config>>
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
+** <<config-plugins-dir>>
 ** <<config-use-elastic-traceparent-header>>
 ** <<config-span-min-duration>>
+** <<config-cloud-provider>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
 ** <<config-transaction-ignore-urls>>
-** <<config-ignore-user-agents>>
+** <<config-transaction-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
 ** <<config-url-groups>>
 * <<config-jax-rs>>
@@ -138,11 +140,15 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
+** <<config-log-ecs-reformatting>>
+** <<config-log-ecs-reformatting-dir>>
 ** <<config-log-file-size>>
 ** <<config-log-format-sout>>
 ** <<config-log-format-file>>
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
+* <<config-metrics>>
+** <<config-dedot-custom-metrics>>
 * <<config-profiling>>
 ** <<config-profiling-inferred-spans-enabled>>
 ** <<config-profiling-inferred-spans-sampling-interval>>
@@ -153,7 +159,9 @@ Click on a key to get more information.
 * <<config-reporter>>
 ** <<config-secret-token>>
 ** <<config-api-key>>
+** <<config-server-url>>
 ** <<config-server-urls>>
+** <<config-disable-send>>
 ** <<config-server-timeout>>
 ** <<config-verify-server-cert>>
 ** <<config-max-queue-size>>
@@ -422,7 +430,10 @@ If you want to dynamically change the status of the agent, use <<config-recordin
 [[config-instrument]]
 ==== `instrument` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
-A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+A boolean specifying if the agent should instrument the application to collect traces for the app.
+ When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+would still collect and send metrics to APM Server.
 
 NOTE: Both active and instrument needs to be true for instrumentation to be running.
 
@@ -605,13 +616,15 @@ You must use the query bar to filter for a specific environment in versions prio
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
 
+Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
+
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `1.0` | Double | true
+| `1` | Double | true
 |============
 
 
@@ -696,7 +709,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations` (added[1.0.0,Changing this value at runtime is possible since version 1.15.0])
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 If you want to try out experimental features, set the value to an empty string.
 
 NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -995,10 +1008,12 @@ NOTE: Changing this value at runtime can slow down the application temporarily.
 If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 Such methods will be traced and reported if one of the following applies:
+
  - This method's duration crossed the configured threshold.
  - This method ended with Exception.
  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+
 Set to 0 to disable.
 
 NOTE: Transactions are never discarded, regardless of their duration.
@@ -1105,6 +1120,36 @@ NOTE: this option can only be set via system properties, environment variables o
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-plugins-dir]]
+==== `plugins_dir` (experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+A folder that contains external agent plugins.
+
+Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+The agent will load all instrumentations that are declared in the
+`META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+See `integration-tests/external-plugin-test` for an example plugin.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.plugins_dir` | `plugins_dir` | `ELASTIC_APM_PLUGINS_DIR`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-use-elastic-traceparent-header]]
 ==== `use_elastic_traceparent_header` (added[1.14.0])
 
@@ -1168,6 +1213,32 @@ The default unit for this option is `ms`.
 | `elastic.apm.span_min_duration` | `span_min_duration` | `ELASTIC_APM_SPAN_MIN_DURATION`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-cloud-provider]]
+==== `cloud_provider` (added[1.21.0])
+
+This config value allows you to specify which cloud provider should be assumed 
+for metadata collection. By default, the agent will attempt to detect the cloud 
+provider or, if that fails, will use trial and error to collect the metadata.
+
+
+
+Valid options: `AUTO`, `AWS`, `GCP`, `AZURE`, `NONE`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `AUTO` | CloudProvider | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.cloud_provider` | `cloud_provider` | `ELASTIC_APM_CLOUD_PROVIDER`
+|============
+
 [[config-http]]
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1215,8 +1286,6 @@ Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
 
-NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
-
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
@@ -1235,8 +1304,8 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-ignore-user-agents]]
-==== `ignore_user_agents`
+[[config-transaction-ignore-user-agents]]
+==== `transaction_ignore_user_agents` (added[1.22.0])
 
 Used to restrict requests from certain User-Agents from being instrumented.
 
@@ -1248,8 +1317,6 @@ This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
-
-NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
@@ -1264,13 +1331,13 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
+| `elastic.apm.transaction_ignore_user_agents` | `transaction_ignore_user_agents` | `ELASTIC_APM_TRANSACTION_IGNORE_USER_AGENTS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-use-path-as-transaction-name]]
-==== `use_path_as_transaction_name` (experimental)
+==== `use_path_as_transaction_name` (experimental added[1.0.0,Changing this value at runtime is possible since version 1.22.0])
 
 NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
 
@@ -1282,13 +1349,13 @@ you should be very careful when enabling this flag,
 as it can lead to an explosion of transaction groups.
 Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
 
-
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `false` | Boolean | false
+| `false` | Boolean | true
 |============
 
 
@@ -1512,12 +1579,14 @@ The resulting documents in Elasticsearch look similar to this:
 ==== `log_level`
 
 Sets the logging level for the agent.
-
 This option is case-insensitive.
+
+NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent; 
+`OFF` is only available since version 1.16.0
 
 <<configuration-dynamic, image:./images/dynamic-config.svg[] >>
 
-Valid options: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+Valid options: `OFF`, `ERROR`, `CRITICAL`, `WARN`, `WARNING`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
@@ -1590,6 +1659,77 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-ecs-reformatting]]
+==== `log_ecs_reformatting` (added[1.22.0] experimental)
+
+NOTE: This feature is currently experimental, which means it is disabled by default and it is not guaranteed to be backwards compatible in future releases.
+
+Specifying whether and how the agent should automatically reformat application logs 
+into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
+Once this option is enabled with any valid option, log correlation will be activated as well, regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. 
+
+Available options:
+
+ - OFF - application logs are not reformatted. 
+ - SHADE - agent logs are reformatted and "shade" ECS-JSON-formatted logs are automatically created in 
+   addition to the original application logs. Shade logs will have the same name as the original logs, 
+   but with the ".ecs.json" extension instead of the original extension. Destination directory for the 
+   shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> 
+   configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they 
+   use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> 
+   configuration and while allowing maximum of two shade log files.
+ - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
+   you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
+   with a different file extension.
+
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+Valid options: `OFF`, `SHADE`, `REPLACE`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `OFF` | LogEcsReformatting | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_ecs_reformatting` | `log_ecs_reformatting` | `ELASTIC_APM_LOG_ECS_REFORMATTING`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-log-ecs-reformatting-dir]]
+==== `log_ecs_reformatting_dir`
+
+If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, 
+the shade log files will be written alongside the original logs in the same directory by default. 
+Use this configuration in order to write the shade logs into an alternative destination. Omitting this 
+config or setting it to an empty string will restore the default behavior. If relative path is used, 
+this path will be used relative to the original logs directory.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.log_ecs_reformatting_dir` | `log_ecs_reformatting_dir` | `ELASTIC_APM_LOG_ECS_REFORMATTING_DIR`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1704,6 +1844,35 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
+|============
+
+[[config-metrics]]
+=== Metrics configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-dedot-custom-metrics]]
+==== `dedot_custom_metrics` (added[1.22.0])
+
+Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+
+WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
+An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
+The first metric maps `foo` to a number and the second metric maps `foo` as an object.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.dedot_custom_metrics` | `dedot_custom_metrics` | `ELASTIC_APM_DEDOT_CUSTOM_METRICS`
 |============
 
 [[config-profiling]]
@@ -1941,17 +2110,10 @@ Use if APM Server requires an API key.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-server-urls]]
-==== `server_urls`
+[[config-server-url]]
+==== `server_url`
 
-The URLs must be fully qualified, including protocol (http or https) and port.
-
-Fails over to the next APM Server URL in the event of connection errors.
-Achieves load-balancing by shuffling the list of configured URLs.
-When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
-
-If set to an empty string, the agent will work as usual, except from any task requiring communication with 
-the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+The URL must be fully qualified, including protocol (http or https) and port.
 
 If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 <<ssl-configuration>>.
@@ -1969,7 +2131,46 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | List | true
+| `http://localhost:8200` | URL | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.server_url` | `server_url` | `ELASTIC_APM_SERVER_URL`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-server-urls]]
+==== `server_urls`
+
+The URLs must be fully qualified, including protocol (http or https) and port.
+
+Fails over to the next APM Server URL in the event of connection errors.
+Achieves load-balancing by shuffling the list of configured URLs.
+When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+
+If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
+<<ssl-configuration>>.
+
+If outgoing HTTP traffic has to go through a proxy,
+you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
+for more information.
+
+NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order 
+to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you 
+are only setting a single URL.
+
+<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
 |============
 
 
@@ -1977,6 +2178,33 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.server_urls` | `server_urls` | `ELASTIC_APM_SERVER_URLS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-disable-send]]
+==== `disable_send`
+
+If set to `true`, the agent will work as usual, except from any task requiring communication with 
+the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
+means that any other configuration cannot be changed in this state without restarting the service. 
+An example use case for this would be maintaining the ability to create traces and log 
+trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
+
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.disable_send` | `disable_send` | `ELASTIC_APM_DISABLE_SEND`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -2049,13 +2277,13 @@ This guards the application from crashing in case the APM server is unavailable 
 A lower value will decrease the heap overhead of the agent,
 while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 
-<<configuration-dynamic, image:./images/dynamic-config.svg[] >>
+
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `512` | Integer | true
+| `512` | Integer | false
 |============
 
 
@@ -2417,7 +2645,10 @@ The default unit for this option is `ms`.
 #
 # enabled=true
 
-# A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
+# A boolean specifying if the agent should instrument the application to collect traces for the app.
+#  When set to `false`, most built-in instrumentation plugins are disabled, which would minimize the effect on 
+# your application. However, the agent would still apply instrumentation related to manual tracing options and it 
+# would still collect and send metrics to APM Server.
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
 # 
@@ -2513,12 +2744,14 @@ The default unit for this option is `ms`.
 # environment=
 
 # By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+# 
+# Value will be rounded with 4 significant digits, as an example, value '0.55555' will be rounded to `0.5556`
 #
 # This setting can be changed at runtime
 # Type: Double
-# Default value: 1.0
+# Default value: 1
 #
-# transaction_sample_rate=1.0
+# transaction_sample_rate=1
 
 # Limits the amount of spans that are recorded per transaction.
 # 
@@ -2560,7 +2793,7 @@ The default unit for this option is `ms`.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
+# Valid options are `annotations`, `apache-commons-exec`, `apache-httpclient`, `asynchttpclient`, `bootdelegation`, `cassandra`, `concurrent`, `dubbo`, `elasticsearch-restclient`, `exception-handler`, `executor`, `executor-collection`, `experimental`, `fork-join`, `grails`, `grpc`, `hibernate-search`, `http-client`, `jax-rs`, `jax-ws`, `jdbc`, `jdk-httpclient`, `jedis`, `jms`, `jsf`, `kafka`, `lettuce`, `log4j1-ecs`, `log4j2-ecs`, `log4j2-error`, `logback-ecs`, `logging`, `micrometer`, `mongodb-client`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `rabbitmq`, `redis`, `redisson`, `render`, `scala-future`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-api-dispatch`, `servlet-input-stream`, `slf4j-error`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `ssl-context`, `timer-task`, `urlconnection`.
 # If you want to try out experimental features, set the value to an empty string.
 # 
 # NOTE: Changing this value at runtime can slow down the application temporarily.
@@ -2739,10 +2972,12 @@ The default unit for this option is `ms`.
 # If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
 # duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 # Such methods will be traced and reported if one of the following applies:
+# 
 #  - This method's duration crossed the configured threshold.
 #  - This method ended with Exception.
 #  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+# 
 # Set to 0 to disable.
 # 
 # NOTE: Transactions are never discarded, regardless of their duration.
@@ -2791,6 +3026,19 @@ The default unit for this option is `ms`.
 #
 # config_file=_AGENT_HOME_/elasticapm.properties
 
+# A folder that contains external agent plugins.
+# 
+# Use the `apm-agent-plugin-sdk` and the `apm-agent-api` artifacts to create a jar and place it into the plugins folder.
+# The agent will load all instrumentations that are declared in the
+# `META-INF/services/co.elastic.apm.agent.sdk.ElasticApmInstrumentation` service descriptor.
+# See `integration-tests/external-plugin-test` for an example plugin.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# plugins_dir=
+
 # To enable {apm-overview-ref-v}/distributed-tracing.html[distributed tracing], the agent
 # adds trace context headers to outgoing requests (like HTTP requests, Kafka records, gRPC requests etc.).
 # These headers (`traceparent` and `tracestate`) are defined in the
@@ -2825,6 +3073,17 @@ The default unit for this option is `ms`.
 #
 # span_min_duration=0ms
 
+# This config value allows you to specify which cloud provider should be assumed 
+# for metadata collection. By default, the agent will attempt to detect the cloud 
+# provider or, if that fails, will use trial and error to collect the metadata.
+#
+# Valid options: AUTO, AWS, GCP, AZURE, NONE
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: CloudProvider
+# Default value: AUTO
+#
+# cloud_provider=AUTO
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -2853,8 +3112,6 @@ The default unit for this option is `ms`.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
-# 
-# NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
@@ -2872,14 +3129,12 @@ The default unit for this option is `ms`.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
-# 
-# NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
 # Default value: 
 #
-# ignore_user_agents=
+# transaction_ignore_user_agents=
 
 # If set to `true`,
 # transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method unknown route`.
@@ -2889,7 +3144,7 @@ The default unit for this option is `ms`.
 # as it can lead to an explosion of transaction groups.
 # Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: Boolean
 # Default value: false
 #
@@ -3050,10 +3305,12 @@ The default unit for this option is `ms`.
 ############################################
 
 # Sets the logging level for the agent.
-# 
 # This option is case-insensitive.
+# 
+# NOTE: `CRITICAL` is a valid option, but it is mapped to `ERROR`; `WARN` and `WARNING` are equivalent; 
+# `OFF` is only available since version 1.16.0
 #
-# Valid options: OFF, ERROR, WARN, INFO, DEBUG, TRACE
+# Valid options: OFF, ERROR, CRITICAL, WARN, WARNING, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
 # Type: LogLevel
 # Default value: INFO
@@ -3089,6 +3346,45 @@ The default unit for this option is `ms`.
 # Default value: false
 #
 # enable_log_correlation=false
+
+# Specifying whether and how the agent should automatically reformat application logs 
+# into {ecs-logging-ref}/index.html[ECS-compatible JSON], suitable for ingestion into Elasticsearch for 
+# further Log analysis. This functionality is available for log4j1, log4j2 and Logback. 
+# Once this option is enabled with any valid option, log correlation will be activated as well, regardless of the <<config-enable-log-correlation,`enable_log_correlation`>> configuration. 
+# 
+# Available options:
+# 
+#  - OFF - application logs are not reformatted. 
+#  - SHADE - agent logs are reformatted and "shade" ECS-JSON-formatted logs are automatically created in 
+#    addition to the original application logs. Shade logs will have the same name as the original logs, 
+#    but with the ".ecs.json" extension instead of the original extension. Destination directory for the 
+#    shade logs can be configured through the <<config-log-ecs-reformatting-dir,`log_ecs_reformatting_dir`>> 
+#    configuration. Shade logs do not inherit file-rollover strategy from the original logs. Instead, they 
+#    use their own size-based rollover strategy according to the <<config-log-file-size, `log_file_size`>> 
+#    configuration and while allowing maximum of two shade log files.
+#  - REPLACE - similar to `SHADE`, but the original logs will not be written. This option is useful if 
+#    you wish to maintain similar logging-related overhead, but write logs to a different location and/or 
+#    with a different file extension.
+# 
+#
+# Valid options: OFF, SHADE, REPLACE
+# This setting can be changed at runtime
+# Type: LogEcsReformatting
+# Default value: OFF
+#
+# log_ecs_reformatting=OFF
+
+# If <<config-log-ecs-reformatting,`log_ecs_reformatting`>> is set to `SHADE` or `REPLACE`, 
+# the shade log files will be written alongside the original logs in the same directory by default. 
+# Use this configuration in order to write the shade logs into an alternative destination. Omitting this 
+# config or setting it to an empty string will restore the default behavior. If relative path is used, 
+# this path will be used relative to the original logs directory.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# log_ecs_reformatting_dir=
 
 # The size of the log file.
 # 
@@ -3145,6 +3441,22 @@ The default unit for this option is `ms`.
 # Default value: 
 #
 # ignore_message_queues=
+
+############################################
+# Metrics                                  #
+############################################
+
+# Replaces dots with underscores in the metric names for custom metrics, such as Micrometer metrics.
+# 
+# WARNING: Setting this to `false` can lead to mapping conflicts as dots indicate nesting in Elasticsearch.
+# An example of when a conflict happens is two metrics with the name `foo` and `foo.bar`.
+# The first metric maps `foo` to a number and the second metric maps `foo` as an object.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# dedot_custom_metrics=true
 
 ############################################
 # Profiling                                #
@@ -3259,16 +3571,9 @@ The default unit for this option is `ms`.
 #
 # api_key=
 
-# The URLs for your APM Servers
+# The URL for your APM Server
 #
-# The URLs must be fully qualified, including protocol (http or https) and port.
-# 
-# Fails over to the next APM Server URL in the event of connection errors.
-# Achieves load-balancing by shuffling the list of configured URLs.
-# When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
-# 
-# If set to an empty string, the agent will work as usual, except from any task requiring communication with 
-# the APM server (since 1.18.0). Events will be dropped as long as no valid server URLs are set. 
+# The URL must be fully qualified, including protocol (http or https) and port.
 # 
 # If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
 # <<ssl-configuration>>.
@@ -3281,10 +3586,48 @@ The default unit for this option is `ms`.
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #
 # This setting can be changed at runtime
-# Type: comma separated list
+# Type: URL
 # Default value: http://localhost:8200
 #
-# server_urls=http://localhost:8200
+# server_url=http://localhost:8200
+
+# The URLs for your APM Servers
+#
+# The URLs must be fully qualified, including protocol (http or https) and port.
+# 
+# Fails over to the next APM Server URL in the event of connection errors.
+# Achieves load-balancing by shuffling the list of configured URLs.
+# When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+# 
+# If SSL is enabled on the APM Server, use the `https` protocol. For more information, see 
+# <<ssl-configuration>>.
+# 
+# If outgoing HTTP traffic has to go through a proxy,
+# you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+# See also https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html[Java's proxy documentation] 
+# for more information.
+# 
+# NOTE: This configuration is specific to the Java agent and does not align with any other APM agent. In order 
+# to use a cross-agent config, use <<config-server-url>> instead, which is the recommended option regardless if you 
+# are only setting a single URL.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# server_urls=
+
+# If set to `true`, the agent will work as usual, except from any task requiring communication with 
+# the APM server. Events will be dropped and the agent won't be able to receive central configuration, which 
+# means that any other configuration cannot be changed in this state without restarting the service. 
+# An example use case for this would be maintaining the ability to create traces and log 
+# trace/transaction/span IDs through the log correlation feature, without setting up an APM Server.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# disable_send=false
 
 # Server timeout
 #
@@ -3322,7 +3665,7 @@ The default unit for this option is `ms`.
 # A lower value will decrease the heap overhead of the agent,
 # while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 #
-# This setting can be changed at runtime
+# This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Integer
 # Default value: 512
 #

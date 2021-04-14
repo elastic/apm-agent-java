@@ -24,15 +24,10 @@
  */
 package co.elastic.apm.agent.grpc;
 
-import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.grpc.helper.GrpcHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -40,23 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
 
-    @Nullable
-    @VisibleForAdvice
-    public static HelperClassManager<GrpcHelper> grpcHelperManager;
-
-    public BaseInstrumentation(ElasticApmTracer tracer) {
-        synchronized (BaseInstrumentation.class) {
-            // we need to make sure that only a single instance of helper class manager is created
-            // otherwise 'static' fields semantics do not hold in helper class as multiple versions of helper class
-            // are loaded in distinct classloaders.
-            if (grpcHelperManager == null) {
-                grpcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
-                    "co.elastic.apm.agent.grpc.helper.GrpcHelperImpl",
-                    "co.elastic.apm.agent.grpc.helper.GrpcHelperImpl$GrpcHeaderSetter",
-                    "co.elastic.apm.agent.grpc.helper.GrpcHelperImpl$GrpcHeaderGetter");
-            }
-        }
-    }
+    protected static final GrpcHelper helper = new GrpcHelper();
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -68,8 +47,4 @@ public abstract class BaseInstrumentation extends TracerAwareInstrumentation {
         return Collections.singleton(GrpcHelper.GRPC);
     }
 
-    @Override
-    public boolean indyPlugin() {
-        return false;
-    }
 }
