@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
-import co.elastic.apm.agent.sdk.state.GlobalVariables;
 import co.elastic.apm.agent.util.VersionUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -42,8 +41,6 @@ import net.bytebuddy.matcher.ElementMatchers;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
@@ -59,24 +56,26 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentation {
 
+    public static boolean useAnnotationValueForTransactionName;
+
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
-    static final String USE_ANNOTATION_VALUE_CONFIG = "useAnnotationValueForTransactionName";
-    static final Map<String, Boolean> CONFIG = GlobalVariables.get(JaxRsConfiguration.class, "configs", new HashMap<>(1));
+    private final ElasticApmTracer tracer;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
+        this.tracer = tracer;
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
-        CONFIG.put(USE_ANNOTATION_VALUE_CONFIG, configuration.isUseJaxRsPathForTransactionName());
+        useAnnotationValueForTransactionName = configuration.isUseJaxRsPathForTransactionName();
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static void setTransactionName(@SimpleMethodSignature String signature,
-                                          @JaxRsPath @Nullable String pathAnnotationValue) {
+                                           @JaxRsPath @Nullable String pathAnnotationValue) {
         final Transaction transaction = TracerAwareInstrumentation.tracer.currentTransaction();
         if (transaction != null) {
             String transactionName = signature;
-            if (CONFIG.get(USE_ANNOTATION_VALUE_CONFIG)) {
+            if (useAnnotationValueForTransactionName) {
                 if (pathAnnotationValue != null) {
                     transactionName = pathAnnotationValue;
                 }
@@ -141,7 +140,7 @@ public class JaxRsTransactionNameInstrumentation extends TracerAwareInstrumentat
     @Nullable
     @Override
     public Advice.OffsetMapping.Factory<?> getOffsetMapping() {
-        return new JaxRsOffsetMappingFactory();
+        return new JaxRsOffsetMappingFactory(tracer);
     }
 
 }
