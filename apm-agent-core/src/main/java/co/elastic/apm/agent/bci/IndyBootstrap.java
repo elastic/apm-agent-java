@@ -59,6 +59,7 @@ import java.util.concurrent.ConcurrentMap;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -352,7 +353,7 @@ public class IndyBootstrap {
                     .or(nameStartsWith("co.elastic.apm.agent.concurrent"))
                     // if config classes would be loaded from the plugin CL,
                     // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
-                    .or(hasSuperType(is(ConfigurationOptionProvider.class))));
+                    .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
             ElasticApmAgent.validateAdvice(adviceInPluginCL);
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
