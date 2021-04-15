@@ -73,7 +73,14 @@ public class IndyPluginClassLoaderFactory {
         TypePool pool = new TypePool.Default.WithLazyResolution(TypePool.CacheProvider.NoOp.INSTANCE, classFileLocator, TypePool.Default.ReaderMode.FAST);
         for (Iterator<String> iterator = classesToInject.iterator(); iterator.hasNext(); ) {
             String className = iterator.next();
-            if (!exclusionMatcher.matches(pool.describe(className).resolve())) {
+            boolean excluded;
+            try {
+                excluded = exclusionMatcher.matches(pool.describe(className).resolve());
+            } catch (Exception e) {
+                // in case a matcher fails, for example because it can't resolve a type description
+                excluded = false;
+            }
+            if (!excluded) {
                 classesToInjectCopy.add(className);
             }
         }

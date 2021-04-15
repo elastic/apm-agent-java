@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.GlobalTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
@@ -76,18 +75,21 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
 
         @Nullable
         @AssignTo.Return
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> parentContext,
-                                      @Advice.Origin Class<?> spanBuilderClass,
-                                      @Advice.FieldValue(value = "tags") Map<String, Object> tags,
-                                      @Advice.FieldValue(value = "operationName") String operationName,
-                                      @Advice.FieldValue(value = "microseconds") long microseconds,
-                                      @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage) {
-            return doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
+        @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+        public static Object createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object parentContext,
+                                        @Advice.Origin Class<?> spanBuilderClass,
+                                        @Advice.FieldValue(value = "tags") Map<String, Object> tags,
+                                        @Advice.FieldValue(value = "operationName") String operationName,
+                                        @Advice.FieldValue(value = "microseconds") long microseconds,
+                                        @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage) {
+            AbstractSpan<?> parent = null;
+            if (parentContext instanceof AbstractSpan<?>) {
+                parent = (AbstractSpan<?>) parentContext;
+            }
+            return doCreateTransactionOrSpan(parent, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
         }
 
         @Nullable
-        @VisibleForAdvice
         public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable AbstractSpan<?> parentContext,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,

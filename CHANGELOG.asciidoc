@@ -74,7 +74,7 @@ Even when matching on the main class name or on system properties,
 
 [float]
 ===== Refactors
-* Migrate MongoDB plugin to indy dispatcher {pull}1369[#1369]
+* Migrate some plugins to indy dispatcher {pull}1369[#1369] {pull}1410[#1410] {pull}1374[#1374]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

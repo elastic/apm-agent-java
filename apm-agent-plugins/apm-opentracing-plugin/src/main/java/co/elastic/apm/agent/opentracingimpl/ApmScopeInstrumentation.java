@@ -22,9 +22,8 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,11 +37,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
 
-    @VisibleForAdvice
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> dispatcher) {
-        if (dispatcher != null) {
-            dispatcher.deactivate();
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Object context) {
+        if (context instanceof AbstractSpan<?>) {
+            ((AbstractSpan<?>) context).deactivate();
         }
     }
 

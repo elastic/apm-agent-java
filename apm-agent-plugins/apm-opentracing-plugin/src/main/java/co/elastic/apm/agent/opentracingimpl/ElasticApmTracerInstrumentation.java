@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -33,7 +33,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrumentation {
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
     public static void close() {
         tracer.stop();
     }
