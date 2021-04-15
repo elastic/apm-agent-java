@@ -98,12 +98,8 @@ public class MicrometerMetricsReporter implements Runnable, Closeable {
         for (MeterRegistry registry : meterRegistries) {
             registry.forEachMeter(meterConsumer);
         }
-        int metersCount = meterConsumer.meters.size();
-        if (metersCount > 0) {
-            logger.debug("Reporting {} meters", metersCount);
-            reporter.report(serializer.serialize(meterConsumer.meters, timestamp));
-        }
-
+        logger.debug("Reporting {} meters", meterConsumer.meters.size());
+        reporter.report(serializer.serialize(meterConsumer.meters, timestamp));
     }
 
     @Override
