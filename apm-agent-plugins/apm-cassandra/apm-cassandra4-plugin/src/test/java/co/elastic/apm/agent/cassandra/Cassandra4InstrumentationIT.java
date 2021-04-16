@@ -26,6 +26,7 @@ package co.elastic.apm.agent.cassandra;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
@@ -58,7 +59,10 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
     public static GenericContainer<?> cassandra = new GenericContainer<>("cassandra:4.0")
         .withExposedPorts(9042)
         .withLogConsumer(new Slf4jLogConsumer(logger))
-        .withStartupTimeout(Duration.ofSeconds(120));
+        .withStartupTimeout(Duration.ofSeconds(120))
+        .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048))
+        .withEnv("HEAP_NEWSIZE", "700m")
+        .withEnv("MAX_HEAP_SIZE", "1024m");
     private static CqlSession session;
     private static int cassandraPort;
     private Transaction transaction;
@@ -98,7 +102,7 @@ class Cassandra4InstrumentationIT extends AbstractInstrumentationTest {
     }
 
     @Test
-    void test() throws Exception{
+    void test() throws Exception {
         session.execute("CREATE TABLE users (id UUID PRIMARY KEY, name text)");
         session.execute(session.prepare("INSERT INTO users (id, name) values (?, ?)").bind(UUID.randomUUID(), "alice"));
         session.executeAsync("SELECT * FROM users where name = 'alice' ALLOW FILTERING").toCompletableFuture().get();

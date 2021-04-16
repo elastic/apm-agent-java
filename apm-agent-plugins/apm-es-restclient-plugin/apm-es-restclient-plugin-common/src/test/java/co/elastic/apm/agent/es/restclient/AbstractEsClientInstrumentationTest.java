@@ -32,12 +32,13 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Outcome;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -68,12 +69,22 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
     }
 
+    protected static void startContainer(String image) {
+        container = new ElasticsearchContainer(image)
+            .withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(4096));
+        container.start();
+    }
+
+    @AfterClass
+    public static void stopContainer() {
+        if (container != null) {
+            container.stop();
+        }
+    }
+
     @Before
     public void startTransaction() {
-        Transaction transaction = tracer.startRootTransaction(null).activate();
-        transaction.withName("ES Transaction");
-        transaction.withType("request");
-        transaction.withResultIfUnset("success");
+        startTestRootTransaction("ES Transaction");
     }
 
     @After
@@ -92,7 +103,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         }
     }
 
-    public void assertThatErrorsExistWhenDeleteNonExistingIndex() throws IOException {
+    public void assertThatErrorsExistWhenDeleteNonExistingIndex() {
 
         List<ErrorCapture> errorCaptures = reporter.getErrors();
         assertThat(errorCaptures).hasSize(1);
@@ -151,7 +162,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
 
-        List<Span>spans = reporter.getSpans();
+        List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
     }
