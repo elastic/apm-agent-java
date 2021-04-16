@@ -49,6 +49,8 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
@@ -140,6 +142,7 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void testNonAsciiMetricNameDisabledMetrics() {
         meterRegistry.counter("网络").increment(42);
 
