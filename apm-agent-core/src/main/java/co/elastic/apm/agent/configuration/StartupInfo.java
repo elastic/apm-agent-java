@@ -90,7 +90,7 @@ public class StartupInfo extends AbstractLifecycleListener {
     }
 
     private void logConfigWithNonDefaultValue(Logger logger, ConfigurationOption<?> option) {
-        logger.debug("{}: '{}' (source: {})", option.getKey(),
+        logger.info("{}: '{}' (source: {})", option.getKey(),
             option.isSensitive() ? "XXXX" : option.getValueAsSafeString(),
             option.getNameOfCurrentConfigurationSource());
 
