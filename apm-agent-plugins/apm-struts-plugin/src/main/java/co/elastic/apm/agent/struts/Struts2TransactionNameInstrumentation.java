@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.struts;
 
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -33,9 +34,15 @@ import java.util.Collection;
 
 import static java.util.Collections.singletonList;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class Struts2TransactionNameInstrumentation extends ElasticApmInstrumentation {
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameStartsWith("org.apache.struts2.factory");
+    }
 
     @Override
     public final ElementMatcher<? super TypeDescription> getTypeMatcher() {
