@@ -95,7 +95,7 @@ public class SpringAmqpMessageListenerInstrumentation extends SpringBaseInstrume
             transaction.setFrameworkName("Spring AMQP");
 
             long timestamp = getTimestamp(messageProperties.getTimestamp());
-            co.elastic.apm.agent.impl.context.Message internalMessage = captureMessage(exchangeOrQueue, timestamp, transaction);
+            co.elastic.apm.agent.impl.context.Message internalMessage = captureMessage(exchangeOrQueue, messageProperties.getReceivedRoutingKey(), timestamp, transaction);
             // only capture incoming messages headers for now (consistent with other messaging plugins)
             captureHeaders(messageProperties.getHeaders(), internalMessage);
             return transaction.activate();
