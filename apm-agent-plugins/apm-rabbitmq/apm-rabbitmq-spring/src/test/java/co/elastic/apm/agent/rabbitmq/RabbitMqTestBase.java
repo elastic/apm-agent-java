@@ -26,6 +26,7 @@ package co.elastic.apm.agent.rabbitmq;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.testutils.TestContainersUtils;
 import org.junit.AfterClass;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ public class RabbitMqTestBase extends AbstractInstrumentationTest {
         @Override
         public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
             container.withExtraHost("localhost", LOCALHOST_ADDRESS);
+            container.withCreateContainerCmdModifier(TestContainersUtils.withMemoryLimit(2048));
             container.start();
 
             TestPropertyValues.of(
