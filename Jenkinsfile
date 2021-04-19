@@ -304,6 +304,21 @@ pipeline {
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
     }
+    stage('Stable') {
+      options { skipDefaultCheckout() }
+      when {
+        branch 'master'
+      }
+      steps {
+        deleteDir()
+        unstash 'source'
+        dir("${BASE_DIR}"){
+          setupAPMGitEmail(global: false)
+          sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
+          gitCreateTag(tag: 'stable', tagArgs: '--force', pushArgs: '--force')
+        }
+      }
+    }
     stage('AfterRelease') {
       options { skipDefaultCheckout() }
       when {

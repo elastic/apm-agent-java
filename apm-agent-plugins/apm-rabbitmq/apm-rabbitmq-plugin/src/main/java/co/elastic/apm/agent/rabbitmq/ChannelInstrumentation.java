@@ -44,6 +44,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -148,7 +149,8 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
             properties = propagateTraceContext(exitSpan, properties);
 
             captureMessage(exchange, getTimestamp(properties.getTimestamp()), exitSpan);
-            captureDestination(exchange, channel, exitSpan);
+            Connection connection = channel.getConnection();
+            captureDestination(exchange, connection.getAddress(), connection.getPort(), exitSpan);
 
             return new Object[]{properties, exitSpan};
         }
@@ -247,7 +249,8 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
             }
 
             captureMessage(queue, getTimestamp(properties != null ? properties.getTimestamp() : null), span);
-            captureDestination(exchange, channel, span);
+            Connection connection = channel.getConnection();
+            captureDestination(exchange, connection.getAddress(), connection.getPort(), span);
 
             span.captureException(thrown)
                 .deactivate()
@@ -280,11 +283,12 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
     /**
      * Updates span destination
      *
-     * @param exchange normalized exchange name
-     * @param channel  channel
-     * @param span     span
+     * @param exchange      normalized exchange name
+     * @param brokerAddress broker address
+     * @param port          broker port
+     * @param span          span
      */
-    private static void captureDestination(String exchange, Channel channel, Span span) {
+    private static void captureDestination(String exchange, InetAddress brokerAddress, int port, Span span) {
         Destination destination = span.getContext().getDestination();
 
         Destination.Service service = destination.getService();
@@ -295,8 +299,7 @@ public abstract class ChannelInstrumentation extends RabbitmqBaseInstrumentation
 
         service.getResource().append("/").append(exchange);
 
-        Connection connection = channel.getConnection();
-        destination.withInetAddress(connection.getAddress());
-        destination.withPort(connection.getPort());
+        destination.withInetAddress(brokerAddress);
+        destination.withPort(port);
     }
 }

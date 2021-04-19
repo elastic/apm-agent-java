@@ -22,21 +22,18 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.opentracing.impl;
+package co.elastic.apm.agent.opentracingimpl;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 
-@VisibleForAdvice
 public class OpenTracingTextMapBridge implements TextHeaderGetter<Iterable<Map.Entry<String, String>>>, TextHeaderSetter<Map<String, String>> {
 
     private static final OpenTracingTextMapBridge INSTANCE = new OpenTracingTextMapBridge();
 
-    @VisibleForAdvice
     public static OpenTracingTextMapBridge instance() {
         return INSTANCE;
     }

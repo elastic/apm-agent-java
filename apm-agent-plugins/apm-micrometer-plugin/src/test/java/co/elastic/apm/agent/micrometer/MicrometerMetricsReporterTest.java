@@ -82,8 +82,8 @@ class MicrometerMetricsReporterTest {
         metricsReporter.registerMeterRegistry(meterRegistry);
         metricsReporter.registerMeterRegistry(nestedCompositeMeterRegistry);
         metricsReporter.registerMeterRegistry(simpleMeterRegistry);
-        assertThat(metricsReporter.getMeterRegistries()).doesNotContain(nestedCompositeMeterRegistry);
         assertThat(metricsReporter.getMeterRegistries()).doesNotContain(meterRegistry);
+        assertThat(metricsReporter.getMeterRegistries()).doesNotContain(nestedCompositeMeterRegistry);
         assertThat(metricsReporter.getMeterRegistries()).contains(simpleMeterRegistry);
     }
 

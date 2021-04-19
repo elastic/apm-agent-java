@@ -78,8 +78,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
 
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
-        container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
-        container.start();
+        startContainer(ELASTICSEARCH_CONTAINER_VERSION);
 
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
@@ -100,8 +99,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEs6_4Clien
             client.indices().delete(new DeleteIndexRequest(INDEX), RequestOptions.DEFAULT);
             client.close();
         }
-
-        container.stop();
     }
 
     @Override
