@@ -68,12 +68,6 @@ public class PatchBytecodeVersionTo51Transformer implements AgentBuilder.Transfo
             public ClassVisitor wrap(TypeDescription typeDescription, ClassVisitor classVisitor, Implementation.Context context,
                                      TypePool typePool, FieldList<FieldDescription.InDefinedShape> fieldList, MethodList<?> methodList, int writerFlags, int readerFlags) {
 
-                if (isAtLeastJava7(typeDescription)) {
-                    // in this case we won't prevent recomputing stack frames, but at least we avoid extra visitor wrapping
-                    // this happens for example with db2 JDBC driver
-                    return classVisitor;
-                }
-
                 return new ClassVisitor(Opcodes.ASM7, classVisitor) {
                     private boolean patchVersion;
 
