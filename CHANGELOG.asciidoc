@@ -61,6 +61,7 @@ Even when matching on the main class name or on system properties,
 ** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
 * Cassandra instrumentation - {pull}1712[#1712]
 * Log correlation supports JBoss Logging - {pull}1737[#1737]
+* Update Byte-buddy to `1.11.0` - {pull}1769[#1769]
 * Basic support for Apache Struts 2 {pull}1763[#1763]
 
 [float]
@@ -71,6 +72,7 @@ Even when matching on the main class name or on system properties,
 * Fix rounded number format for non-english locales - {pull}1728[#1728]
 * Fix `NullPointerException` on legacy Apache client instrumentation when host is `null` - {pull}1746[#1746]
 * Apply consistent proxy class exclusion heuristic - {pull}1738[#1738]
+* Fix micrometer serialization error - {pull}1741[#1741]
 
 [float]
 ===== Refactors
