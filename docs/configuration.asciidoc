@@ -1,5 +1,5 @@
 ////
-This file is auto generated
+This file is auto-generated 
 
 Please only make changes in configuration.asciidoc.ftl
 ////
