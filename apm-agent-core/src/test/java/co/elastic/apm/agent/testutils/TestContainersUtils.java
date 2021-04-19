@@ -22,31 +22,20 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.mongoclient;
+package co.elastic.apm.agent.testutils;
 
-import co.elastic.apm.agent.bci.TracerAwareInstrumentation;
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.matcher.ElementMatcher;
+import com.github.dockerjava.api.command.CreateContainerCmd;
+import org.testcontainers.DockerClientFactory;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.util.Objects;
+import java.util.function.Consumer;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
-import static net.bytebuddy.matcher.ElementMatchers.named;
+public class TestContainersUtils {
 
-
-public abstract class MongoClientInstrumentation extends TracerAwareInstrumentation {
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("com.mongodb.")
-            .and(hasSuperType(named("com.mongodb.connection.Connection")));
+    private TestContainersUtils() {
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("mongodb-client");
+    public static Consumer<CreateContainerCmd> withMemoryLimit(int limitMb) {
+        return cmd -> Objects.requireNonNull(cmd.getHostConfig()).withMemory(limitMb * 1024 * 1024L);
     }
-
 }

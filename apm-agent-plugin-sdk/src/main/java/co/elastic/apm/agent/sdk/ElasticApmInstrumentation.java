@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
- * For internal plugins, the whole package (starting at the {@linkplain #getAdviceClass() advice's} package)
+ * For internal plugins, the whole package (starting at the {@linkplain #getAdviceClassName() advice's} package)
  * will be loaded from a plugin class loader that has both the agent class loader and the class loader of the
  * instrumented class as parents.
  * This class loader is also known as the {@code IndyPluginClassLoader}.
@@ -89,8 +89,8 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  *     <li>
  *         This applies to internal plugins only:
  *         Due to the automatic plugin classloader creation that is based on package scanning,
- *         plugins need be in their own uniquely named package.
- *         As the package of the {@link #getAdviceClass()} is used as the root,
+ *         plugins need to be in their own uniquely named package.
+ *         As the package of the {@link #getAdviceClassName() advice class} is used as the root,
  *         all advices have to be at the top level of the plugin.
  *     </li>
  * </ul>
@@ -145,14 +145,26 @@ public abstract class ElasticApmInstrumentation {
      */
     public abstract ElementMatcher<? super MethodDescription> getMethodMatcher();
 
-    public Class<?> getAdviceClass() {
-        return getClass();
+    /**
+     * Implementing the advice and instrumentation at the same class is <b>bad practice</b>, as they are
+     * loaded in different contexts with different purposes. The instrumentation class is loaded by the agent class
+     * loader, whereas the advice class needs to be loaded by a class loader that has visibility to the instrumented
+     * type and library, as well as the agent classes. Therefore, loading the advice class through the agent class
+     * loader may cause linkage-related errors.
+     * The default implementation is the only one that is allowed to assume the advice class is already loaded, as it
+     * is the same as the instrumentation class.
+     * <p>
+     *     ANY INSTRUMENTATION THAT OVERRIDES THIS METHOD MUST NOT CAUSE THE LOADING OF THE ADVICE CLASS.
+     *     For example, implementing it as {@code MyAdvice.class.getName()} is not allowed.
+     * </p>
+     * @return the name of the advice class corresponding this instrumentation
+     */
+    public String getAdviceClassName() {
+        return getClass().getName();
     }
 
     /**
-     * Return {@code true},
-     * if this instrumentation should even be applied when
-     * {@code instrument} is set to {@code false}.
+     * Returns {@code true} if this instrumentation should be applied even when {@code instrument} is set to {@code false}.
      */
     public boolean includeWhenInstrumentationIsDisabled() {
         return false;

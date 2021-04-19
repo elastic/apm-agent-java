@@ -83,8 +83,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return MessageConsumerAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$ReceiveInstrumentation$MessageConsumerAdvice";
         }
 
         public static class MessageConsumerAdvice extends BaseAdvice {
@@ -193,7 +193,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         } else if (addDetails) {
                             if (message != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");
-                                helper.addDestinationDetails(message, destination, destinationName, abstractSpan);
+                                helper.addDestinationDetails(destination, destinationName, abstractSpan);
                                 helper.setMessageAge(message, abstractSpan);
                             }
                             abstractSpan.captureException(throwable);
@@ -215,7 +215,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                         if (destinationName != null) {
                             messageHandlingTransaction.appendToName(" from ");
-                            helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
+                            helper.addDestinationDetails(destination, destinationName, messageHandlingTransaction);
                             helper.addMessageDetails(message, messageHandlingTransaction);
                             helper.setMessageAge(message, messageHandlingTransaction);
                         }
@@ -235,8 +235,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         }
 
         @Override
-        public Class<?> getAdviceClass() {
-            return ListenerWrappingAdvice.class;
+        public String getAdviceClassName() {
+            return "co.elastic.apm.agent.jms.JmsMessageConsumerInstrumentation$SetMessageListenerInstrumentation$ListenerWrappingAdvice";
         }
 
         public static class ListenerWrappingAdvice extends BaseAdvice {

@@ -63,7 +63,7 @@ public class MicrometerMeterRegistrySerializer {
     private final StringBuilder replaceBuilder = new StringBuilder();
     private final MetricsConfiguration config;
     private final WeakConcurrentSet<Meter> internallyDisabledMeters = WeakMapSupplier.createSet();
-    private int previousSize = 512;
+    private int previousSize = 0;
 
     public MicrometerMeterRegistrySerializer(MetricsConfiguration config) {
         this.config = config;
@@ -74,7 +74,8 @@ public class MicrometerMeterRegistrySerializer {
     }
 
     public JsonWriter serialize(final Map<Meter.Id, Meter> metersById, final long epochMicros) {
-        JsonWriter jw = dslJson.newWriter((int) (previousSize * 1.25));
+        int newSize = (int) (Math.max(previousSize, 512) * 1.25);
+        JsonWriter jw = dslJson.newWriter(newSize);
         serialize(metersById, epochMicros, replaceBuilder, jw);
         previousSize = jw.size();
         return jw;

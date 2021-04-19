@@ -28,14 +28,15 @@ import co.elastic.apm.agent.bci.classloading.ExternalPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.IndyPluginClassLoader;
 import co.elastic.apm.agent.bci.classloading.LookupExposer;
 import co.elastic.apm.agent.premain.JavaVersionBootstrapCheck;
-import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.premain.JvmRuntimeInfo;
+import co.elastic.apm.agent.sdk.state.GlobalState;
 import co.elastic.apm.agent.util.PackageScanner;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.util.IOUtils;
 import sun.misc.Unsafe;
 
@@ -55,7 +56,10 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -318,34 +322,40 @@ public class IndyBootstrap {
             String instrumentedMethodName = (String) args[3];
             MethodHandle instrumentedMethod = args.length >= 5 ? (MethodHandle) args[4] : null;
 
-            ClassLoader adviceClassLoader = ElasticApmAgent.getClassLoader(adviceClassName);
+            ClassLoader instrumentationClassLoader = ElasticApmAgent.getInstrumentationClassLoader(adviceClassName);
             ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
-            if (adviceClassLoader instanceof ExternalPluginClassLoader) {
-                pluginClasses.addAll(((ExternalPluginClassLoader) adviceClassLoader).getClassNames());
+            if (instrumentationClassLoader instanceof ExternalPluginClassLoader) {
+                pluginClasses.addAll(((ExternalPluginClassLoader) instrumentationClassLoader).getClassNames());
                 File agentJarFile = ElasticApmAgent.getAgentJarFile();
                 if (agentJarFile == null) {
                     throw new IllegalStateException("External plugin cannot be applied - can't find agent jar");
                 }
                 classFileLocator = new ClassFileLocator.Compound(
-                    ClassFileLocator.ForClassLoader.of(adviceClassLoader),
+                    ClassFileLocator.ForClassLoader.of(instrumentationClassLoader),
                     ClassFileLocator.ForJarFile.of(agentJarFile)
                 );
             } else {
-                pluginClasses.addAll(getClassNamesFromBundledPlugin(adviceClassName, adviceClassLoader));
-                classFileLocator = ClassFileLocator.ForClassLoader.of(adviceClassLoader);
+                pluginClasses.addAll(getClassNamesFromBundledPlugin(adviceClassName, instrumentationClassLoader));
+                classFileLocator = ClassFileLocator.ForClassLoader.of(instrumentationClassLoader);
             }
             pluginClasses.add(LOOKUP_EXPOSER_CLASS_NAME);
             ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
                 lookup.lookupClass().getClassLoader(),
                 pluginClasses,
-                adviceClassLoader,
+                // we provide the instrumentation class loader as the agent class loader, but it could actually be an
+                // ExternalPluginClassLoader, of which parent is the agent class loader, so this works as well.
+                instrumentationClassLoader,
                 classFileLocator,
                 isAnnotatedWith(named(GlobalState.class.getName()))
                     // no plugin CL necessary as all types are available form bootstrap CL
                     // also, this plugin is used as a dependency in other plugins
-                    .or(nameStartsWith("co.elastic.apm.agent.concurrent")));
+                    .or(nameStartsWith("co.elastic.apm.agent.concurrent"))
+                    // if config classes would be loaded from the plugin CL,
+                    // tracer.getConfig(Config.class) would return null when called from an advice as the classes are not the same
+                    .or(nameContains("Config").and(hasSuperType(is(ConfigurationOptionProvider.class)))));
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
+            ElasticApmAgent.validateAdvice(adviceInPluginCL);
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
             // can't use MethodHandle.lookup(), see also https://github.com/elastic/apm-agent-java/issues/1450
             MethodHandles.Lookup indyLookup = (MethodHandles.Lookup) lookupExposer.getMethod("getLookup").invoke(null);
