@@ -316,7 +316,7 @@ pipeline {
           setupAPMGitEmail(global: false)
           sh(label: "checkout ${BRANCH_NAME} branch", script: "git checkout -f '${BRANCH_NAME}'")
           sh(label: 'rebase latest', script: """
-            git checkout latest
+            git rev-parse --quiet --verify latest && git checkout latest || git checkout -b latest
             git rebase '${BRANCH_NAME}'
           """)
           gitPush()
