@@ -325,6 +325,81 @@ class MicrometerMetricsReporterTest {
     }
 
     @Test
+    void testWorkingWithProperContextCL() {
+        List<Tag> tags = List.of(Tag.of("foo", "bar"));
+        meterRegistry.gauge("gauge1", tags, 42, v -> {
+            if (Thread.currentThread().getContextClassLoader() == null) {
+                throw new RuntimeException("Context CL cannot be null when querying this gauge");
+            }
+            return 42D;
+        });
+        JsonNode metricSet;
+        ClassLoader originalContextCL = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(null);
+            metricSet = getSingleMetricSet();
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalContextCL);
+        }
+        assertThat(metricSet.get("metricset").get("samples").get("gauge1").get("value").doubleValue()).isEqualTo(42D);
+        assertThat(metricsReporter.getFailedMeters()).isEmpty();
+    }
+
+    @Test
+    void tryExclusionOfFailedGauge_singleGauge() {
+        List<Tag> tags = List.of(Tag.of("foo", "bar"));
+        meterRegistry.gauge("gauge1", tags, 42, v -> {
+            throw new RuntimeException("Failed to read gauge value");
+        });
+        assertThat(metricsReporter.getFailedMeters()).isEmpty();
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples"))
+            .describedAs("value of %s is not expected to be written to json", "gauge1")
+            .isEmpty();
+
+        getSingleMetricSet();
+        assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge1");
+    }
+
+    @Test
+    void tryExclusionOfFailedGauge_firstFails() {
+        List<Tag> tags = List.of(Tag.of("foo", "bar"));
+        meterRegistry.gauge("gauge1", tags, 42, v -> {
+            throw new RuntimeException("Failed to read gauge value");
+        });
+        meterRegistry.gauge("gauge2", tags, 42, v -> 42D);
+        assertThat(metricsReporter.getFailedMeters()).isEmpty();
+        JsonNode metricSet = getSingleMetricSet();
+        assertThat(metricSet.get("metricset").get("samples").get("gauge1"))
+            .describedAs("value of %s is not expected to be written to json", "gauge1")
+            .isNull();
+
+        // serialization should handle ignoring the 1st value
+        assertThat(metricSet.get("metricset").get("samples").get("gauge2").get("value").doubleValue()).isEqualTo(42D);
+        assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge1");
+    }
+
+    @Test
+    void tryExclusionOfFailedGauge_secondFails() {
+        List<Tag> tags = List.of(Tag.of("foo", "bar"));
+        meterRegistry.gauge("gauge1", tags, 42, v -> 42D);
+        meterRegistry.gauge("gauge2", tags, 42, v -> {
+            throw new RuntimeException("Failed to read gauge value");
+        });
+        assertThat(metricsReporter.getFailedMeters()).isEmpty();
+        JsonNode metricSet = getSingleMetricSet();
+
+        // serialization should handle ignoring the 1st value
+        assertThat(metricSet.get("metricset").get("samples").get("gauge1").get("value").doubleValue()).isEqualTo(42D);
+
+        assertThat(metricSet.get("metricset").get("samples").get("gauge2"))
+            .describedAs("value of %s is not expected to be written to json", "gauge1")
+            .isNull();
+
+        assertThat(metricsReporter.getFailedMeters().iterator().next().getId().getName()).isEqualTo("gauge2");
+    }
+
+    @Test
     void tryToSerializeInvalidCounterValues() {
         for (Double invalidValue : Arrays.asList(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN)) {
             List<Tag> tags = List.of(Tag.of("foo", "bar"));
