@@ -61,6 +61,7 @@ Even when matching on the main class name or on system properties,
 ** Checks the Java version before attaching to avoid attachment on unsupported JVMs.
 * Cassandra instrumentation - {pull}1712[#1712]
 * Log correlation supports JBoss Logging - {pull}1737[#1737]
+* Update Byte-buddy to `1.11.0` - {pull}1769[#1769]
 
 [float]
 ===== Bug fixes
